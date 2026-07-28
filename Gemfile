@@ -19,5 +19,5 @@ end
 
 group :test do
   gem "codeclimate-test-reporter", require: false
-  gem "simplecov", "~> 1.0.0", require: false
+  gem "simplecov", "~> 1.0.2", require: false
 end
