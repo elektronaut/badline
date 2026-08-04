@@ -81,7 +81,7 @@ GEM
       ostruct
     ruby-progressbar (1.13.0)
     ruby-sdl2 (0.3.7)
-    simplecov (1.0.2)
+    simplecov (1.0.3)
     timecop (0.9.11)
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
@@ -102,7 +102,7 @@ DEPENDENCIES
   rubocop-rake
   rubocop-rspec
   ruby-prof
-  simplecov (~> 1.0.2)
+  simplecov (~> 1.0.3)
   timecop
 
 BUNDLED WITH
