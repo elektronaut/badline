@@ -10,11 +10,11 @@ module Badline
     end
 
     def peek(addr)
-      @storage[index(addr)]
+      @storage[offset_of(addr)]
     end
 
     def poke(addr, value)
-      @storage[index(addr)] = value
+      @storage[offset_of(addr)] = value
       value
     end
 
@@ -34,9 +34,7 @@ module Badline
 
     def zero_fill(initial)
       array = initial.dup
-      0.upto(length - 1) do |i|
-        array[i] ||= blank_value
-      end
+      array.fill(blank_value, array.length, length - array.length) if array.length < length
       array
     end
   end

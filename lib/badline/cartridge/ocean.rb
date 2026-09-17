@@ -14,19 +14,14 @@ module Badline
 
       def select_bank(number)
         @roml = @roml_banks[number]
-        @romh = @romh_banks[number] if @romh_banks
+        @romh = @romh_banks[number] unless @romh_banks.empty?
       end
 
       def install_chips(chips)
-        @roml_banks = []
-        @romh_banks = game.zero? ? [] : nil
-        chips.each { |chip| install_chip(chip) }
+        @roml_banks = bank_roms(chips, ROML_START)
+        # A 16K Ocean cartridge mirrors each bank into ROMH as well.
+        @romh_banks = game.zero? ? bank_roms(chips, ROMH_START) : []
         select_bank(0)
-      end
-
-      def install_chip(chip)
-        @roml_banks[chip.bank] = rom_bank(chip.data, ROML_START)
-        @romh_banks[chip.bank] = rom_bank(chip.data, ROMH_START) if @romh_banks
       end
     end
   end

@@ -10,7 +10,7 @@ module Badline
     end
 
     def peek(addr)
-      i = index(addr) % (2**5)
+      i = offset_of(addr) % (2**5)
       case i
       when 0x1d..0x1f then 0xff # Unused memory
       else @registers.peek(i)
@@ -18,7 +18,7 @@ module Badline
     end
 
     def poke(addr, value)
-      i = index(addr) % (2**5)
+      i = offset_of(addr) % (2**5)
       @registers.poke(i, value)
     end
   end

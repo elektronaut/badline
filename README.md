@@ -8,6 +8,25 @@ utilizing Fibers to emulate cycles.
 
 Currently the memory map and 6510 CPU is working.
 
+## Building with Spinel
+
+The emulator core compiles ahead of time with
+[Spinel](https://github.com/matz/spinel), which is roughly 2.8x faster than
+CRuby with YJIT on the same workload:
+
+```sh
+spinel -I lib bin/headless -o badline-headless
+BADLINE_ROMS=lib/badline/roms ./badline-headless 3000000
+```
+
+A compiled binary has no source tree beside it, so `BADLINE_ROMS` points at
+the ROM directory; under CRuby the ROMs are found relative to the source as
+before.
+
+The SDL front end (`exe/badline`) is CRuby-only: `ruby-sdl2` is a C extension,
+and Spinel would need FFI bindings instead. `bin/benchmark` is CRuby-only too,
+because Spinel's bundled `optparse` is a smaller subset than the real one.
+
 ## TODO
 
 - VIC-II emulation

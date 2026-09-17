@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Headless run, with no CLI framework in the way so it compiles ahead of time
+# with Spinel as well as running on CRuby:
+#
+#   ruby bin/headless [cycles] [media]
+#
+#   spinel -I lib bin/headless -o badline-headless
+#   BADLINE_ROMS=lib/badline/roms ./badline-headless
+#
+# Boots the machine (autostarting the media, if given), prints whatever the
+# KERNAL wrote to the screen, and reports the emulated clock rate.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
+require "badline"
+
+cycles = ARGV[0] ? ARGV[0].to_i : 5_000_000
+media_path = ARGV[1]
+
+computer = Badline::Computer.new
+output = computer.capture_output
+puts Badline::Media.attach(computer, media_path) if media_path
+
+started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+computer.cycle! while computer.cycles < cycles
+elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+print output.output
+rate = computer.cycles / elapsed
+puts format("%<cycles>d cycles, %<instructions>d instructions in %<elapsed>.2fs",
+            cycles: computer.cycles, instructions: computer.cpu.instructions,
+            elapsed: elapsed)
+puts format("%<rate>d cycles/s (%<speed>.2fx real time)",
+            rate: rate, speed: rate / Badline::TimeOfDay::CLOCK_HZ)

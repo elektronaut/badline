@@ -67,7 +67,9 @@ module Badline
         cycle do
           @stack_pointer = (@stack_pointer + 1) & 0xff
           @status.value = memory[stack_address]
-          @status.break = false
+          # Status#set, not the named setter: a cycle block that tails in a
+          # boolean assignment is one Spinel mistypes.
+          @status.set(:break, false)
         end
         @program_counter = uint16(stack_pull, stack_pull)
       end

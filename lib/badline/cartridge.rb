@@ -65,6 +65,14 @@ module Badline
       raise NotImplementedError
     end
 
+    # Banked cartridges index their ROMs by the CHIP packet's bank number.
+    # Built by mapping over the chips rather than assigning into an empty
+    # array: an empty array literal gives Spinel nothing to infer the
+    # element type from, and it settles on an integer array.
+    def bank_roms(chips, start)
+      chips.sort_by(&:bank).map { |chip| rom_bank(chip.data, start) }
+    end
+
     # Chips smaller than 8K (e.g. 4K Ultimax ROMs) have unconnected upper
     # address lines and mirror across the full bank.
     def rom_bank(data, start)

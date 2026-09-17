@@ -51,9 +51,12 @@ module Badline
 
     private
 
-    def index(addr)
+    # Offset of an address within this region. Not named `index`: Spinel
+    # resolves calls by name across the whole program, and a common name
+    # pulls unrelated receivers into this one's inferred parameter type.
+    def offset_of(addr)
       i = addr - @start
-      raise OutOfBoundsError, "#{addr.inspect} (#{range})" unless i >= 0 && i < @length
+      raise OutOfBoundsError, "#{addr.inspect} (#{@start}..#{@end - 1})" unless i >= 0 && i < @length
 
       i
     end

@@ -14,6 +14,7 @@ AllCops:
 Metrics/AbcSize:
   Exclude:
     - "lib/badline/instruction.rb"
+    - "lib/badline/instruction_set.rb"
 
 Metrics/BlockLength:
   Exclude:
@@ -21,12 +22,26 @@ Metrics/BlockLength:
 
 Metrics/ClassLength:
   Exclude:
+    - "lib/badline/cpu.rb"
     - "lib/badline/instruction.rb"
     - "lib/badline/vic.rb"
+
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - "lib/badline/instruction_set.rb"
 
 Metrics/MethodLength:
   Exclude:
     - "lib/badline/instruction.rb"
+    - "lib/badline/instruction_set.rb"
+
+Metrics/ModuleLength:
+  Exclude:
+    - "lib/badline/instruction_set.rb"
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - "lib/badline/instruction_set.rb"
 
 Style/AsciiComments:
   Enabled: false

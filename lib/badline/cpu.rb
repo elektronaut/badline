@@ -7,7 +7,17 @@ module Badline
 
     class InvalidOpcodeError < StandardError; end
     include IntegerHelper
+    # The per-category instruction modules are mixed in here rather than into
+    # InstructionSet; see the note there.
     include InstructionSet
+    include InstructionSet::Arithmetic
+    include InstructionSet::Bitwise
+    include InstructionSet::Branch
+    include InstructionSet::IncDec
+    include InstructionSet::Flag
+    include InstructionSet::Illegal
+    include InstructionSet::Stack
+    include InstructionSet::Transfer
     include Traps
 
     attr_reader :memory, :instructions, :boundary_crossed
@@ -220,7 +230,7 @@ module Badline
         log(@instruction, operand, address)
 
         # Run the instruction; :lazy realizes the value through #resolve
-        send(@instruction.name, address, :lazy)
+        execute(@instruction.name, address, :lazy)
 
         @instructions += 1
         @instruction = nil

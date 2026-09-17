@@ -11,14 +11,28 @@ module Badline
 
     attr_reader :start, :control_a, :control_b, :interrupt_status, :interrupt_control, :peripheral
 
-    def_delegator :@ta, :counter,  :timer_a
-    def_delegator :@ta, :counter=, :timer_a=
-    def_delegator :@ta, :latch,    :timer_a_latch
-    def_delegator :@ta, :latch=,   :timer_a_latch=
-    def_delegator :@tb, :counter,  :timer_b
-    def_delegator :@tb, :counter=, :timer_b=
-    def_delegator :@tb, :latch,    :timer_b_latch
-    def_delegator :@tb, :latch=,   :timer_b_latch=
+    def_delegator :@ta, :counter, :timer_a
+    def_delegator :@ta, :latch,   :timer_a_latch
+    def_delegator :@tb, :counter, :timer_b
+    def_delegator :@tb, :latch,   :timer_b_latch
+
+    # Written out rather than delegated: Forwardable's setter delegation
+    # is one of the constructs the Spinel AOT compiler can't rewrite.
+    def timer_a=(value)
+      @ta.counter = value
+    end
+
+    def timer_a_latch=(value)
+      @ta.latch = value
+    end
+
+    def timer_b=(value)
+      @tb.counter = value
+    end
+
+    def timer_b_latch=(value)
+      @tb.latch = value
+    end
 
     def initialize(start: 0, peripheral: nil)
       addressable_at(start, length: 2**8)
@@ -78,7 +92,7 @@ module Badline
     end
 
     def peek(addr)
-      case index(addr) & 0x0f
+      case offset_of(addr) & 0x0f
       when 0x00 then read_port_a
       when 0x01 then read_port_b
       when 0x02 then @data_dir_a
@@ -103,7 +117,7 @@ module Badline
     end
 
     def poke(addr, value)
-      case index(addr) & 0x0f
+      case offset_of(addr) & 0x0f
       when 0x00 then @data_port_a = value
       when 0x01 then @data_port_b = value
       when 0x02 then @data_dir_a = value
@@ -174,13 +188,12 @@ module Badline
     end
 
     def write_interrupt_control(value)
-      if value.nobits?(0x80)
-        # Clear interrupts based on bits 0-4
-        interrupt_control.value &= ~(value & 0x1f)
-      else
-        # Set interrupts based on bits 0-4
-        interrupt_control.value |= (value & 0x1f)
-      end
+      # Bit 7 selects clear (0) or set (1) for the interrupts in bits 0-4.
+      interrupt_control.value = if value.nobits?(0x80)
+                                  interrupt_control.value & ~(value & 0x1f)
+                                else
+                                  interrupt_control.value | (value & 0x1f)
+                                end
       return unless interrupt_control.value.anybits?(interrupt_status.value & 0x1f)
 
       interrupt!(2) unless interrupted?

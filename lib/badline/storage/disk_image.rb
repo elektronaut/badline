@@ -22,7 +22,7 @@ module Badline
       private
 
       def entries
-        @entries ||= each_sector(directory_track, directory_sector)
+        @entries ||= sector_chain(directory_track, directory_sector)
                      .flat_map { |data| parse_entries(data) }
       end
 
@@ -42,21 +42,39 @@ module Badline
       end
 
       def read_chain(track, sector)
-        each_sector(track, sector).flat_map do |data|
+        sector_chain(track, sector).flat_map do |data|
           data[0].zero? ? data[2..data[1]] : data[2..]
         end
       end
 
-      def each_sector(track, sector)
-        return to_enum(:each_sector, track, sector) unless block_given?
-
+      # Follows the sector chain from (track, sector) and returns the
+      # sectors it visits. Returning the array rather than yielding keeps
+      # this off `to_enum`, which an AOT compiler has no name to resolve.
+      def sector_chain(track, sector)
+        sectors = []
         visited = {}
         while track != 0 && !visited[[track, sector]]
           visited[[track, sector]] = true
           data = sector_at(track, sector)
-          yield data
+          sectors << data
           track, sector = data[0, 2]
         end
+        sectors
+      end
+
+      # Geometry hooks. Declared here so the base class carries the full
+      # interface it calls into, rather than relying on the subclass that
+      # happens to define it.
+      def directory_track
+        raise NotImplementedError
+      end
+
+      def directory_sector
+        raise NotImplementedError
+      end
+
+      def sectors_in(_track)
+        raise NotImplementedError
       end
 
       def sector_at(track, sector)

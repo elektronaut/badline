@@ -79,7 +79,7 @@ module Badline
     end
 
     def peek(addr)
-      i = index(addr) % (2**6)
+      i = offset_of(addr) % (2**6)
       case i
       when 0x11 then (@registers[0x11] & 0x7f) | ((rasterline & 0x100) >> 1)
       when 0x12 then rasterline & 0xff
@@ -89,7 +89,7 @@ module Badline
     end
 
     def poke(addr, value)
-      @registers.write(index(addr) % (2**6), value)
+      @registers.write(offset_of(addr) % (2**6), value)
     end
 
     def position

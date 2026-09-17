@@ -156,23 +156,24 @@ module Badline
     def map_ultimax_pages
       @read_pages.fill(OpenSpace, 0x10, 0xf0)
       @write_pages.fill(OpenSpace, 0x10, 0xf0)
-      @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
-      @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
+      @read_pages.fill(@cartridge.roml, 0x80, 0x20) unless @cartridge.roml.nil?
+      @read_pages.fill(@cartridge.romh, 0xe0, 0x20) unless @cartridge.romh.nil?
       map_io_pages
     end
 
     def map_io_pages
-      {
-        vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd
-        # 0xde/0xdf are open I/O unless a cartridge claims them
-      }.each do |chip, pages|
-        pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
-      end
-      return unless @cartridge
+      map_chip(vic, 0xd0, 4)
+      map_chip(sid, 0xd4, 4)
+      map_chip(color_ram, 0xd8, 4)
+      map_chip(cia1, 0xdc, 1)
+      map_chip(cia2, 0xdd, 1)
+      # 0xde/0xdf stay open I/O unless a cartridge claims them
+      map_chip(@cartridge, 0xde, 2) unless @cartridge.nil?
+    end
 
-      @read_pages.fill(@cartridge, 0xde, 2)
-      @write_pages.fill(@cartridge, 0xde, 2)
+    def map_chip(chip, page, count)
+      @read_pages.fill(chip, page, count)
+      @write_pages.fill(chip, page, count)
     end
 
     def basic?
@@ -184,11 +185,15 @@ module Badline
     end
 
     def roml?
-      @cartridge&.roml && @cartridge.exrom.zero? && io_port.kernal? && io_port.basic?
+      return false if @cartridge.nil? || @cartridge.roml.nil?
+
+      @cartridge.exrom.zero? && io_port.kernal? && io_port.basic?
     end
 
     def romh?
-      @cartridge&.romh && @cartridge.exrom.zero? && @cartridge.game.zero? && io_port.kernal?
+      return false if @cartridge.nil? || @cartridge.romh.nil?
+
+      @cartridge.exrom.zero? && @cartridge.game.zero? && io_port.kernal?
     end
 
     def character?
