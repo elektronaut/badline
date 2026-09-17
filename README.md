@@ -1,6 +1,5 @@
-![Build](https://github.com/elektronaut/badline/workflows/Build/badge.svg)
-[![Code Climate](https://codeclimate.com/github/elektronaut/badline/badges/gpa.svg)](https://codeclimate.com/github/elektronaut/badline)
-[![Code Climate](https://codeclimate.com/github/elektronaut/badline/badges/coverage.svg)](https://codeclimate.com/github/elektronaut/badline)
+[![Build](https://github.com/elektronaut/badline/actions/workflows/build.yml/badge.svg)](https://github.com/elektronaut/badline/actions/workflows/build.yml)
+[![Gem Version](https://img.shields.io/gem/v/badline.svg)](https://rubygems.org/gems/badline)
 
 # Badline
 
