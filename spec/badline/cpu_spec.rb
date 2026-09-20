@@ -20,8 +20,8 @@ describe Badline::CPU do
     before do
       memory.write(0xfffa, [0x39, 0x05])
       memory.write(start_addr, [0x69, 0x05])
+      cpu.nmi = true # Assert before the second-to-last cycle
       cpu.cycle!
-      cpu.nmi = true # Set the interrupt mid-instruction
       2.times { cpu.step! } # Finish the instruction and perform the interrupt
     end
 
@@ -43,8 +43,8 @@ describe Badline::CPU do
       memory.write(0xfffe, [0x40, 0x05])
       memory.write(start_addr, [0x69, 0x05])
       cpu.status.interrupt = interrupt
+      cpu.irq = true # Assert before the second-to-last cycle
       cpu.cycle!
-      cpu.irq = true # Set the interrupt mid-instruction
     end
 
     context "when the interrupt flag is clear" do
@@ -53,7 +53,6 @@ describe Badline::CPU do
       specify { expect(cpu.cycles).to eq(2 + 7) }
       specify { expect(cpu.stack_pointer).to eq(0xfc) }
       specify { expect(cpu.status.interrupt?).to be(true) }
-      specify { expect(cpu.irq).to be(false) }
       specify { expect(cpu.program_counter).to eq(0x0540) }
 
       it "finishes the previous instruction" do
@@ -72,6 +71,141 @@ describe Badline::CPU do
 
       # The line stays asserted while masked; it is serviced once I clears.
       specify { expect(cpu.irq).to be(true) }
+    end
+  end
+
+  describe "interrupt recognition timing" do
+    before do
+      memory.write(0xfffa, [0x39, 0x05])
+      memory.write(0xfffe, [0x40, 0x05])
+    end
+
+    context "when the IRQ rises on an instruction's final cycle" do
+      before do
+        memory.write(start_addr, [0xe8, 0xe8, 0xe8])
+        cpu.cycle! # INX cycle 1
+        cpu.irq = true
+        3.times { cpu.step! }
+      end
+
+      it "executes one more instruction before the handler" do
+        expect(cpu.x).to eq(2)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0540) }
+    end
+
+    context "when the IRQ rises during a taken same-page branch" do
+      before do
+        memory.write(start_addr, [0xd0, 0x02, 0xea, 0xea, 0xe8])
+        cpu.cycle! # BNE cycle 1
+        cpu.irq = true
+        3.times { cpu.step! }
+      end
+
+      it "executes the next instruction before the handler" do
+        expect(cpu.x).to eq(1)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0540) }
+    end
+
+    context "when the IRQ rises during a taken page-crossing branch" do
+      let(:start_addr) { 0xc0fd }
+
+      before do
+        memory.write(start_addr, [0xd0, 0x02, 0xea, 0xea, 0xe8])
+        cpu.cycle! # BNE cycle 1
+        cpu.irq = true
+        2.times { cpu.step! }
+      end
+
+      it "enters the handler without running the next instruction" do
+        expect(cpu.x).to eq(0)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0540) }
+    end
+
+    context "when CLI unmasks a pending IRQ" do
+      before do
+        cpu.status.interrupt = true
+        cpu.irq = true
+        memory.write(start_addr, [0x58, 0xe8, 0xe8])
+        3.times { cpu.step! }
+      end
+
+      it "executes one instruction after CLI before the handler" do
+        expect(cpu.x).to eq(1)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0540) }
+    end
+
+    context "when SEI executes with an IRQ pending" do
+      before do
+        cpu.irq = true
+        memory.write(start_addr, [0x78])
+        2.times { cpu.step! }
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0540) }
+
+      it "pushes the status with the interrupt flag set" do
+        expect(memory.peek(0x01fd) & 0x04).to eq(0x04)
+      end
+    end
+
+    context "when an NMI rises before cycle 4 of a BRK" do
+      before do
+        memory.write(start_addr, [0x00])
+        cpu.cycle! # BRK cycle 1
+        cpu.nmi = true
+        cpu.step!
+      end
+
+      it "finishes the BRK as an NMI" do
+        expect(cpu.program_counter).to eq(0x0539)
+      end
+
+      it "keeps the break flag set on the stack" do
+        expect(memory.peek(0x01fd) & 0x10).to eq(0x10)
+      end
+
+      specify { expect(cpu.nmi).to be(false) }
+    end
+
+    context "when an NMI rises after the BRK hijack window" do
+      before do
+        memory.write(0x0540, [0xe8])
+        memory.write(start_addr, [0x00])
+        5.times { cpu.cycle! } # BRK cycles 1-5
+        cpu.nmi = true
+        3.times { cpu.step! }
+      end
+
+      it "runs the handler's first instruction before the NMI" do
+        expect(cpu.x).to eq(1)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0539) }
+    end
+
+    context "when an NMI rises late in an IRQ sequence" do
+      before do
+        memory.write(0x0540, [0xe8])
+        memory.write(start_addr, [0xea])
+        cpu.irq = true
+        8.times { cpu.cycle! } # NOP + IRQ sequence up to cycle 6
+        cpu.nmi = true
+        3.times { cpu.step! }
+      end
+
+      it "runs the handler's first instruction before the NMI" do
+        expect(cpu.x).to eq(1)
+      end
+
+      specify { expect(cpu.program_counter).to eq(0x0539) }
     end
   end
 

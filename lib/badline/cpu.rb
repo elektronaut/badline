@@ -8,6 +8,7 @@ module Badline
     class InvalidOpcodeError < StandardError; end
     include IntegerHelper
     include InstructionSet
+    include Interrupts
     include Traps
 
     attr_reader :memory, :instructions, :boundary_crossed
@@ -21,6 +22,9 @@ module Badline
       reset_registers
 
       @nmi = @irq = false
+      @irq_sample = @irq_pending = false
+      @nmi_sample = @nmi_pending = false
+      @skip_poll = false
 
       @instructions = 0
       @traps = nil
@@ -57,35 +61,6 @@ module Badline
       return cycle unless instruction.boundary_cycle?
 
       boundary_crossed && cycle
-    end
-
-    def handle_interrupt(vector, brk: false, pre_cycles: 2)
-      pre_cycles.times { cycle }
-
-      pc = program_counter
-      pc = (pc + 1) & 0xffff if brk
-
-      write_byte(stack_address, high_byte(pc))
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      write_byte(stack_address, low_byte(pc))
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      write_byte(stack_address,
-                 status.clone.tap { |s| s.break = brk }.value)
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      status.interrupt = true
-      @program_counter = read_word(vector)
-    end
-
-    def handle_interrupts
-      @interrupt = if nmi
-                     0xfffa
-                   elsif irq && !status.interrupt?
-                     0xfffe
-                   end
-
-      handle_interrupt(@interrupt) if @interrupt
-      @interrupt = nil
-      @nmi = @irq = false
     end
 
     def read_byte(addr)
@@ -200,8 +175,11 @@ module Badline
     end
 
     def main_loop
-      if nmi || (irq && !status.interrupt?)
-        handle_interrupts
+      irq_pending = @irq_pending
+      nmi_pending = @nmi_pending
+      poll
+      if nmi_pending || irq_pending
+        service_interrupt(nmi_pending)
       else
         run_traps
         @boundary_crossed = false

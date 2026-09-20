@@ -22,11 +22,14 @@ module Badline
     def cycle(write: false)
       @pending_write = write
       Fiber.yield
+      poll
       result = yield if block_given?
       @cycles += 1
       @pending_write = false
       result
     end
+
+    def poll; end
 
     def main_loop
       Fiber.yield

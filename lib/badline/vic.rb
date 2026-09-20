@@ -52,17 +52,7 @@ module Badline
     end
 
     def cycle!
-      if @column.zero?
-        if @rasterline.zero?
-          @display_state.new_frame
-          start_lightpen_frame
-        end
-        check_raster_irq!
-        @sequencer.new_line(@rasterline)
-        @sprites.start_line
-        rebuild_sprite_ba
-        @display_state.new_line
-      end
+      start_line! if @column.zero?
 
       @display_state.cycle(@rasterline, @column)
 
@@ -83,6 +73,7 @@ module Badline
         finish_line!
         @column = 0
         @rasterline = @rasterline == @last_line ? 0 : @rasterline + 1
+        check_raster_irq! unless @rasterline.zero?
       end
       nil
     end
@@ -248,6 +239,20 @@ module Badline
 
     def video_matrix(index)
       vic_bank.peek(@registers.screen_base + index)
+    end
+
+    def start_line!
+      if @rasterline.zero?
+        @display_state.new_frame
+        start_lightpen_frame
+        # The line 0 raster compare happens one cycle later than on all
+        # other lines (Bauer 3.12).
+        check_raster_irq!
+      end
+      @sequencer.new_line(@rasterline)
+      @sprites.start_line
+      rebuild_sprite_ba
+      @display_state.new_line
     end
 
     def check_raster_irq!

@@ -29,7 +29,7 @@ module Badline
     #   $00 - implied - 7 cycles
     def brk(_addr, _value)
       status.break = true
-      handle_interrupt(0xfffe, brk: true, pre_cycles: 1)
+      handle_interrupt(0xfffe, brk: true)
       status.break = false
     end
 

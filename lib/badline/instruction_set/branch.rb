@@ -69,8 +69,14 @@ module Badline
 
       private
 
+      # A branch within the same page does not re-poll interrupts during
+      # its final cycle.
       def branch(addr)
-        cycle if high_byte(addr) != high_byte(@program_counter)
+        if high_byte(addr) == high_byte(@program_counter)
+          @skip_poll = true
+        else
+          cycle
+        end
         cycle { @program_counter = addr }
       end
     end
