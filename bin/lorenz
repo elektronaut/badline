@@ -1,0 +1,92 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Headless runner for the Wolfgang Lorenz C64 Emulator Test Suite.
+#
+#   ruby --jit bin/lorenz [image] [start_test] [max_cycles]
+#
+# Boots the machine, mounts the image as device 8 and autostarts (or loads
+# start_test by name to resume mid-suite). Test output is captured through
+# the CHROUT trap and echoed to stdout. When a failed test halts waiting
+# for a keypress (detected by GETIN polling), a space is injected to
+# continue — STOP would exit some tests to BASIC and kill the chain. Ends
+# on the suite completion message, on a BASIC READY prompt, or on a hard
+# hang.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "badline"
+
+GETIN_LIMIT = 100
+GETIN_GRACE = -200
+HANG_CYCLES = 90_000_000
+BATCH = 10_000
+
+def screen_ascii(code)
+  code &= 0x7f
+  case code
+  when 0x01..0x1a then (code + 0x60).chr
+  when 0x00, 0x1b..0x1f then (code + 0x40).chr
+  when 0x20..0x3f, 0x41..0x5a then code.chr
+  else " "
+  end
+end
+
+def dump_screen(computer)
+  warn "=== screen RAM ==="
+  25.times do |row|
+    warn computer.ram.read(0x0400 + (row * 40), 40)
+                 .map { |code| screen_ascii(code) }.join
+  end
+end
+
+path = ARGV[0] ||
+       File.expand_path("../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81",
+                        __dir__)
+start_test = ARGV[1]
+max_cycles = (ARGV[2] || 10_000_000_000).to_i
+
+computer = Badline::Computer.new
+capture = computer.capture_output
+
+getin_hits = 0
+computer.cpu.install_trap(0xffe4) { getin_hits += 1 }
+
+warn Badline::Media.attach(computer, path, autostart: start_test.nil?)
+computer.type_text(%(lO"#{start_test}",8\rrun\r)) if start_test
+
+printed = 0
+last_progress = 0
+keys_sent = 0
+result = nil
+
+until result
+  BATCH.times { computer.cycle! }
+
+  out = capture.output
+  if out.length > printed
+    print out[printed..]
+    $stdout.flush
+    printed = out.length
+    last_progress = computer.cycles
+    getin_hits = 0
+  end
+
+  result = "completed" if out.include?("test suite 2.15+ completed")
+  if computer.cycles - last_progress > HANG_CYCLES
+    result = out.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
+  end
+  result = "timeout" if computer.cycles > max_cycles
+
+  next unless getin_hits > GETIN_LIMIT
+
+  keys_sent += 1
+  warn "[#{computer.cycles}] test halted waiting for key, sending space " \
+       "(##{keys_sent})"
+  computer.type_text(" ")
+  getin_hits = GETIN_GRACE
+end
+
+dump_screen(computer) unless result == "completed"
+warn "[#{result}] #{computer.cycles} cycles, #{keys_sent} keys sent"
+exit(%w[completed ready-prompt].include?(result) ? 0 : 1)

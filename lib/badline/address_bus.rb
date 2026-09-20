@@ -47,6 +47,7 @@ module Badline
     def initialize
       @ram = Memory.new([0xff, 0x07], length: 2**16, start: 0)
       @cartridge = nil
+      @debug_register = nil
 
       @basic_rom     = ROM.load("basic.rom",     0xa000)
       @character_rom = ROM.load("character.rom", 0xd000)
@@ -82,6 +83,11 @@ module Badline
 
     def disable_overlays!
       poke(1, 0)
+    end
+
+    def install_debug_register(&)
+      @debug_register = DebugRegister.new(@sid, &)
+      update_overlays!
     end
 
     def peek(addr)
@@ -169,6 +175,7 @@ module Badline
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
+      @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
       return unless @cartridge
 
       @read_pages.fill(@cartridge, 0xde, 2)

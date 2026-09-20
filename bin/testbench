@@ -1,0 +1,243 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Headless runner for the VICE testbench (vendor/VICE-testprogs).
+#
+#   ruby --jit bin/testbench [filter] [--list]
+#
+# Runs the non-interactive PAL VICII tests from c64-testlist.in. Each test
+# boots a fresh machine with its directory mounted as device 8, injects the
+# .prg and types RUN. Tests report through the $D7FF debug register ($00
+# pass, $ff fail); screenshot tests are compared pixel-by-pixel against the
+# bundled reference PNGs (pepto palette, 384x272 — the same crop the GUI
+# uses). Failure artifacts and a results log go to tmp/testbench/.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "badline"
+require "chunky_png"
+
+module Testbench
+  TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
+  TESTLIST = File.join(TESTBENCH_DIR, "c64-testlist.in")
+  ARTIFACT_DIR = File.expand_path("../tmp/testbench", __dir__)
+
+  RUNNABLE_TYPES = %w[exitcode screenshot].freeze
+  SKIP_OPTIONS = /ntsc|drean|mount/
+
+  # Boot + RUN typing overhead on top of the testlist cycle budgets, which
+  # assume VICE's own autostart.
+  BOOT_ALLOWANCE = 3_000_000
+  BATCH = 10_000
+
+  # The VICE PAL viewport crop of the VIC display, matching the 384x272
+  # reference screenshots (the GUI ScreenPane crops 4 lines lower).
+  WIDTH = 384
+  HEIGHT = 272
+  COL_OFFSET = 96
+  ROW_OFFSET = 16
+
+  # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
+  PALETTE = [
+    0x000000, 0xFFFFFF, 0x68372B, 0x70A4B2, 0x6F3D86, 0x588D43, 0x352879,
+    0xB8C76F, 0x6F4F25, 0x433900, 0x9A6759, 0x444444, 0x6C6C6C, 0x9AD284,
+    0x6C5EB5, 0x959595
+  ].freeze
+
+  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options) do
+    def id
+      "#{dir.delete_prefix('../')}/#{prg}"
+    end
+
+    def dir_abs
+      File.expand_path(dir, Testbench::TESTBENCH_DIR)
+    end
+
+    def reference
+      File.join(dir_abs, "references", "#{prg}.png")
+    end
+  end
+
+  module Testlist
+    module_function
+
+    def tests(filter)
+      File.readlines(TESTLIST)
+          .filter_map { |line| parse(line) }
+          .select { |test| test.id.include?(filter) }
+    end
+
+    def parse(line)
+      line = line.strip
+      return if line.empty? || line.start_with?("#")
+
+      dir, prg, type, timeout, *options = line.split(",")
+      return unless dir.start_with?("../VICII")
+      return unless RUNNABLE_TYPES.include?(type)
+      return if options.any?(SKIP_OPTIONS)
+
+      TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options)
+    end
+  end
+
+  # Maps reference PNG pixels to C64 color indices by nearest palette entry.
+  class ReferenceImage
+    def initialize(path)
+      @png = ChunkyPNG::Image.from_file(path)
+      @indices = Hash.new { |cache, pixel| cache[pixel] = nearest(pixel) }
+    end
+
+    def size
+      [@png.width, @png.height]
+    end
+
+    def row(line)
+      Array.new(@png.width) { |x| @indices[@png[x, line]] }
+    end
+
+    private
+
+    def nearest(pixel)
+      rgb = [ChunkyPNG::Color.r(pixel), ChunkyPNG::Color.g(pixel),
+             ChunkyPNG::Color.b(pixel)]
+      (0..15).min_by { |i| distance(PALETTE[i], rgb) }
+    end
+
+    def distance(color, rgb)
+      [(color >> 16) - rgb[0], ((color >> 8) & 0xff) - rgb[1],
+       (color & 0xff) - rgb[2]].sum { |d| d * d }
+    end
+  end
+
+  class Screenshot
+    def self.capture(vic)
+      new(Array.new(HEIGHT) do |row|
+        vic.display[((row + ROW_OFFSET) * vic.width) + COL_OFFSET, WIDTH]
+      end)
+    end
+
+    attr_reader :rows
+
+    def initialize(rows)
+      @rows = rows
+    end
+
+    # Returns the number of mismatched pixels and writes failure artifacts.
+    def compare(test)
+      reference = ReferenceImage.new(test.reference)
+      return :ref_size unless reference.size == [WIDTH, HEIGHT]
+
+      diff = HEIGHT.times.sum { |y| row_diff(reference.row(y), rows[y]) }
+      write_artifacts(test, reference) if diff.positive?
+      diff
+    end
+
+    private
+
+    def row_diff(expected, actual)
+      expected.each_index.count { |x| expected[x] != actual[x] }
+    end
+
+    def write_artifacts(test, reference)
+      base = File.join(ARTIFACT_DIR, test.id.tr("/", "-"))
+      to_png { |x, y| rows[y][x] }.save("#{base}.actual.png")
+      to_png do |x, y|
+        reference.row(y)[x] == rows[y][x] ? rows[y][x] : nil
+      end.save("#{base}.diff.png")
+    end
+
+    # Builds a PNG from palette indices; nil pixels are marked red.
+    def to_png(&)
+      png = ChunkyPNG::Image.new(WIDTH, HEIGHT)
+      HEIGHT.times do |y|
+        WIDTH.times do |x|
+          index = yield(x, y)
+          rgb = index ? PALETTE[index] : 0xFF0000
+          png[x, y] = ChunkyPNG::Color.rgb(rgb >> 16, (rgb >> 8) & 0xff, rgb & 0xff)
+        end
+      end
+      png
+    end
+  end
+
+  class Runner
+    def initialize(tests)
+      @tests = tests
+      @results = []
+    end
+
+    def run
+      FileUtils.mkdir_p(ARTIFACT_DIR)
+      @tests.each { |test| report(test, run_test(test)) }
+      summarize
+      @results.count { |_, result| result != "PASS" }
+    end
+
+    private
+
+    def run_test(test)
+      exit_code, computer = execute(test)
+      return exit_code&.zero? ? "PASS" : "exit=#{format_code(exit_code)}" if test.type == "exitcode"
+
+      score_screenshot(test, exit_code, computer)
+    end
+
+    def execute(test)
+      computer = boot(test)
+      exit_code = nil
+      computer.install_debug_register { |value| exit_code = value }
+      budget = test.timeout + BOOT_ALLOWANCE
+      BATCH.times { computer.cycle! } until exit_code || computer.cycles > budget
+      [exit_code, computer]
+    end
+
+    def boot(test)
+      Badline::Computer.new.tap do |computer|
+        computer.mount(Badline::Storage::HostDirectory.new(test.dir_abs))
+        Badline::Media.attach(computer, File.join(test.dir_abs, test.prg))
+      end
+    end
+
+    def score_screenshot(test, exit_code, computer)
+      return "no-ref" unless File.exist?(test.reference)
+
+      diff = Screenshot.capture(computer.vic).compare(test)
+      return "ref-size" if diff == :ref_size
+      return "PASS" if diff.zero?
+
+      "diff=#{diff}px exit=#{format_code(exit_code)}"
+    end
+
+    def format_code(exit_code)
+      exit_code ? format("$%02x", exit_code) : "none"
+    end
+
+    def report(test, result)
+      @results << [test, result]
+      puts format("%-55<id>s %<result>s", id: test.id, result:)
+      $stdout.flush
+    end
+
+    def summarize
+      passed = @results.count { |_, result| result == "PASS" }
+      puts "#{passed}/#{@results.length} passed"
+      File.write(File.join(ARTIFACT_DIR, "results.txt"),
+                 @results.map { |test, result| "#{result} #{test.id}\n" }.join)
+    end
+  end
+end
+
+require "fileutils"
+
+if $PROGRAM_NAME == __FILE__
+  list_only = ARGV.delete("--list")
+  tests = Testbench::Testlist.tests(ARGV[0] || "")
+
+  if list_only
+    tests.each { |test| puts "#{test.id} (#{test.type}, #{test.timeout})" }
+    puts "#{tests.length} tests"
+    exit
+  end
+
+  exit(Testbench::Runner.new(tests).run.zero? ? 0 : 1)
+end

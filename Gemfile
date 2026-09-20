@@ -5,6 +5,7 @@ source "https://rubygems.org"
 gemspec
 
 group :development, :test do
+  gem "chunky_png"
   gem "minitest"
   gem "pry"
   gem "rake"
