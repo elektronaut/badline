@@ -25,6 +25,14 @@ RSpec.describe Badline::VIC::Sprite do
     point_sprite(0, 0x20)       # data at $0800
   end
 
+  # The Y match at line 60 turns DMA on (cycles 55/56) and display on
+  # (cycle 58). The first row renders on line 61.
+  def start_display
+    sprite.check_dma(60)
+    sprite.check_display(60)
+    sprite.start_line
+  end
+
   describe "#x with the 9th bit" do
     it "reads the low byte from $D000" do
       expect(sprite.x).to eq(100)
@@ -38,28 +46,43 @@ RSpec.describe Badline::VIC::Sprite do
 
   describe "display state machine" do
     it "is not displaying before the Y coordinate" do
-      sprite.start_line(59)
+      sprite.check_dma(59)
       expect(sprite).not_to be_displaying
     end
 
     it "starts displaying on the rasterline matching Y" do
-      sprite.start_line(60)
+      sprite.check_dma(60)
       expect(sprite).to be_displaying
     end
 
-    it "displays for 21 rasterlines" do
-      60.upto(80) { |line| sprite.start_line(line) }
+    it "shows no pixels on the matching line itself" do
+      sprite.start_line
+      sprite.check_dma(60)
+      expect(sprite.line_pixels).to be_nil
+    end
+
+    it "displays for 21 rasterlines after the matching line" do
+      start_display
+      20.times { sprite.start_line }
       expect(sprite).to be_displaying
     end
 
     it "stops displaying after 21 rasterlines" do
-      60.upto(81) { |line| sprite.start_line(line) }
+      start_display
+      21.times { sprite.start_line }
       expect(sprite).not_to be_displaying
+    end
+
+    it "keeps the rows invisible when Y no longer matches at cycle 58" do
+      sprite.check_dma(60)
+      sprite.check_display(61) # Y was moved between the compares
+      sprite.start_line
+      expect(sprite.line_pixels).to be_nil
     end
 
     it "does not start when disabled" do
       registers.write(0x15, 0)
-      sprite.start_line(60)
+      sprite.check_dma(60)
       expect(sprite).not_to be_displaying
     end
   end
@@ -67,7 +90,7 @@ RSpec.describe Badline::VIC::Sprite do
   describe "#pixel (hi-res)" do
     before do
       put_row(0x20, 0, 0b1000_0001, 0, 0)
-      sprite.start_line(60)
+      start_display
     end
 
     # X 100 -> raster X 204; leftmost pixel set, bit 7 (pixel 23) set.
@@ -96,7 +119,7 @@ RSpec.describe Badline::VIC::Sprite do
     before do
       registers.write(0x1d, 0x01) # expand sprite 0 horizontally
       put_row(0x20, 0, 0b1000_0000, 0, 0)
-      sprite.start_line(60)
+      start_display
     end
 
     it "doubles each pixel, covering 48 raster pixels" do
@@ -115,17 +138,17 @@ RSpec.describe Badline::VIC::Sprite do
       put_row(0x20, 1, 0b0100_0000, 0, 0)
     end
 
-    it "shows source row 0 on the first two rasterlines" do
-      sprite.start_line(60)
+    it "shows source row 0 on the first two display lines" do
+      start_display
       row0 = sprite.pixel(204)
-      sprite.start_line(61)
+      sprite.start_line
       expect([row0, sprite.pixel(204)]).to eq([sprite.color, sprite.color])
     end
 
-    it "advances to source row 1 only on the third rasterline" do
-      sprite.start_line(60)
-      sprite.start_line(61)
-      sprite.start_line(62)
+    it "advances to source row 1 only on the third display line" do
+      start_display
+      sprite.start_line
+      sprite.start_line
       expect(sprite.pixel(205)).to eq(sprite.color)
     end
   end
@@ -137,7 +160,7 @@ RSpec.describe Badline::VIC::Sprite do
       registers.write(0x26, 7)    # multicolour 1
       registers.write(0x27, 1)    # sprite 0 colour
       put_row(0x20, 0, 0b00_01_10_11, 0, 0)
-      sprite.start_line(60)
+      start_display
     end
 
     # Each pair is two raster pixels wide.

@@ -14,6 +14,8 @@ module Badline
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines
 
+    LIGHTPEN_IRQ = 0x08 # $D019 latch bit
+
     SPRITE_BA_RANGES = [
       55..59, 57..61, 59..62,
       0..2, 0..4, 2..6, 4..8, 6..10
@@ -43,16 +45,21 @@ module Badline
       @character_buffer = Array.new(40, 0)
       @color_buffer = Array.new(40, 0)
       @sprite_ba = Array.new(@width / 8, false)
+      @lp_triggered = false
+      @lp_low = false
 
       super()
     end
 
     def cycle!
       if @column.zero?
-        @display_state.new_frame if @rasterline.zero?
+        if @rasterline.zero?
+          @display_state.new_frame
+          start_lightpen_frame
+        end
         check_raster_irq!
         @sequencer.new_line(@rasterline)
-        @sprites.start_line(@rasterline)
+        @sprites.start_line
         rebuild_sprite_ba
         @display_state.new_line
       end
@@ -62,6 +69,14 @@ module Badline
       fetch_character_data! if dma_active?
 
       draw!
+
+      if @column > 53
+        case @column
+        when 54, 55 then check_sprite_dma
+        when 57 then @sprites.check_display(@rasterline)
+        when 62 then @sequencer.check_vertical_border(@rasterline)
+        end
+      end
 
       @column += 1
       if @column == @columns_per_line
@@ -89,7 +104,9 @@ module Badline
     end
 
     def poke(addr, value)
-      @registers.write(index(addr) % (2**6), value)
+      reg = index(addr) % (2**6)
+      log_register_change(reg, value)
+      @registers.write(reg, value)
     end
 
     def position
@@ -104,6 +121,32 @@ module Badline
       return true if @sprite_ba[@column]
 
       @display_state.bad_line? && @column >= 13 && @column < 56
+    end
+
+    # Light pen input level (CIA1 PB4). A falling edge triggers the latch.
+    def lightpen_level(high)
+      @lp_low = !high
+      trigger_lightpen if @lp_low
+    end
+
+    # The first trigger per frame latches the beam position into LPX/LPY and
+    # raises the LP IRQ. The latch happens one cycle after the edge, with the
+    # 6569's two extra half-pixels; a trigger on the last line is consumed
+    # without latching unless it lands on the line's first cycle.
+    def trigger_lightpen
+      return if @lp_triggered
+
+      @lp_triggered = true
+      column = @column + 1
+      line = @rasterline
+      if column == @columns_per_line
+        column = 0
+        line = line == @last_line ? 0 : line + 1
+      end
+      return if line == @last_line && column.positive?
+
+      vic_x = ((column * 8) - Sprite::X_OFFSET) % @width
+      latch_lightpen((vic_x >> 1) + 2, line)
     end
 
     def hblank?
@@ -124,6 +167,40 @@ module Badline
     end
 
     private
+
+    # Mid-line writes to color and sprite output registers are logged with
+    # the pixel position of the cycle after the write (the CPU runs after
+    # the VIC within a machine cycle, so @column already points there).
+    def log_register_change(reg, value)
+      old = @registers[reg]
+      return if old == value
+
+      if (0x20..0x24).cover?(reg)
+        @sequencer.color_patches.log(reg, old, value, @column * 8) unless blanking?
+      else
+        @sprites.log_change(reg, old, value, @column * 8)
+      end
+    end
+
+    def check_sprite_dma
+      rebuild_sprite_ba if @sprites.check_dma(@rasterline)
+    end
+
+    # The trigger re-arms at the start of each frame; if the pen line is
+    # still low, the latch retriggers immediately with a fixed LPX of $d1.
+    def start_lightpen_frame
+      @lp_triggered = false
+      return unless @lp_low
+
+      @lp_triggered = true
+      latch_lightpen(0xd1, 0)
+    end
+
+    def latch_lightpen(lpx, line)
+      @registers.write(0x13, lpx & 0xff)
+      @registers.write(0x14, line & 0xff)
+      @registers.latch_irq!(LIGHTPEN_IRQ)
+    end
 
     def rebuild_sprite_ba
       @sprite_ba.fill(false)
@@ -152,9 +229,12 @@ module Badline
     def finish_line!
       return if vblank?
 
+      @sequencer.apply_color_patches
+
       # Composite the active sprites over the finished background line
       # and copy the line into the frame display.
       if @sprites.active?
+        @sequencer.snapshot_line
         @sprites.composite(@sequencer.colors, @sequencer.fg)
         @sequencer.apply_border
       end

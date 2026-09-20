@@ -17,6 +17,45 @@ describe Badline::CIA do
     expect(cia[0xdc12]).to eq(0xff)
   end
 
+  describe "PB4 level-change handler (light pen line)" do
+    let(:edges) { [] }
+
+    before do
+      cia.on_port_b4_change { |high| edges << high }
+      cia.poke(0xdc03, 0xff) # DDR B: all output
+      cia.poke(0xdc01, 0xff) # PB high
+    end
+
+    it "reports the new level when PB4 is driven low" do
+      cia.poke(0xdc01, 0x00)
+      expect(edges).to eq([false])
+    end
+
+    it "reports a full pulse as both edges" do
+      cia.poke(0xdc01, 0x00)
+      cia.poke(0xdc01, 0xff)
+      expect(edges).to eq([false, true])
+    end
+
+    it "does not fire while PB4 stays high" do
+      cia.poke(0xdc01, 0x10) # other lines fall, bit 4 stays set
+      expect(edges).to be_empty
+    end
+
+    it "does not fire when the line is an input" do
+      cia.poke(0xdc03, 0x00) # all input: the line floats high
+      cia.poke(0xdc01, 0x00)
+      expect(edges).to be_empty
+    end
+
+    it "fires when a DDR change starts driving a low PB4" do
+      cia.poke(0xdc03, 0x00)
+      cia.poke(0xdc01, 0x00) # latched low, but the line is an input
+      cia.poke(0xdc03, 0x10) # output now drives it low
+      expect(edges).to eq([false])
+    end
+  end
+
   describe "time of day clock" do
     def advance_one_tenth
       98_525.times { cia.cycle! }

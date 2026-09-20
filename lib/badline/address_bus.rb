@@ -61,7 +61,8 @@ module Badline
         peripheral: ControlPorts.new(keyboard: @keyboard, joystick2: @joystick2)
       )
       @cia2 = CIA.new(start: 0xdd00)
-      @sid  = SID.new
+      @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
+      @sid = SID.new
 
       @color_ram = ColorMemory.new(start: 0xd800, length: 2**10)
 
