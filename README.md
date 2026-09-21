@@ -71,8 +71,9 @@ everything.
   inside load by name like a disk; the tape itself is not emulated.
 - **`.crt`** — standard, Ocean and Magic Desk cartridges. Other hardware
   types raise `Badline::Cartridge::UnsupportedTypeError`.
-- **A directory** — mounted as device 8, read *and* write. Every file in
-  it is a PRG, and `SAVE` writes a new one.
+- **A directory** — mounted as device 8, read *and* write. It serves the
+  `.prg` and `.p00` files in it plus the contents of any `.t64` archive,
+  and `SAVE` writes a new PRG.
 
 Disk access works by trapping the KERNAL's `LOAD` and `SAVE` routines
 and its serial bus primitives rather than by emulating a 1541. Files

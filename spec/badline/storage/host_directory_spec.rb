@@ -16,9 +16,31 @@ describe Badline::Storage::HostDirectory do
     File.binwrite(File.join(dir, "zz-game.p00"),
                   "C64File\x00LONG NAME#{"\x00" * 9}".b + [0x00, 0x20, 0x77].pack("C*"))
     File.binwrite(File.join(dir, "zz-fake.p00"), "not a container")
+    File.binwrite(File.join(dir, "zz-tape.t64"), t64_archive)
+    File.binwrite(File.join(dir, "zz-junk.t64"), "not an archive")
   end
 
   after { FileUtils.remove_entry(dir) }
+
+  # Two normal entries: MUSIC at $0801 and LOADER at $c000.
+  def t64_archive
+    bytes = Array.new(0x40 + (2 * 32), 0)
+    bytes[0, 32] = "C64S tape image file".bytes + ([0x20] * 12)
+    bytes[0x22, 2] = [2, 0]
+    bytes[0x24, 2] = [2, 0]
+    bytes[0x40, 32] = t64_entry("MUSIC", 0x0801, 3, 0x80)
+    bytes[0x60, 32] = t64_entry("LOADER", 0xc000, 2, 0x83)
+    (bytes + [0xaa, 0xbb, 0xcc, 0x11, 0x22]).pack("C*")
+  end
+
+  def t64_entry(name, load, size, offset)
+    entry = Array.new(32, 0)
+    entry[0] = 1
+    entry[2, 4] = [load, load + size].pack("v2").bytes
+    entry[8, 4] = [offset].pack("V").bytes
+    entry[16, 16] = name.bytes + ([0x20] * (16 - name.length))
+    entry
+  end
 
   describe "#read_file" do
     it "reads a file as bytes" do
@@ -55,6 +77,26 @@ describe Badline::Storage::HostDirectory do
 
     it "ignores .p00 files without the magic" do
       expect(storage.read_file("zz-fake")).to be_nil
+    end
+
+    it "serves a .t64 entry by its embedded name" do
+      expect(storage.read_file("music")).to eq([0x01, 0x08, 0xaa, 0xbb, 0xcc])
+    end
+
+    it "serves every entry in a .t64" do
+      expect(storage.read_file("LOADER")).to eq([0x00, 0xc0, 0x11, 0x22])
+    end
+
+    it "matches .t64 entries with wildcards" do
+      expect(storage.read_file("LOAD*")).to eq([0x00, 0xc0, 0x11, 0x22])
+    end
+
+    it "does not serve a .t64 by its host filename" do
+      expect(storage.read_file("zz-tape")).to be_nil
+    end
+
+    it "ignores .t64 files without the signature" do
+      expect(storage.read_file("zz-junk")).to be_nil
     end
   end
 
