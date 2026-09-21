@@ -174,16 +174,16 @@ describe Badline::CIA do
     specify { expect(cia.interrupt_status.timer_a?).to be(false) }
     specify { expect(cia.interrupted?).to be(false) }
 
-    context "when reaching zero" do
+    context "when underflowing" do
       before { 254.times { cia.cycle! } }
 
-      specify { expect(cia.timer_a).to eq(0x00) }
+      specify { expect(cia.timer_a).to eq(0x43) }
       specify { expect(cia.interrupt_status.timer_a?).to be(true) }
       specify { expect(cia.interrupted?).to be(false) }
       specify { expect(cia.control_a.start?).to be(true) }
     end
 
-    context "when a cycle has passed after reaching zero" do
+    context "when a cycle has passed after underflowing" do
       before { 255.times { cia.cycle! } }
 
       specify { expect(cia.timer_a).to eq(0x43) }
@@ -245,7 +245,7 @@ describe Badline::CIA do
         cia.poke(0xdc0e, 0x10)
       end
 
-      it "copies the latch into the counter one tick after the write" do
+      it "copies the latch into the counter two ticks after the write" do
         2.times { cia.cycle! }
         expect(cia.timer_a).to eq(0x43)
       end
@@ -304,16 +304,16 @@ describe Badline::CIA do
     specify { expect(cia.interrupt_status.timer_b?).to be(false) }
     specify { expect(cia.interrupted?).to be(false) }
 
-    context "when reaching zero" do
+    context "when underflowing" do
       before { 254.times { cia.cycle! } }
 
-      specify { expect(cia.timer_b).to eq(0x00) }
+      specify { expect(cia.timer_b).to eq(0x43) }
       specify { expect(cia.interrupt_status.timer_b?).to be(true) }
       specify { expect(cia.interrupted?).to be(false) }
       specify { expect(cia.control_b.start?).to be(true) }
     end
 
-    context "when a cycle has passed after reaching zero" do
+    context "when a cycle has passed after underflowing" do
       before { 255.times { cia.cycle! } }
 
       specify { expect(cia.timer_b).to eq(0x43) }

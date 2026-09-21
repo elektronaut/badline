@@ -24,7 +24,7 @@ module Badline
       def cycle!(feed, pulse)
         return @counter -= 1 if feed && pulse && steady?
 
-        if (@pipe | @load_delay).zero? && !@reload
+        if (@pipe | @load_delay | @oneshot_linger).zero? && !@reload
           @pipe = 0b10 if feed && started?
           return
         end
@@ -67,12 +67,14 @@ module Badline
       def tick(feed, pulse)
         counting = @pipe.anybits?(0b01) && pulse
         @pipe = (@pipe >> 1) | (feed ? 0b10 : 0)
+        loading = @reload || @load_delay == 1
+        @reload = false
 
-        if premature_underflow?(pulse)
+        if loading
+          reload
+        elsif premature_underflow?(pulse)
           underflow
-        elsif apply_reload?
-          return
-        elsif counting && @load_delay != 1
+        elsif counting
           count
         end
 
@@ -88,19 +90,14 @@ module Badline
 
       # the final pipeline stage, before any pending load lands
       def premature_underflow?(pulse)
-        @counter.zero? && !@reload && pulse && @pipe.anybits?(0b01) &&
-          started?
+        @counter.zero? && pulse && @pipe.anybits?(0b01) && started?
       end
 
-      # An underflow reload consumes the tick after the flag
-      def apply_reload?
-        return false unless @reload
-
-        @reload = false
+      # A load consumes its tick, so the counter never decrements on it
+      def reload
         @counter = @latch
         # A zero latch underflows again on the reload tick while running
-        underflow if @counter.zero? && started?
-        true
+        underflow if @counter.zero? && started? && @pipe.anybits?(0b01)
       end
 
       def count
@@ -111,6 +108,7 @@ module Badline
       def underflow
         @underflowed = true
         @reload = true
+        @counter = @latch
         @toggle = !@toggle
         return unless control.run_mode? || @oneshot_linger.positive?
 
