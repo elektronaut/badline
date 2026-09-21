@@ -13,101 +13,261 @@
 # on the suite completion message, on a BASIC READY prompt, or on a hard
 # hang.
 #
-# With --results, the captured transcript is also written to PATH; that is
-# the baseline format `rake regression:lorenz` diffs against the tracked
-# copy in test/baselines/.
+# The suite chains itself by LOADing one test after another, so the names
+# it asks the mounted image for — and the transcript offsets they arrive
+# at — split the capture into one segment per test. With --results, those
+# become a tab-separated "name STATUS [detail]" record per test, the same
+# baseline format bin/testbench writes; the full transcript goes to
+# tmp/lorenz/transcript.txt for diagnosing what a changed row means.
+#
+# See `rake regression:lorenz` for diffing a run against the tracked
+# baseline in test/baselines/.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
+require "delegate"
+require "digest"
 require "fileutils"
 
-GETIN_LIMIT = 100
-GETIN_GRACE = -200
-HANG_CYCLES = 90_000_000
-BATCH = 10_000
+module Lorenz
+  DEFAULT_IMAGE = File.expand_path(
+    "../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81", __dir__
+  )
+  ARTIFACT_DIR = File.expand_path("../tmp/lorenz", __dir__)
 
-def screen_ascii(code)
-  code &= 0x7f
-  case code
-  when 0x01..0x1a then (code + 0x60).chr
-  when 0x00, 0x1b..0x1f then (code + 0x40).chr
-  when 0x20..0x3f, 0x41..0x5a then code.chr
-  else " "
+  GETIN_LIMIT = 100
+  GETIN_GRACE = -200
+  HANG_CYCLES = 90_000_000
+  BATCH = 10_000
+
+  AUTOSTART = %(lO"*",8,1\rrun\r)
+  COMPLETION = "test suite 2.15+ completed"
+
+  # A test that neither ends in the suite's "- ok" nor prints anything
+  # beyond its own name has failed; the dumps it prints instead say so.
+  OK_SUFFIX = "- ok"
+  FAILURE_MARKER = /fail|error/i
+
+  # Detail long enough to bury the row (the CIA dump tests print tables)
+  # is cut down to a digest, which still changes whenever the dump does.
+  DETAIL_LIMIT = 160
+
+  # Removes "--name value" or "--name=value" from argv, returning the value.
+  def self.take_option(argv, name)
+    index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
+    return unless index
+
+    arg = argv.delete_at(index)
+    arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+  end
+
+  def self.screen_ascii(code)
+    code &= 0x7f
+    case code
+    when 0x01..0x1a then (code + 0x60).chr
+    when 0x00, 0x1b..0x1f then (code + 0x40).chr
+    when 0x20..0x3f, 0x41..0x5a then code.chr
+    else " "
+    end
+  end
+
+  # Wraps the mounted image to note which program the suite loads next and
+  # how much transcript had been printed by then.
+  class LoadLog < SimpleDelegator
+    Entry = Struct.new(:name, :offset)
+
+    attr_reader :entries
+
+    def initialize(storage, capture)
+      super(storage)
+      @capture = capture
+      @entries = []
+    end
+
+    def read_file(name)
+      @entries << Entry.new(name.downcase, @capture.output.length)
+      super
+    end
+  end
+
+  # One test's slice of the transcript, reduced to a verdict and a detail
+  # column. The loader announces the next test's name before handing over,
+  # so that announcement is trimmed off the end of the slice it precedes.
+  class Segment
+    attr_reader :name
+
+    def initialize(name, text)
+      @name = name
+      @text = text
+    end
+
+    def verdict
+      passed? ? "PASS" : "FAIL"
+    end
+
+    def detail
+      @detail ||= abbreviate(body.gsub(/\s*\n\s*/, " | ").squeeze(" ").strip)
+    end
+
+    def to_record
+      [name, verdict, (detail unless detail.empty?)].compact.join("\t")
+    end
+
+    private
+
+    def passed?
+      @text.rstrip.end_with?(OK_SUFFIX) && !body.match?(FAILURE_MARKER)
+    end
+
+    # Both the loader and the test itself echo the name, sometimes with a
+    # " (old cia)" variant marker appended to the second one.
+    def body
+      @body ||= begin
+        text = @text.strip
+        text = text.delete_prefix(name).strip while text.start_with?(name)
+        text.delete_suffix(OK_SUFFIX).strip
+      end
+    end
+
+    def abbreviate(detail)
+      return detail if detail.length <= DETAIL_LIMIT
+
+      "#{detail[0, DETAIL_LIMIT - 20].rstrip}… sha=#{Digest::SHA256.hexdigest(detail)[0, 8]}"
+    end
+  end
+
+  # Drives the machine until the suite finishes, hangs or drops to BASIC.
+  class Runner
+    attr_reader :result, :keys_sent
+
+    def initialize(computer, capture, load_log)
+      @computer = computer
+      @capture = capture
+      @load_log = load_log
+      @printed = 0
+      @last_progress = 0
+      @getin_hits = 0
+      @keys_sent = 0
+      computer.cpu.install_trap(0xffe4) { @getin_hits += 1 }
+    end
+
+    def run(max_cycles)
+      until @result
+        BATCH.times { @computer.cycle! }
+        echo
+        classify(max_cycles)
+        send_key if @getin_hits > GETIN_LIMIT
+      end
+      @result
+    end
+
+    def transcript
+      @capture.output
+    end
+
+    def segments
+      entries = @load_log.entries
+      entries.each_with_index.map do |entry, index|
+        following = entries[index + 1]
+        text = transcript[entry.offset...(following&.offset || transcript.length)]
+        text = text.delete_suffix(following.name) if following
+        Segment.new(entry.name, text)
+      end
+    end
+
+    # The chain can break mid-suite, which would otherwise only show up as
+    # rows going missing — a keyed diff reports those without failing.
+    def outcome_record
+      last = @load_log.entries.last&.name
+      detail = last ? "#{@result} after #{last}" : @result
+      ["(suite)", @result == "completed" ? "PASS" : "FAIL", detail].join("\t")
+    end
+
+    private
+
+    def echo
+      out = @capture.output
+      return unless out.length > @printed
+
+      print out[@printed..]
+      $stdout.flush
+      @printed = out.length
+      @last_progress = @computer.cycles
+      @getin_hits = 0
+    end
+
+    def classify(max_cycles)
+      @result = "completed" if @capture.output.include?(COMPLETION)
+      if @computer.cycles - @last_progress > HANG_CYCLES
+        @result = @capture.output.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
+      end
+      @result = "timeout" if @computer.cycles > max_cycles
+    end
+
+    def send_key
+      @keys_sent += 1
+      warn "[#{@computer.cycles}] test halted waiting for key, sending space " \
+           "(##{@keys_sent})"
+      @computer.type_text(" ")
+      @getin_hits = GETIN_GRACE
+    end
+  end
+
+  class << self
+    def mount(computer, path, capture, start_test)
+      storage = Badline::Media::MOUNT_TYPES.fetch(File.extname(path).downcase) do
+        raise "#{path} is not a mountable disk image"
+      end
+      log = LoadLog.new(storage.new(path), capture)
+      computer.mount(log)
+      computer.type_text(start_test ? %(lO"#{start_test}",8\rrun\r) : AUTOSTART)
+      log
+    end
+
+    def write_results(path, runner)
+      records = runner.segments.map(&:to_record) << runner.outcome_record
+      write(path, records.join("\n"))
+    end
+
+    def write_transcript(runner)
+      path = File.join(ARTIFACT_DIR, "transcript.txt")
+      write(path, runner.transcript)
+      path
+    end
+
+    def write(path, text)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, text.end_with?("\n") ? text : "#{text}\n")
+    end
+
+    def dump_screen(computer)
+      warn "=== screen RAM ==="
+      25.times do |row|
+        warn computer.ram.read(0x0400 + (row * 40), 40)
+                     .map { |code| screen_ascii(code) }.join
+      end
+    end
   end
 end
 
-# Removes "--name value" or "--name=value" from argv, returning the value.
-def take_option(argv, name)
-  index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
-  return unless index
+if $PROGRAM_NAME == __FILE__
+  results_path = Lorenz.take_option(ARGV, "--results")
+  image = ARGV[0] || Lorenz::DEFAULT_IMAGE
+  start_test = ARGV[1]
+  max_cycles = (ARGV[2] || 10_000_000_000).to_i
 
-  arg = argv.delete_at(index)
-  arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+  computer = Badline::Computer.new
+  capture = computer.capture_output
+  load_log = Lorenz.mount(computer, image, capture, start_test)
+  warn "Mounted #{image} as device 8"
+
+  runner = Lorenz::Runner.new(computer, capture, load_log)
+  result = runner.run(max_cycles)
+
+  warn "Transcript written to #{Lorenz.write_transcript(runner)}"
+  Lorenz.write_results(results_path, runner) if results_path
+  Lorenz.dump_screen(computer) unless result == "completed"
+  warn "[#{result}] #{computer.cycles} cycles, #{runner.keys_sent} keys sent"
+  exit(%w[completed ready-prompt].include?(result) ? 0 : 1)
 end
-
-def write_results(path, output)
-  FileUtils.mkdir_p(File.dirname(path))
-  File.write(path, output.end_with?("\n") ? output : "#{output}\n")
-end
-
-def dump_screen(computer)
-  warn "=== screen RAM ==="
-  25.times do |row|
-    warn computer.ram.read(0x0400 + (row * 40), 40)
-                 .map { |code| screen_ascii(code) }.join
-  end
-end
-
-results_path = take_option(ARGV, "--results")
-path = ARGV[0] ||
-       File.expand_path("../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81",
-                        __dir__)
-start_test = ARGV[1]
-max_cycles = (ARGV[2] || 10_000_000_000).to_i
-
-computer = Badline::Computer.new
-capture = computer.capture_output
-
-getin_hits = 0
-computer.cpu.install_trap(0xffe4) { getin_hits += 1 }
-
-warn Badline::Media.attach(computer, path, autostart: start_test.nil?)
-computer.type_text(%(lO"#{start_test}",8\rrun\r)) if start_test
-
-printed = 0
-last_progress = 0
-keys_sent = 0
-result = nil
-
-until result
-  BATCH.times { computer.cycle! }
-
-  out = capture.output
-  if out.length > printed
-    print out[printed..]
-    $stdout.flush
-    printed = out.length
-    last_progress = computer.cycles
-    getin_hits = 0
-  end
-
-  result = "completed" if out.include?("test suite 2.15+ completed")
-  if computer.cycles - last_progress > HANG_CYCLES
-    result = out.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
-  end
-  result = "timeout" if computer.cycles > max_cycles
-
-  next unless getin_hits > GETIN_LIMIT
-
-  keys_sent += 1
-  warn "[#{computer.cycles}] test halted waiting for key, sending space " \
-       "(##{keys_sent})"
-  computer.type_text(" ")
-  getin_hits = GETIN_GRACE
-end
-
-write_results(results_path, capture.output) if results_path
-dump_screen(computer) unless result == "completed"
-warn "[#{result}] #{computer.cycles} cycles, #{keys_sent} keys sent"
-exit(%w[completed ready-prompt].include?(result) ? 0 : 1)

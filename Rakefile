@@ -3,6 +3,8 @@
 require "bundler/gem_tasks"
 require "rake/testtask"
 
+require_relative "test/regression"
+
 VENDORED_REPOS = {
   "65x02" => {
     repo: "https://github.com/SingleStepTests/65x02",
@@ -13,9 +15,10 @@ VENDORED_REPOS = {
   }
 }.freeze
 
-# Headless suites whose full output is tracked as a baseline, mapped to the
-# runner that produces it. Each runner takes --results PATH and writes one
-# file; the guard is a plain diff against the recorded copy.
+# Headless suites whose per-test results are tracked as a baseline, mapped
+# to the runner that produces it. Each runner takes --results PATH and
+# writes one tab-separated "id VERDICT [detail]" row per test; the guard
+# compares those rows by id.
 REGRESSION_SUITES = {
   "testbench" => "bin/testbench",
   "lorenz" => "bin/lorenz",
@@ -52,7 +55,7 @@ def baseline_path(suite)
 end
 
 # The runners exit non-zero while any test fails, which a baseline is
-# expected to capture, so their status is ignored and the diff decides.
+# expected to capture, so their status is ignored and the comparison decides.
 def run_suite(suite, results)
   runner = REGRESSION_SUITES.fetch(suite)
   mkdir_p(File.dirname(results))
@@ -62,18 +65,19 @@ def run_suite(suite, results)
   raise "#{runner} wrote no results to #{results}" unless File.exist?(results)
 end
 
-def diff_baseline(suite, results)
+def compare_baseline(suite, results)
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
     raise "No baseline at #{baseline}. Record one with " \
           "`rake regression:record:#{suite}`."
   end
 
-  sh("diff", "-u", "-L", "baseline", "-L", "current", baseline, results) do |ok, _|
-    raise "#{suite} differs from #{baseline}." unless ok
-
-    puts "#{suite}: matches #{baseline}."
-  end
+  comparison = Regression::Comparison.new(
+    suite, Regression.read(baseline), Regression.read(results)
+  )
+  comparison.report($stdout)
+  comparison.publish
+  raise "#{suite} changed against #{baseline}." if comparison.changed?
 end
 
 namespace :vendor do
@@ -96,11 +100,11 @@ end
 
 namespace :regression do
   REGRESSION_SUITES.each_key do |suite|
-    desc "Run #{suite} and diff the results against #{BASELINE_DIR}/#{suite}.txt"
+    desc "Run #{suite} and compare the results against #{BASELINE_DIR}/#{suite}.txt"
     task suite => "vendor:VICE-testprogs" do
       results = File.join(REGRESSION_DIR, "#{suite}.txt")
       run_suite(suite, results)
-      diff_baseline(suite, results)
+      compare_baseline(suite, results)
     end
   end
 

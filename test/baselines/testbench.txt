@@ -134,6 +134,7 @@ VICII/spritecollisions/sprite-gfx-hi-hi.prg	PASS
 VICII/spritecollisions/sprite-gfx-mc-hi.prg	PASS
 VICII/spritecollisions/sprite-gfx-hi-mc.prg	PASS
 VICII/spritecollisions/sprite-gfx-mc-mc.prg	PASS
+VICII/spritecollclear/bug2135.prg	PASS
 VICII/spritecrunch/spritecrunch-3b-00.prg	FAIL	diff=4960px exit=$00
 VICII/spritecrunch/spritecrunch-3c-00.prg	FAIL	diff=4960px exit=$00
 VICII/spritecrunch/spritecrunch-3d-00.prg	FAIL	diff=4960px exit=$00
