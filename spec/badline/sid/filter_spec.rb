@@ -8,6 +8,11 @@ describe Badline::SID::Filter do
   # Voices reach the filter as 20-bit samples and are scaled down by 7 bits,
   # so $8000 arrives as 256.
   let(:voices) { Array.new(3) { Struct.new(:output).new(0x8000) } }
+  let(:silent_voices) { Array.new(3) { Struct.new(:output).new(0) } }
+
+  def cutoff_hz(model, register)
+    (described_class::W0[model][register] / (2 * Math::PI * described_class::SCALE)).round
+  end
 
   describe "register decoding" do
     it "takes the low three bits of the cutoff from $D415" do
@@ -41,17 +46,79 @@ describe Badline::SID::Filter do
     end
   end
 
-  describe "cutoff curve" do
+  describe "the 6581 cutoff curve" do
     it "covers the whole 11-bit range" do
-      expect(described_class::W0.length).to eq(2048)
+      expect(described_class::W0[:mos6581].length).to eq(2048)
     end
 
     it "rises with the register value" do
-      expect(described_class::W0.each_cons(2)).to all(satisfy { |low, high| high >= low })
+      expect(described_class::W0[:mos6581].each_cons(2)).to all(satisfy { |low, high| high >= low })
     end
 
     it "stays below the rate the integrator can follow" do
-      expect(described_class::W0.max).to be <= described_class::W0_MAX
+      expect(described_class::W0[:mos6581].max).to be <= described_class::W0_MAX
+    end
+
+    it "bottoms out at 220 Hz" do
+      expect(cutoff_hz(:mos6581, 0x000)).to eq(220)
+    end
+
+    it "tops out at 8.6 kHz" do
+      expect(cutoff_hz(:mos6581, 0x7ff)).to eq(8600)
+    end
+  end
+
+  describe "the 8580 cutoff curve" do
+    it "covers the whole 11-bit range" do
+      expect(described_class::W0[:mos8580].length).to eq(2048)
+    end
+
+    it "rises with the register value" do
+      expect(described_class::W0[:mos8580].each_cons(2)).to all(satisfy { |low, high| high >= low })
+    end
+
+    it "starts from zero rather than the 6581's floor" do
+      expect(cutoff_hz(:mos8580, 0x000)).to eq(0)
+    end
+
+    it "tops out at 12.5 kHz" do
+      expect(cutoff_hz(:mos8580, 0x7ff)).to eq(12_500)
+    end
+
+    # The 8580 climbs in a near-straight line where the 6581 spends its
+    # lower half barely off the floor.
+    it "is already at 3.3 kHz a quarter of the way up" do
+      expect(cutoff_hz(:mos8580, 0x200)).to eq(3300)
+    end
+
+    it "leaves the 6581 at 420 Hz there" do
+      expect(cutoff_hz(:mos6581, 0x200)).to eq(420)
+    end
+  end
+
+  describe "the chip model" do
+    it "defaults to the 6581" do
+      expect(filter.model).to eq(:mos6581)
+    end
+
+    it "rejects a model it has no curve for" do
+      expect { described_class.new(model: :mos6582) }.to raise_error(KeyError)
+    end
+
+    it "sits the 6581's silent mix on the mixer offset" do
+      filter.write(0x18, 0x0f)
+      filter.cycle!(silent_voices)
+      expect(filter.mix).to eq(described_class::MIXER_DC[:mos6581] * 0x0f)
+    end
+
+    context "with an 8580" do
+      subject(:filter) { described_class.new(model: :mos8580) }
+
+      it "has no mixer offset to sit on" do
+        filter.write(0x18, 0x0f)
+        filter.cycle!(silent_voices)
+        expect(filter.mix).to eq(0)
+      end
     end
   end
 
@@ -60,31 +127,31 @@ describe Badline::SID::Filter do
 
     it "sums the voices around the mixer offset" do
       filter.cycle!(voices)
-      expect(filter.output).to eq(((256 * 3) + described_class::MIXER_DC) * 0x0f)
+      expect(filter.mix).to eq(((256 * 3) + described_class::MIXER_DC[:mos6581]) * 0x0f)
     end
 
     it "scales by the master volume" do
       filter.write(0x18, 0x01)
       filter.cycle!(voices)
-      expect(filter.output).to eq((256 * 3) + described_class::MIXER_DC)
+      expect(filter.mix).to eq((256 * 3) + described_class::MIXER_DC[:mos6581])
     end
 
     it "is silent at volume zero" do
       filter.write(0x18, 0x00)
       filter.cycle!(voices)
-      expect(filter.output).to eq(0)
+      expect(filter.mix).to eq(0)
     end
 
     it "drops a voice routed into the filter" do
       filter.write(0x17, 0x01)
       filter.cycle!(voices)
-      expect(filter.output).to eq(((256 * 2) + described_class::MIXER_DC) * 0x0f)
+      expect(filter.mix).to eq(((256 * 2) + described_class::MIXER_DC[:mos6581]) * 0x0f)
     end
 
     it "drops voice 3 when MODE/VOL bit 7 is set" do
       filter.write(0x18, 0x8f)
       filter.cycle!(voices)
-      expect(filter.output).to eq(((256 * 2) + described_class::MIXER_DC) * 0x0f)
+      expect(filter.mix).to eq(((256 * 2) + described_class::MIXER_DC[:mos6581]) * 0x0f)
     end
 
     # Bit 7 cuts the bypass path, not the filter input.
@@ -92,7 +159,7 @@ describe Badline::SID::Filter do
       filter.write(0x17, 0x04)
       filter.write(0x18, 0x9f)
       filter.cycle!(voices)
-      expect(filter.output).to eq(((256 * 2) + described_class::MIXER_DC) * 0x0f)
+      expect(filter.mix).to eq(((256 * 2) + described_class::MIXER_DC[:mos6581]) * 0x0f)
     end
   end
 
@@ -157,6 +224,53 @@ describe Badline::SID::Filter do
 
     it "overshoots least at zero resonance" do
       expect(peak_bandpass(0x01)).to eq(125)
+    end
+  end
+
+  describe "the board's RC network" do
+    subject(:external) { described_class::External.new }
+
+    def run(input, cycles)
+      cycles.times { external.cycle!(input) }
+      external.output
+    end
+
+    it "starts at rest" do
+      expect(run(100_000, 1)).to eq(0)
+    end
+
+    # 10kΩ/1000pF puts one time constant at 10 cycles of a 1 MHz clock.
+    it "charges to about 63% of a step in one time constant" do
+      expect(run(100_000, 11)).to be_within(3000).of(63_000)
+    end
+
+    it "settles onto the step" do
+      expect(run(100_000, 50)).to be_within(1000).of(100_000)
+    end
+
+    # 1kΩ/10µF puts the high-pass corner at ~16 Hz, a 10 ms time constant.
+    it "decays a steady level over its time constant" do
+      expect(run(176_790, 10_000)).to be_within(10_000).of(176_790 / Math::E)
+    end
+
+    # The high-pass integrator stalls once its step rounds down to zero,
+    # leaving 2^20/105 of the level behind. reSID does the same.
+    it "leaves a residual once the integrator stalls" do
+      expect(run(176_790, 50_000)).to eq(9986)
+    end
+  end
+
+  describe "the output path" do
+    before { filter.write(0x18, 0x0f) }
+
+    it "is silent while the RC network charges" do
+      filter.cycle!(voices)
+      expect(filter.output).to eq(0)
+    end
+
+    it "settles onto the mix" do
+      100.times { filter.cycle!(voices) }
+      expect(filter.output).to be_within(20).of(filter.mix)
     end
   end
 end
