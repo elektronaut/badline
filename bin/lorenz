@@ -3,7 +3,7 @@
 
 # Headless runner for the Wolfgang Lorenz C64 Emulator Test Suite.
 #
-#   ruby --jit bin/lorenz [image] [start_test] [max_cycles]
+#   ruby --jit bin/lorenz [image] [start_test] [max_cycles] [--results PATH]
 #
 # Boots the machine, mounts the image as device 8 and autostarts (or loads
 # start_test by name to resume mid-suite). Test output is captured through
@@ -12,10 +12,15 @@
 # continue — STOP would exit some tests to BASIC and kill the chain. Ends
 # on the suite completion message, on a BASIC READY prompt, or on a hard
 # hang.
+#
+# With --results, the captured transcript is also written to PATH; that is
+# the baseline format `rake regression:lorenz` diffs against the tracked
+# copy in test/baselines/.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
+require "fileutils"
 
 GETIN_LIMIT = 100
 GETIN_GRACE = -200
@@ -32,6 +37,20 @@ def screen_ascii(code)
   end
 end
 
+# Removes "--name value" or "--name=value" from argv, returning the value.
+def take_option(argv, name)
+  index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
+  return unless index
+
+  arg = argv.delete_at(index)
+  arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+end
+
+def write_results(path, output)
+  FileUtils.mkdir_p(File.dirname(path))
+  File.write(path, output.end_with?("\n") ? output : "#{output}\n")
+end
+
 def dump_screen(computer)
   warn "=== screen RAM ==="
   25.times do |row|
@@ -40,6 +59,7 @@ def dump_screen(computer)
   end
 end
 
+results_path = take_option(ARGV, "--results")
 path = ARGV[0] ||
        File.expand_path("../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81",
                         __dir__)
@@ -87,6 +107,7 @@ until result
   getin_hits = GETIN_GRACE
 end
 
+write_results(results_path, capture.output) if results_path
 dump_screen(computer) unless result == "completed"
 warn "[#{result}] #{computer.cycles} cycles, #{keys_sent} keys sent"
 exit(%w[completed ready-prompt].include?(result) ? 0 : 1)

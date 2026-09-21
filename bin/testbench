@@ -3,14 +3,19 @@
 
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
-#   ruby --jit bin/testbench [filter] [--list]
+#   ruby --jit bin/testbench [filter] [--list] [--results PATH]
 #
 # Runs the non-interactive PAL VICII tests from c64-testlist.in. Each test
 # boots a fresh machine with its directory mounted as device 8, injects the
 # .prg and types RUN. Tests report through the $D7FF debug register ($00
 # pass, $ff fail); screenshot tests are compared pixel-by-pixel against the
 # bundled reference PNGs (pepto palette, 384x272 — the same crop the GUI
-# uses). Failure artifacts and a results log go to tmp/testbench/.
+# uses). Failure artifacts go to tmp/testbench/, and the results log —
+# one tab-separated "id STATUS [detail]" record per test, in testlist
+# order — to --results (tmp/testbench/results.txt by default).
+#
+# See `rake regression:testbench` for diffing a run against the tracked
+# baseline in test/baselines/.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -43,6 +48,15 @@ module Testbench
     0xB8C76F, 0x6F4F25, 0x433900, 0x9A6759, 0x444444, 0x6C6C6C, 0x9AD284,
     0x6C5EB5, 0x959595
   ].freeze
+
+  # Removes "--name value" or "--name=value" from argv, returning the value.
+  def self.take_option(argv, name)
+    index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
+    return unless index
+
+    arg = argv.delete_at(index)
+    arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+  end
 
   TestCase = Struct.new(:dir, :prg, :type, :timeout, :options) do
     def id
@@ -161,8 +175,9 @@ module Testbench
   end
 
   class Runner
-    def initialize(tests)
+    def initialize(tests, results_path)
       @tests = tests
+      @results_path = results_path
       @results = []
     end
 
@@ -221,8 +236,13 @@ module Testbench
     def summarize
       passed = @results.count { |_, result| result == "PASS" }
       puts "#{passed}/#{@results.length} passed"
-      File.write(File.join(ARTIFACT_DIR, "results.txt"),
-                 @results.map { |test, result| "#{result} #{test.id}\n" }.join)
+      FileUtils.mkdir_p(File.dirname(@results_path))
+      File.write(@results_path,
+                 @results.map { |test, result| record(test, result) }.join)
+    end
+
+    def record(test, result)
+      result == "PASS" ? "#{test.id}\tPASS\n" : "#{test.id}\tFAIL\t#{result}\n"
     end
   end
 end
@@ -231,6 +251,8 @@ require "fileutils"
 
 if $PROGRAM_NAME == __FILE__
   list_only = ARGV.delete("--list")
+  results_path = Testbench.take_option(ARGV, "--results") ||
+                 File.join(Testbench::ARTIFACT_DIR, "results.txt")
   tests = Testbench::Testlist.tests(ARGV[0] || "")
 
   if list_only
@@ -239,5 +261,5 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  exit(Testbench::Runner.new(tests).run.zero? ? 0 : 1)
+  exit(Testbench::Runner.new(tests, results_path).run.zero? ? 0 : 1)
 end

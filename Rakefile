@@ -13,6 +13,13 @@ VENDORED_REPOS = {
   }
 }.freeze
 
+# Headless suites whose full output is tracked as a baseline. Each runner
+# takes --results PATH and writes one file; the guard is a plain diff
+# against the recorded copy.
+REGRESSION_SUITES = %w[testbench lorenz].freeze
+BASELINE_DIR = "test/baselines"
+REGRESSION_DIR = "tmp/regression"
+
 # Check out a vendored test repository with a single shallow, blobless
 # partial clone, optionally restricted to a sparse subpath. Git only
 # transfers the (compressed) blobs we ask for, so this is far cheaper than
@@ -36,6 +43,34 @@ end
 
 task default: "test"
 
+def baseline_path(suite)
+  File.join(BASELINE_DIR, "#{suite}.txt")
+end
+
+# The runners exit non-zero while any test fails, which a baseline is
+# expected to capture, so their status is ignored and the diff decides.
+def run_suite(suite, results)
+  mkdir_p(File.dirname(results))
+  ruby("--jit", "bin/#{suite}", "--results", results) do |ok, _status|
+    puts "bin/#{suite} reported failing tests." unless ok
+  end
+  raise "bin/#{suite} wrote no results to #{results}" unless File.exist?(results)
+end
+
+def diff_baseline(suite, results)
+  baseline = baseline_path(suite)
+  unless File.exist?(baseline)
+    raise "No baseline at #{baseline}. Record one with " \
+          "`rake regression:record:#{suite}`."
+  end
+
+  sh("diff", "-u", "-L", "baseline", "-L", "current", baseline, results) do |ok, _|
+    raise "#{suite} differs from #{baseline}." unless ok
+
+    puts "#{suite}: matches #{baseline}."
+  end
+end
+
 namespace :vendor do
   VENDORED_REPOS.each do |name, config|
     desc "Check out #{name} into vendor/#{name} unless already present"
@@ -53,6 +88,33 @@ namespace :vendor do
   desc "Check out all vendored test repositories"
   task checkout: VENDORED_REPOS.keys
 end
+
+namespace :regression do
+  REGRESSION_SUITES.each do |suite|
+    desc "Run #{suite} and diff the results against #{BASELINE_DIR}/#{suite}.txt"
+    task suite => "vendor:VICE-testprogs" do
+      results = File.join(REGRESSION_DIR, "#{suite}.txt")
+      run_suite(suite, results)
+      diff_baseline(suite, results)
+    end
+  end
+
+  namespace :record do
+    REGRESSION_SUITES.each do |suite|
+      desc "Re-record #{BASELINE_DIR}/#{suite}.txt from a fresh #{suite} run"
+      task suite => "vendor:VICE-testprogs" do
+        run_suite(suite, baseline_path(suite))
+        puts "Recorded #{baseline_path(suite)}."
+      end
+    end
+  end
+
+  desc "Re-record every baseline"
+  task record: REGRESSION_SUITES.map { |suite| "regression:record:#{suite}" }
+end
+
+desc "Run every headless suite against its tracked baseline"
+task regression: REGRESSION_SUITES.map { |suite| "regression:#{suite}" }
 
 Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
