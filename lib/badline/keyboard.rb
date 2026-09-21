@@ -10,7 +10,7 @@ module Badline
       @keys = []
 
       @matrix = [
-        %i[delete return cursor_h f7 f1 f3 cursor_v],
+        %i[delete return cursor_h f7 f1 f3 f5 cursor_v],
         %i[3 w a 4 z s e lshift],
         %i[5 r d 6 c f t x],
         %i[7 y g 8 b h u v],
