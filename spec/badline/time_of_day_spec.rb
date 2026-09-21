@@ -5,6 +5,9 @@ require "spec_helper"
 describe Badline::TimeOfDay do
   subject(:tod) { described_class.new(clock_hz: 50) }
 
+  # One TOD pin pulse per cycle, divided by five into tenths.
+  before { tod.fifty_hz = true }
+
   def advance_tenths(count)
     (count * 5).times { tod.cycle! }
   end
@@ -89,14 +92,28 @@ describe Badline::TimeOfDay do
   end
 
   describe "the tenth-of-a-second divider" do
-    it "does not tick before clock_hz/10 cycles" do
+    it "does not tick before five TOD pin pulses" do
       4.times { tod.cycle! }
       expect(tod.tenths).to eq(0x00)
     end
 
-    it "ticks on the fifth cycle" do
+    it "ticks on the fifth pulse" do
       5.times { tod.cycle! }
       expect(tod.tenths).to eq(0x01)
+    end
+
+    context "when 60 Hz is selected" do
+      before { tod.fifty_hz = false }
+
+      it "does not tick on the fifth pulse" do
+        5.times { tod.cycle! }
+        expect(tod.tenths).to eq(0x00)
+      end
+
+      it "ticks on the sixth pulse" do
+        6.times { tod.cycle! }
+        expect(tod.tenths).to eq(0x01)
+      end
     end
   end
 

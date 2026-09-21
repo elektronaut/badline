@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require "badline/cia/serial"
 require "badline/cia/timer"
 
 module Badline
@@ -9,7 +10,7 @@ module Badline
     include Addressable
     extend Forwardable
 
-    attr_reader :start, :control_a, :control_b, :interrupt_status, :interrupt_control, :peripheral
+    attr_reader :start, :control_a, :control_b, :interrupt_status, :interrupt_control, :peripheral, :serial
 
     def_delegator :@ta, :counter,  :timer_a
     def_delegator :@ta, :counter=, :timer_a=
@@ -30,7 +31,8 @@ module Badline
       @data_dir_b = 0x0
       @port_b4_handler = nil
       @irq_pending = 0
-      @serial_data = 0x0
+      @cnt_high = true
+      @cnt_rise = false
       @tod = TimeOfDay.new
       @interrupt_control = Status.new([:timer_a, :timer_b, :alarm, :serial,
                                        :flag, 0, 0, 0])
@@ -42,6 +44,7 @@ module Badline
                                  in_cnt in_timer_a alarm])
       @ta = Timer.new(@control_a)
       @tb = Timer.new(@control_b)
+      @serial = Serial.new(@control_a)
     end
 
     # Register a change handler on the PB4 line. On CIA 1, this feeds the
@@ -63,6 +66,7 @@ module Badline
         @irq_pending -= 1
         interrupt_status.interrupt = true if @irq_pending.zero?
       end
+      sample_cnt
       update_timers
       @tod.cycle! { trigger_alarm }
     end
@@ -100,7 +104,7 @@ module Badline
       when 0x09 then @tod.seconds
       when 0x0a then @tod.minutes
       when 0x0b then @tod.hours
-      when 0x0c then @serial_data
+      when 0x0c then @serial.data
       when 0x0d
         value = interrupt_status.value
         interrupt_status.value = 0x0 # Burn after reading
@@ -125,10 +129,9 @@ module Badline
       when 0x09 then @tod.write(:seconds, value, alarm: control_b.alarm?)
       when 0x0a then @tod.write(:minutes, value, alarm: control_b.alarm?)
       when 0x0b then @tod.write_hours(value, alarm: control_b.alarm?)
-      when 0x0c
-        # TODO: Serial
+      when 0x0c then @serial.write(value)
       when 0x0d then write_interrupt_control(value)
-      when 0x0e then @ta.write_control(value)
+      when 0x0e then write_control_a(value)
       when 0x0f then @tb.write_control(value)
       end
     end
@@ -153,17 +156,9 @@ module Badline
     end
 
     def apply_timer_output(value)
-      value = with_bit(value, 6, timer_a_output?) if control_a.output?
-      value = with_bit(value, 7, timer_b_output?) if control_b.output?
+      value = with_bit(value, 6, @ta.output?) if control_a.output?
+      value = with_bit(value, 7, @tb.output?) if control_b.output?
       value
-    end
-
-    def timer_a_output?
-      control_a.out_mode? ? @ta.toggle? : @ta.underflowed
-    end
-
-    def timer_b_output?
-      control_b.out_mode? ? @tb.toggle? : @tb.underflowed
     end
 
     def with_bit(value, bit, set)
@@ -175,22 +170,52 @@ module Badline
       interrupt! if interrupt_control.alarm?
     end
 
+    def trigger_serial
+      interrupt_status.serial = true
+      interrupt! if interrupt_control.serial?
+    end
+
+    # CNT is sampled once a cycle. When the serial port drives it from this
+    # cycle's timer A underflow, the new level is picked up on the next one.
+    def sample_cnt
+      level = @serial.cnt
+      return @cnt_rise = false if level == @cnt_high
+
+      @cnt_high = level
+      @cnt_rise = level
+      @serial.rising_edge! { trigger_serial } if level
+    end
+
     def update_timers
-      @ta.cycle!(@control_a.value.nobits?(0x20), true)
-      crb = @control_b.value
-      if crb.anybits?(0x40)
-        @tb.cycle!(true, @ta.underflowed)
-      else
-        @tb.cycle!(crb.nobits?(0x20), true)
-      end
+      @ta.cycle!(@control_a.value.nobits?(0x20) || @cnt_rise, true)
+      cycle_timer_b
       if @ta.underflowed
         interrupt_status.timer_a = true
         interrupt! if interrupt_control.timer_a?
+        @serial.underflow! { trigger_serial }
       end
       return unless @tb.underflowed
 
       interrupt_status.timer_b = true
       interrupt! if interrupt_control.timer_b?
+    end
+
+    # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
+    # underflows, or timer A underflows gated by the CNT level.
+    def cycle_timer_b
+      case @control_b.value & 0x60
+      when 0x00 then @tb.cycle!(true, true)
+      when 0x20 then @tb.cycle!(@cnt_rise, true)
+      when 0x40 then @tb.cycle!(true, @ta.underflowed)
+      else           @tb.cycle!(true, @ta.underflowed && @cnt_high)
+      end
+    end
+
+    def write_control_a(value)
+      was_output = control_a.serial_mode?
+      @ta.write_control(value)
+      @serial.reset! if control_a.serial_mode? != was_output
+      @tod.fifty_hz = control_a.clock_frequency?
     end
 
     def write_interrupt_control(value)

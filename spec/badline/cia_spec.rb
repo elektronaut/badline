@@ -57,6 +57,8 @@ describe Badline::CIA do
   end
 
   describe "time of day clock" do
+    before { cia.poke(0xdc0e, 0x80) } # divide the 50 Hz TOD pin by five
+
     def advance_one_tenth
       98_525.times { cia.cycle! }
     end
@@ -76,6 +78,12 @@ describe Badline::CIA do
     it "advances a tenth after clock_hz/10 cycles" do
       advance_one_tenth
       expect(cia[0xdc08]).to eq(0x01)
+    end
+
+    it "runs slow when CRA selects 60 Hz" do
+      cia.poke(0xdc0e, 0x00)
+      advance_one_tenth
+      expect(cia[0xdc08]).to eq(0x00)
     end
 
     context "with the alarm armed" do
@@ -579,6 +587,145 @@ describe Badline::CIA do
       cia.poke(0xdc02, 0x0f) # low nibble output, high nibble input
       cia.poke(0xdc00, 0x33)
       expect(cia[0xdc00]).to eq(0xf3)
+    end
+  end
+
+  describe "the CNT line" do
+    def pulse_cnt(count = 1)
+      count.times do
+        cia.serial.cnt_in = false
+        2.times { cia.cycle! }
+        cia.serial.cnt_in = true
+        4.times { cia.cycle! } # the count pipeline is two stages deep
+      end
+    end
+
+    it "floats high with nothing on the user port" do
+      expect(cia.serial.cnt).to be(true)
+    end
+
+    it "clocks timer A when CRA selects CNT" do
+      cia.poke(0xdc05, 0x10)
+      cia.poke(0xdc0e, 0x21)
+      pulse_cnt(5)
+      expect(cia.timer_a).to eq(0x1000 - 5)
+    end
+
+    it "leaves timer A alone while CNT is idle" do
+      cia.poke(0xdc05, 0x10)
+      cia.poke(0xdc0e, 0x21)
+      10.times { cia.cycle! }
+      expect(cia.timer_a).to eq(0x1000)
+    end
+
+    it "clocks timer B when CRB selects CNT" do
+      cia.poke(0xdc07, 0x10)
+      cia.poke(0xdc0f, 0x21)
+      pulse_cnt(5)
+      expect(cia.timer_b).to eq(0x1000 - 5)
+    end
+
+    context "when timer B counts timer A underflows gated by CNT" do
+      before do
+        cia.poke(0xdc04, 0x02)
+        cia.poke(0xdc07, 0x10)
+        cia.poke(0xdc0e, 0x01)
+        cia.poke(0xdc0f, 0x61)
+      end
+
+      it "counts while CNT is high" do
+        100.times { cia.cycle! }
+        expect(cia.timer_b).to be < 0x1000
+      end
+
+      it "stops while CNT is low" do
+        cia.serial.cnt_in = false
+        100.times { cia.cycle! }
+        expect(cia.timer_b).to eq(0x1000)
+      end
+    end
+
+    describe "shifting the serial port in" do
+      it "reads the idle-high SP line as ones" do
+        pulse_cnt(8)
+        expect(cia[0xdc0c]).to eq(0xff)
+      end
+
+      it "shifts SP in most significant bit first" do
+        [1, 0, 1, 0, 0, 1, 0, 1].each do |bit|
+          cia.serial.sp_in = bit == 1
+          pulse_cnt
+        end
+        expect(cia[0xdc0c]).to eq(0xa5)
+      end
+
+      it "raises the serial flag once the byte has arrived" do
+        pulse_cnt(8)
+        expect(cia.interrupt_status.serial?).to be(true)
+      end
+
+      it "does not raise the serial flag before the eighth bit" do
+        pulse_cnt(7)
+        expect(cia.interrupt_status.serial?).to be(false)
+      end
+    end
+  end
+
+  describe "the serial port in output mode" do
+    before do
+      cia.poke(0xdc0d, 0x88) # unmask the serial interrupt
+      cia.poke(0xdc04, 0x00)
+      cia.poke(0xdc05, 0x00) # timer A underflows every cycle
+      cia.poke(0xdc0e, 0x41) # serial output, timer A started
+      cia.poke(0xdc0c, 0xa5)
+    end
+
+    # The transmitter idles until the first underflow pulls CNT low.
+    def advance_to_first_bit
+      cia.cycle! while cia.serial.cnt
+    end
+
+    def cnt_levels(count)
+      count.times.map do
+        cia.cycle!
+        cia.serial.cnt
+      end
+    end
+
+    it "reads back the byte that was written" do
+      expect(cia[0xdc0c]).to eq(0xa5)
+    end
+
+    it "does not drive CNT before the first underflow" do
+      expect(cia.serial.cnt).to be(true)
+    end
+
+    it "toggles CNT at half the timer A underflow rate" do
+      advance_to_first_bit
+      expect(cnt_levels(3)).to eq([true, false, true])
+    end
+
+    it "puts the most significant bit on SP first" do
+      advance_to_first_bit
+      expect(cia.serial.sp_out).to be(true)
+    end
+
+    it "raises the serial flag once the byte has gone out" do
+      advance_to_first_bit
+      15.times { cia.cycle! }
+      expect(cia.interrupt_status.serial?).to be(true)
+    end
+
+    it "does not raise the serial flag mid-byte" do
+      advance_to_first_bit
+      14.times { cia.cycle! }
+      expect(cia.interrupt_status.serial?).to be(false)
+    end
+
+    it "leaves CNT high once the byte has gone out" do
+      advance_to_first_bit
+      16.times { cia.cycle! }
+      expect(cia.serial.cnt).to be(true)
     end
   end
 end

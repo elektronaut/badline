@@ -17,8 +17,10 @@ module Badline
         @toggle = true
       end
 
-      def toggle?
-        @toggle
+      # The level this timer drives on its port B pin: a square wave that
+      # flips on each underflow, or a single high tick when one happens.
+      def output?
+        control.out_mode? ? @toggle : @underflowed
       end
 
       def cycle!(feed, pulse)
