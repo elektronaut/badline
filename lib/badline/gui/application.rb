@@ -6,16 +6,26 @@ module Badline
       PAL_CLOCK_HZ = 985_248
       TITLE = "Badline"
       TOGGLE_SYM = SDL2::Key::TAB
+      REVERSE_MOD = SDL2::Key::Mod::SHIFT
 
       SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
 
-      # Tab steps through the input modes; the title bar names the live one.
-      MODES = { keyboard: nil, joystick: "JOY", mouse: "MOUSE", paddles: "PADDLE" }.freeze
+      # Tab steps through the input modes and shift-Tab back; the title bar
+      # names the live one. The pot devices appear once per control port, since
+      # games disagree on which one they read.
+      MODES = {
+        keyboard: nil, joystick: "JOY",
+        mouse1: "MOUSE 1", mouse2: "MOUSE 2",
+        paddles1: "PADDLE 1", paddles2: "PADDLE 2"
+      }.freeze
 
-      # Both pot devices plug into control port 1 and take their input from the
-      # host mouse. Motion turns the paddle knobs or steps the 1351's counters,
-      # and the host buttons go to whichever lines the device puts them on.
-      POT_DEVICES = { mouse: Input::Mouse1351, paddles: Input::Paddles }.freeze
+      # Both pot devices take their input from the host mouse. Motion turns the
+      # paddle knobs or steps the 1351's counters, and the host buttons go to
+      # whichever lines the device puts them on.
+      POT_DEVICES = {
+        mouse1: [Input::Mouse1351, 1], mouse2: [Input::Mouse1351, 2],
+        paddles1: [Input::Paddles, 1], paddles2: [Input::Paddles, 2]
+      }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
       def initialize(media_path: nil, autostart: true, debug: false)
@@ -73,7 +83,7 @@ module Badline
       end
 
       def handle_key_down(event)
-        return cycle_mode if event.sym == TOGGLE_SYM
+        return cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1) if event.sym == TOGGLE_SYM
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
@@ -108,17 +118,20 @@ module Badline
         port == 1 ? @computer.joystick1 : @computer.joystick2
       end
 
-      def cycle_mode
+      def cycle_mode(step)
         modes = MODES.keys
-        @mode = modes[(modes.index(@mode) + 1) % modes.size]
+        @mode = modes[(modes.index(@mode) + step) % modes.size]
         release_inputs
         attach_pot_device
         @window.title = [TITLE, MODES[@mode] && "[#{MODES[@mode]}]"].compact.join(" ")
       end
 
       def attach_pot_device
-        @pot_device = POT_DEVICES[@mode]&.new
-        @computer.control_ports.device1 = @pot_device
+        device_class, port = POT_DEVICES[@mode]
+        @pot_device = device_class&.new
+        ports = @computer.control_ports
+        ports.device1 = port == 1 ? @pot_device : nil
+        ports.device2 = port == 2 ? @pot_device : nil
         SDL2::Mouse.relative_mode = !@pot_device.nil?
       end
 
