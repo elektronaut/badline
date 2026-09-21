@@ -1,0 +1,17 @@
+busvalue/busvalue.prg	PASS
+envelope/lft-adsr-test.prg	PASS
+envelope/testADSRDelayBug.prg	PASS
+envelope/testFlip00toFF.prg	PASS
+envelope/testFlipFFto00.prg	PASS
+exp_counter_reset/env_test_exr.prg	PASS
+noiselfsrinit/simple.prg	FAIL	exit=$ff
+osc3-wave0/osc3-wave0.prg	FAIL	exit=$ff
+osc_topbit/osc_topbit_test_noise_old.prg	FAIL	exit=$ff
+osc_topbit/osc_topbit_test_pulse_old.prg	FAIL	exit=$ff
+osc_topbit/osc_topbit_test_triangle_old.prg	FAIL	exit=$ff
+oscinit/allinit.prg	PASS
+oscinit/noiseinit.prg	PASS
+oscinit/oscinit.prg	PASS
+ringmod/ringmodtest.prg	PASS
+wf12nsr/wf12nsr.prg	FAIL	timeout
+writedelay/writedelay.prg	FAIL	exit=$ff

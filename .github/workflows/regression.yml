@@ -6,6 +6,7 @@ on:
     paths:
       - "lib/**"
       - "bin/lorenz"
+      - "bin/sidtests"
       - "bin/testbench"
       - "test/baselines/**"
       - "Rakefile"
@@ -15,11 +16,12 @@ on:
       suite:
         description: "Suite to run"
         type: choice
-        default: both
+        default: all
         options:
-          - both
+          - all
           - testbench
           - lorenz
+          - sid
 permissions:
   contents: read
 concurrency:
@@ -33,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [testbench, lorenz]
+        suite: [testbench, lorenz, sid]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -52,7 +54,7 @@ jobs:
       - name: Diff against the tracked baseline
         if: >-
           github.event_name != 'workflow_dispatch' ||
-          inputs.suite == 'both' || inputs.suite == matrix.suite
+          inputs.suite == 'all' || inputs.suite == matrix.suite
         run: bundle exec rake regression:${{ matrix.suite }}
       - name: Upload run artifacts
         if: failure()

@@ -3,17 +3,20 @@
 
 # Headless runner for the SID testprogs in vendor/VICE-testprogs/SID.
 #
-#   ruby --jit bin/sidtests [filter] [--list]
+#   ruby --jit bin/sidtests [filter] [--list] [--results PATH]
 #
 # Only the programs that report through the $D7FF debug register can be
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and
 # need the eye. Each test boots a fresh machine, injects the .prg and types
-# RUN. KNOWN_FAILURES records the ones that depend on chip behaviour the
-# synthesis core does not model yet, so a regression stands out.
+# RUN. With --results, the results log — one tab-separated "name STATUS
+# [detail]" record per test, in test order — is written to PATH; that is the
+# baseline format `rake regression:sid` diffs against the tracked copy in
+# test/baselines/.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
+require "fileutils"
 
 module SIDTests
   ROOT = File.expand_path("../vendor/VICE-testprogs/SID", __dir__)
@@ -42,19 +45,16 @@ module SIDTests
     writedelay/writedelay.prg
   ].freeze
 
-  # Waveform tables, noise writeback, the floating waveform-0 DAC and the
-  # 6581's one-cycle write delay — see the SID section of Plan.local.md.
-  KNOWN_FAILURES = %w[
-    noiselfsrinit/simple.prg
-    osc3-wave0/osc3-wave0.prg
-    osc_topbit/osc_topbit_test_noise_old.prg
-    osc_topbit/osc_topbit_test_pulse_old.prg
-    osc_topbit/osc_topbit_test_triangle_old.prg
-    wf12nsr/wf12nsr.prg
-    writedelay/writedelay.prg
-  ].freeze
-
   module_function
+
+  # Removes "--name value" or "--name=value" from argv, returning the value.
+  def take_option(argv, name)
+    index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
+    return unless index
+
+    arg = argv.delete_at(index)
+    arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+  end
 
   def exit_code(name)
     computer = Badline::Computer.new
@@ -69,32 +69,45 @@ module SIDTests
     code = exit_code(name)
     return "PASS" if code&.zero?
 
-    "#{code ? format('exit=$%02x', code) : 'timeout'}#{' (known)' if KNOWN_FAILURES.include?(name)}"
+    code ? format("exit=$%02x", code) : "timeout"
   end
 
-  def run(filter)
+  def run(filter, results_path)
     names = TESTS.select { |name| name.include?(filter) }
-    results = names.to_h do |name|
+    results = names.map do |name|
       result = score(name)
       puts format("%-43<name>s %<result>s", name:, result:)
       $stdout.flush
       [name, result]
     end
-    summarize(results)
+    summarize(results, results_path)
   end
 
-  def summarize(results)
+  def summarize(results, results_path)
     passed = results.count { |_, result| result == "PASS" }
-    known = results.count { |name, result| result != "PASS" && KNOWN_FAILURES.include?(name) }
-    puts "#{passed}/#{results.length} passed, #{known} known failures"
-    results.length - passed - known
+    puts "#{passed}/#{results.length} passed"
+    write_results(results_path, results) if results_path
+    results.length - passed
+  end
+
+  def write_results(path, results)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, results.map { |name, result| record(name, result) }.join)
+  end
+
+  def record(name, result)
+    result == "PASS" ? "#{name}\tPASS\n" : "#{name}\tFAIL\t#{result}\n"
   end
 end
 
 if $PROGRAM_NAME == __FILE__
-  if ARGV.delete("--list")
+  list_only = ARGV.delete("--list")
+  results_path = SIDTests.take_option(ARGV, "--results")
+
+  if list_only
     SIDTests::TESTS.each { |name| puts name }
     exit
   end
-  exit(SIDTests.run(ARGV[0] || "").zero? ? 0 : 1)
+
+  exit(SIDTests.run(ARGV[0] || "", results_path).zero? ? 0 : 1)
 end

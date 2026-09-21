@@ -13,10 +13,14 @@ VENDORED_REPOS = {
   }
 }.freeze
 
-# Headless suites whose full output is tracked as a baseline. Each runner
-# takes --results PATH and writes one file; the guard is a plain diff
-# against the recorded copy.
-REGRESSION_SUITES = %w[testbench lorenz].freeze
+# Headless suites whose full output is tracked as a baseline, mapped to the
+# runner that produces it. Each runner takes --results PATH and writes one
+# file; the guard is a plain diff against the recorded copy.
+REGRESSION_SUITES = {
+  "testbench" => "bin/testbench",
+  "lorenz" => "bin/lorenz",
+  "sid" => "bin/sidtests"
+}.freeze
 BASELINE_DIR = "test/baselines"
 REGRESSION_DIR = "tmp/regression"
 
@@ -50,11 +54,12 @@ end
 # The runners exit non-zero while any test fails, which a baseline is
 # expected to capture, so their status is ignored and the diff decides.
 def run_suite(suite, results)
+  runner = REGRESSION_SUITES.fetch(suite)
   mkdir_p(File.dirname(results))
-  ruby("--jit", "bin/#{suite}", "--results", results) do |ok, _status|
-    puts "bin/#{suite} reported failing tests." unless ok
+  ruby("--jit", runner, "--results", results) do |ok, _status|
+    puts "#{runner} reported failing tests." unless ok
   end
-  raise "bin/#{suite} wrote no results to #{results}" unless File.exist?(results)
+  raise "#{runner} wrote no results to #{results}" unless File.exist?(results)
 end
 
 def diff_baseline(suite, results)
@@ -90,7 +95,7 @@ namespace :vendor do
 end
 
 namespace :regression do
-  REGRESSION_SUITES.each do |suite|
+  REGRESSION_SUITES.each_key do |suite|
     desc "Run #{suite} and diff the results against #{BASELINE_DIR}/#{suite}.txt"
     task suite => "vendor:VICE-testprogs" do
       results = File.join(REGRESSION_DIR, "#{suite}.txt")
@@ -100,7 +105,7 @@ namespace :regression do
   end
 
   namespace :record do
-    REGRESSION_SUITES.each do |suite|
+    REGRESSION_SUITES.each_key do |suite|
       desc "Re-record #{BASELINE_DIR}/#{suite}.txt from a fresh #{suite} run"
       task suite => "vendor:VICE-testprogs" do
         run_suite(suite, baseline_path(suite))
@@ -110,11 +115,11 @@ namespace :regression do
   end
 
   desc "Re-record every baseline"
-  task record: REGRESSION_SUITES.map { |suite| "regression:record:#{suite}" }
+  task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 
 desc "Run every headless suite against its tracked baseline"
-task regression: REGRESSION_SUITES.map { |suite| "regression:#{suite}" }
+task regression: REGRESSION_SUITES.keys.map { |suite| "regression:#{suite}" }
 
 Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
