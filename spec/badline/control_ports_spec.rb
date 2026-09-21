@@ -50,4 +50,65 @@ describe Badline::ControlPorts do
       expect(ports.read_b(0xff, 0xff)).to eq(0b11111011)
     end
   end
+
+  describe "attached devices" do
+    let(:device) { Badline::Input::Paddles.new }
+
+    it "pulls port A low through a device on port 2" do
+      ports.device2 = device
+      device.press(:a)
+      expect(ports.read_a(0xff, 0xff)).to eq(0b11111011)
+    end
+
+    it "pulls port B low through a device on port 1" do
+      ports.device1 = device
+      device.press(:b)
+      expect(ports.read_b(0xff, 0xff)).to eq(0b11110111)
+    end
+  end
+
+  describe "pot mux" do
+    let(:port1_device) { Struct.new(:pot_x, :pot_y, :port_bits).new(0x10, 0x20, 0xff) }
+    let(:port2_device) { Struct.new(:pot_x, :pot_y, :port_bits).new(0x30, 0x08, 0xff) }
+
+    before do
+      ports.port_a_source = Struct.new(:port_a_lines).new(0xff)
+      ports.device1 = port1_device
+      ports.device2 = port2_device
+    end
+
+    it "floats POTX high with nothing selected" do
+      ports.port_a_source.port_a_lines = 0x3f
+      expect(ports.pot_x).to eq(0xff)
+    end
+
+    it "floats POTY high with no device in the selected port" do
+      ports.device1 = nil
+      ports.port_a_source.port_a_lines = 0x40
+      expect(ports.pot_y).to eq(0xff)
+    end
+
+    it "reads POTX from port 1 on PA6" do
+      ports.port_a_source.port_a_lines = 0x40
+      expect(ports.pot_x).to eq(0x10)
+    end
+
+    it "reads POTY from port 2 on PA7" do
+      ports.port_a_source.port_a_lines = 0x80
+      expect(ports.pot_y).to eq(0x08)
+    end
+
+    it "reads the lower resistance with both ports selected" do
+      expect(ports.pot_x).to eq(0x10)
+    end
+
+    it "reads the lower resistance on POTY too" do
+      expect(ports.pot_y).to eq(0x08)
+    end
+
+    it "floats high with no select lines wired up" do
+      ports.port_a_source = nil
+      expect(ports.pot_x).to eq(0xff)
+    end
+  end
 end

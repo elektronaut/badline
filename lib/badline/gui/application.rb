@@ -9,17 +9,29 @@ module Badline
 
       SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
 
+      # Tab steps through the input modes; the title bar names the live one.
+      MODES = { keyboard: nil, joystick: "JOY", mouse: "MOUSE", paddles: "PADDLE" }.freeze
+
+      # Both pot devices plug into control port 1 and take their input from the
+      # host mouse. Motion turns the paddle knobs or steps the 1351's counters,
+      # and the host buttons go to whichever lines the device puts them on.
+      POT_DEVICES = { mouse: Input::Mouse1351, paddles: Input::Paddles }.freeze
+      MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
+
       def initialize(media_path: nil, autostart: true, debug: false)
         @computer = Computer.new(debug:)
         puts Media.attach(@computer, media_path, autostart:) if media_path
 
-        @joystick_mode = false
+        @mode = :keyboard
+        @pot_device = nil
         @panes = [ScreenPane.new(@computer)]
         @window = Window.new(
           title: TITLE,
           width: canvas_width, height: canvas_height,
           vsync: ENV["NOVSYNC"].nil?
         )
+        @gamepads = Gamepads.new(@computer)
+        @gamepads.names.each { |name| puts "Gamepad: #{name}" }
 
         rate = @window.refresh_rate
         @cycles_per_frame = PAL_CLOCK_HZ / rate
@@ -30,10 +42,12 @@ module Badline
         @running = true
         while @running
           handle_events
+          @gamepads.poll
           @cycles_per_frame.times { @computer.cycle! }
           @window.draw(@panes)
         end
       ensure
+        @gamepads.close
         puts @computer.cpu.inspect
       end
 
@@ -48,14 +62,20 @@ module Badline
             handle_key_down(event)
           when SDL2::Event::KeyUp
             handle_key_up(event)
+          when SDL2::Event::MouseMotion
+            @pot_device&.move(event.xrel, event.yrel)
+          when SDL2::Event::MouseButton
+            handle_mouse_button(event)
+          when SDL2::Event::ControllerDevice
+            @gamepads.rescan
           end
         end
       end
 
       def handle_key_down(event)
-        return toggle_joystick_mode if event.sym == TOGGLE_SYM
+        return cycle_mode if event.sym == TOGGLE_SYM
 
-        port, dir = JoyMap.parse(event) if @joystick_mode
+        port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
           joystick(port).press(dir)
         else
@@ -66,7 +86,7 @@ module Badline
       def handle_key_up(event)
         return if event.sym == TOGGLE_SYM
 
-        port, dir = JoyMap.parse(event) if @joystick_mode
+        port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
           joystick(port).release(dir)
         else
@@ -74,21 +94,36 @@ module Badline
         end
       end
 
+      def handle_mouse_button(event)
+        button = MOUSE_BUTTONS[event.button]
+        return unless button && @pot_device
+
+        case event
+        when SDL2::Event::MouseButtonDown then @pot_device.press(button)
+        when SDL2::Event::MouseButtonUp then @pot_device.release(button)
+        end
+      end
+
       def joystick(port)
         port == 1 ? @computer.joystick1 : @computer.joystick2
       end
 
-      def toggle_joystick_mode
-        @joystick_mode = !@joystick_mode
-        if @joystick_mode
-          SHARED_KEYS.each { |key| @computer.keyboard.release(key) }
-        else
-          release_joysticks
-        end
-        @window.title = @joystick_mode ? "#{TITLE} [JOY]" : TITLE
+      def cycle_mode
+        modes = MODES.keys
+        @mode = modes[(modes.index(@mode) + 1) % modes.size]
+        release_inputs
+        attach_pot_device
+        @window.title = [TITLE, MODES[@mode] && "[#{MODES[@mode]}]"].compact.join(" ")
       end
 
-      def release_joysticks
+      def attach_pot_device
+        @pot_device = POT_DEVICES[@mode]&.new
+        @computer.control_ports.device1 = @pot_device
+        SDL2::Mouse.relative_mode = !@pot_device.nil?
+      end
+
+      def release_inputs
+        SHARED_KEYS.each { |key| @computer.keyboard.release(key) }
         Joystick::DIRECTIONS.each_key do |dir|
           @computer.joystick1.release(dir)
           @computer.joystick2.release(dir)

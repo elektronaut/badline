@@ -79,4 +79,24 @@ describe Badline::AddressBus do
       specify { expect(address_bus[0xa000]).to eq(0x20) }
     end
   end
+
+  describe "the pot mux" do
+    let(:paddles) { Badline::Input::Paddles.new }
+
+    before do
+      address_bus.control_ports.device1 = paddles
+      paddles.move(-0x30, 0)
+      address_bus[0xdc02] = 0xff
+    end
+
+    it "reads a port 1 paddle once CIA 1 PA6 selects it" do
+      address_bus[0xdc00] = 0x40
+      expect(address_bus[0xd419]).to eq(0x50)
+    end
+
+    it "leaves POTX floating while PA6 is low" do
+      address_bus[0xdc00] = 0x80
+      expect(address_bus[0xd419]).to eq(0xff)
+    end
+  end
 end

@@ -42,7 +42,7 @@ module Badline
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :cartridge, :ultimax
+                :control_ports, :cartridge, :ultimax
 
     def initialize
       @ram = Memory.new([0xff, 0x07], length: 2**16, start: 0)
@@ -56,14 +56,13 @@ module Badline
       @keyboard = Keyboard.new
       @joystick1 = Joystick.new
       @joystick2 = Joystick.new
+      @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
       @vic  = VIC.new(self)
-      @cia1 = CIA.new(
-        start: 0xdc00,
-        peripheral: ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-      )
+      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports)
       @cia2 = CIA.new(start: 0xdd00)
+      @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
-      @sid = SID.new
+      @sid = SID.new(pots: @control_ports)
 
       @color_ram = ColorMemory.new(start: 0xd800, length: 2**10)
 
