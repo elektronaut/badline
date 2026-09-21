@@ -5,4 +5,4 @@
 /vendor/
 *.gem
 
-/.conductor/settings.local.toml
+/.conductor/
