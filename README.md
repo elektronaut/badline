@@ -9,7 +9,8 @@ The 6510, the VIC-II and both CIAs are emulated one cycle at a time,
 so the machine behaves like the real thing down to raster timing, bad
 lines and sprite DMA. Programs load from PRG and P00 files, D64/D71/D81
 disk images, CRT cartridges or a plain directory on your disk, and the
-SDL2 front end gives you a window, a keyboard and a joystick.
+SDL2 front end gives you a window, a keyboard, joysticks, paddles and a
+1351 mouse.
 
 ## Requirements
 
@@ -78,7 +79,7 @@ rather than by emulating a 1541. Loading is instant, but there is no
 drive CPU, so fast loaders and copy protection that talk to the drive
 directly won't work.
 
-## Keyboard and joystick
+## Input
 
 The keyboard is mapped positionally where the two layouts agree. The
 keys that don't line up:
@@ -95,9 +96,26 @@ keys that don't line up:
 | `£` | `End` |
 | `INST/DEL` | `Backspace` |
 
-`Tab` toggles joystick mode, where the arrow keys and space become
-joystick port 2 and the window title gains a `[JOY]` marker. Toggle it
-back off to type again.
+`Tab` steps through the input modes, which the window title names:
+
+| Mode | What the host drives |
+|------|----------------------|
+| (none) | The keyboard, as above |
+| `[JOY]` | Arrows + space are joystick 2, `WASD` + left shift joystick 1 |
+| `[MOUSE]` | A 1351 mouse in control port 1 |
+| `[PADDLE]` | A pair of paddles in control port 1 |
+
+In the two pointer modes the mouse is grabbed: motion moves the mouse or
+turns the paddle knobs, and the host buttons land where the hardware puts
+them — left and right button on the 1351's fire and up lines, paddle A
+and B's buttons on the left and right lines. `Tab` back to a keyboard
+mode to release the pointer.
+
+A connected game controller drives the joysticks in every mode, so it
+works without switching to `[JOY]`. The first controller is joystick 2,
+the second joystick 1; the D-pad and left stick both steer, and the face
+and shoulder buttons fire. Controllers can be plugged and unplugged while
+the emulator runs.
 
 ## What's emulated
 
@@ -110,16 +128,18 @@ back off to type again.
   expansion, priority and collision detection, raster interrupts, bad
   lines, sprite DMA, VIC banks and the border.
 - **CIA 1 and 2** — timers, TOD clocks with alarms, interrupts, the
-  keyboard matrix and joystick port 2.
+  keyboard matrix with its phantom keypresses, both joystick ports and
+  the POTX/POTY mux.
 - **Cartridges** — standard cartridges plus Ocean and Magic Desk bank
   switching.
 
 Not there yet:
 
-- The SID answers register reads and writes, but makes no sound.
+- The SID answers register reads and writes, including the pot lines,
+  but makes no sound.
 - No 1541 emulation, so nothing that drives the serial bus itself will
   run.
-- No datasette, no REU, no joystick port 1.
+- No datasette and no REU.
 
 ## Contributing
 
