@@ -24,4 +24,10 @@ describe Badline::ControlPorts do
     keyboard.press(:a)
     expect(ports.read_b(0xfd, 0xff)).to eq(keyboard.read_b(0xfd, 0xff))
   end
+
+  it "selects a matrix row from a joystick 2 line" do
+    keyboard.press(:a) # row 1, column 2
+    joystick2.press(:down) # pulls row 1 low
+    expect(ports.read_b(0xff, 0xff)).to eq(0b11111011)
+  end
 end

@@ -516,6 +516,30 @@ describe Badline::CIA do
     end
   end
 
+  describe "reverse keyboard scan" do
+    subject(:cia) { described_class.new(start: 0xdc00, peripheral: keyboard) }
+
+    let(:keyboard) { Badline::Keyboard.new }
+
+    before do
+      cia.poke(0xdc02, 0x00) # port A all inputs
+      cia.poke(0xdc03, 0xff) # port B all outputs
+    end
+
+    it "reports the row of a key in the driven column" do
+      keyboard.press(:a) # row 1, column 2
+      cia.poke(0xdc01, 0b11111011) # drive column 2 low
+      expect(cia[0xdc00]).to eq(0b11111101)
+    end
+
+    it "ignores the stale port A register while port A is an input" do
+      keyboard.press(:a)
+      cia.poke(0xdc00, 0b11111101) # left over from a forward scan
+      cia.poke(0xdc01, 0b11111110) # drive column 0 low
+      expect(cia[0xdc00]).to eq(0xff)
+    end
+  end
+
   describe "data direction masking" do
     it "reads output bits from the data register" do
       cia.poke(0xdc02, 0xff) # all outputs

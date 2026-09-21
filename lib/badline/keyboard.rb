@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
 module Badline
+  # The 8x8 key matrix spanning CIA 1's two ports: rows on port A, columns on
+  # port B.
+  #
+  # A pressed key shorts its row line to its column line, so whichever side is
+  # pulled low drags the other down with it. Scanning works in either
+  # direction, and chains of keys sharing a line propagate the pulldown -- the
+  # ghost keys real hardware reports.
   class Keyboard
     include IntegerHelper
 
@@ -8,6 +15,7 @@ module Badline
 
     def initialize
       @keys = []
+      @row_masks = nil
 
       @matrix = [
         %i[delete return cursor_h f7 f1 f3 f5 cursor_v],
@@ -22,34 +30,50 @@ module Badline
     end
 
     def press(key)
-      @keys << key if valid_key?(key)
-    end
+      return unless valid_key?(key)
 
-    def read_a(_port_a, _port_b)
-      0xff
-    end
-
-    def read_b(port_a, _port_b)
-      return 0xff unless keys.any?
-
-      output = 0xff
-
-      matrix.each_with_index do |row, a|
-        next unless port_a[a].zero?
-
-        row.each_with_index do |key, b|
-          output -= (1 << b) if keys.include?(key)
-        end
-      end
-
-      output
+      @keys << key
+      @row_masks = nil
     end
 
     def release(key)
       @keys.reject! { |k| k == key }
+      @row_masks = nil
     end
 
+    # Settles the row (port A) and column (port B) lines against each other
+    # until no key contact pulls a line low any more, and returns both.
+    def scan(rows, cols)
+      return [rows, cols] if keys.empty?
+
+      loop do
+        settled_rows = rows
+        settled_cols = cols
+
+        row_masks.each_with_index do |mask, row|
+          bit = 1 << row
+          next if mask.zero? || (rows.allbits?(bit) && cols.allbits?(mask))
+
+          rows &= ~bit
+          cols &= ~mask
+        end
+
+        return [rows, cols] if rows == settled_rows && cols == settled_cols
+      end
+    end
+
+    def read_a(port_a, port_b) = scan(port_a, port_b).first
+
+    def read_b(port_a, port_b) = scan(port_a, port_b).last
+
     private
+
+    # Columns held down per row, as a bit mask of port B lines.
+    def row_masks
+      @row_masks ||= matrix.map do |row|
+        row.each_with_index.sum { |key, column| keys.include?(key) ? 1 << column : 0 }
+      end
+    end
 
     def valid_key?(key)
       matrix.flatten.include?(key)
