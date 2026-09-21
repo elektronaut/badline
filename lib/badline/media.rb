@@ -19,6 +19,8 @@ module Badline
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
           attach_cartridge(computer, path)
+        elsif File.extname(path).downcase == ".sid"
+          attach_sid(computer, path, autostart:)
         elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
           attach_storage(computer, storage.new(path), path, autostart:)
         else
@@ -31,6 +33,19 @@ module Badline
       def attach_cartridge(computer, path)
         computer.attach_cartridge(Cartridge.from_file(path))
         "Attached cartridge #{path}"
+      end
+
+      def attach_sid(computer, path, autostart:)
+        tune = Storage::SIDFile.new(path)
+        computer.on_init { start_tune(computer, tune, autostart:) }
+        title = tune.name.empty? ? path : tune.name
+        autostart ? "Playing #{title}" : "Loaded #{title}"
+      end
+
+      def start_tune(computer, tune, autostart:)
+        computer.ram.write(tune.load_address, tune.data)
+        computer.ram.write(tune.driver_address, tune.driver)
+        computer.type_text("sys#{tune.driver_address}\r") if autostart
       end
 
       def attach_storage(computer, storage, path, autostart:)
