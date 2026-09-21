@@ -69,7 +69,7 @@ jobs:
   automerge:
     name: "Auto-merge Dependabot"
     needs: [rubocop-test, rspec-test, minitest-test]
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Enable auto-merge
