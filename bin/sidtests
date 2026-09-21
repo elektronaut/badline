@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Headless runner for the SID testprogs in vendor/VICE-testprogs/SID.
+#
+#   ruby --jit bin/sidtests [filter] [--list]
+#
+# Only the programs that report through the $D7FF debug register can be
+# scored automatically ($00 pass, $ff fail); the rest print to the screen and
+# need the eye. Each test boots a fresh machine, injects the .prg and types
+# RUN. KNOWN_FAILURES records the ones that depend on chip behaviour the
+# synthesis core does not model yet, so a regression stands out.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "badline"
+
+module SIDTests
+  ROOT = File.expand_path("../vendor/VICE-testprogs/SID", __dir__)
+
+  BOOT_ALLOWANCE = 3_000_000
+  TIMEOUT = 12_000_000
+  BATCH = 10_000
+
+  TESTS = %w[
+    busvalue/busvalue.prg
+    envelope/lft-adsr-test.prg
+    envelope/testADSRDelayBug.prg
+    envelope/testFlip00toFF.prg
+    envelope/testFlipFFto00.prg
+    exp_counter_reset/env_test_exr.prg
+    noiselfsrinit/simple.prg
+    osc3-wave0/osc3-wave0.prg
+    osc_topbit/osc_topbit_test_noise_old.prg
+    osc_topbit/osc_topbit_test_pulse_old.prg
+    osc_topbit/osc_topbit_test_triangle_old.prg
+    oscinit/allinit.prg
+    oscinit/noiseinit.prg
+    oscinit/oscinit.prg
+    ringmod/ringmodtest.prg
+    wf12nsr/wf12nsr.prg
+    writedelay/writedelay.prg
+  ].freeze
+
+  # Waveform tables, noise writeback, the floating waveform-0 DAC and the
+  # 6581's one-cycle write delay — see the SID section of Plan.local.md.
+  KNOWN_FAILURES = %w[
+    noiselfsrinit/simple.prg
+    osc3-wave0/osc3-wave0.prg
+    osc_topbit/osc_topbit_test_noise_old.prg
+    osc_topbit/osc_topbit_test_pulse_old.prg
+    osc_topbit/osc_topbit_test_triangle_old.prg
+    wf12nsr/wf12nsr.prg
+    writedelay/writedelay.prg
+  ].freeze
+
+  module_function
+
+  def exit_code(name)
+    computer = Badline::Computer.new
+    Badline::Media.attach(computer, File.join(ROOT, name))
+    code = nil
+    computer.install_debug_register { |value| code = value }
+    BATCH.times { computer.cycle! } until code || computer.cycles > TIMEOUT + BOOT_ALLOWANCE
+    code
+  end
+
+  def score(name)
+    code = exit_code(name)
+    return "PASS" if code&.zero?
+
+    "#{code ? format('exit=$%02x', code) : 'timeout'}#{' (known)' if KNOWN_FAILURES.include?(name)}"
+  end
+
+  def run(filter)
+    names = TESTS.select { |name| name.include?(filter) }
+    results = names.to_h do |name|
+      result = score(name)
+      puts format("%-43<name>s %<result>s", name:, result:)
+      $stdout.flush
+      [name, result]
+    end
+    summarize(results)
+  end
+
+  def summarize(results)
+    passed = results.count { |_, result| result == "PASS" }
+    known = results.count { |name, result| result != "PASS" && KNOWN_FAILURES.include?(name) }
+    puts "#{passed}/#{results.length} passed, #{known} known failures"
+    results.length - passed - known
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  if ARGV.delete("--list")
+    SIDTests::TESTS.each { |name| puts name }
+    exit
+  end
+  exit(SIDTests.run(ARGV[0] || "").zero? ? 0 : 1)
+end
