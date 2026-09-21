@@ -25,6 +25,10 @@ module Badline
         entry[:load] + (@bytes[entry[:offset], entry[:length]] || [])
       end
 
+      def names
+        entries.map { |e| e[:name] }
+      end
+
       private
 
       def entries
