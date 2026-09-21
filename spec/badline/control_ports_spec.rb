@@ -67,6 +67,39 @@ describe Badline::ControlPorts do
     end
   end
 
+  describe "the light pen line (port 1 fire)" do
+    it "reads high with nothing pressed" do
+      expect(ports).to be_port_b4_high
+    end
+
+    it "reads low while joystick 1 fires" do
+      joystick1.press(:fire)
+      expect(ports).not_to be_port_b4_high
+    end
+
+    it "ignores joystick 2's fire button" do
+      joystick2.press(:fire)
+      expect(ports).to be_port_b4_high
+    end
+
+    it "reads low through a port 1 device's fire line" do
+      ports.device1 = Badline::Input::Mouse1351.new
+      ports.device1.press(:left)
+      expect(ports).not_to be_port_b4_high
+    end
+
+    it "ignores a port 2 device's fire line" do
+      ports.device2 = Badline::Input::Mouse1351.new
+      ports.device2.press(:left)
+      expect(ports).to be_port_b4_high
+    end
+
+    it "ignores the keyboard matrix" do
+      keyboard.press(:a)
+      expect(ports).to be_port_b4_high
+    end
+  end
+
   describe "pot mux" do
     let(:port1_device) { Struct.new(:pot_x, :pot_y, :port_bits).new(0x10, 0x20, 0xff) }
     let(:port2_device) { Struct.new(:pot_x, :pot_y, :port_bits).new(0x30, 0x08, 0xff) }

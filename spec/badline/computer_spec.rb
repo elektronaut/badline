@@ -30,6 +30,26 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "light pen on control port 1" do
+    before { 100.times { computer.cycle! } }
+
+    it "leaves the latch clear while the fire button is up" do
+      expect(computer.vic.peek(0xd019) & 0x08).to eq(0x00)
+    end
+
+    it "latches when joystick 1 fires" do
+      computer.joystick1.press(:fire)
+      computer.cycle!
+      expect(computer.vic.peek(0xd019) & 0x08).to eq(0x08)
+    end
+
+    it "latches the current raster line" do
+      computer.joystick1.press(:fire)
+      computer.cycle!
+      expect(computer.vic.peek(0xd014)).to eq(1)
+    end
+  end
+
   describe "VIC-II sprite DMA cycle stealing" do
     before do
       computer.vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3

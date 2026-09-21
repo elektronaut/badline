@@ -114,6 +114,10 @@ them — left and right button on the 1351's fire and up lines, paddle A
 and B's buttons on the left and right lines. `Tab` back to a keyboard
 mode to release the pointer.
 
+Control port 1's fire line also runs to the VIC's light pen pin, so
+joystick 1's button and the 1351's left button latch `$D013`/`$D014` just
+as they do on hardware.
+
 A connected game controller drives the joysticks in every mode, so it
 works without switching to `[JOY]`. The first controller is joystick 2,
 the second joystick 1; the D-pad and left stick both steer, and the face
