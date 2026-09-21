@@ -64,4 +64,5 @@ jobs:
           path: |
             tmp/regression
             tmp/testbench
+            tmp/lorenz
           if-no-files-found: ignore
