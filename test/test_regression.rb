@@ -91,7 +91,7 @@ class TestRegression < Minitest::Test
   end
 
   def test_publish_is_a_no_op_without_a_step_summary
-    assert_nil @comparison.publish
+    with_step_summary(nil) { assert_nil @comparison.publish }
   end
 
   private
@@ -106,10 +106,21 @@ class TestRegression < Minitest::Test
     Regression.read(path)
   end
 
+  # CI sets GITHUB_STEP_SUMMARY, so both the set and the unset case have to
+  # be arranged explicitly and the runner's own value put back.
   def with_step_summary(path)
-    ENV["GITHUB_STEP_SUMMARY"] = path
+    previous = ENV.fetch("GITHUB_STEP_SUMMARY", nil)
+    replace_step_summary(path)
     yield
   ensure
-    ENV.delete("GITHUB_STEP_SUMMARY")
+    replace_step_summary(previous)
+  end
+
+  def replace_step_summary(path)
+    if path
+      ENV["GITHUB_STEP_SUMMARY"] = path
+    else
+      ENV.delete("GITHUB_STEP_SUMMARY")
+    end
   end
 end
