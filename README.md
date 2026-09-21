@@ -74,9 +74,12 @@ everything.
   it is a PRG, and `SAVE` writes a new one.
 
 Disk access works by trapping the KERNAL's `LOAD` and `SAVE` routines
-rather than by emulating a 1541. Loading is instant, but there is no
-drive CPU, so fast loaders and copy protection that talk to the drive
-directly won't work.
+and its serial bus primitives rather than by emulating a 1541. Files
+also open by name through `OPEN`/`CHRIN`, and the DOS command channel
+answers `U1` block reads, `B-P` and `I`, so block-access loaders work.
+There is no drive CPU, so fast loaders that upload their own 6502 code
+to the drive (`M-W`, `M-E`) and copy protection that reads raw GCR
+won't work.
 
 ## Keyboard and joystick
 

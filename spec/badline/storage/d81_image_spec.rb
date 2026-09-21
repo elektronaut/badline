@@ -33,4 +33,14 @@ describe Badline::Storage::D81Image do
       expect(image.read_file("missing")).to be_nil
     end
   end
+
+  describe "#read_block" do
+    it "uses the flat 40-sector geometry" do
+      expect(image.read_block(50, 0).first(6)).to eq([0, 5, 0x00, 0xc0, 0xaa, 0xbb])
+    end
+
+    it "returns nil past the track's sector count" do
+      expect(image.read_block(50, 40)).to be_nil
+    end
+  end
 end

@@ -33,4 +33,14 @@ describe Badline::Storage::D71Image do
       expect(image.read_file("missing")).to be_nil
     end
   end
+
+  describe "#read_block" do
+    it "reads blocks on the second side" do
+      expect(image.read_block(40, 0).first(6)).to eq([0, 5, 0x00, 0xc0, 0xaa, 0xbb])
+    end
+
+    it "returns nil past the end of the image" do
+      expect(image.read_block(71, 0)).to be_nil
+    end
+  end
 end

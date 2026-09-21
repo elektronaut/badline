@@ -19,7 +19,22 @@ module Badline
         read_chain(entry[:track], entry[:sector]) if entry
       end
 
+      # Raw block access for the DOS `U1` command. Returns nil for blocks
+      # outside the image's geometry.
+      def read_block(track, sector)
+        return unless block?(track, sector)
+
+        sector_at(track, sector)
+      end
+
       private
+
+      def block?(track, sector)
+        return false unless track.between?(1, 255) &&
+                            sector.between?(0, sectors_in(track) - 1)
+
+        sector_offset(track, sector) + SECTOR_SIZE <= @bytes.length
+      end
 
       def entries
         @entries ||= each_sector(directory_track, directory_sector)

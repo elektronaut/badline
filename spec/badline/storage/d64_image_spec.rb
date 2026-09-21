@@ -65,4 +65,30 @@ describe Badline::Storage::D64Image do
       expect(image.read_file("missing")).to be_nil
     end
   end
+
+  describe "#read_block" do
+    it "returns the whole sector" do
+      expect(image.read_block(17, 0).length).to eq(256)
+    end
+
+    it "reads the sector's own bytes" do
+      expect(image.read_block(17, 0).first(4)).to eq([17, 1, 0x00, 0xc0])
+    end
+
+    it "addresses the last sector of a track" do
+      expect(image.read_block(17, 1).first(2)).to eq([0, 5])
+    end
+
+    it "returns nil past the track's sector count" do
+      expect(image.read_block(25, 18)).to be_nil
+    end
+
+    it "returns nil for track 0" do
+      expect(image.read_block(0, 0)).to be_nil
+    end
+
+    it "returns nil past the end of the image" do
+      expect(image.read_block(36, 0)).to be_nil
+    end
+  end
 end
