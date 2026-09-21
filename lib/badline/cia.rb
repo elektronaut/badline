@@ -68,8 +68,10 @@ module Badline
     end
 
     def read_port_a
-      pulldown = peripheral ? peripheral.read_a(@data_port_a, @data_port_b) : 0xff
-      driven_lines(@data_port_a, @data_dir_a) & pulldown
+      lines = driven_lines(@data_port_a, @data_dir_a)
+      return lines unless peripheral
+
+      lines & peripheral.read_a(lines, driven_lines(@data_port_b, @data_dir_b))
     end
 
     # Port A as driven by the data/direction registers alone, without
@@ -79,9 +81,9 @@ module Badline
     end
 
     def read_port_b
-      pulldown = peripheral ? peripheral.read_b(@data_port_a, @data_port_b) : 0xff
-      value = driven_lines(@data_port_b, @data_dir_b) & pulldown
-      apply_timer_output(value)
+      lines = driven_lines(@data_port_b, @data_dir_b)
+      lines &= peripheral.read_b(driven_lines(@data_port_a, @data_dir_a), lines) if peripheral
+      apply_timer_output(lines)
     end
 
     def peek(addr)

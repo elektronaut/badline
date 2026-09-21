@@ -41,7 +41,7 @@ module Badline
     PORT_FLOATING = 0b1100_1000
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
-                :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick2,
+                :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
                 :cartridge, :ultimax
 
     def initialize
@@ -54,11 +54,12 @@ module Badline
       @kernal_rom    = ROM.load("kernal.rom",    0xe000)
 
       @keyboard = Keyboard.new
+      @joystick1 = Joystick.new
       @joystick2 = Joystick.new
       @vic  = VIC.new(self)
       @cia1 = CIA.new(
         start: 0xdc00,
-        peripheral: ControlPorts.new(keyboard: @keyboard, joystick2: @joystick2)
+        peripheral: ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
       )
       @cia2 = CIA.new(start: 0xdd00)
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }

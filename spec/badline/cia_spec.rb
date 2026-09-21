@@ -491,7 +491,7 @@ describe Badline::CIA do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral:) }
 
     let(:peripheral) do
-      Badline::ControlPorts.new(keyboard: Badline::Keyboard.new, joystick2:)
+      Badline::ControlPorts.new(keyboard: Badline::Keyboard.new, joystick1: Badline::Joystick.new, joystick2:)
     end
     let(:joystick2) { Badline::Joystick.new }
 
@@ -513,6 +513,52 @@ describe Badline::CIA do
       cia.poke(0xdc02, 0xff)
       cia.poke(0xdc00, 0b11111110) # CPU drives bit 0 low
       expect(cia[0xdc00]).to eq(0b11101110)
+    end
+  end
+
+  describe "joystick 1 on port B" do
+    subject(:cia) { described_class.new(start: 0xdc00, peripheral:) }
+
+    let(:peripheral) do
+      Badline::ControlPorts.new(keyboard:, joystick1:, joystick2: Badline::Joystick.new)
+    end
+    let(:keyboard) { Badline::Keyboard.new }
+    let(:joystick1) { Badline::Joystick.new }
+
+    it "shows a pressed switch through port B" do
+      joystick1.press(:right) # bit 3
+      expect(cia[0xdc01]).to eq(0b11110111)
+    end
+
+    it "pulls the matrix row of a key sharing the column low" do
+      keyboard.press(:g) # row 3, column 2
+      joystick1.press(:left) # bit 2
+      cia.poke(0xdc02, 0x00) # port A all inputs, as a reverse scan leaves it
+      expect(cia[0xdc00]).to eq(0b11110111)
+    end
+  end
+
+  describe "reverse keyboard scan" do
+    subject(:cia) { described_class.new(start: 0xdc00, peripheral: keyboard) }
+
+    let(:keyboard) { Badline::Keyboard.new }
+
+    before do
+      cia.poke(0xdc02, 0x00) # port A all inputs
+      cia.poke(0xdc03, 0xff) # port B all outputs
+    end
+
+    it "reports the row of a key in the driven column" do
+      keyboard.press(:a) # row 1, column 2
+      cia.poke(0xdc01, 0b11111011) # drive column 2 low
+      expect(cia[0xdc00]).to eq(0b11111101)
+    end
+
+    it "ignores the stale port A register while port A is an input" do
+      keyboard.press(:a)
+      cia.poke(0xdc00, 0b11111101) # left over from a forward scan
+      cia.poke(0xdc01, 0b11111110) # drive column 0 low
+      expect(cia[0xdc00]).to eq(0xff)
     end
   end
 
