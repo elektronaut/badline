@@ -124,4 +124,65 @@ RSpec.describe Badline::Computer do
       end
     end
   end
+
+  describe "#mount" do
+    let(:ram) { computer.ram }
+    let(:writable) { instance_double(Badline::Storage::HostDirectory, write_file: nil) }
+    let(:read_only) { instance_double(Badline::Storage::T64) }
+
+    # Filename "DATA" at $0340, device 8, return address $1234 on the stack
+    def request
+      ram.write(0x0340, "DATA".bytes)
+      ram.write(0xbb, [0x40, 0x03])
+      ram.poke(0xb7, 4)
+      ram.poke(0xba, 8)
+      ram.poke(0xb9, 1)
+      ram.write(0x01fe, [0x34, 0x12])
+      computer.cpu.stack_pointer = 0xfd
+    end
+
+    def run_save
+      request
+      ram.write(0xc000, [0xaa, 0xbb])
+      ram.write(0xc1, [0x00, 0xc0]) # start $c000
+      ram.write(0xae, [0x02, 0xc0]) # end $c002
+      run_routine(Badline::KernalTrap::Save::ADDRESS)
+    end
+
+    def run_load
+      request
+      run_routine(Badline::KernalTrap::Load::ADDRESS)
+    end
+
+    def run_routine(address)
+      computer.cpu.program_counter = address
+      computer.cpu.cycle!
+    end
+
+    context "with a backend that can write" do
+      before do
+        computer.mount(writable)
+        run_save
+      end
+
+      it "saves through the backend" do
+        expect(writable).to have_received(:write_file).with("DATA", [0x00, 0xc0, 0xaa, 0xbb])
+      end
+    end
+
+    context "with a read-only backend" do
+      before { computer.mount(read_only) }
+
+      it "leaves SAVE to the ROM" do
+        run_save
+        expect(computer.cpu.stack_pointer).to eq(0xfd)
+      end
+
+      it "still serves LOAD" do
+        allow(read_only).to receive(:read_file).with("DATA").and_return([0x00, 0xc0, 0x42])
+        run_load
+        expect(ram.peek(0xc000)).to eq(0x42)
+      end
+    end
+  end
 end
