@@ -128,8 +128,8 @@ RSpec.describe Badline::VIC::Sprites do
     end
 
     it "does not collide when only one sprite overlaps a pixel" do
-      registers.read(0x1e)        # clear the two-sprite collision above
-      registers.write(0x15, 0x01) # leave only sprite 0 enabled
+      registers.read(0x1e)       # clear the two-sprite collision above
+      registers.write(0x02, 200) # move sprite 1 clear of sprite 0
       start_display
       sprites.composite(Array.new(504, 6), fg)
       expect(registers.read(0x1e)).to eq(0)

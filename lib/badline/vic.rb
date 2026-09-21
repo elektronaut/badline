@@ -16,6 +16,12 @@ module Badline
 
     LIGHTPEN_IRQ = 0x08 # $D019 latch bit
 
+    # Columns carrying a per-cycle hook, so an ordinary column costs one
+    # array read instead of the dispatch.
+    HOOK_COLUMNS = Array.new(63) do |column|
+      [14, 15, 54, 55, 57, 62].include?(column)
+    end.freeze
+
     SPRITE_BA_RANGES = [
       55..59, 57..61, 59..62,
       0..2, 0..4, 2..6, 4..8, 6..10
@@ -60,13 +66,7 @@ module Badline
 
       draw!
 
-      if @column > 53
-        case @column
-        when 54, 55 then check_sprite_dma
-        when 57 then @sprites.check_display(@rasterline)
-        when 62 then @sequencer.check_vertical_border(@rasterline)
-        end
-      end
+      column_hooks if HOOK_COLUMNS[@column]
 
       @column += 1
       if @column == @columns_per_line
@@ -76,6 +76,20 @@ module Badline
         check_raster_irq! unless @rasterline.zero?
       end
       nil
+    end
+
+    # The sprite and border hooks that fall on named cycles, in Bauer's
+    # numbering (VIC column + 1). Guarded in #cycle! so an ordinary column
+    # pays two compares rather than the dispatch.
+    def column_hooks
+      case @column
+      when 14 then @sprites.advance_mcbase
+      when 15 then @sprites.finish_mcbase
+      when 54 then toggle_and_check_sprite_dma
+      when 55 then check_sprite_dma
+      when 57 then @sprites.check_display(@rasterline)
+      when 62 then @sequencer.check_vertical_border(@rasterline)
+      end
     end
 
     # The IRQ line is held asserted while any enabled latch bit is set in
@@ -159,9 +173,10 @@ module Badline
 
     private
 
-    # Mid-line writes to color and sprite output registers are logged with
-    # the pixel position of the cycle after the write (the CPU runs after
-    # the VIC within a machine cycle, so @column already points there).
+    # Mid-line writes to the color and sprite registers are logged against
+    # the cycle after the write (the CPU runs after the VIC within a machine
+    # cycle, so @column already points there); each register adds its own
+    # pixel delay on top.
     def log_register_change(reg, value)
       old = @registers[reg]
       return if old == value
@@ -175,6 +190,11 @@ module Badline
 
     def check_sprite_dma
       rebuild_sprite_ba if @sprites.check_dma(@rasterline)
+    end
+
+    def toggle_and_check_sprite_dma
+      @sprites.toggle_expansion
+      check_sprite_dma
     end
 
     # The trigger re-arms at the start of each frame; if the pen line is
