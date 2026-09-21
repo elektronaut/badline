@@ -1,0 +1,65 @@
+name: Regression
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "lib/**"
+      - "bin/lorenz"
+      - "bin/testbench"
+      - "test/baselines/**"
+      - "Rakefile"
+      - ".github/workflows/regression.yml"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite to run"
+        type: choice
+        default: both
+        options:
+          - both
+          - testbench
+          - lorenz
+permissions:
+  contents: read
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    name: "Regression (${{ matrix.suite }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [testbench, lorenz]
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Cache VICE-testprogs
+        uses: actions/cache@v4
+        with:
+          path: vendor/VICE-testprogs
+          key: vice-testprogs-v1
+      - name: Diff against the tracked baseline
+        if: >-
+          github.event_name != 'workflow_dispatch' ||
+          inputs.suite == 'both' || inputs.suite == matrix.suite
+        run: bundle exec rake regression:${{ matrix.suite }}
+      - name: Upload run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-${{ matrix.suite }}
+          path: |
+            tmp/regression
+            tmp/testbench
+          if-no-files-found: ignore
