@@ -1,0 +1,41 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+run_mode = "concurrent"
+setup = '''
+set -e
+
+if [ "$CONDUCTOR_IS_LOCAL" != "1" ] && command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y libsdl2-dev
+fi
+
+bundle install
+
+# The vendored test repositories run to several gigabytes. Share the ones
+# the root checkout already has instead of cloning them per workspace.
+if [ "$CONDUCTOR_IS_LOCAL" = "1" ]; then
+  for dir in "$CONDUCTOR_ROOT_PATH"/vendor/*/; do
+    [ -d "$dir" ] || continue
+    ln -sfn "${dir%/}" "vendor/$(basename "${dir%/}")"
+  done
+fi
+'''
+
+[scripts.run.badline]
+command = "bundle exec exe/badline"
+available_in = [ "local" ]
+default = true
+icon = "joystick"
+
+[scripts.run.rspec]
+command = "bundle exec rspec"
+icon = "test-tube"
+
+[scripts.run.minitest]
+command = "bundle exec rake test"
+icon = "flask-conical"
+
+[scripts.run.rubocop]
+command = "bundle exec rubocop"
+icon = "check-check"
