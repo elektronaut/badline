@@ -28,6 +28,12 @@ Metrics/MethodLength:
   Exclude:
     - "lib/badline/instruction.rb"
 
+RSpec/IndexedLet:
+  # joystick1/joystick2 are the hardware's own names for the control ports.
+  AllowedIdentifiers:
+    - joystick1
+    - joystick2
+
 Style/AsciiComments:
   Enabled: false
 

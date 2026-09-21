@@ -7,7 +7,7 @@ module Badline
       TITLE = "Badline"
       TOGGLE_SYM = SDL2::Key::TAB
 
-      SHARED_KEYS = %i[up left cursor_h cursor_v space].freeze
+      SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
 
       def initialize(media_path: nil, autostart: true, debug: false)
         @computer = Computer.new(debug:)
@@ -53,10 +53,11 @@ module Badline
       end
 
       def handle_key_down(event)
-        if event.sym == TOGGLE_SYM
-          toggle_joystick_mode
-        elsif @joystick_mode && (dir = JoyMap.parse(event))
-          @computer.joystick2.press(dir)
+        return toggle_joystick_mode if event.sym == TOGGLE_SYM
+
+        port, dir = JoyMap.parse(event) if @joystick_mode
+        if port
+          joystick(port).press(dir)
         else
           @computer.keyboard.press(KeyMap.parse(event))
         end
@@ -65,11 +66,16 @@ module Badline
       def handle_key_up(event)
         return if event.sym == TOGGLE_SYM
 
-        if @joystick_mode && (dir = JoyMap.parse(event))
-          @computer.joystick2.release(dir)
+        port, dir = JoyMap.parse(event) if @joystick_mode
+        if port
+          joystick(port).release(dir)
         else
           @computer.keyboard.release(KeyMap.parse(event))
         end
+      end
+
+      def joystick(port)
+        port == 1 ? @computer.joystick1 : @computer.joystick2
       end
 
       def toggle_joystick_mode
@@ -77,9 +83,16 @@ module Badline
         if @joystick_mode
           SHARED_KEYS.each { |key| @computer.keyboard.release(key) }
         else
-          Joystick::DIRECTIONS.each_key { |dir| @computer.joystick2.release(dir) }
+          release_joysticks
         end
         @window.title = @joystick_mode ? "#{TITLE} [JOY]" : TITLE
+      end
+
+      def release_joysticks
+        Joystick::DIRECTIONS.each_key do |dir|
+          @computer.joystick1.release(dir)
+          @computer.joystick2.release(dir)
+        end
       end
 
       def canvas_width
