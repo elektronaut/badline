@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/vic/border_mask"
+require "badline/vic/color_patches"
 require "badline/vic/graphics_mode"
 
 module Badline
@@ -28,25 +30,10 @@ module Badline
         [51, 251].freeze
       ].freeze
 
-      # Border coverage per 8-pixel group, tracked so apply_border can skip
-      # window groups and bulk-fill full border groups.
-      BORDER_FULL  = 0
-      BORDER_NONE  = 1
-      BORDER_MIXED = 2
+      MODES = GraphicsMode::MODES
 
-      NULL_MODE = GraphicsMode::Null.new
-      MODES = [
-        GraphicsMode::Text.new,                   # 000 standard text
-        GraphicsMode::MulticolorText.new,         # 001 multicolour text
-        GraphicsMode::Bitmap.new,                 # 010 standard bitmap
-        GraphicsMode::MulticolorBitmap.new,       # 011 multicolour bitmap
-        GraphicsMode::ExtendedBackgroundText.new, # 100 ECM text
-        NULL_MODE,                                # 101 invalid
-        NULL_MODE,                                # 110 invalid
-        NULL_MODE                                 # 111 invalid
-      ].freeze
-
-      attr_reader :colors, :fg, :border, :registers, :bank, :cur_colors
+      attr_reader :colors, :fg, :registers, :bank, :cur_colors,
+                  :color_patches
       # The fg masks are shared frozen patterns assigned by reference, never
       # mutated in place.
       attr_accessor :cur_fg
@@ -57,40 +44,54 @@ module Badline
         @bank = bank
         @colors = Array.new(width, 0)
         @fg = Array.new(width, false)
-        @border = Array.new(width, true)
-        @border_groups = Array.new(width / 8, BORDER_FULL)
+        @border_mask = BorderMask.new(width)
+        # Hot-path aliases: the pixel loops write coverage straight into the
+        # mask's arrays.
+        @border = @border_mask.mask
+        @border_groups = @border_mask.groups
         @cur_colors = Array.new(8, 0)
         @cur_fg = GraphicsMode::NO_FG
         @prev_colors = Array.new(8, 0)
         @prev_fg = GraphicsMode::NO_FG
         @vertical_border = true
         @main_border = true
+        @color_patches = ColorPatches.new(self)
         new_line(0)
       end
 
-      # Reset the line buffers at the start of a rasterline and re-evaluate the
-      # vertical border flip-flop.
+      # Reset the line buffers at the start of a rasterline.
       def new_line(line)
-        update_vertical_border(line)
+        @line = line
         @colors.fill(@registers.border)
         @fg.fill(false)
-        @border_groups.fill(BORDER_FULL)
+        @border_mask.reset
         @prev_colors.fill(@registers.background)
         @prev_fg = GraphicsMode::NO_FG
+        @color_patches.clear
       end
 
-      # Repaint the border over the composited line, hiding the sprites.
-      def apply_border
-        color = @registers.border
-        group = 0
-        while group < @border_groups.length
-          case @border_groups[group]
-          when BORDER_FULL then @colors.fill(color, group * 8, 8)
-          when BORDER_MIXED then paint_mixed_border(color, group * 8)
-          end
-          group += 1
-        end
+      def apply_color_patches
+        @color_patches.apply(@colors, @fg)
       end
+
+      # The vertical border flip-flop is set on the bottom compare line and
+      # reset on the top compare line when DEN is set. The compares run at
+      # cycle 63 and at the left window edge (Bauer §3.9 rules 2-5), so
+      # mid-frame RSEL/DEN toggles can open or close the border.
+      def check_vertical_border(line = @line)
+        top, bottom = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
+        @vertical_border = true if line == bottom
+        @vertical_border = false if line == top && @registers.display_enabled?
+      end
+
+      def border_at?(pixel_x) = @border_mask.at?(pixel_x)
+
+      # Snapshot the finished line so apply_border can restore the border
+      # pixels sprites were composited over, keeping mid-line border splits.
+      def snapshot_line = @border_mask.snapshot(@colors)
+
+      # Repaint the border over the composited line, hiding the sprites.
+      def apply_border = @border_mask.restore(@colors)
 
       def emit(screencode, color, col, cell, row)
         MODES[@registers.mode].decode(screencode, color, cell, row, self)
@@ -98,14 +99,32 @@ module Badline
         roll
       end
 
+      # In idle state the g-accesses read $3fff ($39ff with ECM) and the data
+      # is displayed as if the video matrix supplied all-zero bits. The decode
+      # is skipped while the vertical border is closed and cannot open on this
+      # line, since no pixel of the group can be shown.
       def emit_idle(col)
-        @cur_colors.fill(@registers.background)
-        @cur_fg = GraphicsMode::NO_FG
+        if idle_pixels_hidden?
+          @cur_fg = GraphicsMode::NO_FG
+        else
+          GraphicsMode::IDLE.decode(self)
+        end
         output(col)
         roll
       end
 
       private
+
+      # While the vertical border is closed, the only line where it can open
+      # mid-line is a top compare line with DEN set, so all others skip the
+      # decode after two compares.
+      def idle_pixels_hidden?
+        return false unless @vertical_border
+        return true unless @line == 51 || @line == 55
+
+        top, = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
+        !(@line == top && @registers.display_enabled?)
+      end
 
       # Write the 8-pixel group for a column into the line buffers. The main
       # border flip-flop only changes state in the groups containing the
@@ -134,13 +153,13 @@ module Badline
 
       def output_border(x_pos)
         @colors.fill(@registers.border, x_pos, 8)
-        @border_groups[x_pos >> 3] = BORDER_FULL
+        @border_groups[x_pos >> 3] = BorderMask::FULL
         @fg.fill(false, x_pos, 8)
       end
 
       def output_window(col, x_pos)
         in_gfx = x_pos >= GFX_X_START && x_pos < GFX_X_END
-        @border_groups[x_pos >> 3] = BORDER_NONE
+        @border_groups[x_pos >> 3] = BorderMask::NONE
 
         if @registers.xscroll.zero?
           @colors[x_pos, 8] = @cur_colors
@@ -184,7 +203,7 @@ module Badline
         bg = @registers.background
         bleed = col.positive?
         border = @registers.border
-        @border_groups[x_pos >> 3] = BORDER_MIXED
+        @border_groups[x_pos >> 3] = BorderMask::MIXED
 
         i = 0
         while i < 8
@@ -208,29 +227,18 @@ module Badline
         end
       end
 
-      def paint_mixed_border(color, x_pos)
-        i = 0
-        while i < 8
-          @colors[x_pos + i] = color if @border[x_pos + i]
-          i += 1
-        end
-      end
-
       def pixel_shown?(pixel_x, left_compare, right_compare)
         @main_border = true if pixel_x == right_compare
-        @main_border = false if pixel_x == left_compare && !@vertical_border
+        if pixel_x == left_compare
+          check_vertical_border
+          @main_border = false unless @vertical_border
+        end
         !(@main_border || @vertical_border)
       end
 
       def roll
         @prev_colors, @cur_colors = @cur_colors, @prev_colors
         @prev_fg, @cur_fg = @cur_fg, @prev_fg
-      end
-
-      def update_vertical_border(line)
-        top, bottom = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
-        @vertical_border = true if line == bottom
-        @vertical_border = false if line == top && @registers.display_enabled?
       end
     end
   end

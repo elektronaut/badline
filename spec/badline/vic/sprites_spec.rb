@@ -23,23 +23,31 @@ RSpec.describe Badline::VIC::Sprites do
     ram.poke(ptr * 64, 0b1000_0000)
   end
 
+  # The Y match at line 60 turns DMA on (cycles 55/56) and display on
+  # (cycle 58). The first row renders on line 61.
+  def start_display
+    sprites.check_dma(60)
+    sprites.check_display(60)
+    sprites.start_line
+  end
+
   describe "#composite" do
     before { setup_sprite(0, ptr: 0x20, color: 5) }
 
     it "draws the sprite pixel over the background" do
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(colors[204]).to eq(5)
     end
 
     it "leaves background untouched where the sprite is transparent" do
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(colors[205]).to eq(6)
     end
 
     it "does nothing when no sprite is displaying" do
-      sprites.start_line(0) # before any Y
+      sprites.start_line # before any Y compare has matched
       expect(sprites).not_to be_active
     end
   end
@@ -49,7 +57,7 @@ RSpec.describe Badline::VIC::Sprites do
     # left of the line rather than running off the right edge.
     it "wraps a high X coordinate around to the left edge" do
       setup_sprite(0, ptr: 0x20, color: 5, x_pos: 420)
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(colors[20]).to eq(5)
     end
@@ -61,7 +69,7 @@ RSpec.describe Badline::VIC::Sprites do
     it "detects a sprite-sprite collision outside the display window" do
       setup_sprite(0, ptr: 0x20, color: 5, x_pos: 420)
       setup_sprite(1, ptr: 0x21, color: 7, x_pos: 420)
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(registers.read(0x1e)).to eq(0b11)
     end
@@ -71,7 +79,7 @@ RSpec.describe Badline::VIC::Sprites do
     before do
       setup_sprite(0, ptr: 0x20, color: 5)
       setup_sprite(1, ptr: 0x21, color: 7)
-      sprites.start_line(60)
+      start_display
     end
 
     it "shows the lower-numbered sprite on top" do
@@ -85,14 +93,14 @@ RSpec.describe Badline::VIC::Sprites do
 
     it "draws the sprite over foreground when priority is clear" do
       setup_sprite(0, ptr: 0x20, color: 5, priority: false)
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(colors[204]).to eq(5)
     end
 
     it "hides the sprite behind foreground when priority is set" do
       setup_sprite(0, ptr: 0x20, color: 5, priority: true)
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
       expect(colors[204]).to eq(6)
     end
@@ -102,7 +110,7 @@ RSpec.describe Badline::VIC::Sprites do
     before do
       setup_sprite(0, ptr: 0x20, color: 5)
       setup_sprite(1, ptr: 0x21, color: 7)
-      sprites.start_line(60)
+      start_display
       sprites.composite(colors, fg)
     end
 
@@ -122,7 +130,7 @@ RSpec.describe Badline::VIC::Sprites do
     it "does not collide when only one sprite overlaps a pixel" do
       registers.read(0x1e)        # clear the two-sprite collision above
       registers.write(0x15, 0x01) # leave only sprite 0 enabled
-      sprites.start_line(60)
+      start_display
       sprites.composite(Array.new(504, 6), fg)
       expect(registers.read(0x1e)).to eq(0)
     end
@@ -131,7 +139,7 @@ RSpec.describe Badline::VIC::Sprites do
   describe "sprite/foreground collision ($D01F)" do
     before do
       setup_sprite(0, ptr: 0x20, color: 5)
-      sprites.start_line(60)
+      start_display
     end
 
     it "sets the sprite bit when its pixel overlaps foreground graphics" do

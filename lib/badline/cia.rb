@@ -28,6 +28,7 @@ module Badline
       @data_port_b = 0xff
       @data_dir_a = 0xff
       @data_dir_b = 0x0
+      @port_b4_handler = nil
       @irq_pending = 0
       @serial_data = 0x0
       @tod = TimeOfDay.new
@@ -41,6 +42,12 @@ module Badline
                                  in_cnt in_timer_a alarm])
       @ta = Timer.new(@control_a)
       @tb = Timer.new(@control_b)
+    end
+
+    # Register a change handler on the PB4 line. On CIA 1, this feeds the
+    # light pen input.
+    def on_port_b4_change(&handler)
+      @port_b4_handler = handler
     end
 
     def interrupt!(delay = 1)
@@ -105,9 +112,9 @@ module Badline
     def poke(addr, value)
       case index(addr) & 0x0f
       when 0x00 then @data_port_a = value
-      when 0x01 then @data_port_b = value
+      when 0x01 then update_port_b { @data_port_b = value }
       when 0x02 then @data_dir_a = value
-      when 0x03 then @data_dir_b = value
+      when 0x03 then update_port_b { @data_dir_b = value }
       when 0x04 then @ta.write_latch_low(value)
       when 0x05 then @ta.write_latch_high(value)
       when 0x06 then @tb.write_latch_low(value)
@@ -125,6 +132,17 @@ module Badline
     end
 
     private
+
+    def update_port_b
+      was = port_b4_high?
+      yield
+      now = port_b4_high?
+      @port_b4_handler&.call(now) if was != now
+    end
+
+    def port_b4_high?
+      driven_lines(@data_port_b, @data_dir_b).anybits?(0x10)
+    end
 
     def driven_lines(register, direction)
       # Output bits are driven from the data register; input bits float high.
