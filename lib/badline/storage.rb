@@ -17,6 +17,12 @@ module Badline
         bytes.map { |b| b.between?(0xc1, 0xda) ? b - 0x80 : b }.pack("C*")
       end
 
+      # CBM DOS drive prefix: "0:NAME" selects a drive, "@0:NAME" is
+      # save-with-replace
+      def strip_drive_prefix(name)
+        name.sub(/\A@?\d*:/, "")
+      end
+
       # CBM-style filename pattern: "*" and "?" wildcards, case-insensitive.
       def matcher(name)
         escaped = Regexp.escape(name.downcase)
