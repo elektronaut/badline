@@ -19,6 +19,7 @@ module Badline
       @vic = @address_bus.vic
       @cia1 = @address_bus.cia1
       @cia2 = @address_bus.cia2
+      @sid = @address_bus.sid
       @cycles = 0
       @nmi_asserted = false
       @init_handlers = []
@@ -34,6 +35,7 @@ module Badline
       @vic.cycle!
       @cia1.cycle!
       @cia2.cycle!
+      @sid.cycle!
 
       @cpu.irq = @cia1.interrupted? || @vic.interrupted?
 

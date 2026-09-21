@@ -13,9 +13,12 @@ describe Badline::DebugRegister do
     expect(writes).to eq([0xff])
   end
 
+  # $d41d-$d41f read the SID's data bus latch, so a forwarded write would
+  # show up there.
   it "does not forward captured writes to the SID" do
+    address_bus[0xd7f8] = 0x11
     address_bus[0xd7ff] = 0x42
-    expect(address_bus.sid[0xd41f]).to eq(0xff)
+    expect(address_bus.sid[0xd41f]).to eq(0x11)
   end
 
   it "forwards other writes on the page to the SID" do
