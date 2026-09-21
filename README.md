@@ -100,20 +100,26 @@ keys that don't line up:
 | `£` | `End` |
 | `INST/DEL` | `Backspace` |
 
-`Tab` steps through the input modes, which the window title names:
+`Tab` steps through the input modes and `Shift-Tab` back, which the
+window title names:
 
 | Mode | What the host drives |
 |------|----------------------|
 | (none) | The keyboard, as above |
 | `[JOY]` | Arrows + space are joystick 2, `WASD` + left shift joystick 1 |
-| `[MOUSE]` | A 1351 mouse in control port 1 |
-| `[PADDLE]` | A pair of paddles in control port 1 |
+| `[MOUSE 1]` / `[MOUSE 2]` | A 1351 mouse in control port 1 or 2 |
+| `[PADDLE 1]` / `[PADDLE 2]` | A pair of paddles in control port 1 or 2 |
 
-In the two pointer modes the mouse is grabbed: motion moves the mouse or
+In the four pointer modes the mouse is grabbed: motion moves the mouse or
 turns the paddle knobs, and the host buttons land where the hardware puts
 them — left and right button on the 1351's fire and up lines, paddle A
-and B's buttons on the left and right lines. `Tab` back to a keyboard
-mode to release the pointer.
+and B's buttons on the left and right lines. Games disagree on which port
+they read, hence one mode per port. `Tab` back to a keyboard mode to
+release the pointer.
+
+Control port 1's fire line also runs to the VIC's light pen pin, so
+joystick 1's button and the 1351's left button latch `$D013`/`$D014` just
+as they do on hardware.
 
 A connected game controller drives the joysticks in every mode, so it
 works without switching to `[JOY]`. The first controller is joystick 2,

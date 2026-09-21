@@ -56,6 +56,52 @@ describe Badline::CIA do
     end
   end
 
+  describe "PB4 pulled low by a peripheral (light pen line)" do
+    subject(:cia) { described_class.new(start: 0xdc00, peripheral: ports) }
+
+    let(:joystick1) { Badline::Joystick.new }
+    let(:ports) do
+      Badline::ControlPorts.new(keyboard: Badline::Keyboard.new, joystick1:,
+                                joystick2: Badline::Joystick.new)
+    end
+    let(:edges) { [] }
+
+    before { cia.on_port_b4_change { |high| edges << high } }
+
+    it "reports the fall when joystick 1 fires" do
+      joystick1.press(:fire)
+      cia.cycle!
+      expect(edges).to eq([false])
+    end
+
+    it "reports the rise when the button is let go" do
+      joystick1.press(:fire)
+      cia.cycle!
+      joystick1.release(:fire)
+      cia.cycle!
+      expect(edges).to eq([false, true])
+    end
+
+    it "reports one edge while the button is held" do
+      joystick1.press(:fire)
+      3.times { cia.cycle! }
+      expect(edges).to eq([false])
+    end
+
+    it "stays high when another joystick line falls" do
+      joystick1.press(:up)
+      cia.cycle!
+      expect(edges).to be_empty
+    end
+
+    it "stays low once the register drives PB4 low too" do
+      joystick1.press(:fire)
+      cia.poke(0xdc03, 0x10)
+      cia.poke(0xdc01, 0x00)
+      expect(edges).to eq([false])
+    end
+  end
+
   describe "time of day clock" do
     before { cia.poke(0xdc0e, 0x80) } # divide the 50 Hz TOD pin by five
 

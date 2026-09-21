@@ -19,6 +19,7 @@ module Badline
   class ControlPorts
     PORT1_POTS = 0x40
     PORT2_POTS = 0x80
+    FIRE = 0x10
 
     attr_reader :keyboard, :joystick1, :joystick2
     attr_accessor :device1, :device2, :port_a_source
@@ -35,6 +36,12 @@ module Badline
     def read_a(port_a, port_b) = scan(port_a, port_b).first
 
     def read_b(port_a, port_b) = scan(port_a, port_b).last
+
+    # Control port 1 pin 6 is both the port B fire line and the VIC's light
+    # pen input, so joystick 1's button and a 1351's left button latch
+    # $D013/$D014. The CIA samples this every cycle, so it skips the matrix and
+    # asks only what the port's own devices drive.
+    def port_b4_high? = port_bits(@joystick1, @device1).anybits?(FIRE)
 
     def pot_x = selected_devices.map(&:pot_x).min || 0xff
 

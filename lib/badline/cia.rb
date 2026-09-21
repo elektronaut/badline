@@ -30,6 +30,7 @@ module Badline
       @data_dir_a = 0xff
       @data_dir_b = 0x0
       @port_b4_handler = nil
+      @port_b4_high = true
       @irq_pending = 0
       @cnt_high = true
       @cnt_rise = false
@@ -66,6 +67,7 @@ module Badline
         @irq_pending -= 1
         interrupt_status.interrupt = true if @irq_pending.zero?
       end
+      refresh_port_b4
       sample_cnt
       update_timers
       @tod.cycle! { trigger_alarm }
@@ -139,14 +141,22 @@ module Badline
     private
 
     def update_port_b
-      was = port_b4_high?
       yield
-      now = port_b4_high?
-      @port_b4_handler&.call(now) if was != now
+      refresh_port_b4
     end
 
-    def port_b4_high?
-      driven_lines(@data_port_b, @data_dir_b).anybits?(0x10)
+    # PB4 is also control port 1's fire line, and a peripheral pulls it low
+    # without any register write, so the level is resampled every cycle rather
+    # than only after a poke.
+    def refresh_port_b4
+      return unless @port_b4_handler
+
+      high = driven_lines(@data_port_b, @data_dir_b).anybits?(0x10) &&
+             (peripheral.nil? || peripheral.port_b4_high?)
+      return if high == @port_b4_high
+
+      @port_b4_high = high
+      @port_b4_handler.call(high)
     end
 
     def driven_lines(register, direction)
