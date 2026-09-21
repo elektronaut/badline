@@ -6,6 +6,7 @@ require "badline/storage/disk_image"
 require "badline/storage/d64_image"
 require "badline/storage/d71_image"
 require "badline/storage/d81_image"
+require "badline/storage/t64"
 require "badline/storage/crt_file"
 
 module Badline

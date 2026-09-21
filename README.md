@@ -42,6 +42,7 @@ something to load.
 badline                     # READY.
 badline game.prg            # Load and run a program
 badline game.d64            # Mount a disk image as device 8
+badline game.t64            # Mount a tape archive as device 8
 badline game.crt            # Attach a cartridge
 badline ~/c64               # Mount a directory as device 8
 ```
@@ -65,6 +66,8 @@ everything.
   left in memory for you to `SYS`.
 - **`.d64`, `.d71`, `.d81`** — mounted as device 8, read-only.
   Autostart types `LOAD"*",8,1` followed by `RUN`.
+- **`.t64`** — tape archives, mounted as device 8, read-only. The files
+  inside load by name like a disk; the tape itself is not emulated.
 - **`.crt`** — standard, Ocean and Magic Desk cartridges. Other hardware
   types raise `Badline::Cartridge::UnsupportedTypeError`.
 - **A directory** — mounted as device 8, read *and* write. Every file in
