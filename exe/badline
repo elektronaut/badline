@@ -13,7 +13,8 @@ parser = OptionParser.new do |opts|
     Usage: badline [options] [media]
 
     Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-    a .crt cartridge, or a directory to mount as device 8.
+    a .t64 tape archive, a .crt cartridge, or a directory to mount as
+    device 8.
 
     Options:
   BANNER

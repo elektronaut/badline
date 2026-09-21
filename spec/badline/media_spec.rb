@@ -91,6 +91,29 @@ describe Badline::Media do
       end
     end
 
+    context "with a T64 archive" do
+      let(:t64_path) do
+        File.join(dir, "tape.t64").tap do |path|
+          File.binwrite(path, "C64S tape image file".ljust(0x40, "\x00"))
+        end
+      end
+
+      it "mounts it as device 8" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, t64_path)
+        expect(computer)
+          .to have_received(:mount)
+          .with(instance_of(Badline::Storage::T64))
+      end
+
+      it "types the autostart command" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, t64_path)
+        expect(computer)
+          .to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
+      end
+    end
+
     context "with a CRT file" do
       let(:crt_path) do
         File.join(dir, "game.crt").tap do |path|

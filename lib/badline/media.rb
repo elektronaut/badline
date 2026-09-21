@@ -5,10 +5,11 @@ module Badline
     AUTOSTART = %(lO"*",8,1\rrun\r)
     BASIC_START = 0x0801
 
-    DISK_TYPES = {
+    MOUNT_TYPES = {
       ".d64" => Storage::D64Image,
       ".d71" => Storage::D71Image,
-      ".d81" => Storage::D81Image
+      ".d81" => Storage::D81Image,
+      ".t64" => Storage::T64
     }.freeze
 
     class << self
@@ -18,8 +19,8 @@ module Badline
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
           attach_cartridge(computer, path)
-        elsif (image = DISK_TYPES[File.extname(path).downcase])
-          attach_disk(computer, image.new(path), path, autostart:)
+        elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
+          attach_storage(computer, storage.new(path), path, autostart:)
         else
           attach_prg(computer, path, autostart:)
         end
@@ -32,8 +33,8 @@ module Badline
         "Attached cartridge #{path}"
       end
 
-      def attach_disk(computer, image, path, autostart:)
-        computer.mount(image)
+      def attach_storage(computer, storage, path, autostart:)
+        computer.mount(storage)
         computer.type_text(AUTOSTART) if autostart
         "Mounted #{path} as device 8"
       end
