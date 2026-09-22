@@ -2,7 +2,8 @@
 /log/
 /pkg/
 /tmp/
-/vendor/
+/vendor
 *.gem
 
 /.conductor/
+/.claude/worktrees/
