@@ -449,19 +449,20 @@ describe Badline::CIA do
       before do
         cia.control_b.start = true
         cia.control_b.in_timer_a = true
+        2.times { cia.cycle! } # φ2 pulses drain out of the pipeline
         cia.timer_b = 0x05
         cia.control_a.start = true
         cia.timer_a = 0x02
         cia.timer_a_latch = 0x02
       end
 
-      it "decrements only when timer A reaches zero" do
-        4.times { cia.cycle! } # pipeline, timer A 2 -> 1 -> 0, underflow
+      it "decrements two cycles after timer A underflows" do
+        6.times { cia.cycle! } # timer A 2 -> 1 -> 0, then timer B's pipeline
         expect(cia.timer_b).to eq(0x04)
       end
 
-      it "does not decrement while timer A is still counting" do
-        3.times { cia.cycle! } # pipeline, timer A 2 -> 1
+      it "does not decrement on the underflow cycle itself" do
+        5.times { cia.cycle! } # timer A underflows on the fourth
         expect(cia.timer_b).to eq(0x05)
       end
     end
