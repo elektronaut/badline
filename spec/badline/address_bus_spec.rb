@@ -80,6 +80,60 @@ describe Badline::AddressBus do
     end
   end
 
+  describe "the I/O 1 and 2 pages" do
+    let(:vic_bank) { address_bus.vic.vic_bank }
+
+    before do
+      address_bus.ram.poke(0x3fff, 0xa5)
+      vic_bank.peek(0x3fff)
+    end
+
+    it "reads the VIC's phi1 byte from I/O 1" do
+      expect(address_bus[0xde00]).to eq(0xa5)
+    end
+
+    it "reads the VIC's phi1 byte from I/O 2" do
+      expect(address_bus[0xdf80]).to eq(0xa5)
+    end
+
+    it "drops writes instead of storing them in the RAM below" do
+      address_bus[0xde00] = 0x42
+      expect(address_bus.ram[0xde00]).to eq(0x00)
+    end
+
+    context "when I/O is banked out" do
+      before do
+        address_bus.ram.poke(0xdf80, 0x5a)
+        address_bus[0x01] = 0x34
+      end
+
+      specify { expect(address_bus[0xdf80]).to eq(0x5a) }
+    end
+
+    context "with a cartridge that reads I/O 1" do
+      let(:crt) do
+        instance_double(Badline::Storage::CRTFile, exrom: 1, game: 1, name: "TEST", chips: [])
+      end
+      let(:cartridge) do
+        Class.new(Badline::Cartridge) do
+          def readable_io_pages = [0xde]
+          def peek(_addr) = 0x3c
+          def install_chips(_chips); end
+        end.new(crt)
+      end
+
+      before { address_bus.attach_cartridge(cartridge) }
+
+      it "reads the cartridge's register in I/O 1" do
+        expect(address_bus[0xde00]).to eq(0x3c)
+      end
+
+      it "leaves I/O 2 open" do
+        expect(address_bus[0xdf80]).to eq(0xa5)
+      end
+    end
+  end
+
   describe "the pot mux" do
     let(:paddles) { Badline::Input::Paddles.new }
 

@@ -48,9 +48,10 @@ module Badline
       @game.zero? && @exrom == 1
     end
 
-    # IO1/IO2 reads are open bus unless a mapper says otherwise.
-    def peek(_addr)
-      0xff
+    # The I/O pages ($de, $df) whose reads the mapper drives. Reads of the
+    # others are open bus.
+    def readable_io_pages
+      []
     end
 
     def poke(_addr, _value); end

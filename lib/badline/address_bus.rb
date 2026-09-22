@@ -37,6 +37,17 @@ module Badline
       def poke(_addr, _value); end
     end
 
+    # I/O 1 and 2 with nothing on the bus. A read picks up the byte the VIC
+    # fetched in the preceding phi1 half-cycle, and a write goes nowhere.
+    class OpenIO
+      def initialize(vic_bank)
+        @vic_bank = vic_bank
+      end
+
+      def peek(_addr) = @vic_bank.phi1_data
+      def poke(_addr, _value); end
+    end
+
     PORT_PULLUPS  = 0b0001_0111
     PORT_FLOATING = 0b1100_1000
     TAPE_SENSE    = 0b0001_0000
@@ -70,6 +81,7 @@ module Badline
       @datasette.on_sense_change { @io_port.value = port_value }
 
       @color_ram = ColorMemory.new(@vic.vic_bank)
+      @open_io = OpenIO.new(@vic.vic_bank)
 
       @port_ddr = 0x2f
       @port_out = 0x37
@@ -179,16 +191,17 @@ module Badline
     def map_io_pages
       {
         vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd
-        # 0xde/0xdf are open I/O unless a cartridge claims them
+        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_io => 0xde..0xdf
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
-      return unless @cartridge
+      map_cartridge_io if @cartridge
+    end
 
-      @read_pages.fill(@cartridge, 0xde, 2)
+    def map_cartridge_io
       @write_pages.fill(@cartridge, 0xde, 2)
+      @cartridge.readable_io_pages.each { |p| @read_pages[p] = @cartridge }
     end
 
     def basic?
