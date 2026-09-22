@@ -53,6 +53,11 @@ module Badline
       def idle? = !@display
       def bad_line? = !@ba.nil?
 
+      # The bad line condition as it stands, without latching DEN.
+      def bad_line_condition?
+        @bad_lines_enabled && @in_window && @line_bits == @registers.yscroll
+      end
+
       # True once AEC has followed BA down and the VIC owns the bus.
       def bus_taken?(column) = @ba ? column >= @ba + BA_DELAY : false
 

@@ -409,25 +409,25 @@ RSpec.describe Badline::VIC do
     end
 
     context "when three cycles before the first c-access" do
-      let(:rasterline_cycle) { 13 }
+      let(:rasterline_cycle) { 11 }
 
       it { is_expected.to be(true) }
     end
 
     context "when before BA is asserted" do
-      let(:rasterline_cycle) { 12 }
+      let(:rasterline_cycle) { 10 }
 
       it { is_expected.to be(false) }
     end
 
     context "when on the final c-access" do
-      let(:rasterline_cycle) { 55 }
+      let(:rasterline_cycle) { 53 }
 
       it { is_expected.to be(true) }
     end
 
     context "when after BA is released" do
-      let(:rasterline_cycle) { 56 }
+      let(:rasterline_cycle) { 54 }
 
       it { is_expected.to be(false) }
     end
@@ -467,21 +467,21 @@ RSpec.describe Badline::VIC do
 
     context "with sprite 0 enabled, three cycles before its first access" do
       let(:sprites) { 0x01 }
-      let(:rasterline_cycle) { 55 }
+      let(:rasterline_cycle) { 54 }
 
       it { is_expected.to be(true) }
     end
 
     context "with sprite 0 enabled, before BA is asserted" do
       let(:sprites) { 0x01 }
-      let(:rasterline_cycle) { 54 }
+      let(:rasterline_cycle) { 53 }
 
       it { is_expected.to be(false) }
     end
 
     context "with sprite 0 enabled, after its accesses" do
       let(:sprites) { 0x01 }
-      let(:rasterline_cycle) { 60 } # sprite 1 disabled, so BA released
+      let(:rasterline_cycle) { 59 } # sprite 1 disabled, so BA released
 
       it { is_expected.to be(false) }
     end
@@ -494,7 +494,7 @@ RSpec.describe Badline::VIC do
 
     context "with sprite 3 enabled, in the left-border accesses" do
       let(:sprites) { 0x08 }
-      # Sprite 3 steals columns 0..2 of the line after the Y match, where
+      # Sprite 3 steals columns 0..1 of the line after the Y match, where
       # its fetch crosses the line boundary.
       let(:rasterline_cycle) { 63 + 1 }
 

@@ -12,9 +12,9 @@ module Badline
       # path: the colors feed the final mux, the sequencer inputs — X
       # position, multicolor and expansion — sit furthest upstream, and the
       # priority mux lands one pixel ahead of them.
-      COLOR_DELAY = 9
-      PRIORITY_DELAY = 14
-      SEQUENCER_DELAY = 15
+      COLOR_DELAY = 1
+      PRIORITY_DELAY = 6
+      SEQUENCER_DELAY = 7
 
       WRITE_DELAY = Array.new(2**6).tap do |delays|
         (0x00..0x0e).step(2) { |reg| delays[reg] = SEQUENCER_DELAY }
