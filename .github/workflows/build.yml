@@ -45,6 +45,24 @@ jobs:
       - name: Run tests
         run: bundle exec rspec
 
+  # The :slow examples are left out of a plain `rspec` to keep the local
+  # loop fast. Here they run beside the main job, so they cost no wall time.
+  rspec-slow-test:
+    name: RSpec (slow)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+      - uses: ruby/setup-ruby@v1.324.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Run slow tests
+        run: bundle exec rspec --tag slow
+
   minitest-test:
     name: Minitest
     runs-on: ubuntu-latest
@@ -68,7 +86,7 @@ jobs:
 
   automerge:
     name: "Auto-merge Dependabot"
-    needs: [rubocop-test, rspec-test, minitest-test]
+    needs: [rubocop-test, rspec-test, rspec-slow-test, minitest-test]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -79,7 +97,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-please:
-    needs: [rubocop-test, rspec-test, minitest-test]
+    needs: [rubocop-test, rspec-test, rspec-slow-test, minitest-test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
