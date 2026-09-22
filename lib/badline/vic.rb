@@ -14,6 +14,10 @@ module Badline
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines
 
+    # Returns the byte the CPU's halted read would see, for the c-accesses
+    # that run before AEC. Without it they read colour RAM.
+    attr_writer :open_bus
+
     LIGHTPEN_IRQ = 0x08 # $D019 latch bit
 
     # A g-access reaches the pixel output this many columns after it runs.
@@ -328,13 +332,18 @@ module Badline
     end
 
     # A c-access that falls between BA and AEC reads a bus the CPU still
-    # drives, so the video matrix byte comes back as $ff.
+    # drives: the video matrix byte comes back as $ff, and the colour
+    # nibble is the low nibble of the byte at the halted CPU's PC.
     def fetch_character_data!
       vmli = @display_state.vmli
       vc = @display_state.vc
-      @character_buffer[vmli] =
-        @display_state.bus_taken?(@column) ? video_matrix(vc) : 0xff
-      @color_buffer[vmli] = vic_bank.peek_color(vc)
+      if @display_state.bus_taken?(@column)
+        @character_buffer[vmli] = video_matrix(vc)
+        @color_buffer[vmli] = vic_bank.peek_color(vc)
+      else
+        @character_buffer[vmli] = 0xff
+        @color_buffer[vmli] = @open_bus ? @open_bus.call & 0x0f : vic_bank.peek_color(vc)
+      end
     end
   end
 end

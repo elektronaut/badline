@@ -17,6 +17,7 @@ module Badline
       @address_bus = AddressBus.new(sid_model:)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
+      @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
       @cia1 = @address_bus.cia1
       @cia2 = @address_bus.cia2
       @sid = @address_bus.sid
