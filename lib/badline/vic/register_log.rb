@@ -20,6 +20,7 @@ module Badline
       attr_reader :next_x
 
       def empty? = @entries.empty?
+      def length = @entries.length
 
       def clear
         return if @entries.empty?

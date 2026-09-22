@@ -73,7 +73,10 @@ module Badline
         msb | @registers[index * 2]
       end
 
-      def y = @registers[(index * 2) + 1]
+      # The Y comparator is eight bits wide, so the PAL lines above 255
+      # match the coordinates 0-55 a second time (spritey).
+      def y_match?(line) = (line & 0xff) == @registers[(index * 2) + 1]
+
       def color = @registers[0x27 + index] & 0x0f
 
       # Cycle 15: MCBASE takes two of the three bytes a displayed row
@@ -112,7 +115,7 @@ module Badline
       # second compare therefore loses that access for sprite 0, alone among
       # the eight in following the compares immediately (spriteenable2).
       def check_dma(line, column)
-        return if @dma || !enabled? || line != y
+        return if @dma || !enabled? || !y_match?(line)
 
         @first_byte_lost = column + 2 > 55 + (2 * index)
         @dma = true
@@ -126,7 +129,7 @@ module Badline
       # here keeps the data fetch running invisibly.
       def check_display(line)
         @mc = @mcbase
-        @display_on = true if @dma && enabled? && line == y
+        @display_on = true if @dma && enabled? && y_match?(line)
       end
 
       # The row fetched at the end of the previous line renders on this one.
