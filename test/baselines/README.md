@@ -33,6 +33,10 @@ Recorded output of the headless hardware suites, one file per suite:
   tab-separated record as the testbench, in the runner's test order:
   `name<TAB>PASS`, or `name<TAB>FAIL<TAB>detail` where detail is the
   `$D7FF` exit code, or `timeout` when the test never reported.
+- `sid-8580.txt` — the same runner with `--sid 8580`, which builds the
+  machine with an 8580 and runs the programs the testlist tags `sid-new`
+  instead of the fixed 6581 list, each against its own testlist cycle
+  budget. Same record format.
 
 Every suite still fails tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
@@ -96,7 +100,7 @@ same 71 programs again under `cia-old`, and those are the ones that run.
 to `main` touches `lib/`, the runners, the baselines or the Rakefile —
 never on a pull request, and never on a schedule. The `testbench-*` suites
 are opt-in: pick them by name from the Actions tab, or run the rake task by
-hand.
+hand. `sid-8580` is opt-in too, and so far it runs only as a rake task.
 
 An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
 count is a timeout rather than a runtime — measure, do not assume. Wall
@@ -115,7 +119,10 @@ what the suite cost before it was sharded:
 `bin/lorenz` is not sharded: the suite chains itself, one LOAD after the
 next, so there is nothing to split. It is by far the slowest suite whole,
 at about two and a half hours on CI. `bin/sidtests` is not sharded either,
-and takes about three and a half minutes here and five on CI.
+and takes about three and a half minutes here and five on CI. `sid-8580`
+runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes
+26 minutes here (20 of CPU, on a loaded machine), which keeps it out of the
+push-to-main set.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
 ~450M cycles each and use nearly all of it whether they pass or fail, which
