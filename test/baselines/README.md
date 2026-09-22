@@ -140,6 +140,10 @@ is killed partway, by a signal or by a crash, writes no results, but the
 progress file keeps the rows it finished, in the results format. The same
 command with `--resume` runs only the tests missing from it. Without
 `--resume`, a run discards any progress file an earlier run left behind.
+The rake tasks pass `--resume` on when `RESUME=1` is set, so
+`RESUME=1 rake regression:testbench` or a re-record carries on from a
+killed run of the same task. `RESUME=1` fails for `lorenz` and `sid`,
+whose runners keep no progress.
 
 Rows are compared by test id, not line by line, and only an id present on
 both sides can fail the run:
