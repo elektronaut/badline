@@ -226,6 +226,50 @@ describe Badline::SID::Waveform do
     end
   end
 
+  describe "#osc3" do
+    it "follows the output on the 6581" do
+      restart(0x20, frequency: 0x1000, cycles: 3)
+      expect(waveform.osc3).to eq(0x003)
+    end
+
+    # Pinned by SID/detect (detect-2-new): the 8580 delays the triangle and
+    # sawtooth shapers half a cycle, which OSC3 latches as a whole one.
+    describe "on the 8580" do
+      subject(:waveform) { described_class.new(model: :mos8580) }
+
+      it "reads the sawtooth a cycle late" do
+        restart(0x20, frequency: 0x1000, cycles: 3)
+        expect(waveform.osc3).to eq(0x002)
+      end
+
+      it "reads the triangle a cycle late" do
+        restart(0x10, frequency: 0x1000, cycles: 3)
+        expect(waveform.osc3).to eq(0x004)
+      end
+
+      it "leaves the audio output on time" do
+        restart(0x20, frequency: 0x1000, cycles: 3)
+        expect(waveform.output).to eq(0x003)
+      end
+
+      it "masks the delayed sawtooth with the pulse on time" do
+        waveform.pulse_width_high = 0x0f
+        restart(0x60, frequency: 0x1000, cycles: 3)
+        expect(waveform.osc3).to eq(0x000)
+      end
+
+      it "masks the delayed sawtooth with the noise on time" do
+        restart(0xa0, frequency: 0x1000, cycles: 3)
+        expect(waveform.osc3).to eq(0x002 & waveform.noise)
+      end
+
+      it "follows the output without a triangle or sawtooth" do
+        restart(0x40, frequency: 0x1000, cycles: 3)
+        expect(waveform.osc3).to eq(0xfff)
+      end
+    end
+  end
+
   # SID/osc3-wave0: waveform 0 leaves the DAC input floating.
   describe "floating output" do
     # Pulse with the width at zero reads high, so the DAC has a value to hold.

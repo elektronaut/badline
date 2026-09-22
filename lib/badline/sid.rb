@@ -78,7 +78,7 @@ module Badline
     # random numbers, and ENV3 to time hard restarts.
     def osc3
       synthesize!
-      @voices[2].waveform.output >> 4
+      @voices[2].waveform.osc3 >> 4
     end
 
     def env3

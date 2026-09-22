@@ -469,6 +469,16 @@ only catches the rows that happen to move.
   drove onto it and drains to `$000` after `$4000` cycles.
   - Pinned by `SID/osc3-wave0`. `SID/oscinit`'s `allinit` pins the power-on
     `$00`, before anything has driven the line.
+- The 8580 delays the triangle and sawtooth shapers by half a cycle. OSC3
+  latches in the first phase of the clock, so it reads them a whole cycle
+  late, while pulse and noise still mask the value on time. The audio output
+  is not delayed. This follows libsidplayfp's `tri_saw_pipeline`.
+  - Pinned by `SID/detect`'s `detect-2-new`. It releases the test bit into
+    a `$ffff` sawtooth and reads OSC3 four cycles later: `3` on the 6581,
+    `2` on the 8580.
+  - Spec guard: *#osc3 on the 8580* in
+    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb) and
+    *the 8580* in [`sid_spec.rb`](../spec/badline/sid_spec.rb).
 
 ## SID register writes
 
