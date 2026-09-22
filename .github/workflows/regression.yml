@@ -22,20 +22,42 @@ on:
           - testbench
           - lorenz
           - sid
+          - testbench-cia
+          - testbench-interrupts
+          - testbench-cpu
 permissions:
   contents: read
 concurrency:
   group: regression-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # "all" is the push-to-main set; the testbench-* suites are long enough
+  # that they only run when asked for by name.
+  select:
+    name: Select suites
+    runs-on: ubuntu-latest
+    outputs:
+      suites: ${{ steps.pick.outputs.suites }}
+    steps:
+      - id: pick
+        env:
+          REQUESTED: ${{ inputs.suite || 'all' }}
+        run: |
+          if [ "$REQUESTED" = all ]; then
+            suites='["testbench","lorenz","sid"]'
+          else
+            suites="[\"$REQUESTED\"]"
+          fi
+          echo "suites=$suites" >> "$GITHUB_OUTPUT"
   regression:
     name: "Regression (${{ matrix.suite }})"
+    needs: select
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
       fail-fast: false
       matrix:
-        suite: [testbench, lorenz, sid]
+        suite: ${{ fromJSON(needs.select.outputs.suites) }}
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -52,9 +74,6 @@ jobs:
           path: vendor/VICE-testprogs
           key: vice-testprogs-v1
       - name: Diff against the tracked baseline
-        if: >-
-          github.event_name != 'workflow_dispatch' ||
-          inputs.suite == 'all' || inputs.suite == matrix.suite
         run: bundle exec rake regression:${{ matrix.suite }}
       - name: Upload run artifacts
         if: failure()
