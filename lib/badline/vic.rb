@@ -138,7 +138,7 @@ module Badline
     def ba_low?
       return true if @sprite_ba[@column]
 
-      @column >= 11 && @column < 54 && @display_state.bad_line_condition?
+      @display_state.bad_line_condition? && @column >= 11 && @column < 54
     end
 
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.
