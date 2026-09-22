@@ -5,6 +5,7 @@
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--shards N] [--list] [--results PATH]
+#                             [--resume]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
 # hardware badline models: VICII, CIA, interrupts and CPU. Each test boots
@@ -29,13 +30,17 @@
 # Tests are independent — each boots its own machine — so the run is
 # forked over --shards processes (SHARDS in the environment, 4 by
 # default) and the per-test records merged back into testlist order.
+#
+# Each row also lands in PATH.progress the moment its test finishes. The
+# results file is written only when every row is in, so a run that is
+# killed leaves no results, but its progress file keeps what it finished,
+# and running the same command again with --resume skips those tests.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "chunky_png"
 require "etc"
-require "tmpdir"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -84,9 +89,21 @@ module Testbench
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
-  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options) do
+  # The verdict and detail columns of a results row.
+  def self.verdict(result)
+    result == "PASS" ? "PASS\n" : "FAIL\t#{result}\n"
+  end
+
+  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :occurrence) do
     def id
       "#{dir.delete_prefix('../')}/#{prg}"
+    end
+
+    # Unique where the id is not: the testlist runs a few programs twice,
+    # under vicii-old and vicii-new, and the baseline keys the second as
+    # id#2.
+    def key
+      occurrence.to_i > 1 ? "#{id}##{occurrence}" : id
     end
 
     # A test may declare that failing, or never reporting at all, is the
@@ -122,9 +139,15 @@ module Testbench
     # Filters are id substrings, matched as a union; no filter runs
     # everything inside the scope.
     def tests(filters, scope: nil, exclude: nil)
-      File.readlines(TESTLIST)
-          .filter_map { |line| parse(line) }
-          .select { |test| selected?(test, filters, scope, exclude) }
+      numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
+        .select { |test| selected?(test, filters, scope, exclude) }
+    end
+
+    # Counted over the whole testlist, so a key is the same whatever the
+    # filters select.
+    def numbered(tests)
+      seen = Hash.new(0)
+      tests.each { |test| test.occurrence = seen[test.id] += 1 }
     end
 
     def selected?(test, filters, scope, exclude)
@@ -232,9 +255,7 @@ module Testbench
     end
   end
 
-  # Tests are independent, so a run is split over forked shards and the
-  # per-test records merged back into testlist order. Indices are global to
-  # the run, which is what survives the split.
+  # Tests are independent, so a run is split over forked shards.
   module Shards
     module_function
 
@@ -250,18 +271,39 @@ module Testbench
         groups[shard] << [index, test]
         loads[shard] += test.timeout
       end
-      groups.each { |group| group.sort_by!(&:first) }
+      groups.map { |group| group.sort_by(&:first).map(&:last) }
+    end
+  end
+
+  # Each row is appended the moment its test finishes, by whichever process
+  # ran it, so a run that is killed keeps every row it finished and
+  # --resume carries on from there. Rows are in the results format, keyed
+  # the way the baseline reads them, so the file diffs against it too. One
+  # small O_APPEND write per row keeps the shards' rows from interleaving.
+  class Progress
+    attr_reader :path
+
+    def initialize(path)
+      @path = path
     end
 
-    def record(index, result)
-      "#{index}\t#{result}\n"
+    def append(test, result)
+      File.write(@path, "#{test.key}\t#{Testbench.verdict(result)}", mode: "a")
     end
 
-    # The records every shard wrote, back in testlist order.
-    def merge(lines)
-      lines.map { |line| line.split("\t", 2) }
-           .map { |index, result| [index.to_i, result] }
-           .sort_by(&:first)
+    # key => result. A row cut short by a kill has no newline and is left
+    # to run again.
+    def rows
+      return {} unless File.exist?(@path)
+
+      File.readlines(@path).select { |line| line.end_with?("\n") }.to_h do |line|
+        key, verdict, detail = line.chomp.split("\t", 3)
+        [key, verdict == "PASS" ? verdict : detail]
+      end
+    end
+
+    def clear
+      FileUtils.rm_f(@path)
     end
   end
 
@@ -269,9 +311,10 @@ module Testbench
   class Interrupted < StandardError
     attr_reader :signal
 
-    def initialize(signal)
+    def initialize(signal, progress)
       @signal = signal
-      super("testbench interrupted by SIG#{signal}. No results written.")
+      super("testbench interrupted by SIG#{signal}. No results written. " \
+            "Finished rows are in #{progress}, and --resume carries on from them.")
     end
   end
 
@@ -292,62 +335,64 @@ module Testbench
       [count, Etc.nprocessors].min
     end
 
-    def initialize(tests, results_path, shards: 1)
+    def initialize(tests, results_path, shards: 1, resume: false)
       @tests = tests
       @results_path = results_path
-      @shards = [shards, tests.length].min
+      @progress = Progress.new("#{results_path}.progress")
+      @resume = resume
+      @shards = shards
       @results = []
     end
 
     def run
-      FileUtils.mkdir_p(ARTIFACT_DIR)
+      FileUtils.mkdir_p([ARTIFACT_DIR, File.dirname(@results_path)])
       @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      @shards > 1 ? run_sharded : run_serial
+      pending = pending_tests
+      [@shards, pending.length].min > 1 ? run_sharded(pending) : pending.each { |test| run_one(test) }
+      @results = collect
       summarize
       @results.count { |_, result| result != "PASS" }
     end
 
     private
 
-    def run_serial
-      @results = @tests.map { |test| [test, run_one(test)] }
+    # Without --resume a run starts over, so rows an earlier run left
+    # behind can't stand in for tests this one never ran.
+    def pending_tests
+      @progress.clear unless @resume
+      finished = @progress.rows
+      pending = @tests.reject { |test| finished.key?(test.key) }
+      puts "Resuming: #{@tests.length - pending.length} rows from #{@progress.path}." if @resume
+      pending
     end
 
-    # Each child owns a disjoint slice of the testlist and writes its own
-    # records to a file. A child that dies without writing its slice would
-    # silently shorten the results, so both the exit statuses and the
-    # merged row count are checked.
-    def run_sharded
-      Dir.mktmpdir("shards", ARTIFACT_DIR) do |dir|
-        groups = Shards.split(@tests, @shards)
-        $stdout.flush
-        crashed = forwarding_signals do
-          groups.each_with_index { |group, n| @shard_pids << fork { shard(group, File.join(dir, "#{n}.txt"), n) } }
-          forward(@interrupted) if @interrupted
-          Process.waitall.count { |_, status| !status.success? }
-        end
-        raise "#{crashed} of #{groups.length} testbench shards crashed." if crashed.positive?
-
-        @results = collect(dir)
+    # Each child owns a disjoint slice of the testlist and appends its rows
+    # to the progress file. A child that dies partway would silently
+    # shorten the results, so the exit statuses are checked here and the
+    # row count in collect.
+    def run_sharded(tests)
+      groups = Shards.split(tests, [@shards, tests.length].min)
+      $stdout.flush
+      crashed = forwarding_signals do
+        groups.each_with_index { |group, n| @shard_pids << fork { shard(group, n) } }
+        forward(@interrupted) if @interrupted
+        Process.waitall.count { |_, status| !status.success? }
       end
-      return if @results.length == @tests.length
-
-      raise "Shards reported #{@results.length} of #{@tests.length} tests."
+      raise "#{crashed} of #{groups.length} testbench shards crashed." if crashed.positive?
     end
 
     # TERM or INT to the runner is passed on to every shard, so stopping
     # the runner's PID stops the whole run instead of orphaning the shards.
-    # The shards are reaped before Interrupted is raised, so the tmpdir is
-    # removed as usual and no results are written. A signal that lands
-    # between a fork and its PID being recorded is forwarded again once
-    # every shard has started.
+    # The shards are reaped before Interrupted is raised, and no results
+    # are written. A signal that lands between a fork and its PID being
+    # recorded is forwarded again once every shard has started.
     def forwarding_signals
       @shard_pids = []
       runner = Process.pid
       previous = FORWARDED_SIGNALS.to_h do |signal|
         [signal, trap(signal) { forward(signal) if Process.pid == runner }]
       end
-      yield.tap { raise Interrupted, @interrupted if @interrupted }
+      yield.tap { raise Interrupted.new(@interrupted, @progress.path) if @interrupted }
     ensure
       previous&.each { |signal, handler| trap(signal, handler) }
     end
@@ -361,29 +406,28 @@ module Testbench
       end
     end
 
-    # A shard's file appears whole or not at all, so a shard killed while
-    # writing leaves nothing the merge could read as its slice.
-    def shard(group, path, number)
+    def shard(group, number)
       FORWARDED_SIGNALS.each { |signal| trap(signal, "DEFAULT") }
-      records = group.map { |index, test| Shards.record(index, run_one(test)) }.join
-      File.write("#{path}.part", records)
-      File.rename("#{path}.part", path)
+      group.each { |test| run_one(test) }
       exit!(0)
     rescue StandardError, SystemStackError => e
       warn "shard #{number}: #{e.class}: #{e.message}"
       exit!(1)
     end
 
-    def collect(dir)
-      lines = Dir.glob(File.join(dir, "*.txt"))
-                 .flat_map { |path| File.readlines(path, chomp: true) }
-      Shards.merge(lines).map { |index, result| [@tests[index], result] }
+    # Every test's row, finished in this run or resumed, in testlist order.
+    def collect
+      rows = @progress.rows
+      results = @tests.filter_map { |test| [test, rows[test.key]] if rows.key?(test.key) }
+      return results if results.length == @tests.length
+
+      raise "#{@progress.path} has #{results.length} of #{@tests.length} rows."
     end
 
     def run_one(test)
       result, elapsed = timed { run_test(test) }
+      @progress.append(test, result)
       report(test, result, elapsed)
-      result
     end
 
     def timed
@@ -470,13 +514,9 @@ module Testbench
       wall = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started
       puts format("%<passed>d/%<total>d passed in %<wall>.1f min",
                   passed:, total: @results.length, wall: wall / 60)
-      FileUtils.mkdir_p(File.dirname(@results_path))
       File.write(@results_path,
-                 @results.map { |test, result| record(test, result) }.join)
-    end
-
-    def record(test, result)
-      result == "PASS" ? "#{test.id}\tPASS\n" : "#{test.id}\tFAIL\t#{result}\n"
+                 @results.map { |test, result| "#{test.id}\t#{Testbench.verdict(result)}" }.join)
+      @progress.clear
     end
   end
 end
@@ -485,6 +525,7 @@ require "fileutils"
 
 if $PROGRAM_NAME == __FILE__
   list_only = ARGV.delete("--list")
+  resume = ARGV.delete("--resume")
   results_path = Testbench.take_option(ARGV, "--results") ||
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
   scope = Testbench.take_option(ARGV, "--scope")
@@ -505,7 +546,7 @@ if $PROGRAM_NAME == __FILE__
   end
 
   begin
-    failures = Testbench::Runner.new(tests, results_path, shards:).run
+    failures = Testbench::Runner.new(tests, results_path, shards:, resume:).run
   rescue Testbench::Interrupted => e
     warn e.message
     exit(128 + Signal.list.fetch(e.signal))

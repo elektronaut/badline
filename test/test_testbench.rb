@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "tmpdir"
 
 TESTBENCH = File.expand_path("../bin/testbench", __dir__)
 load TESTBENCH unless defined?(Testbench)
@@ -143,39 +144,25 @@ class TestTestbenchSharding < Minitest::Test
   end
 
   def test_every_test_is_assigned_exactly_once
-    indices = groups(20, 4).flatten(1).map(&:first)
-
-    assert_equal (0...20).to_a, indices.sort
-  end
-
-  def test_shards_are_disjoint
-    assert_equal 20, groups(20, 4).sum(&:length)
+    assert_equal (1..20).to_a, groups(20, 4).flatten.map { |test| test.timeout / 1000 }.sort
   end
 
   def test_each_shard_runs_its_tests_in_testlist_order
-    groups(20, 4).each { |group| assert_equal group.map(&:first).sort, group.map(&:first) }
+    groups(20, 4).each do |group|
+      budgets = group.map(&:timeout)
+
+      assert_equal budgets.sort, budgets
+    end
   end
 
   def test_the_longest_budgets_are_spread_across_shards
-    heaviest = groups(20, 4).map { |group| group.map { |_, test| test.timeout }.max }
+    heaviest = groups(20, 4).map { |group| group.map(&:timeout).max }
 
     assert_equal 4, heaviest.uniq.length
   end
 
   def test_more_shards_than_tests_collapses_to_one_per_test
     assert_equal 3, groups(3, 8).length
-  end
-
-  def test_merging_puts_the_records_back_in_testlist_order
-    lines = ["3\tPASS", "0\tFAIL\texit=$ff", "12\tPASS"]
-
-    assert_equal [[0, "FAIL\texit=$ff"], [3, "PASS"], [12, "PASS"]],
-                 Testbench::Shards.merge(lines)
-  end
-
-  def test_a_record_round_trips_through_a_shard_file
-    assert_equal [[7, "diff=4px exit=$00"]],
-                 Testbench::Shards.merge([Testbench::Shards.record(7, "diff=4px exit=$00").chomp])
   end
 
   def test_shard_count_falls_back_to_the_default
@@ -280,5 +267,108 @@ class TestTestbenchInterruption < Minitest::Test
     true
   rescue Errno::ESRCH
     false
+  end
+end
+
+class TestTestbenchProgress < Minitest::Test
+  # Scores from a table instead of booting a machine, and says nothing.
+  class StubRunner < Testbench::Runner
+    attr_reader :ran
+
+    def initialize(scores, results_path, **)
+      super(scores.keys, results_path, **)
+      @scores = scores
+      @ran = []
+    end
+
+    private
+
+    def run_test(test)
+      @ran << test.key
+      score = @scores.fetch(test)
+      score.respond_to?(:call) ? score.call : score
+    end
+
+    def report(*); end
+  end
+
+  # A kill the runner can't trap, like the one that ends a background run.
+  KILL = -> { Process.kill("KILL", Process.pid) }
+
+  def setup
+    @dir = Dir.mktmpdir("progress")
+    @results = File.join(@dir, "results.txt")
+    @tests = Array.new(3) { |n| Testbench::TestCase.new("../VICII/x", "t#{n}.prg", "exitcode", 1000, []) }
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def test_a_finished_run_writes_its_rows_in_testlist_order
+    run_stub(shards: 2)
+
+    assert_equal "VICII/x/t0.prg\tPASS\nVICII/x/t1.prg\tFAIL\texit=$ff\nVICII/x/t2.prg\tPASS\n",
+                 File.read(@results)
+  end
+
+  def test_a_finished_run_clears_its_progress
+    run_stub
+
+    refute_path_exists progress
+  end
+
+  def test_resume_skips_the_rows_already_finished
+    File.write(progress, "VICII/x/t0.prg\tFAIL\texit=none\n")
+
+    assert_equal ["VICII/x/t1.prg", "VICII/x/t2.prg"], run_stub(resume: true).ran
+  end
+
+  def test_resumed_rows_keep_their_verdict
+    File.write(progress, "VICII/x/t0.prg\tFAIL\texit=none\n")
+    run_stub(resume: true)
+
+    assert_equal "VICII/x/t0.prg\tFAIL\texit=none\n", File.readlines(@results).first
+  end
+
+  def test_a_run_without_resume_starts_over
+    File.write(progress, "VICII/x/t0.prg\tPASS\n")
+
+    assert_equal 3, run_stub.ran.length
+  end
+
+  def test_a_row_cut_short_is_run_again
+    File.write(progress, "VICII/x/t0.prg\tPASS\nVICII/x/t1.prg\tPA")
+
+    assert_equal ["VICII/x/t1.prg", "VICII/x/t2.prg"], run_stub(resume: true).ran
+  end
+
+  def test_a_killed_run_keeps_the_rows_it_finished
+    Process.wait(fork { run_stub(overrides: { @tests[1] => KILL }) })
+
+    assert_equal "VICII/x/t0.prg\tPASS\n", File.read(progress)
+  end
+
+  def test_a_killed_run_writes_no_results
+    Process.wait(fork { run_stub(overrides: { @tests[1] => KILL }) })
+
+    refute_path_exists @results
+  end
+
+  def test_a_repeated_id_is_keyed_by_its_occurrence
+    tests = Testbench::Testlist.numbered(Array.new(2) { @tests.first.dup })
+
+    assert_equal ["VICII/x/t0.prg", "VICII/x/t0.prg#2"], tests.map(&:key)
+  end
+
+  private
+
+  def progress
+    "#{@results}.progress"
+  end
+
+  def run_stub(shards: 1, resume: false, overrides: {})
+    scores = @tests.zip(["PASS", "exit=$ff", "PASS"]).to_h.merge(overrides)
+    StubRunner.new(scores, @results, shards:, resume:).tap { |runner| capture_io { runner.run } }
   end
 end
