@@ -42,7 +42,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev
-      - uses: ruby/setup-ruby@v1.321.0
+      - uses: ruby/setup-ruby@v1.324.0
         with:
           ruby-version: "4.0"
           bundler-cache: true
