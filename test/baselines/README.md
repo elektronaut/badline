@@ -1,12 +1,21 @@
 # Regression baselines
 
-Recorded output of the headless hardware suites, one file per runner:
+Recorded output of the headless hardware suites, one file per suite:
 
 - `testbench.txt` — `bin/testbench` over the non-interactive PAL VICII
   tests in `vendor/VICE-testprogs/testbench/c64-testlist.in`. One
   tab-separated record per test, in testlist order: `id<TAB>PASS`, or
   `id<TAB>FAIL<TAB>detail` where detail is the `$D7FF` exit code and, for
   screenshot tests, the number of mismatched pixels.
+- `testbench-cia.txt`, `testbench-interrupts.txt`, `testbench-cpu.txt` —
+  the same runner over the testlist's `CIA/`, `interrupts/` and `CPU/`
+  subtrees, one suite per subsystem so a change can be checked against the
+  subtree it can actually move. All three are `exitcode` tests: no
+  reference screenshots, so detail is only the `$D7FF` code. Two testlist
+  options decide what that code has to be — `expect:error` wants a
+  non-zero code and `expect:timeout` wants no report at all, and a row that
+  misses either way records `want=error` / `want=timeout` alongside the
+  code it did get.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`. The suite chains itself by LOADing one test after another,
   and those LOADs split the CHROUT transcript into one segment per test;
@@ -22,20 +31,45 @@ Recorded output of the headless hardware suites, one file per runner:
   `name<TAB>PASS`, or `name<TAB>FAIL<TAB>detail` where detail is the
   `$D7FF` exit code, or `timeout` when the test never reported.
 
-All three suites still fail tests. The baselines record those failures as
-they stand, so the guard is the comparison, not the pass count.
+Every suite still fails tests. The baselines record those failures as they
+stand, so the guard is the comparison, not the pass count.
 
-    rake regression                     # run every suite, diff against these files
+    rake regression                     # run the push-to-main set, diff against these files
     rake regression:testbench           # one suite
+    rake regression:testbench-cia       # an opt-in suite
     rake regression:record:testbench    # accept a reviewed diff
-    rake regression:record              # re-record everything
+    rake regression:record              # re-record the push-to-main set
+
+Two subtrees of the testlist are deliberately left out. `CPU/decimalmode`
+is 41 exhaustive ADC/SBC sweeps that `rake test` already covers per-opcode
+against SingleStepTests' bus-level traces, for a worst case near nine
+hours. Every row carrying `cia-new` asks for the 6526A, whose timer and
+shift register differ from the 6526 badline models; the testlist lists the
+same 71 programs again under `cia-old`, and those are the ones that run.
 
 A recording run is unattended compute measured in hours — roughly three
 quarters of an hour for the testbench and about as long for Lorenz; the SID
-suite is the odd one out at about four minutes. CI runs them only when a
-push to `main` touches `lib/`, the runners, the baselines or the Rakefile,
-plus on demand from the Actions tab — never on a pull request, and never on
-a schedule.
+suite is the odd one out at about four minutes. Those three are the
+push-to-main set, run when a push to `main` touches `lib/`, the runners,
+the baselines or the Rakefile — never on a pull request, and never on a
+schedule.
+
+The `testbench-*` suites are opt-in: pick them by name from the Actions
+tab, or run the rake task by hand. An `exitcode` test ends when it writes
+`$D7FF`, so the testlist's cycle count is a timeout rather than a runtime —
+measure, do not assume. Measured wall clock on an M-series laptop, against
+the worst case the budgets allow:
+
+| suite | rows | worst case | measured |
+| --- | --- | --- | --- |
+| `testbench-cia` | 121 | 163 min | 35 min |
+| `testbench-interrupts` | 29 | 174 min | 126 min |
+| `testbench-cpu` | 72 | 49 min | 31 min |
+
+`interrupts/irqdma` is 124 of those 126 minutes: 16 programs that measure
+DMA against interrupts over ~450M cycles each and use nearly all of it
+whether they pass or fail. CIA and CPU come in at a fifth to two thirds of
+their worst case, so the budgets there really are timeouts.
 
 Rows are compared by test id, not line by line, and only an id present on
 both sides can fail the run:

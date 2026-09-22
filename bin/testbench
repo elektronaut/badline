@@ -3,19 +3,24 @@
 
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
-#   ruby --jit bin/testbench [filter] [--list] [--results PATH]
+#   ruby --yjit bin/testbench [filter...] [--list] [--results PATH]
 #
-# Runs the non-interactive PAL VICII tests from c64-testlist.in. Each test
-# boots a fresh machine with its directory mounted as device 8, injects the
-# .prg and types RUN. Tests report through the $D7FF debug register ($00
-# pass, $ff fail); screenshot tests are compared pixel-by-pixel against the
-# bundled reference PNGs (pepto palette, 384x272 — the same crop the GUI
-# uses). Failure artifacts go to tmp/testbench/, and the results log —
-# one tab-separated "id STATUS [detail]" record per test, in testlist
-# order — to --results (tmp/testbench/results.txt by default).
+# Runs the non-interactive PAL tests from c64-testlist.in that cover
+# hardware badline models: VICII, CIA, interrupts and CPU. Each test boots
+# a fresh machine with its directory mounted as device 8, injects the .prg
+# and types RUN. Tests report through the $D7FF debug register ($00 pass,
+# $ff fail), unless the testlist says expect:error or expect:timeout;
+# screenshot tests are compared pixel-by-pixel against the bundled
+# reference PNGs (pepto palette, 384x272 — the same crop the GUI uses).
+# Failure artifacts go to tmp/testbench/ — the mismatched screenshot for a
+# screenshot test, the text screen for an exitcode one — and the results
+# log, one tab-separated "id STATUS [detail]" record per test in testlist
+# order, to --results (tmp/testbench/results.txt by default).
 #
-# See `rake regression:testbench` for diffing a run against the tracked
-# baseline in test/baselines/.
+# Filters pick a subtree, which is how the suites are split:
+# `rake regression:testbench` diffs the VICII rows against the tracked
+# baseline in test/baselines/, `rake regression:testbench-cia` the CIA
+# ones, and so on.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -28,7 +33,18 @@ module Testbench
   ARTIFACT_DIR = File.expand_path("../tmp/testbench", __dir__)
 
   RUNNABLE_TYPES = %w[exitcode screenshot].freeze
-  SKIP_OPTIONS = /ntsc|drean|mount/
+
+  # The testlist subtrees for hardware badline models. CPU/decimalmode is
+  # left out of CPU: 41 exhaustive ADC/SBC sweeps that SingleStepTests
+  # already covers per-opcode against bus-level reference traces, for a
+  # worst case near nine hours.
+  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU)/}
+  EXCLUDED_DIRS = %r{\A\.\./CPU/decimalmode/}
+
+  # cia-new asks for the 6526A, whose one-cycle-shorter timer and shift
+  # register behaviour badline does not model; the same programs are listed
+  # again with cia-old, which is what it does model.
+  SKIP_OPTIONS = /ntsc|drean|mount|cia-new/
 
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
@@ -63,6 +79,24 @@ module Testbench
       "#{dir.delete_prefix('../')}/#{prg}"
     end
 
+    # A test may declare that failing, or never reporting at all, is the
+    # pass. Default is a $00 exit code.
+    def expects
+      return :error if options.include?("expect:error")
+      return :timeout if options.include?("expect:timeout")
+
+      :success
+    end
+
+    # exit_code is nil when the test never wrote $D7FF within its budget.
+    def satisfied_by?(exit_code)
+      case expects
+      when :error then !exit_code.nil? && !exit_code.zero?
+      when :timeout then exit_code.nil?
+      else exit_code&.zero?
+      end
+    end
+
     def dir_abs
       File.expand_path(dir, Testbench::TESTBENCH_DIR)
     end
@@ -75,10 +109,14 @@ module Testbench
   module Testlist
     module_function
 
-    def tests(filter)
+    # Filters are id substrings, matched as a union; no filter runs
+    # everything.
+    def tests(filters)
       File.readlines(TESTLIST)
           .filter_map { |line| parse(line) }
-          .select { |test| test.id.include?(filter) }
+          .select do |test|
+            filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+          end
     end
 
     def parse(line)
@@ -86,7 +124,7 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless dir.start_with?("../VICII")
+      return unless dir.match?(INCLUDED_DIRS) && !dir.match?(EXCLUDED_DIRS)
       return unless RUNNABLE_TYPES.include?(type)
       return if options.any?(SKIP_OPTIONS)
 
@@ -183,18 +221,55 @@ module Testbench
 
     def run
       FileUtils.mkdir_p(ARTIFACT_DIR)
-      @tests.each { |test| report(test, run_test(test)) }
+      @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      @tests.each { |test| report(test, *timed { run_test(test) }) }
       summarize
       @results.count { |_, result| result != "PASS" }
     end
 
     private
 
+    def timed
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      [yield, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started]
+    end
+
     def run_test(test)
       exit_code, computer = execute(test)
-      return exit_code&.zero? ? "PASS" : "exit=#{format_code(exit_code)}" if test.type == "exitcode"
+      return score_screenshot(test, exit_code, computer) unless test.type == "exitcode"
 
-      score_screenshot(test, exit_code, computer)
+      score_exitcode(test, exit_code).tap do |result|
+        write_screen(test, computer) unless result == "PASS"
+      end
+    end
+
+    def score_exitcode(test, exit_code)
+      return "PASS" if test.satisfied_by?(exit_code)
+
+      detail = "exit=#{format_code(exit_code)}"
+      test.expects == :success ? detail : "#{detail} want=#{test.expects}"
+    end
+
+    # An exitcode test prints what went wrong — the failing subtest, and
+    # the reference and measured values — which the exit code alone does
+    # not carry, so a failure keeps the text screen alongside it.
+    def write_screen(test, computer)
+      rows = Array.new(25) do |row|
+        computer.ram.read(0x0400 + (row * 40), 40)
+                .map { |code| screen_ascii(code) }.join
+      end
+      File.write(File.join(ARTIFACT_DIR, "#{test.id.tr('/', '-')}.screen.txt"),
+                 "#{rows.join("\n")}\n")
+    end
+
+    def screen_ascii(code)
+      code &= 0x7f
+      case code
+      when 0x01..0x1a then (code + 0x60).chr
+      when 0x00, 0x1b..0x1f then (code + 0x40).chr
+      when 0x20..0x3f, 0x41..0x5a then code.chr
+      else " "
+      end
     end
 
     def execute(test)
@@ -227,15 +302,18 @@ module Testbench
       exit_code ? format("$%02x", exit_code) : "none"
     end
 
-    def report(test, result)
+    def report(test, result, elapsed)
       @results << [test, result]
-      puts format("%-55<id>s %<result>s", id: test.id, result:)
+      puts format("%-55<id>s %7.1<elapsed>fs %<result>s",
+                  id: test.id, elapsed:, result:)
       $stdout.flush
     end
 
     def summarize
       passed = @results.count { |_, result| result == "PASS" }
-      puts "#{passed}/#{@results.length} passed"
+      wall = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started
+      puts format("%<passed>d/%<total>d passed in %<wall>.1f min",
+                  passed:, total: @results.length, wall: wall / 60)
       FileUtils.mkdir_p(File.dirname(@results_path))
       File.write(@results_path,
                  @results.map { |test, result| record(test, result) }.join)
@@ -253,7 +331,7 @@ if $PROGRAM_NAME == __FILE__
   list_only = ARGV.delete("--list")
   results_path = Testbench.take_option(ARGV, "--results") ||
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
-  tests = Testbench::Testlist.tests(ARGV[0] || "")
+  tests = Testbench::Testlist.tests(ARGV)
 
   if list_only
     tests.each { |test| puts "#{test.id} (#{test.type}, #{test.timeout})" }

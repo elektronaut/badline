@@ -16,14 +16,28 @@ VENDORED_REPOS = {
 }.freeze
 
 # Headless suites whose per-test results are tracked as a baseline, mapped
-# to the runner that produces it. Each runner takes --results PATH and
-# writes one tab-separated "id VERDICT [detail]" row per test; the guard
-# compares those rows by id.
+# to the runner command that produces it. Each runner takes --results PATH
+# and writes one tab-separated "id VERDICT [detail]" row per test; the guard
+# compares those rows by id. bin/testbench takes id filters, so its
+# testlist subtrees are separate suites with a baseline each.
 REGRESSION_SUITES = {
-  "testbench" => "bin/testbench",
-  "lorenz" => "bin/lorenz",
-  "sid" => "bin/sidtests"
+  "testbench" => ["bin/testbench", "VICII/"],
+  "lorenz" => ["bin/lorenz"],
+  "sid" => ["bin/sidtests"]
 }.freeze
+
+# The rest of the testbench, split by the subsystem each subtree exercises.
+# These get a rake task and a baseline but stay out of `rake regression`
+# and the push-to-main CI set: CIA and interrupts alone are longer than the
+# other three suites put together, mostly emulated runtime rather than
+# timeouts, so they are run on demand instead.
+OPT_IN_SUITES = {
+  "testbench-cia" => ["bin/testbench", "CIA/"],
+  "testbench-interrupts" => ["bin/testbench", "interrupts/"],
+  "testbench-cpu" => ["bin/testbench", "CPU/"]
+}.freeze
+
+ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze
 BASELINE_DIR = "test/baselines"
 REGRESSION_DIR = "tmp/regression"
 
@@ -57,9 +71,9 @@ end
 # The runners exit non-zero while any test fails, which a baseline is
 # expected to capture, so their status is ignored and the comparison decides.
 def run_suite(suite, results)
-  runner = REGRESSION_SUITES.fetch(suite)
+  runner, *filters = ALL_SUITES.fetch(suite)
   mkdir_p(File.dirname(results))
-  ruby("--jit", runner, "--results", results) do |ok, _status|
+  ruby("--yjit", runner, *filters, "--results", results) do |ok, _status|
     puts "#{runner} reported failing tests." unless ok
   end
   raise "#{runner} wrote no results to #{results}" unless File.exist?(results)
@@ -99,7 +113,7 @@ namespace :vendor do
 end
 
 namespace :regression do
-  REGRESSION_SUITES.each_key do |suite|
+  ALL_SUITES.each_key do |suite|
     desc "Run #{suite} and compare the results against #{BASELINE_DIR}/#{suite}.txt"
     task suite => "vendor:VICE-testprogs" do
       results = File.join(REGRESSION_DIR, "#{suite}.txt")
@@ -109,7 +123,7 @@ namespace :regression do
   end
 
   namespace :record do
-    REGRESSION_SUITES.each_key do |suite|
+    ALL_SUITES.each_key do |suite|
       desc "Re-record #{BASELINE_DIR}/#{suite}.txt from a fresh #{suite} run"
       task suite => "vendor:VICE-testprogs" do
         run_suite(suite, baseline_path(suite))
@@ -118,7 +132,7 @@ namespace :regression do
     end
   end
 
-  desc "Re-record every baseline"
+  desc "Re-record every baseline in the push-to-main set"
   task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 

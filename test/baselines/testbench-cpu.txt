@@ -1,0 +1,72 @@
+CPU/64doc/dadc.prg	PASS
+CPU/64doc/dincsbc-deccmp.prg	PASS
+CPU/64doc/dincsbc.prg	PASS
+CPU/64doc/droradc.prg	PASS
+CPU/64doc/dsbc-cmp-flags.prg	PASS
+CPU/64doc/dsbc.prg	PASS
+CPU/64doc/sbx-c100.prg	PASS
+CPU/Acid800/cpu_decimal.prg	PASS
+CPU/Acid800/cpu_flags.prg	PASS
+CPU/Acid800/cpu_illegal.prg	PASS
+CPU/Acid800/cpu_insn.prg	PASS
+CPU/Acid800/cpu_timing.prg	PASS
+CPU/Acid800/cpu_bugs.prg	FAIL	exit=$ff
+CPU/Acid800/cpu_clisei.prg	PASS
+CPU/ane/ane.prg	FAIL	exit=$ff
+CPU/ane/ane-none.prg	FAIL	exit=$ff
+CPU/ane/ane-border.prg	FAIL	exit=$ff
+CPU/asap/cpu_ane.prg	PASS
+CPU/asap/cpu_anx.prg	PASS
+CPU/asap/cpu_decimal.prg	PASS
+CPU/asap/cpu_las.prg	PASS
+CPU/asap/cpu_shx.prg	PASS
+CPU/bclark/decimalmode.prg	PASS
+CPU/cpujam/cpujam02.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam12.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam22.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam32.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam42.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam52.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam62.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam72.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam92.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujamb2.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujamd2.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujamf2.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/nojam.prg	PASS
+CPU/cpujam/jamirq.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/jamnmi.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/unjam.prg	PASS
+CPU/cpuport/test1.prg	PASS
+CPU/hmc6502/AllSuiteA.prg	PASS
+CPU/kdormann/6502_functional_test.prg	PASS
+CPU/lax/lax.prg	PASS
+CPU/lax/lax-none.prg	PASS
+CPU/lax/lax-border.prg	PASS
+CPU/sha/shaabsy1.prg	PASS
+CPU/sha/shaabsy2.prg	FAIL	exit=$ff
+CPU/sha/shaabsy3.prg	FAIL	exit=$ff
+CPU/sha/shaabsy4.prg	FAIL	exit=$ff
+CPU/sha/shaabsy5.prg	FAIL	exit=$ff
+CPU/sha/shazpy1.prg	PASS
+CPU/sha/shazpy2.prg	FAIL	exit=$ff
+CPU/sha/shazpy3.prg	FAIL	exit=$ff
+CPU/sha/shazpy4.prg	FAIL	exit=$ff
+CPU/sha/shazpy5.prg	FAIL	exit=$ff
+CPU/shs/shsabsy1.prg	PASS
+CPU/shs/shsabsy2.prg	FAIL	exit=$ff
+CPU/shs/shsabsy3.prg	FAIL	exit=$ff
+CPU/shs/shsabsy4.prg	FAIL	exit=$ff
+CPU/shs/shsabsy5.prg	FAIL	exit=$ff
+CPU/shxy/shx-test.prg	FAIL	exit=$ff
+CPU/shxy/shxy1.prg	PASS
+CPU/shxy/shxy2.prg	FAIL	exit=$ff
+CPU/shxy/shxy3.prg	FAIL	exit=$ff
+CPU/shxy/shxy4.prg	FAIL	exit=$ff
+CPU/shxy/shxy5.prg	FAIL	exit=$ff
+CPU/shxy/shyx1.prg	PASS
+CPU/shxy/shyx2.prg	FAIL	exit=$ff
+CPU/shxy/shyx3.prg	FAIL	exit=$ff
+CPU/shxy/shyx4.prg	FAIL	exit=$ff
+CPU/shxy/shyx5.prg	FAIL	exit=$ff
+CPU/jsrselfmod/jsr.prg	PASS
