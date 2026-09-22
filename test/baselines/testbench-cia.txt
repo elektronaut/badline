@@ -38,55 +38,55 @@ CIA/shiftregister/cia-icr-test2-continues.prg	PASS
 CIA/shiftregister/cia-icr-test2-oneshot.prg	PASS
 CIA/shiftregister/cia-icr-test-continues-old.prg	PASS
 CIA/shiftregister/cia-icr-test-oneshot-old.prg	PASS
-CIA/shiftregister/cia-sdr-load.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-init.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-delay.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-0_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-0.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-1_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-19.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-39.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-3.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4_7f.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sdr-load.prg	PASS
+CIA/shiftregister/cia-sdr-init.prg	PASS
+CIA/shiftregister/cia-sdr-delay.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-0_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-0.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-1_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-19.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-39.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-3.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4_7f.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-0_7f.prg	PASS
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-0.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-0.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-1_7f.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-19.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-39.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-3.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-4485-4_7f.prg	PASS
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-0.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-0_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-19.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-1_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-3.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-39.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-4_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-0_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-0.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-1_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-19.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-39.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-3.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4_7f.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-0.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-0_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-19.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-1_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-3.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-39.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-generic-4_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-0_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-0.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-1_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-19.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-39.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-3.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4_7f.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-0_7f.prg	PASS
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-0.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-0.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-1_7f.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-19.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-39.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-3.prg	PASS
 CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-4485-4_7f.prg	PASS
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-0.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-0_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-19.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-1_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-3.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-39.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-4_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-test2-0_7f.prg	FAIL	exit=$ff
-CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-test2-0_7f.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-0.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-0_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-19.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-1_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-3.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-39.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-generic-4_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia1-sdr-icr-test2-0_7f.prg	PASS
+CIA/shiftregister/cia-sdr-icr/cia2-sdr-icr-test2-0_7f.prg	PASS
 CIA/shiftregister/cia-sp-test-continues-old.prg	PASS
-CIA/shiftregister/cia-sp-test-oneshot-old.prg	FAIL	exit=$ff
+CIA/shiftregister/cia-sp-test-oneshot-old.prg	PASS
 CIA/timerbasics/test.prg	PASS
 CIA/timerbasics/timer.prg	PASS
 CIA/timerbasics/timer_test1.prg	PASS

@@ -74,6 +74,7 @@ module Badline
       refresh_port_b4
       sample_cnt
       update_timers
+      @serial.cycle!(@ta.underflowed) { trigger_serial }
       @tod.cycle! { trigger_alarm }
     end
 
@@ -205,7 +206,6 @@ module Badline
       if @ta.underflowed
         interrupt_status.timer_a = true
         interrupt! if interrupt_control.timer_a?
-        @serial.underflow! { trigger_serial }
       end
       return unless @tb.underflowed
 
@@ -229,7 +229,7 @@ module Badline
     def write_control_a(value)
       was_output = control_a.serial_mode?
       @ta.write_control(value)
-      @serial.reset! if control_a.serial_mode? != was_output
+      @serial.reset! { trigger_serial } if control_a.serial_mode? != was_output
       @tod.fifty_hz = control_a.clock_frequency?
     end
 

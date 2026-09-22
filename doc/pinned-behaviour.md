@@ -379,8 +379,57 @@ only catches the rows that happen to move.
 
 ## CIA serial shift register
 
-The rules for this section will be added along with the shift-register
-timing change that introduces them.
+- The register counts itself empty on the 15th timer A underflow, when the
+  eighth bit reaches SP, not on the 16th that raises CNT over it. The
+  serial ICR flag rises 4 cycles after that 15th underflow. VICE waits for
+  the 16th, which is the "4 cycle delay" in `cia-sdr-delay`'s readme.
+- A byte waiting in the data register loads from that same point
+  (`@steps <= 1`) and goes out on the next underflow, so CNT stays low
+  between the two bytes. Waiting for the 16th costs a whole timer period,
+  the 49 cycles `cia-sdr-load` measured.
+- An in-flight level runs through a delay line. It rises 1 cycle after a
+  bit lands on SP, drops at 2 and rises again at 3. The eighth bit skips
+  straight to 3. The level drops 4 cycles after CNT rises over the bit.
+- A CRA bit 6 change is not symmetric. Switching the port to input tears
+  the transmission down. If the register is busy, from 4 cycles after the
+  first bit reaches SP until it reports empty over the eighth, the byte is
+  flagged gone. The same change latches the in-flight level, and switching
+  back to output flags the byte gone if the latch is set. Reading the live
+  level at the output change instead leaves it stuck high whenever a byte
+  never finishes, and the single-baud `cia?-sdr-icr-*` rows catch that.
+- A zero timer A latch holds the underflow line asserted rather than
+  pulsing it. A waiting byte is still picked up on the level, but every
+  later half-step needs a fresh edge, so the byte stops after one bit, CNT
+  stays low and the flag never rises.
+- Pinned by the `CIA/shiftregister` rows below. Each was checked by
+  breaking the rule and rerunning the rows:
+  - Empty at the 15th: `cia-sdr-delay`, `cia-sdr-init`, `cia-sdr-load`,
+    `cia-sp-test-oneshot-old` and the `-3`/`-19`/`-39` `cia-sdr-icr` rows.
+  - Loading from the same point: `cia-sdr-load` alone.
+  - The in-flight delay line: the `-3`/`-19`/`-39` `cia-sdr-icr` rows.
+  - The latched level: every single-baud `cia-sdr-icr` row, `-0`
+    included.
+  - The busy report on the switch to input: only
+    `cia1-sdr-icr-test2-0_7f` and `cia2-sdr-icr-test2-0_7f`.
+  - The zero-latch stall: the `-0` `cia-sdr-icr` rows.
+- Nothing pins whether the delay line keeps moving while timer A is
+  stopped. It is clocked every cycle, and freezing it passes every row too.
+- Don't read `cia-sdr-icr/generate.c` as the spec. Its `reset1` sets
+  `delaysetsdr1 = baud` for baud > 3, but `cia-sdr-icr-v3.asm`, which is
+  what runs, leaves it at 3 for every baud ≥ 3 (`lda #$03 / cpx #$03 /
+  bcs +`). That byte is the difference between the first rule and VICE's
+  behaviour. `generate-test2.c` states the rule in a comment: "SP INT is
+  raised 4 cycles after TA INT".
+- The twelve `-4485` rows other than `-4485-0` are `expect:error`: they
+  pass because the model does not match the 4485-batch CIA's reference.
+  Baud 0 behaves the same on that batch, so the two `-4485-0` rows must
+  pass outright.
+- An offline replay that starts each baud on a fresh CIA cannot see the
+  state one baud carries into the next through the mode-change latch. Run
+  the test2 sweeps for real (about 5 min each) after changing that path.
+- Spec guard: the "serial port in output mode" block in
+  [`cia_spec.rb`](../spec/badline/cia_spec.rb) covers the flag timing, the
+  waiting byte, both mode-change reports and the zero-latch stall.
 
 ## 6510 I/O port
 

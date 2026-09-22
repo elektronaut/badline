@@ -758,10 +758,14 @@ describe Badline::CIA do
   end
 
   describe "the serial port in output mode" do
+    # A timer A latch of 9 underflows every tenth cycle, so CNT spends ten
+    # cycles low with each bit on SP and ten high again.
+    let(:period) { 10 }
+
     before do
       cia.poke(0xdc0d, 0x88) # unmask the serial interrupt
-      cia.poke(0xdc04, 0x00)
-      cia.poke(0xdc05, 0x00) # timer A underflows every cycle
+      cia.poke(0xdc04, 0x09)
+      cia.poke(0xdc05, 0x00)
       cia.poke(0xdc0e, 0x41) # serial output, timer A started
       cia.poke(0xdc0c, 0xa5)
     end
@@ -769,6 +773,15 @@ describe Badline::CIA do
     # The transmitter idles until the first underflow pulls CNT low.
     def advance_to_first_bit
       cia.cycle! while cia.serial.cnt
+    end
+
+    # CNT falls again as each further bit is put on SP.
+    def advance_to_last_bit
+      advance_to_first_bit
+      7.times do
+        cia.cycle! until cia.serial.cnt
+        cia.cycle! while cia.serial.cnt
+      end
     end
 
     def cnt_levels(count)
@@ -788,7 +801,7 @@ describe Badline::CIA do
 
     it "toggles CNT at half the timer A underflow rate" do
       advance_to_first_bit
-      expect(cnt_levels(3)).to eq([true, false, true])
+      expect(cnt_levels(2 * period).count { |high| high }).to eq(period)
     end
 
     it "puts the most significant bit on SP first" do
@@ -796,22 +809,120 @@ describe Badline::CIA do
       expect(cia.serial.sp_out).to be(true)
     end
 
-    it "raises the serial flag once the byte has gone out" do
-      advance_to_first_bit
-      15.times { cia.cycle! }
+    # Pinned by cia-sdr-delay and the single-baud cia?-sdr-icr rows.
+    it "raises the serial flag four cycles after the eighth bit reaches SP" do
+      advance_to_last_bit
+      4.times { cia.cycle! }
       expect(cia.interrupt_status.serial?).to be(true)
     end
 
-    it "does not raise the serial flag mid-byte" do
-      advance_to_first_bit
-      14.times { cia.cycle! }
+    it "does not raise the serial flag before those four cycles are up" do
+      advance_to_last_bit
+      3.times { cia.cycle! }
       expect(cia.interrupt_status.serial?).to be(false)
     end
 
+    it "raises the serial flag before CNT rises over that bit" do
+      advance_to_last_bit
+      4.times { cia.cycle! }
+      expect(cia.serial.cnt).to be(false)
+    end
+
     it "leaves CNT high once the byte has gone out" do
-      advance_to_first_bit
-      16.times { cia.cycle! }
+      advance_to_last_bit
+      period.times { cia.cycle! }
       expect(cia.serial.cnt).to be(true)
+    end
+
+    # A byte waiting in the data register goes out on the underflow after
+    # the eighth bit reaches SP, so CNT stays low between the two bytes.
+    # Pinned by cia-sdr-load.
+    context "with a second byte waiting" do
+      before do
+        advance_to_first_bit
+        cia.poke(0xdc0c, 0x00)
+        advance_to_last_bit
+      end
+
+      it "keeps CNT low into the next byte" do
+        expect(cnt_levels(period + 5)).to all(be(false))
+      end
+
+      it "puts the next byte's first bit on SP" do
+        (period + 1).times { cia.cycle! }
+        expect(cia.serial.sp_out).to be(false)
+      end
+    end
+
+    # Taking the port back as an output resets the shift register, which
+    # abandons the bit it was halfway through and counts that byte as gone.
+    # Pinned by the single-baud cia?-sdr-icr rows and the test2 sweeps.
+    context "when the shift register is reset mid-byte" do
+      def reset_after(cycles)
+        advance_to_first_bit
+        cycles.times { cia.cycle! }
+        cia.poke(0xdc0e, 0x00) # stop timer A, hand the port back as input
+        cia.peek(0xdc0d)       # clear the ICR
+        cia.poke(0xdc0e, 0x41)
+      end
+
+      it "raises the serial flag when a bit was still on SP" do
+        reset_after(1)
+        expect(cia.interrupt_status.serial?).to be(true)
+      end
+
+      it "leaves it alone when CNT had already risen" do
+        reset_after(2 * period)
+        expect(cia.interrupt_status.serial?).to be(false)
+      end
+    end
+
+    # Handing the port over as an input tears the transmission down, and
+    # counts the byte as gone once the register has reported itself busy.
+    # Pinned by cia1-sdr-icr-test2-0_7f and cia2-sdr-icr-test2-0_7f.
+    context "when the port is handed over as an input mid-byte" do
+      def switch_to_input_after(cycles)
+        advance_to_first_bit
+        cycles.times { cia.cycle! }
+        cia.peek(0xdc0d)       # clear the ICR
+        cia.poke(0xdc0e, 0x01) # input, timer A still running
+      end
+
+      it "raises the serial flag four cycles after the first bit" do
+        switch_to_input_after(4)
+        expect(cia.interrupt_status.serial?).to be(true)
+      end
+
+      it "leaves it alone before then" do
+        switch_to_input_after(3)
+        expect(cia.interrupt_status.serial?).to be(false)
+      end
+    end
+
+    # A zero latch holds the underflow line asserted rather than pulsing
+    # it, and the shift register needs an edge for every half-step.
+    # Pinned by the cia?-sdr-icr-0 rows.
+    context "with a zero timer A latch" do
+      before do
+        cia.poke(0xdc04, 0x00)
+        cia.poke(0xdc0e, 0x51) # force the new latch in
+        cia.poke(0xdc0c, 0xa5)
+        advance_to_first_bit
+      end
+
+      it "puts the first bit on SP" do
+        expect(cia.serial.sp_out).to be(true)
+      end
+
+      it "never raises the serial flag" do
+        1000.times { cia.cycle! }
+        expect(cia.interrupt_status.serial?).to be(false)
+      end
+
+      it "leaves CNT low for good" do
+        1000.times { cia.cycle! }
+        expect(cia.serial.cnt).to be(false)
+      end
     end
   end
 end
