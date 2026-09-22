@@ -27,9 +27,10 @@ VENDORED_REPOS = {
 # bin/lorenz, so it is cut down to a [first, last] stretch of the chain
 # instead.
 #
-# :cuts splits a chain into stretches that CI runs side by side as
-# regression:<suite>-1, -2 and so on, each ending at its cut and the next
-# resuming there on a fresh machine. Lorenz's cuts fall at quarters of its
+# :cuts splits a chain into stretches, regression:<suite>-1, -2 and so on,
+# that can run side by side, locally or dispatched from the Actions tab
+# (the nightly run is still the whole chain). Each ends at its cut, and
+# the next resumes there on a fresh machine. Lorenz's cuts fall at quarters of its
 # runtime, inside the CPU instruction tests. Keep every cut before trap1
 # (row 221 of lorenz.txt): from there on the trap, MMU, interrupt and CIA
 # tests carry state from one test to the next, which a fresh machine would
