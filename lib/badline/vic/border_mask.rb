@@ -43,7 +43,7 @@ module Badline
         group = 0
         while group < @groups.length
           case @groups[group]
-          when FULL then colors[group * 8, 8] = @snapshot[group * 8, 8]
+          when FULL then group = restore_full(colors, group)
           when MIXED then restore_mixed(colors, group * 8)
           end
           group += 1
@@ -51,6 +51,17 @@ module Badline
       end
 
       private
+
+      # Copies a run of full-border groups in one splice and returns its
+      # last group.
+      def restore_full(colors, first)
+        last = first
+        last += 1 while @groups[last + 1] == FULL
+        x_pos = first * 8
+        length = (last - first + 1) * 8
+        colors[x_pos, length] = @snapshot[x_pos, length]
+        last
+      end
 
       def restore_mixed(colors, x_pos)
         i = 0

@@ -258,62 +258,76 @@ only catches the rows that happen to move.
 
 ## VIC bad line and DMA
 
-- The bad line condition is compared in **every** column, not only in the
-  DMA window, and the last column of a line compares against the line about
-  to start. Only the leading edge opens a row, and only the first edge of a
-  line: a match that outlives the row it started, or trails it, opens
-  nothing.
-- A match inside columns 12–54 pulls BA low. The VIC owns the bus three
-  columns later, when AEC follows, and the row enters display state on that
-  same edge. The c-accesses run from the match to column 54, and the ones
-  before AEC read `$ff` off a bus the CPU still drives. A match so late that
-  AEC would land past column 54 fetches nothing at all.
+- The display state counts columns two ahead of Bauer's cycles: column
+  `c` is his cycle `c + 2`. This is the frame the CPU sees, where the
+  bad-line stall `bascan` pins starts in the CPU cycle after column 10
+  (Bauer 12). It is also VICE x64sc's order, where the VIC's logic for a
+  cycle runs before the CPU's bus access in it. A `$d011` write in Bauer
+  cycle `n` runs after column `n − 2` and is first compared in column
+  `n − 1`, which is Bauer `n + 1`.
+- The bad line condition is compared in **every** column. The last column
+  of a line (Bauer cycle 1 of the next) compares against the line about to
+  start.
+- A match enters display state **in its own column**, not when AEC falls.
+  - Pinned by 12 of the `dmadelay` rows, `screenpos`, `fldscroll-20-60`
+    and `colorfetchbug/bitmap`, which all fail when display state waits
+    for AEC.
+- The first match in columns 10–52 (Bauer 12–54) pulls BA low, and the VIC
+  owns the bus three columns later. The c-accesses run in columns 13–52
+  (Bauer 15–54) for as long as the condition stands, so a condition
+  withdrawn mid-line stops them. The ones before AEC read `$ff` off a bus
+  the CPU still drives.
+  - Pinned by `flibug/blackmail*`. Their `$d011` writes land in column 12
+    (Bauer 14), so the match comes in column 13 and three cells read
+    `$ff`, as in the reference.
+- The g-accesses run in columns 14–53 (Bauer 16–55), in the first half
+  of the column, ahead of that column's compare. Their pixels leave the
+  sequencer two columns later (`VIC::GRAPHICS_DELAY`), so cell 0 still
+  draws at column 16.
+  - Pinned by `dmadelay` `test*-18`/`-1a`, `screenpos` and
+    `colorfetchbug/bitmap`, which fail when the compare runs first.
+- VC and VMLI reload in column 12 (Bauer 14). The row counter resets there
+  **only** if the condition stands in that column, so a row opened later
+  keeps the row counter it had. It steps in column 56 (Bauer 58). This
+  replaces the curve-fitted 11–15 reset window, and matches Bauer and
+  VICE.
+  - Pinned by `colorfetchbug` (its bad lines start at Bauer 17), the
+    `dmadelay` `test*-17`/`-18`/`-19`/`-1a` rows, `flibug/blackmail*` and
+    `screenpos`, which all fail when a later match resets the counter.
 - The CPU halts on the bad line condition **as it stands**, not on the
-  latched match: `ba_low?` holds it for `@column` 11–53, which is the 43 CPU
-  cycles from the one after VIC column 10 through the one after column 52.
-  That is two cycles ahead of the display-state columns above, and it
-  leaves Bauer's 43 cycles between bad-line BA (cycle 12) and sprite 0's BA
-  (cycle 55). A condition that goes away mid-line releases the CPU.
+  latched match. `ba_low?` holds it for the columns BA covers, 10–52, which
+  it sees as `@column` 11–53 because it is asked after the VIC advances.
+  That is 43 cycles, the gap Bauer leaves between bad-line BA (cycle 12)
+  and sprite 0's BA (cycle 55). A condition that goes away mid-line
+  releases the CPU.
   - Pinned by `split-tests/bascan`, a per-cycle dump of when the stall
     first catches a CIA timer read. Its `$d012` reads are the same dump's
     check that the raster sync itself did not move.
-  - The end is not observable in `bascan`. A 45-cycle stall that keeps the
-    old end (CPU halted through the cycle after column 54) breaks
-    `colorfetchbug`, `vborder*` and `spriteenable3`–`5`.
+  - The end is not observable in `bascan`. Measured before the display
+    state was re-phased, a 45-cycle stall that keeps the old end (CPU
+    halted through the cycle after column 54) breaks `colorfetchbug`,
+    `vborder*` and `spriteenable3`–`5`.
   - Spec guard: *#ba_low?* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
-- **Provisional:** the display-state columns (`DMA_FIRST` 12,
-  `FETCH_FIRST` 15, `DMA_LAST` 54 and the row-reset window below) were
-  fitted against the CPU phase from before the bad-line stall and the sprite
-  windows moved. Code that re-syncs on the end of a bad-line stall now runs
-  two cycles earlier against them. An FLI $d011 write lands in column 12
-  (Bauer cycle 14), but the match is still seen one column after the write
-  instead of at Bauer's cycle 15, so `flibug/blackmail*` draws one `$ff`
-  cell where the reference has three. `sequencer-bug` and
-  `colorfetchbug/bitmap` moved the same way. Re-phase these columns against
-  the new CPU frame before trusting them further.
-- The row counter rewinds on a match standing in column 12, or on a row
-  opening in columns 11–15. This rule is curve-fitted, not mechanistic: the
-  21 `dmadelay` rows pin it, but no account of the chip produces the 11–15
-  window. Treat it as a placeholder for a rule someone derives properly from
-  a hardware trace.
 - The DEN latch is level-sensitive across the raster counter's increment,
   so its window runs from the last column of line 47 through the last
   column of line 48. The wrap column counts for both the line ending and
   the line starting. Derived against `dentest`'s `den01-48-*`, `den01-49-*`
   and `den10-48-*`, which bracket both edges one cycle at a time.
-- A condition still standing at column 58 puts the logic straight back into
-  display state after the counter wraps (Bauer 3.7.2 step 5), so RC rolls
-  7 → 0 instead of leaving the line idle. This is what holds an FLI picture
-  together.
+- A condition still standing at column 56 puts the logic straight back
+  into display state after the counter wraps (Bauer 3.7.2 step 5), so RC
+  rolls 7 → 0 instead of leaving the line idle. This is what holds an FLI
+  picture together.
 - VC and VMLI advance per g-access in display state, and VCBASE takes VC at
   the wrap. A row that opens late therefore carries its shortfall into the
   next one instead of a fixed +40.
-- Pinned by all 21 `dmadelay` rows, which sweep the match across the whole
-  line, `D011Test/disable-bad` for the too-late match, `flibug/blackmail*`
-  and `colorfetchbug` for the open-bus reads, and `screenpos` for the
-  row-open offset. `screenpos` passes outright since the stall moved.
-  `blackmail*` and `colorfetchbug` still fail, and their pixel counts are
-  only comparable within one CPU phase.
+- All 21 `dmadelay` rows pass under these rules, and they sweep the match
+  across the whole line. `D011Test/disable-bad` pins the too-late match.
+- Spec guard: [`vic/display_state_spec.rb`](../spec/badline/vic/display_state_spec.rb),
+  one group per rule.
+- Not modelled: the colour nibble of the c-accesses before AEC. The
+  hardware reads the low nibble of the opcode the CPU is halted on (VICE
+  reads RAM at the CPU's PC). We read colour RAM, which is the whole of
+  what `blackmail*` still gets wrong: 4–6 px per FLI line.
 - These rows can't be read as pixel counts. The sweep became readable by
   OCRing each reference PNG against `lib/badline/roms/character.rom` and
   matching every display row back to its offset in screen memory, so a diff
