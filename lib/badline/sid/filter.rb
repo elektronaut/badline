@@ -146,24 +146,27 @@ module Badline
         @voice3_off = value.anybits?(0x80)
       end
 
+      # Unrolled over the three voices, like SID#clock!. Voice 3 is silenced
+      # by MODE/VOL bit 7 only while it bypasses the filter.
       def route(voices)
+        voice1, voice2, voice3 = voices
         @input = 0
         @unfiltered = 0
-        voices.each_with_index do |voice, i|
-          if @routing.anybits?(1 << i)
-            @input += voice.output >> 7
-          else
-            @unfiltered += bypass(voice, i)
-          end
+        route_voice(voice1.output >> 7, 0x1)
+        route_voice(voice2.output >> 7, 0x2)
+        if @routing.anybits?(0x4)
+          @input += voice3.output >> 7
+        elsif !@voice3_off
+          @unfiltered += voice3.output >> 7
         end
       end
 
-      # Voice 3 is silenced by MODE/VOL bit 7 only while it bypasses the
-      # filter.
-      def bypass(voice, index)
-        return 0 if index == 2 && @voice3_off
-
-        voice.output >> 7
+      def route_voice(output, bit)
+        if @routing.anybits?(bit)
+          @input += output
+        else
+          @unfiltered += output
+        end
       end
 
       def filtered
