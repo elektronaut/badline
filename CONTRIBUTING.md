@@ -20,8 +20,10 @@ bundle install
 bundle exec rspec
 ```
 
-Specs tagged `:slow` boot the whole machine and are skipped by default.
-Run them with `bundle exec rspec --tag slow`.
+A run of the whole suite fails if line coverage drops below 90%. Runs of
+single files or filtered examples skip that check. Specs tagged `:slow`
+boot the whole machine and are skipped by default. Run them with
+`bundle exec rspec --tag slow`.
 
 The CPU is verified separately against the
 [65x02 single step tests](https://github.com/SingleStepTests/65x02).
