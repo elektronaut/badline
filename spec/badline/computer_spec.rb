@@ -50,6 +50,14 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "the VIC's open bus" do
+    it "reads RAM at the CPU's program counter" do
+      computer.ram.poke(0x3000, 0x8a)
+      computer.cpu.program_counter = 0x3000
+      expect(computer.vic.instance_variable_get(:@open_bus).call).to eq(0x8a)
+    end
+  end
+
   describe "VIC-II sprite DMA cycle stealing" do
     before do
       computer.vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3

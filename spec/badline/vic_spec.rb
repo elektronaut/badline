@@ -391,6 +391,34 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  # Pinned by flibug/blackmail and colorfetchbug: the c-accesses before
+  # AEC take their colour from the byte the halted CPU is reading.
+  describe "an FLI match in column 13" do
+    let(:buffers) { [vic.instance_variable_get(:@character_buffer), vic.instance_variable_get(:@color_buffer)] }
+
+    before do
+      vic.open_bus = -> { 0xa7 }
+      vic.address_bus.color_ram.poke(0xd800 + 40 + 3, 0x05)
+      ((58 * 63) + 60).times { vic.cycle! } # the row from line 51 ends on 58
+      vic.poke(0xd011, 0x1c) # YSCROLL=4 keeps line 59 from matching
+      16.times { vic.cycle! }
+      vic.poke(0xd011, 0x1b) # 59 & 7 == 3, written in column 12
+      4.times { vic.cycle! }
+    end
+
+    it "reads $ff for the three cells before AEC" do
+      expect(buffers[0][0, 3]).to eq([0xff] * 3)
+    end
+
+    it "takes their colour from the CPU's bus" do
+      expect(buffers[1][0, 3]).to eq([0x07] * 3)
+    end
+
+    it "reads colour RAM once the VIC owns the bus" do
+      expect(buffers[1][3]).to eq(0x05)
+    end
+  end
+
   describe "#ba_low?" do
     subject { vic.ba_low? }
 
