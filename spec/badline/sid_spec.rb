@@ -141,16 +141,24 @@ describe Badline::SID do
     end
 
     it "sits on the 6581 DC offset while the voices are silent" do
-      expect(sid.output).to eq(176_790)
+      expect(sid.filter.mix).to eq(176_790)
+    end
+
+    # The RC network on the board strips that offset back off, down to the
+    # residual its high-pass integrator stalls on.
+    it "drains the DC offset off the output" do
+      50_000.times { sid.cycle! }
+      expect(sid.output).to eq(9986)
     end
 
     it "scales the mix into a signed 16-bit sample" do
-      expect(sid.sample).to eq(16_071)
+      100.times { sid.cycle! }
+      expect(sid.sample).to eq(15_931)
     end
 
     it "is silent at volume zero" do
       sid[0xd418] = 0x00
-      sid.cycle!
+      1000.times { sid.cycle! }
       expect(sid.output).to eq(0)
     end
 
@@ -159,7 +167,7 @@ describe Badline::SID do
       sid[0xd401] = 0x1d
       sid[0xd404] = 0x21
       5000.times { sid.cycle! }
-      expect(sid.sample).to be > 18_000
+      expect(sid.sample).to be > 12_000
     end
   end
 
