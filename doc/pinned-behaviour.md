@@ -12,6 +12,9 @@ breaks: a spec guard catches the rule's own failure mode, and a baseline
 only catches the rows that happen to move.
 
 - [CPU interrupt recognition](#cpu-interrupt-recognition)
+- [CPU JAM](#cpu-jam)
+- [CPU unstable stores under DMA](#cpu-unstable-stores-under-dma)
+- [CPU ANE constant](#cpu-ane-constant)
 - [VIC raster IRQ phase](#vic-raster-irq-phase)
 - [VIC mid-line register visibility](#vic-mid-line-register-visibility)
 - [VIC sprite display](#vic-sprite-display)
@@ -51,6 +54,52 @@ only catches the rows that happen to move.
   clear).
 - Spec guard: the *interrupt recognition timing* group in
   [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per quirk.
+
+## CPU JAM
+
+- JAM reads the opcode, a dummy byte, `$FFFF`, `$FFFE` and `$FFFE`, then
+  `$FFFF` on every cycle until reset. It never reaches an instruction
+  boundary, so a pending IRQ or NMI is never taken.
+- Pinned by `CPU/cpujam` (the halt) and `jamirq`/`jamnmi`.
+- Spec guard: the *JAM* group in
+  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
+
+## CPU unstable stores under DMA
+
+- A cycle the VIC holds the CPU through BA is not a CPU cycle.
+  `Computer#cycle!` calls `CPU#stall!` instead of `CPU#cycle!`, which only
+  records `@cycles`, so the interrupt pipeline doesn't advance.
+- SHA, SHX, SHY and SHS/TAS drop the `& (H+1)` from the stored value when
+  the CPU is stalled **immediately before the dummy read**, the
+  second-to-last cycle (VICE x64sc's `LOAD_CHECK_BA_LOW_DUMMY`). A stall at
+  any earlier cycle leaves it in. The high byte of a page-crossing target
+  is still `value & (H+1)` either way.
+  - The rule is that one cycle, not "RDY went low during the instruction".
+    In the `*4`/`*5` timing tables the drop falls exactly one position after
+    each cycle-steal dip and on no other position. A whole-instruction rule
+    would drop on the positions after it too.
+  - Pinned by `CPU/sha`, `CPU/shxy` and `CPU/shs`, variants 2–5, with
+    variant 1 as the stall-free guard. They measure against VIC BA timing:
+    the `*2`/`*3` variants (sprite DMA) and `shxy4`/`shyx4`/`shx-test`
+    need sprite BA at `54 + 2n`, and the `*4`/`*5` variants (sprite and
+    character DMA) also need the bad-line and sprite-DMA-end BA to match.
+- Spec guard: *SHX stalled by the VIC* in
+  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
+
+## CPU ANE constant
+
+- ANE computes `A = (A | CONST) & X & imm`. `CONST` varies from chip to
+  chip; `CPU.new` takes it as `ane_constant:` and defaults to the C64
+  6510's `$EF`, VICE's value. A stall between the opcode and operand
+  fetches clears bits 0 and 4 of it (`CONST & $EE`).
+- Pinned by `CPU/ane` (`ane`, `ane-border` and `ane-none`), which fails any
+  constant without bits 0 and 1 set and a high nybble of `$4`, `$5`, `$E`
+  or `$F`. The stall variant follows VICE: the testprog only displays the
+  RDY-cycle result, so no exit code pins it.
+- SingleStepTests recorded an NMOS 6502 whose constant is `$EE`, so
+  `test/test_cpu.rb` builds its CPU with `ane_constant: 0xee` and checks
+  `$8B` as strictly as every other opcode.
+- Spec guard: *ANE* in [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
 
 ## VIC raster IRQ phase
 

@@ -20,8 +20,11 @@ module Badline
     attr_reader :memory, :instructions, :boundary_crossed, :cycles
     attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq
 
-    def initialize(memory = nil, debug: false)
+    # +ane_constant+ is ANE's magic constant, which varies from chip to
+    # chip. The default is the C64 6510's.
+    def initialize(memory = nil, debug: false, ane_constant: 0xef)
       @debug = debug
+      @ane_constant = ane_constant
       @memory = memory || Memory.new
       @status = Status.new(STATUS_FLAGS, value: 0b00100000)
       reset_registers
@@ -34,6 +37,7 @@ module Badline
       @interrupt = nil
       @brk = false
       @pending_write = false
+      @stalled_at = nil
 
       @cycles = 0
       @instructions = 0
@@ -75,6 +79,12 @@ module Badline
 
     def pending_write?
       @pending_write
+    end
+
+    # Called instead of #cycle! on a cycle the VIC holds the CPU through
+    # BA. Records which cycle the CPU was stalled before.
+    def stall!
+      @stalled_at = @cycles
     end
 
     def jammed?
@@ -129,6 +139,17 @@ module Badline
       @index = 0
       @boundary_irq = @irq_pending
       @boundary_nmi = @nmi_pending
+    end
+
+    # True when the CPU was stalled right before this cycle.
+    def stalled_before_this_cycle?
+      @stalled_at == @cycles
+    end
+
+    # True when the CPU was stalled right before the cycle that preceded
+    # this one.
+    def stalled_before_previous_cycle?
+      @stalled_at == @cycles - 1
     end
 
     def write_byte(addr, value)

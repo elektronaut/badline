@@ -25,12 +25,13 @@ module Badline
       end
 
       # Unstable instruction. AND's value with A|magic_const and X.
-      # Magic constant varies by CPU.
+      # Magic constant varies by CPU. A VIC stall between the opcode and
+      # operand fetches clears its bits 0 and 4.
       #
       # Opcodes:
       #   $8B - immediate - 2 cycles
       def ane(_addr, value)
-        magic_const = 0xee
+        magic_const = stalled_before_this_cycle? ? @ane_constant & 0xee : @ane_constant
         @a = (a | magic_const) & x & value
         update_number_flags(@a)
       end
@@ -251,6 +252,9 @@ module Badline
 
       private
 
+      # A VIC stall right before the dummy read, the second-to-last cycle,
+      # drops the & (H+1) from the stored value but not from the high byte
+      # of a page-crossing target.
       def store_high_and(register, addr)
         base_high = if boundary_crossed
                       (high_byte(addr) - 1) & 0xff
@@ -259,7 +263,7 @@ module Badline
                     end
         result = register & ((base_high + 1) & 0xff)
         target = boundary_crossed ? uint16(low_byte(addr), result) : addr
-        write_byte(target, result)
+        write_byte(target, stalled_before_previous_cycle? ? register : result)
       end
     end
   end

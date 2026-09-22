@@ -47,7 +47,7 @@ module Badline
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
 
-      @cpu.cycle! if @cpu.pending_write? || !@vic.ba_low?
+      @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
 
       @cycles += 1
     end
