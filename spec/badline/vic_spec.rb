@@ -564,6 +564,22 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  # MCBASE reaches 63 at cycle 16 of the sprite's last row, which ends the
+  # DMA: the tail of that line fetches nothing and steals nothing. Pinned by
+  # CPU/sha*4 and *5, which step an SH* store across it.
+  describe "sprite BA on the line its DMA ends (#ba_low?)" do
+    subject { vic.ba_low? }
+
+    before do
+      vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3
+      vic.poke(0xd015, 0x01)
+      vic.poke(0xd001, 60)
+      ((81 * 63) + 56).times { vic.cycle! } # line 81 carries row 20
+    end
+
+    it { is_expected.to be(false) }
+  end
+
   describe "FLD: withholding bad lines opens an idle gap" do
     let(:bg) { 6 }
     let(:fg) { 1 }

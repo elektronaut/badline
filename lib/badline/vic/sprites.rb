@@ -35,6 +35,10 @@ module Badline
         @palette = Array.new(4, 0)
         @log = RegisterLog.new(registers)
         @any_dma = false
+        @stopped_dma = false
+        @carry = Array.new(8) { [] }
+        @carry_next = Array.new(8) { [] }
+        @carried = false
         @lo = width
         @hi = 0
         @sequenced = -1
@@ -42,11 +46,16 @@ module Badline
 
       def [](index) = @sprites[index]
 
+      # Pixels a sprite drew past the end of the last line land at the start
+      # of this one, which is when the beam reaches them.
       def start_line
         @log.clear
         @sprites.each(&:start_line)
         @collisions.start_line
         @sequenced = -1
+        @carry, @carry_next = @carry_next, @carry
+        @carry_next.each(&:clear)
+        @carried = @carry.any?(&:any?)
       end
 
       # Bauer cycles 15 and 16: MCBASE steps on for every sprite whose
@@ -58,11 +67,19 @@ module Badline
       # The only point a sprite's DMA stops, so the cached flag is settled
       # here and set again by the compare that starts one.
       def finish_mcbase
+        @stopped_dma = false
         return unless @any_dma
 
+        running = @sprites.count(&:displaying?)
         @sprites.each(&:finish_mcbase)
-        @any_dma = @sprites.any?(&:displaying?)
+        still = @sprites.count(&:displaying?)
+        @any_dma = still.positive?
+        @stopped_dma = still < running
       end
+
+      # True when the last #finish_mcbase ended a DMA, so the BA columns
+      # have to be rebuilt without it.
+      def stopped_dma? = @stopped_dma
 
       # Bauer cycle 55, ahead of the Y compare.
       def toggle_expansion
@@ -86,13 +103,17 @@ module Badline
         hit
       end
 
+      # Not gated on the DMA flag, since this is where a display outlives its
+      # DMA. MC now points at the next row, which a sprite firing after its
+      # reload shows, so a line sequenced before this has to be redone.
       def check_display(line)
-        @sprites.each { |sprite| sprite.check_display(line) } if @any_dma
+        @sprites.each { |sprite| sprite.check_display(line) }
+        @sequenced = -1
       end
 
       # Not gated on the DMA flag: a row fetched at the start of the line
       # still renders when cycle 16 ends the sprite.
-      def active? = @sprites.any?(&:rendering?)
+      def active? = @carried || @sprites.any?(&:rendering?)
 
       # Record a mid-line write at the pixel where it becomes visible.
       def log_change(reg, old, value, beam_x)
@@ -146,21 +167,30 @@ module Badline
       # claim a pixel wins (lowest index has priority); later ones only add
       # their bit to it.
       def merge(sprite)
-        span = sprite.span
-        return if span.zero?
-
-        track(sprite.leftmost, span)
-        log = @log.empty? ? nil : @log
-        log&.rewind
-        merge_span(sprite, log, span)
+        bit = 1 << sprite.index
+        @carry_next[sprite.index].clear
+        @carry[sprite.index].each_slice(3) do |x, color, priority|
+          track(x, 1)
+          merge_pixel(x, color, bit, priority)
+        end
+        merge_run(sprite, sprite.leftmost, sprite.span, sprite.codes)
+        merge_run(sprite, sprite.reload_leftmost, sprite.reload_span, sprite.reload_codes)
       end
 
-      def merge_span(sprite, log, span)
-        codes = sprite.codes
+      def merge_run(sprite, leftmost, span, codes)
+        return if span.zero?
+
+        track(leftmost, span)
+        log = @log.empty? ? nil : @log
+        log&.rewind
+        merge_span(sprite, log, leftmost, span, codes)
+      end
+
+      def merge_span(sprite, log, leftmost, span, codes)
         bit = 1 << sprite.index
         palette = sprite.palette(log || @registers, @palette)
         priority = (log || @registers)[0x1b].anybits?(bit)
-        pos = sprite.leftmost
+        pos = leftmost
         boundary = log ? 0 : Float::INFINITY
         index = 0
         while index < span
@@ -171,12 +201,18 @@ module Badline
             boundary = log.next_x
           end
           code = codes[index]
-          if code.nonzero?
-            x = pos < @width ? pos : pos - @width
-            merge_pixel(x, palette[code], bit, priority)
-          end
+          place(pos, palette[code], bit, priority) if code.nonzero?
           index += 1
           pos += 1
+        end
+      end
+
+      # A pixel past the end of the line belongs to the start of the next.
+      def place(pos, color, bit, priority)
+        if pos < @width
+          merge_pixel(pos, color, bit, priority)
+        else
+          @carry_next[bit.bit_length - 1].push(pos - @width, color, priority)
         end
       end
 

@@ -1,11 +1,11 @@
 VICII/banking/banking.prg	PASS
-VICII/border/border-250.prg	FAIL	diff=8082px exit=$00
-VICII/border/border-251.prg	FAIL	diff=9px exit=$00
+VICII/border/border-250.prg	FAIL	diff=8007px exit=$00
+VICII/border/border-251.prg	PASS
 VICII/border/border-252.prg	PASS
-VICII/border/border-bm-idle.prg	FAIL	diff=8463px exit=$00
+VICII/border/border-bm-idle.prg	FAIL	diff=8450px exit=$00
 VICII/border/border-bm-ysh2.prg	FAIL	diff=4942px exit=$00
-VICII/border/border-bm-ysh.prg	FAIL	diff=5776px exit=$00
-VICII/border/border-mcbm.prg	FAIL	diff=5743px exit=$00
+VICII/border/border-bm-ysh.prg	FAIL	diff=5645px exit=$00
+VICII/border/border-mcbm.prg	FAIL	diff=5569px exit=$00
 VICII/border/hvborder1.prg	FAIL	diff=191px exit=$00
 VICII/border/hvborder2.prg	FAIL	diff=8141px exit=$00
 VICII/border/vborder-32-08.prg	PASS
@@ -86,21 +86,21 @@ VICII/lp-trigger/test2new.prg	FAIL	exit=$ff
 VICII/phi1timing/phi1timing.prg	FAIL	exit=$ff
 VICII/rasterirq/rasterirq_hold.prg	FAIL	diff=11672px exit=$00
 VICII/screenpos/screenpos.prg	PASS
-VICII/sb_sprite_fetch/sbsprf24-163.prg	FAIL	diff=560px exit=$00
-VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=603px exit=$00
+VICII/sb_sprite_fetch/sbsprf24-163.prg	FAIL	diff=401px exit=$00
+VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=428px exit=$00
 VICII/split-tests/bascan/bascan.prg	PASS
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
 VICII/split-tests/lightpen/lightpen.prg	FAIL	exit=$ff
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
-VICII/split-tests/spritescan/spritescan.prg	FAIL	exit=$ff
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=17668px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=17669px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=17779px exit=$00
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=17668px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=17669px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=17779px exit=$00
+VICII/split-tests/spritescan/spritescan.prg	PASS
+VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=8865px exit=$00
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=8866px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=8864px exit=$00
+VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=8865px exit=$00
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=8866px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=8864px exit=$00
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/videomode1.prg	FAIL	diff=17px exit=$00
@@ -138,8 +138,8 @@ VICII/spritecollclear/bug2135.prg	PASS
 VICII/spritecrunch/spritecrunch-3b-00.prg	FAIL	diff=5024px exit=$00
 VICII/spritecrunch/spritecrunch-3c-00.prg	FAIL	diff=5024px exit=$00
 VICII/spritecrunch/spritecrunch-3d-00.prg	FAIL	diff=5024px exit=$00
-VICII/spritecrunch/spritecrunch2-07.prg	FAIL	diff=100px exit=$00
-VICII/spritecrunch/spritecrunch2-08.prg	FAIL	diff=1598px exit=$00
+VICII/spritecrunch/spritecrunch2-07.prg	PASS
+VICII/spritecrunch/spritecrunch2-08.prg	FAIL	diff=1594px exit=$00
 VICII/spritecrunch/spritecrunch2-09.prg	FAIL	diff=1320px exit=$00
 VICII/spritecrunch/spritecrunch2-25.prg	FAIL	diff=740px exit=$00
 VICII/spritecrunch/spritecrunch2-26.prg	FAIL	diff=638px exit=$00
@@ -153,12 +153,12 @@ VICII/spriteenable/spriteenable2.prg	PASS
 VICII/spriteenable/spriteenable3.prg	PASS
 VICII/spriteenable/spriteenable4.prg	PASS
 VICII/spriteenable/spriteenable5.prg	PASS
-VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=343px exit=$00
-VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=343px exit=$00
-VICII/spritegap/spritegap2.prg	FAIL	exit=$ff
-VICII/spritegap/spritegap3.prg	FAIL	exit=$ff
+VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=302px exit=$00
+VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=302px exit=$00
+VICII/spritegap/spritegap2.prg	PASS
+VICII/spritegap/spritegap3.prg	PASS
 VICII/spritepriorities/test1.prg	PASS
-VICII/spriterestart/spriterestart.prg	FAIL	exit=$ff
+VICII/spriterestart/spriterestart.prg	PASS
 VICII/spritesplit/ss-exp-unexp-hires.prg	PASS
 VICII/spritesplit/ss-exp-unexp-hires.prg	PASS
 VICII/spritesplit/ss-exp-unexp-mc.prg	PASS
@@ -195,6 +195,6 @@ VICII/spritesplit/ss-xpos.prg	PASS
 VICII/spritesplit/ss-xpos.prg	PASS
 VICII/spritesteal/spritesteal.prg	PASS
 VICII/spritevssprite/spritevssprite.prg	PASS
-VICII/spritex/demusinterruptus.prg	FAIL	exit=$ff
-VICII/spritex/testsuite.prg	FAIL	exit=$ff
+VICII/spritex/demusinterruptus.prg	PASS
+VICII/spritex/testsuite.prg	PASS
 VICII/spritey/spritey.prg	PASS
