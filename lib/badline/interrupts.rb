@@ -2,40 +2,9 @@
 
 module Badline
   module Interrupts
+    BREAK_MASK = 0x10
+
     private
-
-    def handle_interrupt(vector, brk: false)
-      # BRK already burned this cycle on the operand fetch its addressing
-      # mode discards.
-      internal_cycle unless brk
-
-      pc = program_counter
-      pc = (pc + 1) & 0xffff if brk
-
-      write_byte(stack_address, high_byte(pc))
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      write_byte(stack_address, low_byte(pc))
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      write_byte(stack_address,
-                 status.clone.tap { |s| s.break = brk }.value)
-      @stack_pointer = (@stack_pointer - 1) & 0xff
-      status.interrupt = true
-      # An NMI asserted before cycle 4 hijacks a BRK/IRQ sequence in progress.
-      vector = 0xfffa if vector == 0xfffe && @nmi_pending
-      @nmi = false if vector == 0xfffa
-      @program_counter = read_word(vector)
-      # Interrupt sequences (BRK included) do not poll at their end, so the
-      # handler's first instruction always runs before another interrupt.
-      @irq_sample = @irq_pending = false
-      @nmi_sample = @nmi_pending = false
-    end
-
-    def service_interrupt(nmi_pending)
-      @cycles += 1
-      @interrupt = nmi_pending ? 0xfffa : 0xfffe
-      handle_interrupt(@interrupt)
-      @interrupt = nil
-    end
 
     # Samples the IRQ line and the NMI latch once per cycle. An instruction
     # boundary commits the sample taken on its second-to-last cycle.
@@ -48,6 +17,67 @@ module Badline
       @nmi_pending = @nmi_sample
       @irq_sample = @irq && !@status.interrupt?
       @nmi_sample = @nmi
+    end
+
+    # Runs in the opcode fetch cycle in place of the fetch, with no bus
+    # access, and switches to the interrupt plan.
+    def start_interrupt
+      @interrupt = @boundary_nmi ? 0xfffa : 0xfffe
+      @brk = false
+      @plan = CPU::INTERRUPT_PLAN
+      @writes = CPU::INTERRUPT_WRITES
+      @index = 1
+    end
+
+    # BRK reads the byte after its opcode and ignores it, and selects the
+    # IRQ vector.
+    def op_brk_dummy
+      @memory.peek(@program_counter)
+      @interrupt = 0xfffe
+      @brk = true
+    end
+
+    def op_int_push_pch
+      @address = @brk ? (@program_counter + 1) & 0xffff : @program_counter
+      @memory.poke(stack_address, high_byte(@address))
+      @stack_pointer = (@stack_pointer - 1) & 0xff
+    end
+
+    def op_int_push_pcl
+      @memory.poke(stack_address, low_byte(@address))
+      @stack_pointer = (@stack_pointer - 1) & 0xff
+    end
+
+    def op_int_push_status
+      value = @brk ? @status.value | BREAK_MASK : @status.value & ~BREAK_MASK
+      @memory.poke(stack_address, value)
+      @stack_pointer = (@stack_pointer - 1) & 0xff
+      @status.interrupt = true
+      # An NMI that arrives before cycle 4 of a BRK or IRQ takes it over:
+      # the sequence finishes with the NMI vector.
+      @interrupt = 0xfffa if @interrupt == 0xfffe && @nmi_pending
+      @nmi = false if @interrupt == 0xfffa
+    end
+
+    def op_int_vector_low
+      @address = @memory.peek(@interrupt)
+    end
+
+    # Clears any interrupt that is pending, so the handler's first
+    # instruction always runs before the next interrupt. This applies to
+    # BRK too.
+    def op_int_vector_high
+      high = @memory.peek((@interrupt + 1) & 0xffff)
+      @program_counter = @address | (high << 8)
+      @irq_sample = @irq_pending = false
+      @nmi_sample = @nmi_pending = false
+      @interrupt = nil
+      if @brk
+        @status.break = false
+        end_instruction
+      else
+        end_sequence
+      end
     end
   end
 end

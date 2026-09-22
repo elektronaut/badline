@@ -16,7 +16,7 @@ module Badline
       #   $B9 - absolute_y - 4+ cycles
       #   $BD - absolute_x - 4+ cycles
       def lda(_addr, value)
-        @a = resolve(value)
+        @a = value
         update_number_flags(@a)
       end
 
@@ -29,7 +29,7 @@ module Badline
       #   $B6 - zeropage_y - 4 cycles
       #   $BE - absolute_y - 4+ cycles
       def ldx(_addr, value)
-        @x = resolve(value)
+        @x = value
         update_number_flags(@x)
       end
 
@@ -42,7 +42,7 @@ module Badline
       #   $B4 - zeropage_x - 4 cycles
       #   $BC - absolute_x - 4+ cycles
       def ldy(_addr, value)
-        @y = resolve(value)
+        @y = value
         update_number_flags(@y)
       end
 

@@ -9,7 +9,7 @@ module Badline
       # Opcodes:
       #   $4B - immediate - 2 cycles
       def alr(_addr, value)
-        @a &= resolve(value)
+        @a &= value
         status.carry = @a[0]
         @a = (@a >> 1) & 0xff
         update_number_flags(@a)
@@ -31,7 +31,7 @@ module Badline
       #   $8B - immediate - 2 cycles
       def ane(_addr, value)
         magic_const = 0xee
-        @a = (a | magic_const) & x & resolve(value)
+        @a = (a | magic_const) & x & value
         update_number_flags(@a)
       end
 
@@ -40,7 +40,7 @@ module Badline
       # Opcodes:
       #   $6B - immediate - 2 cycles
       def arr(_addr, value)
-        tmp = a & resolve(value)
+        tmp = a & value
         result = (tmp >> 1) | (status.carry? ? 0x80 : 0)
         status.zero = result.zero?
         status.negative = status.carry
@@ -94,22 +94,12 @@ module Badline
         sbc(addr, inc(addr, value))
       end
 
-      # Freezes the CPU. A jammed 6502 idles forever with its address bus
-      # parked on the interrupt vectors; the sequence is cut short here so
-      # tests terminate.
-      #
-      # Opcodes:
-      #   $02, $12, $22, $32, $42, $52, $62, $72, $92, $B2, $D2, $F2
-      def jam(_addr, _value)
-        [0xffff, 0xfffe, 0xfffe, *Array.new(6, 0xffff)].each { |addr| internal_cycle(addr) }
-      end
-
       # Loads A and S with value AND stack pointer.
       #
       # Opcodes:
       #   $BB - absolute_y - 4 cycles
       def las(_addr, value)
-        @a = @x = @stack_pointer = resolve(value) & stack_pointer
+        @a = @x = @stack_pointer = value & stack_pointer
         update_number_flags(@a)
       end
 
@@ -123,7 +113,7 @@ module Badline
       #   $B7 - zeropage_y - 4 cycles
       #   $BF - absolute_y - 4+ cycles
       def lax(_addr, value)
-        @a = @x = resolve(value)
+        @a = @x = value
 
         update_number_flags(@a)
       end
@@ -135,7 +125,7 @@ module Badline
       #   $AB - immediate - 2 cycles
       def lxa(_addr, value)
         magic_const = 0xee
-        @a = @x = (a | magic_const) & resolve(value)
+        @a = @x = (a | magic_const) & value
         update_number_flags(@a)
       end
 
@@ -190,8 +180,7 @@ module Badline
       # Opcodes:
       #   $CB - immediate - 2 cycles
       def sbx(_addr, value)
-        v = resolve(value)
-        result = (@x & @a) - v
+        result = (@x & @a) - value
         status.carry = result >= 0
         @x = result & 0xff
         update_number_flags(@x)
