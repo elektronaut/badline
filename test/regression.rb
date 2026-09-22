@@ -186,7 +186,7 @@ module Regression
       removed.each { |row| io.puts("  gone    #{row.key}: #{row}") }
     end
 
-    # regression.yml only runs on push to main, where nobody reads the log.
+    # regression.yml runs nightly or on demand, where nobody reads the log.
     def publish
       path = ENV.fetch("GITHUB_STEP_SUMMARY", nil)
       File.write(path, markdown, mode: "a") if path
