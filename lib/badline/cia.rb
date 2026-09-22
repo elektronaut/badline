@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require "badline/cia/interrupt_register"
 require "badline/cia/serial"
 require "badline/cia/timer"
 
@@ -10,7 +11,12 @@ module Badline
     include Addressable
     extend Forwardable
 
-    attr_reader :start, :control_a, :control_b, :interrupt_status, :interrupt_control, :peripheral, :serial
+    attr_reader :start, :control_a, :control_b, :peripheral, :serial
+
+    def_delegator :@icr, :status, :interrupt_status
+    def_delegator :@icr, :mask,   :interrupt_control
+    def_delegator :@icr, :assert!, :interrupt!
+    def_delegator :@icr, :interrupted?
 
     def_delegator :@ta, :counter,  :timer_a
     def_delegator :@ta, :counter=, :timer_a=
@@ -31,14 +37,10 @@ module Badline
       @data_dir_b = 0x0
       @port_b4_handler = nil
       @port_b4_high = true
-      @irq_pending = 0
       @cnt_high = true
       @cnt_rise = false
       @tod = TimeOfDay.new
-      @interrupt_control = Status.new([:timer_a, :timer_b, :alarm, :serial,
-                                       :flag, 0, 0, 0])
-      @interrupt_status = Status.new([:timer_a, :timer_b, :alarm, :serial,
-                                      :flag, 0, 0, :interrupt])
+      @icr = InterruptRegister.new
       @control_a = Status.new(%i[start output out_mode run_mode load
                                  in_mode serial_mode clock_frequency])
       @control_b = Status.new(%i[start output out_mode run_mode load
@@ -54,23 +56,12 @@ module Badline
       @port_b4_handler = handler
     end
 
-    def interrupt!(delay = 1)
-      @irq_pending = @irq_pending.positive? ? [@irq_pending, delay].min : delay
-    end
-
-    def interrupted?
-      interrupt_status.value.anybits?(0x80)
-    end
-
     # A falling edge on the FLAG pin. On CIA 1 the datasette's tape read
     # line drives it, on CIA 2 the serial bus SRQ.
     def flag! = raise_interrupt(:flag)
 
     def cycle!
-      if @irq_pending.positive?
-        @irq_pending -= 1
-        interrupt_status.interrupt = true if @irq_pending.zero?
-      end
+      @icr.cycle!
       refresh_port_b4
       sample_cnt
       update_timers
@@ -112,11 +103,7 @@ module Badline
       when 0x0a then @tod.minutes
       when 0x0b then @tod.hours
       when 0x0c then @serial.data
-      when 0x0d
-        value = interrupt_status.value
-        interrupt_status.value = 0x0 # Burn after reading
-        @irq_pending = 0
-        value
+      when 0x0d then @icr.read
       when 0x0e then control_a.value
       when 0x0f then control_b.value
       end
@@ -137,7 +124,7 @@ module Badline
       when 0x0a then @tod.write(:minutes, value, alarm: control_b.alarm?)
       when 0x0b then @tod.write_hours(value, alarm: control_b.alarm?)
       when 0x0c then @serial.write(value)
-      when 0x0d then write_interrupt_control(value)
+      when 0x0d then @icr.write(value)
       when 0x0e then write_control_a(value)
       when 0x0f then @tb.write_control(value)
       end
@@ -183,11 +170,7 @@ module Badline
     def trigger_alarm = raise_interrupt(:alarm)
     def trigger_serial = raise_interrupt(:serial)
 
-    # Latch a source in the ICR, pulling the interrupt line if it is armed.
-    def raise_interrupt(source)
-      interrupt_status.public_send(:"#{source}=", true)
-      interrupt! if interrupt_control.public_send(:"#{source}?")
-    end
+    def raise_interrupt(source) = @icr.flag(source)
 
     # CNT is sampled once a cycle. When the serial port drives it from this
     # cycle's timer A underflow, the new level is picked up on the next one.
@@ -209,8 +192,7 @@ module Badline
       end
       return unless @tb.underflowed
 
-      interrupt_status.timer_b = true
-      interrupt! if interrupt_control.timer_b?
+      @icr.timer_b_underflow!
     end
 
     # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
@@ -231,19 +213,6 @@ module Badline
       @ta.write_control(value)
       @serial.reset! { trigger_serial } if control_a.serial_mode? != was_output
       @tod.fifty_hz = control_a.clock_frequency?
-    end
-
-    def write_interrupt_control(value)
-      if value.nobits?(0x80)
-        # Clear interrupts based on bits 0-4
-        interrupt_control.value &= ~(value & 0x1f)
-      else
-        # Set interrupts based on bits 0-4
-        interrupt_control.value |= (value & 0x1f)
-      end
-      return unless interrupt_control.value.anybits?(interrupt_status.value & 0x1f)
-
-      interrupt!(2) unless interrupted?
     end
   end
 end
