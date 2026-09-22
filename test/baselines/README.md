@@ -123,7 +123,7 @@ what the suite cost before it was sharded:
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
 four stretches side by side, `rake regression:lorenz-1` to `lorenz-4`, each
-about a quarter of that. The Rakefile's `cuts` for `lorenz` end each
+about a quarter of that, and each can be picked from the Actions tab too. The Rakefile's `cuts` for `lorenz` end each
 stretch. A stretch resumes at the previous cut on a fresh machine, stops
 after its own, and compares only its rows, and the last one runs to the end
 of the chain and carries the `(suite)` row. A stretch that stops short of
