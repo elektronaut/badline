@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "digest/md5"
+
 module Badline
   module Storage
     # PSID/RSID tunes: a memory image plus the addresses of the routines
@@ -157,6 +159,9 @@ module Badline
       def init_address = word(0x0a).nonzero? || load_address
       def end_address = load_address + data.length
       def psid? = @format == "PSID"
+
+      # HVSC keys its song length database on the whole file, header and all.
+      def md5 = @md5 ||= Digest::MD5.hexdigest(@bytes.pack("C*"))
 
       # The `$01` value a routine at `address` has to run under, following
       # libsidplayfp's iomap: RAM under BASIC from `$a000`, RAM under both

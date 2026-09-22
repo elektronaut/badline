@@ -301,6 +301,12 @@ describe Badline::Storage::SIDFile do
     end
   end
 
+  describe "#md5" do
+    it "digests the whole file" do
+      expect(tune.md5).to eq(Digest::MD5.file(path).hexdigest)
+    end
+  end
+
   describe "#driver for an RSID tune" do
     before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
 

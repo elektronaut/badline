@@ -6,23 +6,36 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require "optparse"
 
-options = { seconds: 60.0, rate: 44_100, jit: true }
+FALLBACK_SECONDS = 60.0
+
+options = { rate: 44_100, jit: true }
+
+banner = <<~BANNER
+  Usage: badline-render [options] tune.sid [output]
+
+  Renders a .sid tune to 16-bit PCM. The container follows the output
+  file's extension, .wav or .aiff; with no output given the tune's own
+  name gains a .wav extension.
+
+  A .sid file carries no length of its own. Without --seconds the tune is
+  looked up by MD5 in HVSC's Songlengths.md5, taken from --songlengths, from
+  the DOCUMENTS directory of an HVSC collection above the tune, or from
+  $HVSC_BASE. Failing all of those it renders #{FALLBACK_SECONDS.to_i} seconds.
+
+  Rendering runs at emulation speed, which is slower than real time.
+
+  Options:
+BANNER
 
 parser = OptionParser.new do |opts|
-  opts.banner = <<~BANNER
-    Usage: badline-render [options] tune.sid [output]
+  opts.banner = banner
 
-    Renders a .sid tune to 16-bit PCM. The container follows the output
-    file's extension, .wav or .aiff; with no output given the tune's own
-    name gains a .wav extension.
-
-    Rendering runs at emulation speed, which is slower than real time.
-
-    Options:
-  BANNER
-
-  opts.on("--seconds N", Float, "Length to render (default: 60)") do |n|
+  opts.on("--seconds N", Float, "Length to render (default: the tune's own)") do |n|
     options[:seconds] = n
+  end
+
+  opts.on("--songlengths PATH", "HVSC Songlengths.md5 to take the length from") do |path|
+    options[:songlengths] = path
   end
 
   opts.on("--song N", Integer, "Subtune to play (default: the tune's own)") do |n|
@@ -59,8 +72,10 @@ unless tune_path
   exit 1
 end
 
-unless File.exist?(tune_path)
-  warn "badline-render: no such file: #{tune_path}"
+[tune_path, options[:songlengths]].compact.each do |path|
+  next if File.exist?(path)
+
+  warn "badline-render: no such file: #{path}"
   exit 1
 end
 
@@ -77,6 +92,12 @@ def describe(tune, song)
   end
 end
 
+# HVSC's database is keyed by the tune's MD5 and lists one length per song.
+def songlength(tune, tune_path, song, hint)
+  path = hint || Badline::Storage::SongLengths.locate(tune_path)
+  path && Badline::Storage::SongLengths.new(path).lengths(tune.md5)&.at(song - 1)
+end
+
 begin
   tune = Badline::Storage::SIDFile.new(tune_path)
 rescue Badline::Storage::SIDFile::FormatError => e
@@ -85,19 +106,21 @@ rescue Badline::Storage::SIDFile::FormatError => e
 end
 
 song = (options[:song] || tune.start_song).clamp(1, tune.songs)
-renderer = Badline::Audio::Renderer.new(tune, seconds: options[:seconds],
-                                              song:, rate: options[:rate])
+seconds = options[:seconds] ||
+          songlength(tune, tune_path, song, options[:songlengths]) ||
+          FALLBACK_SECONDS
+renderer = Badline::Audio::Renderer.new(tune, seconds:, song:, rate: options[:rate])
 
 puts describe(tune, song)
-puts "Rendering #{options[:seconds]}s to #{output_path} at #{options[:rate]} Hz..."
+puts "Rendering #{seconds}s to #{output_path} at #{options[:rate]} Hz..."
 
 started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 begin
-  renderer.render(output_path) do |seconds|
+  renderer.render(output_path) do |done|
     next if options[:quiet]
 
-    print format("\r%<done>6.1fs / %<total>.1fs", done: seconds, total: options[:seconds])
+    print format("\r%<done>6.1fs / %<total>.1fs", done:, total: seconds)
     $stdout.flush
   end
 rescue Badline::Audio::Renderer::UnknownFormatError, Badline::Storage::SIDFile::FormatError => e
@@ -108,4 +131,4 @@ end
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 print "\r" unless options[:quiet]
 puts format("Wrote %<path>s in %<elapsed>.1fs (%<speed>.2fx real time).",
-            path: output_path, elapsed:, speed: options[:seconds] / elapsed)
+            path: output_path, elapsed:, speed: seconds / elapsed)

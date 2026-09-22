@@ -10,6 +10,7 @@ require "badline/storage/t64"
 require "badline/storage/tap"
 require "badline/storage/crt_file"
 require "badline/storage/sid_file"
+require "badline/storage/song_lengths"
 
 module Badline
   module Storage
