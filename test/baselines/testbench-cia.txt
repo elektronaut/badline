@@ -1,15 +1,15 @@
 CIA/CIA-AcountsB/cia-b-counts-a.prg	PASS
 CIA/CIA-AcountsB/cmp-b-counts-a-old.prg	PASS
-CIA/cia-timer/cia-timer-oldcias.prg	FAIL	exit=$ff
+CIA/cia-timer/cia-timer-oldcias.prg	PASS
 CIA/ciavarious/cia1.prg	PASS
 CIA/ciavarious/cia2.prg	PASS
-CIA/ciavarious/cia3.prg	FAIL	exit=$ff
-CIA/ciavarious/cia3a.prg	FAIL	exit=$ff
-CIA/ciavarious/cia4.prg	FAIL	exit=$ff
+CIA/ciavarious/cia3.prg	PASS
+CIA/ciavarious/cia3a.prg	PASS
+CIA/ciavarious/cia4.prg	PASS
 CIA/ciavarious/cia5.prg	PASS
 CIA/ciavarious/cia6.prg	PASS
 CIA/ciavarious/cia7.prg	PASS
-CIA/ciavarious/cia8.prg	FAIL	exit=$ff
+CIA/ciavarious/cia8.prg	PASS
 CIA/ciavarious/cia9.prg	PASS
 CIA/ciavarious/cia10.prg	PASS
 CIA/ciavarious/cia11.prg	PASS
@@ -18,7 +18,7 @@ CIA/ciavarious/cia13.prg	PASS
 CIA/ciavarious/cia14.prg	PASS
 CIA/ciavarious/cia15.prg	PASS
 CIA/dd0drw/dd0drw.prg	PASS
-CIA/dd0dtest/dd0dtest.prg	FAIL	exit=$ff
+CIA/dd0dtest/dd0dtest.prg	PASS
 CIA/mirrors/ciamirrors.prg	PASS
 CIA/irqdelay/irqdelay.prg	PASS
 CIA/irqdelay/irqdelay-oneshot.prg	PASS

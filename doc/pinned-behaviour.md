@@ -360,6 +360,26 @@ only catches the rows that happen to move.
 - Old-CIA IR delay: IR rises 1 cycle after the flag, or 2 cycles after a
   mask write hits a pending flag, and an ICR read cancels the pending
   assert.
+- Old-CIA acknowledge: an ICR read releases the interrupt line at once, but
+  its IR acknowledge lands a cycle late. A read on the next cycle still
+  sees IR (`$80`) if it was set at the first read, or was due to rise on
+  the next cycle. The line stays released either way, and the cycle after
+  that IR reads clear. Pinned by `CIA/dd0dtest/dd0dtest` tests 0c, 0d
+  and 0e: the dummy read of `inc $dd0d,x` acknowledges, and the real read
+  one cycle later sees `$80`, so the RMW writes `$80`/`$81` back and the
+  mask survives, where `$00`/`$01` would clear timer A's mask bit.
+- Old-CIA mask cancel: a write that masks every pending source on the
+  cycle the flag rises cancels the IR assert only if an ICR read happened
+  two cycles earlier. Without that read, IR still rises. Pinned by
+  `dd0dtest` test 11 (`inc $dd0d,x` reads at F-2 and writes the clearing
+  `$01` at F). This is VICE `ciacore.c`'s `CIA_IRQ_ACK_1` branch (its
+  NOTE_1).
+- Timer B bug (6526 only): a timer B underflow on the cycle right after an
+  ICR read raises the flag, and IR if armed, but the next ICR read drops
+  the TB bit unseen. Timer A has no such bug. Pinned by
+  `CIA/ciavarious/cia3` K/L, `cia3a` D/H, `cia4` X, `cia8` A/C/F/J/L
+  (the readme's old-versus-new CIA cells) and `CIA/cia-timer/cia-timer-oldcias`,
+  and ported from VICE's `CIA_IM_TBB`.
 - The modelled revision is the **6526**, not the 6526A, matching
   `Lorenz.d81`. That is all the `(*1)` cells of `cia1ta`/`cia1tb` measure,
   and it is an ICR difference, not a counter one. Those cells read the ICR
@@ -390,6 +410,9 @@ only catches the rows that happen to move.
 - Spec guard: [`cia/timer_spec.rb`](../spec/badline/cia/timer_spec.rb) runs
   the eight `(*1)` cells and the `cia1tab` table. It fails if the IR delay
   is dropped. Its *power-on state* group guards the `$ffff` reset.
+  [`cia_spec.rb`](../spec/badline/cia_spec.rb)'s *6526 interrupt
+  acknowledge* and *6526 timer B bug* groups guard the three ICR rules
+  above, on a bare CIA.
 
 ## CIA serial shift register
 

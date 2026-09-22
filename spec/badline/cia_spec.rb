@@ -249,6 +249,107 @@ describe Badline::CIA do
     end
   end
 
+  # Pinned by CIA/dd0dtest/dd0dtest (tests 0c, 0d, 0e and 11). The flag
+  # rises on cycle 3 and IR on cycle 4.
+  describe "the 6526 interrupt acknowledge" do
+    before do
+      cia.control_a.start = true
+      cia.timer_a = 0x01
+      cia.timer_a_latch = 0xff
+      cia.interrupt_control.timer_a = true
+    end
+
+    context "when IR is read" do
+      before do
+        4.times { cia.cycle! }
+        cia.peek(0xdc0d)
+        cia.cycle!
+      end
+
+      it "releases the interrupt line at once" do
+        expect(cia.interrupted?).to be(false)
+      end
+
+      it "still reads IR on the next cycle" do
+        expect(cia[0xdc0d]).to eq(0x80)
+      end
+
+      it "clears IR the cycle after that" do
+        cia.cycle!
+        expect(cia[0xdc0d]).to eq(0x00)
+      end
+    end
+
+    context "when the ICR is read on the cycle the flag rises" do
+      before do
+        3.times { cia.cycle! }
+        cia.peek(0xdc0d)
+        cia.cycle!
+      end
+
+      it "never asserts the interrupt line" do
+        expect(cia.interrupted?).to be(false)
+      end
+
+      it "reads IR on the next cycle" do
+        expect(cia[0xdc0d]).to eq(0x80)
+      end
+    end
+
+    context "when the source is masked on the flag cycle" do
+      def mask_on_flag_cycle(read_at:)
+        3.times do |cycle|
+          cia.cycle!
+          cia.peek(0xdc0d) if cycle + 1 == read_at
+        end
+        cia.poke(0xdc0d, 0x01)
+        cia.cycle!
+      end
+
+      it "asserts the interrupt line anyway" do
+        mask_on_flag_cycle(read_at: nil)
+        expect(cia.interrupted?).to be(true)
+      end
+
+      it "cancels the assert while a read two cycles back acknowledges" do
+        mask_on_flag_cycle(read_at: 1)
+        expect(cia.interrupted?).to be(false)
+      end
+    end
+  end
+
+  # Pinned by CIA/ciavarious/cia3 (tests K and L) and cia-timer-oldcias.
+  # The flag rises on cycle 3.
+  describe "the 6526 timer B bug" do
+    before do
+      cia.control_b.start = true
+      cia.timer_b = 0x01
+      cia.timer_b_latch = 0xff
+    end
+
+    def read_then_underflow(read_at:)
+      3.times do |cycle|
+        cia.peek(0xdc0d) if cycle + 1 == read_at
+        cia.cycle!
+      end
+    end
+
+    it "raises the flag when the ICR was read on the cycle before" do
+      read_then_underflow(read_at: 3)
+      expect(cia.interrupt_status.timer_b?).to be(true)
+    end
+
+    it "drops the flag unseen on the next read" do
+      read_then_underflow(read_at: 3)
+      expect(cia[0xdc0d]).to eq(0x00)
+    end
+
+    it "keeps the flag when the read came earlier" do
+      read_then_underflow(read_at: 2)
+      expect(cia[0xdc0d]).to eq(0x02)
+    end
+  end
+
   describe "timer A" do
     before do
       cia.interrupt_control.timer_a = true
