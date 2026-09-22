@@ -69,7 +69,7 @@ module Badline
       @datasette.on_flag { @cia1.flag! }
       @datasette.on_sense_change { @io_port.value = port_value }
 
-      @color_ram = ColorMemory.new(start: 0xd800, length: 2**10)
+      @color_ram = ColorMemory.new(@vic.vic_bank)
 
       @port_ddr = 0x2f
       @port_out = 0x37
