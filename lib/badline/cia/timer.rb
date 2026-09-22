@@ -8,7 +8,7 @@ module Badline
 
       def initialize(control)
         @control = control
-        @counter = @latch = 0x0
+        @counter = @latch = 0xffff
         @pipe = 0
         @load_delay = 0
         @reload = false

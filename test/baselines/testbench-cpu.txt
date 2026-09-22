@@ -10,7 +10,7 @@ CPU/Acid800/cpu_flags.prg	PASS
 CPU/Acid800/cpu_illegal.prg	PASS
 CPU/Acid800/cpu_insn.prg	PASS
 CPU/Acid800/cpu_timing.prg	PASS
-CPU/Acid800/cpu_bugs.prg	FAIL	exit=$ff
+CPU/Acid800/cpu_bugs.prg	PASS
 CPU/Acid800/cpu_clisei.prg	PASS
 CPU/ane/ane.prg	PASS
 CPU/ane/ane-none.prg	PASS

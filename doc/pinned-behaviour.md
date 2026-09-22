@@ -323,9 +323,16 @@ only catches the rows that happen to move.
   `cia1pb7`, `cia2pb6`, `cia2pb7`, `flipos`, `oneshot`, `cntdef`, `loadth`,
   `icr01`, `cia1tab`, `imr`, `cputiming`, `cia1ta`, `cia1tb`, `cia2ta` and
   `cia2tb`.
+- Both timers power on with latch and counter at `$ffff`, as VICE's
+  `ciat_reset` does. The KERNAL never writes CIA2's timer latches, so a
+  program that writes only the high byte while the timer is stopped loads
+  the counter with `$00ff`, not zero. A zero there underflows as soon as the
+  timer starts and raises a spurious NMI. Pinned by
+  `interrupts/branchquirk/branchquirk-nmiold` (first cell only) and
+  `CPU/Acid800/cpu_bugs` (NMI lands before the BRK instead of hijacking it).
 - Spec guard: [`cia/timer_spec.rb`](../spec/badline/cia/timer_spec.rb) runs
   the eight `(*1)` cells and the `cia1tab` table. It fails if the IR delay
-  is dropped.
+  is dropped. Its *power-on state* group guards the `$ffff` reset.
 
 ## CIA serial shift register
 
