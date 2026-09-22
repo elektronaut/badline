@@ -193,7 +193,7 @@ describe Badline::Media do
 
       it "installs the player stub" do
         described_class.attach(computer, sid_path)
-        expect(computer.ram.read(0x0334, 3)).to eq([0x4c, 0x42, 0x03])
+        expect(computer.ram.read(0x0334, 3)).to eq([0x4c, 0x4c, 0x03])
       end
 
       it "SYSes the player stub" do

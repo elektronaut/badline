@@ -37,11 +37,21 @@ describe Badline::Storage::SIDFile do
 
   # The jmp over the IRQ handler and the handler itself precede the boot stub.
   def handler
-    tune.driver[3, 11]
+    tune.driver[3, 21]
   end
 
   def boot
-    tune.driver.drop(14)
+    tune.driver.drop(24)
+  end
+
+  # lda $01 / pha / lda #bank / sta $01
+  def bank(value)
+    [0xa5, 0x01, 0x48, 0xa9, value, 0x85, 0x01]
+  end
+
+  # pla / sta $01
+  def unbank
+    [0x68, 0x85, 0x01]
   end
 
   describe "the header" do
@@ -185,15 +195,23 @@ describe Badline::Storage::SIDFile do
 
   describe "#driver" do
     it "jumps over the IRQ handler" do
-      expect(tune.driver[0, 3]).to eq([0x4c, 0x42, 0x03])
+      expect(tune.driver[0, 3]).to eq([0x4c, 0x4c, 0x03])
     end
 
     it "acknowledges the raster IRQ before calling play" do
       expect(handler[0, 5]).to eq([0xa9, 0x01, 0x8d, 0x19, 0xd0])
     end
 
+    it "banks the tune in for play" do
+      expect(handler[5, 7]).to eq(bank(0x37))
+    end
+
     it "calls play" do
-      expect(handler[5, 3]).to eq([0x20, 0x20, 0x10])
+      expect(handler[12, 3]).to eq([0x20, 0x20, 0x10])
+    end
+
+    it "restores the caller's banking after play" do
+      expect(handler[15, 3]).to eq(unbank)
     end
 
     it "chains into the KERNAL IRQ handler" do
@@ -204,12 +222,20 @@ describe Badline::Storage::SIDFile do
       expect(boot[0]).to eq(0x78)
     end
 
+    it "banks the tune in for init" do
+      expect(boot[1, 7]).to eq(bank(0x37))
+    end
+
     it "passes the song index in A" do
-      expect(boot[1, 2]).to eq([0xa9, 0x00])
+      expect(boot[8, 2]).to eq([0xa9, 0x00])
     end
 
     it "calls init" do
-      expect(boot[3, 3]).to eq([0x20, 0x00, 0x10])
+      expect(boot[10, 3]).to eq([0x20, 0x00, 0x10])
+    end
+
+    it "restores the caller's banking after init" do
+      expect(boot[13, 3]).to eq(unbank)
     end
 
     it "masks the CIA 1 interrupts" do
@@ -229,11 +255,57 @@ describe Badline::Storage::SIDFile do
     end
 
     it "passes the requested song" do
-      expect(tune.driver(song: 2)[15, 2]).to eq([0xa9, 0x01])
+      expect(tune.driver(song: 2)[32, 2]).to eq([0xa9, 0x01])
     end
 
     it "clamps the requested song" do
-      expect(tune.driver(song: 7)[15, 2]).to eq([0xa9, 0x01])
+      expect(tune.driver(song: 7)[32, 2]).to eq([0xa9, 0x01])
+    end
+  end
+
+  describe "#driver for a tune under BASIC" do
+    let(:fields) { super().merge(load: 0xa000, init: 0xa000, play: 0xa020) }
+
+    it "banks BASIC out for init" do
+      expect(boot[1, 7]).to eq(bank(0x36))
+    end
+
+    it "banks BASIC out for play" do
+      expect(handler[5, 7]).to eq(bank(0x36))
+    end
+  end
+
+  describe "#bank_for" do
+    it "leaves the ROMs in place below $a000" do
+      expect(tune.bank_for(0x9fff)).to eq(0x37)
+    end
+
+    it "banks BASIC out" do
+      expect(tune.bank_for(0xa000)).to eq(0x36)
+    end
+
+    it "banks the I/O window out" do
+      expect(tune.bank_for(0xd000)).to eq(0x34)
+    end
+
+    it "banks the KERNAL out" do
+      expect(tune.bank_for(0xe000)).to eq(0x35)
+    end
+
+    context "with an RSID tune" do
+      before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
+
+      it "leaves the banking to the tune" do
+        expect(tune.bank_for(0xa000)).to be_nil
+      end
+    end
+  end
+
+  describe "#driver for an RSID tune" do
+    before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
+
+    it "leaves the banking to the tune" do
+      expect(handler[5, 3]).to eq([0x20, 0x20, 0x10])
     end
   end
 
@@ -241,7 +313,8 @@ describe Badline::Storage::SIDFile do
     let(:fields) { super().merge(play: 0) }
 
     it "only calls init" do
-      expect(tune.driver).to eq([0x78, 0xa9, 0x00, 0x20, 0x00, 0x10, 0x58, 0x60])
+      expect(tune.driver)
+        .to eq([0x78] + bank(0x37) + [0xa9, 0x00, 0x20, 0x00, 0x10] + unbank + [0x58, 0x60])
     end
   end
 

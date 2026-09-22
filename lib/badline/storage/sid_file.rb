@@ -13,16 +13,29 @@ module Badline
 
       # The 6502 stub that starts a tune: call init with the song number,
       # point the KERNAL's IRQ vector at a raster handler that calls play,
-      # and return to whatever SYSed it.
+      # and return to whatever SYSed it. Both calls are wrapped in the `$01`
+      # save, bank and restore that puts the tune's own RAM under the CPU.
       #
       #         jmp boot
       # irq:    lda #$01
       #         sta $d019
+      #         lda $01
+      #         pha
+      #         lda #iomap
+      #         sta $01
       #         jsr play
+      #         pla
+      #         sta $01
       #         jmp $ea31
       # boot:   sei
+      #         lda $01
+      #         pha
+      #         lda #iomap
+      #         sta $01
       #         lda #song
       #         jsr init
+      #         pla
+      #         sta $01
       #         lda #$7f
       #         sta $dc0d
       #         lda $dc0d
@@ -68,11 +81,26 @@ module Badline
 
         def handler
           @handler ||= lda_imm(0x01) + sta_abs(RASTER_IRQ_STATUS) +
-                       jsr(@tune.play_address) + jmp(KERNAL_IRQ)
+                       banked(@tune.play_address, jsr(@tune.play_address)) +
+                       jmp(KERNAL_IRQ)
         end
 
         def boot
-          [0x78] + lda_imm(@song) + jsr(@tune.init_address) + raster_irq + [0x58, 0x60]
+          [0x78] +
+            banked(@tune.init_address, lda_imm(@song) + jsr(@tune.init_address)) +
+            raster_irq + [0x58, 0x60]
+        end
+
+        # Tunes live under the ROMs as often as not, so a call has to bank out
+        # whatever covers the routine first. The 6510 port at `$01` is RAM to
+        # nobody, so saving it across the call leaves the caller's banking —
+        # and with it the I/O the rest of the stub writes to — as it was.
+        def banked(address, call)
+          bank = @tune.bank_for(address)
+          return call unless bank
+
+          lda_zp(0x01) + [0x48] + lda_imm(bank) + sta_zp(0x01) +
+            call + [0x68] + sta_zp(0x01)
         end
 
         def raster_irq
@@ -98,6 +126,8 @@ module Badline
         end
 
         def lda_imm(value) = [0xa9, value]
+        def lda_zp(addr) = [0xa5, addr]
+        def sta_zp(addr) = [0x85, addr]
         def lda_abs(addr) = [0xad, low_byte(addr), high_byte(addr)]
         def sta_abs(addr) = [0x8d, low_byte(addr), high_byte(addr)]
         def jsr(addr) = [0x20, low_byte(addr), high_byte(addr)]
@@ -126,6 +156,20 @@ module Badline
       def flags = version > 1 ? word(V1_HEADER_SIZE) : 0
       def init_address = word(0x0a).nonzero? || load_address
       def end_address = load_address + data.length
+      def psid? = @format == "PSID"
+
+      # The `$01` value a routine at `address` has to run under, following
+      # libsidplayfp's iomap: RAM under BASIC from `$a000`, RAM under both
+      # ROMs and no I/O for a routine in the I/O window itself, RAM under the
+      # KERNAL from `$e000`. An RSID tune banks itself and gets nil.
+      def bank_for(address)
+        return unless psid?
+        return 0x37 if address < 0xa000
+        return 0x36 if address < 0xd000
+        return 0x34 if address < 0xe000
+
+        0x35
+      end
 
       # A zero load address puts the real one in the first two bytes of
       # the body, PRG style.
