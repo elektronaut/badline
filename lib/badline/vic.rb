@@ -104,7 +104,7 @@ module Badline
     def column_hooks
       case @column
       when 14 then @sprites.advance_mcbase
-      when 15 then @sprites.finish_mcbase
+      when 15 then finish_sprite_mcbase
       when 53 then toggle_and_check_sprite_dma
       when 54 then check_sprite_dma
       when 57 then @sprites.check_display(@rasterline)
@@ -215,6 +215,13 @@ module Badline
 
     def check_sprite_dma
       rebuild_sprite_ba if @sprites.check_dma(@rasterline, @column)
+    end
+
+    # A sprite whose DMA ends here fetches nothing at the end of this line,
+    # so its BA tail goes too.
+    def finish_sprite_mcbase
+      @sprites.finish_mcbase
+      rebuild_sprite_ba if @sprites.stopped_dma?
     end
 
     def toggle_and_check_sprite_dma

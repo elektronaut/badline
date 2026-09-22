@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/vic/sprite/shifter"
+
 module Badline
   class VIC < Cycleable
     # = Sprite
@@ -32,7 +34,24 @@ module Badline
       OWN_COLOR = 2
       SHARED1 = 3
 
-      attr_reader :index, :leftmost, :span, :codes
+      # The s-accesses reload the shift register partway through the line,
+      # at raster pixel 459 for sprite 0 and 16 later for each sprite after
+      # it. A sprite still shifting there loses the rest of its row (the
+      # output holds for that one pixel), and the comparator is ignored for
+      # the twelve pixels from it. Decoded from the spritescan dump.
+      RELOAD_X = 459
+      RELOAD_STEP = 16
+      RELOAD_DEAD = 12
+
+      # On the line of its last row, a sprite whose DMA ended at cycle 16
+      # loses its display at cycle 58, so no hit from this pixel on starts
+      # it (spritegap3). One already shifting runs on.
+      DISPLAY_OFF_X = 460
+
+      include Shifter
+
+      attr_reader :index, :leftmost, :span, :codes,
+                  :reload_leftmost, :reload_span, :reload_codes
 
       def initialize(index, registers, bank, width)
         @index = index
@@ -50,6 +69,11 @@ module Badline
         @codes = Array.new(MAX_SPAN, 0)
         @leftmost = 0
         @span = 0
+        @reload_codes = Array.new(MAX_SPAN, 0)
+        @reload_leftmost = 0
+        @reload_span = 0
+        @reload_x = (RELOAD_X + (RELOAD_STEP * index)) % width
+        @reload_next_line = RELOAD_X + (RELOAD_STEP * index) < width
         @sr = 0
         @latch = 0
         @mc_flop = false
@@ -59,8 +83,14 @@ module Badline
 
       def displaying? = @dma
 
-      # True when this line has a fetched row waiting for the sequencer.
-      def rendering? = @row_ready
+      # True when this line has a row for the sequencer: its own, the next
+      # one for a sprite that reloads late in the line, or the last one for
+      # a sprite that reloads at its start.
+      def rendering?
+        return true if @row_ready
+
+        @reload_next_line ? @dma && @display_on : !@prev_bits.nil?
+      end
 
       def enabled? = @registers[0x15].anybits?(@bit)
       def multicolor? = @registers[0x1c].anybits?(@bit)
@@ -88,14 +118,12 @@ module Badline
 
       # Cycle 16: the third byte, then the end-of-sprite compare. MCBASE has
       # to land on 63 exactly — a crunched sprite steps over it and runs on
-      # through the rest of its block.
+      # through the rest of its block. Only the DMA stops here; the display
+      # waits for cycle 58.
       def finish_mcbase
         hold_expansion
         @mcbase = (@mcbase + 1) & MC_MASK if @exp_ff
-        return unless @mcbase == LAST_MCBASE
-
-        @dma = false
-        @display_on = false
+        @dma = false if @mcbase == LAST_MCBASE
       end
 
       # Cycle 55: MxYE inverts the expansion flip-flop, ahead of the Y
@@ -111,10 +139,11 @@ module Badline
       # On the VIC's side, BA falls at the sprite's own column — 55 for
       # sprite 0, two later for each sprite after it, a column behind the
       # window the CPU sees in VIC::SPRITE_BA_WINDOWS — or two columns after
-      # this compare, whichever is later. AEC follows three columns on, and the first of the three
-      # s-accesses runs in the column it arrives in: a DMA starting on the
-      # second compare therefore loses that access for sprite 0, alone among
-      # the eight in following the compares immediately (spriteenable2).
+      # this compare, whichever is later. AEC follows three columns on, and
+      # the first of the three s-accesses runs in the column it arrives in:
+      # a DMA starting on the second compare therefore loses that access for
+      # sprite 0, alone among the eight in following the compares
+      # immediately (spriteenable2).
       def check_dma(line, column)
         return if @dma || !enabled? || !y_match?(line)
 
@@ -125,24 +154,32 @@ module Badline
       end
 
       # Cycle 58: MC is reloaded from MCBASE for the coming row, and a
-      # sprite with DMA running starts (or resumes) displaying only while
-      # MxE and Y still match — a write to either between the compares and
-      # here keeps the data fetch running invisibly.
+      # sprite with DMA running starts displaying only while MxE and Y still
+      # match — a write to either between the compares and here keeps the
+      # data fetch running invisibly. The display goes off only here, and
+      # only once the DMA has, so a DMA restarted on the line of its last
+      # row keeps a display that was already on (spriterestart).
       def check_display(line)
         @mc = @mcbase
-        @display_on = true if @dma && enabled? && y_match?(line)
+        if @dma
+          @display_on = true if enabled? && y_match?(line)
+        else
+          @display_on = false
+        end
       end
 
       # The row fetched at the end of the previous line renders on this one.
       # A lost first s-access reads back the $ff the CPU is still driving.
       def start_line
         @span = 0
+        @reload_span = 0
+        @prev_bits = (@bits if @row_ready && @dma)
         @row_ready = false
         lost = @first_byte_lost
         @first_byte_lost = false
         return unless @dma && @display_on
 
-        fetch(@mc)
+        @bits = row_bits(@mc)
         @bits |= 0xff << 16 if lost
         @row_ready = true
       end
@@ -151,27 +188,27 @@ module Badline
       # from the X match on. A log of mid-line register writes makes the
       # comparator and the shift register see the values each pixel was
       # drawn with.
+      #
+      # The row can be shown once before the reload and once after it, so a
+      # sprite moved past the beam can fire a second time on the same line
+      # (spritex). A match inside the dead pixels shows nothing.
       def sequence(log = nil)
         @span = 0
-        return unless @row_ready
+        @reload_span = 0
+        reload_bits = reload_row
+        return unless @row_ready || @prev_bits || reload_bits
 
         log = nil if log.nil? || log.empty?
-        start = trigger_x(log)
-        return unless start
-
-        @leftmost = start
-        run(log, start)
+        @stop_x = @dma ? nil : DISPLAY_OFF_X
+        comparator_hits(log).each { |start| sequence_hit(log, start, reload_bits) }
       end
 
       # The color at a raster position, for a sprite sequenced with the
       # registers as they stand.
       def pixel(raster_x)
-        dist = raster_x - @leftmost
-        dist += @width if dist.negative?
-        return nil if dist >= @span
-
-        code = @codes[dist]
-        return nil if code.zero?
+        code = code_at(raster_x, @leftmost, @span, @codes) ||
+               code_at(raster_x, @reload_leftmost, @reload_span, @reload_codes)
+        return nil if code.nil? || code.zero?
 
         palette(@registers, Array.new(4, 0))[code]
       end
@@ -187,101 +224,66 @@ module Badline
 
       private
 
-      # The first pixel at which the comparator sees its own X coordinate.
-      # Writes to $d000/$d010 move the compare value mid-line, so a sprite
-      # can miss its match entirely and pick up a later one — or none.
-      def trigger_x(log)
-        unless log
-          match = compare_x(@registers)
-          return match && ((match + 1) % @width)
-        end
-
-        log.rewind
-        log.advance(0)
-        from = 0
-        while from < @width
-          upto = [log.next_x, @width].min
-          match = compare_x(log)
-          return (match + 1) % @width if match && match >= from && match < upto
-          break if upto >= @width
-
-          from = upto
-          log.advance(from)
-        end
-        nil
+      def code_at(raster_x, leftmost, span, codes)
+        dist = raster_x - leftmost
+        dist += @width if dist.negative?
+        codes[dist] if dist < span
       end
 
-      # The VIC's X counter only runs to 503, so the eight coordinates above
-      # it never match and the sprite stays dark — the gap the spritegap
-      # tests find at $1f8.
-      def compare_x(view)
-        msb = view[0x10].anybits?(@bit) ? 0x100 : 0
-        xpos = msb | view[index * 2]
-        return if xpos >= @width
+      def sequence_hit(log, start, reload_bits)
+        return if @stop_x && start >= @stop_x
 
-        (xpos + COMPARE_OFFSET) % @width
-      end
-
-      def run(log, start)
-        @sr = @bits
-        log&.rewind
-        pos = start
-        count = 0
-        boundary = log ? 0 : Float::INFINITY
-        mc = multicolor?
-        expanded = x_expanded?
-        while count < MAX_SPAN
-          if pos >= boundary
-            log.advance(pos)
-            mc = log[0x1c].anybits?(@bit)
-            expanded = log[0x1d].anybits?(@bit)
-            boundary = log.next_x
-          end
-          count.zero? ? prime(mc) : step(mc, expanded)
-          break if @latch.zero? && @sr.zero?
-
-          @codes[count] = @latch
-          count += 1
-          pos += 1
+        if start < @reload_x
+          sequence_early(log, start)
+        elsif start >= @reload_x + RELOAD_DEAD
+          sequence_reloaded(log, start, reload_bits)
         end
-        @span = count
       end
 
-      # The X match loads the shift register and arms both flip-flops, so
-      # the sprite's first pixel comes straight off the fetched row.
-      def prime(multicolor)
-        @mc_flop = false
-        @xe_flop = false
-        @latch = (@sr >> 22) & (multicolor ? 3 : 2)
+      def sequence_early(log, start)
+        bits = early_row
+        return unless bits && @span.zero?
+
+        @leftmost = start
+        @span = cut_at_reload(start, run(log, start, @codes, bits), @codes)
       end
 
-      # One pixel of the sequencer. An unexpanded sprite shifts every pixel;
-      # an expanded one shifts every other, and the multicolor latch reloads
-      # every other shift, so its pairs stretch with the expansion. Both
-      # flip-flops sit idle while their register bit is clear, which is why
-      # the first pixel after a mid-sprite change repeats the last one.
-      def step(multicolor, expanded)
-        shift = true
-        if expanded
-          shift = @xe_flop
-          @xe_flop = !@xe_flop
-        else
-          @xe_flop = false
-        end
-        @mc_flop = false unless multicolor
-        return unless shift
+      def sequence_reloaded(log, start, bits)
+        return unless bits && @reload_span.zero?
 
-        @sr = (@sr << 1) & 0xffffff
-        reload(multicolor)
+        @reload_leftmost = start
+        @reload_span = cut_at_reload(start, run(log, start, @reload_codes, bits), @reload_codes)
       end
 
-      def reload(multicolor)
-        if multicolor
-          @latch = (@sr >> 22) & 3 if @mc_flop
-          @mc_flop = !@mc_flop
-        else
-          @latch = (@sr >> 22) & 2
-        end
+      # The row in the shift register ahead of the reload: this line's for
+      # sprites 0-2, and for the others the one their reload at the start of
+      # the last line brought in.
+      def early_row = @reload_next_line ? current_row : @prev_bits
+
+      def current_row = (@bits if @row_ready)
+
+      # The row the reload brings in. Sprites 0-2 reload late in the line
+      # with the next line's row, so one that fires after it shows that row
+      # a line early (spritegap); the others reload at the start of the line
+      # with the row it already has.
+      def reload_row
+        return current_row unless @reload_next_line
+        return unless @dma && @display_on
+
+        bits = row_bits(@mc)
+        bits |= 0xff << 16 if @first_byte_lost
+        bits
+      end
+
+      # A run that reaches the next reload is cut there, holding its last
+      # pixel for one more. Returns the span that is left.
+      def cut_at_reload(start, span, codes)
+        reload = start < @reload_x ? @reload_x : @reload_x + @width
+        cut = reload - start
+        return span if cut > span || cut >= MAX_SPAN
+
+        codes[cut] = codes[cut - 1]
+        cut + 1
       end
 
       # Bauer §3.8 rule 1: the flip-flop is held set while MxYE is clear,
@@ -292,11 +294,11 @@ module Badline
 
       # The three s-accesses step MC through the sprite's block, wrapping
       # within it.
-      def fetch(counter)
+      def row_bits(counter)
         base = pointer * 64
-        @bits = (@bank.peek(base + counter) << 16) |
-                (@bank.peek(base + ((counter + 1) & MC_MASK)) << 8) |
-                @bank.peek(base + ((counter + 2) & MC_MASK))
+        (@bank.peek(base + counter) << 16) |
+          (@bank.peek(base + ((counter + 1) & MC_MASK)) << 8) |
+          @bank.peek(base + ((counter + 2) & MC_MASK))
       end
 
       def pointer = @bank.peek(@registers.screen_base + 0x3f8 + index)

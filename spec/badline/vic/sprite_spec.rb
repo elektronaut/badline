@@ -91,8 +91,10 @@ RSpec.describe Badline::VIC::Sprite do
     end
 
     it "shows no pixels on the matching line itself" do
+      put_row(0x20, 0, 0x80, 0, 0)
       raster_line(60)
-      expect(sprite).not_to be_rendering
+      sprite.sequence
+      expect(sprite.pixel(204)).to be_nil
     end
 
     it "renders the 21 rasterlines following the match" do
@@ -104,6 +106,25 @@ RSpec.describe Badline::VIC::Sprite do
       raster_line(60)
       (61..81).each { |line| raster_line(line) }
       expect(sprite).not_to be_displaying
+    end
+
+    # Pinned by spriterestart: only the DMA stops at cycle 16, so a Y match
+    # at cycle 55 of the last row's line restarts it under a display that is
+    # still on, and cycle 58 has no match to see.
+    context "when Y matches only at the compare on the last row's line" do
+      before do
+        (60..80).each { |line| raster_line(line) }
+        sprite.start_line
+        sprite.advance_mcbase
+        sprite.finish_mcbase
+        registers.write(0x01, 81)
+        sprite.check_dma(81, 53)
+        registers.write(0x01, 60)
+        sprite.check_display(81)
+        sprite.start_line
+      end
+
+      it { is_expected.to be_rendering }
     end
 
     it "keeps the rows invisible when Y no longer matches at cycle 58" do
@@ -225,6 +246,38 @@ RSpec.describe Badline::VIC::Sprite do
       registers.write(0x10, 0x01) # X = $1f8
       start_display
       expect(sprite.span).to be_zero
+    end
+  end
+
+  # Sprite 0's s-accesses reload its shift register at raster pixel 459.
+  # Pinned by the spritescan dump, and by spritegap for the row it brings.
+  describe "the reload" do
+    before do
+      put_row(0x20, 0, 0xff, 0xff, 0xff)
+      put_row(0x20, 1, 0x80, 0, 0)
+      registers.write(0x10, 0x01)
+    end
+
+    def sequence_at(x_pos)
+      registers.write(0x00, x_pos - 0x100)
+      start_display
+      sprite.sequence
+    end
+
+    it "cuts a row short there, holding the last pixel for one more" do
+      sequence_at(346) # first pixel at 450
+      expect(sprite.span).to eq(10)
+    end
+
+    it "ignores a match in the twelve pixels from it" do
+      sequence_at(361) # first pixel at 465
+      expect([sprite.span, sprite.reload_span]).to eq([0, 0])
+    end
+
+    it "shows the next line's row from a match after them" do
+      put_row(0x20, 0, 0, 0, 0)
+      sequence_at(376) # first pixel at 480, on the line showing row 0
+      expect(sprite.pixel(480)).to eq(sprite.color)
     end
   end
 
