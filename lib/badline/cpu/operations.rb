@@ -72,7 +72,16 @@ module Badline
       def op_jam
         position = @index - 2
         @memory.peek(JAM_ADDRESSES[position - 1])
-        end_instruction if position == JAM_ADDRESSES.length
+        return unless position == JAM_ADDRESSES.length
+
+        @plan = JAMMED_PLAN
+        @writes = JAMMED_WRITES
+        @index = 0
+      end
+
+      def op_jammed
+        @index = 0
+        @memory.peek(0xffff)
       end
     end
   end

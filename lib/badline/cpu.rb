@@ -44,6 +44,11 @@ module Badline
     def reset!
       status.interrupt = true
       reset_registers
+      @irq_sample = @irq_pending = false
+      @nmi_sample = @nmi_pending = false
+      @skip_poll = false
+      @pending_write = false
+      end_sequence
     end
 
     def p
@@ -72,9 +77,14 @@ module Badline
       @pending_write
     end
 
+    def jammed?
+      @plan.equal?(JAMMED_PLAN)
+    end
+
+    # Runs to the end of the instruction, or until the CPU jams.
     def step!
       cycle!
-      cycle! until @plan.equal?(FETCH_PLAN)
+      cycle! until @plan.equal?(FETCH_PLAN) || jammed?
       nil
     end
 

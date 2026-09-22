@@ -229,6 +229,69 @@ describe Badline::CPU do
     end
   end
 
+  # Pinned by CPU/cpujam (cpujam*, jamirq, jamnmi)
+  describe "JAM" do
+    before do
+      memory.write(0xfffa, [0x39, 0x05])
+      memory.write(0xfffe, [0x40, 0x05])
+      memory.write(start_addr, [0x02, 0xe8])
+      cpu.step! # Stops once the CPU jams
+    end
+
+    specify { expect(cpu.cycles).to eq(5) }
+    specify { expect(cpu).to be_jammed }
+
+    context "when left running" do
+      before do
+        allow(memory).to receive(:peek).and_call_original
+        100.times { cpu.cycle! }
+      end
+
+      specify { expect(cpu).to be_jammed }
+      specify { expect(cpu.program_counter).to eq(start_addr + 1) }
+      specify { expect(cpu.pending_write?).to be(false) }
+
+      it "reads $FFFF on every cycle" do
+        expect(memory).to have_received(:peek).with(0xffff).exactly(100).times
+      end
+    end
+
+    context "with an IRQ pending" do
+      before do
+        cpu.status.interrupt = false
+        cpu.irq = true
+        100.times { cpu.cycle! }
+      end
+
+      specify { expect(cpu).to be_jammed }
+      specify { expect(cpu.stack_pointer).to eq(0xff) }
+    end
+
+    context "with an NMI pending" do
+      before do
+        cpu.nmi = true
+        100.times { cpu.cycle! }
+      end
+
+      specify { expect(cpu).to be_jammed }
+      specify { expect(cpu.stack_pointer).to eq(0xff) }
+    end
+
+    context "when reset" do
+      before do
+        memory.write(0xfffc, [0x01, 0xc0])
+        cpu.reset!
+        cpu.step!
+      end
+
+      specify { expect(cpu).not_to be_jammed }
+
+      it "runs from the reset vector" do
+        expect(cpu.x).to eq(1)
+      end
+    end
+  end
+
   describe "ADC" do
     before { cpu.a = 0x01 }
 

@@ -36,9 +36,9 @@ module Badline
     READ_MODIFY_WRITES = %i[asl lsr rol ror inc dec slo sre rla rra isc dcp].freeze
     BRANCHES = %i[bcc bcs beq bmi bne bpl bvc bvs].freeze
 
-    # The addresses a jammed 6502 reads after its opcode. The real chip
-    # stays jammed forever; here the instruction ends after the last one.
-    JAM_ADDRESSES = [0xffff, 0xfffe, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff].freeze
+    # The addresses a 6502 reads after a JAM opcode, before it settles into
+    # JAMMED_PLAN.
+    JAM_ADDRESSES = [0xffff, 0xfffe, 0xfffe].freeze
 
     # The plan between instructions: the next cycle fetches an opcode.
     FETCH_PLAN = %i[op_fetch].freeze
@@ -75,6 +75,10 @@ module Badline
 
     # $02, $12, $22, $32, $42, $52, $62, $72, $92, $B2, $D2, $F2 - illegal
     JAM_PLAN = [:op_fetch, :op_implied_dummy, *Array.new(JAM_ADDRESSES.length, :op_jam)].freeze
+
+    # A jammed CPU reads $FFFF on every cycle until reset. It never reaches
+    # an instruction boundary, so a pending IRQ or NMI never starts.
+    JAMMED_PLAN = %i[op_jammed].freeze
 
     # BRK and hardware interrupts push the return address and status, then
     # read the new PC from a vector. Only the second step differs: BRK's
@@ -161,6 +165,7 @@ module Badline
 
     FETCH_WRITES = Microcode.write_mask(FETCH_PLAN)
     INTERRUPT_WRITES = Microcode.write_mask(INTERRUPT_PLAN)
+    JAMMED_WRITES = Microcode.write_mask(JAMMED_PLAN)
     MICROCODE = Microcode.table
   end
 end
