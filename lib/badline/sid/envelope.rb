@@ -71,7 +71,40 @@ module Badline
         step if @state == :attack || (@exponential_counter += 1) == @exponential_period
       end
 
+      # Runs `cycles` cycles as #cycle! would, jumping the rate counter from
+      # one period to the next. Frozen at zero, a step changes nothing but
+      # the exponential divider, so whole periods are counted off at once.
+      def fast_forward(cycles)
+        while cycles.positive?
+          due = cycles_to_period
+          return advance_rate_counter(cycles) if cycles < due
+
+          cycles -= due
+          @rate_counter = 0
+          step if @state == :attack || (@exponential_counter += 1) == @exponential_period
+          return skip_frozen_periods(cycles) if @hold_zero
+        end
+      end
+
       private
+
+      # Counting from 0x7fff wraps to 1, not 0 (see #tick_rate_counter).
+      def cycles_to_period
+        return @rate_period - @rate_counter if @rate_counter < @rate_period
+
+        0x7fff - @rate_counter + @rate_period
+      end
+
+      def advance_rate_counter(cycles)
+        @rate_counter += cycles
+        @rate_counter -= 0x7fff if @rate_counter > 0x7fff
+      end
+
+      def skip_frozen_periods(cycles)
+        periods = cycles / @rate_period
+        @rate_counter = cycles % @rate_period
+        @exponential_counter = (@exponential_counter + periods) % @exponential_period
+      end
 
       # Lowering the rate period below the current counter sends it the long
       # way round through 2^15 before the envelope can step, the ADSR delay

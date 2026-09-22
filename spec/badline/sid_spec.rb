@@ -87,25 +87,21 @@ describe Badline::SID do
       expect(sid).not_to be_synthesizing
     end
 
-    it "starts on an OSC3 read" do
+    # Only the audio needs the filter; the registers the CPU reads catch up
+    # without it.
+    it "stays idle through an OSC3 read" do
       sid[0xd41b]
-      expect(sid).to be_synthesizing
+      expect(sid).not_to be_synthesizing
     end
 
-    it "starts on an ENV3 read" do
+    it "stays idle through an ENV3 read" do
       sid[0xd41c]
-      expect(sid).to be_synthesizing
+      expect(sid).not_to be_synthesizing
     end
 
     it "starts when a sample is pulled" do
       sid.sample
       expect(sid).to be_synthesizing
-    end
-
-    it "leaves the oscillators alone while it idles" do
-      sid[0xd400] = 0xff
-      1000.times { sid.cycle! }
-      expect(sid.voices[0].waveform.accumulator).to eq(0x555555)
     end
 
     it "runs the oscillators once started" do
@@ -151,14 +147,144 @@ describe Badline::SID do
       expect(sid.osc3).to eq(0x00)
     end
 
-    # Past the cap the oldest write is applied at the head of the replay, so
-    # a frequency set on cycle 1000 runs for all 1000 of them instead.
-    it "forgets the timing of a write pushed past the cap" do
+    # A full queue catches up where it stands, so a frequency set on cycle
+    # 1000 still has not run by then.
+    it "keeps the timing of a write pushed past the cap" do
       1000.times { sid.cycle! }
       sid[0xd400] = 0x01
       described_class::DEFERRED_WRITES.times { sid[0xd404] = 0x00 }
       sid[0xd41b]
-      expect(sid.voices[0].waveform.accumulator).to eq(0x555555 + 1000)
+      expect(sid.voices[0].waveform.accumulator).to eq(0x555555)
+    end
+  end
+
+  # A catch-up fast-forwards the voices a span at a time. Reading OSC3 on
+  # every cycle forces one-cycle spans, so the SID read that way is the
+  # reference for the one left to catch up in a single run.
+  describe "batched catch-up" do
+    let(:model) { :mos6581 }
+
+    def voice_state(sid)
+      sid.voices.map do |voice|
+        [voice.waveform.accumulator, voice.waveform.shift_register,
+         voice.waveform.osc3, voice.envelope.output, voice.envelope.state]
+      end
+    end
+
+    # Writes are [reg, value] pairs, or [cycle, reg, value] to land later.
+    def settle(writes, cycles)
+      timed = writes.map { |write| write.length == 2 ? [0, *write] : write }
+      [true, false].map do |stepped|
+        chip = described_class.new(model:)
+        cycles.times do |cycle|
+          timed.each { |at, reg, value| chip[0xd400 + reg] = value if at == cycle }
+          chip.cycle!
+          chip.osc3 if stepped
+        end
+        voice_state(chip)
+      end
+    end
+
+    def expect_batched_to_match(writes, cycles = 20_000)
+      stepped, batched = settle(writes, cycles)
+      expect(batched).to eq(stepped)
+    end
+
+    it "runs plain waveforms and envelopes" do
+      expect_batched_to_match([[0x00, 0x37], [0x01, 0x21], [0x05, 0x4a], [0x06, 0x93], [0x04, 0x21],
+                               [0x0f, 0x03], [0x0c, 0x0f], [0x0b, 0x81]])
+    end
+
+    # Pinned by SID/osc_topbit: the top bit feedback runs cycle by cycle,
+    # between batched stretches on either side of it.
+    it "steps a combined sawtooth feeding back its top bit" do
+      expect_batched_to_match([[0x01, 0x12], [0x08, 0x40], [0x04, 0x21], [0x0b, 0x21],
+                               [3000, 0x04, 0x31], [9000, 0x04, 0x21], [12_000, 0x0b, 0x71]])
+    end
+
+    # Dag Lem's LFSR reset runs through the writeback and the test bit
+    # release, in the middle of a batched run.
+    it "steps noise written back into the LFSR" do
+      expect_batched_to_match([[0x01, 0x80], [0x04, 0x81], [0x0f, 0x21], [0x12, 0x21],
+                               [4000, 0x04, 0xb8], [4001, 0x04, 0xb0], [4002, 0x04, 0x98],
+                               [4003, 0x04, 0x90], [6000, 0x04, 0xc1], [9000, 0x04, 0x81]])
+    end
+
+    it "bleeds the LFSR through a held test bit" do
+      expect_batched_to_match([[0x01, 0x80], [0x04, 0x81], [0x04, 0x88]], 0x9000)
+    end
+
+    it "resets a synced oscillator on the cycle the source wraps" do
+      expect_batched_to_match([[0x01, 0x31], [0x08, 0x07], [0x0b, 0x23], [0x0f, 0x55], [0x12, 0x43]])
+    end
+
+    it "inverts a ring-modulated triangle" do
+      expect_batched_to_match([[0x0f, 0x08], [0x12, 0x15], [0x01, 0x11], [0x04, 0x11]])
+    end
+
+    # Pinned by SID/osc3-wave0.
+    it "drains the floating DAC input" do
+      expect_batched_to_match([[0x04, 0x41], [0x12, 0x41], [0x12, 0x00]], 0x5000)
+    end
+
+    # The ADSR delay bug sends the rate counter the long way round.
+    it "wraps a rate counter left above a lowered period" do
+      expect_batched_to_match([[0x05, 0xff], [0x04, 0x01], [0x05, 0x00]], 0x9000)
+    end
+
+    it "counts off whole periods while frozen at zero" do
+      expect_batched_to_match([[0x06, 0x00], [0x04, 0x01], [0x04, 0x00]], 50_000)
+    end
+
+    # Pinned by SID/detect (detect-2-new).
+    context "with an 8580" do
+      let(:model) { :mos8580 }
+
+      it "reads the sawtooth a cycle late" do
+        expect_batched_to_match([[0x0e, 0xff], [0x0f, 0xff], [0x12, 0x28], [0x12, 0x20]], 1003)
+      end
+    end
+  end
+
+  # The audio path steps the filter FILTER_CHUNK cycles at a time.
+  describe "recording" do
+    before { sid.record(rate: 44_100) }
+
+    it "records one sample per window" do
+      985_248.times { sid.cycle! }
+      expect(sid.drain_samples.length).to eq(44_100)
+    end
+
+    it "hands each sample over once" do
+      1000.times { sid.cycle! }
+      sid.drain_samples
+      expect(sid.drain_samples).to be_empty
+    end
+
+    it "records the silent 6581 mix settling off its DC offset" do
+      sid[0xd418] = 0x0f
+      50_000.times { sid.cycle! }
+      expect(sid.drain_samples.last).to eq(226)
+    end
+
+    # A chunk of 1 is the exact per-cycle filter, window for window.
+    context "with a filter chunk of 1" do
+      subject(:sid) { described_class.new(filter_chunk: 1) }
+
+      let(:stepped) { described_class.new }
+      let(:decimator) { described_class::Decimator.new(clock_hz: Badline::TimeOfDay::CLOCK_HZ, rate: 44_100) }
+
+      def play(chip, cycles)
+        [[0x18, 0x1f], [0x17, 0xf1], [0x01, 0x20], [0x04, 0x41]].each { |reg, value| chip[0xd400 + reg] = value }
+        cycles.times { yield chip.cycle! }
+      end
+
+      it "records what #sample reads cycle by cycle" do
+        expected = []
+        play(stepped, 5000) { expected << decimator.push(stepped.sample) }
+        play(sid, 5000) { nil }
+        expect(sid.drain_samples).to eq(expected.compact)
+      end
     end
   end
 
@@ -183,7 +309,10 @@ describe Badline::SID do
     end
   end
 
+  # One cycle per filter step, the exact path the chunked one approximates.
   describe "the mixed output" do
+    subject(:sid) { described_class.new(filter_chunk: 1) }
+
     before do
       sid.synthesize!
       sid[0xd418] = 0x0f

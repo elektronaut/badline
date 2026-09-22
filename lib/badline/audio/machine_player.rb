@@ -28,18 +28,16 @@ module Badline
 
       def sid = @computer.sid
 
-      def frame(budget)
+      # Advances one PAL frame, or `budget` cycles if that is shorter, then
+      # yields whatever the SID recorded over it. Returns the cycles advanced.
+      def frame(budget, &)
         cycles = [budget, FRAME_CYCLES].min
-        cycles.times { yield step }
+        cycles.times { @computer.cycle! }
+        sid.drain_samples.each(&)
         cycles
       end
 
       private
-
-      def step
-        @computer.cycle!
-        @computer.sid.sample
-      end
 
       def inject
         @computer.ram.write(@tune.load_address, @tune.data)
