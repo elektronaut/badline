@@ -60,6 +60,25 @@ YJIT is enabled at startup, since the emulator needs all the speed it
 can get. `--disable-jit` turns that off. `badline --help` lists
 everything.
 
+## Rendering .sid tunes
+
+`badline-render` writes a `.sid` tune to disk as 16-bit PCM instead of
+playing it live. The container follows the output extension, `.wav` or
+`.aiff`.
+
+```sh
+badline-render tune.sid                        # 60 seconds to tune.wav
+badline-render --seconds 180 tune.sid out.aiff
+badline-render --song 3 --rate 48000 tune.sid
+```
+
+A `.sid` file carries no length, so `--seconds` says how much to render
+(60 by default), and `--song` picks a subtune. PSID tunes run on a
+stripped rig — a CPU and RAM with only the SID clocked — and render at
+roughly 0.9x real time; RSID tunes drive their own interrupts, so those
+boot the whole machine and render at about a third of real time after
+the boot.
+
 ## Media
 
 - **`.prg`, `.p00`** — loaded once the KERNAL has booted. Programs that

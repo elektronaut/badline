@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
+require "optparse"
+
+options = { seconds: 60.0, rate: 44_100, jit: true }
+
+parser = OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Usage: badline-render [options] tune.sid [output]
+
+    Renders a .sid tune to 16-bit PCM. The container follows the output
+    file's extension, .wav or .aiff; with no output given the tune's own
+    name gains a .wav extension.
+
+    Rendering runs at emulation speed, which is slower than real time.
+
+    Options:
+  BANNER
+
+  opts.on("--seconds N", Float, "Length to render (default: 60)") do |n|
+    options[:seconds] = n
+  end
+
+  opts.on("--song N", Integer, "Subtune to play (default: the tune's own)") do |n|
+    options[:song] = n
+  end
+
+  opts.on("--rate HZ", Integer, "Output sample rate (default: 44100)") do |n|
+    options[:rate] = n
+  end
+
+  opts.on("--quiet", "Don't report progress") { options[:quiet] = true }
+
+  opts.on("--disable-jit", "Run without enabling YJIT") do
+    options[:jit] = false
+  end
+
+  opts.on("-h", "--help", "Show this help") do
+    puts opts
+    exit
+  end
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  warn "badline-render: #{e.message}"
+  warn "Try 'badline-render --help' for more information."
+  exit 1
+end
+
+tune_path = ARGV[0]
+unless tune_path
+  warn parser.help
+  exit 1
+end
+
+unless File.exist?(tune_path)
+  warn "badline-render: no such file: #{tune_path}"
+  exit 1
+end
+
+output_path = ARGV[1] || "#{File.basename(tune_path, '.*')}.wav"
+
+jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+RubyVM::YJIT.enable if options[:jit] && jit_available
+
+require "badline"
+
+def describe(tune, song)
+  [tune.name, tune.author, tune.released].reject(&:empty?).join(" / ").then do |header|
+    header.empty? ? "song #{song}" : "#{header} (song #{song})"
+  end
+end
+
+begin
+  tune = Badline::Storage::SIDFile.new(tune_path)
+rescue Badline::Storage::SIDFile::FormatError => e
+  warn "badline-render: #{tune_path}: #{e.message}"
+  exit 1
+end
+
+song = (options[:song] || tune.start_song).clamp(1, tune.songs)
+renderer = Badline::Audio::Renderer.new(tune, seconds: options[:seconds],
+                                              song:, rate: options[:rate])
+
+puts describe(tune, song)
+puts "Rendering #{options[:seconds]}s to #{output_path} at #{options[:rate]} Hz..."
+
+started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+begin
+  renderer.render(output_path) do |seconds|
+    next if options[:quiet]
+
+    print format("\r%<done>6.1fs / %<total>.1fs", done: seconds, total: options[:seconds])
+    $stdout.flush
+  end
+rescue Badline::Audio::Renderer::UnknownFormatError, Badline::Storage::SIDFile::FormatError => e
+  warn "\nbadline-render: #{e.message}"
+  exit 1
+end
+
+elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+print "\r" unless options[:quiet]
+puts format("Wrote %<path>s in %<elapsed>.1fs (%<speed>.2fx real time).",
+            path: output_path, elapsed:, speed: options[:seconds] / elapsed)
