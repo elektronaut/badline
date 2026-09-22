@@ -65,19 +65,19 @@ RSpec.describe Badline::VIC::Sprites do
     end
 
     # The sprite runs from pixel 204 to 227; every write here lands with the
-    # beam at 200.
+    # beam at 208.
     def write(reg, old, value)
       registers.write(reg, value)
-      sprites.log_change(reg, old, value, 200)
+      sprites.log_change(reg, old, value, 208)
       sprites.finish_line(colors, fg)
     end
 
-    it "shows a new sprite color nine pixels on" do
+    it "shows a new sprite color one pixel on" do
       write(0x27, 5, 9)
       expect(colors[208..209]).to eq([5, 9])
     end
 
-    it "swaps the priority mux fourteen pixels on" do
+    it "swaps the priority mux six pixels on" do
       fg.fill(true)
       write(0x1b, 0x00, 0x01)
       expect(colors[213..214]).to eq([5, 6])
@@ -85,7 +85,7 @@ RSpec.describe Badline::VIC::Sprites do
 
     # The multicolor flip-flop idles while $d01c is clear, so the pixel the
     # write reaches repeats the last hi-res latch and the pairs start after it.
-    it "reaches the sequencer fifteen pixels on" do
+    it "reaches the sequencer seven pixels on" do
       write(0x1c, 0x00, 0x01)
       expect(colors[214..216]).to eq([5, 5, 2])
     end

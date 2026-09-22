@@ -24,10 +24,10 @@ module Badline
 
     # BA falls three columns ahead of each sprite's pair of s-accesses, and
     # the five-column windows step two columns apart from sprite 0 at column
-    # 55. From sprite 2 on they reach past the end of the line, so each is
+    # 54. From sprite 3 on they reach past the end of the line, so each is
     # split: the tail columns fall on the line whose cycle 55/56 compare
     # started the fetch, the head columns on the line after it.
-    SPRITE_BA_WINDOWS = Array.new(8) { |n| (55 + (2 * n))..(59 + (2 * n)) }.freeze
+    SPRITE_BA_WINDOWS = Array.new(8) { |n| (54 + (2 * n))..(58 + (2 * n)) }.freeze
     SPRITE_BA_TAIL = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c < 63 } }.freeze
     SPRITE_BA_HEAD = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - 63 if c >= 63 } }.freeze
 
@@ -131,10 +131,14 @@ module Badline
       @display_state.fetching?(@column)
     end
 
+    # Asked once the VIC has advanced, so @column is one ahead of the cycle
+    # the CPU is about to run. A bad line holds BA on the condition as it
+    # stands rather than the latched match, two columns ahead of the
+    # display state's own DMA window.
     def ba_low?
       return true if @sprite_ba[@column]
 
-      @display_state.bad_line? && @column >= 13 && @column < 56
+      @display_state.bad_line_condition? && @column >= 11 && @column < 54
     end
 
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.

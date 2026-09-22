@@ -53,6 +53,9 @@ module Badline
       def idle? = !@display
       def bad_line? = !@ba.nil?
 
+      # The bad line condition as the last column compared it.
+      def bad_line_condition? = @matched
+
       # True once AEC has followed BA down and the VIC owns the bus.
       def bus_taken?(column) = @ba ? column >= @ba + BA_DELAY : false
 
