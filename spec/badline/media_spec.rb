@@ -114,6 +114,41 @@ describe Badline::Media do
       end
     end
 
+    context "with a TAP image" do
+      let(:tap_path) do
+        File.join(dir, "game.tap").tap do |path|
+          header = "C64-TAPE-RAW".b + [1, 0, 0, 0].pack("C4") + [3].pack("V")
+          File.binwrite(path, header + [0x30, 0x30, 0x30].pack("C*"))
+        end
+      end
+
+      it "loads the tape into the datasette" do
+        described_class.attach(computer, tap_path)
+        expect(computer.datasette.tape).to be_a(Badline::Storage::TAP)
+      end
+
+      it "presses play" do
+        described_class.attach(computer, tap_path)
+        expect(computer.datasette).to be_playing
+      end
+
+      it "types the tape autostart command" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, tap_path)
+        expect(computer).to have_received(:type_text).with(%(lO\rrun\r))
+      end
+
+      it "skips autostart when disabled" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, tap_path, autostart: false)
+        expect(computer).not_to have_received(:type_text)
+      end
+
+      it "returns an insert message" do
+        expect(described_class.attach(computer, tap_path)).to include("game.tap")
+      end
+    end
+
     context "with a CRT file" do
       let(:crt_path) do
         File.join(dir, "game.crt").tap do |path|

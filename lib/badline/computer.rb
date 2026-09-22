@@ -11,7 +11,7 @@ module Badline
     attr_reader :address_bus, :cpu, :cycles
 
     def_delegators :address_bus, :vic, :cia1, :cia2, :sid, :ram, :keyboard, :joystick1, :joystick2,
-                   :control_ports, :install_debug_register
+                   :control_ports, :datasette, :install_debug_register
 
     def initialize(debug: false)
       @address_bus = AddressBus.new
@@ -20,6 +20,7 @@ module Badline
       @cia1 = @address_bus.cia1
       @cia2 = @address_bus.cia2
       @sid = @address_bus.sid
+      @datasette = @address_bus.datasette
       @cycles = 0
       @nmi_asserted = false
       @init_handlers = []
@@ -36,6 +37,7 @@ module Badline
       @cia1.cycle!
       @cia2.cycle!
       @sid.cycle!
+      @datasette.cycle!
 
       @cpu.irq = @cia1.interrupted? || @vic.interrupted?
 

@@ -39,10 +39,11 @@ module Badline
 
     PORT_PULLUPS  = 0b0001_0111
     PORT_FLOATING = 0b1100_1000
+    TAPE_SENSE    = 0b0001_0000
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :ultimax
+                :control_ports, :cartridge, :ultimax, :datasette
 
     def initialize
       @ram = Memory.new([0xff, 0x07], length: 2**16, start: 0)
@@ -63,6 +64,10 @@ module Badline
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
       @sid = SID.new(pots: @control_ports)
+
+      @datasette = Datasette.new
+      @datasette.on_flag { @cia1.flag! }
+      @datasette.on_sense_change { @io_port.value = port_value }
 
       @color_ram = ColorMemory.new(start: 0xd800, length: 2**10)
 
@@ -119,11 +124,14 @@ module Badline
       driven = @port_ddr & PORT_FLOATING
       @port_floating = (@port_floating & ~driven) | (@port_out & driven)
       @io_port.value = port_value
+      # $01 bit 5 drives the motor through an inverter: low runs it.
+      @datasette.motor = !@io_port.tape_motor?
       update_overlays!
     end
 
     def port_value
       input = PORT_PULLUPS | (@port_floating & PORT_FLOATING)
+      input &= ~TAPE_SENSE if @datasette.sense_low?
       (@port_out & @port_ddr) | (input & ~@port_ddr & 0xff)
     end
 

@@ -7,6 +7,7 @@ require "badline/storage/d64_image"
 require "badline/storage/d71_image"
 require "badline/storage/d81_image"
 require "badline/storage/t64"
+require "badline/storage/tap"
 require "badline/storage/crt_file"
 require "badline/storage/sid_file"
 

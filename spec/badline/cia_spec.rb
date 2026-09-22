@@ -17,6 +17,32 @@ describe Badline::CIA do
     expect(cia[0xdc12]).to eq(0xff)
   end
 
+  describe "the FLAG pin" do
+    it "raises the flag bit on a falling edge" do
+      cia.flag!
+      expect(cia.interrupt_status.flag?).to be(true)
+    end
+
+    it "clears the flag bit when the status register is read" do
+      cia.flag!
+      cia.peek(0xdc0d)
+      expect(cia.interrupt_status.flag?).to be(false)
+    end
+
+    it "leaves the interrupt line alone while the flag is masked" do
+      cia.flag!
+      cia.cycle!
+      expect(cia).not_to be_interrupted
+    end
+
+    it "pulls the interrupt line when the flag is enabled" do
+      cia.poke(0xdc0d, 0x90)
+      cia.flag!
+      cia.cycle!
+      expect(cia).to be_interrupted
+    end
+  end
+
   describe "PB4 level-change handler (light pen line)" do
     let(:edges) { [] }
 
