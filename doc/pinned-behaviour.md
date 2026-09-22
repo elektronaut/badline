@@ -324,10 +324,14 @@ only catches the rows that happen to move.
   across the whole line. `D011Test/disable-bad` pins the too-late match.
 - Spec guard: [`vic/display_state_spec.rb`](../spec/badline/vic/display_state_spec.rb),
   one group per rule.
-- Not modelled: the colour nibble of the c-accesses before AEC. The
-  hardware reads the low nibble of the opcode the CPU is halted on (VICE
-  reads RAM at the CPU's PC). We read colour RAM, which is the whole of
-  what `blackmail*` still gets wrong: 4–6 px per FLI line.
+- The colour nibble of a c-access before AEC is the low nibble of the byte
+  at the CPU's PC, which is the opcode it is halted on, as VICE reads it.
+  `Computer` hands the VIC a lambda for it (`VIC#open_bus=`), called only
+  on those accesses. A bare VIC reads colour RAM instead.
+  - Pinned by `flibug/blackmail*` and `colorfetchbug/main*`, whose bug
+    cells take their colour from the halted opcode.
+  - Spec guard: *an FLI match in column 13* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - These rows can't be read as pixel counts. The sweep became readable by
   OCRing each reference PNG against `lib/badline/roms/character.rom` and
   matching every display row back to its offset in screen memory, so a diff
