@@ -120,14 +120,22 @@ only catches the rows that happen to move.
 ## VIC mid-line register visibility
 
 - Sprite registers written mid-line are logged against
-  `(write cycle + 1) * 8` and take hold after a per-signal delay: **+9 px**
-  for the colors ($d025/$d026/$d027–$d02e), **+14 px** for priority
-  ($d01b) and **+15 px** for the sequencer inputs ($d000–$d010, $d01c,
-  $d01d).
+  `(write cycle + 1) * 8` and take hold after a per-signal delay: **+1 px**
+  for the colors ($d025/$d026/$d027–$d02e), **+6 px** for priority
+  ($d01b) and **+7 px** for the sequencer inputs ($d000–$d010, $d01c,
+  $d01d). The color delay is the same +1 px that `greydot` pins for
+  $d020–$d024 below.
   - Pinned by the `spritesplit` staircases. `ss-hires-color`/`ss-mc-color*`
     fix the color delay and `ss-pri*` the priority one (only the bands where
-    the sprite sits on an odd X can tell 14 from 15).
+    the sprite sits on an odd X can tell 6 from 7).
     `ss-hires-mc`/`ss-mc-hires`/`ss-*exp*` fix the sequencer one.
+  - These were +9/+14/+15 until the sprite BA windows moved a column
+    earlier (see *VIC sprite display*). `spritesplit` syncs on a raster IRQ
+    whose line starts a sprite DMA. With the window where `spritesteal` puts
+    it, that line's stall catches a read it used to miss, so the CPU loses 5
+    cycles there, not 4, and every write in the staircase lands one cycle
+    later. The old delays were 8 px of that phase error on top of the real
+    delay.
   - Spec guard: *mid-line write delays* in
     [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb), one example
     per path, each failing on a one-pixel change.
@@ -153,12 +161,22 @@ only catches the rows that happen to move.
     clears MxE. `1` and `2` write $d015 *between* the two compares, which
     only lands on that column pair.
 - Each sprite's BA window is five columns, three ahead of its two s-access
-  columns, stepping two columns per sprite from column 55. From sprite 2 on,
-  the window runs past the end of the line and splits: the tail falls on the
-  line whose compare started the fetch, and the head on the next one. One
-  sprite therefore costs the CPU 5 cycles, and sprites 0–3 together cost
-  11. That is what puts the `spriteenable` raster markers on their printed
-  `x`/`y` columns.
+  columns, stepping two columns per sprite from column 54
+  (`SPRITE_BA_WINDOWS`). `ba_low?` is asked after the VIC has advanced, so
+  the CPU cycle that follows VIC column 53 is the first one sprite 0 halts.
+  From sprite 3 on, the window runs past the end of the line and splits: the
+  tail falls on the line whose compare started the fetch, and the head on
+  the next one. One sprite therefore costs the CPU 5 cycles, and sprites 0–3
+  together cost 11. A write cycle still completes under BA.
+  - Pinned by `spritesteal`, whose `sprite_steal_table` (`core.asm:759`)
+    lists the stolen cycles for each sprite alone and all eight together,
+    one cycle at a time, on the line that starts the DMA.
+  - The `spriteenable` raster markers land on their printed `x`/`y` columns
+    only with these windows *and* the bad-line stall in *VIC bad line and
+    DMA*: on their line 51, a bad line meets the head of the sprite 3
+    window, and the CPU gets 9 cycles between the two.
+  - Spec guard: *sprite DMA cycle stealing (#ba_low?)* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - A DMA started on the *second* compare leaves sprite 0 a column short of
   AEC, because sprite 0 alone has its accesses immediately after the
   compares. The first of its three s-accesses therefore reads back the $ff
@@ -250,6 +268,29 @@ only catches the rows that happen to move.
   same edge. The c-accesses run from the match to column 54, and the ones
   before AEC read `$ff` off a bus the CPU still drives. A match so late that
   AEC would land past column 54 fetches nothing at all.
+- The CPU halts on the bad line condition **as it stands**, not on the
+  latched match: `ba_low?` holds it for `@column` 11–53, which is the 43 CPU
+  cycles from the one after VIC column 10 through the one after column 52.
+  That is two cycles ahead of the display-state columns above, and it
+  leaves Bauer's 43 cycles between bad-line BA (cycle 12) and sprite 0's BA
+  (cycle 55). A condition that goes away mid-line releases the CPU.
+  - Pinned by `split-tests/bascan`, a per-cycle dump of when the stall
+    first catches a CIA timer read. Its `$d012` reads are the same dump's
+    check that the raster sync itself did not move.
+  - The end is not observable in `bascan`. A 45-cycle stall that keeps the
+    old end (CPU halted through the cycle after column 54) breaks
+    `colorfetchbug`, `vborder*` and `spriteenable3`–`5`.
+  - Spec guard: *#ba_low?* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- **Provisional:** the display-state columns (`DMA_FIRST` 12,
+  `FETCH_FIRST` 15, `DMA_LAST` 54 and the row-reset window below) were
+  fitted against the CPU phase from before the bad-line stall and the sprite
+  windows moved. Code that re-syncs on the end of a bad-line stall now runs
+  two cycles earlier against them. An FLI $d011 write lands in column 12
+  (Bauer cycle 14), but the match is still seen one column after the write
+  instead of at Bauer's cycle 15, so `flibug/blackmail*` draws one `$ff`
+  cell where the reference has three. `sequencer-bug` and
+  `colorfetchbug/bitmap` moved the same way. Re-phase these columns against
+  the new CPU frame before trusting them further.
 - The row counter rewinds on a match standing in column 12, or on a row
   opening in columns 11–15. This rule is curve-fitted, not mechanistic: the
   21 `dmadelay` rows pin it, but no account of the chip produces the 11–15
@@ -270,7 +311,9 @@ only catches the rows that happen to move.
 - Pinned by all 21 `dmadelay` rows, which sweep the match across the whole
   line, `D011Test/disable-bad` for the too-late match, `flibug/blackmail*`
   and `colorfetchbug` for the open-bus reads, and `screenpos` for the
-  row-open offset.
+  row-open offset. `screenpos` passes outright since the stall moved.
+  `blackmail*` and `colorfetchbug` still fail, and their pixel counts are
+  only comparable within one CPU phase.
 - These rows can't be read as pixel counts. The sweep became readable by
   OCRing each reference PNG against `lib/badline/roms/character.rom` and
   matching every display row back to its offset in screen memory, so a diff
