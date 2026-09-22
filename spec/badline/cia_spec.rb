@@ -686,6 +686,7 @@ describe Badline::CIA do
     end
 
     it "clocks timer A when CRA selects CNT" do
+      cia.poke(0xdc04, 0x00)
       cia.poke(0xdc05, 0x10)
       cia.poke(0xdc0e, 0x21)
       pulse_cnt(5)
@@ -693,6 +694,7 @@ describe Badline::CIA do
     end
 
     it "leaves timer A alone while CNT is idle" do
+      cia.poke(0xdc04, 0x00)
       cia.poke(0xdc05, 0x10)
       cia.poke(0xdc0e, 0x21)
       10.times { cia.cycle! }
@@ -700,6 +702,7 @@ describe Badline::CIA do
     end
 
     it "clocks timer B when CRB selects CNT" do
+      cia.poke(0xdc06, 0x00)
       cia.poke(0xdc07, 0x10)
       cia.poke(0xdc0f, 0x21)
       pulse_cnt(5)
@@ -709,6 +712,8 @@ describe Badline::CIA do
     context "when timer B counts timer A underflows gated by CNT" do
       before do
         cia.poke(0xdc04, 0x02)
+        cia.poke(0xdc05, 0x00)
+        cia.poke(0xdc06, 0x00)
         cia.poke(0xdc07, 0x10)
         cia.poke(0xdc0e, 0x01)
         cia.poke(0xdc0f, 0x61)

@@ -108,6 +108,24 @@ describe Badline::CIA::Timer do
     end
   end
 
+  # The KERNAL never writes CIA2's timer latches, so programs that set only
+  # the low byte run with the high byte still at its reset value.
+  # Pinned by interrupts/branchquirk-nmiold and CPU/Acid800/cpu_bugs.
+  describe "the power-on state" do
+    it "reads $ffff from timer A" do
+      expect([cia.peek(0xdc04), cia.peek(0xdc05)]).to eq([0xff, 0xff])
+    end
+
+    it "reads $ffff from timer B" do
+      expect([cia.peek(0xdc06), cia.peek(0xdc07)]).to eq([0xff, 0xff])
+    end
+
+    it "loads the reset latch's low byte when the high byte is written while stopped" do
+      cia.poke(0xdc05, 0x00)
+      expect(cia.peek(0xdc04)).to eq(0xff)
+    end
+  end
+
   describe "the counter over the underflow in those cases" do
     LORENZ_STAR_CASES.each_key do |test|
       it "reads back the reloaded latch, never zero, in cia1ta test ##{format('%02x', test)}" do

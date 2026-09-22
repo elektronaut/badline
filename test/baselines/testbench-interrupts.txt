@@ -1,7 +1,7 @@
 interrupts/branchquirk/branchquirk-old.prg	PASS
-interrupts/branchquirk/branchquirk-nmiold.prg	FAIL	exit=$ff
-interrupts/cia-int/cia-int-irq.prg	FAIL	exit=none
-interrupts/cia-int/cia-int-nmi.prg	FAIL	exit=none
+interrupts/branchquirk/branchquirk-nmiold.prg	PASS
+interrupts/cia-int/cia-int-irq.prg	PASS
+interrupts/cia-int/cia-int-nmi.prg	PASS
 interrupts/irq-ackn-bug/cia1.prg	PASS
 interrupts/irq-ackn-bug/cia2.prg	PASS
 interrupts/irq-ackn-bug/irq-ack-vicii.prg	FAIL	exit=$ff
