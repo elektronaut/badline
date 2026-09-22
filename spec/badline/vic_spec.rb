@@ -482,10 +482,11 @@ RSpec.describe Badline::VIC do
     end
 
     it "renders the gap line as background, not character graphics" do
-      # Run normally up to the first bad line, then keep YSCROLL mismatched so no
-      # further bad line occurs and the chip slips into idle state.
+      # Run normally up to the first bad line, then keep YSCROLL clear of both
+      # this line and the next, so no further bad line occurs and the chip
+      # slips into idle state.
       (0..gap_line).each do |line|
-        vic.poke(0xd011, 0x18 | ((line + 1) & 0b111)) if line > 52
+        vic.poke(0xd011, 0x18 | ((line + 4) & 0b111)) if line > 52
         63.times { vic.cycle! }
       end
 
