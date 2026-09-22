@@ -19,5 +19,5 @@ group :development, :test do
 end
 
 group :test do
-  gem "simplecov", "~> 1.2.0", require: false
+  gem "simplecov", "~> 1.3.0", require: false
 end
