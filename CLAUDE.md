@@ -114,18 +114,17 @@ the rows your change can't reach tell you nothing about it.
   substring such as `VICII/spritegap`, and `--list` shows the ids),
   `ruby --yjit bin/sidtests <filter>`, or
   `ruby --yjit bin/lorenz [image] [start_test] [max_cycles]` (resumes the
-  chain at a named test). These take seconds to minutes
+  chain at a named test, and `--stop-after NAME` ends it once that test is
+  done). These take seconds to minutes
 - When your change moves rows, re-record only those rows, in the same
   change: `rake "regression:record:<suite>[filter,...]"` (quote it, because
   zsh globs the brackets). It runs only the matching tests and splices
   their rows into the baseline, and every other row keeps its verdict.
-  Give filters for every test your change can reach, and explain every
-  moved row. Never re-record just to make a diff go away
-- `lorenz` has no filtered form, and a whole run takes hours. Resume the
-  chain at the test you changed with `--results tmp/lorenz-partial.txt`,
-  then copy the moved rows into `test/baselines/lorenz.txt` by hand. Rows
-  are keyed by test name. Leave the `(suite)` row alone, and skip the last
-  segment if `max_cycles` cut the run short
+  `lorenz` chains itself, so it takes a stretch of the chain instead:
+  `rake "regression:record:lorenz[first,last]"` resumes just ahead of
+  `first`, stops after `last` and leaves the `(suite)` row alone. Cover
+  every test your change can reach, and explain every moved row. Never
+  re-record just to make a diff go away
 - CI's push-to-main run owns the whole-suite verdict. The Regression
   workflow runs `testbench`, `lorenz` and `sid` when a push to `main`
   touches `lib/`, the runners, the baselines or the Rakefile. It never runs

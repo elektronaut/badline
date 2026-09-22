@@ -223,7 +223,98 @@ class TestRegressionSplice < Minitest::Test
     assert_equal rows(BASELINE), written(splice(BASELINE, "VICII/a/a1.prg\tPASS\n"))
   end
 
+  CHAIN = <<~ROWS
+    *\tPASS\tready. | start
+    ldab\tPASS
+    ldaz\tPASS
+    ldazx\tPASS
+    ldaa\tPASS
+    aneb\tFAIL\t- load error!
+    (suite)\tFAIL\thung after aneb
+  ROWS
+
+  def test_a_chain_range_resumes_one_test_ahead
+    assert_equal "ldaz", chain_range("ldazx", "ldaa").resume_at
+  end
+
+  def test_a_chain_range_at_the_second_row_autostarts
+    assert_nil chain_range("ldab").resume_at
+  end
+
+  def test_a_chain_range_at_the_first_row_autostarts
+    assert_nil chain_range("*").resume_at
+  end
+
+  def test_a_chain_range_defaults_its_last_row_to_its_first
+    assert_equal "ldaz", chain_range("ldaz").last
+  end
+
+  def test_a_chain_range_rejects_an_unknown_test
+    error = assert_raises(ArgumentError) { chain_range("nope") }
+
+    assert_match(/nope is not a row/, error.message)
+  end
+
+  def test_a_chain_range_rejects_an_unknown_last_test
+    assert_raises(ArgumentError) { chain_range("ldab", "nope") }
+  end
+
+  def test_a_chain_range_rejects_the_outcome_row
+    assert_raises(ArgumentError) { chain_range("(suite)") }
+  end
+
+  def test_a_chain_range_rejects_a_reversed_range
+    assert_raises(ArgumentError) { chain_range("ldaa", "ldab") }
+  end
+
+  def test_a_chain_range_drops_the_resumed_segment
+    fresh = "ldaz\tPASS\tready. | ldaz\nldazx\tPASS\nldaa\tPASS\n(suite)\tFAIL\tstopped after ldaa\n"
+
+    assert_equal %w[ldazx ldaa], chain_range("ldazx", "ldaa").select(rows(fresh)).keys
+  end
+
+  def test_a_chain_range_drops_a_segment_past_its_last_row
+    fresh = "ldaz\tPASS\nldazx\tPASS\nldaa\tFAIL\n"
+
+    assert_equal %w[ldazx], chain_range("ldazx").select(rows(fresh)).keys
+  end
+
+  def test_a_chain_range_keeps_what_a_run_reached_short_of_its_last_row
+    fresh = "ldaz\tPASS\nldazx\tFAIL\thung\n(suite)\tFAIL\thung after ldazx\n"
+
+    assert_equal %w[ldazx], chain_range("ldazx", "ldaa").select(rows(fresh)).keys
+  end
+
+  def test_a_chain_range_reports_a_run_short_of_its_last_row
+    range = chain_range("ldazx", "ldaa")
+
+    refute range.reached?(range.select(rows("ldaz\tPASS\nldazx\tPASS\n")))
+  end
+
+  def test_a_chain_range_rejects_a_run_that_never_reached_it
+    assert_raises(ArgumentError) { chain_range("ldaa").select(rows("ldaz\tPASS\n")) }
+  end
+
+  def test_a_chain_splice_leaves_the_outcome_row_alone
+    fresh = chain_range("ldaz", "ldazx").select(
+      rows("ldab\tPASS\tready.\nldaz\tFAIL\tnew\nldazx\tPASS\n(suite)\tFAIL\tstopped after ldazx\n")
+    )
+
+    assert_equal "FAIL hung after aneb", written(Regression::Splice.new(rows(CHAIN), fresh))["(suite)"].to_s
+  end
+
+  def test_a_chain_splice_replaces_only_the_range
+    fresh = chain_range("ldaz").select(rows("ldab\tFAIL\tready.\nldaz\tFAIL\tnew\n"))
+    expected = CHAIN.sub("ldaz\tPASS", "ldaz\tFAIL\tnew")
+
+    assert_equal rows(expected), written(Regression::Splice.new(rows(CHAIN), fresh))
+  end
+
   private
+
+  def chain_range(first, last = nil)
+    Regression::ChainRange.new(rows(CHAIN), first, last)
+  end
 
   def splice(baseline, fresh)
     Regression::Splice.new(rows(baseline), rows(fresh))
@@ -249,5 +340,54 @@ class TestRegressionSplice < Minitest::Test
     path = File.join(@dir, "rows-#{text.hash}.txt")
     File.write(path, text)
     Regression.read(path)
+  end
+end
+
+load File.expand_path("../bin/lorenz", __dir__)
+
+class TestLorenzSegments < Minitest::Test
+  Capture = Struct.new(:output)
+  Log = Data.define(:entries)
+  Machine = Struct.new(:cpu)
+  CPU = Class.new { def install_trap(*) = nil }
+
+  TRANSCRIPT = "ldab - ok\nldaz - ok\nldazx"
+
+  def test_a_stopped_run_drops_its_last_segment
+    assert_equal %w[ldab ldaz], names("stopped")
+  end
+
+  def test_a_timed_out_run_drops_its_last_segment
+    assert_equal %w[ldab ldaz], names("timeout")
+  end
+
+  def test_a_hung_run_keeps_its_last_segment
+    assert_equal %w[ldab ldaz ldazx], names("hung")
+  end
+
+  def test_the_kept_segment_is_trimmed_of_the_next_name
+    assert_equal "ldaz\tPASS", runner("stopped").segments.last.to_record
+  end
+
+  def test_the_chain_stops_once_it_loads_past_the_stop_test
+    assert runner(nil, stop_after: "LDAZ").send(:moved_past_stop?)
+  end
+
+  def test_the_chain_runs_on_while_the_stop_test_is_the_last_loaded
+    refute runner(nil, stop_after: "ldazx").send(:moved_past_stop?)
+  end
+
+  private
+
+  def names(result)
+    runner(result).segments.map(&:name)
+  end
+
+  def runner(result, stop_after: nil)
+    entries = %w[ldab ldaz ldazx].map { |name| Lorenz::LoadLog::Entry.new(name, TRANSCRIPT.index(name)) }
+    runner = Lorenz::Runner.new(Machine.new(CPU.new), Capture.new(TRANSCRIPT), Log.new(entries:),
+                                stop_after:)
+    runner.instance_variable_set(:@result, result)
+    runner
   end
 end

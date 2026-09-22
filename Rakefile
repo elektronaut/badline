@@ -22,12 +22,13 @@ VENDORED_REPOS = {
 # with --scope, so its testlist subtrees are separate suites with a
 # baseline each.
 #
-# Runners also take id filters, which is what a partial re-record runs;
-# :filters => false marks a suite that cannot be cut down, and bin/lorenz
-# is one because the suite chains itself from the first test loaded.
+# Runners also take id filters, which is what a partial re-record runs.
+# :chain marks a suite that chains itself from the first test loaded, like
+# bin/lorenz, so it is cut down to a [first, last] stretch of the chain
+# instead.
 REGRESSION_SUITES = {
   "testbench" => { runner: "bin/testbench", scope: "VICII/" },
-  "lorenz" => { runner: "bin/lorenz", filters: false },
+  "lorenz" => { runner: "bin/lorenz", chain: true },
   "sid" => { runner: "bin/sidtests" }
 }.freeze
 
@@ -78,12 +79,12 @@ def baseline_path(suite)
   File.join(BASELINE_DIR, "#{suite}.txt")
 end
 
-def filterable?(suite)
-  ALL_SUITES.fetch(suite).fetch(:filters, true)
+def chain?(suite)
+  ALL_SUITES.fetch(suite).fetch(:chain, false)
 end
 
 def record_desc(suite)
-  return "Re-record #{baseline_path(suite)} from a fresh #{suite} run" unless filterable?(suite)
+  return "Re-record #{baseline_path(suite)}, whole or a [first,last] stretch of the chain" if chain?(suite)
 
   "Re-record #{baseline_path(suite)}, whole or [filter,...] of it"
 end
@@ -115,20 +116,46 @@ end
 # Re-records only the rows a filter matched, splicing them into the
 # existing baseline so every other row keeps the verdict it had.
 def record_filtered(suite, filters)
-  raise "#{suite} runs as one chain and cannot be recorded by filter." unless filterable?(suite)
+  recorded = read_recorded(suite)
+  results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
+  run_suite(suite, results, filters)
+  splice_recorded(suite, recorded, Regression.read(results))
+end
 
+# Re-records a stretch of a chained suite: the run resumes just ahead of
+# first, stops once last's segment is whole, and only the rows in between
+# are spliced in. The outcome row is left as the last whole run recorded it.
+def record_chain(suite, first, last = nil, *extra)
+  raise "#{suite} takes a [first,last] stretch of the chain, not a filter list." if extra.any?
+
+  recorded = read_recorded(suite)
+  range = Regression::ChainRange.new(recorded, first, last)
+  args = ["--stop-after", range.last]
+  args.push("--resume", range.resume_at) if range.resume_at
+  results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
+  run_suite(suite, results, args)
+  fresh = range.select(Regression.read(results))
+  unless range.reached?(fresh)
+    warn "WARNING: #{suite} ended before reaching #{range.last}. " \
+         "Recording only the rows it reached."
+  end
+  splice_recorded(suite, recorded, fresh)
+end
+
+def read_recorded(suite)
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
     raise "No baseline at #{baseline}. Record the whole suite first with " \
           "`rake regression:record:#{suite}`."
   end
 
-  results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
-  run_suite(suite, results, filters)
-  recorded = Regression.read(baseline)
-  fresh = Regression.read(results)
-  # Against the rows the filter touched, so the untouched majority does
-  # not read as gone.
+  Regression.read(baseline)
+end
+
+def splice_recorded(suite, recorded, fresh)
+  baseline = baseline_path(suite)
+  # Against the rows the run touched, so the untouched majority does not
+  # read as gone.
   Regression::Comparison.new(suite, recorded.slice(*fresh.keys), fresh).report($stdout)
   splice = Regression::Splice.new(recorded, fresh)
   Regression.write(baseline, splice.rows)
@@ -183,6 +210,7 @@ namespace :regression do
       desc record_desc(suite)
       task suite, [:filter] => "vendor:VICE-testprogs" do |_task, args|
         filters = args.to_a.compact.reject(&:empty?)
+        next record_chain(suite, *filters) if filters.any? && chain?(suite)
         next record_filtered(suite, filters) if filters.any?
 
         results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
