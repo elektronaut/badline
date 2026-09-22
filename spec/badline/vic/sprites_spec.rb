@@ -26,7 +26,7 @@ RSpec.describe Badline::VIC::Sprites do
   # The Y match at line 60 turns DMA on (cycles 55/56) and display on
   # (cycle 58). The first row renders on line 61.
   def start_display
-    sprites.check_dma(60)
+    sprites.check_dma(60, 53)
     sprites.check_display(60)
     sprites.start_line
   end

@@ -500,6 +500,15 @@ RSpec.describe Badline::VIC do
 
       it { is_expected.to be(true) }
     end
+
+    context "with sprite 3 enabled, in the tail of the Y-match line" do
+      let(:sprites) { 0x08 }
+      # BA still falls three columns ahead of those accesses, so the last
+      # two columns of the line that started the DMA go with them.
+      let(:rasterline_cycle) { 61 }
+
+      it { is_expected.to be(true) }
+    end
   end
 
   describe "FLD: withholding bad lines opens an idle gap" do

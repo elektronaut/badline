@@ -19,13 +19,17 @@ module Badline
     # Columns carrying a per-cycle hook, so an ordinary column costs one
     # array read instead of the dispatch.
     HOOK_COLUMNS = Array.new(63) do |column|
-      [14, 15, 54, 55, 57, 62].include?(column)
+      [14, 15, 53, 54, 57, 62].include?(column)
     end.freeze
 
-    SPRITE_BA_RANGES = [
-      55..59, 57..61, 59..62,
-      0..2, 0..4, 2..6, 4..8, 6..10
-    ].freeze
+    # BA falls three columns ahead of each sprite's pair of s-accesses, and
+    # the five-column windows step two columns apart from sprite 0 at column
+    # 55. From sprite 2 on they reach past the end of the line, so each is
+    # split: the tail columns fall on the line whose cycle 55/56 compare
+    # started the fetch, the head columns on the line after it.
+    SPRITE_BA_WINDOWS = Array.new(8) { |n| (55 + (2 * n))..(59 + (2 * n)) }.freeze
+    SPRITE_BA_TAIL = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c < 63 } }.freeze
+    SPRITE_BA_HEAD = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - 63 if c >= 63 } }.freeze
 
     def initialize(address_bus = nil, debug: false)
       addressable_at(0xd000, length: 2**10)
@@ -80,15 +84,17 @@ module Badline
       nil
     end
 
-    # The sprite and border hooks that fall on named cycles, in Bauer's
-    # numbering (VIC column + 1). Guarded in #cycle! so an ordinary column
-    # pays two compares rather than the dispatch.
+    # The sprite and border hooks that fall on named cycles, one column
+    # ahead of Bauer's numbering — two for the DMA compares, which the
+    # `spriteenable` references place a column earlier still. Guarded in
+    # #cycle! so an ordinary column pays two compares rather than the
+    # dispatch.
     def column_hooks
       case @column
       when 14 then @sprites.advance_mcbase
       when 15 then @sprites.finish_mcbase
-      when 54 then toggle_and_check_sprite_dma
-      when 55 then check_sprite_dma
+      when 53 then toggle_and_check_sprite_dma
+      when 54 then check_sprite_dma
       when 57 then @sprites.check_display(@rasterline)
       when 62 then @sequencer.check_vertical_border(@rasterline)
       end
@@ -191,7 +197,7 @@ module Badline
     end
 
     def check_sprite_dma
-      rebuild_sprite_ba if @sprites.check_dma(@rasterline)
+      rebuild_sprite_ba if @sprites.check_dma(@rasterline, @column)
     end
 
     def toggle_and_check_sprite_dma
@@ -217,10 +223,11 @@ module Badline
 
     def rebuild_sprite_ba
       @sprite_ba.fill(false)
-      SPRITE_BA_RANGES.each_with_index do |range, n|
+      8.times do |n|
         next unless @sprites[n].displaying?
 
-        range.each { |c| @sprite_ba[c] = true }
+        SPRITE_BA_TAIL[n].each { |c| @sprite_ba[c] = true }
+        SPRITE_BA_HEAD[n].each { |c| @sprite_ba[c] = true }
       end
     end
 
