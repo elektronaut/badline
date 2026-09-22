@@ -62,12 +62,22 @@ module Badline
       # zero-volume and full-volume output levels. The 8580 has none.
       MIXER_DC = { mos6581: -((0xfff * 0xff) / 18) >> 7, mos8580: 0 }.freeze
 
+      # Fractional bits carried in the integrators. At low cutoffs a cycle's
+      # step is only a few units, which truncating to whole units would
+      # swallow, and always toward minus infinity.
+      FRACTION = 12
+
       # The RC network between the SID's audio pin and the C64's output jack:
       # a 10kΩ/1000pF low-pass at ~16 kHz, then a 1kΩ/10µF high-pass at
       # ~16 Hz that strips the 6581's DC offset off the mix.
       class External
         W0_LOWPASS = (100_000 * SCALE).round
         W0_HIGHPASS = (100 * SCALE).round
+
+        # The high-pass step is W0_HIGHPASS/2^20 of the gap, so in whole
+        # units it stalls on any gap under ~10k, as reSID's does. Sixteen
+        # fractional bits bring that under one unit.
+        FRACTION = 16
 
         attr_reader :output
 
@@ -78,16 +88,16 @@ module Badline
         end
 
         def cycle!(input, cycles = 1)
-          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * (input - @lowpass)) >> 12
+          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * ((input << FRACTION) - @lowpass)) >> 12
           delta_highpass = (W0_HIGHPASS * cycles * (@lowpass - @highpass)) >> 20
-          @output = @lowpass - @highpass
+          @output = (@lowpass - @highpass) >> FRACTION
           @lowpass += delta_lowpass
           @highpass += delta_highpass
           @output
         end
       end
 
-      attr_reader :model, :cutoff, :routing, :mode, :volume, :lowpass, :bandpass, :highpass
+      attr_reader :model, :cutoff, :routing, :mode, :volume
 
       def initialize(model: :mos6581)
         @model = model
@@ -113,6 +123,10 @@ module Badline
 
       def voice3_off? = @voice3_off
 
+      def lowpass = @lowpass >> FRACTION
+      def bandpass = @bandpass >> FRACTION
+      def highpass = @highpass >> FRACTION
+
       # Integrates `cycles` cycles in one step, from the voices' output at
       # the end of them.
       def cycle!(voices, cycles = 1)
@@ -121,7 +135,7 @@ module Badline
         w0 = W0_STEP_MAX if w0 > W0_STEP_MAX
         @bandpass -= (w0 * @highpass) >> 20
         @lowpass -= (w0 * @bandpass) >> 20
-        @highpass = ((@bandpass * @resonance) >> 10) - @lowpass - @input
+        @highpass = ((@bandpass * @resonance) >> 10) - @lowpass - (@input << FRACTION)
         @external.cycle!(mix, cycles)
       end
 
@@ -183,7 +197,7 @@ module Badline
         value += @lowpass  if @mode.anybits?(0x1)
         value += @bandpass if @mode.anybits?(0x2)
         value += @highpass if @mode.anybits?(0x4)
-        value
+        value >> FRACTION
       end
     end
   end

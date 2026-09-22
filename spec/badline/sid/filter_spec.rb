@@ -179,26 +179,26 @@ describe Badline::SID::Filter do
       expect(filter.highpass).to eq(-256)
     end
 
+    # 13.8 in floating point, read out in whole units.
     it "integrates the high-pass into the band-pass" do
       run(2)
-      expect(filter.bandpass).to eq(14)
+      expect(filter.bandpass).to eq(13)
     end
 
-    it "leaves the band-pass to charge before the low-pass follows" do
+    # -0.74 in floating point, which whole-unit integrators round to zero.
+    it "moves the low-pass by a fraction of a unit behind the band-pass" do
       run(2)
-      expect(filter.lowpass).to eq(0)
+      expect(filter.lowpass).to eq(-1)
     end
 
-    # Truncation in the fixed-point integrators leaves the settled state a
-    # few LSBs short of the analytic one.
     it "settles the low-pass onto the inverted input" do
       run(10_000)
-      expect(filter.lowpass).to be_within(24).of(-256)
+      expect(filter.lowpass).to be_within(1).of(-256)
     end
 
     it "leaves the high-pass at rest once it settles" do
       run(10_000)
-      expect(filter.highpass.abs).to be < 24
+      expect(filter.highpass.abs).to be <= 1
     end
   end
 
@@ -218,12 +218,13 @@ describe Badline::SID::Filter do
       end.max
     end
 
+    # 174.3 and 117.8 in floating point.
     it "overshoots further at full resonance" do
-      expect(peak_bandpass(0xf1)).to eq(187)
+      expect(peak_bandpass(0xf1)).to eq(174)
     end
 
     it "overshoots least at zero resonance" do
-      expect(peak_bandpass(0x01)).to eq(125)
+      expect(peak_bandpass(0x01)).to eq(117)
     end
   end
 
@@ -253,10 +254,10 @@ describe Badline::SID::Filter do
       expect(run(176_790, 10_000)).to be_within(10_000).of(176_790 / Math::E)
     end
 
-    # The high-pass integrator stalls once its step rounds down to zero,
-    # leaving 2^20/105 of the level behind. reSID does the same.
-    it "leaves a residual once the integrator stalls" do
-      expect(run(176_790, 50_000)).to eq(9986)
+    # In whole units the high-pass step rounds down to zero on any gap
+    # under 2^20/105, so reSID's stalls ~10k short. This one keeps decaying.
+    it "keeps decaying where a whole-unit integrator stalls" do
+      expect(run(176_790, 50_000)).to be_within(3).of(176_790 * Math.exp(-50_000 * 105 / (2.0**20)))
     end
   end
 
@@ -268,9 +269,10 @@ describe Badline::SID::Filter do
       expect(filter.output).to eq(0)
     end
 
+    # The high-pass has drained about 1% of it by then.
     it "settles onto the mix" do
       100.times { filter.cycle!(voices) }
-      expect(filter.output).to be_within(20).of(filter.mix)
+      expect(filter.output).to be_within(filter.mix / 100).of(filter.mix)
     end
   end
 end
