@@ -1,16 +1,7 @@
 name: Regression
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "lib/**"
-      - "bin/lorenz"
-      - "bin/sidtests"
-      - "bin/testbench"
-      - "test/baselines/**"
-      - "Rakefile"
-      - ".github/workflows/regression.yml"
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       suite:
@@ -27,14 +18,17 @@ on:
           - testbench-irqdma
           - testbench-cpu
           - sid-8580
+# No concurrency group: nothing here cancels anything, so a nightly run and
+# a dispatched one never touch each other.
 permissions:
+  actions: read
   contents: read
-concurrency:
-  group: regression-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  # "all" is the push-to-main set; the testbench-* and sid-8580 suites are
-  # opt-in and only run when asked for by name.
+  # "all" is the nightly set; the testbench-* and sid-8580 suites are
+  # opt-in and only run when asked for by name. The nightly run skips when
+  # nothing a suite can see has changed since the last successful nightly
+  # run. The compare API lists at most 300 files, so a list that long counts
+  # as changed.
   select:
     name: Select suites
     runs-on: ubuntu-latest
@@ -43,6 +37,8 @@ jobs:
     steps:
       - id: pick
         env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
           REQUESTED: ${{ inputs.suite || 'all' }}
         run: |
           if [ "$REQUESTED" = all ]; then
@@ -50,10 +46,25 @@ jobs:
           else
             suites="[\"$REQUESTED\"]"
           fi
+          if [ "$EVENT" = schedule ]; then
+            last=$(gh run list -R "$GITHUB_REPOSITORY" --workflow regression.yml \
+              --event schedule --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+            if [ -n "$last" ]; then
+              changed=$(gh api "repos/$GITHUB_REPOSITORY/compare/$last...$GITHUB_SHA" \
+                --jq 'if (.files | length) >= 300 then "lib/" else .files[].filename end' |
+                grep -E '^(lib/|bin/(lorenz|sidtests|testbench)$|test/baselines/|test/regression\.rb$|Rakefile$|\.github/workflows/regression\.yml$)' ||
+                true)
+              if [ -z "$changed" ]; then
+                echo "Nothing the suites run changed since $last. Skipping."
+                suites='[]'
+              fi
+            fi
+          fi
           echo "suites=$suites" >> "$GITHUB_OUTPUT"
   regression:
     name: "Regression (${{ matrix.suite }})"
     needs: select
+    if: needs.select.outputs.suites != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
