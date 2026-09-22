@@ -101,7 +101,8 @@ def run_suite(suite, results, filters = [])
   runner = config.fetch(:runner)
   mkdir_p(File.dirname(results))
   rm_f(results)
-  status = spawn_runner("--yjit", runner, *scope_args(config), *filters, "--results", results)
+  status = spawn_runner("--yjit", runner, *scope_args(config), *filters, *resume_args(config),
+                        "--results", results)
   raise "#{runner} matched no test. Check the filter." if status.exitstatus == 2
 
   puts "#{runner} reported failing tests." unless status.success?
@@ -135,6 +136,18 @@ def forward_signal(signal, pid)
   Process.kill(signal, pid)
 rescue Errno::ESRCH
   nil
+end
+
+# RESUME=1 carries a killed run on from the rows it finished, which only
+# bin/testbench keeps. Each task's results path is fixed, so the same task
+# run again finds its own progress file.
+def resume_args(config)
+  return [] unless ENV["RESUME"] == "1"
+
+  runner = config.fetch(:runner)
+  raise "RESUME=1 needs a bin/testbench suite. #{runner} can't resume." unless runner == "bin/testbench"
+
+  ["--resume"]
 end
 
 def scope_args(config)
