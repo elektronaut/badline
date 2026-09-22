@@ -48,6 +48,26 @@ RSpec.describe Badline::VIC::Sprite do
     raster_line(61)
   end
 
+  # The comparator is eight bits wide, so the PAL lines above 255 match the
+  # Y coordinates 0-55 a second time. Pinned by the testbench's `spritey`,
+  # whose reference collides on every line of the frame.
+  describe "the eight-bit Y compare" do
+    it "starts the DMA on the line the coordinate names" do
+      raster_line(60)
+      expect(render?(61)).to be(true)
+    end
+
+    it "starts it again 256 lines on" do
+      raster_line(60 + 256)
+      expect(render?(60 + 257)).to be(true)
+    end
+
+    it "leaves it alone on a line that only matches in nine bits" do
+      raster_line(60 + 128)
+      expect(render?(60 + 129)).to be(false)
+    end
+  end
+
   describe "#x with the 9th bit" do
     it "reads the low byte from $D000" do
       expect(sprite.x).to eq(100)

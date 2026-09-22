@@ -112,6 +112,7 @@ module Badline
       when 0x11 then (@registers[0x11] & 0x7f) | ((rasterline & 0x100) >> 1)
       when 0x12 then rasterline & 0xff
       when 0x19 then irq_status # Latch + master IRQ bit, unused bits read 1
+      when 0x1e, 0x1f then read_collision(i)
       else @registers.read(i)
       end
     end
@@ -246,18 +247,17 @@ module Badline
       @display_state.graphics_access if col >= 0 && col < DisplayState::COLUMNS_PER_ROW
     end
 
+    # Fold the rest of the line's sprite collisions in — they latch whether
+    # or not there is a line to draw — then composite the active sprites
+    # over the finished background and copy the line into the frame display.
     def finish_line!
+      render = !vblank? && @sprites.active?
+      @sequencer.apply_color_patches unless vblank?
+      @sequencer.snapshot_line if render
+      @sprites.finish_line(render ? @sequencer.colors : nil, @sequencer.fg)
+      @sequencer.apply_border if render
       return if vblank?
 
-      @sequencer.apply_color_patches
-
-      # Composite the active sprites over the finished background line
-      # and copy the line into the frame display.
-      if @sprites.active?
-        @sequencer.snapshot_line
-        @sprites.composite(@sequencer.colors, @sequencer.fg)
-        @sequencer.apply_border
-      end
       base = @rasterline * @width
       colors = @sequencer.colors
       return if @display[base, @width] == colors
@@ -290,6 +290,16 @@ module Badline
       # Latch the raster IRQ flag. The line asserts via #interrupted? when the
       # matching mask bit in $D01A is set.
       @registers.latch_raster_irq!
+    end
+
+    # A collision register carries the pixels drawn up to the cycle before
+    # the read — the VIC runs ahead of the CPU within a machine cycle, so
+    # the column the read lands on has not latched yet — and the reset the
+    # read asserts outlives it, swallowing the pixels drawn under it.
+    def read_collision(reg)
+      beam_x = @column * 8
+      @sprites.collide_upto(beam_x, @sequencer.fg)
+      @registers.read(reg).tap { @sprites.clear_collision(reg, beam_x) }
     end
 
     def irq_status

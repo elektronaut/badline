@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
+require "badline/vic/collisions"
 require "badline/vic/register_log"
 require "badline/vic/sprite"
 
 module Badline
   class VIC < Cycleable
     class Sprites
-      # $D019 latch bits raised by the collision registers.
-      SPRITE_COLLISION_IRQ = 0x04 # IMMC, mirrors $D01E
-      DATA_COLLISION_IRQ   = 0x02 # IMBC, mirrors $D01F
-
       # Pixels between the start of the cycle following a write and the
       # point the new value shows. Each signal reaches the output on its own
       # path: the colors feed the final mux, the sequencer inputs — X
@@ -31,12 +28,16 @@ module Badline
         @bank = bank
         @width = width
         @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, width) }
-        @hits = Array.new(width, 0)
+        @collisions = Collisions.new(registers, width)
+        @hits = @collisions.hits
         @win_color = Array.new(width, 0)
         @win_priority = Array.new(width, false)
         @palette = Array.new(4, 0)
         @log = RegisterLog.new(registers)
         @any_dma = false
+        @lo = width
+        @hi = 0
+        @sequenced = -1
       end
 
       def [](index) = @sprites[index]
@@ -44,6 +45,8 @@ module Badline
       def start_line
         @log.clear
         @sprites.each(&:start_line)
+        @collisions.start_line
+        @sequenced = -1
       end
 
       # Bauer cycles 15 and 16: MCBASE steps on for every sprite whose
@@ -99,42 +102,60 @@ module Badline
         @log.log(beam_x + delay, reg, old, value)
       end
 
-      # Sequence each displaying sprite's row, merge the results into the
-      # scratch buffers, then apply the winners over the background in a
-      # single pass over the touched span.
-      def composite(colors, mask)
-        @sprite_clash = 0
-        @data_clash = 0
-        @lo = @width
-        @hi = 0
+      # Latch the collisions for every sprite pixel the beam has passed
+      # since the last fold.
+      def collide_upto(beam_x, mask)
+        upto = [beam_x, @width].min
+        return if upto <= @collisions.folded
 
-        @log.prepare
-        @sprites.each do |sprite|
-          sprite.sequence(@log)
-          merge(sprite, mask)
-        end
+        sequence_line if active?
+        @collisions.fold(mask, upto, @lo, @hi)
+      end
 
-        apply(colors, mask, @lo, @hi)
-        register_collisions
+      def clear_collision(reg, beam_x) = @collisions.clear(reg, beam_x)
+
+      # End of line: fold in the pixels the beam reached since the last
+      # read, then paint the winners over the background. A line with no
+      # background to paint over — one in the vertical blank — still
+      # collides, so `colors` is nil there rather than absent.
+      def finish_line(colors, mask)
+        collide_upto(@width, mask)
+        colors ? apply(colors, mask) : clear_coverage
       end
 
       private
 
-      # Write one sprite's pixels into the scratch line, picking up the
-      # color and priority registers as they stood at each pixel. The first
-      # sprite to claim a pixel wins (lowest index has priority); later hits
-      # only accumulate collision bits.
-      def merge(sprite, mask)
+      # Replay the line for every sprite, filling the per-pixel coverage
+      # that both the fold and the composite read. A write logged later in
+      # the line can only move pixels past it, so re-running after the log
+      # grows leaves everything already folded where it was.
+      def sequence_line
+        return if @sequenced == @log.length
+
+        clear_coverage
+        @log.prepare
+        @sprites.each do |sprite|
+          sprite.sequence(@log)
+          merge(sprite)
+        end
+        @sequenced = @log.length
+      end
+
+      # Write one sprite's pixels into the coverage, picking up the color and
+      # priority registers as they stood at each pixel. The first sprite to
+      # claim a pixel wins (lowest index has priority); later ones only add
+      # their bit to it.
+      def merge(sprite)
         span = sprite.span
         return if span.zero?
 
         track(sprite.leftmost, span)
         log = @log.empty? ? nil : @log
         log&.rewind
-        merge_span(sprite, mask, log, span)
+        merge_span(sprite, log, span)
       end
 
-      def merge_span(sprite, mask, log, span)
+      def merge_span(sprite, log, span)
         codes = sprite.codes
         bit = 1 << sprite.index
         palette = sprite.palette(log || @registers, @palette)
@@ -152,7 +173,7 @@ module Badline
           code = codes[index]
           if code.nonzero?
             x = pos < @width ? pos : pos - @width
-            merge_pixel(x, palette[code], bit, priority, mask)
+            merge_pixel(x, palette[code], bit, priority)
           end
           index += 1
           pos += 1
@@ -170,37 +191,32 @@ module Badline
         end
       end
 
-      def merge_pixel(pos, color, bit, priority, mask)
+      def merge_pixel(pos, color, bit, priority)
         bits = @hits[pos]
         if bits.zero?
           @win_color[pos] = color
           @win_priority[pos] = priority
-        else
-          @sprite_clash |= bits | bit
         end
         @hits[pos] = bits | bit
-        @data_clash |= bit if mask[pos]
       end
 
-      def apply(colors, mask, from, upto)
-        pos = from
-        while pos < upto
+      def apply(colors, mask)
+        pos = @lo
+        while pos < @hi
           if @hits[pos].nonzero?
             colors[pos] = @win_color[pos] unless @win_priority[pos] && mask[pos]
             @hits[pos] = 0
           end
           pos += 1
         end
+        @lo = @width
+        @hi = 0
       end
 
-      def register_collisions
-        if @sprite_clash.nonzero? && @registers.collide!(0x1e, @sprite_clash)
-          @registers.latch_irq!(SPRITE_COLLISION_IRQ)
-        end
-        return if @data_clash.zero?
-        return unless @registers.collide!(0x1f, @data_clash)
-
-        @registers.latch_irq!(DATA_COLLISION_IRQ)
+      def clear_coverage
+        @hits.fill(0, @lo, @hi - @lo) if @hi > @lo
+        @lo = @width
+        @hi = 0
       end
     end
   end
