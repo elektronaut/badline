@@ -15,8 +15,12 @@ module Badline
 
       # The 6502 stub that starts a tune: call init with the song number,
       # point the KERNAL's IRQ vector at a raster handler that calls play,
-      # and return to whatever SYSed it. Both calls are wrapped in the `$01`
-      # save, bank and restore that puts the tune's own RAM under the CPU.
+      # and spin. Both calls are wrapped in the `$01` save, bank and restore
+      # that puts the tune's own RAM under the CPU.
+      #
+      # A tune owns all of zero page, so the stub never returns to whatever
+      # SYSed it: BASIC's READY loop reuses `$19-$21` and would overwrite the
+      # tune's variables between init and the first play.
       #
       #         jmp boot
       # irq:    lda #$01
@@ -54,7 +58,7 @@ module Badline
       #         lda #>irq
       #         sta $0315
       #         cli
-      #         rts
+      # idle:   jmp idle
       class Driver
         include IntegerHelper
 
@@ -79,7 +83,7 @@ module Badline
 
         def handler_address = @base + jmp(0).length
 
-        def boot_address = handler_address + handler.length
+        def boot_address = playing? ? handler_address + handler.length : @base
 
         def handler
           @handler ||= lda_imm(0x01) + sta_abs(RASTER_IRQ_STATUS) +
@@ -88,9 +92,10 @@ module Badline
         end
 
         def boot
-          [0x78] +
-            banked(@tune.init_address, lda_imm(@song) + jsr(@tune.init_address)) +
-            raster_irq + [0x58, 0x60]
+          start = [0x78] +
+                  banked(@tune.init_address, lda_imm(@song) + jsr(@tune.init_address)) +
+                  raster_irq + [0x58]
+          start + jmp(boot_address + start.length)
         end
 
         # Tunes live under the ROMs as often as not, so a call has to bank out

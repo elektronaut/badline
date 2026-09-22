@@ -250,8 +250,8 @@ describe Badline::Storage::SIDFile do
       expect(boot.each_cons(5).to_a).to include([0xa9, 0x37, 0x8d, 0x14, 0x03])
     end
 
-    it "returns to the caller with interrupts enabled" do
-      expect(boot.last(2)).to eq([0x58, 0x60])
+    it "enables interrupts and spins on its own jmp instead of returning" do
+      expect(boot.last(4)).to eq([0x58, 0x4c, 0x84, 0x03])
     end
 
     it "passes the requested song" do
@@ -320,7 +320,8 @@ describe Badline::Storage::SIDFile do
 
     it "only calls init" do
       expect(tune.driver)
-        .to eq([0x78] + bank(0x37) + [0xa9, 0x00, 0x20, 0x00, 0x10] + unbank + [0x58, 0x60])
+        .to eq([0x78] + bank(0x37) + [0xa9, 0x00, 0x20, 0x00, 0x10] + unbank +
+               [0x58, 0x4c, 0x45, 0x03])
     end
   end
 
