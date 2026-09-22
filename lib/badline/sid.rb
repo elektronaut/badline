@@ -54,6 +54,8 @@ module Badline
       @bus_ttl = 0
       @bus_ttl_reset = BUS_TTL.fetch(model)
       @voices = Array.new(VOICES) { Voice.new(model:) }
+      @voice1, @voice2, @voice3 = @voices
+      @waveform1, @waveform2, @waveform3 = @voices.map(&:waveform)
       @filter = Filter.new(model:)
       @synthesizing = false
       @idle_cycles = 0
@@ -129,9 +131,15 @@ module Badline
       end
     end
 
+    # Unrolled over the three voices: the per-cycle block calls cost
+    # measurably on the synthesis path.
     def clock!
-      @voices.each(&:cycle!)
-      @voices.each { |voice| voice.waveform.synchronize! }
+      @voice1.cycle!
+      @voice2.cycle!
+      @voice3.cycle!
+      @waveform1.synchronize!
+      @waveform2.synchronize!
+      @waveform3.synchronize!
       @filter.cycle!(@voices)
     end
 
