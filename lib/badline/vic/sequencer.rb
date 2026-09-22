@@ -177,9 +177,9 @@ module Badline
         shift = @registers.xscroll
         keep = 8 - shift
 
-        @colors[x_pos + shift, keep] = @cur_colors[0, keep]
+        copy(@cur_colors, 0, @colors, x_pos + shift, keep)
         if col.positive? # the left column only exists from column 1 on
-          @colors[x_pos, shift] = @prev_colors[keep, shift]
+          copy(@prev_colors, keep, @colors, x_pos, shift)
         else
           @colors.fill(@registers.background, x_pos, shift)
         end
@@ -189,11 +189,19 @@ module Badline
       def output_shifted_fg(col, x_pos, in_gfx, shift, keep)
         return @fg.fill(false, x_pos, 8) unless in_gfx
 
-        @fg[x_pos + shift, keep] = @cur_fg[0, keep]
+        copy(@cur_fg, 0, @fg, x_pos + shift, keep)
         if col.positive?
-          @fg[x_pos, shift] = @prev_fg[keep, shift]
+          copy(@prev_fg, keep, @fg, x_pos, shift)
         else
           @fg.fill(false, x_pos, shift)
+        end
+      end
+
+      def copy(src, from, dest, to, count)
+        i = 0
+        while i < count
+          dest[to + i] = src[from + i]
+          i += 1
         end
       end
 
@@ -239,6 +247,7 @@ module Badline
       def roll
         @prev_colors, @cur_colors = @cur_colors, @prev_colors
         @prev_fg, @cur_fg = @cur_fg, @prev_fg
+        nil
       end
     end
   end
