@@ -16,6 +16,9 @@ module Badline
 
     LIGHTPEN_IRQ = 0x08 # $D019 latch bit
 
+    # A g-access reaches the pixel output this many columns after it runs.
+    GRAPHICS_DELAY = 2
+
     # Columns carrying a per-cycle hook, so an ordinary column costs one
     # array read instead of the dispatch.
     HOOK_COLUMNS = Array.new(63) do |column|
@@ -55,6 +58,12 @@ module Badline
       @character_buffer = Array.new(40, 0)
       @color_buffer = Array.new(40, 0)
       @sprite_ba = Array.new(@width / 8, false)
+      @g_tick = 0
+      @g_display = Array.new(4, false)
+      @g_char = Array.new(4, 0)
+      @g_color = Array.new(4, 1)
+      @g_vc = Array.new(4, 0)
+      @g_rc = Array.new(4, 0)
       @lp_triggered = false
       @lp_low = false
 
@@ -64,11 +73,10 @@ module Badline
     def cycle!
       start_line! if @column.zero?
 
-      @display_state.cycle(@rasterline, @column)
-
-      # The g-access runs a phase ahead of the c-access, so the column
-      # reads the cell the previous one fetched.
+      # The g-access runs in the first half of the cycle, ahead of the bad
+      # line compare, and the c-access in the second half, after it.
       draw!
+      @display_state.cycle(@rasterline, @column)
 
       fetch_character_data! if dma_active?
 
@@ -133,12 +141,12 @@ module Badline
 
     # Asked once the VIC has advanced, so @column is one ahead of the cycle
     # the CPU is about to run. A bad line holds BA on the condition as it
-    # stands rather than the latched match, two columns ahead of the
-    # display state's own DMA window.
+    # stands rather than the latched match.
     def ba_low?
       return true if @sprite_ba[@column]
 
-      @display_state.bad_line_condition? && @column >= 11 && @column < 54
+      @display_state.bad_line_condition? &&
+        @column > DisplayState::DMA_FIRST && @column <= DisplayState::DMA_LAST + 1
     end
 
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.
@@ -236,19 +244,28 @@ module Badline
       end
     end
 
+    # Runs this column's g-access and draws the one from GRAPHICS_DELAY
+    # columns earlier.
     def draw!
+      slot = @g_tick = (@g_tick + 1) & 3
+      display_state = @display_state
+      if (@g_display[slot] = display_state.display?)
+        vmli = display_state.vmli
+        @g_char[slot] = @character_buffer[vmli] || 0
+        @g_color[slot] = @color_buffer[vmli] || 1
+        @g_vc[slot] = display_state.vc
+        @g_rc[slot] = display_state.rc
+        display_state.graphics_access(@column)
+      end
       return if blanking?
 
+      slot = (slot - GRAPHICS_DELAY) & 3
       col = @column - 16
-      unless @display_state.display?
+      if @g_display[slot]
+        @sequencer.emit(@g_char[slot], @g_color[slot], col, @g_vc[slot], @g_rc[slot])
+      else
         @sequencer.emit_idle(col)
-        return
       end
-
-      vmli = @display_state.vmli
-      @sequencer.emit(@character_buffer[vmli] || 0, @color_buffer[vmli] || 1,
-                      col, @display_state.vc, @display_state.rc)
-      @display_state.graphics_access if col >= 0 && col < DisplayState::COLUMNS_PER_ROW
     end
 
     # Fold the rest of the line's sprite collisions in — they latch whether

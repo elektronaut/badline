@@ -16,21 +16,21 @@ module Badline
       # about to start, the same wrap the raster IRQ latch uses.
       WRAP_COLUMN = 62
 
-      # BA goes low on the match; the VIC only owns the bus three cycles
-      # later, when AEC follows. The row opens on that same edge.
+      # AEC follows BA three cycles later; the c-accesses before it read
+      # the bus the CPU still drives.
       BA_DELAY = 3
 
-      # Where a match pulls BA low, and where the c-accesses run.
-      DMA_FIRST = 12
-      DMA_LAST = 54
-      FETCH_FIRST = 15
-
-      # The row counter rewinds on a match standing in column 12, or on a
-      # row opening late enough to still reach it. Derived against the
-      # `dmadelay` tests, which sweep the match across the whole line.
-      ROW_RESET_COLUMN = 12
-      LATE_ROW_RESET_FIRST = 11
-      LATE_ROW_RESET_LAST = 15
+      # Columns run two ahead of Bauer's cycle numbers: column 10 is his
+      # cycle 12. BA falls on a match in columns 10-52, the c-accesses run
+      # in 13-52 and the g-accesses in 14-53. VC and VMLI reload in column
+      # 12 and the row counter steps in column 56.
+      DMA_FIRST = 10
+      DMA_LAST = 52
+      FETCH_FIRST = 13
+      GRAPHICS_FIRST = 14
+      GRAPHICS_LAST = 53
+      LOAD_COLUMN = 12
+      RC_COLUMN = 56
 
       attr_reader :vc_base, :vc, :vmli, :rc
 
@@ -43,8 +43,6 @@ module Badline
         @display = false
         @bad_lines_enabled = false
         @matched = false
-        @opened = false
-        @pending = nil
         @ba = nil
         new_line(0)
       end
@@ -59,13 +57,8 @@ module Badline
       # True once AEC has followed BA down and the VIC owns the bus.
       def bus_taken?(column) = @ba ? column >= @ba + BA_DELAY : false
 
-      # The c-accesses run from the match to the end of the fetch window. A
-      # match so late that AEC would land past that window fetches nothing.
       def fetching?(column)
-        ba = @ba
-        return false if ba.nil? || ba + BA_DELAY > DMA_LAST
-
-        column >= ba && column >= FETCH_FIRST && column <= DMA_LAST
+        @matched && column >= FETCH_FIRST && column <= DMA_LAST
       end
 
       def new_frame
@@ -74,7 +67,6 @@ module Badline
       end
 
       def new_line(line)
-        @opened = false
         @ba = nil
         @line_bits = line & 0b111
         @den_line = line == FIRST_LINE
@@ -82,19 +74,22 @@ module Badline
       end
 
       def cycle(rasterline, column)
-        open_row(column) if @pending
-        load_counters if column == 14
-
         match = column == WRAP_COLUMN ? wrap_match(rasterline + 1) : line_match
-        match_bad_line(column) if match
         @matched = match
-        check_row_counter(match) if column == 58
+        if match
+          @display = true
+          @ba = column if @ba.nil? && column >= DMA_FIRST && column <= DMA_LAST
+        end
+        load_counters(match) if column == LOAD_COLUMN
+        check_row_counter(match) if column == RC_COLUMN
       end
 
       # A g-access in display state consumes one buffer cell and one video
       # matrix address. A row that opens mid-line makes fewer of them, and
       # the shortfall carries into VCBASE.
-      def graphics_access
+      def graphics_access(column)
+        return unless column.between?(GRAPHICS_FIRST, GRAPHICS_LAST)
+
         @vc = (@vc + 1) & 0x3ff
         @vmli += 1
       end
@@ -120,31 +115,10 @@ module Badline
         @bad_lines_enabled = true if @registers.display_enabled?
       end
 
-      # The condition is compared in every cycle, so a row can open from a
-      # match the DMA window never sees. Only the leading edge opens one,
-      # and only the first of a line: a match that outlives the row it
-      # started, or trails it, does not open another.
-      def match_bad_line(column)
-        @rc = 0 if column == ROW_RESET_COLUMN
-        @ba = column if @ba.nil? && column >= DMA_FIRST && column <= DMA_LAST
-        return if @matched || @display || @opened
-
-        @opened = true
-        @pending = BA_DELAY
-      end
-
-      def open_row(column)
-        @pending -= 1
-        return unless @pending.zero?
-
-        @pending = nil
-        @display = true
-        @rc = 0 if column.between?(LATE_ROW_RESET_FIRST, LATE_ROW_RESET_LAST)
-      end
-
-      def load_counters
+      def load_counters(match)
         @vc = @vc_base
         @vmli = 0
+        @rc = 0 if match
       end
 
       # A condition still standing when the row counter wraps puts the logic
