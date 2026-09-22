@@ -142,22 +142,30 @@ the rows your change can't reach tell you nothing about it.
   `first`, stops after `last` and leaves the `(suite)` row alone. Cover
   every test your change can reach, and explain every moved row. Never
   re-record just to make a diff go away
-- CI's push-to-main run owns the whole-suite verdict. The Regression
-  workflow runs `testbench`, `lorenz` and `sid` when a push to `main`
-  touches `lib/`, the runners, the baselines or the Rakefile. It never runs
-  on pull requests, and a newer push cancels a run in progress. The
-  `testbench-*` and `sid-8580` suites run from the Actions tab on demand
+- CI's nightly run owns the whole-suite verdict. The Regression workflow
+  runs `testbench`, `lorenz` and `sid` against `main` each night, and skips
+  the night when nothing relevant has changed since the last successful
+  nightly run. It also runs from the Actions tab on demand. It never runs
+  on push or on pull requests, so one verdict can cover a day's merges.
+  The `testbench-*` and `sid-8580` suites run from the Actions tab on
+  demand
 - The one exception is a change whose reach you can't bound to a set of
   filters, such as reordering `Computer#cycle!` or changing the LOAD trap
   every suite loads through. Ask before running a full suite for it, and
   don't start one on your own judgement
 
 Pick the filters from the suites your change can move: VIC → `testbench`;
-CPU, CIA, interrupts or timing → `lorenz` and the matching `testbench-*`
-suite; SID → `sid`, plus `sid-8580` for anything the 8580 model reaches
-(`bin/sidtests --sid 8580`). Both Lorenz and testbench load through the LOAD
-trap and type through the keyboard buffer, so storage, IEC and keyboard
-changes can move them too. A broken trap stalls the Lorenz chain.
+CPU, CIA, interrupts or timing → the matching `testbench-*` suite, plus
+`rake test` for CPU; SID → `sid`, plus `sid-8580` for anything the 8580
+model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
+its full chain runs nightly, and the planner assigns any row it moves. The
+exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
+tests: the interrupt polling, CPU port and CIA timer rules. Run just the
+tests that rule names, one at a time, with
+`ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. Both Lorenz
+and testbench load through the LOAD trap and type through the keyboard
+buffer, so storage, IEC and keyboard changes can move them too. A broken
+trap stalls the Lorenz chain.
 
 `ruby --yjit bin/benchmark` measures post-boot speed. Absolute numbers
 depend on the machine and its load: parallel worktrees running suites can
