@@ -271,7 +271,8 @@ class TestTestbenchInterruption < Minitest::Test
 end
 
 class TestTestbenchProgress < Minitest::Test
-  # Scores from a table instead of booting a machine, and says nothing.
+  # Scores from a table in its own process instead of forking from a
+  # booted machine, and says nothing.
   class StubRunner < Testbench::Runner
     attr_reader :ran
 
@@ -283,7 +284,7 @@ class TestTestbenchProgress < Minitest::Test
 
     private
 
-    def run_test(test)
+    def in_child(test)
       @ran << test.key
       score = @scores.fetch(test)
       score.respond_to?(:call) ? score.call : score

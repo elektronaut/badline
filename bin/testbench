@@ -8,9 +8,12 @@
 #                             [--resume]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
-# hardware badline models: VICII, CIA, interrupts and CPU. Each test boots
-# a fresh machine with its directory mounted as device 8, injects the .prg
-# and types RUN. Tests report through the $D7FF debug register ($00 pass,
+# hardware badline models: VICII, CIA, interrupts and CPU. Each process
+# boots a machine once, and each test runs in a child forked from it
+# (test/forked_boot.rb) that mounts the test's directory as device 8,
+# injects the .prg and types RUN. A child that crashes or hangs gets a
+# FAIL row saying so, and the next test forks from the same clean boot.
+# Tests report through the $D7FF debug register ($00 pass,
 # $ff fail), unless the testlist says expect:error or expect:timeout;
 # screenshot tests are compared pixel-by-pixel against the bundled
 # reference PNGs (pepto palette, 384x272 — the same crop the GUI uses).
@@ -27,7 +30,7 @@
 # baseline's rows; a filter that matches nothing is an error rather than
 # an empty run.
 #
-# Tests are independent — each boots its own machine — so the run is
+# Tests are independent — each gets its own copy of the machine — so the run is
 # forked over --shards processes (SHARDS in the environment, 4 by
 # default) and the per-test records merged back into testlist order.
 #
@@ -41,6 +44,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "chunky_png"
 require "etc"
+require_relative "../test/forked_boot"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -425,9 +429,19 @@ module Testbench
     end
 
     def run_one(test)
-      result, elapsed = timed { run_test(test) }
+      result, elapsed = timed { in_child(test) }
       @progress.append(test, result)
       report(test, result, elapsed)
+    end
+
+    # Each test runs in a child forked from a machine this process booted
+    # once (see ForkedBoot). The deadline only catches a child stuck outside
+    # its emulated cycles: at a hundred thousand cycles a second, far slower
+    # than any machine this runs on, the budget alone would take that long.
+    def in_child(test)
+      @booted ||= ForkedBoot.new(FORWARDED_SIGNALS) { ForkedBoot.computer }
+      deadline = 60 + ((test.timeout + BOOT_ALLOWANCE) / 100_000)
+      @booted.run(deadline) { |computer| run_test(test, computer) }
     end
 
     def timed
@@ -435,8 +449,8 @@ module Testbench
       [yield, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started]
     end
 
-    def run_test(test)
-      exit_code, computer = execute(test)
+    def run_test(test, computer)
+      exit_code, computer = execute(test, computer)
       return score_screenshot(test, exit_code, computer) unless test.type == "exitcode"
 
       score_exitcode(test, exit_code).tap do |result|
@@ -473,8 +487,8 @@ module Testbench
       end
     end
 
-    def execute(test)
-      computer = boot(test)
+    def execute(test, computer)
+      attach(test, computer)
       exit_code = nil
       computer.install_debug_register { |value| exit_code = value }
       budget = test.timeout + BOOT_ALLOWANCE
@@ -482,11 +496,9 @@ module Testbench
       [exit_code, computer]
     end
 
-    def boot(test)
-      Badline::Computer.new.tap do |computer|
-        computer.mount(Badline::Storage::HostDirectory.new(test.dir_abs))
-        Badline::Media.attach(computer, File.join(test.dir_abs, test.prg))
-      end
+    def attach(test, computer)
+      computer.mount(Badline::Storage::HostDirectory.new(test.dir_abs))
+      Badline::Media.attach(computer, File.join(test.dir_abs, test.prg))
     end
 
     def score_screenshot(test, exit_code, computer)
