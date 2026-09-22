@@ -165,6 +165,10 @@ module Badline
       def end_address = load_address + data.length
       def psid? = @format == "PSID"
 
+      # Flag bits 4-5 name the SID the tune was written for: 01 the 6581,
+      # 10 the 8580, 11 either and 00 unknown. Only an 8580-only tune gets one.
+      def sid_model = flags[4, 2] == 0b10 ? :mos8580 : :mos6581
+
       # HVSC keys its song length database on the whole file, header and all.
       def md5 = @md5 ||= Digest::MD5.hexdigest(@bytes.pack("C*"))
 

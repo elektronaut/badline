@@ -26,10 +26,12 @@ module Badline
       # A tune's init routine is free to unpack itself, but not forever.
       INIT_LIMIT = 10_000_000
 
-      def initialize(tune, song: nil)
+      attr_reader :sid
+
+      def initialize(tune, song: nil, sid_model: tune.sid_model)
         @tune = tune
         @song = (song || tune.start_song).clamp(1, tune.songs) - 1
-        @bus = AddressBus.new
+        @bus = AddressBus.new(sid_model:)
         @cpu = CPU.new(@bus)
         @sid = @bus.sid
         @idle = false

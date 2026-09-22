@@ -38,6 +38,18 @@ describe Badline::GUI::Application do
     described_class.new.run
   end
 
+  describe "the SID model" do
+    it "fits the machine with the one asked for" do
+      described_class.new(sid_model: :mos8580)
+      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos8580)
+    end
+
+    it "fits a 6581 by default" do
+      described_class.new
+      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos6581)
+    end
+  end
+
   describe "a mouse button in paddle mode" do
     it "fires paddle A on port 1 with the left button" do
       run_with(tabs: 4, button: 1)

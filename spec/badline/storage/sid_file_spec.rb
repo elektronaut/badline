@@ -13,7 +13,7 @@ describe Badline::Storage::SIDFile do
   let(:image) { [0xa9, 0x00] + ([0xea] * 0x1d) + [0x60] }
   let(:fields) do
     { version: 2, data_offset: 0x7c, load: 0x1000,
-      init: 0x1000, play: 0x1020, songs: 2, start_song: 1 }
+      init: 0x1000, play: 0x1020, songs: 2, start_song: 1, flags: 0x04 }
   end
 
   before { File.binwrite(path, (header + image).pack("C*")) }
@@ -24,11 +24,12 @@ describe Badline::Storage::SIDFile do
   end
 
   def header
-    words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
+    words = fields.except(:flags).values.flat_map { |value| [value >> 8, value & 0xff] }
     base = "PSID".bytes + words + [speed].pack("N").bytes + texts
     return base unless fields[:version] > 1
 
-    base + [0x00, 0x04, start_page, 0x01, 0x00, 0x00]
+    flags = fields[:flags]
+    base + [flags >> 8, flags & 0xff, start_page, 0x01, 0x00, 0x00]
   end
 
   def texts
@@ -128,11 +129,33 @@ describe Badline::Storage::SIDFile do
     end
   end
 
+  describe "#sid_model" do
+    {
+      0b00 => :mos6581, 0b01 => :mos6581, 0b10 => :mos8580, 0b11 => :mos6581
+    }.each do |bits, model|
+      context "with sidModel bits #{format('%02b', bits)}" do
+        let(:fields) { super().merge(flags: 0x04 | (bits << 4)) }
+
+        it { expect(tune.sid_model).to eq(model) }
+      end
+    end
+
+    context "with only the second SID asking for an 8580" do
+      let(:fields) { super().merge(flags: 0b1000_0000) }
+
+      it { expect(tune.sid_model).to eq(:mos6581) }
+    end
+  end
+
   describe "a version 1 header" do
     let(:fields) { super().merge(version: 1, data_offset: 0x76) }
 
     it "has no flags" do
       expect(tune.flags).to eq(0)
+    end
+
+    it "plays on a 6581" do
+      expect(tune.sid_model).to eq(:mos6581)
     end
 
     it "still finds the data" do

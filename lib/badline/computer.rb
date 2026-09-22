@@ -13,8 +13,8 @@ module Badline
     def_delegators :address_bus, :vic, :cia1, :cia2, :sid, :ram, :keyboard, :joystick1, :joystick2,
                    :control_ports, :datasette, :install_debug_register
 
-    def initialize(debug: false)
-      @address_bus = AddressBus.new
+    def initialize(debug: false, sid_model: :mos6581)
+      @address_bus = AddressBus.new(sid_model:)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @cia1 = @address_bus.cia1

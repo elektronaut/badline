@@ -27,6 +27,11 @@ parser = OptionParser.new do |opts|
     options[:song] = n
   end
 
+  opts.on("--sid MODEL", { "6581" => :mos6581, "8580" => :mos8580 },
+          "SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)") do |model|
+    options[:sid_model] = model
+  end
+
   opts.on("--disable-jit", "Run without enabling YJIT") do
     options[:jit] = false
   end
@@ -58,4 +63,4 @@ require "badline"
 require "badline/gui"
 
 Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
-                              song: options[:song]).run
+                              song: options[:song], sid_model: options[:sid_model]).run
