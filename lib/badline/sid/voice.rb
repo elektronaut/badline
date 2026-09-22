@@ -5,17 +5,20 @@ module Badline
     # One of the three voices: a waveform generator amplitude-modulated by
     # its envelope.
     #
-    # The 6581 waveform DAC swings around a midpoint rather than zero, so
-    # even a silent voice carries DC_OFFSET into the mixer.
+    # The 6581 waveform DAC swings around a midpoint well above ground, so
+    # even a silent voice carries a large DC offset into the mixer. The
+    # 8580's is centred and carries none.
     class Voice
-      WAVE_ZERO = 0x380
-      DC_OFFSET = 0x800 * 0xff
+      WAVE_ZERO = { mos6581: 0x380, mos8580: 0x800 }.freeze
+      DC_OFFSET = { mos6581: 0x800 * 0xff, mos8580: 0 }.freeze
 
       attr_reader :waveform, :envelope
 
-      def initialize
-        @waveform = Waveform.new
+      def initialize(model: :mos6581)
+        @waveform = Waveform.new(model:)
         @envelope = Envelope.new
+        @wave_zero = WAVE_ZERO.fetch(model)
+        @dc_offset = DC_OFFSET.fetch(model)
       end
 
       def control=(value)
@@ -29,7 +32,7 @@ module Badline
       end
 
       def output
-        ((@waveform.output - WAVE_ZERO) * @envelope.output) + DC_OFFSET
+        ((@waveform.output - @wave_zero) * @envelope.output) + @dc_offset
       end
     end
   end
