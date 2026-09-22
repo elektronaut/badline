@@ -26,14 +26,15 @@ on:
           - testbench-interrupts
           - testbench-irqdma
           - testbench-cpu
+          - sid-8580
 permissions:
   contents: read
 concurrency:
   group: regression-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  # "all" is the push-to-main set; the testbench-* suites are long enough
-  # that they only run when asked for by name.
+  # "all" is the push-to-main set; the testbench-* and sid-8580 suites are
+  # opt-in and only run when asked for by name.
   select:
     name: Select suites
     runs-on: ubuntu-latest
