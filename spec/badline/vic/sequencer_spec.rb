@@ -152,6 +152,40 @@ RSpec.describe Badline::VIC::Sequencer do
     end
   end
 
+  # Bauer §3.9 rules 2-5: the vertical flip-flop is compared at cycle 63 and
+  # again at the left window edge, never at line start, so DEN and RSEL
+  # toggled mid-frame still open or close the border. Pinned by dentest and
+  # border.
+  describe "vertical border flip-flop" do
+    # RSEL=1 puts the top compare on line 51; CSEL=40 puts the left one at
+    # pixel 128, the first pixel of display column 0.
+    def paint_line(line, den:, den_midline: false)
+      registers.write(0x16, 0xc8)
+      registers.write(0x11, 0x08 | (den ? 0x10 : 0x00))
+      put_char(0, 0)
+      sequencer.new_line(line)
+      registers.write(0x11, 0x18) if den_midline
+      (-2..3).each { |c| emit_at(0, c) }
+      sequencer.colors[128]
+    end
+
+    it "opens the window on the top compare line with DEN set" do
+      expect(paint_line(51, den: true)).to eq(6) # background
+    end
+
+    it "keeps the border closed with DEN clear" do
+      expect(paint_line(51, den: false)).to eq(2) # border
+    end
+
+    it "opens on a DEN set after the line has started" do
+      expect(paint_line(51, den: false, den_midline: true)).to eq(6)
+    end
+
+    it "leaves the border closed on any other line" do
+      expect(paint_line(52, den: true)).to eq(2)
+    end
+  end
+
   describe "horizontal border flip-flop" do
     def paint_line(switch_at: nil, switch_to: nil)
       put_char(1, 0xff)

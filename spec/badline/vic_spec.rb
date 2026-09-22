@@ -85,6 +85,43 @@ RSpec.describe Badline::VIC do
       end
     end
 
+    # Bauer 3.12: the compare runs at cycle 0 of every line and cycle 1 of
+    # line 0. Here that is the line wrap — the end of the old line's last
+    # cycle — with line 0 falling through to column 0 instead. Pinned by
+    # greydot, ss-*-color and den01-49-*, and coupled to the CPU's interrupt
+    # polling: recalibrate the two together.
+    context "with the compare at the line wrap" do
+      before do
+        vic.poke(0xd01a, 1)
+        vic.poke(0xd012, 50)
+        ((50 * 63) - 1).times { vic.cycle! }
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(0) }
+
+      it "latches as the line wraps, not on the new line's first column" do
+        vic.cycle!
+        expect(vic.peek(0xd019) & 0x01).to eq(1)
+      end
+    end
+
+    context "with line 0 as the target" do
+      before do
+        vic.poke(0xd01a, 1)
+        vic.poke(0xd012, 0)
+        ((312 * 63) - 1).times { vic.cycle! }
+        vic.poke(0xd019, 0x01) # clear the latch the frame opened with
+        vic.cycle!             # the wrap to line 0, which does not compare
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(0) }
+
+      it "latches a column later than every other line" do
+        vic.cycle!
+        expect(vic.peek(0xd019) & 0x01).to eq(1)
+      end
+    end
+
     context "when raster target requires 9 bits using register 0x11" do
       before do
         vic.poke(0xd011, 0x80)
