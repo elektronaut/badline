@@ -102,6 +102,7 @@ class TestCPU < Minitest::Test
     define_method "test_#{i}_#{test['name'].gsub(' ', '_')}" do
       cpu = setup_cpu(test["initial"])
       cpu.step!
+      cpu.cycle! while cpu.jammed? && cpu.cycles < test["cycles"].length
 
       assert_registers(test["final"], cpu)
       if TEST_CYCLES

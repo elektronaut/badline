@@ -21,21 +21,21 @@ CPU/asap/cpu_decimal.prg	PASS
 CPU/asap/cpu_las.prg	PASS
 CPU/asap/cpu_shx.prg	PASS
 CPU/bclark/decimalmode.prg	PASS
-CPU/cpujam/cpujam02.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam12.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam22.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam32.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam42.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam52.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam62.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam72.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujam92.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujamb2.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujamd2.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/cpujamf2.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/cpujam02.prg	PASS
+CPU/cpujam/cpujam12.prg	PASS
+CPU/cpujam/cpujam22.prg	PASS
+CPU/cpujam/cpujam32.prg	PASS
+CPU/cpujam/cpujam42.prg	PASS
+CPU/cpujam/cpujam52.prg	PASS
+CPU/cpujam/cpujam62.prg	PASS
+CPU/cpujam/cpujam72.prg	PASS
+CPU/cpujam/cpujam92.prg	PASS
+CPU/cpujam/cpujamb2.prg	PASS
+CPU/cpujam/cpujamd2.prg	PASS
+CPU/cpujam/cpujamf2.prg	PASS
 CPU/cpujam/nojam.prg	PASS
-CPU/cpujam/jamirq.prg	FAIL	exit=$ff want=timeout
-CPU/cpujam/jamnmi.prg	FAIL	exit=$ff want=timeout
+CPU/cpujam/jamirq.prg	PASS
+CPU/cpujam/jamnmi.prg	PASS
 CPU/cpujam/unjam.prg	PASS
 CPU/cpuport/test1.prg	PASS
 CPU/hmc6502/AllSuiteA.prg	PASS
