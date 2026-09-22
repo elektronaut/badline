@@ -234,6 +234,20 @@ only catches the rows that happen to move.
   - Pinned by `spritey`. Its sprites carry a single lit pixel on their first
     row, so they only collide on the line after the Y match: line 1 for a
     coordinate of 0.
+- The $D019 collision bits rise on the **cycle that draws the colliding
+  pixel**, on the edge out of an empty register, whether or not $D01A
+  enables them. The fold keeps up with the beam while an enabled collision
+  IRQ is unlatched, and a $D019 read folds first, so neither waits for the
+  end of the line.
+  - Pinned by `irq-ack-vicii`'s sprite-sprite half. Its `STA $D019` row
+    acknowledges the flag before the CPU takes the IRQ (`-`) at exactly the
+    fourth of six delays. Folding a cycle early moves the `-` to the third,
+    folding a cycle late moves it to the fifth, and folding only at the end
+    of the line loses it. The read fold matters only with the IRQ disabled,
+    which no testprog covers; it follows VICE, which sets the bit
+    regardless of $D01A.
+  - Spec guard: *when the beam crosses the colliding pixel* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - Spec guard: *#collide_upto* in
   [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
   four examples each fail on a one-pixel change.

@@ -4,7 +4,7 @@ interrupts/cia-int/cia-int-irq.prg	PASS
 interrupts/cia-int/cia-int-nmi.prg	PASS
 interrupts/irq-ackn-bug/cia1.prg	PASS
 interrupts/irq-ackn-bug/cia2.prg	PASS
-interrupts/irq-ackn-bug/irq-ack-vicii.prg	FAIL	exit=$ff
+interrupts/irq-ackn-bug/irq-ack-vicii.prg	PASS
 interrupts/irqdummy/irqdummy.prg	PASS
 interrupts/irqnmi/irqnmi-old.prg	PASS
 interrupts/irqnoack/ackcia.prg	PASS

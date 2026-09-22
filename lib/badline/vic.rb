@@ -93,6 +93,7 @@ module Badline
         @rasterline = @rasterline == @last_line ? 0 : @rasterline + 1
         check_raster_irq! unless @rasterline.zero?
       end
+      watch_collisions
       nil
     end
 
@@ -327,7 +328,17 @@ module Badline
       @registers.read(reg).tap { @sprites.clear_collision(reg, beam_x) }
     end
 
+    # A collision raises its $D019 bit as the beam crosses the pixel rather
+    # than when the line is folded at its end, so while an enabled
+    # collision IRQ is still unlatched the fold keeps up with the beam.
+    def watch_collisions
+      return if (@registers[0x1a] & ~@registers[0x19]).nobits?(0x06)
+
+      @sprites.collide_upto(@column * 8, @sequencer.fg)
+    end
+
     def irq_status
+      @sprites.collide_upto(@column * 8, @sequencer.fg)
       (@registers[0x19] & 0x0f) | 0x70 | (interrupted? ? 0x80 : 0)
     end
 
