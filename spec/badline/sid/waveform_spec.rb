@@ -133,14 +133,14 @@ describe Badline::SID::Waveform do
       expect(waveform.noise).to eq(0xfe0)
     end
 
-    it "holds the seed until accumulator bit 19 rises" do
+    it "holds its state until accumulator bit 19 rises" do
       restart(0x80, frequency: 0x8000, cycles: 15)
-      expect(waveform.shift_register).to eq(0x7ffff8)
+      expect(waveform.shift_register).to eq(0x7ffffc)
     end
 
     it "shifts left when accumulator bit 19 rises, feeding back bits 22 and 17" do
       restart(0x80, frequency: 0x8000, cycles: 16)
-      expect(waveform.shift_register).to eq(0x7ffff0)
+      expect(waveform.shift_register).to eq(0x7ffff8)
     end
 
     it "shifts once for each rise of accumulator bit 19" do
@@ -148,15 +148,94 @@ describe Badline::SID::Waveform do
       expect(waveform.noise).to eq(0xfc0)
     end
 
-    it "clears the LFSR while the test bit is held" do
+    it "stalls the LFSR while the test bit is held" do
       waveform.control = 0x88
-      expect(waveform.noise).to eq(0x000)
+      10.times { waveform.cycle! }
+      expect(waveform.shift_register).to eq(described_class::NOISE_SEED)
     end
 
-    it "refills the LFSR when the test bit is released" do
+    # SID/wf12nsr reads $ff off a register the test bit has held for a while.
+    it "bleeds every bit high once the test bit has held long enough" do
+      waveform.control = 0x88
+      described_class::SHIFT_REGISTER_RESET_DELAY.times { waveform.cycle! }
+      expect(waveform.noise).to eq(0xff0)
+    end
+
+    # Bit 22 is forced high while the test bit is set, so the bit clocked in
+    # on release is the complement of bit 17.
+    it "shifts a bit in over the forced bit 22 when the test bit is released" do
       waveform.control = 0x88
       waveform.control = 0x80
-      expect(waveform.noise).to eq(0xfe0)
+      expect(waveform.shift_register).to eq(0x7ffffc)
+    end
+  end
+
+  # Dag Lem's fast LFSR reset (SID/noise-reset_new) drives the register from
+  # both directions: combined waveforms clear bits, the test bit shifts them.
+  describe "combined waveform writeback" do
+    def toggle_test(control, times)
+      times.times do
+        waveform.control = control | 0x08
+        6.times { waveform.cycle! }
+        waveform.control = control
+        6.times { waveform.cycle! }
+      end
+    end
+
+    it "clears every LFSR bit through three noise+sawtooth+triangle shifts" do
+      toggle_test(0xb0, 3)
+      expect(waveform.shift_register).to eq(0x000000)
+    end
+
+    it "sets bits 0 to 17 by toggling the test bit over plain noise" do
+      toggle_test(0xb0, 3)
+      toggle_test(0x80, 18)
+      expect(waveform.shift_register).to eq(0x03ffff)
+    end
+
+    it "leaves the LFSR alone when noise is the only waveform selected" do
+      restart(0x80, frequency: 0x0000, cycles: 8)
+      expect(waveform.shift_register).to eq(0x7ffffc)
+    end
+  end
+
+  # SID/osc_topbit: on the 6581 the sawtooth switch wires the accumulator MSB
+  # straight to the output line, so a combined waveform can pull it down.
+  describe "top bit feedback" do
+    it "clears the accumulator MSB when a combined sawtooth reads low" do
+      restart(0x30, frequency: 0x8000, cycles: 256)
+      waveform.cycle!
+      expect(waveform.accumulator).to eq(0x008000)
+    end
+
+    it "leaves the accumulator alone when the sawtooth is not selected" do
+      restart(0x50, frequency: 0x8000, cycles: 256)
+      waveform.cycle!
+      expect(waveform.accumulator).to eq(0x808000)
+    end
+  end
+
+  # SID/osc3-wave0: waveform 0 leaves the DAC input floating.
+  describe "floating output" do
+    # Pulse with the width at zero reads high, so the DAC has a value to hold.
+    before do
+      start(0x40)
+      waveform.cycle!
+      waveform.control = 0x00
+    end
+
+    it "holds the last value driven onto it" do
+      described_class::FLOATING_OUTPUT_TTL.pred.times { waveform.cycle! }
+      expect(waveform.output).to eq(0xfff)
+    end
+
+    it "drains to zero once the charge is gone" do
+      described_class::FLOATING_OUTPUT_TTL.times { waveform.cycle! }
+      expect(waveform.output).to eq(0x000)
+    end
+
+    it "reads zero before any waveform has driven it" do
+      expect(described_class.new.output).to eq(0x000)
     end
   end
 
