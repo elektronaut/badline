@@ -13,14 +13,18 @@ parser = OptionParser.new do |opts|
     Usage: badline [options] [media]
 
     Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-    a .t64 tape archive, a .crt cartridge, or a directory to mount as
-    device 8.
+    a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
+    a directory to mount as device 8.
 
     Options:
   BANNER
 
   opts.on("--no-autostart", "Boot to READY. instead of running the program") do
     options[:autostart] = false
+  end
+
+  opts.on("--song N", Integer, "Subtune of a .sid to play (default: the tune's own)") do |n|
+    options[:song] = n
   end
 
   opts.on("--disable-jit", "Run without enabling YJIT") do
@@ -53,4 +57,5 @@ RubyVM::YJIT.enable if options[:jit] && jit_available
 require "badline"
 require "badline/gui"
 
-Badline::GUI::Application.new(media_path:, autostart: options[:autostart]).run
+Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
+                              song: options[:song]).run

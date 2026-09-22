@@ -14,14 +14,14 @@ module Badline
     }.freeze
 
     class << self
-      def attach(computer, path, autostart: true)
+      def attach(computer, path, autostart: true, song: nil)
         if File.directory?(path)
           computer.mount(Storage::HostDirectory.new(path))
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
           attach_cartridge(computer, path)
         elsif File.extname(path).downcase == ".sid"
-          attach_sid(computer, path, autostart:)
+          attach_sid(computer, path, autostart:, song:)
         elsif File.extname(path).downcase == ".tap"
           attach_tape(computer, path, autostart:)
         elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
@@ -38,16 +38,18 @@ module Badline
         "Attached cartridge #{path}"
       end
 
-      def attach_sid(computer, path, autostart:)
+      def attach_sid(computer, path, autostart:, song:)
         tune = Storage::SIDFile.new(path)
-        computer.on_init { start_tune(computer, tune, autostart:) }
+        song = (song || tune.start_song).clamp(1, tune.songs)
+        computer.on_init { start_tune(computer, tune, autostart:, song:) }
         title = tune.name.empty? ? path : tune.name
+        title += " (song #{song})" if tune.songs > 1
         autostart ? "Playing #{title}" : "Loaded #{title}"
       end
 
-      def start_tune(computer, tune, autostart:)
+      def start_tune(computer, tune, autostart:, song:)
         computer.ram.write(tune.load_address, tune.data)
-        computer.ram.write(tune.driver_address, tune.driver)
+        computer.ram.write(tune.driver_address, tune.driver(song:))
         computer.type_text("sys#{tune.driver_address}\r") if autostart
       end
 

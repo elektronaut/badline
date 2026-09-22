@@ -91,8 +91,12 @@ module Badline
         end
       end
 
+      # Tunes live under the ROMs as often as not, so $01 has to bank out
+      # whatever covers the routine about to run. An RSID tune banks itself,
+      # and `SIDFile#bank_for` hands back nil for it.
       def dispatch
-        @bus.poke(0x01, bank_for(@pending))
+        bank = @tune.bank_for(@pending)
+        @bus.poke(0x01, bank) if bank
         @bus.ram.write(stub_address + 1,
                        [low_byte(@pending), high_byte(@pending)])
         @cpu.a = @argument
@@ -100,18 +104,6 @@ module Badline
         @cpu.program_counter = stub_address
         @pending = nil
         @idle = false
-      end
-
-      # Tunes live under the ROMs as often as not, so $01 has to bank out
-      # whatever covers the routine about to run. libsidplayfp's map: RAM
-      # under BASIC from $a000, RAM under both ROMs and no I/O for a routine
-      # in the I/O window itself, RAM under the KERNAL from $e000.
-      def bank_for(address)
-        return 0x37 if address < 0xa000
-        return 0x36 if address < 0xd000
-        return 0x34 if address < 0xe000
-
-        0x35
       end
     end
   end

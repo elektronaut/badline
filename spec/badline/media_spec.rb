@@ -176,9 +176,10 @@ describe Badline::Media do
     end
 
     context "with a SID tune" do
+      let(:songs) { 3 }
       let(:sid_path) do
         File.join(dir, "tune.sid").tap do |path|
-          header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, 1, 1].pack("n7") +
+          header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
                    ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [0x0004, 0, 0].pack("n3")
           File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
         end
@@ -193,7 +194,7 @@ describe Badline::Media do
 
       it "installs the player stub" do
         described_class.attach(computer, sid_path)
-        expect(computer.ram.read(0x0334, 3)).to eq([0x4c, 0x42, 0x03])
+        expect(computer.ram.read(0x0334, 3)).to eq([0x4c, 0x4c, 0x03])
       end
 
       it "SYSes the player stub" do
@@ -210,6 +211,26 @@ describe Badline::Media do
 
       it "returns the tune name" do
         expect(described_class.attach(computer, sid_path)).to include("TUNE")
+      end
+
+      it "plays the header's own song by default" do
+        described_class.attach(computer, sid_path)
+        expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x00])
+      end
+
+      it "plays the requested song" do
+        described_class.attach(computer, sid_path, song: 3)
+        expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x02])
+      end
+
+      it "clamps the requested song" do
+        described_class.attach(computer, sid_path, song: 9)
+        expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x02])
+      end
+
+      it "names the song it picked" do
+        expect(described_class.attach(computer, sid_path, song: 2))
+          .to include("song 2")
       end
     end
 

@@ -8,9 +8,9 @@ Badline is a Commodore 64 emulator written in Ruby.
 The 6510, the VIC-II and both CIAs are emulated one cycle at a time,
 so the machine behaves like the real thing down to raster timing, bad
 lines and sprite DMA. Programs load from PRG and P00 files, D64/D71/D81
-disk images, CRT cartridges or a plain directory on your disk, and the
-SDL2 front end gives you a window, a keyboard, joysticks, paddles and a
-1351 mouse.
+disk images, TAP tapes, CRT cartridges or a plain directory on your
+disk, and the SDL2 front end gives you a window, a keyboard, joysticks,
+paddles and a 1351 mouse.
 
 ## Requirements
 
@@ -44,7 +44,9 @@ badline                     # READY.
 badline game.prg            # Load and run a program
 badline game.d64            # Mount a disk image as device 8
 badline game.t64            # Mount a tape archive as device 8
+badline game.tap            # Put a tape in the datasette
 badline game.crt            # Attach a cartridge
+badline tune.sid            # Play a SID tune
 badline ~/c64               # Mount a directory as device 8
 ```
 
@@ -67,17 +69,21 @@ playing it live. The container follows the output extension, `.wav` or
 `.aiff`.
 
 ```sh
-badline-render tune.sid                        # 60 seconds to tune.wav
+badline-render tune.sid                        # tune.wav, as long as HVSC says
 badline-render --seconds 180 tune.sid out.aiff
 badline-render --song 3 --rate 48000 tune.sid
 ```
 
-A `.sid` file carries no length, so `--seconds` says how much to render
-(60 by default), and `--song` picks a subtune. PSID tunes run on a
-stripped rig — a CPU and RAM with only the SID clocked — and render at
-roughly 0.9x real time; RSID tunes drive their own interrupts, so those
-boot the whole machine and render at about a third of real time after
-the boot.
+A `.sid` file carries no length of its own, so the tune is looked up by
+MD5 in HVSC's `Songlengths.md5`. That comes from `--songlengths`, from
+the `DOCUMENTS` directory of an HVSC collection somewhere above the
+tune, or from `$HVSC_BASE`; with no database and no `--seconds` it
+renders 60 seconds. `--song` picks a subtune.
+
+PSID tunes run on a stripped rig — a CPU and RAM with only the SID
+clocked — and render at roughly 0.9x real time; RSID tunes drive their
+own interrupts, so those boot the whole machine and render at about a
+third of real time after the boot.
 
 ## Media
 
@@ -88,8 +94,14 @@ the boot.
   Autostart types `LOAD"*",8,1` followed by `RUN`.
 - **`.t64`** — tape archives, mounted as device 8, read-only. The files
   inside load by name like a disk; the tape itself is not emulated.
+- **`.tap`** — a real tape in the datasette, played back as the pulse
+  train the KERNAL decodes. Autostart types `LOAD` followed by `RUN`;
+  loading takes as long as it did in 1985.
 - **`.crt`** — standard, Ocean and Magic Desk cartridges. Other hardware
   types raise `Badline::Cartridge::UnsupportedTypeError`.
+- **`.sid`** — PSID and RSID tunes, played through a driver stub the
+  emulator SYSes once the KERNAL has booted. `--song N` picks a subtune,
+  and `badline-render` writes one to a file instead.
 - **A directory** — mounted as device 8, read *and* write. It serves the
   `.prg` and `.p00` files in it plus the contents of any `.t64` archive,
   and `SAVE` writes a new PRG.
@@ -159,16 +171,21 @@ the emulator runs.
 - **CIA 1 and 2** — timers, TOD clocks with alarms, interrupts, the
   keyboard matrix with its phantom keypresses, both joystick ports and
   the POTX/POTY mux.
+- **SID** — 6581 and 8580 synthesis: the oscillators and their ring
+  modulation and sync, the envelope generator down to its ADSR delay
+  bug, the multimode filter and the board's RC network.
+- **Datasette** — TAP playback through CIA 1's FLAG line, with the
+  motor and sense lines on the 6510 port.
 - **Cartridges** — standard cartridges plus Ocean and Magic Desk bank
   switching.
 
 Not there yet:
 
-- The SID answers register reads and writes, including the pot lines,
-  but makes no sound.
+- No live audio. The SID synthesises, but nothing plays it back as the
+  emulator runs; `badline-render` is the way to hear a tune.
 - No 1541 emulation, so nothing that drives the serial bus itself will
   run.
-- No datasette and no REU.
+- No REU.
 
 ## Contributing
 
