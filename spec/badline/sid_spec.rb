@@ -5,6 +5,8 @@ require "spec_helper"
 describe Badline::SID do
   subject(:sid) { described_class.new }
 
+  let(:bus_ttl) { described_class::BUS_TTL[:mos6581] }
+
   describe "write-only registers" do
     it "stores a write" do
       sid[0xd404] = 0x21
@@ -112,9 +114,57 @@ describe Badline::SID do
       1000.times { sid.cycle! }
       expect(sid.voices[0].waveform.accumulator).not_to eq(0x555555)
     end
+
+    it "replays the cycles it sat out" do
+      sid[0xd400] = 0x01
+      1000.times { sid.cycle! }
+      sid[0xd41b]
+      expect(sid.voices[0].waveform.accumulator).to eq(0x555555 + 1000)
+    end
+
+    it "lands a deferred write on the cycle it was written on" do
+      1000.times { sid.cycle! }
+      sid[0xd400] = 0x01
+      1000.times { sid.cycle! }
+      sid[0xd41b]
+      expect(sid.voices[0].waveform.accumulator).to eq(0x555555 + 1000)
+    end
+
+    # SID/writedelay: a pulse at frequency $1000 and width $003 is four
+    # cycles past the test bit being released by the time the CPU's read of
+    # OSC3 lands, so the pulse has already gone high.
+    def release_pulse_from_test(cycles)
+      sid[0xd40f] = 0x10
+      sid[0xd410] = 0x03
+      sid[0xd412] = 0x08
+      sid[0xd412] = 0x41
+      cycles.times { sid.cycle! }
+    end
+
+    it "back-fills an oscillator released from the test bit" do
+      release_pulse_from_test(4)
+      expect(sid.osc3).to eq(0xff)
+    end
+
+    it "back-fills only the cycles that have passed" do
+      release_pulse_from_test(2)
+      expect(sid.osc3).to eq(0x00)
+    end
+
+    # Past the cap the oldest write is applied at the head of the replay, so
+    # a frequency set on cycle 1000 runs for all 1000 of them instead.
+    it "forgets the timing of a write pushed past the cap" do
+      1000.times { sid.cycle! }
+      sid[0xd400] = 0x01
+      described_class::DEFERRED_WRITES.times { sid[0xd404] = 0x00 }
+      sid[0xd41b]
+      expect(sid.voices[0].waveform.accumulator).to eq(0x555555 + 1000)
+    end
   end
 
   describe "register writes" do
+    before { sid.synthesize! }
+
     it "reaches the voice oscillators" do
       sid[0xd407] = 0x34
       sid[0xd408] = 0x12
@@ -175,34 +225,65 @@ describe Badline::SID do
     before { sid[0xd404] = 0x42 }
 
     it "holds the last value while the charge lasts" do
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       expect(sid[0xd400]).to eq(0x42)
     end
 
     it "fades to $00 once the charge drains" do
-      Badline::SID::BUS_TTL.times { sid.cycle! }
+      bus_ttl.times { sid.cycle! }
       expect(sid[0xd400]).to eq(0x00)
     end
 
     it "recharges on a write" do
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       sid[0xd405] = 0x21
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       expect(sid[0xd400]).to eq(0x21)
     end
 
     it "recharges on a read of a readable register" do
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       sid[0xd419]
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       expect(sid[0xd400]).to eq(0xff)
     end
 
+    # SID/bitfade's delayfrq0 reads $d400 every nine cycles while it waits
+    # and still measures the full $1d00 on a real 6581, so the read does not
+    # drain the line; reSID halves what is left of the charge, which would
+    # cut the measurement to about $60.
+    it "is not drained by reading a write-only register" do
+      (bus_ttl - 1).times do
+        sid[0xd400]
+        sid.cycle!
+      end
+      expect(sid[0xd400]).to eq(0x42)
+    end
+
     it "is not recharged by reading a write-only register" do
-      (Badline::SID::BUS_TTL - 1).times { sid.cycle! }
+      (bus_ttl - 1).times { sid.cycle! }
       sid[0xd400]
       sid.cycle!
       expect(sid[0xd400]).to eq(0x00)
+    end
+  end
+
+  # The 8580 holds the bus far longer and centres the waveform DAC; the
+  # buffered oscillator top bit is pinned in the waveform spec.
+  describe "the 8580" do
+    subject(:sid) { described_class.new(model: :mos8580) }
+
+    it "holds the bus latch for its own TTL" do
+      sid[0xd404] = 0x42
+      (described_class::BUS_TTL[:mos8580] - 1).times { sid.cycle! }
+      expect(sid[0xd400]).to eq(0x42)
+    end
+
+    it "centres the waveform DAC in the mix" do
+      sid.synthesize!
+      sid[0xd418] = 0x0f
+      sid.cycle!
+      expect(sid.filter.mix).to eq(0)
     end
   end
 

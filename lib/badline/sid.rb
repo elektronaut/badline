@@ -6,7 +6,8 @@ require "badline/sid/voice"
 require "badline/sid/filter"
 
 module Badline
-  # SID (Sound Interface Device) chip, 6581 revision.
+  # SID (Sound Interface Device) chip, in either the 6581 or the 8580
+  # revision.
   #
   # $D400-$D418 - Voices, filter and volume   - write only
   # $D419-$D41A - POTX/POTY paddle inputs     - read only
@@ -21,8 +22,8 @@ module Badline
   # responding to #pot_x and #pot_y; with none attached the lines read $FF.
   #
   # Three voices feed the filter and the master volume; #output and #sample
-  # read out the mixed result. The DSP is clocked lazily, so until something
-  # reads OSC3/ENV3 or pulls a sample the voices hold their power-on state.
+  # read out the mixed result. The DSP is clocked lazily and catches up when
+  # something asks for its state.
   #
   # The 6581 drives its voices well above ground, so the mix carries a large
   # DC offset that the RC network on the C64 board filters out.
@@ -31,35 +32,45 @@ module Badline
 
     VOICES = 3
 
-    # Cycles the data bus holds a value on the 6581, measured through
-    # SID/bitfade (the 8580 holds it for roughly $a2000).
-    BUS_TTL = 0x1d00
+    # Cycles the data bus holds a value, measured through SID/bitfade.
+    BUS_TTL = { mos6581: 0x1d00, mos8580: 0xa2000 }.freeze
 
     # Scales the filter's 20-bit mix down to a signed 16-bit sample.
     SAMPLE_DIVISOR = ((0xfff * 0xff) >> 7) * 3 * 15 * 2 / (2**16)
 
-    attr_accessor :pots
-    attr_reader :voices, :filter
+    # Writes the idle DSP remembers in full. Past that the oldest one is
+    # applied where the replay stands and its timing is lost.
+    DEFERRED_WRITES = 0x400
 
-    def initialize(pots: nil)
+    attr_accessor :pots
+    attr_reader :model, :voices, :filter
+
+    def initialize(model: :mos6581, pots: nil)
       addressable_at(0xd400, length: 2**10)
+      @model = model
       @registers = Memory.new(length: 2**5)
       @pots = pots
       @bus_value = 0x00
       @bus_ttl = 0
-      @voices = Array.new(VOICES) { Voice.new }
-      @filter = Filter.new
+      @bus_ttl_reset = BUS_TTL.fetch(model)
+      @voices = Array.new(VOICES) { Voice.new(model:) }
+      @filter = Filter.new(model:)
       @synthesizing = false
+      @idle_cycles = 0
+      @deferred_writes = []
       link_oscillators
     end
 
     # Clocking three oscillators, three envelopes and the filter cuts
     # emulation speed by about 40%, so the DSP idles until something asks
-    # for its state.
+    # for its state, then replays the cycles it skipped.
     def synthesizing? = @synthesizing
 
     def synthesize!
+      return if @synthesizing
+
       @synthesizing = true
+      catch_up
     end
 
     # Voice 3's oscillator and envelope, the only synthesis state the CPU
@@ -84,11 +95,7 @@ module Badline
 
     def cycle!
       age_bus if @bus_ttl.positive?
-      return unless @synthesizing
-
-      @voices.each(&:cycle!)
-      @voices.each { |voice| voice.waveform.synchronize! }
-      @filter.cycle!(@voices)
+      @synthesizing ? clock! : @idle_cycles += 1
     end
 
     def peek(addr)
@@ -122,8 +129,28 @@ module Badline
       end
     end
 
+    def clock!
+      @voices.each(&:cycle!)
+      @voices.each { |voice| voice.waveform.synchronize! }
+      @filter.cycle!(@voices)
+    end
+
+    # Runs the cycles the DSP sat out, landing each deferred write on the
+    # cycle the CPU wrote it on.
+    def catch_up
+      replayed = 0
+      @deferred_writes.each do |cycle, reg, value|
+        (cycle - replayed).times { clock! }
+        replayed = cycle
+        apply_write(reg, value)
+      end
+      (@idle_cycles - replayed).times { clock! }
+      @deferred_writes.clear
+      @idle_cycles = 0
+    end
+
     def latch(value)
-      @bus_ttl = BUS_TTL
+      @bus_ttl = @bus_ttl_reset
       @bus_value = value
     end
 
@@ -134,6 +161,15 @@ module Badline
 
     def write_register(reg, value)
       @registers.poke(reg, value)
+      @synthesizing ? apply_write(reg, value) : defer_write(reg, value)
+    end
+
+    def defer_write(reg, value)
+      apply_write(*@deferred_writes.shift.last(2)) if @deferred_writes.length == DEFERRED_WRITES
+      @deferred_writes << [@idle_cycles, reg, value]
+    end
+
+    def apply_write(reg, value)
       reg < 0x15 ? write_voice(reg, value) : @filter.write(reg, value)
     end
 

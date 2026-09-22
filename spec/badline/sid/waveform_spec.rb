@@ -213,6 +213,17 @@ describe Badline::SID::Waveform do
       waveform.cycle!
       expect(waveform.accumulator).to eq(0x808000)
     end
+
+    # The 8580 buffers the top bit behind a flip-flop ahead of that switch.
+    describe "on the 8580" do
+      subject(:waveform) { described_class.new(model: :mos8580) }
+
+      it "leaves the accumulator MSB alone" do
+        restart(0x30, frequency: 0x8000, cycles: 256)
+        waveform.cycle!
+        expect(waveform.accumulator).to eq(0x808000)
+      end
+    end
   end
 
   # SID/osc3-wave0: waveform 0 leaves the DAC input floating.

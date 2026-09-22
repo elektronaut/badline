@@ -48,7 +48,8 @@ module Badline
       attr_accessor :sync_source, :sync_dest
       attr_reader :accumulator, :shift_register, :frequency, :pulse_width
 
-      def initialize
+      def initialize(model: :mos6581)
+        @topbit_feedback = model != :mos8580
         @accumulator = POWER_ON_ACCUMULATOR
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
@@ -203,9 +204,10 @@ module Badline
       # A zero on the shared output lines travels back into the oscillator:
       # through the sawtooth switch it clears the accumulator MSB on the next
       # cycle, and with noise selected it lands in the LFSR, where a bit
-      # pulled low can never come back.
+      # pulled low can never come back. The 8580 buffers the top bit behind a
+      # flip-flop before the sawtooth switch, so only the LFSR sees it.
       def feed_back(value)
-        @accumulator &= ~MSB if @selected.anybits?(0x2) && value.nobits?(0x800)
+        @accumulator &= ~MSB if @topbit_feedback && @selected.anybits?(0x2) && value.nobits?(0x800)
         write_shift_register(value) if @selected.anybits?(0x8)
       end
 
