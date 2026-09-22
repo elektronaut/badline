@@ -140,6 +140,44 @@ describe Badline::Media do
       end
     end
 
+    context "with a SID tune" do
+      let(:sid_path) do
+        File.join(dir, "tune.sid").tap do |path|
+          header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, 1, 1].pack("n7") +
+                   ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [0x0004, 0, 0].pack("n3")
+          File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "loads the tune at its load address" do
+        described_class.attach(computer, sid_path)
+        expect(computer.ram.read(0x1000, 3)).to eq([0xa9, 0x00, 0x60])
+      end
+
+      it "installs the player stub" do
+        described_class.attach(computer, sid_path)
+        expect(computer.ram.read(0x0334, 3)).to eq([0x4c, 0x42, 0x03])
+      end
+
+      it "SYSes the player stub" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, sid_path)
+        expect(computer).to have_received(:type_text).with("sys820\r")
+      end
+
+      it "skips the SYS when autostart is disabled" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, sid_path, autostart: false)
+        expect(computer).not_to have_received(:type_text)
+      end
+
+      it "returns the tune name" do
+        expect(described_class.attach(computer, sid_path)).to include("TUNE")
+      end
+    end
+
     context "with a machine-language PRG file" do
       let(:prg_path) do
         File.join(dir, "test.prg").tap do |path|
