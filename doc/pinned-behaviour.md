@@ -497,8 +497,21 @@ only catches the rows that happen to move.
 - The test bit does not clear the LFSR. It stalls it halfway through a
   shift with bit 22 forced high. While the bit is held, every bit bleeds up
   to `$7fffff` over `$8000` cycles (`SID/wf12nsr` reads `$ff` off one). On
-  release, the waveform still on the output lines is written back and then
-  one bit clocks in.
+  release, one bit clocks in. Before it does, the old waveform's output is
+  written back only for some waveform changes. Noise has to have been
+  combined before the release and still be selected after it. A change to
+  noise alone writes nothing back unless all four waveforms were selected
+  before. A change to pulse+noise writes nothing back. On the 6581, trading
+  triangle for sawtooth or back writes nothing back. The rule follows
+  libresidfp's `do_writeback`.
+  - Pinned by `SID/wb_testsuite` (the `9`/`A`/`D`/`E`→`8` rows on both
+    chips, and the 6581's `9`↔`A`, `9`/`A`→`C` and `D`→`A` rows) and by
+    `SID/noisewriteback`'s `noise_writeback_test1`.
+  - Spec guard: *as the test bit falls* in
+    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+  - The shift itself is not delayed. libresidfp runs it two cycles after
+    bit 19 rises, as two phases, and `noise_writeback_test2` needs that
+    pipeline, so it still fails.
 - A combined waveform shorts the shapers onto the lines the oscillator reads
   back. A low top bit reaches the accumulator MSB through the sawtooth
   switch and clears it (`SID/osc_topbit`, all three). With noise selected,

@@ -241,12 +241,26 @@ module Badline
         NOISE_TAPS.each { |bit, line| @shift_register &= ~bit if value.nobits?(line) }
       end
 
-      # Releasing the test bit finishes the shift it interrupted: whatever the
-      # waveform selector still holds on the output lines is written back
-      # first, then a bit clocks in over the forced-high bit 22.
+      # Releasing the test bit finishes the shift it interrupted: the old
+      # waveform's output may be written back first, then a bit clocks in
+      # over the forced-high bit 22.
       def release_test(previous)
-        write_shift_register(combined(previous)) if previous.anybits?(0x8) && combined?(previous)
+        write_shift_register(shape(previous)) if release_writes_back?(previous, @selected)
         shift_noise(1)
+      end
+
+      # Which waveform changes write the old output back as the test bit
+      # falls (SID/wb_testsuite, after libresidfp's do_writeback). Noise has
+      # to have been combined before and still be selected after. Dropping to
+      # noise alone writes nothing back unless all four were selected, nor
+      # does changing to pulse+noise, nor, on the 6581, trading triangle for
+      # sawtooth or back.
+      def release_writes_back?(previous, selected)
+        return false if previous <= 0x8 || selected < 0x8
+        return false if selected == 0x8 && previous != 0xf
+        return false if selected == 0xc
+
+        !(@topbit_feedback && [previous & 0x3, selected & 0x3].sort == [0x1, 0x2])
       end
 
       def advance
