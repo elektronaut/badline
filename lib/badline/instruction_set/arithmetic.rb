@@ -15,19 +15,18 @@ module Badline
       #   $79 - absolute_y - 4+ cycles
       #   $7D - absolute_x - 4+ cycles
       def adc(_addr, value)
-        v = resolve(value)
-        result = a + v + status.carry
+        result = a + value + status.carry
         status.zero = result.nobits?(0xff)
 
         if status.decimal?
-          result = (a & 0x0f) + (v & 0x0f) + status.carry
+          result = (a & 0x0f) + (value & 0x0f) + status.carry
           result += 0x06 if result > 0x09
           c = result > 0x0f ? 1 : 0
-          result = (a & 0xf0) + (v & 0xf0) + (c << 4) + (result & 0x0f)
-          update_calculation_flags(v, result)
+          result = (a & 0xf0) + (value & 0xf0) + (c << 4) + (result & 0x0f)
+          update_calculation_flags(value, result)
           result += 0x60 if result > 0x9f
         else
-          update_calculation_flags(v, result)
+          update_calculation_flags(value, result)
         end
 
         status.carry = result > 0xff
@@ -46,9 +45,8 @@ module Badline
       #   $D9 - absolute_y - 4+ cycles
       #   $DD - absolute_x - 4+ cycles
       def cmp(_addr, value)
-        v = resolve(value)
-        status.carry = (@a >= v)
-        update_number_flags(@a - v)
+        status.carry = (@a >= value)
+        update_number_flags(@a - value)
       end
 
       # Compare memory with X register.
@@ -58,9 +56,8 @@ module Badline
       #   $E4 - zeropage   - 3 cycles
       #   $EC - absolute   - 4 cycles
       def cpx(_addr, value)
-        v = resolve(value)
-        status.carry = @x >= v
-        update_number_flags(@x - v)
+        status.carry = @x >= value
+        update_number_flags(@x - value)
       end
 
       # Compare memory with Y register.
@@ -70,9 +67,8 @@ module Badline
       #   $C4 - zeropage   - 3 cycles
       #   $CC - absolute   - 4 cycles
       def cpy(_addr, value)
-        v = resolve(value)
-        status.carry = @y >= v
-        update_number_flags(@y - v)
+        status.carry = @y >= value
+        update_number_flags(@y - value)
       end
 
       # Subtract memory from accumulator with borrow.
@@ -87,20 +83,19 @@ module Badline
       #   $F9 - absolute_y - 4+ cycles
       #   $FD - absolute_x - 4+ cycles
       def sbc(_addr, value)
-        v = resolve(value)
-        v_inv = ~v & 0xff
+        inverted = ~value & 0xff
         carry = status.carry? ? 0 : -1
 
-        result = a + v_inv + status.carry
+        result = a + inverted + status.carry
         status.zero = result.nobits?(0xff)
         status.carry = result > 0xff
-        update_calculation_flags(v_inv, result)
+        update_calculation_flags(inverted, result)
 
         if status.decimal?
-          al = (a & 0x0f) - (v & 0x0f) + carry
+          al = (a & 0x0f) - (value & 0x0f) + carry
           al = ((al - 0x06) & 0x0F) - 0x10 if al.negative?
 
-          result = (a & 0xf0) - (v & 0xf0) + al
+          result = (a & 0xf0) - (value & 0xf0) + al
           result -= 0x60 if result.negative?
         end
 

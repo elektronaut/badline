@@ -22,19 +22,9 @@ module Badline
     include InstructionSet::Stack
     include InstructionSet::Transfer
 
-    # Forces a software interrupt (break).
-    # Pushes PC+2 and status to stack, sets break flag, and jumps via IRQ vector.
-    #
-    # Opcodes:
-    #   $00 - implied - 7 cycles
-    def brk(_addr, _value)
-      status.break = true
-      handle_interrupt(0xfffe, brk: true)
-      status.break = false
-    end
-
-    # No operation. The implied forms idle; the illegal memory forms still
-    # read their operand and throw it away.
+    # No operation. The implied forms idle; the illegal memory forms have
+    # already read their operand by the time they get here, and throw it
+    # away.
     #
     # Opcodes:
     #   $EA                          - implied    - 2 cycles
@@ -43,21 +33,9 @@ module Badline
     #   $0C                          - absolute   - 4 cycles  (illegal)
     #   $1C, $3C, $5C, $7C, $DC, $FC - absolute_x - 4+ cycles (illegal)
     #   $1A, $3A, $5A, $7A, $DA, $FA - implied    - 2 cycles  (illegal)
-    def nop(addr, value)
-      resolve(value) unless addr.nil?
-    end
+    def nop(_addr, _value); end
 
     private
-
-    def resolve(value)
-      if value == :lazy
-        realize_value(@instruction, @operand, @address)
-      elsif value.is_a?(Proc)
-        value.call
-      else
-        value
-      end
-    end
 
     def update_number_flags(value)
       status.zero = value.zero?
@@ -65,13 +43,14 @@ module Badline
       value
     end
 
-    # Read-modify-write instructions put the unmodified value back on the bus before writing the result.
-    def write_modified(addr, original, result)
+    # Read-modify-write instructions spend two cycles writing: the
+    # unmodified value goes back on the bus before the result. The
+    # sequencer owns both, so the result is only handed over here.
+    def write_modified(addr, result)
       if addr == :accumulator
         @a = result
       else
-        write_byte(addr, original)
-        write_byte(addr, result)
+        @rmw_result = result
       end
     end
   end

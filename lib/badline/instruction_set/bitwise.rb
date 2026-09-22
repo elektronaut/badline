@@ -15,7 +15,7 @@ module Badline
       #   $39 - absolute_y - 4+ cycles
       #   $3D - absolute_x - 4+ cycles
       def and(_addr, value)
-        @a &= resolve(value)
+        @a &= value
         update_number_flags(@a)
       end
 
@@ -28,10 +28,9 @@ module Badline
       #   $16 - zeropage_x - 6 cycles
       #   $1E - absolute_x - 7 cycles
       def asl(addr, value)
-        v = resolve(value)
-        result = (v << 1) & 0xff
-        status.carry = v[7]
-        write_modified(addr, v, result)
+        result = (value << 1) & 0xff
+        status.carry = value[7]
+        write_modified(addr, result)
         update_number_flags(result)
       end
 
@@ -41,10 +40,9 @@ module Badline
       #   $24 - zeropage - 3 cycles
       #   $2C - absolute - 4 cycles
       def bit(_addr, value)
-        v = resolve(value)
         status.value = ((status.value & 0b00111111) +
-                        (v & 0b11000000)).to_i
-        status.zero = (a & v).nobits?(0xff)
+                        (value & 0b11000000)).to_i
+        status.zero = (a & value).nobits?(0xff)
       end
 
       # Performs bitwise XOR on accumulator with memory.
@@ -59,7 +57,7 @@ module Badline
       #   $59 - absolute_y - 4+ cycles
       #   $5D - absolute_x - 4+ cycles
       def eor(_addr, value)
-        @a = (@a ^ resolve(value)) & 0xff
+        @a = (@a ^ value) & 0xff
         update_number_flags(@a)
       end
 
@@ -72,10 +70,9 @@ module Badline
       #   $56 - zeropage_x - 6 cycles
       #   $5E - absolute_x - 7 cycles
       def lsr(addr, value)
-        v = resolve(value)
-        result = (v >> 1) & 0xff
-        status.carry = v[0]
-        write_modified(addr, v, result)
+        result = (value >> 1) & 0xff
+        status.carry = value[0]
+        write_modified(addr, result)
         update_number_flags(result)
       end
 
@@ -91,7 +88,7 @@ module Badline
       #   $19 - absolute_y - 4+ cycles
       #   $1D - absolute_x - 4+ cycles
       def ora(_addr, value)
-        @a |= resolve(value)
+        @a |= value
         update_number_flags(@a)
       end
 
@@ -104,10 +101,9 @@ module Badline
       #   $36 - zeropage_x - 6 cycles
       #   $3E - absolute_x - 7 cycles
       def rol(addr, value)
-        v = resolve(value)
-        result = ((v << 1) + status.carry) & 0xff
-        status.carry = v[7]
-        write_modified(addr, v, result)
+        result = ((value << 1) + status.carry) & 0xff
+        status.carry = value[7]
+        write_modified(addr, result)
         update_number_flags(result)
       end
 
@@ -120,10 +116,9 @@ module Badline
       #   $76 - zeropage_x - 6 cycles
       #   $7E - absolute_x - 7 cycles
       def ror(addr, value)
-        v = resolve(value)
-        result = ((v >> 1) + (status.carry? ? 0x80 : 0)) & 0xff
-        status.carry = v[0]
-        write_modified(addr, v, result)
+        result = ((value >> 1) + (status.carry? ? 0x80 : 0)) & 0xff
+        status.carry = value[0]
+        write_modified(addr, result)
         update_number_flags(result)
       end
     end

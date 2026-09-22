@@ -1,17 +1,27 @@
 # frozen_string_literal: true
 
+require "badline/cpu/microcode"
+require "badline/cpu/addressing"
+require "badline/cpu/operations"
+require "badline/cpu/stack_operations"
+
 module Badline
-  class CPU < Cycleable
+  # A cycle-stepped 6502. Every opcode decodes to a plan naming the
+  # micro-operation that runs on each of its cycles, so a cycle is one
+  # table lookup and one dispatch rather than a coroutine switch.
+  class CPU
     STATUS_FLAGS = [:carry, :zero, :interrupt, :decimal, :break, 1,
                     :overflow, :negative].freeze
 
-    class InvalidOpcodeError < StandardError; end
     include IntegerHelper
     include InstructionSet
     include Interrupts
     include Traps
+    include Addressing
+    include Operations
+    include StackOperations
 
-    attr_reader :memory, :instructions, :boundary_crossed
+    attr_reader :memory, :instructions, :boundary_crossed, :cycles
     attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y,
                   :nmi, :irq
 
@@ -25,10 +35,15 @@ module Badline
       @irq_sample = @irq_pending = false
       @nmi_sample = @nmi_pending = false
       @skip_poll = false
+      @boundary_crossed = false
+      @interrupt = nil
+      @brk = false
+      @pending_write = false
 
+      @cycles = 0
       @instructions = 0
       @traps = nil
-      super()
+      end_sequence
     end
 
     def reset!
@@ -44,9 +59,26 @@ module Badline
       status.value = new_value
     end
 
+    # Runs one cycle: the interrupt poll, the micro-operation scheduled for
+    # it, and the announcement of whether the next one drives a write.
+    def cycle!
+      poll
+      index = @index
+      @index = index + 1
+      send(@plan[index])
+      @cycles += 1
+      @pending_write = @writes[@index]
+      nil
+    end
+
+    def pending_write?
+      @pending_write
+    end
+
     def step!
-      @loop.resume unless @instruction || @interrupt
-      cycle! while @instruction || @interrupt
+      cycle!
+      cycle! until @plan.equal?(FETCH_PLAN)
+      nil
     end
 
     def inspect
@@ -57,43 +89,46 @@ module Badline
 
     private
 
-    def extra_cycle(instruction, addr)
-      return internal_cycle(addr) unless instruction.boundary_cycle?
+    # The instruction boundary. It either commits the interrupt sampled on
+    # the second-to-last cycle of the instruction that just ended, or
+    # decodes the next opcode and loads its plan.
+    def op_fetch
+      return start_interrupt if @boundary_nmi || @boundary_irq
 
-      boundary_crossed && internal_cycle(addr)
+      run_traps
+      opcode = @memory.peek(@program_counter)
+      log(opcode) if @debug
+      micro = MICROCODE[opcode]
+      @operation = micro.operation
+      @plan = micro.plan
+      @writes = micro.writes
+      @optional_dummy = micro.optional_dummy
+      @index = 1
+      @boundary_crossed = false
+      @program_counter = (@program_counter + 1) & 0xffff
     end
 
-    def read_byte(addr)
-      cycle { @memory.peek(addr) }
+    def end_instruction
+      @instructions += 1
+      end_sequence
     end
 
-    # A cycle the CPU spends on internal work while still driving the bus.
-    # The byte read is discarded, but I/O chips see the access.
-    def internal_cycle(addr = @program_counter)
-      read_byte(addr)
+    # Parks the sequencer back on the opcode fetch and latches the
+    # interrupt state the boundary will act on.
+    def end_sequence
+      @plan = FETCH_PLAN
+      @writes = FETCH_WRITES
+      @index = 0
+      @boundary_irq = @irq_pending
+      @boundary_nmi = @nmi_pending
     end
 
-    def read_word(addr)
-      uint16(read_byte(addr),
-             read_byte((addr + 1) & 0xffff))
+    def write_byte(addr, value)
+      @memory.poke(addr, value)
     end
 
-    def read_zeropage_word(addr)
-      uint16(read_byte(addr & 0xff),
-             read_byte((addr + 1) & 0xff))
-    end
-
-    def read_instruction
-      Instruction.find(@memory.peek(@program_counter))
-    end
-
-    def read_operand(instruction)
-      return nil unless instruction.operand?
-      # JSR fetches its operand high byte late (see Stack#jsr).
-      return read_byte(program_counter) if instruction.name == :jsr
-      return read_word(program_counter) if instruction.operand_length == 2
-
-      read_byte(program_counter)
+    def stack_address(offset = 0)
+      0x0100 | ((@stack_pointer + offset) & 0xff)
     end
 
     def reset_registers
@@ -104,125 +139,12 @@ module Badline
       @a = @x = @y = 0x0
     end
 
-    # Indexing adds the index to the low byte first and drives the bus with
-    # that address while the carry into the high byte is resolved.
-    def indexed_address(instruction, base, index)
-      @boundary_crossed = high_byte(base + index) != high_byte(base)
-      extra_cycle(instruction, uint16((low_byte(base) + index) & 0xff,
-                                      high_byte(base)))
-      (base + index) & 0xffff
-    end
-
-    def read_address(instruction, operand)
-      case instruction.addressing_mode
-      when :immediate
-        nil
-      when :implied
-        internal_cycle
-        nil
-      when :accumulator
-        internal_cycle
-        :accumulator
-      when :relative
-        (@program_counter + signed_int8(operand) + 1) & 0xffff
-      when :zeropage, :absolute
-        operand
-      when :zeropage_x
-        internal_cycle(operand)
-        (operand + @x) & 0xff
-      when :zeropage_y
-        internal_cycle(operand)
-        (operand + @y) & 0xff
-      when :absolute_x
-        indexed_address(instruction, operand, @x)
-      when :absolute_y
-        indexed_address(instruction, operand, @y)
-      when :indirect
-        # This is only used for JMP. There's no carry associated, so an
-        # indirect jump to $30FF will wrap around on the same page and read
-        # from [0x30ff, 0x3000].
-        uint16(
-          read_byte(operand),
-          read_byte(uint16(
-                      (low_byte(operand) + 1) & 0xff, # Wrap around low byte
-                      high_byte(operand)
-                    ))
-        )
-      when :indirect_x
-        internal_cycle(operand)
-        read_zeropage_word(operand + @x)
-      when :indirect_y
-        indexed_address(instruction, read_zeropage_word(operand), @y)
-      end
-    end
-
-    def realize_value(instruction, operand, address)
-      case instruction.addressing_mode
-      when :implied
-        raise "Implied value can't be realized"
-      when :accumulator
-        @a
-      when :immediate
-        operand
-      else
-        read_byte(address)
-      end
-    end
-
-    def stack_address(offset = 0)
-      uint16((stack_pointer + offset) & 0xff, 0x01)
-    end
-
-    def log(instruction, operand, address)
-      return unless @debug
-
-      pc = (@program_counter - 1) - instruction.operand_length
+    def log(opcode)
+      instruction = Instruction.find(opcode)
       puts(
-        "#{@cycles}: " \
-        "PC: #{pc.to_s(16)} - " \
-        "#{@instruction.name.upcase} #{@instruction.addressing_mode} " \
-        "Operand: #{operand.inspect} Address: #{address.inspect}"
+        "#{@cycles}: PC: #{format16(@program_counter)} - " \
+        "#{instruction.name.upcase} #{instruction.addressing_mode}"
       )
-    end
-
-    def main_loop
-      irq_pending = @irq_pending
-      nmi_pending = @nmi_pending
-      poll
-      if nmi_pending || irq_pending
-        service_interrupt(nmi_pending)
-      else
-        run_traps
-        @boundary_crossed = false
-        @instruction = read_instruction
-        raise InvalidOpcodeError unless @instruction
-
-        @program_counter = (@program_counter + 1) & 0xffff
-        @cycles += 1
-
-        @operand = operand = read_operand(@instruction)
-        @address = address = read_address(@instruction, operand)
-
-        @program_counter = (@program_counter + @instruction.operand_length) &
-                           0xffff
-
-        log(@instruction, operand, address)
-
-        # Run the instruction; :lazy realizes the value through #resolve
-        send(@instruction.name, address, :lazy)
-
-        @instructions += 1
-        @instruction = nil
-      end
-      Fiber.yield
-    end
-
-    def write_byte(addr, value)
-      if addr == :accumulator
-        @a = value
-      else
-        cycle(write: true) { @memory.poke(addr, value) }
-      end
     end
   end
 end
