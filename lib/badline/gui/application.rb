@@ -28,9 +28,9 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      def initialize(media_path: nil, autostart: true, debug: false)
+      def initialize(media_path: nil, autostart: true, song: nil, debug: false)
         @computer = Computer.new(debug:)
-        puts Media.attach(@computer, media_path, autostart:) if media_path
+        puts Media.attach(@computer, media_path, autostart:, song:) if media_path
 
         @mode = :keyboard
         @pot_device = nil
