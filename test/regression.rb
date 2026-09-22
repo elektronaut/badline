@@ -97,6 +97,55 @@ module Regression
     end
   end
 
+  # A stretch of a suite that chains itself, one LOAD after the next, so a
+  # partial run is a range of the chain rather than a set of ids. Resuming
+  # at a test by typing its LOAD leaves the READY prompt and the typed name
+  # in that test's segment, so the run resumes one test earlier and throws
+  # that segment away. The outcome row records how the whole chain ended,
+  # which a partial run cannot say, so it is never part of the range.
+  class ChainRange
+    OUTCOME = "(suite)"
+
+    attr_reader :first, :last
+
+    def initialize(baseline, first, last = nil)
+      @keys = baseline.keys - [OUTCOME]
+      @first = first
+      @last = last || first
+      [@first, @last].each do |name|
+        raise ArgumentError, "#{name} is not a row of the baseline. Check the test name." unless @keys.include?(name)
+      end
+      raise ArgumentError, "#{@last} comes before #{@first} in the chain." if index(@last) < index(@first)
+    end
+
+    # The test to resume at, or nil to autostart the chain from its first
+    # row, which is also what resuming at that row would load.
+    def resume_at
+      @keys[index(@first) - 1] if index(@first) > 1
+    end
+
+    # The rows from first to last in the order the run reached them, or up
+    # to wherever it ended if it never reached last.
+    def select(fresh)
+      keys = fresh.keys - [OUTCOME]
+      from = keys.index(@first)
+      raise ArgumentError, "The run never reached #{@first}." unless from
+
+      to = keys.index(@last) || (keys.length - 1)
+      fresh.slice(*keys[from..to])
+    end
+
+    def reached?(rows)
+      rows.key?(@last)
+    end
+
+    private
+
+    def index(name)
+      @keys.index(name)
+    end
+  end
+
   class Comparison
     LIST_LIMIT = 50
 

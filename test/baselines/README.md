@@ -45,6 +45,8 @@ stand, so the guard is the comparison, not the pass count.
 
     rake "regression:record:testbench[spriteenable]"      # only the rows a filter matched
     rake "regression:record:testbench[sprite0,gfxfetch]"  # several filters, matched as a union
+    rake "regression:record:lorenz[adcb]"                 # one test of the Lorenz chain
+    rake "regression:record:lorenz[sein,adcb]"            # a stretch of it, first to last
 
 Quote the task name: zsh treats the brackets as a glob.
 
@@ -59,8 +61,22 @@ clearing it out is a whole-suite record.
 Filters are id substrings matched inside the suite's own subtree, so a
 filter cannot reach rows belonging to another baseline, and one that
 matches no test at all aborts before anything runs rather than recording an
-empty no-op. `lorenz` has no filtered form: the suite chains itself from
-the first test loaded, so there is nothing to cut down.
+empty no-op.
+
+`lorenz` chains itself, one LOAD after the next, so its partial form takes
+a stretch of the chain, not a set of filters: `[first]` or
+`[first,last]`, both named as rows of `lorenz.txt`. The run resumes at the
+row before `first` (`bin/lorenz --resume`), because a test loaded by hand
+carries the READY prompt and the typed LOAD in its segment, and that
+segment is thrown away. It stops as soon as the chain loads the test after
+`last` (`--stop-after`), and the segment the stop cut short is left out too. Only
+the rows from `first` to `last` are spliced in. The `(suite)` row records
+how a whole chain ended, and a partial record never touches it. A name that
+is not a row of the baseline, or a range given back to front, aborts before
+anything runs. If the chain breaks before it reaches `last`, the rows it did
+reach are recorded with a warning. `rake regression:lorenz` still runs only
+the whole chain; a range record already reports what it changed before it
+writes.
 
 The testbench runs forks over four shards by default — each test boots its
 own machine, so they are independent — and merges the per-test records back

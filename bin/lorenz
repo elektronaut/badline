@@ -4,24 +4,31 @@
 # Headless runner for the Wolfgang Lorenz C64 Emulator Test Suite.
 #
 #   ruby --yjit bin/lorenz [image] [start_test] [max_cycles] [--results PATH]
+#                          [--resume NAME] [--stop-after NAME]
 #
 # Boots the machine, mounts the image as device 8 and autostarts (or loads
-# start_test by name to resume mid-suite). Test output is captured through
-# the CHROUT trap and echoed to stdout. When a failed test halts waiting
-# for a keypress (detected by GETIN polling), a space is injected to
-# continue — STOP would exit some tests to BASIC and kill the chain. Ends
-# on the suite completion message, on a BASIC READY prompt, or on a hard
-# hang.
+# start_test by name to resume mid-suite; --resume NAME does the same
+# without naming the image). Test output is captured through the CHROUT
+# trap and echoed to stdout. When a failed test halts waiting for a
+# keypress (detected by GETIN polling), a space is injected to continue —
+# STOP would exit some tests to BASIC and kill the chain. Ends on the suite
+# completion message, on a BASIC READY prompt, on a hard hang, or with
+# --stop-after once the chain has moved past the named test.
 #
 # The suite chains itself by LOADing one test after another, so the names
 # it asks the mounted image for — and the transcript offsets they arrive
 # at — split the capture into one segment per test. With --results, those
 # become a tab-separated "name STATUS [detail]" record per test, the same
 # baseline format bin/testbench writes; the full transcript goes to
-# tmp/lorenz/transcript.txt for diagnosing what a changed row means.
+# tmp/lorenz/transcript.txt for diagnosing what a changed row means. A run
+# that stops or times out leaves its last segment cut short, so that one
+# is left out of the results.
 #
-# See `rake regression:lorenz` for diffing a run against the tracked
-# baseline in test/baselines/.
+# A resumed test's segment also carries the READY prompt and the typed
+# LOAD, so its row differs from the one the chain records. See
+# `rake regression:lorenz` for diffing a run against the tracked baseline
+# in test/baselines/, and `rake "regression:record:lorenz[first,last]"`
+# for re-recording a stretch of the chain.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -150,10 +157,11 @@ module Lorenz
   class Runner
     attr_reader :result
 
-    def initialize(computer, capture, load_log)
+    def initialize(computer, capture, load_log, stop_after: nil)
       @computer = computer
       @capture = capture
       @load_log = load_log
+      @stop_after = stop_after&.downcase
       @printed = 0
       @last_progress = 0
       @getin_hits = 0
@@ -177,9 +185,12 @@ module Lorenz
       @capture.output
     end
 
+    # A test's segment is whole once the chain loads the next one, or when
+    # the suite ends on its own. Stopping or timing out cuts the last one.
     def segments
       entries = @load_log.entries
-      entries.each_with_index.map do |entry, index|
+      whole = %w[stopped timeout].include?(@result) ? entries.length - 1 : entries.length
+      entries.take(whole).each_with_index.map do |entry, index|
         following = entries[index + 1]
         span = entry.offset...(following&.offset || transcript.length)
         text = transcript[span]
@@ -215,6 +226,14 @@ module Lorenz
         @result = @capture.output.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
       end
       @result = "timeout" if @computer.cycles > max_cycles
+      @result ||= "stopped" if moved_past_stop?
+    end
+
+    def moved_past_stop?
+      return false unless @stop_after
+
+      index = @load_log.entries.index { it.name == @stop_after }
+      !index.nil? && index < @load_log.entries.length - 1
     end
 
     # The offset the injection lands at is what attributes it to a segment:
@@ -268,8 +287,10 @@ end
 
 if $PROGRAM_NAME == __FILE__
   results_path = Lorenz.take_option(ARGV, "--results")
+  resume = Lorenz.take_option(ARGV, "--resume")
+  stop_after = Lorenz.take_option(ARGV, "--stop-after")
   image = ARGV[0] || Lorenz::DEFAULT_IMAGE
-  start_test = ARGV[1]
+  start_test = resume || ARGV[1]
   max_cycles = (ARGV[2] || 10_000_000_000).to_i
 
   computer = Badline::Computer.new
@@ -277,12 +298,12 @@ if $PROGRAM_NAME == __FILE__
   load_log = Lorenz.mount(computer, image, capture, start_test)
   warn "Mounted #{image} as device 8"
 
-  runner = Lorenz::Runner.new(computer, capture, load_log)
+  runner = Lorenz::Runner.new(computer, capture, load_log, stop_after:)
   result = runner.run(max_cycles)
 
   warn "Transcript written to #{Lorenz.write_transcript(runner)}"
   Lorenz.write_results(results_path, runner) if results_path
-  Lorenz.dump_screen(computer) unless result == "completed"
+  Lorenz.dump_screen(computer) unless %w[completed stopped].include?(result)
   warn "[#{result}] #{computer.cycles} cycles, #{runner.keys_sent} keys sent"
-  exit(%w[completed ready-prompt].include?(result) ? 0 : 1)
+  exit(%w[completed ready-prompt stopped].include?(result) ? 0 : 1)
 end
