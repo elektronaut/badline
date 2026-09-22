@@ -159,9 +159,9 @@ CPU, CIA, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
-exception is code whose rule in `doc/pinned-behaviour.md` names a Lorenz
-test (`irq`, `nmi`, `mmu`, `cpuport`, `cia1tb123`, `cia2tb123`, `cia1pb6`).
-Run just those tests, one at a time, with
+exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
+tests: the interrupt polling, CPU port and CIA timer rules. Run just the
+tests that rule names, one at a time, with
 `ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. Both Lorenz
 and testbench load through the LOAD trap and type through the keyboard
 buffer, so storage, IEC and keyboard changes can move them too. A broken
