@@ -9,13 +9,16 @@
 # Only the programs that report through the $D7FF debug register can be
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and
 # need the eye. Each test boots a fresh machine, injects the .prg and types
-# RUN. With --results, the results log — one tab-separated "name STATUS
+# RUN. The 6581 list is fixed below; the 8580 one is read from the
+# testbench testlist, which tags the programs written for the 8580 sid-new,
+# each with its own cycle budget. With --results, the results log — one tab-separated "name STATUS
 # [detail]" record per test, in test order — is written to PATH; that is the
 # baseline format `rake regression:sid` diffs against the tracked copy in
 # test/baselines/. Filters are name substrings matched as a union; one
 # that matches nothing is an error rather than an empty run, so a typo
 # cannot pass for a clean partial re-record. --sid picks the chip the
-# machine is built with (default 6581, which the baseline is recorded on).
+# machine is built with and the list it runs (default 6581); each chip has
+# its own baseline, sid.txt and sid-8580.txt.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -24,6 +27,7 @@ require "fileutils"
 
 module SIDTests
   ROOT = File.expand_path("../vendor/VICE-testprogs/SID", __dir__)
+  TESTLIST = File.expand_path("../vendor/VICE-testprogs/testbench/c64-testlist.in", __dir__)
 
   BOOT_ALLOWANCE = 3_000_000
   TIMEOUT = 12_000_000
@@ -53,6 +57,22 @@ module SIDTests
 
   module_function
 
+  # Test names mapped to their cycle budget after boot.
+  def tests(sid_model = :mos6581)
+    return TESTS.to_h { |name| [name, TIMEOUT] } if sid_model == :mos6581
+
+    File.readlines(TESTLIST).filter_map { |line| parse(line) }.to_h
+  end
+
+  # A testlist row is "dir/,prg,type,cycles[,option...]". Only the exitcode
+  # rows under SID/ tagged sid-new are kept, as [name, cycles].
+  def parse(line)
+    dir, prg, type, cycles, *options = line.strip.split(",")
+    return unless dir&.start_with?("../SID/") && type == "exitcode" && options.include?("sid-new")
+
+    ["#{dir.delete_prefix('../SID/')}#{prg}", Integer(cycles)]
+  end
+
   # Removes "--name value" or "--name=value" from argv, returning the value.
   def take_option(argv, name)
     index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
@@ -62,17 +82,17 @@ module SIDTests
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
-  def exit_code(name, sid_model)
+  def exit_code(name, sid_model, timeout)
     computer = Badline::Computer.new(sid_model:)
     Badline::Media.attach(computer, File.join(ROOT, name))
     code = nil
     computer.install_debug_register { |value| code = value }
-    BATCH.times { computer.cycle! } until code || computer.cycles > TIMEOUT + BOOT_ALLOWANCE
+    BATCH.times { computer.cycle! } until code || computer.cycles > timeout + BOOT_ALLOWANCE
     code
   end
 
-  def score(name, sid_model = :mos6581)
-    code = exit_code(name, sid_model)
+  def score(name, sid_model = :mos6581, timeout = TIMEOUT)
+    code = exit_code(name, sid_model, timeout)
     return "PASS" if code&.zero?
 
     code ? format("exit=$%02x", code) : "timeout"
@@ -80,20 +100,21 @@ module SIDTests
 
   # Filters are name substrings, matched as a union; no filter runs
   # everything.
-  def selected(filters)
-    return TESTS if filters.empty?
+  def selected(filters, tests = self.tests)
+    return tests if filters.empty?
 
-    TESTS.select { |name| filters.any? { |filter| name.include?(filter) } }
+    tests.select { |name, _| filters.any? { |filter| name.include?(filter) } }
   end
 
-  def unmatched(filters)
-    filters.reject { |filter| TESTS.any? { |name| name.include?(filter) } }
+  def unmatched(filters, tests = self.tests)
+    filters.reject { |filter| tests.keys.any? { |name| name.include?(filter) } }
   end
 
-  def run(names, results_path, sid_model = :mos6581)
-    results = names.map do |name|
-      result = score(name, sid_model)
-      puts format("%-43<name>s %<result>s", name:, result:)
+  def run(tests, results_path, sid_model = :mos6581)
+    width = tests.keys.map(&:length).max
+    results = tests.map do |name, timeout|
+      result = score(name, sid_model, timeout)
+      puts "#{name.ljust(width)} #{result}"
       $stdout.flush
       [name, result]
     end
@@ -126,18 +147,19 @@ if $PROGRAM_NAME == __FILE__
     exit 2
   end
 
-  unmatched = SIDTests.unmatched(ARGV)
+  tests = SIDTests.tests(sid_model)
+  unmatched = SIDTests.unmatched(ARGV, tests)
   unless unmatched.empty?
     warn "No test matches #{unmatched.join(', ')}."
     exit 2
   end
 
-  names = SIDTests.selected(ARGV)
+  tests = SIDTests.selected(ARGV, tests)
 
   if list_only
-    names.each { |name| puts name }
+    tests.each_key { |name| puts name }
     exit
   end
 
-  exit(SIDTests.run(names, results_path, sid_model).zero? ? 0 : 1)
+  exit(SIDTests.run(tests, results_path, sid_model).zero? ? 0 : 1)
 end

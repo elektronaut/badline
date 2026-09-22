@@ -279,6 +279,15 @@ describe Badline::SID do
       expect(sid[0xd400]).to eq(0x42)
     end
 
+    # Pinned by SID/detect (detect-2-new), which tells the chips apart by
+    # this read: 3 on the 6581, 2 on the 8580.
+    it "reads OSC3 a cycle behind a sawtooth started from the test bit" do
+      sid.synthesize!
+      [[0x0e, 0xff], [0x0f, 0xff], [0x12, 0xff], [0x12, 0x20]].each { |reg, value| sid[0xd400 + reg] = value }
+      4.times { sid.cycle! }
+      expect(sid[0xd41b]).to eq(0x02)
+    end
+
     it "centres the waveform DAC in the mix" do
       sid.synthesize!
       sid[0xd418] = 0x0f

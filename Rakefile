@@ -40,12 +40,15 @@ REGRESSION_SUITES = {
 # 16 programs measuring DMA against interrupts over ~450M cycles each,
 # which is nearly all of that subtree's runtime and leaves the remaining
 # 13 rows at about a minute.
+# sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new programs;
+# :args go to the runner as they are.
 OPT_IN_SUITES = {
   "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
   "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
                               exclude: "interrupts/irqdma/" },
   "testbench-irqdma" => { runner: "bin/testbench", scope: "interrupts/irqdma/" },
-  "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" }
+  "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" },
+  "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 
 ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze
@@ -138,7 +141,7 @@ def scope_args(config)
   args = []
   args.push("--scope", config[:scope]) if config[:scope]
   args.push("--exclude", config[:exclude]) if config[:exclude]
-  args
+  args.concat(config.fetch(:args, []))
 end
 
 # Re-records only the rows a filter matched, splicing them into the

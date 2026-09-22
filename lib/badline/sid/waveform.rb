@@ -50,6 +50,8 @@ module Badline
 
       def initialize(model: :mos6581)
         @topbit_feedback = model != :mos8580
+        @tri_saw_delay = model == :mos8580
+        @tri_saw = 0x000
         @accumulator = POWER_ON_ACCUMULATOR
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
@@ -137,6 +139,18 @@ module Badline
         @output = @selected.zero? ? @floating : shape(@selected)
       end
 
+      # What OSC3 reads. The 8580 delays the triangle and sawtooth shapers
+      # by half a cycle, which OSC3 latches as a whole cycle late; pulse and
+      # noise still mask the value on time.
+      def osc3
+        return output unless @tri_saw_delay && @selected.anybits?(0x3)
+
+        value = @tri_saw
+        value &= pulse if @selected.anybits?(0x4)
+        value &= noise if @selected.anybits?(0x8)
+        value
+      end
+
       def sawtooth = @accumulator >> 12
 
       # The upper half of the ramp is folded back down, shifted left one bit
@@ -183,6 +197,13 @@ module Badline
         value
       end
 
+      def tri_saw
+        value = 0xfff
+        value &= triangle if @selected.anybits?(0x1)
+        value &= sawtooth if @selected.anybits?(0x2)
+        value
+      end
+
       # More than one bit set in the selection.
       def combined?(selected) = selected.anybits?(selected - 1)
 
@@ -191,6 +212,7 @@ module Badline
       # charge already on it drains a little further.
       def latch_output
         value = output
+        @tri_saw = tri_saw if @tri_saw_delay
         if @selected.zero?
           @floating = 0x000 if @floating_ttl.positive? && (@floating_ttl -= 1).zero?
           return
