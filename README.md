@@ -129,9 +129,9 @@ window title shows the current mode:
 
 The mouse and paddle modes capture the host mouse until you `Tab` out of
 them. Moving it moves the 1351 or turns the two paddle knobs, and the
-left and right buttons are the 1351's buttons. The paddles' own fire
-buttons aren't connected to the host mouse yet. Games differ in which
-port they read, which is why each device has a mode per port.
+left and right buttons are the 1351's buttons, or the fire buttons of
+paddles A and B. Games differ in which port they read, which is why each
+device has a mode per port.
 
 Game controllers work in every mode. The first one is joystick 2 and
 the second is joystick 1. The D-pad and left stick steer, the face and

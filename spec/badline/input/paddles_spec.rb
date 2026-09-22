@@ -39,23 +39,23 @@ describe Badline::Input::Paddles do
     end
 
     it "puts paddle A's button on the left line" do
-      paddles.press(:a)
+      paddles.press(:left)
       expect(paddles.port_bits).to eq(0b11111011)
     end
 
     it "puts paddle B's button on the right line" do
-      paddles.press(:b)
+      paddles.press(:right)
       expect(paddles.port_bits).to eq(0b11110111)
     end
 
     it "releases a button" do
-      paddles.press(:a)
-      paddles.release(:a)
+      paddles.press(:left)
+      paddles.release(:left)
       expect(paddles.port_bits).to eq(0xff)
     end
 
     it "ignores a button it has no line for" do
-      paddles.press(:c)
+      paddles.press(:middle)
       expect(paddles.port_bits).to eq(0xff)
     end
   end
