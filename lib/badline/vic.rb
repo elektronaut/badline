@@ -62,9 +62,11 @@ module Badline
 
       @display_state.cycle(@rasterline, @column)
 
-      fetch_character_data! if dma_active?
-
+      # The g-access runs a phase ahead of the c-access, so the column
+      # reads the cell the previous one fetched.
       draw!
+
+      fetch_character_data! if dma_active?
 
       column_hooks if HOOK_COLUMNS[@column]
 
@@ -119,7 +121,7 @@ module Badline
     end
 
     def dma_active?
-      @display_state.bad_line? && @column >= 15 && @column < 55
+      @display_state.fetching?(@column)
     end
 
     def ba_low?
@@ -231,10 +233,10 @@ module Badline
         return
       end
 
-      cell = (@display_state.vc_base + col) & 0x3ff
-      screencode = @character_buffer[col] || 0
-      @sequencer.emit(screencode, @color_buffer[col] || 1, col,
-                      cell, @display_state.rc)
+      vmli = @display_state.vmli
+      @sequencer.emit(@character_buffer[vmli] || 0, @color_buffer[vmli] || 1,
+                      col, @display_state.vc, @display_state.rc)
+      @display_state.graphics_access if col >= 0 && col < DisplayState::COLUMNS_PER_ROW
     end
 
     def finish_line!
@@ -272,7 +274,7 @@ module Badline
       @sequencer.new_line(@rasterline)
       @sprites.start_line
       rebuild_sprite_ba
-      @display_state.new_line
+      @display_state.new_line(@rasterline)
     end
 
     def check_raster_irq!
@@ -287,10 +289,13 @@ module Badline
       (@registers[0x19] & 0x0f) | 0x70 | (interrupted? ? 0x80 : 0)
     end
 
+    # A c-access that falls between BA and AEC reads a bus the CPU still
+    # drives, so the video matrix byte comes back as $ff.
     def fetch_character_data!
-      vmli = @column - 15
-      vc = (@display_state.vc_base + vmli) & 0x3ff
-      @character_buffer[vmli] = video_matrix(vc)
+      vmli = @display_state.vmli
+      vc = @display_state.vc
+      @character_buffer[vmli] =
+        @display_state.bus_taken?(@column) ? video_matrix(vc) : 0xff
       @color_buffer[vmli] = vic_bank.peek_color(vc)
     end
   end

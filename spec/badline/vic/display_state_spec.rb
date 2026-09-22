@@ -8,10 +8,19 @@ RSpec.describe Badline::VIC::DisplayState do
   # Default $D011 is 0x1b: DEN=1, RSEL=1, YSCROLL=3.
   let(:registers) { Badline::VIC::Registers.new }
 
+  # Mirrors VIC#cycle!: the g-access columns advance the counters whenever
+  # the logic is in display state.
+  def run_columns(line, columns)
+    columns.each do |col|
+      state.cycle(line, col)
+      state.graphics_access if state.display? && (16..55).cover?(col)
+    end
+  end
+
   def run_line(line, up_to: 62)
     state.new_frame if line.zero?
-    state.new_line
-    (0..up_to).each { |col| state.cycle(line, col) }
+    state.new_line(line)
+    run_columns(line, 0..up_to)
   end
 
   def advance_to(line, column)
@@ -76,7 +85,7 @@ RSpec.describe Badline::VIC::DisplayState do
     before do
       advance_to(51, 62) # establish display on the first bad line
       (52..62).each do |line|
-        registers.write(0x11, 0x10 | ((line + 1) & 0b111)) # never matches `line`
+        registers.write(0x11, 0x10 | ((line + 4) & 0b111)) # matches neither this line nor the next
         run_line(line)
       end
     end
@@ -90,11 +99,47 @@ RSpec.describe Badline::VIC::DisplayState do
     end
   end
 
+  describe "a row opened inside the fetch window" do
+    before do
+      advance_to(58, 55) # the first char row closes on this line, RC at 7
+      registers.write(0x11, 0x10 | 4) # hold line 59 past its own match
+      run_columns(58, 56..62)
+      state.new_line(59)
+      run_columns(59, 0..16)
+      registers.write(0x11, 0x10 | 3) # 59 & 7 == 3, so the row opens at column 20
+      run_columns(59, 17..62)
+    end
+
+    it "fetches one cell less per column of delay" do
+      expect(state.vmli).to eq(36) # g-accesses 20..55 rather than 16..55
+    end
+
+    it "carries the shortfall into VCBASE" do
+      expect(state.vc_base).to eq(76) # 40 from the full row, 36 from this one
+    end
+  end
+
+  describe "the BA to AEC gap" do
+    before { advance_to(51, 14) }
+
+    it "holds the bus off for three columns after the match" do
+      expect(state.bus_taken?(14)).to be(false)
+    end
+
+    it "takes the bus three columns after the match" do
+      expect(state.bus_taken?(15)).to be(true)
+    end
+
+    it "still fetches in the columns the CPU drives" do
+      expect(state.fetching?(15)).to be(true)
+    end
+  end
+
   describe "linecrunch (bad line forced after cycle 14)" do
     before do
       advance_to(52, 14) # through cycle 14 with YSCROLL still mismatched
       registers.write(0x11, 0x10 | (52 & 0b111)) # YSCROLL now matches line 52
-      (15..30).each { |col| state.cycle(52, col) }
+      run_columns(52, 15..30)
     end
 
     it "enters display state" do
