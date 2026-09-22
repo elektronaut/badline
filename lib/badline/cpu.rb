@@ -57,14 +57,20 @@ module Badline
 
     private
 
-    def extra_cycle(instruction)
-      return cycle unless instruction.boundary_cycle?
+    def extra_cycle(instruction, addr)
+      return internal_cycle(addr) unless instruction.boundary_cycle?
 
-      boundary_crossed && cycle
+      boundary_crossed && internal_cycle(addr)
     end
 
     def read_byte(addr)
       cycle { @memory.peek(addr) }
+    end
+
+    # A cycle the CPU spends on internal work while still driving the bus.
+    # The byte read is discarded, but I/O chips see the access.
+    def internal_cycle(addr = @program_counter)
+      read_byte(addr)
     end
 
     def read_word(addr)
@@ -98,30 +104,39 @@ module Badline
       @a = @x = @y = 0x0
     end
 
+    # Indexing adds the index to the low byte first and drives the bus with
+    # that address while the carry into the high byte is resolved.
+    def indexed_address(instruction, base, index)
+      @boundary_crossed = high_byte(base + index) != high_byte(base)
+      extra_cycle(instruction, uint16((low_byte(base) + index) & 0xff,
+                                      high_byte(base)))
+      (base + index) & 0xffff
+    end
+
     def read_address(instruction, operand)
       case instruction.addressing_mode
-      when :implied, :immediate
+      when :immediate
+        nil
+      when :implied
+        internal_cycle
         nil
       when :accumulator
+        internal_cycle
         :accumulator
       when :relative
         (@program_counter + signed_int8(operand) + 1) & 0xffff
       when :zeropage, :absolute
         operand
       when :zeropage_x
-        cycle { (operand + @x) & 0xff }
+        internal_cycle(operand)
+        (operand + @x) & 0xff
       when :zeropage_y
-        cycle { (operand + @y) & 0xff }
+        internal_cycle(operand)
+        (operand + @y) & 0xff
       when :absolute_x
-        # Do an extra cycle if page boundary is crossed
-        @boundary_crossed = high_byte(operand + @x) != high_byte(operand)
-        extra_cycle(instruction)
-        (operand + @x) & 0xffff
+        indexed_address(instruction, operand, @x)
       when :absolute_y
-        @boundary_crossed = high_byte(operand + @y) != high_byte(operand)
-        # Do an extra cycle if page boundary is crossed
-        extra_cycle(instruction)
-        (operand + @y) & 0xffff
+        indexed_address(instruction, operand, @y)
       when :indirect
         # This is only used for JMP. There's no carry associated, so an
         # indirect jump to $30FF will wrap around on the same page and read
@@ -134,14 +149,10 @@ module Badline
                     ))
         )
       when :indirect_x
-        cycle
+        internal_cycle(operand)
         read_zeropage_word(operand + @x)
       when :indirect_y
-        value = read_zeropage_word(operand)
-        @boundary_crossed = ((value & 0xff) + y) > 0xff
-        # Do an extra cycle if page boundary is crossed
-        extra_cycle(instruction)
-        (value + y) & 0xffff
+        indexed_address(instruction, read_zeropage_word(operand), @y)
       end
     end
 

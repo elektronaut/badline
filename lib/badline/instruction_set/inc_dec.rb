@@ -22,7 +22,7 @@ module Badline
       # Opcodes:
       #   $CA - implied - 2 cycles
       def dex(_addr, _value)
-        cycle { @x = (@x - 1) & 0xff }
+        @x = (@x - 1) & 0xff
         update_number_flags(@x)
       end
 
@@ -31,7 +31,7 @@ module Badline
       # Opcodes:
       #   $88 - implied - 2 cycles
       def dey(_addr, _value)
-        cycle { @y = (@y - 1) & 0xff }
+        @y = (@y - 1) & 0xff
         update_number_flags(@y)
       end
 
@@ -54,7 +54,7 @@ module Badline
       # Opcodes:
       #   $E8 - implied - 2 cycles
       def inx(_addr, _value)
-        cycle { @x = (@x + 1) & 0xff }
+        @x = (@x + 1) & 0xff
         update_number_flags(@x)
       end
 
@@ -63,7 +63,7 @@ module Badline
       # Opcodes:
       #   $C8 - implied - 2 cycles
       def iny(_addr, _value)
-        cycle { @y = (@y + 1) & 0xff }
+        @y = (@y + 1) & 0xff
         update_number_flags(@y)
       end
     end

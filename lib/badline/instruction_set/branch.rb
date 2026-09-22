@@ -70,14 +70,17 @@ module Badline
       private
 
       # A branch within the same page does not re-poll interrupts during
-      # its final cycle.
+      # its final cycle. Crossing one costs a fixup cycle that drives the
+      # target low byte against the old high byte.
       def branch(addr)
         if high_byte(addr) == high_byte(@program_counter)
           @skip_poll = true
+          internal_cycle
         else
-          cycle
+          internal_cycle
+          internal_cycle(uint16(low_byte(addr), high_byte(@program_counter)))
         end
-        cycle { @program_counter = addr }
+        @program_counter = addr
       end
     end
   end

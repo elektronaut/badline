@@ -33,7 +33,8 @@ module Badline
       status.break = false
     end
 
-    # No operation. Does nothing but consume a clock cycle.
+    # No operation. The implied forms idle; the illegal memory forms still
+    # read their operand and throw it away.
     #
     # Opcodes:
     #   $EA                          - implied    - 2 cycles
@@ -42,8 +43,8 @@ module Badline
     #   $0C                          - absolute   - 4 cycles  (illegal)
     #   $1C, $3C, $5C, $7C, $DC, $FC - absolute_x - 4+ cycles (illegal)
     #   $1A, $3A, $5A, $7A, $DA, $FA - implied    - 2 cycles  (illegal)
-    def nop(_addr, _value)
-      cycle
+    def nop(addr, value)
+      resolve(value) unless addr.nil?
     end
 
     private
@@ -67,7 +68,7 @@ module Badline
     # Read-modify-write instructions put the unmodified value back on the bus before writing the result.
     def write_modified(addr, original, result)
       if addr == :accumulator
-        cycle { @a = result }
+        @a = result
       else
         write_byte(addr, original)
         write_byte(addr, result)

@@ -8,7 +8,7 @@ module Badline
       # Opcodes:
       #   $18 - implied - 2 cycles
       def clc(_addr, _value)
-        cycle { status.carry = false }
+        status.carry = false
       end
 
       # Clear decimal mode flag.
@@ -16,7 +16,7 @@ module Badline
       # Opcodes:
       #   $D8 - implied - 2 cycles
       def cld(_addr, _value)
-        cycle { status.decimal = false }
+        status.decimal = false
       end
 
       # Clear interrupt disable flag.
@@ -24,7 +24,7 @@ module Badline
       # Opcodes:
       #   $58 - implied - 2 cycles
       def cli(_addr, _value)
-        cycle { status.interrupt = false }
+        status.interrupt = false
       end
 
       # Clear overflow flag.
@@ -32,7 +32,7 @@ module Badline
       # Opcodes:
       #   $B8 - implied - 2 cycles
       def clv(_addr, _value)
-        cycle { status.overflow = false }
+        status.overflow = false
       end
 
       # Set carry flag.
@@ -40,7 +40,7 @@ module Badline
       # Opcodes:
       #   $38 - implied - 2 cycles
       def sec(_addr, _value)
-        cycle { status.carry = true }
+        status.carry = true
       end
 
       # Set decimal mode flag.
@@ -48,7 +48,7 @@ module Badline
       # Opcodes:
       #   $F8 - implied - 2 cycles
       def sed(_addr, _value)
-        cycle { status.decimal = true }
+        status.decimal = true
       end
 
       # Set interrupt disable flag.
@@ -56,7 +56,7 @@ module Badline
       # Opcodes:
       #   $78 - implied - 2 cycles
       def sei(_addr, _value)
-        cycle { status.interrupt = true }
+        status.interrupt = true
       end
     end
   end
