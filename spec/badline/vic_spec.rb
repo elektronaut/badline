@@ -313,6 +313,31 @@ RSpec.describe Badline::VIC do
       ((line + 2) * 63).times { vic.cycle! }
       expect(vic.peek(0xd01e) & 0x03).to eq(0x03)
     end
+
+    # Pinned by irq-ack-vicii: the flag rises on the cycle that draws the
+    # colliding pixel, not at the end of the line, so an acknowledge that
+    # lands a cycle later still clears it.
+    context "when the beam crosses the colliding pixel" do
+      let(:cycle) { ((100 + Badline::VIC::Sprite::X_OFFSET) / 8) + 1 }
+
+      before { ((line + 1) * 63).times { vic.cycle! } }
+
+      it "keeps the IRQ line low on the cycle before" do
+        (cycle - 1).times { vic.cycle! }
+        expect(vic.interrupted?).to be(false)
+      end
+
+      it "asserts the IRQ line on the cycle that draws it" do
+        cycle.times { vic.cycle! }
+        expect(vic.interrupted?).to be(true)
+      end
+
+      it "latches the $D019 bit even with the IRQ disabled" do
+        vic.poke(0xd01a, 0x00)
+        cycle.times { vic.cycle! }
+        expect(vic.peek(0xd019) & 0x04).to eq(0x04)
+      end
+    end
   end
 
   describe "sprite-data collision under the 38-column border" do
