@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/vic/register_log"
 require "badline/vic/sprite"
 
 module Badline
@@ -9,42 +10,21 @@ module Badline
       SPRITE_COLLISION_IRQ = 0x04 # IMMC, mirrors $D01E
       DATA_COLLISION_IRQ   = 0x02 # IMBC, mirrors $D01F
 
-      # Sprite registers whose mid-line writes change the rendered output
-      # directly. These are priority, multicolor mode and the color
-      # registers. The trigger-driven registers (X position, enable,
-      # expansion) latch their effect elsewhere and keep line-start
-      # semantics.
-      COMPOSITE_REGS = Array.new(64, false).tap do |regs|
-        [0x1b, 0x1c, 0x25, 0x26].each { |reg| regs[reg] = true }
-        (0x27..0x2e).each { |reg| regs[reg] = true }
+      # Pixels between the start of the cycle following a write and the
+      # point the new value shows. Each signal reaches the output on its own
+      # path: the colors feed the final mux, the sequencer inputs — X
+      # position, multicolor and expansion — sit furthest upstream, and the
+      # priority mux lands one pixel ahead of them.
+      COLOR_DELAY = 9
+      PRIORITY_DELAY = 14
+      SEQUENCER_DELAY = 15
+
+      WRITE_DELAY = Array.new(2**6).tap do |delays|
+        (0x00..0x0e).step(2) { |reg| delays[reg] = SEQUENCER_DELAY }
+        [0x10, 0x1c, 0x1d].each { |reg| delays[reg] = SEQUENCER_DELAY }
+        delays[0x1b] = PRIORITY_DELAY
+        [0x25, 0x26, *0x27..0x2e].each { |reg| delays[reg] = COLOR_DELAY }
       end.freeze
-
-      # A mid-line write becomes visible this many pixels after the start of
-      # the cycle following the write. The sprite output pipeline runs one
-      # cycle behind the graphics sequencer, plus the 1-pixel visibility
-      # delay shared with the background registers.
-      WRITE_DELAY = 9
-
-      # Register state at a point within the line. Logged old values overlay
-      # the live registers, and advance as compositing crosses each change.
-      class View
-        def initialize(registers)
-          @registers = registers
-          @overlay = {}
-        end
-
-        def [](reg)
-          @overlay.fetch(reg) { @registers[reg] }
-        end
-
-        def seed(reg, value)
-          @overlay[reg] = value unless @overlay.key?(reg)
-        end
-
-        def advance(reg, value)
-          @overlay[reg] = value
-        end
-      end
 
       def initialize(registers, bank, width)
         @registers = registers
@@ -54,14 +34,36 @@ module Badline
         @hits = Array.new(width, 0)
         @win_color = Array.new(width, 0)
         @win_priority = Array.new(width, false)
-        @changes = []
+        @palette = Array.new(4, 0)
+        @log = RegisterLog.new(registers)
+        @any_dma = false
       end
 
       def [](index) = @sprites[index]
 
       def start_line
-        @changes.clear
+        @log.clear
         @sprites.each(&:start_line)
+      end
+
+      # Bauer cycles 15 and 16: MCBASE steps on for every sprite whose
+      # expansion flip-flop is set, and a sprite that lands on 63 ends.
+      def advance_mcbase
+        @sprites.each(&:advance_mcbase) if @any_dma
+      end
+
+      # The only point a sprite's DMA stops, so the cached flag is settled
+      # here and set again by the compare that starts one.
+      def finish_mcbase
+        return unless @any_dma
+
+        @sprites.each(&:finish_mcbase)
+        @any_dma = @sprites.any?(&:displaying?)
+      end
+
+      # Bauer cycle 55, ahead of the Y compare.
+      def toggle_expansion
+        @sprites.each(&:toggle_expansion) if @any_dma
       end
 
       # Run the Y/enable compare (Bauer cycles 55/56) for every sprite;
@@ -77,36 +79,39 @@ module Badline
           sprite.check_dma(line)
           hit ||= sprite.displaying?
         end
+        @any_dma ||= hit
         hit
       end
 
       def check_display(line)
-        @sprites.each { |sprite| sprite.check_display(line) }
+        @sprites.each { |sprite| sprite.check_display(line) } if @any_dma
       end
 
-      def active? = @sprites.any?(&:displaying?)
+      # Not gated on the DMA flag: a row fetched at the start of the line
+      # still renders when cycle 16 ends the sprite.
+      def active? = @sprites.any?(&:rendering?)
 
-      # Record a mid-line write to an output register at its visible pixel
-      # position, for segmented compositing at the end of the line.
+      # Record a mid-line write at the pixel where it becomes visible.
       def log_change(reg, old, value, beam_x)
-        return unless COMPOSITE_REGS[reg] && active?
+        delay = WRITE_DELAY[reg]
+        return unless delay && active?
 
-        @changes << [beam_x + WRITE_DELAY, reg, old, value]
+        @log.log(beam_x + delay, reg, old, value)
       end
 
-      # Merge each displaying sprite's line into the scratch buffers, then
-      # apply the winners over the background in a single pass over the
-      # touched span.
+      # Sequence each displaying sprite's row, merge the results into the
+      # scratch buffers, then apply the winners over the background in a
+      # single pass over the touched span.
       def composite(colors, mask)
         @sprite_clash = 0
         @data_clash = 0
         @lo = @width
         @hi = 0
 
-        if @changes.empty?
-          merge_all(mask, 0, @width, @registers)
-        else
-          composite_segments(mask)
+        @log.prepare
+        @sprites.each do |sprite|
+          sprite.sequence(@log)
+          merge(sprite, mask)
         end
 
         apply(colors, mask, @lo, @hi)
@@ -115,70 +120,54 @@ module Badline
 
       private
 
-      # Composite in segments between the logged register changes: the line
-      # buffers hold the line-start decode, and each crossed change advances
-      # the view and re-decodes the sprites it affects.
-      def composite_segments(mask)
-        view = seed_view
-        from = 0
-        @changes.each do |(beam_x, reg, _old, value)|
-          merge_all(mask, from, beam_x, view) if beam_x > from
-          from = beam_x if beam_x > from
-          view.advance(reg, value)
-          redecode(reg, view)
-        end
-        merge_all(mask, from, @width, view)
+      # Write one sprite's pixels into the scratch line, picking up the
+      # color and priority registers as they stood at each pixel. The first
+      # sprite to claim a pixel wins (lowest index has priority); later hits
+      # only accumulate collision bits.
+      def merge(sprite, mask)
+        span = sprite.span
+        return if span.zero?
+
+        track(sprite.leftmost, span)
+        log = @log.empty? ? nil : @log
+        log&.rewind
+        merge_span(sprite, mask, log, span)
       end
 
-      # Line-start state: the first logged old value per register.
-      def seed_view
-        View.new(@registers).tap do |view|
-          @changes.each { |(_beam_x, reg, old, _value)| view.seed(reg, old) }
-        end
-      end
-
-      def redecode(reg, view)
-        if reg >= 0x27
-          sprite = @sprites[reg - 0x27]
-          sprite.redecode(view) if sprite.line_pixels
-        else
-          @sprites.each { |sprite| sprite.redecode(view) if sprite.line_pixels }
-        end
-      end
-
-      def merge_all(mask, from, upto, view)
-        @sprites.each do |sprite|
-          next unless sprite.line_pixels
-
-          seg_lo, seg_hi = merge(sprite, mask, from, upto, view)
-          @lo = seg_lo if seg_lo < @lo
-          @hi = seg_hi if seg_hi > @hi
-        end
-      end
-
-      # Write one sprite's pixels within [from, upto) into the scratch line.
-      # The first sprite to claim a pixel wins (lowest index has priority);
-      # later hits only accumulate collision bits.
-      def merge(sprite, mask, from, upto, view)
-        left = sprite.leftmost
-        pixels = sprite.line_pixels
-        last = sprite.pixel_width
+      def merge_span(sprite, mask, log, span)
+        codes = sprite.codes
         bit = 1 << sprite.index
-        priority = sprite.priority?(view)
-
-        i = 0
-        while i < last
-          color = pixels[i]
-          if color
-            x = left + i
-            x -= @width if x >= @width
-            merge_pixel(x, color, bit, priority, mask) if x >= from && x < upto
+        palette = sprite.palette(log || @registers, @palette)
+        priority = (log || @registers)[0x1b].anybits?(bit)
+        pos = sprite.leftmost
+        boundary = log ? 0 : Float::INFINITY
+        index = 0
+        while index < span
+          if pos >= boundary
+            log.advance(pos)
+            sprite.palette(log, palette)
+            priority = log[0x1b].anybits?(bit)
+            boundary = log.next_x
           end
-          i += 1
+          code = codes[index]
+          if code.nonzero?
+            x = pos < @width ? pos : pos - @width
+            merge_pixel(x, palette[code], bit, priority, mask)
+          end
+          index += 1
+          pos += 1
         end
+      end
 
-        right = left + last
-        right > @width ? [0, @width] : [left, right]
+      def track(left, span)
+        right = left + span
+        if right > @width
+          @lo = 0
+          @hi = @width
+        else
+          @lo = left if left < @lo
+          @hi = right if right > @hi
+        end
       end
 
       def merge_pixel(pos, color, bit, priority, mask)
