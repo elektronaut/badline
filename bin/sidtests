@@ -4,6 +4,7 @@
 # Headless runner for the SID testprogs in vendor/VICE-testprogs/SID.
 #
 #   ruby --yjit bin/sidtests [filter...] [--list] [--results PATH]
+#                            [--sid 6581|8580]
 #
 # Only the programs that report through the $D7FF debug register can be
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and
@@ -13,7 +14,8 @@
 # baseline format `rake regression:sid` diffs against the tracked copy in
 # test/baselines/. Filters are name substrings matched as a union; one
 # that matches nothing is an error rather than an empty run, so a typo
-# cannot pass for a clean partial re-record.
+# cannot pass for a clean partial re-record. --sid picks the chip the
+# machine is built with (default 6581, which the baseline is recorded on).
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -47,6 +49,8 @@ module SIDTests
     writedelay/writedelay.prg
   ].freeze
 
+  SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
+
   module_function
 
   # Removes "--name value" or "--name=value" from argv, returning the value.
@@ -58,8 +62,8 @@ module SIDTests
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
-  def exit_code(name)
-    computer = Badline::Computer.new
+  def exit_code(name, sid_model)
+    computer = Badline::Computer.new(sid_model:)
     Badline::Media.attach(computer, File.join(ROOT, name))
     code = nil
     computer.install_debug_register { |value| code = value }
@@ -67,8 +71,8 @@ module SIDTests
     code
   end
 
-  def score(name)
-    code = exit_code(name)
+  def score(name, sid_model = :mos6581)
+    code = exit_code(name, sid_model)
     return "PASS" if code&.zero?
 
     code ? format("exit=$%02x", code) : "timeout"
@@ -86,9 +90,9 @@ module SIDTests
     filters.reject { |filter| TESTS.any? { |name| name.include?(filter) } }
   end
 
-  def run(names, results_path)
+  def run(names, results_path, sid_model = :mos6581)
     results = names.map do |name|
-      result = score(name)
+      result = score(name, sid_model)
       puts format("%-43<name>s %<result>s", name:, result:)
       $stdout.flush
       [name, result]
@@ -116,6 +120,11 @@ end
 if $PROGRAM_NAME == __FILE__
   list_only = ARGV.delete("--list")
   results_path = SIDTests.take_option(ARGV, "--results")
+  sid_option = SIDTests.take_option(ARGV, "--sid") || "6581"
+  sid_model = SIDTests::SID_MODELS.fetch(sid_option) do
+    warn "sidtests: invalid argument: --sid #{sid_option}"
+    exit 2
+  end
 
   unmatched = SIDTests.unmatched(ARGV)
   unless unmatched.empty?
@@ -130,5 +139,5 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  exit(SIDTests.run(names, results_path).zero? ? 0 : 1)
+  exit(SIDTests.run(names, results_path, sid_model).zero? ? 0 : 1)
 end
