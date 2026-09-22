@@ -127,6 +127,13 @@ Machine variance is ±15%, and these numbers were measured with two other
 workspaces running the testbench at the same time, so a quiet machine will
 do better.
 
+`bin/testbench` appends each row to `<results>.progress` as its test
+finishes, and writes the results file only once every row is in. A run that
+is killed partway, by a signal or by a crash, writes no results, but the
+progress file keeps the rows it finished, in the results format. The same
+command with `--resume` runs only the tests missing from it. Without
+`--resume`, a run discards any progress file an earlier run left behind.
+
 Rows are compared by test id, not line by line, and only an id present on
 both sides can fail the run:
 
