@@ -135,8 +135,13 @@ describe Badline::CIA do
       98_525.times { cia.cycle! }
     end
 
+    # The clock is stopped at power-on and starts on a write to tenths.
+    def start_clock
+      cia.poke(0xdc08, 0x00)
+    end
+
     context "when first powered on" do
-      specify { expect(cia[0xdc0b]).to eq(0x12) }
+      specify { expect(cia[0xdc0b]).to eq(0x01) }
       specify { expect(cia[0xdc0a]).to eq(0x00) }
       specify { expect(cia[0xdc09]).to eq(0x00) }
       specify { expect(cia[0xdc08]).to eq(0x00) }
@@ -148,12 +153,14 @@ describe Badline::CIA do
     end
 
     it "advances a tenth after clock_hz/10 cycles" do
+      start_clock
       advance_one_tenth
       expect(cia[0xdc08]).to eq(0x01)
     end
 
     it "runs slow when CRA selects 60 Hz" do
       cia.poke(0xdc0e, 0x00)
+      start_clock
       advance_one_tenth
       expect(cia[0xdc08]).to eq(0x00)
     end
@@ -162,11 +169,12 @@ describe Badline::CIA do
       before do
         cia.interrupt_control.alarm = true
         cia.control_b.alarm = true
-        cia.poke(0xdc0b, 0x12)
-        cia.poke(0xdc0a, 0x00)
-        cia.poke(0xdc09, 0x00)
         cia.poke(0xdc08, 0x01)
+        cia.poke(0xdc09, 0x00)
+        cia.poke(0xdc0a, 0x00)
+        cia.poke(0xdc0b, 0x01)
         cia.control_b.alarm = false
+        start_clock
       end
 
       it "does not fire before the clock matches" do
