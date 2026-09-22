@@ -33,6 +33,8 @@ module Badline
       handle_init if @cycles == INIT_THRESHOLD
       feed_keyboard if @pending_keys
 
+      # The chips clock ahead of the CPU, so a register write lands on the
+      # cycle after the one it was issued on.
       @vic.cycle!
       @cia1.cycle!
       @cia2.cycle!

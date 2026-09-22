@@ -77,6 +77,50 @@ RSpec.describe Badline::Computer do
     specify { expect(computer.ram.read(load_addr, 6)).to eq(prg_data[2..]) }
   end
 
+  # SID/writedelay pins the 6581 latching a register write a cycle late.
+  # Nothing inside SID delays it: the DSP is clocked ahead of the CPU in
+  # #cycle!, so a store lands after the cycle it was issued on. Clocking the
+  # SID after the CPU instead makes the write take hold a cycle early, and
+  # every SID unit spec still passes.
+  describe "SID writes against the clock order" do
+    # LDA #$01; STA $d400; NOP... — voice 1's frequency, written on the
+    # store's fourth cycle. The accumulator then steps by 1 per clock.
+    before do
+      computer.ram.write(0xc000, [0xa9, 0x01, 0x8d, 0x00, 0xd4] + ([0xea] * 6))
+      computer.cpu.program_counter = 0xc000
+    end
+
+    def accumulator = computer.sid.voices[0].waveform.accumulator
+
+    context "with the DSP synthesizing" do
+      before { computer.sid.synthesize! }
+
+      it "has not clocked the frequency on the store's own cycle" do
+        6.times { computer.cycle! }
+        expect(accumulator).to eq(0x555555)
+      end
+
+      it "clocks it on the cycle after the store" do
+        7.times { computer.cycle! }
+        expect(accumulator).to eq(0x555556)
+      end
+    end
+
+    context "with the DSP idle, replaying the write" do
+      it "has not clocked the frequency on the store's own cycle" do
+        6.times { computer.cycle! }
+        computer.sid.osc3
+        expect(accumulator).to eq(0x555555)
+      end
+
+      it "clocks it on the cycle after the store" do
+        7.times { computer.cycle! }
+        computer.sid.osc3
+        expect(accumulator).to eq(0x555556)
+      end
+    end
+  end
+
   describe "interrupt delivery" do
     # Run from RAM with our own vectors and handlers.
     before { computer.address_bus.disable_overlays! }

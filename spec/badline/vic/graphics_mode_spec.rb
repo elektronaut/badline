@@ -184,4 +184,41 @@ RSpec.describe Badline::VIC::GraphicsMode do
       expect(sequencer.cur_fg).to all(be(false))
     end
   end
+
+  # Idle state fetches from $3fff, or $39ff with ECM set, and shows it as if
+  # the video matrix supplied all-zero bits. Pinned by ss-pri*, where
+  # decoding the idle lines this way took the diff from ~85k pixels to a few
+  # hundred.
+  describe Badline::VIC::GraphicsMode::Idle do
+    subject(:mode) { described_class.new }
+
+    before do
+      registers.write(0x21, 6) # background
+      bank.address_bus.ram.poke(0x3fff, 0b1000_0001)
+      bank.address_bus.ram.poke(0x39ff, 0b1100_0000)
+    end
+
+    it "renders $3fff black on the background" do
+      mode.decode(sequencer)
+      expect(sequencer.cur_colors).to eq([0, 6, 6, 6, 6, 6, 6, 0])
+    end
+
+    it "marks the set bits as foreground" do
+      mode.decode(sequencer)
+      expect(sequencer.cur_fg)
+        .to(eq([true, false, false, false, false, false, false, true]))
+    end
+
+    it "fetches $39ff instead when ECM is set" do
+      registers.write(0x11, 0x40)
+      mode.decode(sequencer)
+      expect(sequencer.cur_colors).to eq([0, 0, 6, 6, 6, 6, 6, 6])
+    end
+
+    it "drops the background to black in standard bitmap" do
+      registers.write(0x11, 0x20)
+      mode.decode(sequencer)
+      expect(sequencer.cur_colors).to all(eq(0))
+    end
+  end
 end

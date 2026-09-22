@@ -52,6 +52,45 @@ RSpec.describe Badline::VIC::Sprites do
     end
   end
 
+  # Each sprite signal reaches the output on its own path, so a mid-line
+  # write shows up a fixed number of pixels later. Pinned by the spritesplit
+  # staircases: ss-hires-color/ss-mc-color* fix the color delay, ss-pri* the
+  # priority one, and ss-hires-mc/ss-mc-hires/ss-*exp* the sequencer one.
+  describe "mid-line write delays" do
+    before do
+      setup_sprite(0, ptr: 0x20, color: 5)
+      registers.write(0x26, 2) # the shared color a %11 pair reads
+      3.times { |byte| ram.poke((0x20 * 64) + byte, 0xff) } # a solid row
+      start_display
+    end
+
+    # The sprite runs from pixel 204 to 227; every write here lands with the
+    # beam at 200.
+    def write(reg, old, value)
+      registers.write(reg, value)
+      sprites.log_change(reg, old, value, 200)
+      sprites.composite(colors, fg)
+    end
+
+    it "shows a new sprite color nine pixels on" do
+      write(0x27, 5, 9)
+      expect(colors[208..209]).to eq([5, 9])
+    end
+
+    it "swaps the priority mux fourteen pixels on" do
+      fg.fill(true)
+      write(0x1b, 0x00, 0x01)
+      expect(colors[213..214]).to eq([5, 6])
+    end
+
+    # The multicolor flip-flop idles while $d01c is clear, so the pixel the
+    # write reaches repeats the last hi-res latch and the pairs start after it.
+    it "reaches the sequencer fifteen pixels on" do
+      write(0x1c, 0x00, 0x01)
+      expect(colors[214..216]).to eq([5, 5, 2])
+    end
+  end
+
   describe "X-coordinate wrap" do
     # X 420 -> raster (420 + 104) % 504 = 20, so the sprite shows at the far
     # left of the line rather than running off the right edge.
