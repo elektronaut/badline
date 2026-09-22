@@ -265,10 +265,22 @@ module Testbench
     end
   end
 
+  # A sharded run stopped by a signal, after its shards were stopped too.
+  class Interrupted < StandardError
+    attr_reader :signal
+
+    def initialize(signal)
+      @signal = signal
+      super("testbench interrupted by SIG#{signal}. No results written.")
+    end
+  end
+
   class Runner
     # Left well short of the core count: several workspaces share the
     # machine, and a suite that hogs it helps nobody.
     DEFAULT_SHARDS = 4
+
+    FORWARDED_SIGNALS = %w[TERM INT].freeze
 
     # --shards, else SHARDS in the environment, else the default, capped by
     # the cores actually available. Without fork there is one shard.
@@ -309,8 +321,11 @@ module Testbench
       Dir.mktmpdir("shards", ARTIFACT_DIR) do |dir|
         groups = Shards.split(@tests, @shards)
         $stdout.flush
-        groups.each_with_index { |group, n| fork { shard(group, File.join(dir, "#{n}.txt"), n) } }
-        crashed = Process.waitall.count { |_, status| !status.success? }
+        crashed = forwarding_signals do
+          groups.each_with_index { |group, n| @shard_pids << fork { shard(group, File.join(dir, "#{n}.txt"), n) } }
+          forward(@interrupted) if @interrupted
+          Process.waitall.count { |_, status| !status.success? }
+        end
         raise "#{crashed} of #{groups.length} testbench shards crashed." if crashed.positive?
 
         @results = collect(dir)
@@ -320,8 +335,39 @@ module Testbench
       raise "Shards reported #{@results.length} of #{@tests.length} tests."
     end
 
+    # TERM or INT to the runner is passed on to every shard, so stopping
+    # the runner's PID stops the whole run instead of orphaning the shards.
+    # The shards are reaped before Interrupted is raised, so the tmpdir is
+    # removed as usual and no results are written. A signal that lands
+    # between a fork and its PID being recorded is forwarded again once
+    # every shard has started.
+    def forwarding_signals
+      @shard_pids = []
+      runner = Process.pid
+      previous = FORWARDED_SIGNALS.to_h do |signal|
+        [signal, trap(signal) { forward(signal) if Process.pid == runner }]
+      end
+      yield.tap { raise Interrupted, @interrupted if @interrupted }
+    ensure
+      previous&.each { |signal, handler| trap(signal, handler) }
+    end
+
+    def forward(signal)
+      @interrupted ||= signal
+      @shard_pids.each do |pid|
+        Process.kill(signal, pid)
+      rescue Errno::ESRCH
+        nil
+      end
+    end
+
+    # A shard's file appears whole or not at all, so a shard killed while
+    # writing leaves nothing the merge could read as its slice.
     def shard(group, path, number)
-      File.write(path, group.map { |index, test| Shards.record(index, run_one(test)) }.join)
+      FORWARDED_SIGNALS.each { |signal| trap(signal, "DEFAULT") }
+      records = group.map { |index, test| Shards.record(index, run_one(test)) }.join
+      File.write("#{path}.part", records)
+      File.rename("#{path}.part", path)
       exit!(0)
     rescue StandardError, SystemStackError => e
       warn "shard #{number}: #{e.class}: #{e.message}"
@@ -458,5 +504,11 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  exit(Testbench::Runner.new(tests, results_path, shards:).run.zero? ? 0 : 1)
+  begin
+    failures = Testbench::Runner.new(tests, results_path, shards:).run
+  rescue Testbench::Interrupted => e
+    warn e.message
+    exit(128 + Signal.list.fetch(e.signal))
+  end
+  exit(failures.zero? ? 0 : 1)
 end
