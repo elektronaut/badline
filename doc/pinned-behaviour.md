@@ -207,6 +207,45 @@ only catches the rows that happen to move.
   sprites stay dark. The `spritegap` dumps show this boundary.
   - Spec guard: *X comparator* in
     [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- Each sprite's s-accesses **reload its shift register** at raster pixel
+  K = 459 + 16*m (mod 504). That is late in the line for sprites 0–2 and
+  early in the next one for 3–7.
+  - A sprite still shifting at K loses the rest of its row. Its output
+    holds for that one pixel, then goes dark.
+  - A comparator hit in K..K+11 shows nothing.
+  - A hit from K+12 on shows the row the reload brought. For sprites 0–2
+    that is the *next* line's row, a line early. For sprites 3–7 it is the
+    current row, and a hit ahead of their K shows the previous line's row.
+  - The row can be shown once on each side of K, so a sprite moved past
+    the beam fires a second time on the same line.
+  - Pixels that run past the end of the line are drawn at the start of the
+    next one.
+  - Pinned by `split-tests/spritescan`, a byte-exact dump over all eight
+    sprites, 512 X positions and four patterns. `spritex/testsuite`
+    (entries 14–16: 469/470 dead, 471 = K+12 fires again),
+    `spritex/demusinterruptus` and `spritegap2` pass on it too.
+  - Spec guard: *the reload* in
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- On the line that shows its last row, where MCBASE reached 63 and the DMA
+  ended at cycle 16, the sprite loses its display at cycle 58: no hit from
+  raster pixel **460** on starts it, though one already shifting runs on,
+  and it shows no row on the line after. VICE x64sc does the same, pending
+  bits cleared at xpos $164.
+  - Pinned by `spritegap3`'s collision log, where every pair stops at X =
+    $164 whatever the lower sprite.
+- MCBASE reaching 63 at cycle 16 stops only the **DMA**. The display turns
+  off at cycle 58, and only if the DMA is still off. A Y match at the
+  cycle 55/56 compare on the last row's line restarts the DMA under a
+  display that is still on, so the new run shows even though Y no longer
+  matches at cycle 58.
+  - Pinned by `spriterestart`.
+  - Spec guard: *when Y matches only at the compare on the last row's line*
+    in [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- The DMA end also drops the sprite's BA tail on that line, because the
+  BA columns are rebuilt at cycle 16. Pinned by `CPU/sha*`, `shs*` and
+  `shxy*`, variants 4 and 5.
+  - Spec guard: *sprite BA on the line its DMA ends* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - The Y comparator is **eight bits** wide, so a coordinate of 0–55 matches a
   second time on PAL lines 256–311 and starts a second DMA run there.
   - Pinned by `spritey`, whose reference collides on every one of the 312
