@@ -11,8 +11,9 @@ Gem::Specification.new do |spec|
   spec.summary = "A cycle-accurate Commodore 64 emulator"
   spec.description = "Badline is a Commodore 64 emulator written in Ruby, " \
                      "implementing cycle-accurate timing and hardware behavior. " \
-                     "Supports PRG/P00 programs, D64/D71/D81 disk images and " \
-                     "CRT cartridges."
+                     "Supports PRG/P00 programs, D64/D71/D81 disk images, " \
+                     "T64 archives, TAP tapes, CRT cartridges, SID tunes and " \
+                     "host directories mounted as a drive."
   spec.homepage = "https://github.com/elektronaut/badline"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 4.0"
