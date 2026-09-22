@@ -2,9 +2,9 @@
 
 module Badline
   class CPU
-    # The addressing half of the cycle sequencer: one method per cycle the
-    # CPU spends fetching operands and resolving the effective address.
-    # Each runs its own bus access and leaves the result in @address.
+    # Steps that read an instruction's operand bytes and work out the
+    # address it operates on, which they leave in @address. Also the
+    # single-step implied, accumulator and immediate instructions, and JMP.
     module Addressing
       private
 
@@ -104,18 +104,18 @@ module Badline
         @address = @memory.peek(@pointer)
       end
 
-      # An indirect jump has no carry, so a vector at $30ff reads its high
-      # byte from $3000.
+      # The pointer's high byte never increments, so JMP ($30FF) reads its
+      # target's high byte from $3000, not $3100.
       def op_indirect_high
         high = @memory.peek((@pointer & 0xff00) | ((@pointer + 1) & 0xff))
         @program_counter = @address | (high << 8)
         end_instruction
       end
 
-      # Indexing adds the index to the low byte first and drives the bus
-      # with that address while the carry into the high byte resolves.
-      # Instructions that only read their operand skip the cycle unless the
-      # carry actually happens.
+      # Adds an index register to a base address. The 6502 adds to the low
+      # byte first and spends the next cycle reading from that address,
+      # before the carry reaches the high byte. Read instructions skip that
+      # cycle when there is no carry.
       def index_address(high, index)
         low = @address
         @address = (((high << 8) | low) + index) & 0xffff

@@ -2,8 +2,8 @@
 
 module Badline
   class CPU
-    # The operand half of the cycle sequencer: the cycles an instruction
-    # spends reading, writing or branching once its address is resolved.
+    # Steps that read or write an instruction's operand once its address is
+    # known, plus the branch and JAM steps.
     module Operations
       private
 
@@ -17,9 +17,10 @@ module Badline
         end_instruction
       end
 
-      # Read-modify-write instructions compute their result on the read
-      # cycle, then put the unmodified value back on the bus before the
-      # result. #write_modified leaves the result in @rmw_result.
+      # Read-modify-write instructions (ASL, INC and the like) take three
+      # cycles here: read the value and compute the result, write the
+      # original value back, then write the result. The instruction method
+      # hands the result over through #write_modified.
       def op_rmw_read
         @value = @memory.peek(@address)
         send(@operation, @address, @value)
@@ -41,7 +42,7 @@ module Badline
         @branch_taken = false
         send(@operation, @address, nil)
         if @branch_taken
-          # A branch within the same page does not re-poll on its last cycle.
+          # A taken branch within the same page doesn't poll on its last cycle.
           @skip_poll = true if same_page?
         else
           end_instruction
@@ -56,8 +57,7 @@ module Badline
         end_instruction
       end
 
-      # Crossing a page costs a fixup cycle that drives the target low byte
-      # against the old high byte.
+      # A branch to another page spends an extra cycle reading from the target's low byte on the old page.
       def op_branch_fixup
         @memory.peek((@program_counter & 0xff00) | (@address & 0xff))
         @program_counter = @address
@@ -68,8 +68,7 @@ module Badline
         (@address ^ @program_counter).nobits?(0xff00)
       end
 
-      # The plan repeats this step once per JAM_ADDRESSES entry, and
-      # @index has already moved past the current one.
+      # Runs once for each address in JAM_ADDRESSES. By the time a step runs, @index already points at the next one.
       def op_jam
         position = @index - 2
         @memory.peek(JAM_ADDRESSES[position - 1])

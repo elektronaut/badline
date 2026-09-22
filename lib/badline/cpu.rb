@@ -6,12 +6,8 @@ require "badline/cpu/operations"
 require "badline/cpu/stack_operations"
 
 module Badline
-  # A cycle-stepped 6502. Every opcode decodes to a plan naming the
-  # micro-operation that runs on each of its cycles, so a cycle is one
-  # table lookup and one dispatch rather than a coroutine switch.
   class CPU
-    STATUS_FLAGS = [:carry, :zero, :interrupt, :decimal, :break, 1,
-                    :overflow, :negative].freeze
+    STATUS_FLAGS = [:carry, :zero, :interrupt, :decimal, :break, 1, :overflow, :negative].freeze
 
     include IntegerHelper
     include InstructionSet
@@ -22,8 +18,7 @@ module Badline
     include StackOperations
 
     attr_reader :memory, :instructions, :boundary_crossed, :cycles
-    attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y,
-                  :nmi, :irq
+    attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq
 
     def initialize(memory = nil, debug: false)
       @debug = debug
@@ -59,14 +54,16 @@ module Badline
       status.value = new_value
     end
 
-    # Runs one cycle: the interrupt poll, the micro-operation scheduled for
-    # it, and the announcement of whether the next one drives a write.
     def cycle!
-      poll
+      poll # the interrupt lines
+
+      # Run the next step
       index = @index
       @index = index + 1
       send(@plan[index])
       @cycles += 1
+
+      # Record if the next step writes to memory
       @pending_write = @writes[@index]
       nil
     end
@@ -89,9 +86,9 @@ module Badline
 
     private
 
-    # The instruction boundary. It either commits the interrupt sampled on
-    # the second-to-last cycle of the instruction that just ended, or
-    # decodes the next opcode and loads its plan.
+    # The first cycle of every instruction. Starts an interrupt if one was
+    # pending when the previous instruction ended. Otherwise reads the
+    # opcode and switches to its plan.
     def op_fetch
       return start_interrupt if @boundary_nmi || @boundary_irq
 
@@ -113,8 +110,9 @@ module Badline
       end_sequence
     end
 
-    # Parks the sequencer back on the opcode fetch and latches the
-    # interrupt state the boundary will act on.
+    # Makes the next cycle an opcode fetch, and saves the pending interrupt
+    # flags for op_fetch. The next cycle polls before op_fetch runs, which
+    # updates the live flags.
     def end_sequence
       @plan = FETCH_PLAN
       @writes = FETCH_WRITES

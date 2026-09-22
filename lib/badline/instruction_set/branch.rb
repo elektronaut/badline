@@ -69,8 +69,8 @@ module Badline
 
       private
 
-      # The sequencer owns the cycles a taken branch costs; the instruction
-      # only decides whether it is taken.
+      # Marks the branch as taken. Operations#op_relative reads the flag
+      # and runs the extra cycles.
       def take_branch
         @branch_taken = true
       end

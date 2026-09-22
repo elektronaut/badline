@@ -2,8 +2,7 @@
 
 module Badline
   class CPU
-    # The cycles instructions spend on the stack page: the pushes and pulls
-    # of PHA/PLA and the subroutine and interrupt-return sequences.
+    # Steps that use the stack: PHA, PHP, PLA, PLP, JSR, RTS and RTI.
     module StackOperations
       private
 
@@ -67,9 +66,9 @@ module Badline
         @stack_pointer = (@stack_pointer - 2) & 0xff
       end
 
-      # JSR fetches its operand high byte only after the return address has
-      # been pushed, so a JSR executing inside the stack jumps via the value
-      # its own push just wrote.
+      # JSR reads its target's high byte after pushing the return address.
+      # A JSR running from the stack page can overwrite its own operand
+      # with that push, and then jumps to the overwritten address.
       def op_jsr_high
         @program_counter = @address | (@memory.peek(return_address) << 8)
         end_instruction

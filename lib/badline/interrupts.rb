@@ -19,8 +19,8 @@ module Badline
       @nmi_sample = @nmi
     end
 
-    # An interrupt spends its first cycle deciding to take the vector, with
-    # nothing on the bus, and then runs the same sequence as BRK.
+    # Runs in the opcode fetch cycle in place of the fetch, with no bus
+    # access, and switches to the interrupt plan.
     def start_interrupt
       @interrupt = @boundary_nmi ? 0xfffa : 0xfffe
       @brk = false
@@ -29,8 +29,8 @@ module Badline
       @index = 1
     end
 
-    # BRK burns the operand fetch its addressing mode discards, and arms
-    # the IRQ vector as it goes.
+    # BRK reads the byte after its opcode and ignores it, and selects the
+    # IRQ vector.
     def op_brk_dummy
       @memory.peek(@program_counter)
       @interrupt = 0xfffe
@@ -53,7 +53,8 @@ module Badline
       @memory.poke(stack_address, value)
       @stack_pointer = (@stack_pointer - 1) & 0xff
       @status.interrupt = true
-      # An NMI asserted before cycle 4 hijacks a BRK/IRQ sequence in progress.
+      # An NMI that arrives before cycle 4 of a BRK or IRQ takes it over:
+      # the sequence finishes with the NMI vector.
       @interrupt = 0xfffa if @interrupt == 0xfffe && @nmi_pending
       @nmi = false if @interrupt == 0xfffa
     end
@@ -62,8 +63,9 @@ module Badline
       @address = @memory.peek(@interrupt)
     end
 
-    # Interrupt sequences (BRK included) do not poll at their end, so the
-    # handler's first instruction always runs before another interrupt.
+    # Clears any interrupt that is pending, so the handler's first
+    # instruction always runs before the next interrupt. This applies to
+    # BRK too.
     def op_int_vector_high
       high = @memory.peek((@interrupt + 1) & 0xffff)
       @program_counter = @address | (high << 8)

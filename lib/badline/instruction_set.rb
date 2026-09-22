@@ -22,9 +22,8 @@ module Badline
     include InstructionSet::Stack
     include InstructionSet::Transfer
 
-    # No operation. The implied forms idle; the illegal memory forms have
-    # already read their operand by the time they get here, and throw it
-    # away.
+    # No operation. The illegal forms with an operand still read it, in
+    # the steps before this is called.
     #
     # Opcodes:
     #   $EA                          - implied    - 2 cycles
@@ -43,9 +42,8 @@ module Badline
       value
     end
 
-    # Read-modify-write instructions spend two cycles writing: the
-    # unmodified value goes back on the bus before the result. The
-    # sequencer owns both, so the result is only handed over here.
+    # Stores a read-modify-write result. For memory, the write happens in
+    # the steps that follow (see Operations#op_rmw_read).
     def write_modified(addr, result)
       if addr == :accumulator
         @a = result
