@@ -54,6 +54,7 @@ module Badline
         @in_flight = false
         @flight_up = 0x0
         @flight_down = 0x0
+        @idle = true
         # Nothing drives the user port, so both lines float high.
         @cnt = true
         @cnt_in = true
@@ -73,16 +74,23 @@ module Badline
       def write(value)
         @data = value
         @pending = LOAD_DELAY
+        @idle = false
       end
 
       # Clocked every cycle with timer A's underflow line. Yields once the
       # shift register reports itself empty, which it does without waiting
       # for the underflow that raises CNT over the eighth bit.
       def cycle!(underflowed)
+        if @idle && !underflowed
+          @underflow_high = false
+          return
+        end
+
         shift(underflowed)
         @pending -= 1 if @pending&.positive?
         drain_flight
         count_busy
+        @idle = idle?
         return if @empty_in.nil?
 
         @empty_in -= 1
@@ -126,6 +134,13 @@ module Badline
       end
 
       private
+
+      # Without an underflow, a register with nothing counting down and
+      # nothing in the delay lines has nothing to do on a cycle.
+      def idle?
+        !@pending&.positive? && (@flight_up | @flight_down).zero? &&
+          @busy_in.nil? && @empty_in.nil?
+      end
 
       # The shift register picks up a waiting byte whenever the underflow
       # line is asserted, but every half-step after that needs a fresh edge
