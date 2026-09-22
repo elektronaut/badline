@@ -97,6 +97,9 @@ worktree and owns a different set of files.
   `rake regression:*` tasks pass them on to the runner, so killing the
   PID you started stops the whole run. An interrupted run exits
   non-zero and writes no results or baseline
+- A background task that ends with exit code 144 got SIGTERM, most likely
+  from another session's pattern kill, not a timeout. There is no
+  run-length limit
 
 ## Testing and baselines
 
@@ -116,7 +119,9 @@ laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma` and 11 for
 `testbench-cpu`. `sid` takes about 4 min. `lorenz` chains itself and can't
 be sharded, and it takes about 2.5 h on CI. `test/baselines/README.md` has
-the full table.
+the full table. A killed `bin/testbench` run leaves its finished rows in
+`<results>.progress`, and running the same command again with `--resume`
+carries on from them.
 
 **Never run a full suite to check your work or to record it.** A full run
 repeats CI on your machine, several times over when worktrees overlap, and
@@ -141,7 +146,7 @@ the rows your change can't reach tell you nothing about it.
   workflow runs `testbench`, `lorenz` and `sid` when a push to `main`
   touches `lib/`, the runners, the baselines or the Rakefile. It never runs
   on pull requests, and a newer push cancels a run in progress. The
-  `testbench-*` suites run from the Actions tab on demand
+  `testbench-*` and `sid-8580` suites run from the Actions tab on demand
 - The one exception is a change whose reach you can't bound to a set of
   filters, such as reordering `Computer#cycle!` or changing the LOAD trap
   every suite loads through. Ask before running a full suite for it, and
@@ -149,9 +154,10 @@ the rows your change can't reach tell you nothing about it.
 
 Pick the filters from the suites your change can move: VIC → `testbench`;
 CPU, CIA, interrupts or timing → `lorenz` and the matching `testbench-*`
-suite; SID → `sid`. Both Lorenz and testbench load through the LOAD trap and
-type through the keyboard buffer, so storage, IEC and keyboard changes can
-move them too. A broken trap stalls the Lorenz chain.
+suite; SID → `sid`, plus `sid-8580` for anything the 8580 model reaches
+(`bin/sidtests --sid 8580`). Both Lorenz and testbench load through the LOAD
+trap and type through the keyboard buffer, so storage, IEC and keyboard
+changes can move them too. A broken trap stalls the Lorenz chain.
 
 `ruby --yjit bin/benchmark` measures post-boot speed. Absolute numbers
 depend on the machine and its load: parallel worktrees running suites can
