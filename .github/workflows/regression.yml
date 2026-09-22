@@ -24,6 +24,7 @@ on:
           - sid
           - testbench-cia
           - testbench-interrupts
+          - testbench-irqdma
           - testbench-cpu
 permissions:
   contents: read

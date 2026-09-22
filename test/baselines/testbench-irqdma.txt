@@ -1,0 +1,16 @@
+interrupts/irqdma/nmitest6b.prg	FAIL	exit=$ff
+interrupts/irqdma/nmitest6.prg	FAIL	exit=$ff
+interrupts/irqdma/test1b.prg	FAIL	exit=$ff
+interrupts/irqdma/test1.prg	FAIL	exit=$ff
+interrupts/irqdma/test2b.prg	FAIL	exit=$ff
+interrupts/irqdma/test2.prg	FAIL	exit=$ff
+interrupts/irqdma/test3b.prg	FAIL	exit=$ff
+interrupts/irqdma/test3.prg	FAIL	exit=$ff
+interrupts/irqdma/test4b.prg	FAIL	exit=$ff
+interrupts/irqdma/test4.prg	FAIL	exit=$ff
+interrupts/irqdma/test5b.prg	FAIL	exit=$ff
+interrupts/irqdma/test5.prg	FAIL	exit=$ff
+interrupts/irqdma/test6b.prg	FAIL	exit=$ff
+interrupts/irqdma/test6.prg	FAIL	exit=$ff
+interrupts/irqdma/test7b.prg	FAIL	exit=$ff
+interrupts/irqdma/test7.prg	FAIL	exit=$ff

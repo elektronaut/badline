@@ -7,11 +7,14 @@ Recorded output of the headless hardware suites, one file per suite:
   tab-separated record per test, in testlist order: `id<TAB>PASS`, or
   `id<TAB>FAIL<TAB>detail` where detail is the `$D7FF` exit code and, for
   screenshot tests, the number of mismatched pixels.
-- `testbench-cia.txt`, `testbench-interrupts.txt`, `testbench-cpu.txt` —
-  the same runner over the testlist's `CIA/`, `interrupts/` and `CPU/`
-  subtrees, one suite per subsystem so a change can be checked against the
-  subtree it can actually move. All three are `exitcode` tests: no
-  reference screenshots, so detail is only the `$D7FF` code. Two testlist
+- `testbench-cia.txt`, `testbench-interrupts.txt`, `testbench-irqdma.txt`,
+  `testbench-cpu.txt` — the same runner over the testlist's `CIA/`,
+  `interrupts/` and `CPU/` subtrees, one suite per subsystem so a change
+  can be checked against the subtree it can actually move.
+  `interrupts/irqdma` is a suite of its own because it accounts for nearly
+  all of that subtree's runtime; `testbench-interrupts` is the rest. All
+  four are `exitcode` tests: no reference screenshots, so detail is only
+  the `$D7FF` code. Two testlist
   options decide what that code has to be — `expect:error` wants a
   non-zero code and `expect:timeout` wants no report at all, and a row that
   misses either way records `want=error` / `want=timeout` alongside the
@@ -40,6 +43,32 @@ stand, so the guard is the comparison, not the pass count.
     rake regression:record:testbench    # accept a reviewed diff
     rake regression:record              # re-record the push-to-main set
 
+    rake "regression:record:testbench[spriteenable]"      # only the rows a filter matched
+    rake "regression:record:testbench[sprite0,gfxfetch]"  # several filters, matched as a union
+
+Quote the task name: zsh treats the brackets as a glob.
+
+A filtered re-record runs only the matching programs and splices their rows
+into the existing baseline; every other row keeps the verdict it had, and
+baseline order — which is what the `id#2` occurrence keys are derived from
+— is preserved. A row the run gained is inserted beside the row it followed
+in the run. Nothing is ever removed, so a test the vendored suite dropped
+survives a partial record and is reported as `gone` by the next comparison;
+clearing it out is a whole-suite record.
+
+Filters are id substrings matched inside the suite's own subtree, so a
+filter cannot reach rows belonging to another baseline, and one that
+matches no test at all aborts before anything runs rather than recording an
+empty no-op. `lorenz` has no filtered form: the suite chains itself from
+the first test loaded, so there is nothing to cut down.
+
+The testbench runs forks over four shards by default — each test boots its
+own machine, so they are independent — and merges the per-test records back
+into testlist order. `SHARDS=8 rake regression:testbench` or
+`ruby --yjit bin/testbench --shards 8 ...` overrides it, capped by the core
+count. The default is deliberately well short of the cores available, since
+several workspaces share the machine.
+
 Two subtrees of the testlist are deliberately left out. `CPU/decimalmode`
 is 41 exhaustive ADC/SBC sweeps that `rake test` already covers per-opcode
 against SingleStepTests' bus-level traces, for a worst case near nine
@@ -47,29 +76,39 @@ hours. Every row carrying `cia-new` asks for the 6526A, whose timer and
 shift register differ from the 6526 badline models; the testlist lists the
 same 71 programs again under `cia-old`, and those are the ones that run.
 
-A recording run is unattended compute measured in hours — roughly three
-quarters of an hour for the testbench and about as long for Lorenz; the SID
-suite is the odd one out at about four minutes. Those three are the
-push-to-main set, run when a push to `main` touches `lib/`, the runners,
-the baselines or the Rakefile — never on a pull request, and never on a
-schedule.
+`testbench`, `lorenz` and `sid` are the push-to-main set, run when a push
+to `main` touches `lib/`, the runners, the baselines or the Rakefile —
+never on a pull request, and never on a schedule. The `testbench-*` suites
+are opt-in: pick them by name from the Actions tab, or run the rake task by
+hand.
 
-The `testbench-*` suites are opt-in: pick them by name from the Actions
-tab, or run the rake task by hand. An `exitcode` test ends when it writes
-`$D7FF`, so the testlist's cycle count is a timeout rather than a runtime —
-measure, do not assume. Measured wall clock on an M-series laptop, against
-the worst case the budgets allow:
+An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
+count is a timeout rather than a runtime — measure, do not assume. Wall
+clock on an M-series laptop, against the worst case the budgets allow. The
+serial column is the sum of the per-test times from the same run, which is
+what the suite cost before it was sharded:
 
-| suite | rows | worst case | measured |
-| --- | --- | --- | --- |
-| `testbench-cia` | 121 | 163 min | 35 min |
-| `testbench-interrupts` | 29 | 174 min | 126 min |
-| `testbench-cpu` | 72 | 49 min | 31 min |
+| suite | rows | worst case | serial | 4 shards |
+| --- | --- | --- | --- | --- |
+| `testbench` | 200 | 173 min | 46 min | 15 min |
+| `testbench-cia` | 121 | 163 min | 39 min | 11 min |
+| `testbench-interrupts` | 13 | 4 min | 2 min | 1 min |
+| `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
+| `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 
-`interrupts/irqdma` is 124 of those 126 minutes: 16 programs that measure
-DMA against interrupts over ~450M cycles each and use nearly all of it
-whether they pass or fail. CIA and CPU come in at a fifth to two thirds of
-their worst case, so the budgets there really are timeouts.
+`bin/lorenz` is not sharded — the suite chains itself, one LOAD after the
+next, so there is nothing to split — and `bin/sidtests` is not either, at
+about three and a half minutes whole.
+
+`interrupts/irqdma` is 16 programs that measure DMA against interrupts over
+~450M cycles each and use nearly all of it whether they pass or fail, which
+is why it is a suite of its own: what is left of `interrupts/` runs in
+about a minute. CIA and CPU come in at a quarter to two thirds of their
+worst case, so the budgets there really are timeouts.
+
+Machine variance is ±15%, and these numbers were measured with two other
+workspaces running the testbench at the same time, so a quiet machine will
+do better.
 
 Rows are compared by test id, not line by line, and only an id present on
 both sides can fail the run:

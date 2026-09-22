@@ -7,8 +7,17 @@
 # it. Re-recording the baseline is what pins a new row's verdict.
 module Regression
   Row = Struct.new(:key, :verdict, :detail) do
+    # The occurrence suffix is a read-side key, not part of the recorded id.
+    def id
+      key.sub(/#\d+\z/, "")
+    end
+
     def to_s
       [verdict, detail].compact.join(" ")
+    end
+
+    def to_record
+      "#{[id, verdict, detail].compact.join("\t")}\n"
     end
   end
 
@@ -21,6 +30,70 @@ module Regression
       seen[id] += 1
       key = seen[id] > 1 ? "#{id}##{seen[id]}" : id
       [key, Row.new(key, verdict, detail)]
+    end
+  end
+
+  def self.write(path, rows)
+    File.write(path, rows.map(&:to_record).join)
+  end
+
+  # Merges a filtered run into a recorded baseline. A row the run produced
+  # replaces its baseline row in place; a row the run did not touch is kept
+  # verbatim; a row the baseline does not have yet is inserted next to the
+  # run's neighbouring row. Nothing is ever dropped, so a row the vendored
+  # suite lost survives a partial record and is reported as gone by the
+  # next comparison.
+  #
+  # Baseline order decides the recorded occurrence numbering (`id#2`), so
+  # every inserted row is placed adjacent to the row it followed in the
+  # run, never appended past an occurrence of the same id.
+  class Splice
+    def initialize(baseline, fresh)
+      @baseline = baseline
+      @fresh = fresh
+      place
+    end
+
+    def rows
+      @rows ||= @baseline.keys.flat_map do |key|
+        [*take(@before[key]), @fresh.fetch(key, @baseline[key]), *take(@after[key])]
+      end + take(@tail)
+    end
+
+    def replaced
+      @replaced ||= @fresh.keys & @baseline.keys
+    end
+
+    def inserted
+      @inserted ||= @fresh.keys - @baseline.keys
+    end
+
+    def summary
+      "#{replaced.length} row(s) re-recorded, #{inserted.length} inserted, " \
+        "#{@baseline.length - replaced.length} left untouched"
+    end
+
+    private
+
+    # Walks the run in order, hanging each unrecorded row off the closest
+    # recorded row on either side of it.
+    def place
+      @before = Hash.new { |hash, key| hash[key] = [] }
+      @after = Hash.new { |hash, key| hash[key] = [] }
+      @tail = []
+      pending = []
+      anchor = nil
+      @fresh.each_key do |key|
+        next pending << key unless @baseline.key?(key)
+
+        @before[key].concat(pending.slice!(0..))
+        anchor = key
+      end
+      (anchor ? @after[anchor] : @tail).concat(pending)
+    end
+
+    def take(keys)
+      keys.map { |key| @fresh[key] }
     end
   end
 

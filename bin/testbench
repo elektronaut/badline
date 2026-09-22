@@ -3,7 +3,8 @@
 
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
-#   ruby --yjit bin/testbench [filter...] [--list] [--results PATH]
+#   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
+#                             [--shards N] [--list] [--results PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
 # hardware badline models: VICII, CIA, interrupts and CPU. Each test boots
@@ -17,15 +18,24 @@
 # log, one tab-separated "id STATUS [detail]" record per test in testlist
 # order, to --results (tmp/testbench/results.txt by default).
 #
-# Filters pick a subtree, which is how the suites are split:
-# `rake regression:testbench` diffs the VICII rows against the tracked
-# baseline in test/baselines/, `rake regression:testbench-cia` the CIA
-# ones, and so on.
+# --scope and --exclude bound the run to an id prefix, which is how the
+# suites are split: `rake regression:testbench` scopes to VICII/ and diffs
+# those rows against the tracked baseline in test/baselines/,
+# `rake regression:testbench-cia` scopes to CIA/, and so on. Filters are a
+# union matched inside that scope, so a filtered run stays in one
+# baseline's rows; a filter that matches nothing is an error rather than
+# an empty run.
+#
+# Tests are independent — each boots its own machine — so the run is
+# forked over --shards processes (SHARDS in the environment, 4 by
+# default) and the per-test records merged back into testlist order.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "chunky_png"
+require "etc"
+require "tmpdir"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -110,13 +120,23 @@ module Testbench
     module_function
 
     # Filters are id substrings, matched as a union; no filter runs
-    # everything.
-    def tests(filters)
+    # everything inside the scope.
+    def tests(filters, scope: nil, exclude: nil)
       File.readlines(TESTLIST)
           .filter_map { |line| parse(line) }
-          .select do |test|
-            filters.empty? || filters.any? { |filter| test.id.include?(filter) }
-          end
+          .select { |test| selected?(test, filters, scope, exclude) }
+    end
+
+    def selected?(test, filters, scope, exclude)
+      return false if scope && !test.id.include?(scope)
+      return false if exclude && test.id.include?(exclude)
+
+      filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+    end
+
+    # Filters that picked up no test at all, which a typo makes silent.
+    def unmatched(filters, tests)
+      filters.reject { |filter| tests.any? { |test| test.id.include?(filter) } }
     end
 
     def parse(line)
@@ -212,22 +232,113 @@ module Testbench
     end
   end
 
+  # Tests are independent, so a run is split over forked shards and the
+  # per-test records merged back into testlist order. Indices are global to
+  # the run, which is what survives the split.
+  module Shards
+    module_function
+
+    # Longest budget first into the least loaded shard, each shard keeping
+    # testlist order. An exitcode test ends when it reports, so the budget
+    # is only an upper bound, but it is the one ordering available before
+    # the run.
+    def split(tests, count)
+      groups = Array.new(count) { [] }
+      loads = Array.new(count, 0)
+      tests.each_with_index.sort_by { |test, _| -test.timeout }.each do |test, index|
+        shard = loads.each_index.min_by { |n| loads[n] }
+        groups[shard] << [index, test]
+        loads[shard] += test.timeout
+      end
+      groups.each { |group| group.sort_by!(&:first) }
+    end
+
+    def record(index, result)
+      "#{index}\t#{result}\n"
+    end
+
+    # The records every shard wrote, back in testlist order.
+    def merge(lines)
+      lines.map { |line| line.split("\t", 2) }
+           .map { |index, result| [index.to_i, result] }
+           .sort_by(&:first)
+    end
+  end
+
   class Runner
-    def initialize(tests, results_path)
+    # Left well short of the core count: several workspaces share the
+    # machine, and a suite that hogs it helps nobody.
+    DEFAULT_SHARDS = 4
+
+    # --shards, else SHARDS in the environment, else the default, capped by
+    # the cores actually available. Without fork there is one shard.
+    def self.shard_count(requested)
+      return 1 unless Process.respond_to?(:fork)
+
+      count = (requested || ENV.fetch("SHARDS", nil)).to_i
+      count = DEFAULT_SHARDS unless count.positive?
+      [count, Etc.nprocessors].min
+    end
+
+    def initialize(tests, results_path, shards: 1)
       @tests = tests
       @results_path = results_path
+      @shards = [shards, tests.length].min
       @results = []
     end
 
     def run
       FileUtils.mkdir_p(ARTIFACT_DIR)
       @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      @tests.each { |test| report(test, *timed { run_test(test) }) }
+      @shards > 1 ? run_sharded : run_serial
       summarize
       @results.count { |_, result| result != "PASS" }
     end
 
     private
+
+    def run_serial
+      @results = @tests.map { |test| [test, run_one(test)] }
+    end
+
+    # Each child owns a disjoint slice of the testlist and writes its own
+    # records to a file. A child that dies without writing its slice would
+    # silently shorten the results, so both the exit statuses and the
+    # merged row count are checked.
+    def run_sharded
+      Dir.mktmpdir("shards", ARTIFACT_DIR) do |dir|
+        groups = Shards.split(@tests, @shards)
+        $stdout.flush
+        groups.each_with_index { |group, n| fork { shard(group, File.join(dir, "#{n}.txt"), n) } }
+        crashed = Process.waitall.count { |_, status| !status.success? }
+        raise "#{crashed} of #{groups.length} testbench shards crashed." if crashed.positive?
+
+        @results = collect(dir)
+      end
+      return if @results.length == @tests.length
+
+      raise "Shards reported #{@results.length} of #{@tests.length} tests."
+    end
+
+    def shard(group, path, number)
+      File.write(path, group.map { |index, test| Shards.record(index, run_one(test)) }.join)
+      exit!(0)
+    rescue StandardError, SystemStackError => e
+      warn "shard #{number}: #{e.class}: #{e.message}"
+      exit!(1)
+    end
+
+    def collect(dir)
+      lines = Dir.glob(File.join(dir, "*.txt"))
+                 .flat_map { |path| File.readlines(path, chomp: true) }
+      Shards.merge(lines).map { |index, result| [@tests[index], result] }
+    end
+
+    def run_one(test)
+      result, elapsed = timed { run_test(test) }
+      report(test, result, elapsed)
+      result
+    end
 
     def timed
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -303,7 +414,6 @@ module Testbench
     end
 
     def report(test, result, elapsed)
-      @results << [test, result]
       puts format("%-55<id>s %7.1<elapsed>fs %<result>s",
                   id: test.id, elapsed:, result:)
       $stdout.flush
@@ -331,7 +441,16 @@ if $PROGRAM_NAME == __FILE__
   list_only = ARGV.delete("--list")
   results_path = Testbench.take_option(ARGV, "--results") ||
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
-  tests = Testbench::Testlist.tests(ARGV)
+  scope = Testbench.take_option(ARGV, "--scope")
+  exclude = Testbench.take_option(ARGV, "--exclude")
+  shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:)
+
+  unmatched = Testbench::Testlist.unmatched(ARGV, tests)
+  unless unmatched.empty?
+    warn "No test in #{scope || 'the testlist'} matches #{unmatched.join(', ')}."
+    exit 2
+  end
 
   if list_only
     tests.each { |test| puts "#{test.id} (#{test.type}, #{test.timeout})" }
@@ -339,5 +458,5 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  exit(Testbench::Runner.new(tests, results_path).run.zero? ? 0 : 1)
+  exit(Testbench::Runner.new(tests, results_path, shards:).run.zero? ? 0 : 1)
 end
