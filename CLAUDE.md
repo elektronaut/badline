@@ -87,6 +87,16 @@ worktree and owns a different set of files.
   planner owns that file: read it and don't edit it. Send the planner your
   results instead: what changed, suite scores before and after, and anything
   worth recording (pinned rules, follow-ups)
+- **Stop only your own processes, by PID.** Never kill by name or
+  pattern (`pkill -f`, `killall`, `pgrep … | kill`): other worktrees
+  run the same commands, and a pattern stops their runs too. Kill `$!`
+  for a job you backgrounded, or a PID you noted when you started it.
+  If you have to look one up, match on your worktree's absolute path
+  and check the result before you kill anything
+- `bin/testbench` passes TERM and INT on to its shards, and the
+  `rake regression:*` tasks pass them on to the runner, so killing the
+  PID you started stops the whole run. An interrupted run exits
+  non-zero and writes no results or baseline
 
 ## Testing and baselines
 
