@@ -12,6 +12,10 @@ on:
           - all
           - testbench
           - lorenz
+          - lorenz-1
+          - lorenz-2
+          - lorenz-3
+          - lorenz-4
           - sid
           - testbench-cia
           - testbench-interrupts

@@ -120,9 +120,18 @@ what the suite cost before it was sharded:
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 
-`bin/lorenz` is not sharded: the suite chains itself, one LOAD after the
-next, so there is nothing to split. It is by far the slowest suite whole,
-at about two and a half hours on CI. `bin/sidtests` is not sharded either,
+`bin/lorenz` chains itself, one LOAD after the next, and is by far the
+slowest suite whole: about two and a half hours on CI. It can also run as
+four stretches side by side, `rake regression:lorenz-1` to `lorenz-4`, each
+about a quarter of that, and each can be picked from the Actions tab too. The Rakefile's `cuts` for `lorenz` end each
+stretch. A stretch resumes at the previous cut on a fresh machine, stops
+after its own, and compares only its rows, and the last one runs to the end
+of the chain and carries the `(suite)` row. A stretch that stops short of
+its last test, or reports a different set of rows from the baseline's
+range, fails. The cuts sit in the CPU instruction tests, and every one has
+to stay before `trap1`: from there on the tests carry state from one to the
+next, which a fresh machine would lose. `rake regression:lorenz` still runs
+the whole chain. `bin/sidtests` is not sharded either,
 and takes about three and a half minutes here and five on CI. `sid-8580`
 runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes
 26 minutes here (20 of CPU, on a loaded machine), which keeps it out of the

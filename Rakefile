@@ -26,9 +26,20 @@ VENDORED_REPOS = {
 # :chain marks a suite that chains itself from the first test loaded, like
 # bin/lorenz, so it is cut down to a [first, last] stretch of the chain
 # instead.
+#
+# :cuts splits a chain into stretches, regression:<suite>-1, -2 and so on,
+# that can run side by side, locally or dispatched from the Actions tab
+# (the nightly run is still the whole chain). Each ends at its cut, and
+# the next resumes there on a fresh machine. Lorenz's cuts fall at quarters of its
+# runtime, inside the CPU instruction tests. Keep every cut before trap1
+# (row 221 of lorenz.txt): from there on the trap, MMU, interrupt and CIA
+# tests carry state from one test to the next, which a fresh machine would
+# lose. A moved cut has to be checked by resuming there and comparing the
+# rows after it against the baseline; each of these left them exactly as
+# the whole chain records them.
 REGRESSION_SUITES = {
   "testbench" => { runner: "bin/testbench", scope: "VICII/" },
-  "lorenz" => { runner: "bin/lorenz", chain: true },
+  "lorenz" => { runner: "bin/lorenz", chain: true, cuts: %w[rola cmpix insay] },
   "sid" => { runner: "bin/sidtests" }
 }.freeze
 
@@ -186,6 +197,65 @@ def record_chain(suite, first, last = nil, *extra)
   splice_recorded(suite, recorded, fresh)
 end
 
+# Runs stretch number (from 1) of a chained suite and compares its rows
+# against the baseline. Every stretch but the last stops after its cut, and
+# a stretch that ends short of that fails, since its missing rows would
+# otherwise only read as gone. The last runs the chain to its end, so it
+# also carries the (suite) row.
+def run_stretch(suite, number)
+  recorded = read_recorded(suite)
+  range, final = stretch_range(suite, recorded, number)
+  args = final ? [] : ["--stop-after", range.last]
+  args.push("--resume", range.resume_at) if range.resume_at
+  results = File.join(REGRESSION_DIR, "#{suite}-#{number}.txt")
+  run_suite(suite, results, args)
+  fresh = Regression.read(results)
+  rows = range.select(fresh)
+  expected = recorded.slice(*stretch_keys(recorded, range))
+  if final
+    rows[Regression::ChainRange::OUTCOME] = fresh[Regression::ChainRange::OUTCOME]
+    expected[Regression::ChainRange::OUTCOME] = recorded[Regression::ChainRange::OUTCOME]
+  end
+  compare_stretch("#{suite}-#{number}", expected, rows.compact)
+  raise "#{suite}-#{number} ended before reaching #{range.last}." unless range.reached?(rows)
+  return if rows.keys == expected.keys
+
+  raise "#{suite}-#{number} reported #{rows.length} rows where the baseline has #{expected.length}."
+end
+
+# The range of stretch number, and whether it is the last.
+def stretch_range(suite, recorded, number)
+  cuts = ALL_SUITES.fetch(suite).fetch(:cuts)
+  keys = recorded.keys - [Regression::ChainRange::OUTCOME]
+  first = number == 1 ? keys.first : keys[keys.index(cuts[number - 2]) + 1]
+  final = number == cuts.length + 1
+  [Regression::ChainRange.new(recorded, first, final ? keys.last : cuts[number - 1]), final]
+end
+
+def stretch_keys(recorded, range)
+  keys = recorded.keys - [Regression::ChainRange::OUTCOME]
+  keys[keys.index(range.first)..keys.index(range.last)]
+end
+
+def compare_stretch(name, expected, rows)
+  comparison = Regression::Comparison.new(name, expected, rows)
+  comparison.report($stdout)
+  comparison.publish
+  raise "#{name} changed against the baseline." if comparison.changed?
+end
+
+# regression:<suite>-<n> for each stretch of a suite with :cuts.
+def define_stretch_tasks
+  ALL_SUITES.select { |_, config| config[:cuts] }.each do |suite, config|
+    (1..(config[:cuts].length + 1)).each do |number|
+      desc "Run stretch #{number} of the #{suite} chain and compare it against #{baseline_path(suite)}"
+      task "#{suite}-#{number}" => "vendor:VICE-testprogs" do
+        run_stretch(suite, number)
+      end
+    end
+  end
+end
+
 def read_recorded(suite)
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
@@ -248,6 +318,8 @@ namespace :regression do
       compare_baseline(suite, results)
     end
   end
+
+  define_stretch_tasks
 
   namespace :record do
     ALL_SUITES.each_key do |suite|
