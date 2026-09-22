@@ -41,7 +41,8 @@ requires only the namespace file.
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 
-`bin/benchmark` measures emulation speed after boot. `test/baselines/README.md`
+`bin/benchmark` measures emulation speed after boot, and `bin/profile` shows
+where that time goes. `test/baselines/README.md`
 documents the baseline format, the suites and how rows are compared.
 
 ## Driving the emulator headlessly
@@ -117,11 +118,12 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma` and 11 for
-`testbench-cpu`. `sid` takes about 4 min. `lorenz` chains itself and can't
-be sharded, and it takes about 2.5 h on CI. `test/baselines/README.md` has
-the full table. A killed `bin/testbench` run leaves its finished rows in
-`<results>.progress`, and running the same command again with `--resume`
-carries on from them.
+`testbench-cpu`. `sid` takes about 4 min. `lorenz` chains itself and takes
+about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
+four stretches of about 40 min each, and they can run side by side.
+`test/baselines/README.md` has the full table. A killed `bin/testbench` run
+leaves its finished rows in `<results>.progress`, and running the same
+command again with `--resume` carries on from them.
 
 **Never run a full suite to check your work or to record it.** A full run
 repeats CI on your machine, several times over when worktrees overlap, and
@@ -162,15 +164,23 @@ its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
 tests that rule names, one at a time, with
-`ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. Both Lorenz
+`ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. A stretch
+resumes on a fresh machine, so its cuts in the Rakefile have to stay before
+`trap1`, where the tests start carrying state from one to the next. Both Lorenz
 and testbench load through the LOAD trap and type through the keyboard
 buffer, so storage, IEC and keyboard changes can move them too. A broken
 trap stalls the Lorenz chain.
 
 `ruby --yjit bin/benchmark` measures post-boot speed. Absolute numbers
 depend on the machine and its load: parallel worktrees running suites can
-cost 20% or more, and variance is ±15% even when idle. Compare against
-`origin/main` on the same machine, run back to back.
+cost 20% or more, and wall-clock variance is ±15% even when idle. For an
+A/B, run `ruby --yjit bin/profile <idle|game|synth> --compare <sha>`. It pins
+the base to a commit, because another worktree's fetch can move
+`origin/main` mid-comparison. It also times in process CPU time, which holds
+about ±3% under load. Without `--compare`, `bin/profile` samples with
+stackprof and splits self time by subsystem. It drops stackprof's GC
+pseudo-frames, which report lazy-sweep samples as GC time. `--ceiling` shows
+how much faster the machine would run if each chip cost nothing.
 
 ### Pinned behaviour
 
