@@ -1,0 +1,289 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Where emulation time goes, for speed work.
+#
+#   ruby --yjit bin/profile [workload] [--cycles N] [--top N] [--out PATH]
+#   ruby --yjit bin/profile [workload] --ceiling
+#   ruby --yjit bin/profile [workload] --compare REV [--pairs N]
+#
+# Workloads:
+#   idle   the READY prompt after boot (bad lines on, sprites off)
+#   game   IK+'s attract mode from 20M cycles: 8 sprites, bad lines and a
+#          raster IRQ per multiplexed sprite row. Needs
+#          vendor/OneLoad64-Games-Collection-v5 linked into the checkout
+#   synth  idle with SID synthesis on and a sample read every cycle, the
+#          loop Audio::MachinePlayer runs
+#
+# The default mode samples the workload with stackprof (in the Gemfile's
+# development group, so `bundle install` first) and prints the self time
+# split by subsystem, plus the top methods by self time. A cfunc or helper
+# leaf (Integer#anybits?, Status) counts toward the chip that called it.
+# stackprof tags samples taken while a lazy GC sweep is pending as
+# "(sweeping)" or "(garbage collection)", even though the program was
+# running. Under YJIT that's 20-25% of samples while GC.stat[:time] shows
+# under 1%, so those samples are dropped and the rest renormalized. Check
+# GC.stat before chasing allocations.
+#
+# --ceiling runs the workload with each chip's cycle! turned into a no-op,
+# one fresh process per chip, and prints the speed-up. That's the most
+# making the chip free could buy. The stubs aren't additive.
+#
+# --compare REV times the workload against REV's lib/, in alternating
+# fresh processes, and prints each pair. REV is resolved to a commit and
+# extracted once into tmp/profile/<sha>/, so a fetch in another worktree
+# can't move the base under a running comparison. Timing is process CPU
+# time, which holds about ±3% while other worktrees load the machine;
+# wall-clock time doesn't.
+
+require "English"
+require "fileutils"
+require "optparse"
+require "rbconfig"
+
+module Profiler
+  WORKLOADS = %w[idle game synth].freeze
+  STUBS = %w[vic cia cpu sid chips].freeze
+  GAME = "vendor/OneLoad64-Games-Collection-v5/IK+.crt"
+  ROOT = File.expand_path("..", __dir__)
+
+  module_function
+
+  def cpu_time = Process.clock_gettime(Process::CLOCK_PROCESS_CPUTIME_ID)
+
+  def load_average
+    `uptime`[/load averages?: (.*)/, 1]&.strip
+  end
+
+  # A booted machine running one of the workloads.
+  class Workload
+    NOOP = Module.new { def cycle! = nil }
+
+    def initialize(name)
+      @computer = Badline::Computer.new
+      @synth = name == "synth"
+      fast_forward = 3_000_000
+      if name == "game"
+        Badline::Media.attach(@computer, File.join(ROOT, GAME))
+        fast_forward = 20_000_000
+      end
+      @computer.cycle! while @computer.cycles < fast_forward
+      @computer.sid.synthesize! if @synth
+    end
+
+    def stub(chip)
+      c = @computer
+      chips = { "vic" => [c.vic], "cia" => [c.cia1, c.cia2], "cpu" => [c.cpu], "sid" => [c.sid],
+                "chips" => [c.vic, c.cia1, c.cia2, c.sid, c.cpu, c.datasette] }
+      chips.fetch(chip).each { |part| part.singleton_class.prepend(NOOP) }
+    end
+
+    def run(cycles)
+      computer = @computer
+      if @synth
+        sid = computer.sid
+        cycles.times do
+          computer.cycle!
+          sid.sample
+        end
+      else
+        cycles.times { computer.cycle! }
+      end
+    end
+
+    # Warms YJIT up, then returns cycles per CPU-second.
+    def rate(cycles)
+      run(500_000)
+      started = Profiler.cpu_time
+      run(cycles)
+      cycles / (Profiler.cpu_time - started)
+    end
+  end
+
+  # The self time in a raw stackprof dump, by subsystem and by method.
+  class Report
+    GC_FRAMES = ["(sweeping)", "(garbage collection)", "(marking)"].freeze
+    HELPERS = %r{/(status|integer_helper|addressable)\.rb\z}
+
+    SUBSYSTEMS = [
+      [%r{/(cpu|instruction_set)(/|\.rb)|/(interrupts|traps|instruction)\.rb}, "CPU"],
+      [%r{/vic/sprites?\.rb}, "VIC sprites"],
+      [%r{/vic/(sequencer|graphics_mode|border_mask)\.rb}, "VIC sequencer"],
+      [%r{/vic(/|\.rb)}, "VIC other"],
+      [%r{/cia(/|\.rb)|/time_of_day\.rb}, "CIA"],
+      [%r{/(sid|audio)(/|\.rb)}, "SID"],
+      [%r{/(address_bus|memory|rom|color_memory|cartridge)(/|\.rb)}, "AddressBus/memory"],
+      [%r{/(computer|keyboard_buffer)\.rb}, "Computer#cycle!"],
+      [%r{/(control_ports|keyboard|joystick)\.rb}, "input"],
+      [%r{/datasette\.rb}, "datasette"]
+    ].freeze
+
+    def initialize(data)
+      @frames = data[:frames]
+      @self = Hash.new(0)
+      @subsystems = Hash.new(0)
+      @total = 0
+      each_sample(data[:raw]) { |stack, count| add(stack, count) }
+    end
+
+    def print(top)
+      puts "#{@total} samples, GC pseudo-frames dropped"
+      puts "\nSelf time by subsystem:"
+      @subsystems.sort_by { -it[1] }.each { |name, count| puts "  #{percent(count)}  #{name}" }
+      puts "\nTop methods by self time:"
+      @self.sort_by { -it[1] }.first(top).each { |id, count| puts "  #{percent(count)}  #{describe(id)}" }
+    end
+
+    private
+
+    def each_sample(raw)
+      i = 0
+      while i < raw.size
+        length = raw[i]
+        yield raw[i + 1, length], raw[i + 1 + length]
+        i += length + 2
+      end
+    end
+
+    def add(stack, count)
+      return if GC_FRAMES.include?(@frames[stack.last][:name])
+
+      @total += count
+      @self[stack.last] += count
+      @subsystems[subsystem(owner(stack))] += count
+    end
+
+    # The innermost frame from lib/ that isn't a shared helper.
+    def owner(stack)
+      stack.rfind do |id|
+        file = @frames[id][:file].to_s
+        file.include?("/lib/badline/") && !file.match?(HELPERS)
+      end
+    end
+
+    def subsystem(id)
+      return "harness loop" unless id
+
+      file = @frames[id][:file].to_s
+      SUBSYSTEMS.find { |pattern, _| file.match?(pattern) }&.last || "other (#{File.basename(file)})"
+    end
+
+    def describe(id)
+      frame = @frames[id]
+      "#{frame[:name]} (#{File.basename(frame[:file].to_s)}:#{frame[:line]})"
+    end
+
+    def percent(count) = format("%<percent>5.1f%%", percent: 100.0 * count / @total)
+  end
+
+  def measure_in_child(workload, options, lib: options[:lib], stub: nil)
+    command = [RbConfig.ruby, "--yjit", __FILE__, workload, "--measure", "--lib", lib]
+    command += ["--stub", stub] if stub
+    command += ["--cycles", options[:cycles].to_s] if options[:cycles]
+    output = IO.popen(command, &:read)
+    abort "profile: measuring #{stub || lib} failed" unless $CHILD_STATUS.success?
+    output.to_f
+  end
+
+  def ceiling(workload, options)
+    puts "#{workload}: cycles per CPU-second with each chip stubbed out (load #{load_average})"
+    base = measure_in_child(workload, options)
+    puts format("  %<chip>-6s %<rate>9d", chip: "none", rate: base)
+    STUBS.each do |chip|
+      rate = measure_in_child(workload, options, stub: chip)
+      puts format("  %<chip>-6s %<rate>9d  %<ratio>.2fx", chip:, rate:, ratio: rate / base)
+    end
+  end
+
+  def base_lib(rev)
+    sha = IO.popen(["git", "rev-parse", "--verify", "#{rev}^{commit}"], &:read).strip
+    abort "profile: unknown revision #{rev}" unless $CHILD_STATUS.success?
+    dir = File.join(ROOT, "tmp/profile", sha)
+    unless File.directory?("#{dir}/lib")
+      FileUtils.mkdir_p(dir)
+      system("git archive #{sha} lib | tar -x -C #{dir}", exception: true)
+    end
+    [sha, "#{dir}/lib"]
+  end
+
+  def compare(workload, options)
+    sha, lib = base_lib(options[:rev])
+    puts "#{workload}: cycles per CPU-second, #{sha[0, 10]} vs working tree (load #{load_average})"
+    ratios = Array.new(options[:pairs]) do
+      base = measure_in_child(workload, options, lib:)
+      work = measure_in_child(workload, options)
+      puts format("  %<base>9d  %<work>9d  %<change>+5.1f%%", base:, work:, change: 100 * ((work / base) - 1))
+      work / base
+    end
+    puts format("  mean %<change>+5.1f%% (load now %<load>s)",
+                change: 100 * ((ratios.sum / ratios.size) - 1), load: load_average)
+  end
+
+  def profile(workload, options)
+    begin
+      require "stackprof"
+    rescue LoadError
+      abort "profile: stackprof is missing. Run `bundle install`."
+    end
+    machine = Workload.new(workload)
+    machine.run(500_000)
+    data = StackProf.run(mode: :cpu, interval: 200, raw: true) { machine.run(options[:cycles] || 5_000_000) }
+    out = options[:out] || File.join(ROOT, "tmp/profile/#{workload}.dump")
+    FileUtils.mkdir_p(File.dirname(out))
+    File.binwrite(out, Marshal.dump(data))
+    Report.new(data).print(options[:top])
+    puts "\nDump: #{out} (stackprof --text #{out})"
+  end
+
+  def measure(workload, options)
+    machine = Workload.new(workload)
+    machine.stub(options[:stub]) if options[:stub]
+    puts machine.rate(options[:cycles] || 3_000_000)
+  end
+end
+
+options = { cycles: nil, top: 15, pairs: 3, lib: File.join(Profiler::ROOT, "lib") }
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/profile [idle|game|synth] [options]"
+  opts.on("--cycles N", Integer, "Cycles to measure (default: 5000000 profiled, 3000000 timed)") do |n|
+    options[:cycles] = n
+  end
+  opts.on("--top N", Integer, "Methods to list by self time (default: 15)") { |n| options[:top] = n }
+  opts.on("--out PATH", "Where to write the stackprof dump") { |path| options[:out] = path }
+  opts.on("--ceiling", "Time the workload with each chip stubbed out") { options[:mode] = :ceiling }
+  opts.on("--compare REV", "Time the workload against REV's lib/") do |rev|
+    options[:mode] = :compare
+    options[:rev] = rev
+  end
+  opts.on("--pairs N", Integer, "Pairs for --compare (default: 3)") { |n| options[:pairs] = n }
+  opts.on("--measure", "Print this process's cycles per CPU-second") { options[:mode] = :measure }
+  opts.on("--lib DIR", "Load badline from DIR (with --measure)") { |dir| options[:lib] = File.expand_path(dir) }
+  opts.on("--stub CHIP", Profiler::STUBS, "Stub out CHIP (with --measure)") { |chip| options[:stub] = chip }
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  abort "profile: #{e.message}\n#{parser.banner}"
+end
+
+workload = ARGV.shift || "idle"
+unless Profiler::WORKLOADS.include?(workload)
+  abort "profile: unknown workload #{workload} (#{Profiler::WORKLOADS.join(', ')})"
+end
+if workload == "game" && !File.exist?(File.join(Profiler::ROOT, Profiler::GAME))
+  warn "profile: skipping game, #{Profiler::GAME} is missing. Link " \
+       "vendor/OneLoad64-Games-Collection-v5 from the main checkout (see CLAUDE.md)."
+  exit
+end
+
+case options[:mode]
+when :ceiling then Profiler.ceiling(workload, options)
+when :compare then Profiler.compare(workload, options)
+else
+  $LOAD_PATH.unshift(options[:lib])
+  RubyVM::YJIT.enable if defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+  require "badline"
+  options[:mode] == :measure ? Profiler.measure(workload, options) : Profiler.profile(workload, options)
+end

@@ -46,11 +46,7 @@ module Badline
     end
 
     def update(mask, enabled)
-      self.value = if enabled && enabled != 0
-                     value | mask
-                   else
-                     value & ~mask
-                   end
+      @value = enabled && enabled != 0 ? @value | mask : @value & ~mask
     end
   end
 end
