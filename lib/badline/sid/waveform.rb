@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/sid/waveform/fast_forward"
+
 module Badline
   class SID
     # Waveform generator: a 24-bit phase accumulator and the shapers that
@@ -19,6 +21,8 @@ module Badline
     # With nothing selected the DAC input floats, holding the last value
     # driven onto it until the charge drains away.
     class Waveform
+      include FastForward
+
       # All bits high at power up, odd ones stored inverted (SID/oscinit).
       POWER_ON_ACCUMULATOR = 0x555555
 
@@ -214,7 +218,7 @@ module Badline
         value = output
         @tri_saw = tri_saw if @tri_saw_delay
         if @selected.zero?
-          @floating = 0x000 if @floating_ttl.positive? && (@floating_ttl -= 1).zero?
+          drain_floating(1)
           return
         end
 
@@ -250,12 +254,6 @@ module Badline
         @accumulator = (previous + @frequency) & 0xffffff
         @msb_rising = previous.nobits?(MSB) && @accumulator.anybits?(MSB)
         shift_noise if previous.nobits?(0x080000) && @accumulator.anybits?(0x080000)
-      end
-
-      def bleed_shift_register
-        return unless @shift_register_reset.positive?
-
-        @shift_register = SHIFT_REGISTER_RESET if (@shift_register_reset -= 1).zero?
       end
 
       # Bit 0 feeds back bits 22 and 17, with the test bit forcing bit 22 high.

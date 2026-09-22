@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Audio::Decimator do
+describe Badline::SID::Decimator do
   subject(:decimator) { described_class.new(clock_hz: 100, rate: 10) }
 
   def push(values)
@@ -28,6 +28,22 @@ describe Badline::Audio::Decimator do
 
     it "rounds to the nearest integer" do
       expect(push(([1] * 9) + [2])).to eq([1])
+    end
+
+    it "weighs a sample by the cycles it stands for" do
+      decimator.push(1000, 9)
+      expect(decimator.push(0, 1)).to eq(900)
+    end
+  end
+
+  describe "#cycles_to_close" do
+    it "spans a whole window at the start" do
+      expect(decimator.cycles_to_close).to eq(10)
+    end
+
+    it "counts down as cycles are pushed" do
+      decimator.push(0, 3)
+      expect(decimator.cycles_to_close).to eq(7)
     end
 
     context "with the PAL clock and CD rate" do

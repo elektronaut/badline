@@ -4,6 +4,7 @@ require "badline/sid/waveform"
 require "badline/sid/envelope"
 require "badline/sid/voice"
 require "badline/sid/filter"
+require "badline/sid/decimator"
 
 module Badline
   # SID (Sound Interface Device) chip, in either the 6581 or the 8580
@@ -22,8 +23,9 @@ module Badline
   # responding to #pot_x and #pot_y; with none attached the lines read $FF.
   #
   # Three voices feed the filter and the master volume; #output and #sample
-  # read out the mixed result. The DSP is clocked lazily and catches up when
-  # something asks for its state.
+  # read out the mixed result, and #record collects it at an audio rate for
+  # #drain_samples. The DSP is clocked lazily and catches up when something
+  # asks for its state.
   #
   # The 6581 drives its voices well above ground, so the mix carries a large
   # DC offset that the RC network on the C64 board filters out.
@@ -38,14 +40,18 @@ module Badline
     # Scales the filter's 20-bit mix down to a signed 16-bit sample.
     SAMPLE_DIVISOR = ((0xfff * 0xff) >> 7) * 3 * 15 * 2 / (2**16)
 
-    # Writes the idle DSP remembers in full. Past that the oldest one is
-    # applied where the replay stands and its timing is lost.
+    # Writes the DSP queues between catch-ups. A full queue catches up
+    # there and then, so no write loses its timing.
     DEFERRED_WRITES = 0x400
 
-    attr_accessor :pots
-    attr_reader :model, :voices, :filter
+    # Cycles the filter integrates in one step while synthesizing, after
+    # reSID's delta_t_flt. 1 makes the audio exact, at a per-cycle cost.
+    FILTER_CHUNK = 4
 
-    def initialize(model: :mos6581, pots: nil)
+    attr_accessor :pots
+    attr_reader :model
+
+    def initialize(model: :mos6581, pots: nil, filter_chunk: FILTER_CHUNK)
       addressable_at(0xd400, length: 2**10)
       @model = model
       @registers = Memory.new(length: 2**5)
@@ -58,14 +64,18 @@ module Badline
       @waveform1, @waveform2, @waveform3 = @voices.map(&:waveform)
       @filter = Filter.new(model:)
       @synthesizing = false
-      @idle_cycles = 0
+      @pending_cycles = 0
       @deferred_writes = []
+      @decimator = nil
+      @samples = []
+      @filter_chunk = filter_chunk
       link_oscillators
     end
 
-    # Clocking three oscillators, three envelopes and the filter cuts
-    # emulation speed by about 40%, so the DSP idles until something asks
-    # for its state, then replays the cycles it skipped.
+    # The DSP only counts cycles as they pass. Whatever asks for its state
+    # catches it up, a span at a time: each span fast-forwards the voices
+    # and ends on one whole cycle, so everything the CPU can read stays
+    # exact. The filter only runs once something wants audio.
     def synthesizing? = @synthesizing
 
     def synthesize!
@@ -75,29 +85,62 @@ module Badline
       catch_up
     end
 
+    # Starts collecting the output, averaged down to `rate` samples a
+    # second, for #drain_samples. `filter_chunk` overrides the one the SID
+    # was built with, for a machine that built its own.
+    def record(rate:, filter_chunk: @filter_chunk)
+      synthesize!
+      catch_up
+      @filter_chunk = filter_chunk
+      @decimator = Decimator.new(clock_hz: TimeOfDay::CLOCK_HZ, rate:)
+      @samples = []
+    end
+
+    # The samples recorded since the last drain.
+    def drain_samples
+      catch_up
+      samples = @samples
+      @samples = []
+      samples
+    end
+
+    def voices
+      catch_up
+      @voices
+    end
+
+    def filter
+      catch_up
+      @filter
+    end
+
     # Voice 3's oscillator and envelope, the only synthesis state the CPU
     # can see. Programs poll OSC3 with the noise waveform selected for
     # random numbers, and ENV3 to time hard restarts.
     def osc3
-      synthesize!
-      @voices[2].waveform.osc3 >> 4
+      catch_up
+      @waveform3.osc3 >> 4
     end
 
     def env3
-      synthesize!
-      @voices[2].envelope.output
+      catch_up
+      @voice3.envelope.output
     end
 
     def output
       synthesize!
+      catch_up
       @filter.output
     end
 
-    def sample = (output / SAMPLE_DIVISOR).clamp(-0x8000, 0x7fff)
+    def sample
+      output
+      current_sample
+    end
 
     def cycle!
       age_bus if @bus_ttl.positive?
-      @synthesizing ? clock! : @idle_cycles += 1
+      @pending_cycles += 1
     end
 
     def peek(addr)
@@ -131,31 +174,87 @@ module Badline
       end
     end
 
+    # Runs the cycles that have passed, landing each queued write on the
+    # cycle the CPU wrote it on.
+    def catch_up
+      replayed = 0
+      @deferred_writes.each do |cycle, reg, value|
+        run(cycle - replayed)
+        replayed = cycle
+        apply_write(reg, value)
+      end
+      run(@pending_cycles - replayed)
+      @deferred_writes.clear
+      @pending_cycles = 0
+    end
+
+    def run(cycles)
+      while cycles.positive?
+        span = span(cycles)
+        fast_forward(span - 1) if span > 1
+        clock!(span)
+        cycles -= span
+      end
+    end
+
+    # The longest stretch that can be fast-forwarded. A combined waveform
+    # feeding back into its own oscillator steps cycle by cycle, and a span
+    # never runs past an MSB rise that hard-syncs the next voice, so both
+    # land on a whole cycle.
+    def span(cycles)
+      return 1 if @waveform1.feedback? || @waveform2.feedback? || @waveform3.feedback?
+
+      span = @synthesizing ? synthesis_span(cycles) : cycles
+      span = sync_span(@waveform1, span)
+      span = sync_span(@waveform2, span)
+      sync_span(@waveform3, span)
+    end
+
+    # The filter steps at most @filter_chunk cycles at a time, and never
+    # across the end of a recorded sample.
+    def synthesis_span(cycles)
+      span = [cycles, @filter_chunk].min
+      return span unless @decimator
+
+      [@decimator.cycles_to_close, span].min
+    end
+
+    def sync_span(waveform, span)
+      return span unless waveform.sync_dest.sync?
+
+      rise = waveform.cycles_to_msb_rise
+      rise && rise < span ? rise : span
+    end
+
     # Unrolled over the three voices: the per-cycle block calls cost
     # measurably on the synthesis path.
-    def clock!
+    def fast_forward(cycles)
+      @voice1.fast_forward(cycles)
+      @voice2.fast_forward(cycles)
+      @voice3.fast_forward(cycles)
+    end
+
+    # The last cycle of a span, run whole. The filter integrates the span
+    # from the voices' output at its end.
+    def clock!(span)
       @voice1.cycle!
       @voice2.cycle!
       @voice3.cycle!
       @waveform1.synchronize!
       @waveform2.synchronize!
       @waveform3.synchronize!
-      @filter.cycle!(@voices)
+      return unless @synthesizing
+
+      @filter.cycle!(@voices, span)
+      record_sample(span) if @decimator
     end
 
-    # Runs the cycles the DSP sat out, landing each deferred write on the
-    # cycle the CPU wrote it on.
-    def catch_up
-      replayed = 0
-      @deferred_writes.each do |cycle, reg, value|
-        (cycle - replayed).times { clock! }
-        replayed = cycle
-        apply_write(reg, value)
-      end
-      (@idle_cycles - replayed).times { clock! }
-      @deferred_writes.clear
-      @idle_cycles = 0
+    def record_sample(span)
+      sample = @decimator.push(current_sample, span)
+      @samples << sample if sample
     end
+
+    def current_sample = (@filter.output / SAMPLE_DIVISOR).clamp(-0x8000, 0x7fff)
 
     def latch(value)
       @bus_ttl = @bus_ttl_reset
@@ -169,12 +268,8 @@ module Badline
 
     def write_register(reg, value)
       @registers.poke(reg, value)
-      @synthesizing ? apply_write(reg, value) : defer_write(reg, value)
-    end
-
-    def defer_write(reg, value)
-      apply_write(*@deferred_writes.shift.last(2)) if @deferred_writes.length == DEFERRED_WRITES
-      @deferred_writes << [@idle_cycles, reg, value]
+      catch_up if @deferred_writes.length == DEFERRED_WRITES
+      @deferred_writes << [@pending_cycles, reg, value]
     end
 
     def apply_write(reg, value)

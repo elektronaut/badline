@@ -84,6 +84,7 @@ badline-render tune.sid                        # tune.wav, length from HVSC
 badline-render --seconds 180 tune.sid out.aiff
 badline-render --song 3 --rate 48000 tune.sid
 badline-render --sid 8580 tune.sid
+badline-render --filter-chunk 1 tune.sid       # exact filter, slower
 ```
 
 A `.sid` file doesn't store its length, so `badline-render` looks the
@@ -94,9 +95,11 @@ tune's parent directories (the layout of an HVSC collection), or under
 60 seconds.
 
 PSID tunes render on a CPU and RAM with only the SID clocked, which is
-faster than running the whole machine. RSID tunes set up their own
-interrupts, so they boot a full C64 first. Either way, rendering is
-slower than real time. `badline-render --help` lists the options.
+faster than real time. RSID tunes set up their own interrupts, so they
+boot a full C64 first and render at about half real time. The filter
+steps four cycles at a time; `--filter-chunk 1` steps it every cycle,
+which is exact and takes about twice as long. `badline-render --help`
+lists the options.
 
 ## Input
 

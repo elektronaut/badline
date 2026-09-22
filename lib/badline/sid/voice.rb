@@ -31,6 +31,11 @@ module Badline
         @waveform.cycle!
       end
 
+      def fast_forward(cycles)
+        @envelope.fast_forward(cycles)
+        @waveform.fast_forward(cycles)
+      end
+
       def output
         ((@waveform.output - @wave_zero) * @envelope.output) + @dc_offset
       end

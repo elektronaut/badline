@@ -22,7 +22,10 @@ banner = <<~BANNER
   the DOCUMENTS directory of an HVSC collection above the tune, or from
   $HVSC_BASE. Failing all of those it renders #{FALLBACK_SECONDS.to_i} seconds.
 
-  Rendering runs at emulation speed, which is slower than real time.
+  PSID tunes render on a bare CPU and SID, faster than real
+  time. RSID tunes boot the whole machine and render at about half real
+  time. --filter-chunk 1 runs the filter cycle by cycle, which is exact but
+  takes about twice as long.
 
   Options:
 BANNER
@@ -42,14 +45,15 @@ parser = OptionParser.new do |opts|
     options[:song] = n
   end
 
-  opts.on("--rate HZ", Integer, "Output sample rate (default: 44100)") do |n|
-    options[:rate] = n
-  end
+  opts.on("--rate HZ", Integer, "Output sample rate (default: 44100)") { |n| options[:rate] = n }
 
   opts.on("--sid MODEL", { "6581" => :mos6581, "8580" => :mos8580 },
           "SID to render on: 6581 or 8580 (default: the tune's own, else 6581)") do |model|
     options[:sid_model] = model
   end
+
+  opts.on("--filter-chunk N", Integer,
+          "Filter step in cycles, 1 is exact (default: 4)") { |n| options[:filter_chunk] = n }
 
   opts.on("--quiet", "Don't report progress") { options[:quiet] = true }
 
@@ -65,6 +69,7 @@ end
 
 begin
   parser.parse!
+  raise OptionParser::InvalidArgument, "--filter-chunk #{options[:filter_chunk]}" if options[:filter_chunk]&.< 1
 rescue OptionParser::ParseError => e
   warn "badline-render: #{e.message}"
   warn "Try 'badline-render --help' for more information."
@@ -116,6 +121,7 @@ seconds = options[:seconds] ||
           FALLBACK_SECONDS
 sid_model = options[:sid_model] || tune.sid_model
 renderer = Badline::Audio::Renderer.new(tune, seconds:, song:, rate: options[:rate], sid_model:)
+renderer.filter_chunk = options[:filter_chunk] if options[:filter_chunk]
 
 puts describe(tune, song)
 puts "Rendering #{seconds}s for the #{sid_model.to_s.delete_prefix('mos')} to #{output_path} " \

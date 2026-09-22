@@ -48,12 +48,13 @@ module Badline
         settle
       end
 
-      # Advances one PAL frame, or `budget` cycles if that is shorter,
-      # yielding the SID's output every cycle. Returns the cycles advanced.
-      def frame(budget)
+      # Advances one PAL frame, or `budget` cycles if that is shorter, then
+      # yields whatever the SID recorded over it. Returns the cycles advanced.
+      def frame(budget, &)
         call(@tune.play_address)
         cycles = [budget, FRAME_CYCLES].min
-        cycles.times { yield step }
+        cycles.times { step }
+        @sid.drain_samples.each(&)
         cycles
       end
 
@@ -83,7 +84,6 @@ module Badline
       def step
         @sid.cycle!
         @cpu.cycle!
-        @sid.sample
       end
 
       def install_dispatch

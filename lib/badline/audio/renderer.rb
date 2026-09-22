@@ -15,12 +15,17 @@ module Badline
 
       CONTAINERS = { ".wav" => WAV, ".aiff" => AIFF, ".aif" => AIFF }.freeze
 
+      # The cycles the SID's filter integrates at a time; 1 renders the
+      # filter cycle by cycle, exactly.
+      attr_writer :filter_chunk
+
       def initialize(tune, seconds:, song: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
         @seconds = seconds
         @song = song
         @rate = rate
         @sid_model = sid_model
+        @filter_chunk = SID::FILTER_CHUNK
       end
 
       def player
@@ -40,8 +45,8 @@ module Badline
 
       def total_samples = (@seconds * @rate).round
 
-      # The cycles it takes to close exactly `total_samples` windows; the
-      # decimator emits floor(cycles * rate / clock) of them.
+      # The cycles it takes to close exactly `total_samples` windows; the SID
+      # records floor(cycles * rate / clock) of them.
       def total_cycles
         ((total_samples * TimeOfDay::CLOCK_HZ) + @rate - 1) / @rate
       end
@@ -54,14 +59,11 @@ module Badline
       end
 
       def run(writer)
-        decimator = Decimator.new(clock_hz: TimeOfDay::CLOCK_HZ, rate: @rate)
+        player.sid.record(rate: @rate, filter_chunk: @filter_chunk)
         total = total_cycles
         remaining = total
         while remaining.positive?
-          remaining -= player.frame(remaining) do |sample|
-            decimated = decimator.push(sample)
-            writer << decimated if decimated
-          end
+          remaining -= player.frame(remaining) { |sample| writer << sample }
           yield((total - remaining).fdiv(TimeOfDay::CLOCK_HZ)) if block_given?
         end
       end

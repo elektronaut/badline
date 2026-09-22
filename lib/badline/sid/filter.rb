@@ -36,6 +36,11 @@ module Badline
       # The integrator goes unstable above ~16 kHz at a one-cycle step.
       W0_MAX = (2 * Math::PI * 16_000 * SCALE).to_i
 
+      # A step of several cycles scales w0 by their count. reSID keeps such
+      # a step stable by capping the cutoff at 4 kHz over 8 cycles; this is
+      # the same bound on the product, so a single cycle is never capped.
+      W0_STEP_MAX = (2 * Math::PI * 4_000 * 8 * SCALE).to_i
+
       def self.build_w0(points)
         table = Array.new(2048)
         points.each_cons(2) do |(fc0, hz0), (fc1, hz1)|
@@ -72,9 +77,9 @@ module Badline
           @output = 0
         end
 
-        def cycle!(input)
-          delta_lowpass = ((W0_LOWPASS >> 8) * (input - @lowpass)) >> 12
-          delta_highpass = (W0_HIGHPASS * (@lowpass - @highpass)) >> 20
+        def cycle!(input, cycles = 1)
+          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * (input - @lowpass)) >> 12
+          delta_highpass = (W0_HIGHPASS * cycles * (@lowpass - @highpass)) >> 20
           @output = @lowpass - @highpass
           @lowpass += delta_lowpass
           @highpass += delta_highpass
@@ -108,12 +113,16 @@ module Badline
 
       def voice3_off? = @voice3_off
 
-      def cycle!(voices)
+      # Integrates `cycles` cycles in one step, from the voices' output at
+      # the end of them.
+      def cycle!(voices, cycles = 1)
         route(voices)
-        @bandpass -= (@w0 * @highpass) >> 20
-        @lowpass -= (@w0 * @bandpass) >> 20
+        w0 = @w0 * cycles
+        w0 = W0_STEP_MAX if w0 > W0_STEP_MAX
+        @bandpass -= (w0 * @highpass) >> 20
+        @lowpass -= (w0 * @bandpass) >> 20
         @highpass = ((@bandpass * @resonance) >> 10) - @lowpass - @input
-        @external.cycle!(mix)
+        @external.cycle!(mix, cycles)
       end
 
       # The SID's own audio pin, before the board's RC network.
