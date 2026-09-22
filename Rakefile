@@ -34,7 +34,7 @@ REGRESSION_SUITES = {
 
 # The rest of the testbench, split by the subsystem each subtree exercises.
 # These get a rake task and a baseline but stay out of `rake regression`
-# and the push-to-main CI set: their runtime is mostly emulated cycles
+# and the nightly CI set: their runtime is mostly emulated cycles
 # rather than timeouts, so they are run on demand instead.
 # interrupts/irqdma is a suite of its own rather than part of interrupts —
 # 16 programs measuring DMA against interrupts over ~450M cycles each,
@@ -265,7 +265,7 @@ namespace :regression do
     end
   end
 
-  desc "Re-record every baseline in the push-to-main set"
+  desc "Re-record every baseline in the nightly set"
   task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 

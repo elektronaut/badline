@@ -41,11 +41,11 @@ Recorded output of the headless hardware suites, one file per suite:
 Every suite still fails tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
 
-    rake regression                     # run the push-to-main set, diff against these files
+    rake regression                     # run the nightly set, diff against these files
     rake regression:testbench           # one suite
     rake regression:testbench-cia       # an opt-in suite
     rake regression:record:testbench    # accept a reviewed diff
-    rake regression:record              # re-record the push-to-main set
+    rake regression:record              # re-record the nightly set
 
     rake "regression:record:testbench[spriteenable]"      # only the rows a filter matched
     rake "regression:record:testbench[sprite0,gfxfetch]"  # several filters, matched as a union
@@ -96,11 +96,15 @@ hours. Every row carrying `cia-new` asks for the 6526A, whose timer and
 shift register differ from the 6526 badline models; the testlist lists the
 same 71 programs again under `cia-old`, and those are the ones that run.
 
-`testbench`, `lorenz` and `sid` are the push-to-main set, run when a push
-to `main` touches `lib/`, the runners, the baselines or the Rakefile —
-never on a pull request, and never on a schedule. The `testbench-*` suites
-are opt-in: pick them by name from the Actions tab, or run the rake task by
-hand. `sid-8580` is opt-in too, and so far it runs only as a rake task.
+`testbench`, `lorenz` and `sid` are the nightly set. The Regression
+workflow runs them on `main` every night, but skips the night when nothing
+they run has changed since the last successful nightly run: `lib/`, the
+runners, the baselines, `test/regression.rb`, the Rakefile or the workflow
+itself. So a nightly verdict covers every merge since the one before, and
+nothing runs on a push or a pull request. Any suite, nightly or opt-in, can
+also be started by name from the Actions tab, and a run started there and
+the nightly run never cancel each other. The `testbench-*` suites and
+`sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
 
 An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
 count is a timeout rather than a runtime — measure, do not assume. Wall
@@ -122,7 +126,7 @@ at about two and a half hours on CI. `bin/sidtests` is not sharded either,
 and takes about three and a half minutes here and five on CI. `sid-8580`
 runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes
 26 minutes here (20 of CPU, on a loaded machine), which keeps it out of the
-push-to-main set.
+nightly set.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
 ~450M cycles each and use nearly all of it whether they pass or fail, which
