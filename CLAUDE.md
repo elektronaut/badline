@@ -102,8 +102,10 @@ worktree and owns a different set of files.
 
 - `rake vendor:checkout` fetches SingleStepTests and VICE-testprogs into
   `vendor/`
-- `bundle exec rspec`: line coverage is 97%. SimpleCov doesn't enforce a
-  minimum, so check the report and don't let coverage fall below 90%
+- `bundle exec rspec`: line coverage is about 95%. `spec/spec_helper.rb`
+  fails a whole-suite run (every spec file, no filters) below 90%, while
+  single-file and filtered runs skip the floor. `:slow` specs are excluded
+  by default: run them with `bundle exec rspec --tag slow`
 - `rake test`: SingleStepTests. Run it for any CPU change
 
 The headless suites are expensive. `bin/testbench` forks over 4 shards by
