@@ -99,4 +99,44 @@ describe Badline::AddressBus do
       expect(address_bus[0xd419]).to eq(0xff)
     end
   end
+
+  describe "the datasette lines" do
+    let(:datasette) { address_bus.datasette }
+    let(:tape) do
+      instance_double(Badline::Storage::TAP, rewind: nil, end?: false, next_pulse: 1)
+    end
+
+    it "reads the cassette sense high with no key pressed" do
+      expect(address_bus[0x01] & 0x10).to eq(0x10)
+    end
+
+    it "reads the cassette sense low while a key is pressed" do
+      datasette.play!
+      expect(address_bus[0x01] & 0x10).to eq(0x00)
+    end
+
+    it "leaves a driven sense line alone" do
+      address_bus[0x00] = 0xff
+      datasette.play!
+      expect(address_bus[0x01] & 0x10).to eq(0x10)
+    end
+
+    it "runs the motor while bit 5 is low" do
+      address_bus[0x01] = 0x17
+      expect(datasette).to be_motor
+    end
+
+    it "stops the motor while bit 5 is high" do
+      address_bus[0x01] = 0x37
+      expect(datasette).not_to be_motor
+    end
+
+    it "pulses the CIA 1 flag line from the tape" do
+      datasette.insert(tape)
+      datasette.play!
+      address_bus[0x01] = 0x17
+      datasette.cycle!
+      expect(address_bus.cia1.interrupt_status.flag?).to be(true)
+    end
+  end
 end

@@ -3,6 +3,7 @@
 module Badline
   module Media
     AUTOSTART = %(lO"*",8,1\rrun\r)
+    TAPE_AUTOSTART = %(lO\rrun\r)
     BASIC_START = 0x0801
 
     MOUNT_TYPES = {
@@ -21,6 +22,8 @@ module Badline
           attach_cartridge(computer, path)
         elsif File.extname(path).downcase == ".sid"
           attach_sid(computer, path, autostart:)
+        elsif File.extname(path).downcase == ".tap"
+          attach_tape(computer, path, autostart:)
         elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
           attach_storage(computer, storage.new(path), path, autostart:)
         else
@@ -46,6 +49,13 @@ module Badline
         computer.ram.write(tune.load_address, tune.data)
         computer.ram.write(tune.driver_address, tune.driver)
         computer.type_text("sys#{tune.driver_address}\r") if autostart
+      end
+
+      def attach_tape(computer, path, autostart:)
+        computer.datasette.insert(Storage::TAP.new(path))
+        computer.datasette.play!
+        computer.type_text(TAPE_AUTOSTART) if autostart
+        "Inserted #{path} in the datasette"
       end
 
       def attach_storage(computer, storage, path, autostart:)

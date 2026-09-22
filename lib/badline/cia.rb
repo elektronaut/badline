@@ -62,6 +62,10 @@ module Badline
       interrupt_status.value.anybits?(0x80)
     end
 
+    # A falling edge on the FLAG pin. On CIA 1 the datasette's tape read
+    # line drives it, on CIA 2 the serial bus SRQ.
+    def flag! = raise_interrupt(:flag)
+
     def cycle!
       if @irq_pending.positive?
         @irq_pending -= 1
@@ -175,14 +179,13 @@ module Badline
       set ? value | (1 << bit) : value & ~(1 << bit)
     end
 
-    def trigger_alarm
-      interrupt_status.alarm = true
-      interrupt! if interrupt_control.alarm?
-    end
+    def trigger_alarm = raise_interrupt(:alarm)
+    def trigger_serial = raise_interrupt(:serial)
 
-    def trigger_serial
-      interrupt_status.serial = true
-      interrupt! if interrupt_control.serial?
+    # Latch a source in the ICR, pulling the interrupt line if it is armed.
+    def raise_interrupt(source)
+      interrupt_status.public_send(:"#{source}=", true)
+      interrupt! if interrupt_control.public_send(:"#{source}?")
     end
 
     # CNT is sampled once a cycle. When the serial port drives it from this
