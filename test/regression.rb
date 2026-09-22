@@ -1,0 +1,93 @@
+# frozen_string_literal: true
+
+# Suite results are compared by test id rather than line by line, so a test
+# inserted upstream does not shift every row after it. Only ids present on
+# both sides can fail the run: a test the vendored suite has gained or lost
+# is reported but tolerated, since badline got neither better nor worse for
+# it. Re-recording the baseline is what pins a new row's verdict.
+module Regression
+  Row = Struct.new(:key, :verdict, :detail) do
+    def to_s
+      [verdict, detail].compact.join(" ")
+    end
+  end
+
+  # A few testlist entries are listed twice, so an id that repeats is keyed
+  # by its occurrence.
+  def self.read(path)
+    seen = Hash.new(0)
+    File.readlines(path, chomp: true).reject(&:empty?).to_h do |line|
+      id, verdict, detail = line.split("\t", 3)
+      seen[id] += 1
+      key = seen[id] > 1 ? "#{id}##{seen[id]}" : id
+      [key, Row.new(key, verdict, detail)]
+    end
+  end
+
+  class Comparison
+    LIST_LIMIT = 50
+
+    def initialize(suite, baseline, current)
+      @suite = suite
+      @baseline = baseline
+      @current = current
+    end
+
+    def changed
+      @changed ||= (@baseline.keys & @current.keys).filter_map do |key|
+        [@baseline[key], @current[key]] unless @baseline[key] == @current[key]
+      end
+    end
+
+    def added
+      @added ||= @current.values_at(*(@current.keys - @baseline.keys))
+    end
+
+    def removed
+      @removed ||= @baseline.values_at(*(@baseline.keys - @current.keys))
+    end
+
+    def changed?
+      changed.any?
+    end
+
+    def summary
+      passing, failing = added.partition { |row| row.verdict == "PASS" }
+      "#{@suite}: #{changed.length} changed, #{added.length} new " \
+        "(#{passing.length} pass, #{failing.length} fail), #{removed.length} gone"
+    end
+
+    def report(io)
+      io.puts(summary)
+      changed.each { |before, after| io.puts("  changed #{before.key}: #{before} -> #{after}") }
+      added.each { |row| io.puts("  new     #{row.key}: #{row}") }
+      removed.each { |row| io.puts("  gone    #{row.key}: #{row}") }
+    end
+
+    # regression.yml only runs on push to main, where nobody reads the log.
+    def publish
+      path = ENV.fetch("GITHUB_STEP_SUMMARY", nil)
+      File.write(path, markdown, mode: "a") if path
+    end
+
+    def markdown
+      sections = [
+        section("Changed — fails the run",
+                changed.map { |before, after| "`#{before.key}`: `#{before}` → `#{after}`" }),
+        section("New upstream tests", added.map { |row| "`#{row.key}`: `#{row}`" }),
+        section("Removed upstream tests", removed.map { |row| "`#{row.key}`: `#{row}`" })
+      ].compact
+      "#{["### #{summary}", *sections].join("\n\n")}\n"
+    end
+
+    private
+
+    def section(title, lines)
+      return if lines.empty?
+
+      shown = lines.take(LIST_LIMIT).map { |line| "- #{line}" }
+      shown << "- …and #{lines.length - LIST_LIMIT} more" if lines.length > LIST_LIMIT
+      ["**#{title}**", *shown].join("\n")
+    end
+  end
+end
