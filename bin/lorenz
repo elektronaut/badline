@@ -46,6 +46,9 @@ module Lorenz
 
   # A test that neither ends in the suite's "- ok" nor prints anything
   # beyond its own name has failed; the dumps it prints instead say so.
+  # Several of those dumps name neither word and then fall through to the
+  # suite's own "- ok" exit path, so the keypress they halt for is the only
+  # reliable signal — a segment an injection landed in has failed.
   OK_SUFFIX = "- ok"
   FAILURE_MARKER = /fail|error/i
 
@@ -97,9 +100,10 @@ module Lorenz
   class Segment
     attr_reader :name
 
-    def initialize(name, text)
+    def initialize(name, text, halted:)
       @name = name
       @text = text
+      @halted = halted
     end
 
     def verdict
@@ -107,7 +111,8 @@ module Lorenz
     end
 
     def detail
-      @detail ||= abbreviate(body.gsub(/\s*\n\s*/, " | ").squeeze(" ").strip)
+      @detail ||= abbreviate([("halted for a keypress" if @halted), printed]
+                               .compact.join(" | "))
     end
 
     def to_record
@@ -117,7 +122,11 @@ module Lorenz
     private
 
     def passed?
-      @text.rstrip.end_with?(OK_SUFFIX) && !body.match?(FAILURE_MARKER)
+      !@halted && @text.rstrip.end_with?(OK_SUFFIX) && !body.match?(FAILURE_MARKER)
+    end
+
+    def printed
+      body.gsub(/\s*\n\s*/, " | ").squeeze(" ").strip
     end
 
     # Both the loader and the test itself echo the name, sometimes with a
@@ -139,7 +148,7 @@ module Lorenz
 
   # Drives the machine until the suite finishes, hangs or drops to BASIC.
   class Runner
-    attr_reader :result, :keys_sent
+    attr_reader :result
 
     def initialize(computer, capture, load_log)
       @computer = computer
@@ -148,9 +157,11 @@ module Lorenz
       @printed = 0
       @last_progress = 0
       @getin_hits = 0
-      @keys_sent = 0
+      @key_offsets = []
       computer.cpu.install_trap(0xffe4) { @getin_hits += 1 }
     end
+
+    def keys_sent = @key_offsets.length
 
     def run(max_cycles)
       until @result
@@ -170,9 +181,10 @@ module Lorenz
       entries = @load_log.entries
       entries.each_with_index.map do |entry, index|
         following = entries[index + 1]
-        text = transcript[entry.offset...(following&.offset || transcript.length)]
+        span = entry.offset...(following&.offset || transcript.length)
+        text = transcript[span]
         text = text.delete_suffix(following.name) if following
-        Segment.new(entry.name, text)
+        Segment.new(entry.name, text, halted: @key_offsets.any? { span.cover?(it) })
       end
     end
 
@@ -205,10 +217,13 @@ module Lorenz
       @result = "timeout" if @computer.cycles > max_cycles
     end
 
+    # The offset the injection lands at is what attributes it to a segment:
+    # the resumed chain prints on past it, so the test that stopped is the
+    # one whose slice still covers it.
     def send_key
-      @keys_sent += 1
+      @key_offsets << @capture.output.length
       warn "[#{@computer.cycles}] test halted waiting for key, sending space " \
-           "(##{@keys_sent})"
+           "(##{keys_sent})"
       @computer.type_text(" ")
       @getin_hits = GETIN_GRACE
     end
