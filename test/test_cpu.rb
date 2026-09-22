@@ -84,7 +84,7 @@ class TestCPU < Minitest::Test
   end
 
   def setup_cpu(state)
-    cpu = Badline::CPU.new(RecordingMemory.new)
+    cpu = Badline::CPU.new(RecordingMemory.new, ane_constant: 0xee)
     cpu.program_counter = state["pc"]
     cpu.stack_pointer = state["s"]
     cpu.a = state["a"]

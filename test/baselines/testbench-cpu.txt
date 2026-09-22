@@ -12,9 +12,9 @@ CPU/Acid800/cpu_insn.prg	PASS
 CPU/Acid800/cpu_timing.prg	PASS
 CPU/Acid800/cpu_bugs.prg	FAIL	exit=$ff
 CPU/Acid800/cpu_clisei.prg	PASS
-CPU/ane/ane.prg	FAIL	exit=$ff
-CPU/ane/ane-none.prg	FAIL	exit=$ff
-CPU/ane/ane-border.prg	FAIL	exit=$ff
+CPU/ane/ane.prg	PASS
+CPU/ane/ane-none.prg	PASS
+CPU/ane/ane-border.prg	PASS
 CPU/asap/cpu_ane.prg	PASS
 CPU/asap/cpu_anx.prg	PASS
 CPU/asap/cpu_decimal.prg	PASS

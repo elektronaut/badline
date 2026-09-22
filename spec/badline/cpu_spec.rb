@@ -292,6 +292,73 @@ describe Badline::CPU do
     end
   end
 
+  # Pinned by CPU/sha, CPU/shxy and CPU/shs (variants 2-5)
+  describe "SHX stalled by the VIC" do
+    before do
+      cpu.x = 0xff
+      cpu.y = 0x10
+    end
+
+    # SHX base,Y takes five cycles: opcode, low, high, dummy read, write.
+    def run_shx(base, stall_before:)
+      memory.write(start_addr, [0x9e, base & 0xff, base >> 8])
+      5.times do |cycle|
+        cpu.stall! if cycle == stall_before
+        cpu.cycle!
+      end
+    end
+
+    it "stores X & (H+1) when not stalled" do
+      run_shx(0x1200, stall_before: nil)
+      expect(memory.peek(0x1210)).to eq(0x13)
+    end
+
+    it "drops the & (H+1) when stalled right before the dummy read" do
+      run_shx(0x1200, stall_before: 3)
+      expect(memory.peek(0x1210)).to eq(0xff)
+    end
+
+    it "keeps the & (H+1) when stalled a cycle earlier" do
+      run_shx(0x1200, stall_before: 2)
+      expect(memory.peek(0x1210)).to eq(0x13)
+    end
+
+    it "still ANDs the high byte of a page-crossing target" do
+      run_shx(0x12f8, stall_before: 3)
+      expect(memory.peek(0x1308)).to eq(0xff)
+    end
+  end
+
+  # Pinned by CPU/ane (the constant); the stall variant follows VICE
+  describe "ANE" do
+    before do
+      cpu.a = 0x00
+      cpu.x = 0xff
+      memory.write(start_addr, [0x8b, 0xff])
+    end
+
+    it "ORs A with the 6510's magic constant" do
+      cpu.step!
+      expect(cpu.a).to eq(0xef)
+    end
+
+    it "clears bits 0 and 4 of the constant when stalled before the operand" do
+      cpu.cycle!
+      cpu.stall!
+      cpu.cycle!
+      expect(cpu.a).to eq(0xee)
+    end
+
+    context "with another chip's constant" do
+      let(:cpu) { described_class.new(memory, ane_constant: 0xee) }
+
+      it "uses that constant" do
+        cpu.step!
+        expect(cpu.a).to eq(0xee)
+      end
+    end
+  end
+
   describe "ADC" do
     before { cpu.a = 0x01 }
 
