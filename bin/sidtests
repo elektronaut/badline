@@ -3,7 +3,7 @@
 
 # Headless runner for the SID testprogs in vendor/VICE-testprogs/SID.
 #
-#   ruby --jit bin/sidtests [filter...] [--list] [--results PATH]
+#   ruby --yjit bin/sidtests [filter...] [--list] [--results PATH]
 #
 # Only the programs that report through the $D7FF debug register can be
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and

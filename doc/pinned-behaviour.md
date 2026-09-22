@@ -1,0 +1,383 @@
+# Pinned behaviour
+
+These timing rules were derived empirically against a named test, not from
+a datasheet. Each entry states the rule, the test that forced it and, where
+there is one, the fast spec that guards it. Specs carrying a guard say
+`Pinned by <test>` in a comment.
+
+The constraint list is the artifact; the implementation is not. When you
+change code a rule governs, re-derive the rule against its pinning test. A
+green suite is not enough, because a suite can stay green while the rule
+breaks: a spec guard catches the rule's own failure mode, and a baseline
+only catches the rows that happen to move.
+
+- [CPU interrupt recognition](#cpu-interrupt-recognition)
+- [VIC raster IRQ phase](#vic-raster-irq-phase)
+- [VIC mid-line register visibility](#vic-mid-line-register-visibility)
+- [VIC sprite display](#vic-sprite-display)
+- [VIC sprite collisions](#vic-sprite-collisions)
+- [VIC border and idle state](#vic-border-and-idle-state)
+- [VIC bad line and DMA](#vic-bad-line-and-dma)
+- [VIC light pen](#vic-light-pen)
+- [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
+- [CIA serial shift register](#cia-serial-shift-register)
+- [6510 I/O port](#6510-io-port)
+- [SID oscillator](#sid-oscillator)
+- [SID register writes](#sid-register-writes)
+- [SID data bus](#sid-data-bus)
+- [SID envelope](#sid-envelope)
+- [`.sid` tune banking](#sid-tune-banking)
+
+## CPU interrupt recognition
+
+- `poll` runs at the head of every `CPU#cycle!`, before that cycle's
+  micro-operation, and shifts `irq && !I` and the NMI latch through a
+  two-stage pipeline (`pending ← sample ← line`). The instruction boundary
+  consumes `pending` *before* its own poll, which is the
+  second-to-last-cycle sample (64doc: "2 or more cycles before the end").
+  `end_sequence` latches that value into `@boundary_irq`/`@boundary_nmi` as
+  the instruction ends. That is the same read, because nothing but `poll`
+  moves `pending`.
+- A taken same-page branch sets `@skip_poll`, skipping one poll, so the
+  interrupt must arrive before clock 1. The CLI/SEI/PLP delays fall out of
+  sampling `!I` at poll time.
+- An NMI before cycle 4 hijacks a BRK or IRQ sequence: the vector swaps at
+  the `@nmi_pending` check before the vector fetch, and the B flag stays on
+  the stack. Interrupt sequences, BRK included, clear the pipeline at their
+  end, so the handler's first instruction always runs.
+- The sequence is a true 7 cycles. The CPU does *not* clear `@irq` on
+  service, because the line belongs to the device.
+- Pinned by Lorenz `irq` and `nmi` (`nmi` subtest `00/5` for the pipeline
+  clear).
+- Spec guard: the *interrupt recognition timing* group in
+  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per quirk.
+
+## VIC raster IRQ phase
+
+- The raster compare happens at the line wrap (the end of the old line's
+  last cycle), except on line 0, which compares at column 0. This is Bauer
+  3.12's "cycle 0 of every line, cycle 1 of line 0".
+- The bad line compare picks up the same wrap (see
+  [VIC bad line and DMA](#vic-bad-line-and-dma)). It was re-derived against
+  the tests below when that landed.
+- Pinned by `greydot`, `ss-*-color` and `den01-49-*`, with `denrsel-s0` as
+  the guard that must keep passing. This rule is coupled to
+  [CPU interrupt recognition](#cpu-interrupt-recognition), so recalibrate
+  the two together.
+- Spec guard: *with the compare at the line wrap* and *with line 0 as the
+  target* in [`vic_spec.rb`](../spec/badline/vic_spec.rb). They are the
+  only examples that separate this phase from a uniform column-0 compare.
+
+## VIC mid-line register visibility
+
+- Sprite registers written mid-line are logged against
+  `(write cycle + 1) * 8` and take hold after a per-signal delay: **+9 px**
+  for the colors ($d025/$d026/$d027–$d02e), **+14 px** for priority
+  ($d01b) and **+15 px** for the sequencer inputs ($d000–$d010, $d01c,
+  $d01d).
+  - Pinned by the `spritesplit` staircases. `ss-hires-color`/`ss-mc-color*`
+    fix the color delay and `ss-pri*` the priority one (only the bands where
+    the sprite sits on an odd X can tell 14 from 15).
+    `ss-hires-mc`/`ss-mc-hires`/`ss-*exp*` fix the sequencer one.
+  - Spec guard: *mid-line write delays* in
+    [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb), one example
+    per path, each failing on a one-pixel change.
+- $d020–$d024 writes become visible 1 px into the next column.
+  `ColorPatches` restores the boundary pixel at `finish_line`.
+  - Pinned by `greydot`.
+  - Spec guard:
+    [`vic/color_patches_spec.rb`](../spec/badline/vic/color_patches_spec.rb).
+- `apply_border` restores a pre-composite snapshot (`BorderMask`) instead of
+  repainting with the end-of-line $d020, so mid-line border splits survive
+  sprite compositing.
+
+## VIC sprite display
+
+- Sprite display starts at **Y+1**: the Y match turns DMA on, and the first
+  row renders on the next line.
+- DMA compares at cycles 55/56 (**VIC columns 53/54**, with BA rebuilt
+  mid-line). Display turns on at cycle 58 (column 57), **but only while both
+  MxE and Y still match**. That is Bauer §3.8 rule 6 plus the enable bit his
+  wording omits. A write to either register between the compares and cycle
+  58 keeps DMA running invisibly.
+  - Pinned by all five `spriteenable` rows. `3` and `5` move Y and `4`
+    clears MxE. `1` and `2` write $d015 *between* the two compares, which
+    only lands on that column pair.
+- Each sprite's BA window is five columns, three ahead of its two s-access
+  columns, stepping two columns per sprite from column 55. From sprite 2 on,
+  the window runs past the end of the line and splits: the tail falls on the
+  line whose compare started the fetch, and the head on the next one. One
+  sprite therefore costs the CPU 5 cycles, and sprites 0–3 together cost
+  11. That is what puts the `spriteenable` raster markers on their printed
+  `x`/`y` columns.
+- A DMA started on the *second* compare leaves sprite 0 a column short of
+  AEC, because sprite 0 alone has its accesses immediately after the
+  compares. The first of its three s-accesses therefore reads back the $ff
+  the CPU is still driving.
+  - Pinned by `spriteenable2`.
+  - Spec guard: *the first s-access of a new DMA* in
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- Rows come from MCBASE/MC, not from a line counter (Bauer §3.8). MCBASE
+  steps +2 at cycle 15 and +1 at cycle 16 while the expansion flip-flop is
+  set, and MC reloads from MCBASE at cycle 58. The sprite ends only when
+  MCBASE lands on **exactly** 63, so a crunched sprite steps over it and
+  runs on through the rest of its block. The flip-flop is held set while
+  MxYE is clear, inverted at cycle 55 when MxYE is set, and reset by the Y
+  match.
+  - Pinned by `spritedma/d017-54` and `spritedma/d017-57`.
+  - Spec guard: *sprite crunch* in
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- Sprite pixels come from a per-pixel sequencer, not from a decoded row. A
+  live X comparator fires one pixel before the sprite's first pixel, the
+  expansion flip-flop gates the shift, and in multicolor a two-bit latch
+  reloads on every second shift. Both flip-flops idle while their register
+  bit is clear, so the first pixel after a mid-sprite $d01c/$d01d change
+  repeats the last latched value, and the pairs restart on the pixel after
+  that.
+  - Pinned by all 17 `spritesplit` tests, and `ss-xpos` for the comparator
+    in particular.
+- X coordinates ≥ $1f8 never match the VIC's 504-step X counter, so those
+  sprites stay dark. The `spritegap` dumps show this boundary.
+  - Spec guard: *X comparator* in
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- The Y comparator is **eight bits** wide, so a coordinate of 0–55 matches a
+  second time on PAL lines 256–311 and starts a second DMA run there.
+  - Pinned by `spritey`, whose reference collides on every one of the 312
+    lines.
+  - Spec guard: *the eight-bit Y compare* in
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+
+## VIC sprite collisions
+
+- $d01e/$d01f latch **as the beam crosses each sprite pixel**, not at the
+  end of the line. A read reports the pixels drawn before its own cycle and
+  nothing after them. The VIC runs ahead of the CPU inside a machine cycle,
+  so the column the read lands on has not latched yet.
+  - Pinned by `sprite-sprite-collision-cycle` and
+    `sprite-gfx-collision-cycle`, which step the sprite one pixel per
+    subtest across that boundary.
+- The reset a read asserts outlives the read by **12 pixels**. Pixels drawn
+  under it never reach the register, so two reads four cycles apart report
+  a 20-pixel window instead of the 32 pixels between them. The two
+  registers reset independently.
+  - Pinned by `spritevssprite`'s 20-column bands, which place the boundary
+    to the pixel.
+- The comparator runs wherever the sprites do, including the vertical
+  blank, where there is no line to paint them over.
+  - Pinned by `spritey`. Its sprites carry a single lit pixel on their first
+    row, so they only collide on the line after the Y match: line 1 for a
+    coordinate of 0.
+- Spec guard: *#collide_upto* in
+  [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
+  four examples each fail on a one-pixel change.
+
+## VIC border and idle state
+
+- The vertical border flip-flop is checked at cycle 63 (VIC hook, column 62)
+  *and* at the left X compare inside `pixel_shown?` (Bauer §3.9 rules 2–5),
+  not at line start, so mid-frame RSEL/DEN toggles open and close the
+  border.
+  - Pinned by `dentest` and `border`.
+  - Spec guard: *vertical border flip-flop* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb). Its
+    mid-line DEN example separates the left-edge compare from a line-start
+    one.
+- Idle-state graphics decode $3fff/$39ff via `GraphicsMode::Idle`
+  (foreground black, background per mode). A guard keeps closed-border
+  lines on the bulk path.
+  - Pinned by `ss-pri*`, whose diffs collapsed from ~85k px to 220–440 px.
+  - Spec guard: the `GraphicsMode::Idle` group in
+    [`vic/graphics_mode_spec.rb`](../spec/badline/vic/graphics_mode_spec.rb).
+
+## VIC bad line and DMA
+
+- The bad line condition is compared in **every** column, not only in the
+  DMA window, and the last column of a line compares against the line about
+  to start. Only the leading edge opens a row, and only the first edge of a
+  line: a match that outlives the row it started, or trails it, opens
+  nothing.
+- A match inside columns 12–54 pulls BA low. The VIC owns the bus three
+  columns later, when AEC follows, and the row enters display state on that
+  same edge. The c-accesses run from the match to column 54, and the ones
+  before AEC read `$ff` off a bus the CPU still drives. A match so late that
+  AEC would land past column 54 fetches nothing at all.
+- The row counter rewinds on a match standing in column 12, or on a row
+  opening in columns 11–15. This rule is curve-fitted, not mechanistic: the
+  21 `dmadelay` rows pin it, but no account of the chip produces the 11–15
+  window. Treat it as a placeholder for a rule someone derives properly from
+  a hardware trace.
+- The DEN latch is level-sensitive across the raster counter's increment,
+  so its window runs from the last column of line 47 through the last
+  column of line 48. The wrap column counts for both the line ending and
+  the line starting. Derived against `dentest`'s `den01-48-*`, `den01-49-*`
+  and `den10-48-*`, which bracket both edges one cycle at a time.
+- A condition still standing at column 58 puts the logic straight back into
+  display state after the counter wraps (Bauer 3.7.2 step 5), so RC rolls
+  7 → 0 instead of leaving the line idle. This is what holds an FLI picture
+  together.
+- VC and VMLI advance per g-access in display state, and VCBASE takes VC at
+  the wrap. A row that opens late therefore carries its shortfall into the
+  next one instead of a fixed +40.
+- Pinned by all 21 `dmadelay` rows, which sweep the match across the whole
+  line, `D011Test/disable-bad` for the too-late match, `flibug/blackmail*`
+  and `colorfetchbug` for the open-bus reads, and `screenpos` for the
+  row-open offset.
+- These rows can't be read as pixel counts. The sweep became readable by
+  OCRing each reference PNG against `lib/badline/roms/character.rom` and
+  matching every display row back to its offset in screen memory, so a diff
+  reads as "row 0 starts 40 cells in" instead of "11,376 px". Rebuild that
+  as a scratch script before touching these tests again.
+
+## VIC light pen
+
+- CIA1 PB4 level changes (`CIA#on_port_b4_change`) drive
+  `VIC#lightpen_level`. The first falling edge per frame latches LPX/LPY one
+  cycle later (plus the 6569's 2 half-pixel offset) and raises the `$D019`
+  bit 3 IRQ.
+- Triggers on the last line are consumed without latching (except at cycle
+  0). A line held low across frame start retriggers with a fixed LPX of
+  `$d1`.
+- Calibrated byte-exact against the `split-tests/lightpen` `dump6569`
+  reference. Two tail bytes and the raster-read page remain off by the
+  IRQ-phase cycle.
+- Pinned by `lplatency`, `lp-trigger`, and the `fldscroll` tests, which sync
+  through the light pen instead of the double IRQ.
+
+## CIA 6526 timer pipeline
+
+- Start and stop go through two stages. A force load lands one tick after
+  it becomes visible, then swallows a pulse and lands after that tick's
+  count. The timer underflows on reaching zero, with the reload on the next
+  tick. Other rules: a zero counter underflows prematurely; draining to zero
+  on stop does not raise the flag; zero latches chain; a one-shot lingers
+  when cleared at t-1; PB6/PB7 toggle only on a start transition.
+- Old-CIA IR delay: IR rises 1 cycle after the flag, or 2 cycles after a
+  mask write hits a pending flag, and an ICR read cancels the pending
+  assert.
+- The modelled revision is the **6526**, not the 6526A, matching
+  `Lorenz.d81`. That is all the `(*1)` cells of `cia1ta`/`cia1tb` measure,
+  and it is an ICR difference, not a counter one. Those cells read the ICR
+  on the very cycle the underflow flag rises, so the source bit is up while
+  IR is not: they read `$01`/`$02`, where a 6526A reads `$81`/`$82`. Counter
+  readback is identical on both revisions. `Lorenznew.d81` expects the
+  6526A and must not be mixed in.
+- Timer B's cascade decodes CRB, not CRA. Every count source (ø2, a CNT
+  edge, a cascaded timer A underflow) drives the same two-stage
+  count-enable pipeline, so a timer A underflow decrements timer B two
+  cycles later, and switching the source mid-flight leaves up to two
+  enables in the pipe. `cia1tab` is what rules out feeding the underflow
+  straight in. With both latches at 2, it wants timer B to read `00` for
+  exactly two cycles, with the flag, the PB7 toggle and the reload all
+  landing on the cycle after: the premature underflow of a zero counter,
+  one pipeline stage ahead of the decrement.
+- Pinned by the Lorenz `irq` header, `cia1tb123`, `cia2tb123`, `cia1pb6`,
+  `cia1pb7`, `cia2pb6`, `cia2pb7`, `flipos`, `oneshot`, `cntdef`, `loadth`,
+  `icr01`, `cia1tab`, `imr`, `cputiming`, `cia1ta`, `cia1tb`, `cia2ta` and
+  `cia2tb`.
+- Spec guard: [`cia/timer_spec.rb`](../spec/badline/cia/timer_spec.rb) runs
+  the eight `(*1)` cells and the `cia1tab` table. It fails if the IR delay
+  is dropped.
+
+## CIA serial shift register
+
+The rules for this section will be added along with the shift-register
+timing change that introduces them.
+
+## 6510 I/O port
+
+- DDR at `$00`/`$01`: inputs are pulled up, bit 5 reads low, and bits 3, 6
+  and 7 float.
+- Pinned by Lorenz `mmu` and `cpuport`.
+
+## SID oscillator
+
+- The phase accumulator powers on at `$555555` (all bits high, with the odd
+  ones stored inverted) and survives reset. `SID/osc3-wave0` only reads the
+  documented `$00`/`$ff` because of it.
+  - Pinned by `SID/oscinit` (all three).
+- Ring modulation substitutes the triangle's MSB with
+  `!Saw & ((!V3 & Ring) ^ bit23)`, where `V3` is the modulating voice's MSB.
+  That is an XNOR where reSID uses an XOR.
+  - Pinned by `SID/ringmod`, which expects OSC3 to read `$ff` with both
+    oscillators stopped at zero.
+- The noise LFSR is 23 bits wide. It feeds bit 0 back from bits 22 ^ 17 and
+  shifts on each rising edge of accumulator bit 19. Its eight output taps
+  are bits 20, 18, 14, 11, 9, 5, 2 and 0, driving waveform bits 11 down to 4
+  (Dag Lem's diagram in `SID/noise-reset_new`). It powers on at `$7ffffe`,
+  which is what makes `SID/oscinit`'s `noiseinit` read `$fe`.
+- The test bit does not clear the LFSR. It stalls it halfway through a
+  shift with bit 22 forced high. While the bit is held, every bit bleeds up
+  to `$7fffff` over `$8000` cycles (`SID/wf12nsr` reads `$ff` off one). On
+  release, the waveform still on the output lines is written back and then
+  one bit clocks in.
+- A combined waveform shorts the shapers onto the lines the oscillator reads
+  back. A low top bit reaches the accumulator MSB through the sawtooth
+  switch and clears it (`SID/osc_topbit`, all three). With noise selected,
+  the result is written into the LFSR, where a bit pulled low never comes
+  back. Together these run Dag Lem's fast LFSR reset exactly as documented:
+  three `$b8`/`$b0` pairs zero the register, and 18 `$88`/`$80` pairs set
+  bits 0–17.
+- Waveform 0 leaves the DAC input floating. It holds the last value a shaper
+  drove onto it and drains to `$000` after `$4000` cycles.
+  - Pinned by `SID/osc3-wave0`. `SID/oscinit`'s `allinit` pins the power-on
+    `$00`, before anything has driven the line.
+
+## SID register writes
+
+- The 6581 latches a register write one cycle late. That falls out of the
+  bus order, not from any delay line inside `SID`. `Computer#cycle!` clocks
+  the SID ahead of the CPU, so a write on cycle N first reaches the DSP on
+  cycle N+1, while a read on cycle N sees N cycles of clocking. Moving
+  `sid.cycle!` after `cpu.cycle!` breaks this.
+- Pinned by `SID/writedelay`, which reads OSC3 four cycles after releasing
+  the test bit and expects the pulse already high.
+- Spec guard: *SID writes against the clock order* in
+  [`computer_spec.rb`](../spec/badline/computer_spec.rb). It runs an
+  `STA $d400` and checks that the DSP has not clocked the new frequency on
+  the store's own cycle, over both the synthesizing and the idle-replay
+  paths.
+
+## SID data bus
+
+- Reading a write-only or unconnected register returns the latch without
+  draining it. reSID halves what is left of the charge on such a read,
+  which would cut the 6581 measurement below to `$52`–`$7d`.
+- Pinned by `SID/bitfade`'s `delayfrq0`, which polls `$d400` every nine
+  cycles while it waits and still measures the full TTL: `$1d02` here
+  against `~$01d00` on a real 6581, and `$a2005` for the 8580 against
+  VICE's `~$a2000`.
+
+## SID envelope
+
+- The envelope follows reSID's rate-counter model: a 15-bit counter compared
+  against a per-nibble period, and a second level-dependent divider (`$ff`→1,
+  `$5d`→2, `$36`→4, `$1a`→8, `$0e`→16, `$06`→30) that the attack phase
+  bypasses and resets. Zero freezes the envelope until the next gate edge.
+- Lowering the rate period below the running counter sends the counter the
+  long way round through `2^15`. Hard restarts depend on this ADSR delay
+  bug.
+- Pinned by `SID/envelope` (`testADSRDelayBug`, `testFlip00toFF`,
+  `testFlipFFto00`, `lft-adsr-test`) and `SID/exp_counter_reset`.
+
+## `.sid` tune banking
+
+- A tune's init and play routines must run with the ROMs banked to match
+  the address they live at, following libsidplayfp's iomap: `$37` below
+  `$a000`, `$36` under BASIC, `$34` in the `$d000` I/O window, `$35` under
+  the KERNAL. Restore `$01` afterwards so the caller's banking survives.
+  This entry is the rule, and it should outlive whichever code carries it.
+- Derived against six OneLoad64 tunes (Galway, Tel, Gray, Dunn, Cooksey).
+  `SIDFile#bank_for` is the one copy of the map: `Driver` wraps both calls
+  in a `$01` save/bank/restore, and `BarePlayer#dispatch` pokes it before
+  handing the CPU the stub.
+- Spec guard, at both ends: *a tune living under the BASIC ROM* in
+  [`audio/renderer_spec.rb`](../spec/badline/audio/renderer_spec.rb) (a
+  fixture at `$a000` that reads peak=0 without the `$01` write), and the
+  *#driver for a tune under BASIC* and *#bank_for* groups in
+  [`storage/sid_file_spec.rb`](../spec/badline/storage/sid_file_spec.rb).
+- The boot stub never returns to its caller: after `cli` it spins on
+  `jmp *` (PSID and RSID). BASIC's READY loop reuses zero page `$19`–`$21`,
+  which a tune owns. Wizball (Ocean Loader 1) keeps its music-enable flag
+  in `$19` and goes silent when BASIC writes `$0a` there.
+  - Spec guard:
+    [`storage/sid_file/driver_spec.rb`](../spec/badline/storage/sid_file/driver_spec.rb).

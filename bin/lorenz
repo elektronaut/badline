@@ -3,7 +3,7 @@
 
 # Headless runner for the Wolfgang Lorenz C64 Emulator Test Suite.
 #
-#   ruby --jit bin/lorenz [image] [start_test] [max_cycles] [--results PATH]
+#   ruby --yjit bin/lorenz [image] [start_test] [max_cycles] [--results PATH]
 #
 # Boots the machine, mounts the image as device 8 and autostarts (or loads
 # start_test by name to resume mid-suite). Test output is captured through

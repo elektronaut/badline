@@ -96,9 +96,10 @@ what the suite cost before it was sharded:
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 
-`bin/lorenz` is not sharded — the suite chains itself, one LOAD after the
-next, so there is nothing to split — and `bin/sidtests` is not either, at
-about three and a half minutes whole.
+`bin/lorenz` is not sharded: the suite chains itself, one LOAD after the
+next, so there is nothing to split. It is by far the slowest suite whole,
+at about two and a half hours on CI. `bin/sidtests` is not sharded either,
+and takes about three and a half minutes here and five on CI.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
 ~450M cycles each and use nearly all of it whether they pass or fail, which
