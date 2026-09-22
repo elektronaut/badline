@@ -85,7 +85,7 @@ module Badline
       # Opcodes:
       #   $AA - implied - 2 cycles
       def tax(_addr, _value)
-        cycle { @x = a }
+        @x = a
         update_number_flags(@x)
       end
 
@@ -94,7 +94,7 @@ module Badline
       # Opcodes:
       #   $A8 - implied - 2 cycles
       def tay(_addr, _value)
-        cycle { @y = a }
+        @y = a
         update_number_flags(@y)
       end
 
@@ -103,7 +103,7 @@ module Badline
       # Opcodes:
       #   $BA - implied - 2 cycles
       def tsx(_addr, _value)
-        cycle { @x = stack_pointer }
+        @x = stack_pointer
         update_number_flags(@x)
       end
 
@@ -112,7 +112,7 @@ module Badline
       # Opcodes:
       #   $8A - implied - 2 cycles
       def txa(_addr, _operand)
-        cycle { @a = x }
+        @a = x
         update_number_flags(@a)
       end
 
@@ -121,7 +121,7 @@ module Badline
       # Opcodes:
       #   $9A - implied - 2 cycles
       def txs(_addr, _operand)
-        cycle { @stack_pointer = x }
+        @stack_pointer = x
       end
 
       # Transfer Y register to accumulator.
@@ -129,7 +129,7 @@ module Badline
       # Opcodes:
       #   $98 - implied - 2 cycles
       def tya(_addr, _operand)
-        cycle { @a = y }
+        @a = y
         update_number_flags(@a)
       end
     end

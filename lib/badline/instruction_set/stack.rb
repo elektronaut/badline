@@ -24,7 +24,8 @@ module Badline
       # Opcodes:
       #   $68 - implied - 4 cycles
       def pla(_addr, _value)
-        cycle { @a = stack_pull }
+        internal_cycle(stack_address)
+        @a = stack_pull
         update_number_flags(@a)
       end
 
@@ -33,7 +34,8 @@ module Badline
       # Opcodes:
       #   $28 - implied - 4 cycles
       def plp(_addr, _value)
-        cycle { status.value = stack_pull & 0b11101111 }
+        internal_cycle(stack_address)
+        status.value = stack_pull & 0b11101111
       end
 
       # Jump to absolute address.
@@ -52,7 +54,7 @@ module Badline
       #   $20 - absolute - 6 cycles
       def jsr(addr, _value)
         return_addr = (program_counter - 1) & 0xffff
-        cycle { @memory.peek(stack_address) } # internal cycle: dummy stack read
+        internal_cycle(stack_address)
         write_byte(stack_address, high_byte(return_addr))
         write_byte(stack_address(-1), low_byte(return_addr))
         @stack_pointer = (@stack_pointer - 2) & 0xff
@@ -64,11 +66,9 @@ module Badline
       # Opcodes:
       #   $40 - implied - 6 cycles
       def rti(_addr, _value)
-        cycle do
-          @stack_pointer = (@stack_pointer + 1) & 0xff
-          @status.value = memory[stack_address]
-          @status.break = false
-        end
+        internal_cycle(stack_address)
+        @status.value = stack_pull
+        @status.break = false
         @program_counter = uint16(stack_pull, stack_pull)
       end
 
@@ -77,27 +77,22 @@ module Badline
       # Opcodes:
       #   $60 - implied - 6 cycles
       def rts(_addr, _value)
-        cycle do
-          @program_counter = (uint16(stack_pull, stack_pull) + 1) & 0xffff
-        end
+        internal_cycle(stack_address)
+        return_addr = uint16(stack_pull, stack_pull)
+        internal_cycle(return_addr)
+        @program_counter = (return_addr + 1) & 0xffff
       end
 
       private
 
       def stack_pull
-        cycle { @stack_pointer = (@stack_pointer + 1) & 0xff }
+        @stack_pointer = (@stack_pointer + 1) & 0xff
         read_byte(stack_address)
       end
 
       def stack_push(value)
         write_byte(stack_address, value)
-        cycle { @stack_pointer = (@stack_pointer - 1) & 0xff }
-      end
-
-      def stack_push16(value)
-        write_byte(stack_address, high_byte(value))
-        write_byte(stack_address(-1), low_byte(value))
-        cycle { @stack_pointer = (@stack_pointer - 2) & 0xff }
+        @stack_pointer = (@stack_pointer - 1) & 0xff
       end
     end
   end

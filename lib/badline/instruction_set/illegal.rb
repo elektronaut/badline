@@ -94,15 +94,14 @@ module Badline
         sbc(addr, inc(addr, value))
       end
 
-      # Freezes the CPU by forcing an infinite loop.
+      # Freezes the CPU. A jammed 6502 idles forever with its address bus
+      # parked on the interrupt vectors; the sequence is cut short here so
+      # tests terminate.
       #
       # Opcodes:
       #   $02, $12, $22, $32, $42, $52, $62, $72, $92, $B2, $D2, $F2
       def jam(_addr, _value)
-        # TODO: Handle jam
-        # It is possible to implement with loop { cycle }, but makes
-        # testing problematic.
-        10.times { cycle }
+        [0xffff, 0xfffe, 0xfffe, *Array.new(6, 0xffff)].each { |addr| internal_cycle(addr) }
       end
 
       # Loads A and S with value AND stack pointer.

@@ -5,7 +5,9 @@ module Badline
     private
 
     def handle_interrupt(vector, brk: false)
-      cycle
+      # BRK already burned this cycle on the operand fetch its addressing
+      # mode discards.
+      internal_cycle unless brk
 
       pc = program_counter
       pc = (pc + 1) & 0xffff if brk

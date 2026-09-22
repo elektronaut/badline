@@ -76,23 +76,11 @@ class TestCPU < Minitest::Test
   end
 
   def assert_bus_activity(expected_cycles, accesses)
-    expected_writes = expected_cycles.select { |c| c.last == "write" }
-    writes = accesses.select { |c| c.last == "write" }
-
-    assert_equal(expected_writes, writes, "Bus writes")
-
-    expected_reads = expected_cycles.select { |c| c.last == "read" }
-    reads = accesses.select { |c| c.last == "read" }
-
-    assert(subsequence?(reads, expected_reads),
-           "Bus reads #{reads.inspect} not contained in " \
-           "#{expected_reads.inspect}")
-  end
-
-  def subsequence?(sub, full)
-    i = 0
-    full.each { |c| i += 1 if i < sub.length && sub[i] == c }
-    i == sub.length
+    %w[write read].each do |kind|
+      assert_equal(expected_cycles.select { |c| c.last == kind },
+                   accesses.select { |c| c.last == kind },
+                   "Bus #{kind}s")
+    end
   end
 
   def setup_cpu(state)
