@@ -248,7 +248,7 @@ cia1pb6	PASS
 cia1pb7	PASS
 cia2pb6	PASS
 cia2pb7	PASS
-cia1tab	PASS	(old cia) | ta | 01 01 02 02 02 02 01 01 02 02 02 02 01 01 02 02 02 02 01 01 02 02 02 02 | tb | 02 02 02 01 02 01 01 01 01 02 01 02 00 02 00… sha=01405f67
+cia1tab	PASS	(old cia)
 loadth	PASS
 cnto2	PASS
 icr01	PASS

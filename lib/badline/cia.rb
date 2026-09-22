@@ -200,7 +200,7 @@ module Badline
     end
 
     def update_timers
-      @ta.cycle!(@control_a.value.nobits?(0x20) || @cnt_rise, true)
+      @ta.cycle!(@control_a.value.nobits?(0x20) || @cnt_rise)
       cycle_timer_b
       if @ta.underflowed
         interrupt_status.timer_a = true
@@ -214,13 +214,15 @@ module Badline
     end
 
     # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
-    # underflows, or timer A underflows gated by the CNT level.
+    # underflows, or timer A underflows gated by the CNT level. Every source
+    # drives the same count-enable line, so a cascaded underflow goes through
+    # the input pipeline exactly as a CNT edge does.
     def cycle_timer_b
       case @control_b.value & 0x60
-      when 0x00 then @tb.cycle!(true, true)
-      when 0x20 then @tb.cycle!(@cnt_rise, true)
-      when 0x40 then @tb.cycle!(true, @ta.underflowed)
-      else           @tb.cycle!(true, @ta.underflowed && @cnt_high)
+      when 0x00 then @tb.cycle!(true)
+      when 0x20 then @tb.cycle!(@cnt_rise)
+      when 0x40 then @tb.cycle!(@ta.underflowed)
+      else           @tb.cycle!(@ta.underflowed && @cnt_high)
       end
     end
 

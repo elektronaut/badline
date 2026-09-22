@@ -23,20 +23,20 @@ module Badline
         control.out_mode? ? @toggle : @underflowed
       end
 
-      def cycle!(feed, pulse)
-        return @counter -= 1 if feed && pulse && steady?
+      def cycle!(feed)
+        return @counter -= 1 if feed && steady?
 
         if (@pipe | @load_delay | @oneshot_linger).zero? && !@reload
           @pipe = 0b10 if feed && started?
           return
         end
-        run_tick(feed, pulse)
+        run_tick(feed)
       end
 
-      def run_tick(feed, pulse)
+      def run_tick(feed)
         @underflowed = false
         @oneshot_linger -= 1 if @oneshot_linger.positive?
-        tick(feed && started?, pulse)
+        tick(feed && started?)
       end
 
       def write_control(value)
@@ -66,15 +66,15 @@ module Badline
           (@load_delay | @oneshot_linger).zero? && started?
       end
 
-      def tick(feed, pulse)
-        counting = @pipe.anybits?(0b01) && pulse
+      def tick(feed)
+        counting = @pipe.anybits?(0b01)
         @pipe = (@pipe >> 1) | (feed ? 0b10 : 0)
         loading = @reload || @load_delay == 1
         @reload = false
 
         if loading
           reload
-        elsif premature_underflow?(pulse)
+        elsif premature_underflow?
           underflow
         elsif counting
           count
@@ -91,8 +91,8 @@ module Badline
       end
 
       # the final pipeline stage, before any pending load lands
-      def premature_underflow?(pulse)
-        @counter.zero? && pulse && @pipe.anybits?(0b01) && started?
+      def premature_underflow?
+        @counter.zero? && @pipe.anybits?(0b01) && started?
       end
 
       # A load consumes its tick, so the counter never decrements on it
