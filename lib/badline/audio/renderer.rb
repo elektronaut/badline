@@ -15,19 +15,16 @@ module Badline
 
       CONTAINERS = { ".wav" => WAV, ".aiff" => AIFF, ".aif" => AIFF }.freeze
 
-      def initialize(tune, seconds:, song: nil, rate: DEFAULT_RATE)
+      def initialize(tune, seconds:, song: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
         @seconds = seconds
         @song = song
         @rate = rate
+        @sid_model = sid_model
       end
 
       def player
-        @player ||= if bare?
-                      BarePlayer.new(@tune, song: @song)
-                    else
-                      MachinePlayer.new(@tune, song: @song)
-                    end
+        @player ||= (bare? ? BarePlayer : MachinePlayer).new(@tune, song: @song, sid_model: @sid_model)
       end
 
       # Yields the seconds rendered so far after every frame.

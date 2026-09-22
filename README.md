@@ -50,8 +50,9 @@ Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
 from it. `--no-autostart` attaches the media and stops at `READY.`, so
 you can type the `LOAD` yourself. `--song N` picks a subtune of a
-`.sid` file, and `--disable-jit` runs without YJIT, which is otherwise
-switched on at startup. `badline --help` lists the options.
+`.sid` file, `--sid 8580` fits the newer SID, and `--disable-jit` runs
+without YJIT, which is otherwise switched on at startup.
+`badline --help` lists the options.
 
 ## Media
 
@@ -82,6 +83,7 @@ tune's name with `.wav`.
 badline-render tune.sid                        # tune.wav, length from HVSC
 badline-render --seconds 180 tune.sid out.aiff
 badline-render --song 3 --rate 48000 tune.sid
+badline-render --sid 8580 tune.sid
 ```
 
 A `.sid` file doesn't store its length, so `badline-render` looks the
@@ -129,9 +131,9 @@ window title shows the current mode:
 
 The mouse and paddle modes capture the host mouse until you `Tab` out of
 them. Moving it moves the 1351 or turns the two paddle knobs, and the
-left and right buttons are the 1351's buttons. The paddles' own fire
-buttons aren't connected to the host mouse yet. Games differ in which
-port they read, which is why each device has a mode per port.
+left and right buttons are the 1351's buttons, or the fire buttons of
+paddles A and B. Games differ in which port they read, which is why each
+device has a mode per port.
 
 Game controllers work in every mode. The first one is joystick 2 and
 the second is joystick 1. The D-pad and left stick steer, the face and
@@ -157,10 +159,11 @@ light pen registers.
 - **CIA 1 and 2**: timers, time-of-day clocks with alarms, the serial
   shift register, interrupts, the keyboard matrix with its ghost keys,
   the control ports and the paddle multiplexer.
-- **SID**: the 6581's oscillators with ring modulation and sync, the
-  envelope generator including the ADSR delay bug, the filter, and the
-  RC network on the board that removes the DC offset from the output.
-  The 8580 is modelled in the library, but nothing selects it yet.
+- **SID**: the 6581 and the 8580, with oscillators, ring modulation and
+  sync, the envelope generator including the ADSR delay bug, the filter,
+  and the RC network on the board that removes the DC offset from the
+  output. The machine has a 6581 unless a `.sid` tune asks for an 8580
+  in its header, and `--sid 6581` or `--sid 8580` overrides either.
 - **Datasette**: `.tap` playback into CIA 1's FLAG line, with the motor
   and sense lines on the 6510 port.
 - **Cartridges**: standard, Ocean and Magic Desk.

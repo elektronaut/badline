@@ -46,6 +46,11 @@ parser = OptionParser.new do |opts|
     options[:rate] = n
   end
 
+  opts.on("--sid MODEL", { "6581" => :mos6581, "8580" => :mos8580 },
+          "SID to render on: 6581 or 8580 (default: the tune's own, else 6581)") do |model|
+    options[:sid_model] = model
+  end
+
   opts.on("--quiet", "Don't report progress") { options[:quiet] = true }
 
   opts.on("--disable-jit", "Run without enabling YJIT") do
@@ -109,10 +114,12 @@ song = (options[:song] || tune.start_song).clamp(1, tune.songs)
 seconds = options[:seconds] ||
           songlength(tune, tune_path, song, options[:songlengths]) ||
           FALLBACK_SECONDS
-renderer = Badline::Audio::Renderer.new(tune, seconds:, song:, rate: options[:rate])
+sid_model = options[:sid_model] || tune.sid_model
+renderer = Badline::Audio::Renderer.new(tune, seconds:, song:, rate: options[:rate], sid_model:)
 
 puts describe(tune, song)
-puts "Rendering #{seconds}s to #{output_path} at #{options[:rate]} Hz..."
+puts "Rendering #{seconds}s for the #{sid_model.to_s.delete_prefix('mos')} to #{output_path} " \
+     "at #{options[:rate]} Hz..."
 
 started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 

@@ -10,6 +10,32 @@ describe Badline::Media do
 
   after { FileUtils.remove_entry(dir) }
 
+  def sid_tune(songs: 1, flags: 0x0004)
+    File.join(dir, "tune.sid").tap do |path|
+      header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
+               ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [flags, 0, 0].pack("n3")
+      File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
+    end
+  end
+
+  describe ".sid_model" do
+    it "takes a tune's own model" do
+      expect(described_class.sid_model(sid_tune(flags: 0x0024))).to eq(:mos8580)
+    end
+
+    it "fits a 6581 for a tune that doesn't insist on an 8580" do
+      expect(described_class.sid_model(sid_tune(flags: 0x0034))).to eq(:mos6581)
+    end
+
+    it "fits a 6581 for other media" do
+      expect(described_class.sid_model(File.join(dir, "game.d64"))).to eq(:mos6581)
+    end
+
+    it "fits a 6581 with no media" do
+      expect(described_class.sid_model(nil)).to eq(:mos6581)
+    end
+  end
+
   describe ".attach" do
     context "with a directory" do
       it "mounts it as device 8" do
@@ -176,14 +202,7 @@ describe Badline::Media do
     end
 
     context "with a SID tune" do
-      let(:songs) { 3 }
-      let(:sid_path) do
-        File.join(dir, "tune.sid").tap do |path|
-          header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
-                   ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [0x0004, 0, 0].pack("n3")
-          File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
-        end
-      end
+      let(:sid_path) { sid_tune(songs: 3) }
 
       before { allow(computer).to receive(:on_init).and_yield }
 

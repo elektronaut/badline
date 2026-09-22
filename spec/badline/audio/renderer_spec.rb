@@ -78,6 +78,40 @@ describe Badline::Audio::Renderer do
     end
   end
 
+  describe "the SID model" do
+    it "defaults to a 6581" do
+      expect(renderer.player.sid.model).to eq(:mos6581)
+    end
+
+    context "with an 8580 tune" do
+      before { allow(tune).to receive(:sid_model).and_return(:mos8580) }
+
+      it "fits the bare rig with an 8580" do
+        expect(renderer.player.sid.model).to eq(:mos8580)
+      end
+    end
+
+    context "with an 8580 tune on the whole machine" do
+      let(:signature) { "RSID" }
+
+      before { allow(tune).to receive(:sid_model).and_return(:mos8580) }
+
+      it "fits the machine with an 8580" do
+        expect(renderer.player.sid.model).to eq(:mos8580)
+      end
+    end
+
+    context "with an override" do
+      let(:options) { { sid_model: :mos6581 } }
+
+      before { allow(tune).to receive(:sid_model).and_return(:mos8580) }
+
+      it "takes the override over the tune's own" do
+        expect(renderer.player.sid.model).to eq(:mos6581)
+      end
+    end
+  end
+
   describe "#render" do
     it "writes as many samples as the length asks for" do
       renderer.render(output("out.wav"))

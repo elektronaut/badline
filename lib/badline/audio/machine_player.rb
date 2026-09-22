@@ -12,10 +12,10 @@ module Badline
       # Boot, plus room for the keyboard buffer to type the SYS.
       START_LIMIT = 15_000_000
 
-      def initialize(tune, song: nil)
+      def initialize(tune, song: nil, sid_model: tune.sid_model)
         @tune = tune
         @song = song || tune.start_song
-        @computer = Computer.new
+        @computer = Computer.new(sid_model:)
         @injected = false
         @started = false
       end
@@ -25,6 +25,8 @@ module Badline
         @computer.cpu.install_trap(@tune.driver_address) { begin_playing }
         @computer.cycle! until @started || @computer.cycles > START_LIMIT
       end
+
+      def sid = @computer.sid
 
       def frame(budget)
         cycles = [budget, FRAME_CYCLES].min

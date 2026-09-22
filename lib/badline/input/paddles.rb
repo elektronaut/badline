@@ -7,8 +7,11 @@ module Badline
     # Paddle A sits on POTX with its button on the joystick left line, paddle B
     # on POTY with its button on the right line. Positions are the 0-255 counts
     # SID reads back, and the knobs stop at either end.
+    #
+    # Buttons are named after the host mouse buttons, as on the 1351: the left
+    # one fires paddle A, the right one paddle B.
     class Paddles
-      BUTTONS = { a: :left, b: :right }.freeze
+      BUTTONS = { left: :left, right: :right }.freeze
 
       attr_reader :pot_x, :pot_y
 

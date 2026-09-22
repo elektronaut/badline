@@ -56,13 +56,13 @@ describe Badline::ControlPorts do
 
     it "pulls port A low through a device on port 2" do
       ports.device2 = device
-      device.press(:a)
+      device.press(:left)
       expect(ports.read_a(0xff, 0xff)).to eq(0b11111011)
     end
 
     it "pulls port B low through a device on port 1" do
       ports.device1 = device
-      device.press(:b)
+      device.press(:right)
       expect(ports.read_b(0xff, 0xff)).to eq(0b11110111)
     end
   end
