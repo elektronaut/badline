@@ -98,12 +98,40 @@ def run_suite(suite, results, filters = [])
   runner = config.fetch(:runner)
   mkdir_p(File.dirname(results))
   rm_f(results)
-  ruby("--yjit", runner, *scope_args(config), *filters, "--results", results) do |ok, status|
-    raise "#{runner} matched no test. Check the filter." if status.exitstatus == 2
+  status = spawn_runner("--yjit", runner, *scope_args(config), *filters, "--results", results)
+  raise "#{runner} matched no test. Check the filter." if status.exitstatus == 2
 
-    puts "#{runner} reported failing tests." unless ok
-  end
+  puts "#{runner} reported failing tests." unless status.success?
   raise "#{runner} wrote no results to #{results}" unless File.exist?(results)
+end
+
+# TERM or INT to rake is passed on to the runner, so stopping rake's PID
+# stops the run instead of orphaning the runner. The runner is waited for
+# before the task fails, so it has stopped by the time rake exits.
+def spawn_runner(*args)
+  pid = nil
+  interrupted = nil
+  previous = %w[TERM INT].to_h do |signal|
+    [signal, trap(signal) do
+      interrupted ||= signal
+      forward_signal(signal, pid) if pid
+    end]
+  end
+  puts [FileUtils::RUBY, *args].join(" ")
+  pid = Process.spawn(FileUtils::RUBY, *args)
+  forward_signal(interrupted, pid) if interrupted
+  status = Process.wait2(pid).last
+  raise "#{args[1]} interrupted by SIG#{interrupted}." if interrupted
+
+  status
+ensure
+  previous&.each { |signal, handler| trap(signal, handler) }
+end
+
+def forward_signal(signal, pid)
+  Process.kill(signal, pid)
+rescue Errno::ESRCH
+  nil
 end
 
 def scope_args(config)

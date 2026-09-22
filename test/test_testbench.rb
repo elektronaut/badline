@@ -205,3 +205,80 @@ class TestTestbenchSharding < Minitest::Test
     previous ? ENV["SHARDS"] = previous : ENV.delete("SHARDS")
   end
 end
+
+class TestTestbenchInterruption < Minitest::Test
+  # Each shard reports its PID down the pipe and then hangs in its first
+  # test, standing in for a long run.
+  class HangingRunner < Testbench::Runner
+    def initialize(tests, results_path, pipe)
+      super(tests, results_path, shards: 2)
+      @pipe = pipe
+    end
+
+    private
+
+    def run_one(_test)
+      @pipe.puts(Process.pid)
+      @pipe.flush
+      sleep 60
+      "PASS"
+    end
+  end
+
+  def setup
+    @results = File.join(Dir.mktmpdir("interrupt"), "results.txt")
+    tests = Array.new(2) { |n| Testbench::TestCase.new("../VICII/x", "t#{n}.prg", "exitcode", 1000, []) }
+    reader, writer = IO.pipe
+    @runner = fork { run_runner(tests, writer) }
+    writer.close
+    @shards = Array.new(2) { Integer(reader.gets) }
+    Process.kill("TERM", @runner)
+    @status = wait_briefly(@runner)
+  end
+
+  def teardown
+    [@runner, *@shards].each { |pid| Process.kill("KILL", pid) if alive?(pid) }
+    Process.wait(@runner) unless @status
+    FileUtils.rm_rf(File.dirname(@results))
+  end
+
+  def test_the_runner_reports_the_interruption
+    assert_equal 3, @status&.exitstatus
+  end
+
+  def test_every_shard_is_stopped_with_the_runner
+    assert_empty(@shards.select { |pid| alive?(pid) })
+  end
+
+  def test_an_interrupted_run_writes_no_results
+    refute_path_exists @results
+  end
+
+  private
+
+  def run_runner(tests, pipe)
+    HangingRunner.new(tests, @results, pipe).run
+    exit!(0)
+  rescue Testbench::Interrupted
+    exit!(3)
+  end
+
+  # A runner that waits out its shards instead of stopping them would
+  # still exit once they finish, so it gets a few seconds and no more.
+  def wait_briefly(pid)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 5
+    while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+      _, status = Process.wait2(pid, Process::WNOHANG)
+      return status if status
+
+      sleep 0.05
+    end
+  end
+
+  def alive?(pid)
+    Process.kill(0, pid)
+    true
+  rescue Errno::ESRCH
+    false
+  end
+end
