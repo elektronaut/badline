@@ -16,25 +16,35 @@ VENDORED_REPOS = {
 }.freeze
 
 # Headless suites whose per-test results are tracked as a baseline, mapped
-# to the runner command that produces it. Each runner takes --results PATH
-# and writes one tab-separated "id VERDICT [detail]" row per test; the guard
-# compares those rows by id. bin/testbench takes id filters, so its
-# testlist subtrees are separate suites with a baseline each.
+# to the runner that produces it. Each runner takes --results PATH and
+# writes one tab-separated "id VERDICT [detail]" row per test; the guard
+# compares those rows by id. bin/testbench bounds a run to an id prefix
+# with --scope, so its testlist subtrees are separate suites with a
+# baseline each.
+#
+# Runners also take id filters, which is what a partial re-record runs;
+# :filters => false marks a suite that cannot be cut down, and bin/lorenz
+# is one because the suite chains itself from the first test loaded.
 REGRESSION_SUITES = {
-  "testbench" => ["bin/testbench", "VICII/"],
-  "lorenz" => ["bin/lorenz"],
-  "sid" => ["bin/sidtests"]
+  "testbench" => { runner: "bin/testbench", scope: "VICII/" },
+  "lorenz" => { runner: "bin/lorenz", filters: false },
+  "sid" => { runner: "bin/sidtests" }
 }.freeze
 
 # The rest of the testbench, split by the subsystem each subtree exercises.
 # These get a rake task and a baseline but stay out of `rake regression`
-# and the push-to-main CI set: CIA and interrupts alone are longer than the
-# other three suites put together, mostly emulated runtime rather than
-# timeouts, so they are run on demand instead.
+# and the push-to-main CI set: their runtime is mostly emulated cycles
+# rather than timeouts, so they are run on demand instead.
+# interrupts/irqdma is a suite of its own rather than part of interrupts —
+# 16 programs measuring DMA against interrupts over ~450M cycles each,
+# which is nearly all of that subtree's runtime and leaves the remaining
+# 13 rows at about a minute.
 OPT_IN_SUITES = {
-  "testbench-cia" => ["bin/testbench", "CIA/"],
-  "testbench-interrupts" => ["bin/testbench", "interrupts/"],
-  "testbench-cpu" => ["bin/testbench", "CPU/"]
+  "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
+  "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
+                              exclude: "interrupts/irqdma/" },
+  "testbench-irqdma" => { runner: "bin/testbench", scope: "interrupts/irqdma/" },
+  "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" }
 }.freeze
 
 ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze
@@ -68,15 +78,61 @@ def baseline_path(suite)
   File.join(BASELINE_DIR, "#{suite}.txt")
 end
 
+def filterable?(suite)
+  ALL_SUITES.fetch(suite).fetch(:filters, true)
+end
+
+def record_desc(suite)
+  return "Re-record #{baseline_path(suite)} from a fresh #{suite} run" unless filterable?(suite)
+
+  "Re-record #{baseline_path(suite)}, whole or [filter,...] of it"
+end
+
 # The runners exit non-zero while any test fails, which a baseline is
-# expected to capture, so their status is ignored and the comparison decides.
-def run_suite(suite, results)
-  runner, *filters = ALL_SUITES.fetch(suite)
+# expected to capture, so their status is ignored and the comparison
+# decides. Status 2 is the exception: a filter that matched no test, which
+# would otherwise look like a clean run of nothing.
+def run_suite(suite, results, filters = [])
+  config = ALL_SUITES.fetch(suite)
+  runner = config.fetch(:runner)
   mkdir_p(File.dirname(results))
-  ruby("--yjit", runner, *filters, "--results", results) do |ok, _status|
+  rm_f(results)
+  ruby("--yjit", runner, *scope_args(config), *filters, "--results", results) do |ok, status|
+    raise "#{runner} matched no test. Check the filter." if status.exitstatus == 2
+
     puts "#{runner} reported failing tests." unless ok
   end
   raise "#{runner} wrote no results to #{results}" unless File.exist?(results)
+end
+
+def scope_args(config)
+  args = []
+  args.push("--scope", config[:scope]) if config[:scope]
+  args.push("--exclude", config[:exclude]) if config[:exclude]
+  args
+end
+
+# Re-records only the rows a filter matched, splicing them into the
+# existing baseline so every other row keeps the verdict it had.
+def record_filtered(suite, filters)
+  raise "#{suite} runs as one chain and cannot be recorded by filter." unless filterable?(suite)
+
+  baseline = baseline_path(suite)
+  unless File.exist?(baseline)
+    raise "No baseline at #{baseline}. Record the whole suite first with " \
+          "`rake regression:record:#{suite}`."
+  end
+
+  results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
+  run_suite(suite, results, filters)
+  recorded = Regression.read(baseline)
+  fresh = Regression.read(results)
+  # Against the rows the filter touched, so the untouched majority does
+  # not read as gone.
+  Regression::Comparison.new(suite, recorded.slice(*fresh.keys), fresh).report($stdout)
+  splice = Regression::Splice.new(recorded, fresh)
+  Regression.write(baseline, splice.rows)
+  puts "Recorded #{baseline}: #{splice.summary}."
 end
 
 def compare_baseline(suite, results)
@@ -124,9 +180,14 @@ namespace :regression do
 
   namespace :record do
     ALL_SUITES.each_key do |suite|
-      desc "Re-record #{BASELINE_DIR}/#{suite}.txt from a fresh #{suite} run"
-      task suite => "vendor:VICE-testprogs" do
-        run_suite(suite, baseline_path(suite))
+      desc record_desc(suite)
+      task suite, [:filter] => "vendor:VICE-testprogs" do |_task, args|
+        filters = args.to_a.compact.reject(&:empty?)
+        next record_filtered(suite, filters) if filters.any?
+
+        results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
+        run_suite(suite, results)
+        cp(results, baseline_path(suite))
         puts "Recorded #{baseline_path(suite)}."
       end
     end
