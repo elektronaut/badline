@@ -15,6 +15,7 @@ group :development, :test do
   gem "rubocop-rake"
   gem "rubocop-rspec"
   gem "ruby-prof"
+  gem "stackprof"
   gem "timecop"
 end
 
