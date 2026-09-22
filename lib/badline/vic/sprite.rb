@@ -54,6 +54,7 @@ module Badline
         @latch = 0
         @mc_flop = false
         @xe_flop = false
+        @first_byte_lost = false
       end
 
       def displaying? = @dma
@@ -103,30 +104,42 @@ module Badline
       # Cycles 55 and 56: a Y/enable match starts the DMA and rewinds
       # MCBASE. Display is enabled separately in cycle 58, so the rows
       # render from the following line on.
-      def check_dma(line)
+      #
+      # BA falls at the sprite's own column — 55 for sprite 0, two later for
+      # each sprite after it — or two columns after this compare, whichever
+      # is later. AEC follows three columns on, and the first of the three
+      # s-accesses runs in the column it arrives in: a DMA starting on the
+      # second compare therefore loses that access for sprite 0, alone among
+      # the eight in following the compares immediately (spriteenable2).
+      def check_dma(line, column)
         return if @dma || !enabled? || line != y
 
+        @first_byte_lost = column + 2 > 55 + (2 * index)
         @dma = true
         @mcbase = 0
         @exp_ff = false if y_expanded?
       end
 
       # Cycle 58: MC is reloaded from MCBASE for the coming row, and a
-      # sprite with DMA running starts (or resumes) displaying only while Y
-      # still matches — a Y write between the compares keeps the data fetch
-      # running invisibly.
+      # sprite with DMA running starts (or resumes) displaying only while
+      # MxE and Y still match — a write to either between the compares and
+      # here keeps the data fetch running invisibly.
       def check_display(line)
         @mc = @mcbase
-        @display_on = true if @dma && line == y
+        @display_on = true if @dma && enabled? && line == y
       end
 
       # The row fetched at the end of the previous line renders on this one.
+      # A lost first s-access reads back the $ff the CPU is still driving.
       def start_line
         @span = 0
         @row_ready = false
+        lost = @first_byte_lost
+        @first_byte_lost = false
         return unless @dma && @display_on
 
         fetch(@mc)
+        @bits |= 0xff << 16 if lost
         @row_ready = true
       end
 

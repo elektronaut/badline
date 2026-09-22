@@ -69,14 +69,14 @@ module Badline
       # Run the Y/enable compare (Bauer cycles 55/56) for every sprite;
       # returns true when any sprite turned its DMA on, so the BA columns
       # can be rebuilt mid-line.
-      def check_dma(line)
+      def check_dma(line, column)
         return false if @registers[0x15].zero?
 
         hit = false
         @sprites.each do |sprite|
           next if sprite.displaying?
 
-          sprite.check_dma(line)
+          sprite.check_dma(line, column)
           hit ||= sprite.displaying?
         end
         @any_dma ||= hit

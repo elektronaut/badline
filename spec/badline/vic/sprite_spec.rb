@@ -32,7 +32,7 @@ RSpec.describe Badline::VIC::Sprite do
     sprite.advance_mcbase      # cycle 15
     sprite.finish_mcbase       # cycle 16
     sprite.toggle_expansion    # cycle 55
-    sprite.check_dma(line)     # cycles 55/56
+    sprite.check_dma(line, 53) # cycles 55/56, on the first compare
     sprite.check_display(line) # cycle 58
   end
 
@@ -61,12 +61,12 @@ RSpec.describe Badline::VIC::Sprite do
 
   describe "display state machine" do
     it "is not displaying before the Y coordinate" do
-      sprite.check_dma(59)
+      sprite.check_dma(59, 53)
       expect(sprite).not_to be_displaying
     end
 
     it "starts displaying on the rasterline matching Y" do
-      sprite.check_dma(60)
+      sprite.check_dma(60, 53)
       expect(sprite).to be_displaying
     end
 
@@ -87,7 +87,7 @@ RSpec.describe Badline::VIC::Sprite do
     end
 
     it "keeps the rows invisible when Y no longer matches at cycle 58" do
-      sprite.check_dma(60)
+      sprite.check_dma(60, 53)
       sprite.check_display(61) # Y was moved between the compares
       raster_line(61)
       expect(sprite).not_to be_rendering
@@ -95,8 +95,44 @@ RSpec.describe Badline::VIC::Sprite do
 
     it "does not start when disabled" do
       registers.write(0x15, 0)
-      sprite.check_dma(60)
+      sprite.check_dma(60, 53)
       expect(sprite).not_to be_displaying
+    end
+
+    it "keeps the rows invisible when MxE goes before cycle 58" do
+      sprite.check_dma(60, 53)
+      registers.write(0x15, 0) # disabled between the compares and cycle 58
+      sprite.check_display(60)
+      raster_line(61)
+      expect(sprite).not_to be_rendering
+    end
+  end
+
+  describe "the first s-access of a new DMA" do
+    # Sprite 0's accesses follow the compares immediately, so a DMA started
+    # on the second compare pulls BA a column short of AEC and that access
+    # reads back the $ff the CPU is still driving.
+    before { put_row(0x20, 0, 0x00, 0x00, 0x00) }
+
+    def first_row(compare_column)
+      sprite.check_dma(60, compare_column)
+      sprite.check_display(60)
+      raster_line(61)
+    end
+
+    it "reads $ff when the DMA started on the second compare" do
+      first_row(54)
+      expect(sprite.pixel(204)).to eq(sprite.color)
+    end
+
+    it "reads memory when the DMA started on the first compare" do
+      first_row(53)
+      expect(sprite.pixel(204)).to be_nil
+    end
+
+    it "leaves the two s-accesses behind it alone" do
+      first_row(54)
+      expect(sprite.pixel(204 + 8)).to be_nil
     end
   end
 
@@ -111,7 +147,7 @@ RSpec.describe Badline::VIC::Sprite do
       sprite.finish_mcbase         # cycle 16: MCBASE += 1
       registers.write(0x17, 0x01)  # set again before cycle 55
       sprite.toggle_expansion
-      sprite.check_dma(line)
+      sprite.check_dma(line, 53)
       sprite.check_display(line)
     end
 
