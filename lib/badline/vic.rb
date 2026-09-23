@@ -28,8 +28,11 @@ module Badline
     G_IDLE = 1
     G_DISPLAY = 2
 
-    # The $d011 mode bits a g-access still sees for a cycle after they fall.
+    # The $d011 mode bits a g-access still sees for a cycle after they fall:
+    # BMM always, and ECM too when the access it leaves read the character
+    # ROM.
     FETCH_HOLD = 0x20
+    FETCH_HOLD_ROM = 0x60
 
     # Columns carrying a per-cycle hook, so an ordinary column costs one
     # array read instead of the dispatch.
@@ -374,7 +377,7 @@ module Badline
     end
 
     # The g-access sees a mode bit that falls a cycle late: it addresses
-    # with $d011 as this column has it, OR-ed with the bits the column
+    # with $d011 as this column has it, OR-ed with the held bits the column
     # before had. When BMM changes and the access moves from RAM onto the
     # character ROM, the low address byte still comes from the old mode
     # (VICE x64sc `vicii_fetch_graphics`).
@@ -383,11 +386,12 @@ module Badline
       last = @fetch_d011
       return vic_bank.peek(graphics_address(d011, vmli, counter)) if d011 == last
 
-      address = graphics_address(d011 | (last & FETCH_HOLD), vmli, counter)
-      if (d011 ^ last).anybits?(0x20)
-        from = graphics_address(last, vmli, counter)
+      from = graphics_address(last, vmli, counter)
+      from_rom = vic_bank.character_rom?(from)
+      address = graphics_address(d011 | (last & (from_rom ? FETCH_HOLD_ROM : FETCH_HOLD)), vmli, counter)
+      if (d011 ^ last).anybits?(0x20) && !from_rom
         to = graphics_address(d011, vmli, counter)
-        address = (from & 0xff) | (to & 0x3f00) if !vic_bank.character_rom?(from) && vic_bank.character_rom?(to)
+        address = (from & 0xff) | (to & 0x3f00) if vic_bank.character_rom?(to)
       end
       vic_bank.peek(address)
     end

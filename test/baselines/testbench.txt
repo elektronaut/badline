@@ -90,7 +90,7 @@ VICII/sb_sprite_fetch/sbsprf24-164.prg	PASS
 VICII/split-tests/bascan/bascan.prg	PASS
 VICII/split-tests/fetchsplit/fetchsplit.prg	PASS
 VICII/split-tests/lightpen/lightpen.prg	PASS
-VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=348px exit=$00
+VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=48px exit=$00
 VICII/split-tests/spritescan/spritescan.prg	PASS
 VICII/vicii_timing/vicii_reg_timing.prg	PASS
 VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=7px exit=$00
@@ -98,7 +98,7 @@ VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=7px exit=$00
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/videomode1.prg	FAIL	diff=2px exit=$00
 VICII/videomode/videomode2.prg	PASS
-VICII/videomode/videomode-v.prg	FAIL	diff=6px exit=$00
+VICII/videomode/videomode-v.prg	FAIL	diff=5px exit=$00
 VICII/videomode/videomode-w.prg	FAIL	diff=79px exit=$00
 VICII/videomode/videomode-x.prg	FAIL	diff=10px exit=$00
 VICII/videomode/videomode-y.prg	FAIL	diff=1px exit=$00

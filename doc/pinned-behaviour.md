@@ -606,13 +606,25 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   - The hold is pinned by `vicii_reg_timing` (71 → 127 px without it). The
     address mix is pinned by `modesplit` (348 → 502 px) and `videomode-v`,
     `-x` and `-y` (6/10/1 → 14/14/9 px).
-  - `modesplit` would also have ECM held a column (`FETCH_HOLD = 0x60`,
-    348 → 48 px, with `videomode-x` 10 → 2), but the ECM row of
-    `vicii_reg_timing` shows the same fall without the hold (71/78/78 →
-    103/110/110 px with it, and `videomode-z` 2 → 5). VICE holds BMM only,
-    and so does badline until something separates the two.
   - Spec guard: *addresses with a BMM that fell in the same column* and
     *mixes the addresses when BMM falls onto the character ROM* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- ECM is held for that column too, but only when the access it leaves,
+  addressed through the old mode, read the character ROM
+  (`VIC::FETCH_HOLD_ROM`). A falling ECM reaches a RAM access at once.
+  - Pinned by `modesplit` (348 → 48 px). Its section 2 drops ECM in text
+    mode with the characters in the ROM, and its section 1 goes from
+    ECM text on the ROM to bitmap in RAM. Both need the mask held.
+    `videomode-v` makes the second move too (6 → 5 px).
+  - The RAM side is pinned by `vicii_reg_timing`, whose ECM row drops ECM
+    in text mode with the characters in RAM: holding ECM there as well
+    takes it from 71 to 103 px (from pass to 32 px once the side border
+    compares see CSEL late), and `videomode-z`, a `$7b` → `$3b` fall in
+    RAM, goes from 2 to 5 px. `videomode-x` makes the same fall in RAM and
+    would prefer the hold (10 → 2 px), but its readme says its reference
+    doesn't match every 6569 capture. VICE holds BMM only.
+  - Spec guard: *drops a falling ECM at once when the access left RAM* and
+    *holds a falling ECM when the access left the character ROM* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - The byte a group draws loads into the shift register at pixel XSCROLL,
   and that XSCROLL is the one the **column before** saw. It is latched in
@@ -641,8 +653,8 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     pixel 6 in `videomode2`, pixel 5 in `videomode-y` and in `modesplit`'s
     ECM+BMM → ECM split. The readme says these delays vary with the chip
     and its temperature. badline keeps VICE's pixel 6, which passes
-    `videomode2` and leaves `videomode-y` 1 px off and 48 of `modesplit`'s
-    348 px, one pixel on each of its first-section lines.
+    `videomode2` and leaves `videomode-y` 1 px off and all 48 px left in
+    `modesplit`, one pixel on each of its first-section lines.
   - Spec guard: [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb),
     one example per pixel, and *a mode change inside a group* in
     [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).

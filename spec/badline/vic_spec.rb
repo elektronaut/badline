@@ -349,6 +349,33 @@ RSpec.describe Badline::VIC do
       bits = vic.vic_bank.peek(0x1200 | (5 * 8) | 1)
       expect(group).to eq(Array.new(8) { |i| bits[7 - i] == 1 ? 1 : 6 })
     end
+
+    # ECM from column 10, dropped in the CPU cycle after column 18. Cell 5
+    # holds $41, which ECM masks to $01.
+    def drop_ecm
+      run_to(10)
+      vic.poke(0xd011, 0x5b)
+      (19 - vic.column).times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+      finish_line
+    end
+
+    # Pinned by vicii_reg_timing: an access that left RAM addresses without
+    # the ECM mask.
+    it "drops a falling ECM at once when the access left RAM" do
+      ram.poke(0x2000 + (0x41 * 8) + 1, 0xff)
+      drop_ecm
+      expect(group).to all(eq(1))
+    end
+
+    # Pinned by modesplit: an access that left the character ROM still
+    # addresses through the ECM mask.
+    it "holds a falling ECM when the access left the character ROM" do
+      vic.poke(0xd018, 0x14) # characters @ $1000, the ROM
+      drop_ecm
+      bits = vic.vic_bank.peek(0x1000 | 8 | 1)
+      expect(group).to eq(Array.new(8) { |i| bits[7 - i] == 1 ? 1 : 6 })
+    end
   end
 
   describe "sprite rendering through a full raster" do
