@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/sid/waveform/combined"
 require "badline/sid/waveform/fast_forward"
 
 module Badline
@@ -15,8 +16,10 @@ module Badline
     # oscillator itself reads back, so a combined waveform is not only a
     # shape: a low top bit reaches the accumulator MSB through the sawtooth
     # switch, and noise in the mix is written back into the LFSR. The shape
-    # itself is approximated by ANDing the shapers — the analog result only
-    # comes out of sampled tables.
+    # itself comes from Combined's model of the lines pulling on each other.
+    #
+    # The pulse comparator's output reaches the lines a cycle after the
+    # accumulator it compared.
     #
     # With nothing selected the DAC input floats, holding the last value
     # driven onto it until the charge drains away.
@@ -50,11 +53,12 @@ module Badline
                     [0x000004, 0x020], [0x000001, 0x010]].freeze
 
       attr_accessor :sync_source, :sync_dest
-      attr_reader :accumulator, :shift_register, :frequency, :pulse_width
+      attr_reader :accumulator, :shift_register, :frequency, :pulse_width, :pulse
 
       def initialize(model: :mos6581)
         @topbit_feedback = model != :mos8580
         @tri_saw_delay = model == :mos8580
+        @combined = Combined.tables(model)
         @accumulator = POWER_ON_ACCUMULATOR
         @sync_source = @sync_dest = self
         reset!
@@ -63,7 +67,8 @@ module Badline
       # The RES line clears the registers and reseeds the LFSR, but leaves
       # the accumulator alone (SID/oscinit).
       def reset!
-        @tri_saw = 0x000
+        @delayed_sawtooth = 0x000
+        @delayed_triangle = 0x000
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
         @shift_pipeline = 0
@@ -76,6 +81,7 @@ module Badline
         @msb_rising = false
         @floating = 0x000
         @floating_ttl = 0
+        @pulse = 0xfff
         @output = 0x000
         @stale = true
       end
@@ -111,6 +117,7 @@ module Badline
         test = value.anybits?(0x08)
         if test
           @accumulator = 0x000000
+          @pulse = 0xfff
           @shift_pipeline = 0
           @shift_register_reset = SHIFT_REGISTER_RESET_DELAY unless @test
         elsif @test
@@ -122,6 +129,7 @@ module Badline
 
       def cycle!
         latch_output
+        compare_pulse
         @test ? bleed_shift_register : advance
         @stale = true
       end
@@ -152,14 +160,11 @@ module Badline
 
       # What OSC3 reads. The 8580 delays the triangle and sawtooth shapers
       # by half a cycle, which OSC3 latches as a whole cycle late; pulse and
-      # noise still mask the value on time.
+      # noise still reach the lines on time.
       def osc3
         return output unless @tri_saw_delay && @selected.anybits?(0x3)
 
-        value = @tri_saw
-        value &= pulse if @selected.anybits?(0x4)
-        value &= noise if @selected.anybits?(0x8)
-        value
+        shape(@selected, @delayed_sawtooth, @delayed_triangle)
       end
 
       def sawtooth = @accumulator >> 12
@@ -169,10 +174,6 @@ module Badline
       def triangle(selected = @selected)
         folded = inverted?(selected) ? @accumulator ^ 0xffffff : @accumulator
         (folded >> 11) & 0xfff
-      end
-
-      def pulse
-        @test || (@accumulator >> 12) >= @pulse_width ? 0xfff : 0x000
       end
 
       # Eight taps off the 23-bit LFSR, gathered into a 12-bit sample.
@@ -189,31 +190,32 @@ module Badline
 
       private
 
-      def shape(selected)
+      def shape(selected, saw = sawtooth, tri = triangle(selected))
         case selected
-        when 0x1 then triangle(selected)
-        when 0x2 then sawtooth
-        when 0x4 then pulse
+        when 0x1 then tri
+        when 0x2 then saw
+        when 0x4 then @pulse
         when 0x8 then noise
-        else combined(selected)
+        else combined(selected, saw, tri)
         end
       end
 
-      def combined(selected)
-        value = 0xfff
-        value &= triangle(selected) if selected.anybits?(0x1)
-        value &= sawtooth           if selected.anybits?(0x2)
-        value &= pulse              if selected.anybits?(0x4)
-        value &= noise              if selected.anybits?(0x8)
-        value
+      # A low pulse grounds every line. Noise is ANDed over the rest of the
+      # mix: the references hold no noise combinations to fit.
+      def combined(selected, saw, tri)
+        return 0x000 if selected.anybits?(0x4) && @pulse.zero?
+
+        rest = selected & 0x7
+        value = case rest
+                when 0x1 then tri
+                when 0x2 then saw
+                when 0x4 then 0xfff
+                else @combined[rest][rest == 0x5 ? tri : saw]
+                end
+        selected.anybits?(0x8) ? value & noise : value
       end
 
-      def tri_saw
-        value = 0xfff
-        value &= triangle if @selected.anybits?(0x1)
-        value &= sawtooth if @selected.anybits?(0x2)
-        value
-      end
+      def compare_pulse(phase = @accumulator >> 12) = (@pulse = @test || phase >= @pulse_width ? 0xfff : 0x000)
 
       # More than one bit set in the selection.
       def combined?(selected) = selected.anybits?(selected - 1)
@@ -223,7 +225,10 @@ module Badline
       # charge already on it drains a little further.
       def latch_output
         value = output
-        @tri_saw = tri_saw if @tri_saw_delay
+        if @tri_saw_delay
+          @delayed_sawtooth = sawtooth
+          @delayed_triangle = triangle
+        end
         if @selected.zero?
           drain_floating(1)
           return

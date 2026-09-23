@@ -106,7 +106,23 @@ describe Badline::SID::Waveform do
     it "reads low below the pulse width" do
       waveform.pulse_width_low = 0xff
       waveform.pulse_width_high = 0x0f
+      waveform.cycle!
       expect(waveform.pulse).to eq(0x000)
+    end
+
+    # Pinned by SID/resid-test's oscsample1 and SID/waveforms' waveforms-40
+    # (both chips): at frequency $1000 the phase reaches a width of $100 on
+    # cycle $100, and the output follows on cycle $101.
+    it "reaches the output a cycle after the accumulator it compared" do
+      waveform.pulse_width_high = 0x01
+      restart(0x40, frequency: 0x1000, cycles: 0x100)
+      expect(waveform.output).to eq(0x000)
+    end
+
+    it "has reached it the cycle after that" do
+      waveform.pulse_width_high = 0x01
+      restart(0x40, frequency: 0x1000, cycles: 0x101)
+      expect(waveform.output).to eq(0xfff)
     end
 
     it "reads high from the pulse width up" do
@@ -125,6 +141,23 @@ describe Badline::SID::Waveform do
       waveform.pulse_width_high = 0x0f
       waveform.control = 0x48
       expect(waveform.pulse).to eq(0xfff)
+    end
+  end
+
+  describe "#reset!" do
+    it "releases a pulse held low" do
+      waveform.pulse_width_high = 0x0f
+      restart(0x40, frequency: 0x1000, cycles: 2)
+      waveform.reset!
+      expect(waveform.pulse).to eq(0xfff)
+    end
+
+    it "clears the 8580's delayed sawtooth" do
+      chip = described_class.new(model: :mos8580)
+      chip.control = 0x20
+      chip.cycle!
+      chip.reset!
+      expect(chip.tap { |c| c.control = 0x20 }.osc3).to eq(0x000)
     end
   end
 
@@ -364,7 +397,7 @@ describe Badline::SID::Waveform do
         expect(waveform.output).to eq(0x003)
       end
 
-      it "masks the delayed sawtooth with the pulse on time" do
+      it "grounds the delayed sawtooth with a low pulse" do
         waveform.pulse_width_high = 0x0f
         restart(0x60, frequency: 0x1000, cycles: 3)
         expect(waveform.osc3).to eq(0x000)
@@ -411,9 +444,20 @@ describe Badline::SID::Waveform do
       expect(waveform.output).to eq(0x000)
     end
 
-    it "ANDs the selected waveforms together" do
-      restart(0x30, frequency: 0x0000)
+    it "reads a combined waveform through the fitted shapes" do
+      restart(0x30, frequency: 0x1000, cycles: 0x7ff)
+      expect(waveform.output).to eq(described_class::Combined.tables(:mos6581)[0x3][0x7ff])
+    end
+
+    it "grounds a combined waveform with the pulse low" do
+      waveform.pulse_width_high = 0x0f
+      restart(0x60, frequency: 0x7ff0, cycles: 1)
       expect(waveform.output).to eq(0x000)
+    end
+
+    it "ANDs noise over the rest of a combined waveform" do
+      restart(0xc0, frequency: 0x0000)
+      expect(waveform.output).to eq(waveform.noise)
     end
 
     it "follows the single selected waveform" do

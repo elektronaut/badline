@@ -19,6 +19,7 @@ module Badline
               cycles -= 1
             end
             skip_ahead(cycles) if cycles.positive?
+            compare_pulse(((@accumulator - @frequency) & 0xffffff) >> 12)
           end
           @stale = true
         end

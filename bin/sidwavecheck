@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Scores the combined waveform tables in lib/badline/sid/waveform/combined.rb.
+#
+#   ruby --yjit bin/sidwavecheck [--resid-tables DIR]
+#
+# Always scores them against the real-chip OSC3 dumps bin/sidwavefit fits
+# to (SID/resid-test/oscsample0/1-<chip>wf<wave>.dat in VICE-testprogs):
+# bits wrong in the top eight bits of every phase the dump covers, per dump.
+#
+# --resid-tables compares them with another emulator's tables kept outside
+# the repository, such as reSID's sampled ones converted by hand. Nothing
+# from DIR is copied or written anywhere. DIR holds one file per chip and
+# waveform, named <chip>-<wave>.bin (6581-30.bin, 6581-50.bin, 6581-60.bin,
+# 6581-70.bin and the same for 8580); missing files are skipped. Each holds
+# 4096 entries, one per 12-bit phase (accumulator >> 12) of a rising
+# sawtooth, with any triangle in the mix folding at the MSB as it does when
+# the sawtooth is not selected, and the pulse high. An entry is either one
+# byte, the top eight output bits (a 4096-byte file), or a 16-bit
+# little-endian word holding all twelve (an 8192-byte file). The report
+# gives the bits that differ over the whole file and as a share of it.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "badline"
+
+module SIDWaveCheck
+  ROOT = File.expand_path("../vendor/VICE-testprogs/SID/resid-test", __dir__)
+  Combined = Badline::SID::Waveform::Combined
+  CHIPS = { mos6581: "6581", mos8580: "8580" }.freeze
+  SELECTIONS = [0x3, 0x5, 0x6, 0x7].freeze
+
+  module_function
+
+  def reference(set, chip, selected)
+    name = format("oscsample%<set>d-%<chip>swf%<wave>02x.dat", set:, chip: CHIPS.fetch(chip), wave: selected << 4)
+    File.binread(File.join(ROOT, name))[2..].bytes
+  end
+
+  # A triangle on its own folds at the MSB.
+  def folded_triangle(phase) = ((phase.nobits?(0x800) ? phase : phase ^ 0xfff) << 1) & 0xfff
+
+  def index(selected, phase) = selected == 0x5 ? folded_triangle(phase) : phase
+
+  # [table index, reference byte] for every entry of the dumps the fit can
+  # use: the first four are blanked, a pulse below $102 in the $100 dumps
+  # grounds the output, and a combined sawtooth on the 6581 never reaches
+  # the upper half of the phase (SID/osc_topbit).
+  def targets(chip, selected, sets = [0, 1])
+    last = chip == :mos6581 && selected.anybits?(0x2) ? 0x800 : 0xfff
+    sets.flat_map do |set|
+      data = reference(set, chip, selected)
+      first = set == 1 && selected.anybits?(0x4) ? 0x102 : 0x004
+      (first..last).map { |phase| [index(selected, phase), data[phase]] }
+    end
+  end
+
+  def bits(value) = value.digits(2).sum
+
+  def errors(table, targets) = targets.sum { |index, byte| bits((table[index] >> 4) ^ byte) }
+
+  def report(parameters)
+    parameters.each do |chip, sets|
+      sets.each do |selected, params|
+        table = Combined.table(selected, params)
+        (low, low_total), (high, high_total) = [0, 1].map do |set|
+          targets = targets(chip, selected, [set])
+          [errors(table, targets), targets.size * 8]
+        end
+        puts format("%<chip>s $%<wave>02x vs oscsample: %<low>4d/%<low_total>d bits wrong (pw $000), " \
+                    "%<high>4d/%<high_total>d (pw $100)",
+                    chip: CHIPS.fetch(chip), wave: selected << 4, low:, low_total:, high:, high_total:)
+      end
+    end
+  end
+
+  def load_table(path)
+    data = File.binread(path)
+    case data.bytesize
+    when 4096 then [data.bytes, 8]
+    when 8192 then [data.unpack("v*").map { |value| value & 0xfff }, 12]
+    else abort "#{path}: expected 4096 or 8192 bytes, got #{data.bytesize}"
+    end
+  end
+
+  def compare(dir)
+    CHIPS.each do |chip, name|
+      tables = Combined.tables(chip)
+      SELECTIONS.each do |selected|
+        path = File.join(dir, format("%<name>s-%<wave>02x.bin", name:, wave: selected << 4))
+        next unless File.exist?(path)
+
+        theirs, width = load_table(path)
+        wrong = (0...4096).sum do |phase|
+          ours = tables.fetch(selected)[index(selected, phase)]
+          bits((width == 8 ? ours >> 4 : ours) ^ theirs[phase])
+        end
+        total = 4096 * width
+        puts format("%<name>s $%<wave>02x vs %<file>s: %<wrong>5d/%<total>d bits wrong (%<rate>.2f%%)",
+                    name:, wave: selected << 4, file: File.basename(path), wrong:, total:,
+                    rate: 100.0 * wrong / total)
+      end
+    end
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  index = ARGV.index("--resid-tables")
+  dir = index && ARGV[index + 1]
+  abort "sidwavecheck: --resid-tables needs a directory" if index && !(dir && File.directory?(dir))
+
+  SIDWaveCheck.report(SIDWaveCheck::Combined::PARAMETERS)
+  SIDWaveCheck.compare(dir) if dir
+end
