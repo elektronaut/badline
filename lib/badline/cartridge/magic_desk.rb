@@ -14,8 +14,7 @@ module Badline
       private
 
       def install_chips(chips)
-        @banks = []
-        chips.each { |chip| @banks[chip.bank] = rom_bank(chip.data, ROML_START) }
+        @banks = banks_from(chips).first
         @roml = @banks.first
       end
     end

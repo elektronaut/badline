@@ -29,17 +29,10 @@ module Badline
   class AddressBus
     include Addressable
 
-    # Unmapped address space for Ultimax cartridges.
-    module OpenSpace
-      module_function
-
-      def peek(_addr) = 0xff
-      def poke(_addr, _value); end
-    end
-
-    # I/O 1 and 2 with nothing on the bus. A read picks up the byte the VIC
-    # fetched in the preceding phi1 half-cycle, and a write goes nowhere.
-    class OpenIO
+    # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
+    # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
+    # and a write goes nowhere.
+    class OpenBus
       def initialize(vic)
         @vic = vic
       end
@@ -81,7 +74,7 @@ module Badline
       @datasette.on_sense_change { @io_port.value = port_value }
 
       @color_ram = ColorMemory.new(@vic)
-      @open_io = OpenIO.new(@vic)
+      @open_bus = OpenBus.new(@vic)
 
       @port_ddr = 0x2f
       @port_out = 0x37
@@ -95,6 +88,7 @@ module Badline
 
     def attach_cartridge(cartridge)
       @cartridge = cartridge
+      cartridge.connect(ram: @ram, open_bus: @open_bus)
       cartridge.on_change { update_overlays! }
       update_overlays!
     end
@@ -160,6 +154,7 @@ module Badline
 
     def map_banked_pages
       map_rom_overlays
+      map_cartridge_ram
 
       if io?
         map_io_pages
@@ -178,11 +173,24 @@ module Badline
       @read_pages.fill(kernal_rom, 0xe0, 0x20) if kernal?
     end
 
+    # Cartridge RAM in the ROML or ROMH window decodes writes itself,
+    # whatever the $01 lines say.
+    def map_cartridge_ram
+      return unless @cartridge&.exrom&.zero?
+
+      map_cartridge_ram_bank(@cartridge.roml, 0x80)
+      map_cartridge_ram_bank(@cartridge.romh, 0xa0) if @cartridge.game.zero?
+    end
+
+    def map_cartridge_ram_bank(bank, first_page)
+      @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
+    end
+
     # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
     # I/O always visible and open address space everywhere else.
     def map_ultimax_pages
-      @read_pages.fill(OpenSpace, 0x10, 0xf0)
-      @write_pages.fill(OpenSpace, 0x10, 0xf0)
+      @read_pages.fill(@open_bus, 0x10, 0xf0)
+      @write_pages.fill(@open_bus, 0x10, 0xf0)
       @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
       @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
       map_io_pages
@@ -191,7 +199,7 @@ module Badline
     def map_io_pages
       {
         vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_io => 0xde..0xdf
+        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_bus => 0xde..0xdf
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end

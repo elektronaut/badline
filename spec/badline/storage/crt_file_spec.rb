@@ -71,6 +71,25 @@ describe Badline::Storage::CRTFile do
     end
   end
 
+  context "with trailing bytes shorter than a chip header" do
+    let(:chips) { [chip_packet(bank: 0, address: 0x8000, data: [0x01] * 0x2000), [0xff].pack("C") * 12] }
+
+    it "ignores them" do
+      expect(crt.chips.length).to eq(1)
+    end
+  end
+
+  context "with a hardware subtype" do
+    let(:header) do
+      "C64 CARTRIDGE   ".b + [0x40, 0x0101, 57, 0, 1, 1].pack("NnnCCC") +
+        ("\x00" * 5) + "TEST CART".ljust(32, "\x00")
+    end
+
+    it "parses the subtype" do
+      expect(crt.subtype).to eq(1)
+    end
+  end
+
   context "with a bad signature" do
     let(:header) { "C64 FLOPPY DISK ".b + ("\x00" * 48) }
 
