@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.1](https://github.com/elektronaut/badline/compare/v0.2.0...v0.2.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* decode U commands by the 1541's user table index ([4d37a92](https://github.com/elektronaut/badline/commit/4d37a928f9109d8214294fdac21bce25f201549b))
+* detect disk image error tables by exact image size ([baa2091](https://github.com/elektronaut/badline/commit/baa20918b345723003ff61936c791f476e478fe8))
+* detect the error table on 42-track D64 images ([9d8be41](https://github.com/elektronaut/badline/commit/9d8be41ffd23f0984f26e8e2c3ec0ba692629df9))
+* end a SAVE the host directory can't write like a failed drive write ([4d15efe](https://github.com/elektronaut/badline/commit/4d15efe815d809fb7eba84cc9d59aebb4964f4ad))
+* fail writes to a disk image like a write-protected 1541 ([c4ccb46](https://github.com/elektronaut/badline/commit/c4ccb46382166a896875a4f081c13db7841aaf7d))
+* hand LOADs that reach below $0334 to the ROM's byte loop ([948b816](https://github.com/elektronaut/badline/commit/948b8163d0ba16d4eb4c71ee03ab4fe59297ba56))
+* power-cycle the machine when a cartridge is attached ([2e1d7a4](https://github.com/elektronaut/badline/commit/2e1d7a472f00e0ccbd7a3245db7c685162e40786))
+* print the KERNAL's SAVING message from the SAVE trap ([c912986](https://github.com/elektronaut/badline/commit/c912986e1702ba9907a097aaebd62b36e83b1fe5))
+* print the KERNAL's SEARCHING and LOADING messages from the LOAD trap ([fc7e719](https://github.com/elektronaut/badline/commit/fc7e719e0856b8eddafbb96402893570cf757842))
+* report the DOS version on the command channel at drive power-on ([016ad3f](https://github.com/elektronaut/badline/commit/016ad3f884a2fb1160f30372acd1ae972d0b9702))
+* reset the virtual drive on the U-command reset forms ([a558314](https://github.com/elektronaut/badline/commit/a558314e7f116a28c8341ca82acce65c94469b9d))
+* stop LOADs and file reads at a block the error table marks bad ([457be18](https://github.com/elektronaut/badline/commit/457be18351af7241a26f76631ec9bfad0ce2306e))
+
 ## [0.2.0](https://github.com/elektronaut/badline/compare/v0.1.0...v0.2.0) (2026-09-23)
 
 

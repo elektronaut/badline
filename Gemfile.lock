@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    badline (0.2.0)
+    badline (0.2.1)
       fiddle (~> 1.1)
       ruby-sdl2 (~> 0.3)
 
