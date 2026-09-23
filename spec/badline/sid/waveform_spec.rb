@@ -133,18 +133,21 @@ describe Badline::SID::Waveform do
       expect(waveform.noise).to eq(0xfe0)
     end
 
-    it "holds its state until accumulator bit 19 rises" do
-      restart(0x80, frequency: 0x8000, cycles: 15)
+    # Pinned by SID/noisewriteback (test2): bit 19 rises on cycle 16, the
+    # first phase of the shift latches the register on 17 and the second
+    # shifts it on 18.
+    it "holds its state until two cycles after accumulator bit 19 rises" do
+      restart(0x80, frequency: 0x8000, cycles: 17)
       expect(waveform.shift_register).to eq(0x7ffffc)
     end
 
-    it "shifts left when accumulator bit 19 rises, feeding back bits 22 and 17" do
-      restart(0x80, frequency: 0x8000, cycles: 16)
+    it "shifts left two cycles after bit 19 rises, feeding back bits 22 and 17" do
+      restart(0x80, frequency: 0x8000, cycles: 18)
       expect(waveform.shift_register).to eq(0x7ffff8)
     end
 
     it "shifts once for each rise of accumulator bit 19" do
-      restart(0x80, frequency: 0x8000, cycles: 48)
+      restart(0x80, frequency: 0x8000, cycles: 50)
       expect(waveform.noise).to eq(0xfc0)
     end
 
@@ -191,6 +194,34 @@ describe Badline::SID::Waveform do
       toggle_test(0xb0, 3)
       toggle_test(0x80, 18)
       expect(waveform.shift_register).to eq(0x03ffff)
+    end
+
+    # Pinned by SID/noisewriteback (test2): the triangle holds a bled
+    # register's taps low until the shift two cycles after the bit 19 rise
+    # fills them from the bits below, and OSC3 catches that one output.
+    describe "around a shift" do
+      def shift_under_triangle(model, cycles)
+        chip = described_class.new(model:)
+        chip.control = 0x08
+        described_class::SHIFT_REGISTER_RESET_DELAY.times { chip.cycle! }
+        chip.control = 0x90
+        chip.cycle!
+        chip.frequency_low = chip.frequency_high = 0xff
+        cycles.times { chip.cycle! }
+        chip.osc3 >> 4
+      end
+
+      it "reads the triangle through the shifted-in bits on the 6581" do
+        expect(shift_under_triangle(:mos6581, 11)).to eq(0x14)
+      end
+
+      it "reads the delayed triangle through them on the 8580" do
+        expect(shift_under_triangle(:mos8580, 11)).to eq(0x12)
+      end
+
+      it "reads the taps still pulled low the cycle before" do
+        expect(shift_under_triangle(:mos6581, 10)).to eq(0x00)
+      end
     end
 
     it "leaves the LFSR alone when noise is the only waveform selected" do
