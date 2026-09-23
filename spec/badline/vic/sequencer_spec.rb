@@ -19,8 +19,18 @@ RSpec.describe Badline::VIC::Sequencer do
     bank.address_bus.ram.poke(screencode * 8, bits)
   end
 
-  def emit_at(screencode, column, row: 0)
-    sequencer.emit(screencode, 1, column, column, row)
+  # Hands the sequencer one g-access through its ring, as the VIC does, in
+  # the slot the column's position gives it.
+  def emit_byte(data, screencode, color, column, display: true)
+    slot = column & 3
+    sequencer.ring_data[slot] = data
+    sequencer.ring_char[slot] = screencode
+    sequencer.ring_color[slot] = color
+    sequencer.emit(slot, column, display)
+  end
+
+  def emit_at(screencode, column)
+    emit_byte(bank.peek(screencode * 8), screencode, 1, column)
   end
 
   def warm_columns
@@ -29,6 +39,7 @@ RSpec.describe Badline::VIC::Sequencer do
 
   def render(bits, xscroll: 0, prev_bits: nil, line: 51)
     registers.write(0x16, 0xc8 | xscroll) # keep CSEL (40 cols), set XSCROLL
+    sequencer.latch_xscroll
     put_char(0, 0)
     put_char(1, bits)
     put_char(2, prev_bits || 0)
@@ -67,7 +78,7 @@ RSpec.describe Badline::VIC::Sequencer do
     it "marks idle-state pixels as not foreground" do
       put_char(1, 0xff)
       sequencer.new_line(51)
-      sequencer.emit_idle(col)
+      emit_byte(0xff, 0, 0, col, display: false)
       expect(sequencer.fg[x_pos, 8]).to all(be(false))
     end
 
@@ -221,7 +232,8 @@ RSpec.describe Badline::VIC::Sequencer do
       registers.write(0x16, d016)
       sequencer.new_line(260)
       sequencer.instance_variable_set(:@main_border, false)
-      sequencer.emit_blank(0x35, 0x09, col)
+      emit_byte(0, 0x35, 0x09, col - 1, display: false)
+      emit_byte(0, 0x35, 0x09, col, display: false)
       sequencer.colors[x_pos]
     end
 
@@ -240,8 +252,36 @@ RSpec.describe Badline::VIC::Sequencer do
     it "shows the vertical border only through the main flip-flop" do
       registers.write(0x11, 0x3b)
       sequencer.new_line(260)
-      sequencer.emit_blank(0x35, 0x09, col)
+      emit_byte(0, 0x35, 0x09, col, display: false)
       expect(sequencer.colors[x_pos]).to eq(2)
+    end
+  end
+
+  # Pinned by modesplit and videomode: a mode written mid-line changes the
+  # colours inside the group, at pixel 4 for a rising bit.
+  describe "a mode change inside a group" do
+    before do
+      registers.write(0x22, 5)
+      put_char(0x40, 0)
+    end
+
+    it "keeps the old mode for the first four pixels" do
+      render(0) # warms the line in text mode
+      registers.write(0x11, 0x5b) # ECM
+      emit_at(0x40, col + 1)
+      expect(sequencer.colors[x_pos + 8, 8]).to eq([6, 6, 6, 6, 5, 5, 5, 5])
+    end
+  end
+
+  # Pinned by modesplit and vicii_reg_timing: the pixels XSCROLL keeps from
+  # the previous byte show a background colour written since it was painted.
+  describe "a background write under XSCROLL" do
+    it "paints the kept pixels in the new colour" do
+      render(0, xscroll: 3)
+      registers.write(0x21, 9)
+      sequencer.colors_changed!
+      emit_at(0, col + 1)
+      expect(sequencer.colors[x_pos + 8, 3]).to eq([9, 9, 9])
     end
   end
 

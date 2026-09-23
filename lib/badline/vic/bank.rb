@@ -36,6 +36,11 @@ module Badline
         raise ReadOnlyMemoryError
       end
 
+      # True if the VIC reads the character ROM at this offset.
+      def character_rom?(offset)
+        !@address_bus.ultimax && bank_switch_register.allbits?(0b01) && (offset & 0xf000) == 0x1000
+      end
+
       def start
         BANK_STARTS[bank_switch_register]
       end
@@ -55,10 +60,6 @@ module Badline
 
       def bank_switch_register
         @address_bus.cia2.port_a_lines & 0b11
-      end
-
-      def character_rom?
-        bank_switch_register.allbits?(0b01)
       end
     end
   end
