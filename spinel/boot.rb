@@ -1,13 +1,17 @@
 # frozen_string_literal: true
 
-# Boots the machine headless, types a line of BASIC after boot (or
-# attaches and autostarts the media given), and runs on. Prints a digest
-# of RAM, the screen, and the post-boot speed. Builds with Spinel as well
+# Boots the machine headless, types a line of BASIC once it is up (or
+# attaches and autostarts the media given), and runs on. Prints a
+# Badline::Checkpoint every million cycles, then the screen, counts and
+# registers, and the speed from timed_from on. Builds with Spinel as well
 # as running on CRuby:
 #
 #   ruby --yjit -Ilib spinel/boot.rb [cycles] [timed_from] [media]
 #   spinel -I lib --no-line-map --rbs spinel/sig spinel/boot.rb -o tmp/spinel/boot
 #   tmp/spinel/boot [cycles] [timed_from] [media]
+#
+# Without media the checkpoints match the lines bin/machine_diff prints for
+# its type scenario, and with media those for the same media.
 
 require "badline/version"
 require "badline/integer_helper"
@@ -40,6 +44,7 @@ require "badline/cartridge"
 require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
+require "badline/checkpoint"
 
 CLOCK_HZ = 985_248
 
@@ -63,7 +68,7 @@ computer = Badline::Computer.new
 if ARGV[2]
   Badline::Media.attach(computer, ARGV[2])
 else
-  computer.type_text("print 6*7\r")
+  computer.on_init { computer.type_text("print 6*7\r") }
 end
 
 started = 0.0
@@ -72,17 +77,11 @@ while i < cycles
   started = Process.clock_gettime(Process::CLOCK_MONOTONIC) if i == timed_from
   computer.cycle!
   i += 1
+  puts Badline::Checkpoint.take(computer) if (i % 1_000_000).zero?
 end
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
 ram = computer.ram
-digest = 0
-addr = 0
-while addr < 0x10000
-  digest = ((digest * 31) + ram.peek(addr) + 1) & 0xffffffff
-  addr += 1
-end
-
 row = 0
 while row < 25
   line = +""
@@ -98,6 +97,5 @@ end
 puts "cycles #{computer.cycles} instructions #{computer.cpu.instructions}"
 cpu = computer.cpu
 puts "pc #{cpu.program_counter} a #{cpu.a} x #{cpu.x} y #{cpu.y} p #{cpu.p}"
-puts "ram digest #{digest}"
 timed = cycles - timed_from
 puts "timed #{timed} cycles in #{(elapsed * 1000).round} ms, #{(timed / elapsed / CLOCK_HZ).round(3)}x real time"
