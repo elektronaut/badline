@@ -127,7 +127,7 @@ module Badline
       KernalTrap::Serial.new(cpu:, bus: address_bus, drive:).install
       return unless storage.respond_to?(:write_file)
 
-      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, storage:)
+      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive:)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end
 

@@ -3,7 +3,7 @@
 module Badline
   module KernalTrap
     # PC trap on the KERNAL serial SAVE routine ($F5ED, the default ISAVE
-    # vector target). Writes device 8 saves to a storage backend as a PRG
+    # vector target). Hands device 8 saves to the virtual drive as a PRG
     # (load address followed by the memory range); other devices fall
     # through to the ROM. The ROM prints SAVING in direct mode and returns
     # into the trap, which then writes the file and leaves through the
@@ -28,8 +28,9 @@ module Badline
       # ST bit at $90
       DEVICE_NOT_PRESENT = 0x80
 
-      def initialize(cpu:, bus:, storage:)
-        super
+      def initialize(cpu:, bus:, drive:)
+        super(cpu:, bus:)
+        @drive = drive
         @saving = false
       end
 
@@ -53,7 +54,7 @@ module Badline
 
       def finish
         @saving = false
-        @bus.poke(0x90, DEVICE_NOT_PRESENT) unless @storage.write_file(name, payload)
+        @bus.poke(0x90, DEVICE_NOT_PRESENT) unless @drive.save(name, payload)
         @bus.poke(0xac, @bus.peek(0xae))
         @bus.poke(0xad, @bus.peek(0xaf))
         @cpu.y = 0
