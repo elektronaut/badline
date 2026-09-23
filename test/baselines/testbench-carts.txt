@@ -2,10 +2,10 @@ selftest/c64-pass.crt	PASS
 selftest/c64-fail.crt	PASS
 selftest/c64-pass.crt	PASS
 selftest/c64-fail.crt	PASS
-CPU/cpuport/initvalue.crt	FAIL	exit=$ff
-C64/autostart/defaults/test.crt	FAIL	exit=$ff
+CPU/cpuport/initvalue.crt	PASS
+C64/autostart/defaults/test.crt	PASS
 C64/carts/8kgame.crt	PASS
-C64/carts/16kgame.crt	FAIL	exit=$ff
+C64/carts/16kgame.crt	PASS
 C64/carts/romram.crt	PASS
 C64/carts/pagefox/writeram-8000.crt	PASS
 C64/carts/pagefox/writeram-a000.crt	PASS
