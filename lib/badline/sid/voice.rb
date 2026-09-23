@@ -14,6 +14,18 @@ module Badline
 
       attr_reader :waveform, :envelope
 
+      # Each voice hard-syncs and ring-modulates against the previous one,
+      # wrapping from the first back round to the last.
+      def self.linked(count, model:)
+        voices = Array.new(count) { new(model:) }
+        waveforms = voices.map(&:waveform)
+        waveforms.each_with_index do |waveform, i|
+          waveform.sync_source = waveforms[i - 1]
+          waveform.sync_dest = waveforms[(i + 1) % count]
+        end
+        voices
+      end
+
       def initialize(model: :mos6581)
         @waveform = Waveform.new(model:)
         @envelope = Envelope.new

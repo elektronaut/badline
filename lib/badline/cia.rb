@@ -30,12 +30,19 @@ module Badline
       addressable_at(start, length: 2**8)
 
       @peripheral = peripheral
+      @port_b4_handler = nil
+      @port_b4_high = true
+      reset!
+    end
+
+    # The RES line: ports back to inputs, timers stopped with their latches
+    # full, interrupts masked and the TOD clock stopped at 1:00:00.0. The
+    # PB4 level carries over and is resampled on the next cycle.
+    def reset!
       @data_port_a = 0x00
       @data_port_b = 0x00
       @data_dir_a = 0x00
-      @data_dir_b = 0x0
-      @port_b4_handler = nil
-      @port_b4_high = true
+      @data_dir_b = 0x00
       @port_b4_driven_high = true
       @cnt_high = true
       @cnt_rise = false
