@@ -59,8 +59,8 @@ module Badline
 
       def start_tune(computer, tune, autostart:, song:)
         computer.ram.write(tune.load_address, tune.data)
-        computer.ram.write(tune.driver_address, tune.driver(song:))
-        computer.type_text("sys#{tune.driver_address}\r") if autostart
+        tune.boot_memory(song:).each { |address, bytes| computer.ram.write(address, bytes) }
+        computer.type_text(tune.boot_command) if autostart
       end
 
       def attach_tape(computer, path, autostart:)

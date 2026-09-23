@@ -4,8 +4,8 @@ module Badline
   module Audio
     # Runs a tune on the whole machine, for the RSID tunes that install their
     # own interrupts and expect a booted C64 underneath. The tune goes in
-    # through the same stub `Media` uses and BASIC SYSes it; rendering starts
-    # when the CPU reaches that stub.
+    # the way `Media` puts it in: BASIC SYSes the driver stub, or RUNs a
+    # BASIC tune. Rendering starts when the CPU gets there.
     class MachinePlayer
       FRAME_CYCLES = BarePlayer::FRAME_CYCLES
 
@@ -22,7 +22,7 @@ module Badline
 
       def start
         @computer.on_init { inject }
-        @computer.cpu.install_trap(@tune.driver_address) { begin_playing }
+        @computer.cpu.install_trap(@tune.entry_address) { begin_playing }
         @computer.cycle! until @started || @computer.cycles > START_LIMIT
       end
 
@@ -41,13 +41,13 @@ module Badline
 
       def inject
         @computer.ram.write(@tune.load_address, @tune.data)
-        @computer.ram.write(@tune.driver_address, @tune.driver(song: @song))
-        @computer.type_text("sys#{@tune.driver_address}\r")
+        @tune.boot_memory(song: @song).each { |address, bytes| @computer.ram.write(address, bytes) }
+        @computer.type_text(@tune.boot_command)
         @injected = true
       end
 
       def begin_playing
-        return unless @injected
+        return if @started || !@injected
 
         @computer.sid.synthesize!
         @started = true

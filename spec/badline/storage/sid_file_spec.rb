@@ -354,6 +354,50 @@ describe Badline::Storage::SIDFile do
     end
   end
 
+  describe "starting a tune" do
+    it "puts the driver in RAM" do
+      expect(tune.boot_memory(song: 2)).to eq(tune.driver_address => tune.driver(song: 2))
+    end
+
+    it "SYSes the driver" do
+      expect(tune.boot_command).to eq("sys#{tune.driver_address}\r")
+    end
+
+    it "starts at the driver" do
+      expect(tune.entry_address).to eq(tune.driver_address)
+    end
+  end
+
+  describe "starting a BASIC tune" do
+    let(:fields) { super().merge(load: 0x0801, init: 0x0801, play: 0, songs: 3, flags: 0x06) }
+
+    before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
+
+    it "is a BASIC tune" do
+      expect(tune).to be_basic
+    end
+
+    it "sets VARTAB to the end of the program and the song in A, X and Y" do
+      expect(tune.boot_memory(song: 3)).to eq(0x2d => [0x21, 0x08], 0x030c => [2, 2, 2])
+    end
+
+    it "RUNs the program" do
+      expect(tune.boot_command).to eq("run\r")
+    end
+
+    it "starts at BASIC's RUN" do
+      expect(tune.entry_address).to eq(0xa871)
+    end
+  end
+
+  describe "#basic?" do
+    let(:fields) { super().merge(flags: 0x06) }
+
+    it "doesn't hold for a PSID tune" do
+      expect(tune).not_to be_basic
+    end
+  end
+
   describe "#driver without a play address" do
     let(:fields) { super().merge(play: 0) }
 

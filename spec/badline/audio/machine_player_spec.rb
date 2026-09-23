@@ -84,4 +84,34 @@ describe Badline::Audio::MachinePlayer do
                                      vector: tune.driver_address + 3, played: true)
     end
   end
+
+  # 10 POKE251,PEEK(780)+1
+  describe "#start with a BASIC tune", :slow do
+    subject(:player) { described_class.new(tune, song: 3) }
+
+    let(:computer) { Badline::Computer.new }
+
+    before { allow(Badline::Computer).to receive(:new).and_return(computer) }
+
+    def image
+      line = [0x97, *"251,".bytes, 0xc2, *"(780)".bytes, 0xaa, *"1".bytes, 0x00]
+      [0x13, 0x08, 0x0a, 0x00] + line + [0x00, 0x00]
+    end
+
+    def header
+      words = [2, 0x7c, 0x0801, 0x0801, 0, 4, 1].flat_map { |value| [value >> 8, value & 0xff] }
+      "RSID".bytes + words + ([0] * 4) + ([0] * 96) + [0x00, 0x06, 0x00, 0x00, 0x00, 0x00]
+    end
+
+    def run_program
+      player.start
+      started = player.sid.synthesizing?
+      5.times { player.frame(described_class::FRAME_CYCLES) { nil } }
+      [started, computer.address_bus.peek(0xfb)]
+    end
+
+    it "RUNs the program with the song in PEEK(780)" do
+      expect(run_program).to eq([true, 3])
+    end
+  end
 end
