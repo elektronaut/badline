@@ -83,7 +83,7 @@ VICII/lplatency/lplatency.prg	PASS
 VICII/lp-trigger/test1.prg	PASS
 VICII/lp-trigger/test2.prg	PASS
 VICII/lp-trigger/test2new.prg	FAIL	exit=$ff
-VICII/phi1timing/phi1timing.prg	FAIL	exit=$ff
+VICII/phi1timing/phi1timing.prg	PASS
 VICII/rasterirq/rasterirq_hold.prg	FAIL	diff=11672px exit=$00
 VICII/screenpos/screenpos.prg	PASS
 VICII/sb_sprite_fetch/sbsprf24-163.prg	FAIL	diff=34px exit=$00
