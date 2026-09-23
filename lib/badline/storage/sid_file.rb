@@ -13,6 +13,9 @@ module Badline
 
       V1_HEADER_SIZE = 0x76
 
+      # BASIC's RUN handler, where a BASIC tune starts.
+      BASIC_RUN = 0xa871
+
       # The 6502 stub that starts a tune: call init with the song number,
       # point the KERNAL's IRQ vector at a raster handler that calls play,
       # and spin. Both calls are wrapped in the `$01` save, bank and restore
@@ -171,6 +174,10 @@ module Badline
       # code.
       def mus? = psid? && flags[0] == 1
 
+      # Flag bit 1 marks an RSID body as a BASIC program, which RUN starts
+      # instead of a call to init.
+      def basic? = !psid? && flags[1] == 1
+
       # A v3 header can place a second SID at `$Dxx0` and a v4 header a
       # third, each given by its middle byte: even, and in `$d420-$d7e0` or
       # `$de00-$dfe0`. Anything else means the SID isn't there.
@@ -228,6 +235,23 @@ module Badline
       def driver(song: start_song)
         Driver.new(self, song: song.clamp(1, songs) - 1, base: driver_address).bytes
       end
+
+      # What a booted machine needs in RAM besides the image before
+      # `boot_command` starts the tune, as address => bytes. A BASIC tune
+      # gets the end of its program in VARTAB, as LOAD leaves it, and the
+      # song in the A, X and Y that SYS loads from `$030c-$030e`, where the
+      # tune reads it with PEEK(780).
+      def boot_memory(song: start_song)
+        return { driver_address => driver(song:) } unless basic?
+
+        { 0x2d => [low_byte(end_address), high_byte(end_address)],
+          0x030c => [song.clamp(1, songs) - 1] * 3 }
+      end
+
+      def boot_command = basic? ? "run\r" : "sys#{driver_address}\r"
+
+      # Where the CPU first lands once `boot_command` has started the tune.
+      def entry_address = basic? ? BASIC_RUN : driver_address
 
       private
 
