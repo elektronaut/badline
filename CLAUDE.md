@@ -40,6 +40,12 @@ requires only the namespace file.
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/` |
 | VICE SID testprogs | `bin/sidtests` | SID |
+| CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
+
+The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
+8 s) and the `cia-sdr-icr` loop for every timer A latch (about 2 min),
+checked against each test's own results. On the Lorenz chain, a failing
+timer test takes about 25 minutes.
 
 `bin/benchmark` measures emulation speed after boot, and `bin/profile` shows
 where that time goes. `test/baselines/README.md`
@@ -157,8 +163,9 @@ the rows your change can't reach tell you nothing about it.
   don't start one on your own judgement
 
 Pick the filters from the suites your change can move: VIC → `testbench`;
-CPU, CIA, interrupts or timing → the matching `testbench-*` suite, plus
-`rake test` for CPU; SID → `sid`, plus `sid-8580` for anything the 8580
+CPU, interrupts or timing → the matching `testbench-*` suite, plus
+`rake test` for CPU; CIA → the slow CIA specs first, then the matching
+`testbench-cia` rows; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
