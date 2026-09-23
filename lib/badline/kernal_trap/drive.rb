@@ -36,8 +36,6 @@ module Badline
         /\A(?:U[2B]|B-[WAF])/i => :write_protected
       }.freeze
 
-      FILE_TYPES = { "S" => :seq, "P" => :prg, "U" => :usr }.freeze
-
       def initialize(storage)
         @storage = storage
         @channels = {}
@@ -84,24 +82,15 @@ module Badline
         result
       end
 
+      # Secondary addresses 0 and 1 are LOAD and SAVE, which look for a PRG
+      # file unless the name asks for another type. Other channels take any
+      # type the name doesn't pin down.
       def open_file(secondary, name)
-        data = @storage.read_file(file_name(name), type: file_type(secondary, name))
+        file, type = Storage.parse_name(name)
+        type ||= :prg if secondary < 2
+        data = @storage.read_file(file, type:)
         @channels[secondary] = Channel.new(data || [])
         report(data ? OK : FILE_NOT_FOUND)
-      end
-
-      # Names can carry trailing ",P,R" type and mode fields.
-      def file_name(name)
-        Storage.strip_drive_prefix(name).split(",").first.to_s
-      end
-
-      # Secondary addresses 0 and 1 are LOAD and SAVE, which only see PRG
-      # files. Otherwise the type field picks one, and without it any type
-      # matches.
-      def file_type(secondary, name)
-        return :prg if secondary < 2
-
-        FILE_TYPES[name.split(",")[1].to_s.strip[0]&.upcase]
       end
 
       def execute(text)

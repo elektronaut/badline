@@ -91,6 +91,15 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.read(0xc000, 2)).to eq([0xaa, 0xbb]) }
   end
 
+  describe "a filename with type and mode fields" do
+    before do
+      request_load("DATA,P,R")
+      run_trap
+    end
+
+    specify { expect(ram.read(0xc000, 2)).to eq([0xaa, 0xbb]) }
+  end
+
   describe "a verify request" do
     before do
       request_load("DATA")

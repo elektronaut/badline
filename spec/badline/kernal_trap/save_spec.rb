@@ -96,6 +96,15 @@ describe Badline::KernalTrap::Save do
     specify { expect(saved_file("data.prg")).to eq([0x00, 0xc0, 0xaa, 0xbb]) }
   end
 
+  describe "a filename with type and mode fields" do
+    before do
+      request_save("DATA,P,W")
+      run_trap
+    end
+
+    specify { expect(saved_file("data.prg")).to eq([0x00, 0xc0, 0xaa, 0xbb]) }
+  end
+
   describe "a bare drive prefix with no name" do
     before do
       request_save("@0:")

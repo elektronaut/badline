@@ -95,9 +95,14 @@ describe Badline::KernalTrap::Drive do
       expect(storage).to have_received(:read_file).with("anything", type: nil)
     end
 
-    it "takes only a PRG on the LOAD secondary address" do
-      drive.open(0, "program,s")
+    it "takes a PRG on the LOAD secondary address" do
+      drive.open(0, "program")
       expect(storage).to have_received(:read_file).with("program", type: :prg)
+    end
+
+    it "lets the type field override the LOAD secondary address" do
+      drive.open(0, "scores,s")
+      expect(storage).to have_received(:read_file).with("scores", type: :seq)
     end
   end
 

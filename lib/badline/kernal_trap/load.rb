@@ -14,10 +14,10 @@ module Badline
       def call
         return unless active?
 
-        name = filename
+        name, type = Storage.parse_name(filename)
         if name.empty?
           error(MISSING_FILENAME)
-        elsif (data = @storage.read_file(name))
+        elsif (data = @storage.read_file(name, type: type || :prg))
           deliver(data)
         else
           error(FILE_NOT_FOUND)
