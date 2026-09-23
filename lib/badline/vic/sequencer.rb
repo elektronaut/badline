@@ -78,6 +78,7 @@ module Badline
       def new_line(line)
         @line = line
         @left_vertical_border = nil
+        @first_csel = @registers.csel?
         @colors.fill(@registers.border)
         @fg.fill(false)
         @border_mask.reset

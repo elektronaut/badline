@@ -11,13 +11,18 @@ module Badline
         # Write the 8-pixel group for a column into the line buffers. The main
         # border flip-flop only changes state in the groups containing the
         # window edge compares, so all other groups take a branch-free bulk
-        # path: fully border or fully window.
+        # path: fully border or fully window. A group's first pixel, where the
+        # 40-column compares fall, still sees CSEL as the column before had it.
         def output(col, shift)
           x_pos = (col + 16) * 8
-          win_lo, right_compare = WINDOW_COMPARES[@registers.csel? ? 1 : 0]
+          csel = @registers.csel?
+          first = WINDOW_COMPARES[@first_csel ? 1 : 0]
+          @first_csel = csel
+          compares = WINDOW_COMPARES[csel ? 1 : 0]
+          win_lo, right_compare = compares
 
-          if boundary_group?(x_pos, win_lo, right_compare)
-            output_boundary(x_pos, win_lo, right_compare, shift)
+          if !first.equal?(compares) || boundary_group?(x_pos, win_lo, right_compare)
+            output_boundary(x_pos, first, compares, shift)
           elsif @main_border
             output_border(x_pos)
           else
@@ -79,8 +84,9 @@ module Badline
         end
 
         # Slow path for the groups where the border flip-flop can change state.
-        def output_boundary(x_pos, win_lo, right_compare, shift)
+        def output_boundary(x_pos, first, compares, shift)
           border = @registers.border
+          win_lo, right_compare = first
           @border_groups[x_pos >> 3] = BorderMask::MIXED
 
           i = 0
@@ -98,6 +104,7 @@ module Badline
             @colors[x] = shown ? pixel : border
             @border[x] = !shown
             @fg[x] = x >= GFX_X_START && x < GFX_X_END ? mask : false
+            win_lo, right_compare = compares if i.zero?
             i += 1
           end
         end

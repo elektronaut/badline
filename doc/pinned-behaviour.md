@@ -437,6 +437,23 @@ only catches the rows that happen to move.
     each failing under its knock-out, and *vertical border flip-flop* in
     [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb) for
     the armed bottom compare and the 40-column left compare.
+- The side border compares see CSEL a pixel late, as the colour registers
+  do. The 40-column compares fall on the first pixel of their group (raster
+  x 128 on the left, 448 on the right), and that pixel still sees CSEL as
+  the column before had it. The 38-column compares fall on a group's last
+  pixel (135 and 439), so they see a write made in the CPU cycle before
+  the group. A CSEL clear in the CPU cycle after column 55 therefore misses
+  the 38-column compare and still meets the 40-column one: the border
+  closes.
+  - Pinned by `vicii_reg_timing` (71 px → pass, and 78 → 7 px for `-a5`
+    and `-ff`), whose line 232 clears CSEL there and shows a closed right
+    border. Lagging the 38-column compares as well breaks `border-bm-ysh`,
+    `border-bm-ysh2`, `border-mcbm` and `hvborder1` (71–73 px each), which
+    clear CSEL in the cycle after column 53 and close at 439.
+  - Spec guard: *closes the right border when CSEL clears in the compare's
+    column* and *closes the right border at the 38-column compare in the
+    column CSEL clears* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
 - The border colour shows where the **main** flip-flop is set, and only
   there. The vertical flip-flop keeps the main one from clearing at the
   left compare and withholds the graphics data, but it does not paint
