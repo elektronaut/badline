@@ -5,13 +5,13 @@ require "tmpdir"
 require "fileutils"
 require "stringio"
 require_relative "../../support/tiny_sid"
+require_relative "../../support/fake_sink"
 
 describe Badline::Audio::CLI do
   subject(:cli) { described_class.new(options, out:) }
 
   let(:dir) { Dir.mktmpdir }
   let(:out) { StringIO.new }
-  let(:output) { File.join(dir, "out.wav") }
   let(:arguments) { ["--seconds", "0.05", "--rate", "8000"] }
   let(:options) { Badline::Audio::Options.parse(arguments + [tune_path, "-o", output]) }
 
@@ -19,6 +19,7 @@ describe Badline::Audio::CLI do
   after { FileUtils.remove_entry(dir) }
 
   def tune_path = File.join(dir, "tune.sid")
+  def output = File.join(dir, "out.wav")
   def tune = Badline::Storage::SIDFile.new(tune_path)
 
   def songlengths(line)
@@ -120,7 +121,7 @@ describe Badline::Audio::CLI do
     end
 
     context "with an output it can't write" do
-      let(:output) { File.join(dir, "out.ogg") }
+      def output = File.join(dir, "out.ogg")
 
       it "raises" do
         expect { cli.run }.to raise_error(described_class::Error, /\.ogg/)
@@ -133,6 +134,62 @@ describe Badline::Audio::CLI do
       it "leaves out the progress" do
         cli.run
         expect(out.string).not_to include("\r")
+      end
+    end
+  end
+
+  describe "#run without an output" do
+    subject(:cli) { described_class.new(options, out:, sink:) }
+
+    let(:arguments) { ["--seconds", "0.05"] }
+    let(:options) { Badline::Audio::Options.parse(arguments + [tune_path]) }
+    let(:sink) { ->(rate:, exact_rate:) { device.tap { device.requested = [rate, exact_rate] } } }
+
+    def device = @device ||= FakeSink.new(rate: 8000, instant: true)
+
+    it "plays the whole length on the device" do
+      cli.run
+      expect(device.played).to eq(400)
+    end
+
+    it "closes the device" do
+      cli.run
+      expect(device.closed?).to be(true)
+    end
+
+    it "lets the device pick its rate" do
+      cli.run
+      expect(device.requested).to eq([44_100, false])
+    end
+
+    it "says what it plays and when it is done" do
+      cli.run
+      expect(out.string).to include("Playing 0.05s on the 6581 at 8000 Hz", "Done.")
+    end
+
+    context "with a rate asked for" do
+      let(:arguments) { ["--seconds", "0.05", "--rate", "22050"] }
+
+      it "holds the device to it" do
+        cli.run
+        expect(device.requested).to eq([22_050, true])
+      end
+    end
+
+    context "when the device can't keep up" do
+      let(:arguments) { ["--seconds", "0.5"] }
+
+      it "says it runs below real time" do
+        cli.run
+        expect(out.string).to include("Running below real time")
+      end
+    end
+
+    context "without an audio device" do
+      let(:sink) { ->(**) { raise Badline::Audio::SDLSink::Error, "no driver" } }
+
+      it "raises" do
+        expect { cli.run }.to raise_error(described_class::Error, /audio device: no driver/)
       end
     end
   end

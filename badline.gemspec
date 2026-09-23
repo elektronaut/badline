@@ -33,5 +33,6 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "fiddle", "~> 1.1"
   spec.add_dependency "ruby-sdl2", "~> 0.3"
 end

@@ -27,12 +27,16 @@ describe Badline::Audio::Options do
       expect(options.seconds).to be_nil
     end
 
-    it "renders at 44.1 kHz" do
+    it "plays rather than renders" do
+      expect(options.render?).to be(false)
+    end
+
+    it "asks for 44.1 kHz" do
       expect(options.rate).to eq(44_100)
     end
 
-    it "names the output after the tune" do
-      expect(options.output).to eq("tune.wav")
+    it "lets the audio device pick its own rate" do
+      expect(options.rate_given?).to be(false)
     end
 
     it "leaves the SID model to the tune" do
@@ -86,7 +90,7 @@ describe Badline::Audio::Options do
         let(:argv) { [tune_path, flag, "out.aiff"] }
 
         it "renders to that file" do
-          expect(options.output).to eq("out.aiff")
+          expect([options.render?, options.output]).to eq([true, "out.aiff"])
         end
       end
     end
@@ -125,6 +129,10 @@ describe Badline::Audio::Options do
     it "parses each of them" do
       expect([options.seconds, options.rate, options.sid_model, options.filter_chunk, options.quiet?, options.jit?])
         .to eq([12.5, 48_000, :mos8580, 1, true, false])
+    end
+
+    it "holds the device to the rate asked for" do
+      expect(options.rate_given?).to be(true)
     end
   end
 
