@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../support/cartridge_builder"
 
 RSpec.describe Badline::Computer do
   let(:computer) { described_class.new }
@@ -326,5 +327,64 @@ RSpec.describe Badline::Computer do
         expect(ram.peek(0xc000)).to eq(0x42)
       end
     end
+  end
+
+  describe "the cartridge freeze button" do
+    include CartridgeBuilder
+
+    # A bank whose NMI vector points at a JMP to itself at $E000.
+    let(:rom) do
+      Array.new(0x2000, 0xea).tap do |data|
+        data[0, 3] = [0x4c, 0x00, 0xe0]
+        data[0x1ffa, 2] = [0x00, 0xe0]
+      end
+    end
+    let(:chips) { [Badline::Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address: 0x8000, data: rom)] }
+
+    before do
+      computer.attach_cartridge(build_cartridge(1, chips))
+      10_000.times { computer.cycle! }
+    end
+
+    it "runs the cartridge's NMI handler" do
+      computer.press_cartridge_button
+      100.times { computer.cycle! }
+      expect(computer.cpu.program_counter).to be_between(0xe000, 0xe002)
+    end
+
+    it "leaves the freeze on reset" do
+      computer.press_cartridge_button
+      100.times { computer.cycle! }
+      computer.reset!
+      expect(computer.address_bus.ultimax).to be(false)
+    end
+
+    it "waits for the interrupt to push before entering Ultimax mode" do
+      computer.press_cartridge_button
+      computer.cycle!
+      expect(computer.address_bus.ultimax).to be(false)
+    end
+
+    context "with the cartridge holding NMI" do
+      def fire_cia2_timer
+        { 0xdd0d => 0x81, 0xdd04 => 0x01, 0xdd05 => 0x00, 0xdd0e => 0x19 }.each do |reg, value|
+          computer.cia2.poke(reg, value)
+        end
+        100.times { computer.cycle! }
+      end
+
+      before do
+        computer.press_cartridge_button
+        100.times { computer.cycle! }
+      end
+
+      it "takes no NMI from CIA 2" do
+        expect { fire_cia2_timer }.not_to(change { computer.cpu.stack_pointer })
+      end
+    end
+  end
+
+  it "ignores the freeze button without a cartridge" do
+    expect { computer.press_cartridge_button }.not_to raise_error
   end
 end

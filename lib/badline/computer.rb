@@ -24,6 +24,9 @@ module Badline
       @datasette = @address_bus.datasette
       @cycles = 0
       @nmi_asserted = false
+      @cartridge_nmi = false
+      @freezing = false
+      @freeze_writes = 0
       @init_handlers = []
       @pending_keys = nil
     end
@@ -44,10 +47,8 @@ module Badline
 
       @cpu.irq = @cia1.interrupted? || @vic.interrupted?
 
-      nmi = @cia2.interrupted?
-      @cpu.nmi = true if nmi && !@nmi_asserted
-      @nmi_asserted = nmi
-
+      drive_nmi
+      watch_freeze if @freezing
       @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
 
       @cycles += 1
@@ -61,19 +62,37 @@ module Badline
 
     def attach_cartridge(cartridge)
       cartridge.clock = -> { @cycles }
+      cartridge.on_nmi_change { |level| @cartridge_nmi = level }
       address_bus.attach_cartridge(cartridge)
       reset!
     end
 
-    # The RES line reaches the CPU and its port, both CIAs and the SID. The
-    # VIC has no reset pin.
+    # The RES line reaches the CPU and its port, both CIAs, the SID and the
+    # cartridge port. The VIC has no reset pin.
     def reset!
       address_bus.reset_port!
       @cia1.reset!
       @cia2.reset!
       @sid.reset!
+      address_bus.cartridge&.reset
+      @freezing = false
       @nmi_asserted = false
       cpu.reset!
+    end
+
+    # Presses the cartridge's freeze button. When the press pulls NMI, the
+    # cartridge freezes once the CPU takes the interrupt.
+    def press_cartridge_button
+      cartridge = address_bus.cartridge
+      return unless cartridge
+
+      cartridge.press_button
+      @freezing = cartridge.nmi?
+      @freeze_writes = 0
+    end
+
+    def release_cartridge_button
+      address_bus.cartridge&.release_button
     end
 
     def mount(storage)
@@ -106,6 +125,25 @@ module Badline
     end
 
     private
+
+    # The NMI line is wired-OR between CIA 2 and the cartridge, and the CPU
+    # takes an interrupt on its falling edge.
+    def drive_nmi
+      nmi = @cia2.interrupted? || @cartridge_nmi
+      @cpu.nmi = true if nmi && !@nmi_asserted
+      @nmi_asserted = nmi
+    end
+
+    # A freezer counts the CPU's write cycles once it pulls NMI and switches
+    # to Ultimax on the third in a row, the last push of the interrupt
+    # sequence, so the vector fetch that follows reads the cartridge.
+    def watch_freeze
+      @freeze_writes = @cpu.pending_write? ? @freeze_writes + 1 : 0
+      return if @freeze_writes < 3
+
+      @freezing = false
+      address_bus.cartridge.freeze!
+    end
 
     def booting?
       @cycles < init_threshold

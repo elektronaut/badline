@@ -19,6 +19,11 @@ require "badline/cartridge/mach5"
 require "badline/cartridge/pagefox"
 require "badline/cartridge/rgcd"
 require "badline/cartridge/g_mod2"
+require "badline/cartridge/freezer"
+require "badline/cartridge/action_replay"
+require "badline/cartridge/atomic_power"
+require "badline/cartridge/final_cartridge3"
+require "badline/cartridge/retro_replay"
 
 module Badline
   class Cartridge
@@ -28,11 +33,12 @@ module Badline
     BANK_SIZE = 0x2000
 
     HARDWARE_TYPES = {
-      0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay,
-      8 => :SuperGames, 10 => :EpyxFastload, 11 => :Westermann,
+      0 => :Standard, 1 => :ActionReplay, 3 => :FinalCartridge3,
+      4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay, 8 => :SuperGames,
+      9 => :AtomicPower, 10 => :EpyxFastload, 11 => :Westermann,
       12 => :RexUtility, 15 => :GameSystem, 17 => :Dinamic, 18 => :Zaxxon,
-      19 => :MagicDesk, 21 => :Comal80, 32 => :EasyFlash, 51 => :Mach5,
-      53 => :Pagefox, 57 => :RGCD, 60 => :GMod2
+      19 => :MagicDesk, 21 => :Comal80, 32 => :EasyFlash, 36 => :RetroReplay,
+      51 => :Mach5, 53 => :Pagefox, 57 => :RGCD, 60 => :GMod2
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines
@@ -67,6 +73,8 @@ module Badline
       @game = crt.game
       @roml = @romh = nil
       @on_change = nil
+      @on_nmi_change = nil
+      @nmi = false
       @open_bus = nil
       @clock = nil
       install_chips(crt.chips)
@@ -74,6 +82,16 @@ module Badline
 
     def on_change(&block)
       @on_change = block
+    end
+
+    # Called with the level of the cartridge's pull on the NMI line when it
+    # changes. The line is wired-OR with CIA 2's.
+    def on_nmi_change(&block)
+      @on_nmi_change = block
+    end
+
+    def nmi?
+      @nmi
     end
 
     # The address bus hands over the C64's RAM, for mappers that write
@@ -88,6 +106,13 @@ module Badline
       @game.zero? && @exrom == 1
     end
 
+    # Whether the first half of the cycle, where the VIC does most of its
+    # fetching, sees Ultimax mode. Some cartridges drive GAME and EXROM
+    # differently in the two halves; #ultimax? is the second, the CPU's.
+    def phi1_ultimax?
+      ultimax?
+    end
+
     # The I/O pages ($de, $df) whose reads the mapper drives. Reads of the
     # others are open bus.
     def readable_io_pages
@@ -96,7 +121,22 @@ module Badline
 
     def poke(_addr, _value); end
 
+    # The RES line on the expansion port.
+    def reset; end
+
+    # The freeze button, which cartridges without one ignore.
+    def press_button; end
+
+    def release_button; end
+
     private
+
+    def nmi=(level)
+      return if @nmi == level
+
+      @nmi = level
+      @on_nmi_change&.call(level)
+    end
 
     def changed!
       @on_change&.call
