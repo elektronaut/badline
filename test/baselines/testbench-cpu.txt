@@ -46,27 +46,27 @@ CPU/lax/lax-border.prg	PASS
 CPU/sha/shaabsy1.prg	PASS
 CPU/sha/shaabsy2.prg	PASS
 CPU/sha/shaabsy3.prg	PASS
-CPU/sha/shaabsy4.prg	FAIL	exit=$ff
-CPU/sha/shaabsy5.prg	FAIL	exit=$ff
+CPU/sha/shaabsy4.prg	PASS
+CPU/sha/shaabsy5.prg	PASS
 CPU/sha/shazpy1.prg	PASS
 CPU/sha/shazpy2.prg	PASS
 CPU/sha/shazpy3.prg	PASS
-CPU/sha/shazpy4.prg	FAIL	exit=$ff
-CPU/sha/shazpy5.prg	FAIL	exit=$ff
+CPU/sha/shazpy4.prg	PASS
+CPU/sha/shazpy5.prg	PASS
 CPU/shs/shsabsy1.prg	PASS
 CPU/shs/shsabsy2.prg	PASS
 CPU/shs/shsabsy3.prg	PASS
-CPU/shs/shsabsy4.prg	FAIL	exit=$ff
-CPU/shs/shsabsy5.prg	FAIL	exit=$ff
+CPU/shs/shsabsy4.prg	PASS
+CPU/shs/shsabsy5.prg	PASS
 CPU/shxy/shx-test.prg	PASS
 CPU/shxy/shxy1.prg	PASS
 CPU/shxy/shxy2.prg	PASS
 CPU/shxy/shxy3.prg	PASS
 CPU/shxy/shxy4.prg	PASS
-CPU/shxy/shxy5.prg	FAIL	exit=$ff
+CPU/shxy/shxy5.prg	PASS
 CPU/shxy/shyx1.prg	PASS
 CPU/shxy/shyx2.prg	PASS
 CPU/shxy/shyx3.prg	PASS
 CPU/shxy/shyx4.prg	PASS
-CPU/shxy/shyx5.prg	FAIL	exit=$ff
+CPU/shxy/shyx5.prg	PASS
 CPU/jsrselfmod/jsr.prg	PASS
