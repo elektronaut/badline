@@ -177,5 +177,48 @@ describe Badline::Storage::D64Image do
         expect(image.read_file("data").length).to eq(258)
       end
     end
+
+    context "with 42 tracks and no error table" do
+      before do
+        File.binwrite(path, (bytes + Array.new(119 * 256, 0)).pack("C*"))
+      end
+
+      it "reads the extra tracks as blocks" do
+        expect(image.read_block(42, 16)).to eq(Array.new(256, 0))
+      end
+
+      it "stops at the 17th sector of track 42" do
+        expect(image.read_block(42, 17)).to be_nil
+      end
+
+      it "reports no error" do
+        expect(image.block_error(42, 16)).to be_nil
+      end
+    end
+
+    context "with 42 tracks and an error table" do
+      before do
+        errors = Array.new(802, 1)
+        errors[801] = 5 # track 42, sector 16
+        errors[683] = 2 # track 36, sector 0
+        File.binwrite(path, (bytes + Array.new(119 * 256, 0) + errors).pack("C*"))
+      end
+
+      it "maps the last block's error" do
+        expect(image.block_error(42, 16)).to eq(23)
+      end
+
+      it "maps the first extra track's error" do
+        expect(image.block_error(36, 0)).to eq(20)
+      end
+
+      it "keeps the table out of the blocks" do
+        expect(image.read_block(43, 0)).to be_nil
+      end
+
+      it "still reads files" do
+        expect(image.read_file("data").length).to eq(258)
+      end
+    end
   end
 end
