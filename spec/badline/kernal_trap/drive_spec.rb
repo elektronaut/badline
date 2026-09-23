@@ -199,6 +199,16 @@ describe Badline::KernalTrap::Drive do
       expect(status).to eq("00, OK,00,00")
     end
 
+    it "reads a control character as a parameter of 0" do
+      command("u1:2,0,18,\x02\r")
+      expect(storage).to have_received(:read_block).with(18, 0)
+    end
+
+    it "reads the characters past 9 up to ? as digits 10 to 15" do
+      command("u1:2,0,1:,?")
+      expect(storage).to have_received(:read_block).with(20, 15)
+    end
+
     it "moves the buffer pointer" do
       command("b-p 2 253")
       expect(read_channel(2)).to eq([253, 254, 255])
