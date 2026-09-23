@@ -10,9 +10,9 @@ are modelled at the cycle level.
 
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
-paddles and a 1351 mouse. There is no live sound yet, and emulation runs
-slower than a real C64. See [What's emulated](#whats-emulated) for the
-details.
+paddles and a 1351 mouse. Emulation runs slower than a real C64, so
+live sound, which is off by default, stutters. See
+[What's emulated](#whats-emulated) for the details.
 
 ## Requirements
 
@@ -60,6 +60,13 @@ directory that holds `kernal.rom`, `basic.rom` and `character.rom`,
 plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
 Ruby, `Badline.rom_path = dir` does the same before a
 `Badline::Computer` is built, and `nil` restores the bundled set.
+
+`--sound` plays the SID through the host's audio device, and `F10`
+mutes and unmutes it. Sound is off by default. The whole machine runs
+below real time, so the sound stutters: it plays in bursts with silent
+gaps between them, at the right pitch. It never slows the emulation
+down, and a machine running faster than real time drops whole frames of
+sound rather than falling behind.
 
 ## Media
 
@@ -167,6 +174,9 @@ Control port 1's fire line is also the VIC-II's light pen input, so
 joystick 1's fire button and the 1351's left button in port 1 latch the
 light pen registers.
 
+With `--sound`, `F10` mutes and unmutes the sound, and the window
+title shows `[MUTED]` while it's off.
+
 ## What's emulated
 
 - **6510**: every opcode, documented and undocumented, with per-cycle
@@ -209,9 +219,9 @@ light pen registers.
 
 Known gaps:
 
-- No live audio in the emulator window. The SID is emulated, but the
-  whole machine runs below real time. `badline-sid` plays `.sid` tunes
-  on their own.
+- Live audio in the emulator window stutters, because the whole machine
+  runs below real time. `badline-sid` plays PSID tunes smoothly on
+  their own.
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.

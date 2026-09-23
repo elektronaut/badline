@@ -6,7 +6,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require "optparse"
 
-options = { autostart: true, jit: true }
+options = { autostart: true, jit: true, sound: false }
 
 parser = OptionParser.new do |opts|
   opts.banner = <<~BANNER
@@ -31,6 +31,8 @@ parser = OptionParser.new do |opts|
           "SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)") do |model|
     options[:sid_model] = model
   end
+
+  opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") { options[:sound] = true }
 
   opts.on("--disable-jit", "Run without enabling YJIT") do
     options[:jit] = false
@@ -64,7 +66,8 @@ require "badline/gui"
 
 begin
   application = Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
-                                              song: options[:song], sid_model: options[:sid_model])
+                                              song: options[:song], sid_model: options[:sid_model],
+                                              sound: options[:sound])
 rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e
