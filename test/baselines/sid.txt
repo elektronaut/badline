@@ -1,17 +1,102 @@
 busvalue/busvalue.prg	PASS
-envelope/lft-adsr-test.prg	PASS
+detect/detect-1-old.prg	PASS
+detect/detect-2-old.prg	PASS
+env_test/env_test_ra_0000.prg	FAIL	exit=$ff
+env_test/env_test_ra_0100.prg	FAIL	exit=$ff
+env_test/env_test_adra_1.prg	FAIL	exit=$ff
+env_test/env_test_adra_2.prg	FAIL	exit=$ff
+env_test/env_test_ar_1.prg	FAIL	exit=$ff
+env_test/env_test_ar_2.prg	FAIL	exit=$ff
+env_test/env_test_ar_3.prg	FAIL	exit=$ff
 envelope/testADSRDelayBug.prg	PASS
 envelope/testFlip00toFF.prg	PASS
 envelope/testFlipFFto00.prg	PASS
+envelope/lft-adsr-test.prg	PASS
 exp_counter_reset/env_test_exr.prg	PASS
 noiselfsrinit/simple.prg	PASS
+noiselfsrinit/scan.prg	PASS
+noisewriteback/noise_writeback_test1-old.prg	PASS
+noisewriteback/noise_writeback_test2-old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_C_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_8_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_C_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_9_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_C_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_A_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_B_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_C_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_C_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_D_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_D_to_E_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_D_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_8_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_E_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_E_to_F_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_8_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_F_to_9_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_A_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_B_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_F_to_D_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_E_old.prg	PASS
+wb_testsuite/noise_writeback_check_F_to_F_old.prg	PASS
 osc3-wave0/osc3-wave0.prg	PASS
 osc_topbit/osc_topbit_test_noise_old.prg	PASS
 osc_topbit/osc_topbit_test_pulse_old.prg	PASS
 osc_topbit/osc_topbit_test_triangle_old.prg	PASS
-oscinit/allinit.prg	PASS
-oscinit/noiseinit.prg	PASS
 oscinit/oscinit.prg	PASS
+oscinit/noiseinit.prg	PASS
+oscinit/allinit.prg	PASS
+resid-test/envdelay.prg	PASS
+resid-test/envrate.prg	PASS
+resid-test/envsustain.prg	PASS
+resid-test/envtime.prg	PASS
+resid-test/noisetest.prg	PASS
+resid-test/oscsample0-6581.prg	FAIL	exit=$ff
+resid-test/oscsample1-6581.prg	FAIL	exit=$ff
 ringmod/ringmodtest.prg	PASS
-wf12nsr/wf12nsr.prg	FAIL	exit=$ff
+waveforms/waveforms-10-6581.prg	PASS
+waveforms/waveforms-20-6581.prg	PASS
+waveforms/waveforms-40-6581.prg	FAIL	exit=$ff
+waveforms/waveforms-80-6581.prg	PASS
 writedelay/writedelay.prg	PASS
+wf12nsr/wf12nsr.prg	FAIL	exit=$ff
