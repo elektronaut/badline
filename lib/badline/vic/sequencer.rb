@@ -41,6 +41,9 @@ module Badline
       # The fg masks are shared frozen patterns assigned by reference, never
       # mutated in place.
       attr_accessor :cur_fg
+      # False leaves the line's colours unpainted and keeps only the
+      # foreground mask the sprite collisions read.
+      attr_writer :render
 
       def initialize(width, registers, bank)
         @width = width
@@ -71,6 +74,7 @@ module Badline
         @ring_color = Array.new(4, 1)
         @prev_fresh = false
         @check = true
+        @render = true
         new_line(0)
       end
 
@@ -202,14 +206,22 @@ module Badline
         if !display && border_hidden?
           @cur_fg = GraphicsMode::NO_FG
         else
-          MODES[mode].paint(@ring_data[slot], @ring_char[slot], @ring_color[slot], self)
+          paint(slot, mode)
         end
       end
 
       def repaint_previous(mode, slot)
         roll
-        MODES[mode].paint(@ring_data[slot], @ring_char[slot], @ring_color[slot], self)
+        paint(slot, mode)
         roll
+      end
+
+      def paint(slot, mode)
+        if @render
+          MODES[mode].paint(@ring_data[slot], @ring_char[slot], @ring_color[slot], self)
+        else
+          @cur_fg = MODES[mode].fg(@ring_data[slot], @ring_char[slot], @ring_color[slot])
+        end
       end
 
       def emit_pixels(slot, col, mode, shift, hidden)

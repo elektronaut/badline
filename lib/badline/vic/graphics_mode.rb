@@ -47,13 +47,16 @@ module Badline
 
       # Each mode paints the byte a g-access read with the screen byte and
       # colour nibble it latched. The VIC reads the byte itself, in the
-      # g-access column.
+      # g-access column. #fg gives the foreground mask #paint would leave,
+      # without the colours.
       class Text
         include Hires
 
         def paint(data, _screencode, color, seq)
           paint_hires(data, color, seq.registers.background, seq)
         end
+
+        def fg(data, _screencode, _color) = HIRES_FG[data]
       end
 
       class MulticolorText
@@ -77,6 +80,8 @@ module Badline
             paint_hires(data, color & 0x07, registers.background, seq)
           end
         end
+
+        def fg(data, _screencode, color) = color.anybits?(0x08) ? PAIR_FG[data] : HIRES_FG[data]
       end
 
       class ExtendedBackgroundText
@@ -86,6 +91,8 @@ module Badline
           background = seq.registers.background((screencode >> 6) & 0b11)
           paint_hires(data, color, background, seq)
         end
+
+        def fg(data, _screencode, _color) = HIRES_FG[data]
       end
 
       class Bitmap
@@ -96,6 +103,8 @@ module Badline
           background = screencode & 0x0f
           paint_hires(data, foreground, background, seq)
         end
+
+        def fg(data, _screencode, _color) = HIRES_FG[data]
       end
 
       class MulticolorBitmap
@@ -113,6 +122,8 @@ module Badline
           palette[3] = color & 0x0f
           paint_pairs(data, seq)
         end
+
+        def fg(data, _screencode, _color) = PAIR_FG[data]
       end
 
       class Null
@@ -120,6 +131,8 @@ module Badline
           seq.cur_fg = NO_FG
           seq.cur_colors.fill(0)
         end
+
+        def fg(_data, _screencode, _color) = NO_FG
       end
 
       NULL_MODE = Null.new

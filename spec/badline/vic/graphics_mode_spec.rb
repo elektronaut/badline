@@ -134,4 +134,21 @@ RSpec.describe Badline::VIC::GraphicsMode do
       expect(sequencer.cur_fg).to all(be(false))
     end
   end
+
+  describe "#fg" do
+    let(:inputs) { [0x00, 0x5a, 0xa5, 0xff].product([0x00, 0xc3], [0x02, 0x0a]) }
+
+    def painted_masks(mode)
+      inputs.map do |data, screencode, color|
+        mode.paint(data, screencode, color, sequencer)
+        sequencer.cur_fg
+      end
+    end
+
+    described_class::MODES.uniq.each do |mode|
+      it "gives the mask #{mode.class.name.split('::').last}#paint leaves" do
+        expect(inputs.map { |args| mode.fg(*args) }).to eq(painted_masks(mode))
+      end
+    end
+  end
 end

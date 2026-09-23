@@ -510,6 +510,44 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  describe "#render=" do
+    let(:line) { 52 }
+    let(:frame) { 312 * 63 }
+
+    # A sprite over a character's foreground pixel on the line, as in the
+    # 38-column border example above but with the border open.
+    def configure(chip)
+      { 0xd018 => 0x18, 0xd015 => 0x01, 0xd000 => 24, 0xd001 => line - 1 }.each { |reg, value| chip.poke(reg, value) }
+      { 0x0400 => 1, 0x2009 => 0x80, 0x07f8 => 0x90, 0x2400 => 0x80 }.each do |addr, value|
+        chip.address_bus.ram.poke(addr, value)
+      end
+      chip
+    end
+
+    before do
+      configure(vic)
+      vic.render = false
+    end
+
+    it "leaves the display unpainted" do
+      ((line + 1) * 63).times { vic.cycle! }
+      expect(vic.display[line * vic.width, vic.width]).to all(eq(0))
+    end
+
+    it "still latches the sprite-data collision" do
+      ((line + 1) * 63).times { vic.cycle! }
+      expect(vic.peek(0xd01f) & 0x01).to eq(0x01)
+    end
+
+    it "paints the next whole frame the same as a VIC that never stopped" do
+      painted = configure(described_class.new)
+      [vic, painted].each { |chip| (frame + 10).times { chip.cycle! } }
+      vic.render = true
+      [vic, painted].each { |chip| frame.times { chip.cycle! } }
+      expect(vic.display).to eq(painted.display)
+    end
+  end
+
   describe "#dma_active?" do
     subject { vic.dma_active? }
 
