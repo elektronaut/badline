@@ -43,6 +43,19 @@ RSpec.describe Badline::VIC::GraphicsShifter do
       .to eq([6, 0x0a, 6, 0x0a, 6, 4, 6, 6])
   end
 
+  # Pinned by videomode1 and videomode-z: out of the invalid ECM+MCM mode,
+  # pixel 4 is still black and the pairs are read through pixel 7.
+  it "takes an MCM falling out of ECM+MCM a pixel late" do
+    expect(group(from: 5, to: 4, data: 0b0110_0110, screencode: 0, color: 0x0e))
+      .to eq([0, 0, 0, 0, 0, 6, 0x0e, 0x0e])
+  end
+
+  it "reads hi-res again from the next group" do
+    group(from: 5, to: 4, screencode: 0, color: 0x0e)
+    shifter.draw(0b1000_0000, 0, 0x0e, 0, 4)
+    expect(shifter.colors.first(2)).to eq([0x0e, 6])
+  end
+
   it "shows zero data ahead of a byte whose load point moved right" do
     shifter.prime(0xff, 0, 1, 0, 0)
     shifter.draw(0xff, 0, 1, 3, 0)

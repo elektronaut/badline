@@ -11,10 +11,13 @@ module Badline
     # pixel 4 as they rise and at pixel 6 as they fall (the 6569's colour
     # latency). MCM takes hold at pixel 4 for the colour lookup but only at
     # pixel 7 for how the register is read, where a rising MCM also resets
-    # the multicolour flip-flop. The mode bits are the sequencer's: ECM 4,
-    # BMM 2, MCM 1.
+    # the multicolour flip-flop. An MCM that falls out of the invalid
+    # ECM+MCM mode is a pixel later on both counts: the lookup changes at
+    # pixel 5 and the read at the next group's pixel 0. The mode bits are
+    # the sequencer's: ECM 4, BMM 2, MCM 1.
     class GraphicsShifter
       ECM_BMM = 0b110
+      ECM_MCM = 0b101
       BMM = 0b010
 
       # The group #draw painted, and which of its pixels are foreground.
@@ -31,6 +34,8 @@ module Badline
         @pixel = 0
         @mode_lookup = 0
         @mode_read = 0
+        @late_mcm = false
+        @late_read = false
       end
 
       # Rebuilds the state at the end of a group that painted whole bytes:
@@ -38,6 +43,7 @@ module Badline
       def prime(data, screencode, color, shift, mode)
         @mode_lookup = mode
         @mode_read = mode & 1
+        @late_read = false
         load(data, screencode, color)
         (8 - shift).times { read_pixel }
       end
@@ -59,13 +65,32 @@ module Badline
 
       def step_mode(pixel, mode)
         case pixel
-        when 4 then @mode_lookup = (@mode_lookup & ~1) | (mode & 1) | (mode & ECM_BMM)
+        when 0 then end_late_read
+        when 4 then step_lookup(mode)
+        when 5 then @mode_lookup &= ~1 if @late_mcm
         when 6 then @mode_lookup &= mode | 1
-        when 7
-          mcm = @mode_lookup & 1
-          @flop = 0 if mcm == 1 && @mode_read.zero?
-          @mode_read = mcm
+        when 7 then step_read
         end
+      end
+
+      def step_lookup(mode)
+        @late_mcm = @mode_lookup.allbits?(ECM_MCM) && mode.nobits?(1)
+        @mode_lookup = (@mode_lookup & ~1) | (mode & 1) | (@late_mcm ? 1 : 0) | (mode & ECM_BMM)
+      end
+
+      def step_read
+        return @late_read = true if @late_mcm
+
+        mcm = @mode_lookup & 1
+        @flop = 0 if mcm == 1 && @mode_read.zero?
+        @mode_read = mcm
+      end
+
+      def end_late_read
+        return unless @late_read
+
+        @mode_read = 0
+        @late_read = false
       end
 
       def load(data, screencode, color)
