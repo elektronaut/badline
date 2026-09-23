@@ -259,6 +259,20 @@ describe Badline::Storage::D64Image do
     end
   end
 
+  describe "#last_block" do
+    it "follows the chain to its end" do
+      expect(image.last_block("data")).to eq([17, 1])
+    end
+
+    it "takes a one-block file's first block" do
+      expect(image.last_block("notes", type: :seq)).to eq([17, 5])
+    end
+
+    it "returns nil for an unknown name" do
+      expect(image.last_block("missing")).to be_nil
+    end
+  end
+
   describe "#header_block" do
     it "starts the directory track" do
       expect(image.header_block).to eq([18, 0])

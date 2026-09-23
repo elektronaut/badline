@@ -110,16 +110,16 @@ module Badline
       # type the name doesn't pin down.
       def open_file(secondary, name)
         file, type = Storage.parse_name(name)
-        return refuse_write(secondary, name, file) if writing?(secondary, name)
-
         type ||= :prg if secondary < 2
+        return refuse_write(secondary, name, file) if secondary == 1 || mode?(name, "W")
+        return refuse_append(secondary, file, type) if mode?(name, "A")
+
         channel = @channels[secondary] = Channel.for_file(@storage, file, type)
         channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
       end
 
-      # SAVE's secondary address 1 and a W mode open a file for writing.
-      def writing?(secondary, name)
-        secondary == 1 || name.split(",").drop(1).any? { |field| field.strip.match?(/\AW/i) }
+      def mode?(name, mode)
+        name.split(",").drop(1).any? { |field| field.strip[0]&.upcase == mode }
       end
 
       # The disk is write-protected, so an open for writing fails and leaves
@@ -130,6 +130,15 @@ module Badline
         return report(FILE_EXISTS) if !name.start_with?("@") && @storage.read_file(file, type: nil)
 
         report(WRITE_PROTECT_ON, *protected_block(secondary))
+      end
+
+      # An A mode open needs the file on the disk. It fails at the file's
+      # last block, the first one an append writes back.
+      def refuse_append(secondary, file, type)
+        @channels.delete(secondary)
+        return report(FILE_NOT_FOUND) unless @storage.read_file(file, type:)
+
+        report(WRITE_PROTECT_ON, *(@storage.last_block(file, type:) if @storage.respond_to?(:last_block)))
       end
 
       # SAVE's channel fails at the directory block its entry would go to,

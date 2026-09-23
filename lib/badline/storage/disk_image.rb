@@ -42,6 +42,16 @@ module Badline
         nil
       end
 
+      # The track and sector of the last block in a file's chain.
+      def last_block(name, type: :prg)
+        entry = find_entry(name, type)
+        return unless entry
+
+        last = nil
+        each_sector(entry[:track], entry[:sector]) { |_data, track, sector| last = [track, sector] }
+        last
+      end
+
       # Raw block access for the DOS `U1` command. Returns nil for blocks
       # outside the image's geometry.
       def read_block(track, sector)
