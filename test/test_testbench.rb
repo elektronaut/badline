@@ -65,7 +65,7 @@ class TestTestbenchCartridges < Minitest::Test
   def setup
     @dir = Dir.mktmpdir
     write_crt("standard.crt", 0)
-    write_crt("kcs.crt", 2)
+    write_crt("expert.crt", 6)
     File.binwrite(File.join(@dir, "t.prg"), "\x01\x08".b)
   end
 
@@ -91,7 +91,7 @@ class TestTestbenchCartridges < Minitest::Test
   end
 
   def test_drops_a_cartridge_type_without_a_mapper
-    assert_nil parse("mountcrt:kcs.crt")
+    assert_nil parse("mountcrt:expert.crt")
   end
 
   def test_drops_a_missing_cartridge

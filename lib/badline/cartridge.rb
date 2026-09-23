@@ -25,6 +25,7 @@ require "badline/cartridge/action_replay"
 require "badline/cartridge/atomic_power"
 require "badline/cartridge/final_cartridge3"
 require "badline/cartridge/retro_replay"
+require "badline/cartridge/kcs_power"
 
 module Badline
   class Cartridge
@@ -34,7 +35,7 @@ module Badline
     BANK_SIZE = 0x2000
 
     HARDWARE_TYPES = {
-      0 => :Standard, 1 => :ActionReplay, 3 => :FinalCartridge3,
+      0 => :Standard, 1 => :ActionReplay, 2 => :KCSPower, 3 => :FinalCartridge3,
       4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay, 8 => :SuperGames,
       9 => :AtomicPower, 10 => :EpyxFastload, 11 => :Westermann,
       12 => :RexUtility, 15 => :GameSystem, 17 => :Dinamic, 18 => :Zaxxon,
