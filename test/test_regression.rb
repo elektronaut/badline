@@ -295,6 +295,34 @@ class TestRegressionSplice < Minitest::Test
     assert_raises(ArgumentError) { chain_range("ldaa").select(rows("ldaz\tPASS\n")) }
   end
 
+  def test_a_chain_range_to_the_outcome_row_runs_to_the_end
+    assert_predicate chain_range("aneb", "(suite)"), :to_end?
+  end
+
+  def test_a_chain_range_to_the_outcome_row_still_resumes_one_test_ahead
+    assert_equal "ldaa", chain_range("aneb", "(suite)").resume_at
+  end
+
+  def test_a_chain_range_to_the_end_keeps_the_rows_the_baseline_lacks
+    fresh = "ldaa\tPASS\naneb\tPASS\nlxab\tPASS\nfinish\tPASS\n(suite)\tPASS\tcompleted after finish\n"
+
+    assert_equal %w[aneb lxab finish (suite)], chain_range("aneb", "(suite)").select(rows(fresh)).keys
+  end
+
+  def test_a_chain_range_to_the_end_is_reached_once_the_chain_ends
+    range = chain_range("aneb", "(suite)")
+
+    assert range.reached?(range.select(rows("aneb\tPASS\n(suite)\tFAIL\thung after aneb\n")))
+  end
+
+  def test_a_chain_splice_to_the_end_records_the_outcome_row
+    fresh = chain_range("aneb", "(suite)")
+            .select(rows("ldaa\tPASS\naneb\tPASS\nlxab\tPASS\n(suite)\tPASS\tcompleted\n"))
+
+    assert_equal %w[* ldab ldaz ldazx ldaa aneb lxab (suite)],
+                 written(Regression::Splice.new(rows(CHAIN), fresh)).keys
+  end
+
   def test_a_chain_splice_leaves_the_outcome_row_alone
     fresh = chain_range("ldaz", "ldazx").select(
       rows("ldab\tPASS\tready.\nldaz\tFAIL\tnew\nldazx\tPASS\n(suite)\tFAIL\tstopped after ldazx\n")
@@ -377,6 +405,11 @@ class TestLorenzSegments < Minitest::Test
     refute runner(nil, stop_after: "ldazx").send(:moved_past_stop?)
   end
 
+  def test_a_finished_suite_counts_the_finish_row
+    assert_equal "finish\tPASS\ttest suite 2.15+ completed",
+                 Lorenz::Segment.new("finish", "finish\ntest suite 2.15+ completed - ok\n", halted: false).to_record
+  end
+
   private
 
   def names(result)
@@ -389,5 +422,63 @@ class TestLorenzSegments < Minitest::Test
                                 stop_after:)
     runner.instance_variable_set(:@result, result)
     runner
+  end
+end
+
+class TestLorenzDiskSwap < Minitest::Test
+  Capture = Struct.new(:output)
+  Disk = Struct.new(:files) do
+    def read_file(name) = files[name]
+    def label = files.keys.first
+  end
+
+  def setup
+    @log = Lorenz::LoadLog.new(Disk.new({ "cia2tb" => [1] }), Capture.new(+""),
+                               spares: [["Disk4.d64", Disk.new({ "aneb" => [2], "lxab" => [3] })]])
+  end
+
+  def test_a_program_on_the_mounted_image_loads_from_it
+    assert_equal [1], load_program("cia2tb")
+  end
+
+  def test_a_program_only_on_the_spare_loads_from_it
+    assert_equal [2], load_program("aneb")
+  end
+
+  def test_the_spare_stays_mounted_once_swapped_in
+    load_program("aneb")
+
+    assert_equal "aneb", @log.label
+  end
+
+  def test_a_program_on_no_disk_stays_missing
+    assert_nil load_program("nope")
+  end
+
+  def test_the_load_is_logged_once
+    load_program("aneb")
+
+    assert_equal %w[aneb], @log.entries.map(&:name)
+  end
+
+  def test_there_is_no_spare_beside_an_image_without_one
+    Dir.mktmpdir { |dir| assert_empty Lorenz.spares(File.join(dir, "Lorenz.d81")) }
+  end
+
+  def test_the_spare_is_not_the_mounted_image_itself
+    Dir.mktmpdir do |dir|
+      image = File.join(dir, Lorenz::NEXT_DISK)
+      File.write(image, "")
+
+      assert_empty Lorenz.spares(image)
+    end
+  end
+
+  private
+
+  def load_program(name)
+    data = nil
+    capture_io { data = @log.read_file(name) }
+    data
   end
 end

@@ -8,12 +8,16 @@
 #
 # Boots the machine, mounts the image as device 8 and autostarts (or loads
 # start_test by name to resume mid-suite; --resume NAME does the same
-# without naming the image). Test output is captured through the CHROUT
-# trap and echoed to stdout. When a failed test halts waiting for a
-# keypress (detected by GETIN polling), a space is injected to continue —
-# STOP would exit some tests to BASIC and kill the chain. Ends on the suite
-# completion message, on a BASIC READY prompt, on a hard hang, or with
-# --stop-after once the chain has moved past the named test.
+# without naming the image). Lorenz.d81 holds disks 1-3 of the suite, and
+# the chain carries on onto Disk4.d64 the way a user with the four disks
+# would: when the next test is missing from the mounted image but is on
+# Disk4.d64 beside it, that disk goes into the drive before the LOAD is
+# served. Test output is captured through the CHROUT trap and echoed to
+# stdout. When a failed test halts waiting for a keypress (detected by
+# GETIN polling), a space is injected to continue — STOP would exit some
+# tests to BASIC and kill the chain. Ends once `finish` prints the suite
+# completion message and its "- ok", on a BASIC READY prompt, on a hard
+# hang, or with --stop-after once the chain has moved past the named test.
 #
 # The suite chains itself by LOADing one test after another, so the names
 # it asks the mounted image for — and the transcript offsets they arrive
@@ -49,7 +53,8 @@ module Lorenz
   BATCH = 10_000
 
   AUTOSTART = %(lO"*",8,1\rrun\r)
-  COMPLETION = "test suite 2.15+ completed"
+  COMPLETION = "test suite 2.15+ completed - ok"
+  NEXT_DISK = "Disk4.d64"
 
   # A test that neither ends in the suite's "- ok" nor prints anything
   # beyond its own name has failed; the dumps it prints instead say so.
@@ -83,21 +88,38 @@ module Lorenz
   end
 
   # Wraps the mounted image to note which program the suite loads next and
-  # how much transcript had been printed by then.
+  # how much transcript had been printed by then. A program the mounted
+  # image lacks is looked for on the spares, [path, storage] pairs in disk
+  # order, and the first one holding it replaces the mounted image before
+  # the LOAD is served.
   class LoadLog < SimpleDelegator
     Entry = Struct.new(:name, :offset)
 
     attr_reader :entries
 
-    def initialize(storage, capture)
+    def initialize(storage, capture, spares: [])
       super(storage)
       @capture = capture
+      @spares = spares
       @entries = []
     end
 
     def read_file(name)
       @entries << Entry.new(name.downcase, @capture.output.length)
-      super
+      super || swap_for(name)
+    end
+
+    private
+
+    def swap_for(name)
+      index = @spares.index { |_, disk| disk.read_file(name) }
+      return unless index
+
+      path, disk = @spares[index]
+      @spares = @spares.drop(index + 1)
+      warn "#{name.downcase} is not on the mounted image, swapping in #{path}"
+      __setobj__(disk)
+      disk.read_file(name)
     end
   end
 
@@ -250,13 +272,25 @@ module Lorenz
 
   class << self
     def mount(computer, path, capture, start_test)
-      storage = Badline::Media::MOUNT_TYPES.fetch(File.extname(path).downcase) do
-        raise "#{path} is not a mountable disk image"
-      end
-      log = LoadLog.new(storage.new(path), capture)
+      log = LoadLog.new(open_image(path), capture, spares: spares(path))
       computer.mount(log)
       computer.type_text(start_test ? %(lO"#{start_test}",8\rrun\r) : AUTOSTART)
       log
+    end
+
+    def open_image(path)
+      storage = Badline::Media::MOUNT_TYPES.fetch(File.extname(path).downcase) do
+        raise "#{path} is not a mountable disk image"
+      end
+      storage.new(path)
+    end
+
+    # The disk the chain carries on from once the mounted image runs out.
+    def spares(path)
+      spare = File.join(File.dirname(path), NEXT_DISK)
+      return [] if !File.exist?(spare) || File.identical?(spare, path)
+
+      [[spare, open_image(spare)]]
     end
 
     def write_results(path, runner)
