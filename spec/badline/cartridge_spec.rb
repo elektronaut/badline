@@ -110,6 +110,49 @@ describe Badline::Cartridge do
     end
   end
 
+  describe "a 16K cartridge with no ROMH chip" do
+    let(:chips) { [chip(bank: 0, address: 0x8000, data: [0x42] * 0x2000)] }
+    let(:cartridge) do
+      described_class.from_crt(crt(hardware_type: 0, exrom: 0, game: 0, chips:))
+    end
+
+    before do
+      address_bus.attach_cartridge(cartridge)
+      address_bus.ram.poke(0x3fff, 0xa5)
+      55.times { address_bus.vic.cycle! } # Bauer cycle 56 idles at $3fff
+    end
+
+    it "reads open bus from the empty ROMH socket" do
+      expect(address_bus[0xa000]).to eq(0xa5)
+    end
+
+    it "writes through to the RAM below the empty socket" do
+      address_bus[0xa000] = 0x55
+      expect(address_bus.ram[0xa000]).to eq(0x55)
+    end
+  end
+
+  describe "a 16K cartridge with no ROML chip" do
+    let(:chips) { [chip(bank: 0, address: 0xa000, data: [0x43] * 0x2000)] }
+    let(:cartridge) do
+      described_class.from_crt(crt(hardware_type: 0, exrom: 0, game: 0, chips:))
+    end
+
+    before do
+      address_bus.attach_cartridge(cartridge)
+      address_bus.ram.poke(0x3fff, 0xa5)
+      55.times { address_bus.vic.cycle! }
+    end
+
+    it "reads open bus from the empty ROML socket" do
+      expect(address_bus[0x8000]).to eq(0xa5)
+    end
+
+    it "maps ROMH at $A000" do
+      expect(address_bus[0xa000]).to eq(0x43)
+    end
+  end
+
   describe "an Ultimax cartridge" do
     let(:romh_data) do
       ([0x4c] * 0x2000).tap do |data|
