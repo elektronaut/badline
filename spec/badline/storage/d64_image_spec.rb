@@ -110,6 +110,43 @@ describe Badline::Storage::D64Image do
     end
   end
 
+  describe "#read_error" do
+    def write_errors(errors)
+      table = Array.new(683, 1)
+      errors.each { |(track, sector), code| table[((track - 1) * 21) + sector] = code }
+      File.binwrite(path, (bytes + table).pack("C*"))
+    end
+
+    it "finds nothing without an error table" do
+      expect(image.read_error("data")).to be_nil
+    end
+
+    it "finds nothing when the chain reads cleanly" do
+      write_errors([18, 18] => 5)
+      expect(image.read_error("data")).to be_nil
+    end
+
+    it "finds a bad block later in the chain, after the bytes before it" do
+      write_errors([17, 1] => 5)
+      expect(image.read_error("data")).to eq(error: 23, track: 17, sector: 1, offset: 254)
+    end
+
+    it "finds a bad first block before any bytes" do
+      write_errors([17, 0] => 2)
+      expect(image.read_error("data")).to eq(error: 20, track: 17, sector: 0, offset: 0)
+    end
+
+    it "looks the file up by its type" do
+      write_errors([17, 5] => 9)
+      expect(image.read_error("notes", type: :seq)).to include(error: 27, offset: 0)
+    end
+
+    it "finds nothing for an unknown name" do
+      write_errors([17, 0] => 5)
+      expect(image.read_error("missing")).to be_nil
+    end
+  end
+
   describe "#block_error" do
     it "reports no error for an image without an error table" do
       expect(image.block_error(17, 0)).to be_nil

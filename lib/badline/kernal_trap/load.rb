@@ -3,19 +3,21 @@
 module Badline
   module KernalTrap
     # PC trap on the KERNAL serial LOAD routine ($F4A5, the default ILOAD
-    # vector target). Serves device 8 requests from a storage backend, then
-    # hands over to the ROM's own tail so it prints SEARCHING FOR and
-    # LOADING (or VERIFYING) in direct mode, reports errors and returns
-    # with the routine's register/zeropage contract; other devices fall
-    # through to the ROM.
+    # vector target). Reads device 8 requests from the virtual drive's
+    # channel 0, then hands over to the ROM's own tail so it prints
+    # SEARCHING FOR and LOADING (or VERIFYING) in direct mode, reports
+    # errors and returns with the routine's register/zeropage contract;
+    # other devices fall through to the ROM.
     class Load < File
       ADDRESS = 0xf4a5
 
       # ROM entry points: the SEARCHING FOR and LOADING/VERIFYING messages,
-      # the successful return (CLC, LDX $AE, LDY $AF, RTS) and the
+      # the byte loop that retries a timed-out byte until RUN/STOP, the
+      # successful return (CLC, LDX $AE, LDY $AF, RTS) and the
       # FILE NOT FOUND and MISSING FILE NAME error exits
       SEARCHING_MESSAGE = 0xf5af
       LOADING_MESSAGE = 0xf5d2
+      BYTE_LOOP = 0xf4f3
       LOAD_DONE = 0xf5a9
       FILE_NOT_FOUND_EXIT = 0xf704
       MISSING_FILE_NAME_EXIT = 0xf710
@@ -25,24 +27,53 @@ module Badline
       VERIFY_MISMATCH = 0x10
       READ_TIMEOUT = 0x02
 
+      def initialize(cpu:, bus:, drive:)
+        super(cpu:, bus:)
+        @drive = drive
+      end
+
       def call
         return unless active?
 
         @bus.poke(0x93, @cpu.a)
         @bus.poke(0x90, 0x00)
-        name, type = Storage.parse_name(filename)
-        return @cpu.program_counter = MISSING_FILE_NAME_EXIT if name.empty?
+        name = filename
+        return @cpu.program_counter = MISSING_FILE_NAME_EXIT if Storage.parse_name(name).first.empty?
 
-        if (data = @storage.read_file(name, type: type || :prg))
-          deliver(data)
-          continue_with(SEARCHING_MESSAGE, LOADING_MESSAGE, LOAD_DONE)
-        else
-          @bus.poke(0x90, EOI | READ_TIMEOUT)
-          continue_with(SEARCHING_MESSAGE, FILE_NOT_FOUND_EXIT)
-        end
+        data, complete = receive(name)
+        finish(data, complete)
       end
 
       private
+
+      # Reads the file the way the ROM's byte loop would, up to the byte
+      # flagged EOI. A read error in the file's chain stops the bytes early,
+      # with no EOI.
+      def receive(name)
+        @drive.open(0, name)
+        data = []
+        loop do
+          byte, eoi = @drive.read(0)
+          return [data, false] unless byte
+
+          data << byte
+          return [data, true] if eoi
+        end
+      end
+
+      # No first byte means the file isn't there, or its first block didn't
+      # read. A later read error leaves the ROM retrying the next byte
+      # until RUN/STOP breaks the load, as on a real drive.
+      def finish(data, complete)
+        if data.empty?
+          @bus.poke(0x90, EOI | READ_TIMEOUT)
+          continue_with(SEARCHING_MESSAGE, FILE_NOT_FOUND_EXIT)
+        else
+          deliver(data)
+          @bus.poke(0x90, @bus.peek(0x90) & ~EOI) unless complete
+          continue_with(SEARCHING_MESSAGE, LOADING_MESSAGE, complete ? LOAD_DONE : BYTE_LOOP)
+        end
+      end
 
       # A=0 is LOAD, A=1 is VERIFY, kept at $93 (VERCK)
       def load?
@@ -75,7 +106,7 @@ module Badline
         if @bus.peek(0xb9).zero?
           uint16(@bus.peek(0xc3), @bus.peek(0xc4))
         else
-          uint16(data[0], data[1])
+          uint16(data[0], data[1].to_i)
         end
       end
 

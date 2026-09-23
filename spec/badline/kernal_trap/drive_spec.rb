@@ -9,7 +9,8 @@ describe Badline::KernalTrap::Drive do
     instance_double(Badline::Storage::D64Image,
                     read_file: [0x01, 0x08, 0x2a],
                     read_block: Array.new(256) { |i| i },
-                    block_error: nil)
+                    block_error: nil,
+                    read_error: nil)
   end
 
   def read_channel(secondary)
@@ -119,6 +120,47 @@ describe Badline::KernalTrap::Drive do
 
     it "leaves the channel empty" do
       expect(drive.read(2)).to be_nil
+    end
+  end
+
+  describe "a file whose chain runs into a bad block" do
+    before do
+      allow(storage).to receive_messages(read_file: Array.new(300, 0x11),
+                                         read_error: { error: 23, track: 17, sector: 10, offset: 254 })
+      drive.open(2, "data")
+    end
+
+    it "reports OK when it opens" do
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "holds back the last byte before the bad block" do
+      expect(read_channel(2).length).to eq(253)
+    end
+
+    it "flags no EOI on the last byte it sends" do
+      252.times { drive.read(2) }
+      expect(drive.read(2)).to eq([0x11, false])
+    end
+
+    it "reports the block's error once the bytes run out" do
+      read_channel(2)
+      expect(status).to eq("23,READ ERROR,17,10")
+    end
+  end
+
+  describe "a file whose first block is bad" do
+    before do
+      allow(storage).to receive(:read_error).and_return({ error: 21, track: 17, sector: 0, offset: 0 })
+      drive.open(0, "data")
+    end
+
+    it "reports the block's error when it opens" do
+      expect(status).to eq("21,READ ERROR,17,00")
+    end
+
+    it "leaves the channel empty" do
+      expect(drive.read(0)).to be_nil
     end
   end
 

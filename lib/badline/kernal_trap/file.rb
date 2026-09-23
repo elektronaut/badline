@@ -5,7 +5,7 @@ module Badline
     class File < Routine
       MISSING_FILENAME = 0x08
 
-      def initialize(cpu:, bus:, storage:)
+      def initialize(cpu:, bus:, storage: nil)
         super(cpu:, bus:)
         @storage = storage
       end

@@ -221,6 +221,92 @@ describe Badline::KernalTrap::Load do
     specify { expect(capture.output).to eq("") }
   end
 
+  describe "a file on a disk image with an error table" do
+    let(:drive) { Badline::KernalTrap::Drive.new(Badline::Storage::D64Image.new(image_path)) }
+
+    def write_image(bad_sector)
+      bytes = Array.new(174_848, 0)
+      entry = ((17 * 21) + 1) * 256 # track 18, sector 1
+      bytes[entry + 2, 19] = [0x82, 17, 0, *"BAD".bytes, *([0xa0] * 13)]
+      block = 16 * 21 * 256 # track 17, sector 0
+      bytes[block, 256] = [17, 1, 0x00, 0xc0, *([0xaa] * 252)]
+      bytes[block + 256, 4] = [0, 3, 0xbb, 0xbb]
+      errors = Array.new(683, 1)
+      errors[(16 * 21) + bad_sector] = 5
+      File.binwrite(image_path, (bytes + errors).pack("C*"))
+    end
+
+    def image_path
+      File.join(dir, "bad.d64")
+    end
+
+    def mount_image(bad_sector)
+      write_image(bad_sector)
+      trap = described_class.new(cpu: computer.cpu, bus: computer.address_bus, drive:)
+      computer.cpu.install_trap(described_class::ADDRESS) { trap.call }
+    end
+
+    def status
+      message = []
+      loop do
+        byte, eoi = drive.read(15)
+        message << byte
+        break if eoi
+      end
+      message.pack("C*").chomp("\r")
+    end
+
+    def run_cycles(count)
+      count.times do
+        break if computer.cpu.program_counter == 0x1235
+
+        computer.cycle!
+      end
+    end
+
+    before { ram.write(0x0328, [0xed, 0xf6]) } # the STOP vector, as the KERNAL sets it
+
+    context "when a later block is bad" do
+      before do
+        mount_image(1)
+        request_load("BAD")
+        trigger_trap
+        run_cycles(20_000)
+      end
+
+      it "loads the bytes the drive sent before the bad block" do
+        expect(ram.read(0xc000, 252)).to eq(([0xaa] * 251) + [0x00])
+      end
+
+      it "keeps waiting for the next byte" do
+        expect(computer.cpu.program_counter).not_to eq(0x1235)
+      end
+
+      it "reports the block's error on the command channel" do
+        expect(status).to eq("23,READ ERROR,17,01")
+      end
+
+      it "breaks off on RUN/STOP" do
+        ram.poke(0x91, 0x7f)
+        run_cycles(20_000)
+        expect([computer.cpu.program_counter, computer.cpu.a, computer.cpu.status.carry?]).to eq([0x1235, 0, true])
+      end
+    end
+
+    context "when the first block is bad" do
+      before do
+        mount_image(0)
+        request_load("BAD")
+        run_trap
+      end
+
+      specify { expect(computer.cpu.a).to eq(0x04) }
+      specify { expect(computer.cpu.status.carry?).to be(true) }
+      specify { expect(ram.peek(0x90)).to eq(0x42) }
+      specify { expect(status).to eq("23,READ ERROR,17,00") }
+    end
+  end
+
   describe "a load from another device" do
     before do
       request_load("DATA", device: 1)

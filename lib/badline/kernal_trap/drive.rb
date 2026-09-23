@@ -97,7 +97,12 @@ module Badline
       # Returns the next byte and whether it is the channel's last, or nil
       # when there is nothing left to send.
       def read(secondary)
-        secondary == COMMAND_CHANNEL ? read_status : @channels[secondary]&.read
+        return read_status if secondary == COMMAND_CHANNEL
+
+        channel = @channels[secondary]
+        result = channel&.read
+        report(*channel.error) if result && channel.error && channel.exhausted?
+        result
       end
 
       private
@@ -115,9 +120,8 @@ module Badline
       def open_file(secondary, name)
         file, type = Storage.parse_name(name)
         type ||= :prg if secondary < 2
-        data = @storage.read_file(file, type:)
-        @channels[secondary] = Channel.new(data || [])
-        report(data ? OK : FILE_NOT_FOUND)
+        channel = @channels[secondary] = Channel.for_file(@storage, file, type)
+        channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
       end
 
       def execute(text)
