@@ -30,6 +30,11 @@ module Badline
       VERIFY_MISMATCH = 0x10
       READ_TIMEOUT = 0x02
 
+      # The ROM opens the file with secondary address $60 and leaves it in
+      # $B9, so a second LOAD without a SETLFS loads to the file's own
+      # address even when the first one relocated.
+      LOAD_SECONDARY = 0x60
+
       def initialize(cpu:, bus:, drive:)
         super(cpu:, bus:)
         @drive = drive
@@ -80,6 +85,7 @@ module Badline
           @bus.poke(0x90, @bus.peek(0x90) & ~EOI) unless complete
           continue_with(SEARCHING_MESSAGE, LOADING_MESSAGE, complete ? LOAD_DONE : BYTE_LOOP)
         end
+        @bus.poke(0xb9, LOAD_SECONDARY)
       end
 
       def low_memory?(data)

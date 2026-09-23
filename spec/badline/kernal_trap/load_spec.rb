@@ -91,6 +91,21 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.read(0x6000, 2)).to eq([0xaa, 0xbb]) }
     specify { expect(computer.cpu.x).to eq(0x02) }
     specify { expect(computer.cpu.y).to eq(0x60) }
+    specify { expect(ram.peek(0xb9)).to eq(0x60) }
+  end
+
+  describe "a second load without a SETLFS after a relocated one" do
+    before do
+      ram.write(0xc3, [0x00, 0x60])
+      request_load("DATA", secondary: 0)
+      run_trap
+      ram.write(0x6000, [0, 0])
+      push_return_address(0x1234)
+      run_trap
+    end
+
+    specify { expect(ram.read(0xc000, 2)).to eq([0xaa, 0xbb]) }
+    specify { expect(ram.read(0x6000, 2)).to eq([0, 0]) }
   end
 
   describe "a PETSCII shifted-letter filename" do
@@ -154,6 +169,7 @@ describe Badline::KernalTrap::Load do
     specify { expect(computer.cpu.a).to eq(0x04) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
     specify { expect(ram.peek(0x90)).to eq(0x42) }
+    specify { expect(ram.peek(0xb9)).to eq(0x60) }
   end
 
   describe "a file the host can't read" do
