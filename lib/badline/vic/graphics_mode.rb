@@ -19,28 +19,29 @@ module Badline
 
       module Hires
         def paint_hires(data, color, background, seq)
-          seq.cur_fg = HIRES_FG[data]
+          fg = seq.cur_fg = HIRES_FG[data]
           colors = seq.cur_colors
           return colors.fill(background) if data.zero?
 
           i = 0
           while i < 8
-            colors[i] = data.anybits?(1 << (7 - i)) ? color : background
+            colors[i] = fg[i] ? color : background
             i += 1
           end
         end
       end
 
-      # Decodes 2-bit pixel pairs into double-wide pixels. The colour for each
-      # pair is supplied by the block.
+      # Decodes 2-bit pixel pairs into double-wide pixels, each pair indexing
+      # the four colours in the mode's palette.
       module Multicolor
         def paint_pairs(data, seq)
           seq.cur_fg = PAIR_FG[data]
           colors = seq.cur_colors
+          palette = @palette
           i = 0
           while i < 8
-            colors[i] = yield((data >> (6 - (i & ~1))) & 0b11)
-            i += 1
+            colors[i] = colors[i + 1] = palette[(data >> (6 - i)) & 0b11]
+            i += 2
           end
         end
       end
@@ -60,25 +61,21 @@ module Badline
         include Hires
         include Multicolor
 
+        def initialize
+          @palette = Array.new(4, 0)
+        end
+
         def paint(data, _screencode, color, seq)
           registers = seq.registers
           if color.anybits?(0x08)
-            paint_pairs(data, seq) do |pair|
-              multicolor_pixel(pair, color, registers)
-            end
+            palette = @palette
+            palette[0] = registers.background(0)
+            palette[1] = registers.background(1)
+            palette[2] = registers.background(2)
+            palette[3] = color & 0x07
+            paint_pairs(data, seq)
           else
             paint_hires(data, color & 0x07, registers.background, seq)
-          end
-        end
-
-        private
-
-        def multicolor_pixel(pair, color, registers)
-          case pair
-          when 0b00 then registers.background(0)
-          when 0b01 then registers.background(1)
-          when 0b10 then registers.background(2)
-          else color & 0x07
           end
         end
       end
@@ -105,22 +102,17 @@ module Badline
       class MulticolorBitmap
         include Multicolor
 
-        def paint(data, screencode, color, seq)
-          registers = seq.registers
-          paint_pairs(data, seq) do |pair|
-            multicolor_pixel(pair, screencode, color, registers)
-          end
+        def initialize
+          @palette = Array.new(4, 0)
         end
 
-        private
-
-        def multicolor_pixel(pair, screencode, color, registers)
-          case pair
-          when 0b00 then registers.background(0)
-          when 0b01 then (screencode >> 4) & 0x0f
-          when 0b10 then screencode & 0x0f
-          else color & 0x0f
-          end
+        def paint(data, screencode, color, seq)
+          palette = @palette
+          palette[0] = seq.registers.background(0)
+          palette[1] = (screencode >> 4) & 0x0f
+          palette[2] = screencode & 0x0f
+          palette[3] = color & 0x0f
+          paint_pairs(data, seq)
         end
       end
 
