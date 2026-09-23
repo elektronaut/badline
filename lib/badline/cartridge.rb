@@ -168,8 +168,16 @@ module Badline
       Bank.new(data)
     end
 
+    # A bank the image leaves out reads as erased ROM.
     def bank(banks, number)
       banks[number] || EMPTY_BANK
+    end
+
+    # The bank register bits a ROM decodes. The ROM holds the highest bank
+    # in the image, and has address lines for the power of two that covers
+    # it; the register bits above those lines are ignored.
+    def bank_mask(banks)
+      (1 << (banks.length - 1).bit_length) - 1
     end
 
     # Sorts the CHIP packets into ROML and ROMH banks by load address. A 16K

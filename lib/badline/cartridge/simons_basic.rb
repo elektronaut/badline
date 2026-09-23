@@ -31,8 +31,8 @@ module Badline
 
       def install_chips(chips)
         roml, romh = banks_from(chips)
-        @roml = roml.first
-        @romh = romh.first
+        @roml = bank(roml, 0)
+        @romh = bank(romh, 0)
         reset
       end
     end
