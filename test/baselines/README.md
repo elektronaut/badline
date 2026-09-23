@@ -20,7 +20,11 @@ Recorded output of the headless hardware suites, one file per suite:
   misses either way records `want=error` / `want=timeout` alongside the
   code it did get.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
-  `Lorenz.d81`. The suite chains itself by LOADing one test after another,
+  `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
+  chain asks for `aneb`, the first test missing from the `.d81`, the runner
+  swaps disk 4 in before the LOAD is served, as a user with the four disks
+  would, and the chain runs on through the ANE and LXA tests to `finish`.
+  The suite chains itself by LOADing one test after another,
   and those LOADs split the CHROUT transcript into one segment per test;
   each becomes the same tab-separated record, keyed by the loaded name,
   with detail holding whatever the test printed beyond its own name and
@@ -54,6 +58,7 @@ stand, so the guard is the comparison, not the pass count.
     rake "regression:record:testbench[sprite0,gfxfetch]"  # several filters, matched as a union
     rake "regression:record:lorenz[adcb]"                 # one test of the Lorenz chain
     rake "regression:record:lorenz[sein,adcb]"            # a stretch of it, first to last
+    rake "regression:record:lorenz[aneb,(suite)]"         # from aneb to the end, (suite) row included
 
 Quote the task name: zsh treats the brackets as a glob.
 
@@ -72,13 +77,16 @@ empty no-op.
 
 `lorenz` chains itself, one LOAD after the next, so its partial form takes
 a stretch of the chain, not a set of filters: `[first]` or
-`[first,last]`, both named as rows of `lorenz.txt`. The run resumes at the
+`[first,last]`, both named as rows of `lorenz.txt`, or `[first,(suite)]`
+to run on from `first` to the end of the chain. The run resumes at the
 row before `first` (`bin/lorenz --resume`), because a test loaded by hand
 carries the READY prompt and the typed LOAD in its segment, and that
 segment is thrown away. It stops as soon as the chain loads the test after
 `last` (`--stop-after`), and the segment the stop cut short is left out too. Only
-the rows from `first` to `last` are spliced in. The `(suite)` row records
-how a whole chain ended, and a partial record never touches it. A name that
+the rows from `first` to `last` are spliced in, and a row the baseline
+does not have yet goes in beside the one it followed. The `(suite)` row
+records how the chain ended, so only a `[first,(suite)]` record, which runs
+to that end, re-records it. A name that
 is not a row of the baseline, or a range given back to front, aborts before
 anything runs. If the chain breaks before it reaches `last`, the rows it did
 reach are recorded with a warning. `rake regression:lorenz` still runs only
@@ -145,15 +153,18 @@ what the suite cost before it was sharded:
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
 four stretches side by side, `rake regression:lorenz-1` to `lorenz-4`, each
-about a quarter of that, and each can be picked from the Actions tab too. The Rakefile's `cuts` for `lorenz` end each
-stretch. A stretch resumes at the previous cut on a fresh machine, stops
-after its own, and compares only its rows, and the last one runs to the end
-of the chain and carries the `(suite)` row. A stretch that stops short of
-its last test, or reports a different set of rows from the baseline's
-range, fails. The cuts sit in the CPU instruction tests, and every one has
-to stay before `trap1`: from there on the tests carry state from one to the
-next, which a fresh machine would lose. `rake regression:lorenz` still runs
-the whole chain. `bin/sidtests` is not sharded either. Its 102 6581
+about a quarter of that, and each can be picked from the Actions tab too.
+The Rakefile's `cuts` for `lorenz` end each stretch. A stretch resumes at
+the previous cut on a fresh machine, stops after its own, and compares only
+its rows, and the last one runs to the end of the chain and carries the
+`(suite)` row. A stretch that stops short of its last test, or reports a
+different set of rows from the baseline's range, fails. The cuts sit in the
+CPU instruction tests, and every one has to stay before `trap1`: from there
+on the tests carry state from one to the next, which a fresh machine would
+lose. Disk 4 rides at the end of `lorenz-4`: its 37 tests run in about 140M
+cycles, five minutes here, which is little more than the 90M-cycle hang at
+`aneb` the chain used to end on. `rake regression:lorenz` still runs the
+whole chain. `bin/sidtests` is not sharded either. Its 102 6581
 programs take about eleven and a half minutes here, four and a half of
 them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
 runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes

@@ -148,9 +148,10 @@ the rows your change can't reach tell you nothing about it.
   their rows into the baseline, and every other row keeps its verdict.
   `lorenz` chains itself, so it takes a stretch of the chain instead:
   `rake "regression:record:lorenz[first,last]"` resumes just ahead of
-  `first`, stops after `last` and leaves the `(suite)` row alone. Cover
-  every test your change can reach, and explain every moved row. Never
-  re-record just to make a diff go away
+  `first`, stops after `last` and leaves the `(suite)` row alone.
+  `[first,(suite)]` runs on to the end of the chain and records the
+  `(suite)` row too. Cover every test your change can reach, and explain
+  every moved row. Never re-record just to make a diff go away
 - CI's nightly run owns the whole-suite verdict. The Regression workflow
   runs `testbench`, `lorenz` and `sid` against `main` each night, and skips
   the night when nothing relevant has changed since the last successful
