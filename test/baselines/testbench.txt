@@ -2,22 +2,22 @@ VICII/banking/banking.prg	PASS
 VICII/border/border-250.prg	PASS
 VICII/border/border-251.prg	PASS
 VICII/border/border-252.prg	PASS
-VICII/border/border-bm-idle.prg	FAIL	diff=8057px exit=$00
-VICII/border/border-bm-ysh2.prg	FAIL	diff=71px exit=$00
-VICII/border/border-bm-ysh.prg	FAIL	diff=50px exit=$00
-VICII/border/border-mcbm.prg	FAIL	diff=75px exit=$00
+VICII/border/border-bm-idle.prg	FAIL	diff=9px exit=$00
+VICII/border/border-bm-ysh2.prg	FAIL	diff=54px exit=$00
+VICII/border/border-bm-ysh.prg	FAIL	diff=33px exit=$00
+VICII/border/border-mcbm.prg	FAIL	diff=53px exit=$00
 VICII/border/hvborder1.prg	FAIL	diff=43px exit=$00
-VICII/border/hvborder2.prg	FAIL	diff=3px exit=$00
+VICII/border/hvborder2.prg	FAIL	diff=2px exit=$00
 VICII/border/vborder-32-08.prg	PASS
 VICII/border/vborder-32-09.prg	PASS
-VICII/border/vborder-33-08.prg	FAIL	diff=1280px exit=$00
-VICII/border/vborder-33-09.prg	FAIL	diff=24000px exit=$00
+VICII/border/vborder-33-08.prg	PASS
+VICII/border/vborder-33-09.prg	PASS
 VICII/border/vborder2-21.prg	PASS
-VICII/border/vborder2-22.prg	FAIL	diff=1280px exit=$00
+VICII/border/vborder2-22.prg	PASS
 VICII/border/vborder2-35.prg	PASS
-VICII/border/vborder2-36.prg	FAIL	diff=320px exit=$00
+VICII/border/vborder2-36.prg	PASS
 VICII/border/vborder2-63.prg	PASS
-VICII/border/vborder2-64.prg	FAIL	diff=960px exit=$00
+VICII/border/vborder2-64.prg	PASS
 VICII/colorfetchbug/bitmap.prg	PASS
 VICII/colorfetchbug/main.prg	PASS
 VICII/colorfetchbug/main2.prg	PASS
@@ -36,17 +36,17 @@ VICII/dentest/den10-48-0.prg	PASS
 VICII/dentest/den10-48-1.prg	PASS
 VICII/dentest/den10-48-2.prg	PASS
 VICII/dentest/den10-51-0.prg	PASS
-VICII/dentest/den10-51-1.prg	FAIL	diff=64000px exit=$00
+VICII/dentest/den10-51-1.prg	PASS
 VICII/dentest/den10-51-2.prg	PASS
 VICII/dentest/den10-51-3.prg	PASS
 VICII/dentest/denrsel-0.prg	PASS
-VICII/dentest/denrsel-1.prg	FAIL	diff=87040px exit=$00
-VICII/dentest/denrsel-2.prg	FAIL	diff=87040px exit=$00
+VICII/dentest/denrsel-1.prg	PASS
+VICII/dentest/denrsel-2.prg	PASS
 VICII/dentest/denrsel55.prg	PASS
 VICII/dentest/denrsel-63.prg	PASS
 VICII/dentest/denrsel-s0.prg	PASS
-VICII/dentest/denrsel-s1.prg	FAIL	diff=87040px exit=$00
-VICII/dentest/denrsel-s2.prg	FAIL	diff=87040px exit=$00
+VICII/dentest/denrsel-s1.prg	PASS
+VICII/dentest/denrsel-s2.prg	PASS
 VICII/dmadelay/test1-2a-03.prg	PASS
 VICII/dmadelay/test1-2a-04.prg	PASS
 VICII/dmadelay/test1-2a-10.prg	PASS
@@ -84,7 +84,7 @@ VICII/lp-trigger/test1.prg	PASS
 VICII/lp-trigger/test2.prg	PASS
 VICII/lp-trigger/test2new.prg	FAIL	exit=$ff
 VICII/phi1timing/phi1timing.prg	PASS
-VICII/rasterirq/rasterirq_hold.prg	FAIL	diff=11672px exit=$00
+VICII/rasterirq/rasterirq_hold.prg	PASS
 VICII/screenpos/screenpos.prg	PASS
 VICII/sb_sprite_fetch/sbsprf24-163.prg	FAIL	diff=34px exit=$00
 VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=51px exit=$00
@@ -95,12 +95,12 @@ VICII/split-tests/lightpen/lightpen.prg	PASS
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
 VICII/split-tests/spritescan/spritescan.prg	PASS
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=1773px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=1774px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=1772px exit=$00
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=1773px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=1774px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=1772px exit=$00
+VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=1765px exit=$00
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=1766px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=1764px exit=$00
+VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=1765px exit=$00
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=1766px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=1764px exit=$00
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/videomode1.prg	FAIL	diff=17px exit=$00

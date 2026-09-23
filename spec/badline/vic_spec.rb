@@ -141,6 +141,31 @@ RSpec.describe Badline::VIC do
       end
     end
 
+    # The compare latches only as the line and the target come to match, so
+    # a target stepped along with the raster line holds the match. Pinned by
+    # rasterirq_hold, which fails when the line step latches on any match.
+    context "with the target stepped along with the raster line" do
+      before do
+        vic.poke(0xd012, 18)
+        ((19 * 63) - 1).times { vic.cycle! } # line 18, column 62
+        vic.poke(0xd019, 0x01)
+        vic.poke(0xd012, 19)
+        vic.cycle! # the step to line 19
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(0) }
+    end
+
+    context "when a write moves the target onto the current line" do
+      before do
+        ((20 * 63) + 30).times { vic.cycle! }
+        vic.poke(0xd019, 0x01)
+        vic.poke(0xd012, 20)
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(1) }
+    end
+
     context "when raster target requires 9 bits using register 0x11" do
       before do
         vic.poke(0xd011, 0x80)
@@ -732,6 +757,76 @@ RSpec.describe Badline::VIC do
       it "opens the display at the fixed raster 51 regardless of YSCROLL" do
         run_to(51)
         expect(vic.display[(51 * vic.width) + x]).not_to eq(border)
+      end
+    end
+
+    def run_through(line)
+      vic.cycle! until vic.rasterline == line + 1
+      vic.display[(line * vic.width) + x]
+    end
+
+    # RSEL and DEN clear for a line from a write in the given cycle, counted
+    # from the top of the frame.
+    def clear_rsel_den_at(cycle)
+      vic.poke(0xd011, 0x1b)
+      cycle.times { vic.cycle! }
+      vic.poke(0xd011, 0x03)
+      63.times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+    end
+
+    # RSEL clears for four cycles from a write in the given cycle.
+    def blip_rsel_at(cycle)
+      vic.poke(0xd011, 0x1b)
+      cycle.times { vic.cycle! }
+      vic.poke(0xd011, 0x13)
+      4.times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+    end
+
+    # The last column of a line is the next line's first cycle, and the top
+    # compare runs there. Pinned by denrsel-s0/-s1, den10-51-* and
+    # denrsel-*, which fail when that column compares the line ending.
+    context "when RSEL and DEN clear around line 51's first cycle" do
+      it "misses the top compare when cleared ahead of it" do
+        clear_rsel_den_at((51 * 63) - 1)
+        expect(run_through(100)).to eq(border)
+      end
+
+      it "opens the border when cleared after it" do
+        clear_rsel_den_at(51 * 63)
+        expect(run_through(100)).not_to eq(border)
+      end
+    end
+
+    # The compares run in every cycle, so a bottom compare line RSEL only
+    # touches mid-line arms the flip-flop, and the next line starts closed.
+    # Pinned by vborder2-63 and vborder-32-*, which fail when only the line
+    # start and the left edge compare.
+    context "when RSEL clears for a moment mid-line on line 247" do
+      before { blip_rsel_at((247 * 63) + 30) }
+
+      it "leaves line 247 open" do
+        expect(run_through(247)).not_to eq(border)
+      end
+
+      it "closes the border from line 248" do
+        expect(run_through(248)).to eq(border)
+      end
+    end
+
+    # The 40-column left compare runs in column 15 and sees a write made
+    # after column 14 but not one made after column 15. Pinned by
+    # vborder2-35/-36.
+    context "when RSEL clears for a moment at line 247's left edge" do
+      it "closes line 247 when cleared ahead of the compare" do
+        blip_rsel_at((247 * 63) + 15)
+        expect(run_through(247)).to eq(border)
+      end
+
+      it "leaves line 247 open when cleared after it" do
+        blip_rsel_at((247 * 63) + 16)
+        expect(run_through(247)).not_to eq(border)
       end
     end
 

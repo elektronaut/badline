@@ -78,6 +78,7 @@ module Badline
       @g_display = false
       @lp_triggered = false
       @lp_low = false
+      @raster_match = false
 
       super()
     end
@@ -99,7 +100,7 @@ module Badline
         finish_line!
         @column = 0
         @rasterline = @rasterline == @last_line ? 0 : @rasterline + 1
-        check_raster_irq! unless @rasterline.zero?
+        check_raster_irq!(@rasterline.zero? ? @last_line : @rasterline)
       end
       watch_collisions
       nil
@@ -114,11 +115,13 @@ module Badline
     def column_hooks
       case @column
       when 14 then @sprites.advance_mcbase
-      when 15 then finish_sprite_mcbase
+      when 15
+        @sequencer.left_compare_vertical_border
+        finish_sprite_mcbase
       when 53 then check_sprite_dma
       when 54 then check_dma_and_toggle_expansion
       when 57 then @sprites.check_display(@rasterline)
-      when 62 then @sequencer.check_vertical_border(@rasterline)
+      when 62 then @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1)
       end
     end
 
@@ -143,6 +146,7 @@ module Badline
       reg = index(addr) % (2**6)
       log_register_change(reg, value)
       @registers.write(reg, value)
+      compare_raster_writes(reg)
     end
 
     def position
@@ -282,6 +286,16 @@ module Badline
       end
     end
 
+    # A $d011/$d012 write is compared in the next column. A write after
+    # column 61 is left to column 62, which compares the next line.
+    def compare_raster_writes(reg)
+      return unless (0x11..0x12).cover?(reg)
+      return if @column == @columns_per_line - 1
+
+      check_raster_irq!
+      @sequencer.compare_vertical_border(@rasterline) if reg == 0x11
+    end
+
     def check_sprite_dma
       rebuild_sprite_ba if @sprites.check_dma(@rasterline, @column)
     end
@@ -407,12 +421,15 @@ module Badline
       @display_state.new_line(@rasterline)
     end
 
-    def check_raster_irq!
-      return unless @rasterline == @registers.raster_target
-
-      # Latch the raster IRQ flag. The line asserts via #interrupted? when the
-      # matching mask bit in $D01A is set.
-      @registers.latch_raster_irq!
+    # The raster compare latches the flag only as the line and the target
+    # come to match, so a target moved along with the raster line holds the
+    # match without latching again (VICE x64sc). It runs at each line step
+    # and after each $d011/$d012 write. The line asserts via #interrupted?
+    # when the mask bit in $D01A is set.
+    def check_raster_irq!(line = @rasterline)
+      match = line == @registers.raster_target
+      @registers.latch_raster_irq! if match && !@raster_match
+      @raster_match = match
     end
 
     # A collision register carries the pixels drawn up to the cycle before
