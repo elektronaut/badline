@@ -80,6 +80,15 @@ module Badline
       cartridge.clock = -> { @cycles }
       cartridge.on_nmi_change { |level| @cartridge_nmi = level }
       address_bus.attach_cartridge(cartridge)
+      power_cycle!
+    end
+
+    # A cartridge goes in with the power off, so attaching one switches the
+    # machine off and on: the VIC and RAM start from their power-on state,
+    # and the RES line resets everything else.
+    def power_cycle!
+      vic.power_on!
+      address_bus.power_on!
       reset!
     end
 

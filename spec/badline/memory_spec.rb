@@ -92,4 +92,14 @@ describe Badline::Memory do
       expect(memory.read(0x2000, 4)).to eq([0x0a, 0x09, 0x08, 0x07])
     end
   end
+
+  describe "#clear!" do
+    before do
+      memory.write(0x2000, [0x0a, 0x09])
+      memory.clear!([0xff, 0x07])
+    end
+
+    specify { expect(memory.read(0x0000, 3)).to eq([0xff, 0x07, 0x00]) }
+    specify { expect(memory.read(0x2000, 2)).to eq([0x00, 0x00]) }
+  end
 end

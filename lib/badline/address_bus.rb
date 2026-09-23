@@ -45,12 +45,14 @@ module Badline
     PORT_FLOATING = 0b1100_1000
     TAPE_SENSE    = 0b0001_0000
 
+    RAM_POWER_ON = [0xff, 0x07].freeze
+
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
                 :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette
 
     def initialize(sid_model: :mos6581)
-      @ram = Memory.new([0xff, 0x07], length: 2**16, start: 0)
+      @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
       @cartridge = nil
       @debug_register = nil
 
@@ -91,6 +93,10 @@ module Badline
       cartridge.connect(ram: @ram, open_bus: @open_bus)
       cartridge.on_change { update_overlays! }
       update_overlays!
+    end
+
+    def power_on!
+      @ram.clear!(RAM_POWER_ON)
     end
 
     # The 6510's RES line clears the port's direction and output registers.

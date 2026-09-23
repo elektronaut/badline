@@ -57,20 +57,33 @@ module Badline
 
       @width = 504
       @height = 312
+      @columns_per_line = @width / 8
+      @last_line = @height - 1
+      @display = Array.new(@width * @height, 0)
+      @lines = Array.new(@height) { Array.new(@width, 0) }
+      @dirty_lines = Array.new(@height, true)
+      @render = true
 
+      power_on!
+      super()
+    end
+
+    # The VIC has no reset pin, so only a power cycle brings back the
+    # registers, the raster position and the fetch and sprite state it
+    # starts with. The display keeps its buffers, cleared to black.
+    def power_on!
       @registers = VIC::Registers.new
       @register_bytes = @registers.bytes
       @display_state = VIC::DisplayState.new(@registers)
       @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank)
+      @sequencer.render = @render
       @sprites = VIC::Sprites.new(@registers, @vic_bank, @width)
-      @display = Array.new(@width * @height, 0)
-      @lines = Array.new(@height) { Array.new(@width, 0) }
-      @dirty_lines = Array.new(@height, true)
+      @display.fill(0)
+      @lines.each { |line| line.fill(0) }
+      @dirty_lines.fill(true)
 
       @column = 0
       @rasterline = 0
-      @columns_per_line = @width / 8
-      @last_line = @height - 1
 
       @character_buffer = Array.new(40, 0)
       @color_buffer = Array.new(40, 0)
@@ -87,9 +100,6 @@ module Badline
       @lp_triggered = false
       @lp_low = false
       @raster_match = false
-      @render = true
-
-      super()
     end
 
     def cycle!

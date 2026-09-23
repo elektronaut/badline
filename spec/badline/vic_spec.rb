@@ -1081,4 +1081,18 @@ RSpec.describe Badline::VIC do
       end
     end
   end
+
+  describe "#power_on!" do
+    before do
+      vic.poke(0xd020, 0x05)
+      vic.render = false
+      (63 * 10).times { vic.cycle! }
+      vic.power_on!
+    end
+
+    specify { expect(vic.peek(0xd020)).to eq(described_class.new.peek(0xd020)) }
+    specify { expect(vic.rasterline).to eq(0) }
+    specify { expect(vic.render?).to be(false) }
+    specify { expect(vic.dirty_lines).to all(be(true)) }
+  end
 end
