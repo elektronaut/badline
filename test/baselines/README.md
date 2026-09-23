@@ -111,6 +111,9 @@ against SingleStepTests' bus-level traces, for a worst case near nine
 hours. Every row carrying `cia-new` asks for the 6526A, whose timer and
 shift register differ from the 6526 badline models; the testlist lists the
 same 71 programs again under `cia-old`, and those are the ones that run.
+Rows carrying `vicii-new` ask for the 8565 in the same way, and badline
+models only the 6569. All but `VICII/lp-trigger/test2new` repeat a
+`vicii-old` row, so the 31 programs listed twice run once.
 
 `testbench`, `lorenz` and `sid` are the nightly set. The Regression
 workflow runs them on `main` every night, but skips the night when nothing
@@ -130,7 +133,7 @@ what the suite cost before it was sharded:
 
 | suite | rows | worst case | serial | 4 shards |
 | --- | --- | --- | --- | --- |
-| `testbench` | 200 | 173 min | 46 min | 15 min |
+| `testbench` | 168 | 173 min | 46 min | 15 min |
 | `testbench-cia` | 121 | 163 min | 39 min | 11 min |
 | `testbench-interrupts` | 13 | 4 min | 2 min | 1 min |
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
