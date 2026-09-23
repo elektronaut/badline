@@ -16,6 +16,10 @@ module Badline
       PRIORITY_DELAY = 6
       SEQUENCER_DELAY = 7
 
+      # The beam position a CPU write in Bauer cycle 15 sees: the VIC has
+      # run column 13 and runs column 14, where MCBASE moves, next.
+      CRUNCH_X = 14 * 8
+
       WRITE_DELAY = Array.new(2**6).tap do |delays|
         (0x00..0x0e).step(2) { |reg| delays[reg] = SEQUENCER_DELAY }
         [0x10, 0x1c, 0x1d].each { |reg| delays[reg] = SEQUENCER_DELAY }
@@ -58,14 +62,15 @@ module Badline
         @carried = @carry.any?(&:any?)
       end
 
-      # Bauer cycles 15 and 16: MCBASE steps on for every sprite whose
-      # expansion flip-flop is set, and a sprite that lands on 63 ends.
+      # Bauer cycle 16, two columns ahead like the compares: MCBASE takes
+      # MC for every sprite whose expansion flip-flop is set.
       def advance_mcbase
         @sprites.each(&:advance_mcbase) if @any_dma
       end
 
-      # The only point a sprite's DMA stops, so the cached flag is settled
-      # here and set again by the compare that starts one.
+      # The end-of-sprite compare, a column after MCBASE moves. It is the
+      # only point a sprite's DMA stops, so the cached flag is settled here
+      # and set again by the compare that starts one.
       def finish_mcbase
         @stopped_dma = false
         return unless @any_dma
@@ -81,7 +86,7 @@ module Badline
       # have to be rebuilt without it.
       def stopped_dma? = @stopped_dma
 
-      # Bauer cycle 55, ahead of the Y compare.
+      # Bauer cycle 56, after the second Y compare.
       def toggle_expansion
         @sprites.each(&:toggle_expansion) if @any_dma
       end
@@ -117,6 +122,7 @@ module Badline
 
       # Record a mid-line write at the pixel where it becomes visible.
       def log_change(reg, old, value, beam_x)
+        clear_y_expansion(old & ~value, beam_x) if reg == 0x17
         delay = WRITE_DELAY[reg]
         return unless delay && active?
 
@@ -145,6 +151,15 @@ module Badline
       end
 
       private
+
+      # A $d017 write that clears MxYE acts on the flip-flop at once, rather
+      # than from a column hook, and crunches in Bauer cycle 15.
+      def clear_y_expansion(cleared, beam_x)
+        crunch = beam_x == CRUNCH_X
+        @sprites.each do |sprite|
+          sprite.clear_y_expansion(crunch) if cleared.anybits?(1 << sprite.index)
+        end
+      end
 
       # Replay the line for every sprite, filling the per-pixel coverage
       # that both the fold and the composite read. A write logged later in

@@ -29,10 +29,10 @@ RSpec.describe Badline::VIC::Sprite do
   def raster_line(line)
     sprite.start_line          # cycle 1: last line's fetch renders
     sprite.sequence
-    sprite.advance_mcbase      # cycle 15
-    sprite.finish_mcbase       # cycle 16
-    sprite.toggle_expansion    # cycle 55
+    sprite.advance_mcbase      # cycle 16: MCBASE takes MC
+    sprite.finish_mcbase       # the end-of-sprite compare
     sprite.check_dma(line, 53) # cycles 55/56, on the first compare
+    sprite.toggle_expansion    # cycle 56
     sprite.check_display(line) # cycle 58
   end
 
@@ -177,26 +177,67 @@ RSpec.describe Badline::VIC::Sprite do
     end
   end
 
+  # Pinned by the spritecrunch rows and sequencer-bug: MxYE cleared in
+  # cycle 15 while the flip-flop is reset steps MCBASE to
+  # (0x2a & (MCBASE & MC)) | (0x15 & (MCBASE | MC)), with MC three past
+  # MCBASE after the s-accesses. The expected rows are the spritecrunch
+  # readme's table.
   describe "sprite crunch" do
-    # $d017 set over cycle 15 and cleared before cycle 16 leaves MCBASE
-    # stepping by one, so it never lands on 63 and the sprite runs on past
-    # its 21 rows.
-    def crunched_line(line)
+    # One line of the sprite, crunched or stepped normally, with $d017 set
+    # ahead of cycle 56 when the next line crunches.
+    def sprite_line(line, step, next_step)
       sprite.start_line
-      sprite.advance_mcbase        # cycle 15, still expanded: no step
-      registers.write(0x17, 0x00)  # cleared between cycles 15 and 16
-      sprite.finish_mcbase         # cycle 16: MCBASE += 1
-      registers.write(0x17, 0x01)  # set again before cycle 55
-      sprite.toggle_expansion
+      sprite.clear_y_expansion(true) if step == :crunch
+      registers.write(0x17, 0x00)
+      sprite.advance_mcbase
+      sprite.finish_mcbase
+      registers.write(0x17, next_step == :crunch ? 0x01 : 0x00)
       sprite.check_dma(line, 53)
+      sprite.toggle_expansion
       sprite.check_display(line)
     end
 
-    it "keeps the DMA running when MCBASE steps over 63" do
-      registers.write(0x17, 0x01)
+    def run_steps(steps)
+      registers.write(0x17, steps.first == :crunch ? 0x01 : 0x00)
       raster_line(60)
-      (61..90).each { |line| crunched_line(line) }
+      steps.each_with_index { |step, i| sprite_line(61 + i, step, steps[i + 1]) }
+      sprite.start_line
+      sprite.sequence
+    end
+
+    {
+      [:crunch] => [0x00, 0x01],
+      %i[crunch crunch] => [0x01, 0x05],
+      %i[normal crunch] => [0x03, 0x07],
+      %i[crunch normal crunch] => [0x04, 0x05],
+      %i[normal normal crunch] => [0x06, 0x05]
+    }.each do |steps, (from, to)|
+      it format("steps MCBASE $%<from>02x to $%<to>02x", from:, to:) do
+        ram.poke((0x20 * 64) + to, 0x80)
+        run_steps(steps)
+        expect(sprite.pixel(204)).to eq(sprite.color)
+      end
+    end
+
+    it "keeps the DMA running when MCBASE steps over 63" do
+      run_steps(Array.new(30, :crunch))
       expect(sprite).to be_displaying
+    end
+
+    context "when MxYE clears outside cycle 15" do
+      before do
+        ram.poke((0x20 * 64) + 0x03, 0x80)
+        registers.write(0x17, 0x01)
+        raster_line(60)
+        sprite.clear_y_expansion(false)
+        registers.write(0x17, 0x00)
+      end
+
+      it "steps MCBASE normally" do
+        (61..62).each { |line| raster_line(line) }
+        sprite.sequence
+        expect(sprite.pixel(204)).to eq(sprite.color)
+      end
     end
   end
 
