@@ -34,7 +34,7 @@ module Badline
       # IRQ one, which restart the DOS with its RAM intact, except that a
       # + or - after U9 only switches the bus speed. U: takes the reset
       # vector, which runs the RAM test. U0 restores the table.
-      USER_TABLE = [:block_read, :write_protected, *[:initialized] * 6,
+      USER_TABLE = [:block_read, :block_write, *[:initialized] * 6,
                     :warm_reset, :cold_reset, :warm_reset, *[:initialized] * 5].freeze
 
       COMMANDS = {
@@ -42,8 +42,9 @@ module Badline
         /\AU.\s*:?\s*(.*)/i => :user,
         /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
+        /\AB-W\s*:?\s*(.*)/i => :block_write,
         /\A[IV]/i => :initialized,
-        /\AB-[WAF]/i => :write_protected
+        /\AB-[AF]/i => :write_protected
       }.freeze
 
       # A drive powers on reporting its DOS version, as a reset does.
@@ -155,6 +156,7 @@ module Badline
       def run_command(action, arguments)
         case action
         when :block_read then block_read(arguments)
+        when :block_write then block_write(arguments)
         when :counted_block_read then counted_block_read(arguments)
         when :buffer_pointer then buffer_pointer(arguments)
         when :initialized then report(OK)
@@ -168,16 +170,30 @@ module Badline
 
       def block_read(arguments, counted: false)
         channel, _drive, track, sector = arguments
+        data = fetch_block(channel, track, sector)
+        return unless data
+
         buffer = @channels[channel]
-        return report(NO_CHANNEL) unless buffer
-        return report(DRIVE_NOT_READY) unless @storage.respond_to?(:read_block)
-
-        data = sector && @storage.read_block(track, sector)
-        return report(ILLEGAL_TRACK_OR_SECTOR, track, sector) unless data
-
         buffer.replace(counted ? data[0, data[0] + 1] : data)
         buffer.pointer = 1 if counted
         report_block_error(track, sector)
+      end
+
+      # The disk is write-protected, so a block write that gets as far as
+      # the disk fails at the block it names.
+      def block_write(arguments)
+        channel, _drive, track, sector = arguments
+        report(WRITE_PROTECT_ON, track, sector) if fetch_block(channel, track, sector)
+      end
+
+      # Block access needs an open buffer channel, a disk and a block on it.
+      # Returns the block, or nil once it has reported why there is none.
+      def fetch_block(channel, track, sector)
+        return report(NO_CHANNEL) unless @channels[channel]
+        return report(DRIVE_NOT_READY) unless @storage.respond_to?(:read_block)
+
+        data = sector && @storage.read_block(track, sector)
+        data || report(ILLEGAL_TRACK_OR_SECTOR, track, sector)
       end
 
       # A block the image's error table marks bad still fills the buffer,
