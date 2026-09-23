@@ -32,6 +32,8 @@ module Badline
       LOAD_COLUMN = 12
       RC_COLUMN = 56
 
+      GRAPHICS_COLUMNS = Array.new(63) { |column| column.between?(GRAPHICS_FIRST, GRAPHICS_LAST) }.freeze
+
       attr_reader :vc_base, :vc, :vmli, :rc
 
       def initialize(registers)
@@ -87,7 +89,7 @@ module Badline
       # A g-access in display state consumes one buffer cell and one video
       # matrix address. A row that opens mid-line makes fewer of them, and
       # the shortfall carries into VCBASE.
-      def graphics_column?(column) = column.between?(GRAPHICS_FIRST, GRAPHICS_LAST)
+      def graphics_column?(column) = GRAPHICS_COLUMNS[column]
 
       def graphics_access(column)
         return unless graphics_column?(column)
