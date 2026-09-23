@@ -45,23 +45,38 @@ module Badline
         end
       end
 
+      # Each mode splits the g-access into #fetch, which reads the data byte,
+      # and #paint, which draws it with the screen byte and colour nibble.
+      module Decode
+        def decode(screencode, color, cell, row, seq)
+          paint(fetch(screencode, cell, row, seq), screencode, color, seq)
+        end
+      end
+
       class Text
+        include Decode
         include Hires
 
-        def decode(screencode, color, _cell, row, seq)
-          registers = seq.registers
-          data = seq.bank.peek(registers.char_base + (screencode * 8) + row)
-          paint_hires(data, color, registers.background, seq)
+        def fetch(screencode, _cell, row, seq)
+          seq.bank.peek(seq.registers.char_base + (screencode * 8) + row)
+        end
+
+        def paint(data, _screencode, color, seq)
+          paint_hires(data, color, seq.registers.background, seq)
         end
       end
 
       class MulticolorText
+        include Decode
         include Hires
         include Multicolor
 
-        def decode(screencode, color, _cell, row, seq)
+        def fetch(screencode, _cell, row, seq)
+          seq.bank.peek(seq.registers.char_base + (screencode * 8) + row)
+        end
+
+        def paint(data, _screencode, color, seq)
           registers = seq.registers
-          data = seq.bank.peek(registers.char_base + (screencode * 8) + row)
           if color.anybits?(0x08)
             paint_pairs(data, seq) do |pair|
               multicolor_pixel(pair, color, registers)
@@ -84,21 +99,28 @@ module Badline
       end
 
       class ExtendedBackgroundText
+        include Decode
         include Hires
 
-        def decode(screencode, color, _cell, row, seq)
-          registers = seq.registers
-          background = registers.background((screencode >> 6) & 0b11)
-          data = seq.bank.peek(registers.char_base + ((screencode & 0x3f) * 8) + row)
+        def fetch(screencode, _cell, row, seq)
+          seq.bank.peek(seq.registers.char_base + ((screencode & 0x3f) * 8) + row)
+        end
+
+        def paint(data, screencode, color, seq)
+          background = seq.registers.background((screencode >> 6) & 0b11)
           paint_hires(data, color, background, seq)
         end
       end
 
       class Bitmap
+        include Decode
         include Hires
 
-        def decode(screencode, _color, cell, row, seq)
-          data = seq.bank.peek(seq.registers.bitmap_base + (cell * 8) + row)
+        def fetch(_screencode, cell, row, seq)
+          seq.bank.peek(seq.registers.bitmap_base + (cell * 8) + row)
+        end
+
+        def paint(data, screencode, _color, seq)
           foreground = (screencode >> 4) & 0x0f
           background = screencode & 0x0f
           paint_hires(data, foreground, background, seq)
@@ -106,11 +128,15 @@ module Badline
       end
 
       class MulticolorBitmap
+        include Decode
         include Multicolor
 
-        def decode(screencode, color, cell, row, seq)
+        def fetch(_screencode, cell, row, seq)
+          seq.bank.peek(seq.registers.bitmap_base + (cell * 8) + row)
+        end
+
+        def paint(data, screencode, color, seq)
           registers = seq.registers
-          data = seq.bank.peek(registers.bitmap_base + (cell * 8) + row)
           paint_pairs(data, seq) do |pair|
             multicolor_pixel(pair, screencode, color, registers)
           end
@@ -129,7 +155,11 @@ module Badline
       end
 
       class Null
-        def decode(_screencode, _color, _cell, _row, seq)
+        include Decode
+
+        def fetch(_screencode, _cell, _row, _seq) = 0
+
+        def paint(_data, _screencode, _color, seq)
           seq.cur_fg = NO_FG
           seq.cur_colors.fill(0)
         end
@@ -138,30 +168,16 @@ module Badline
       NULL_MODE = Null.new
 
       # Idle-state display. The g-access reads $3fff, or $39ff when ECM is
-      # set, and the data is shown as if the video matrix supplied all-zero
-      # bits. Foreground bits render black. The background follows the mode,
+      # set, and the video matrix supplies all-zero bits, so the byte is
+      # painted through the current mode with a zero screen byte and colour.
+      # Foreground bits render black. The background follows the mode,
       # taking $D021 in the text modes and black in standard bitmap and the
       # invalid modes.
       class Idle
-        include Hires
-        include Multicolor
-
         def decode(seq)
           registers = seq.registers
           data = seq.bank.peek(registers.ecm.zero? ? 0x3fff : 0x39ff)
-          case registers.mode
-          when 0b000, 0b001, 0b100
-            paint_hires(data, 0, registers.background, seq)
-          when 0b010 then paint_hires(data, 0, 0, seq)
-          when 0b011 then decode_pairs(data, registers.background, seq)
-          else NULL_MODE.decode(nil, nil, nil, nil, seq)
-          end
-        end
-
-        private
-
-        def decode_pairs(data, background, seq)
-          paint_pairs(data, seq) { |pair| pair.zero? ? background : 0 }
+          MODES[registers.mode].paint(data, 0, 0, seq)
         end
       end
 

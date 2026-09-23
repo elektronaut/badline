@@ -137,10 +137,11 @@ RSpec.describe Badline::VIC::Sequencer do
     context "when at the left edge of the display (column 0)" do
       let(:col) { 0 }
 
-      it "fills shifted-in pixels with background, ignoring the rolling cell" do
-        # A set rightmost pixel in the rolling window must not bleed into the
-        # vacated pixel at the left edge (column 0).
-        expect(render(0, prev_bits: 0b0000_0001, xscroll: 1).first).to eq(6)
+      # The group before column 0 is the zero-data group the sequencer shifts
+      # out ahead of the first g-access, so its pixels bleed in like any
+      # other.
+      it "takes the shifted-in pixels from the group before it" do
+        expect(render(0, prev_bits: 0b0000_0001, xscroll: 1).first).to eq(1)
       end
     end
 
@@ -183,6 +184,39 @@ RSpec.describe Badline::VIC::Sequencer do
 
     it "leaves the border closed on any other line" do
       expect(paint_line(52, den: true)).to eq(2)
+    end
+  end
+
+  # Pinned by hvborder1/2, border-bm-ysh* and border-mcbm: with the side
+  # border left open, the vertical border only withholds the graphics data,
+  # and the zero data still shows in the colours the last g-access latched.
+  describe "a column with no g-access" do
+    def paint_blank(d011, d016: 0xc8)
+      registers.write(0x11, d011)
+      registers.write(0x16, d016)
+      sequencer.new_line(260)
+      sequencer.instance_variable_set(:@main_border, false)
+      sequencer.emit_blank(0x35, 0x09, col)
+      sequencer.colors[x_pos]
+    end
+
+    it "paints the kept screen byte's low nibble in standard bitmap" do
+      expect(paint_blank(0x3b)).to eq(5)
+    end
+
+    it "paints $d021 in multicolour bitmap" do
+      expect(paint_blank(0x3b, d016: 0xd8)).to eq(6)
+    end
+
+    it "paints black in an invalid mode" do
+      expect(paint_blank(0x7b)).to eq(0)
+    end
+
+    it "shows the vertical border only through the main flip-flop" do
+      registers.write(0x11, 0x3b)
+      sequencer.new_line(260)
+      sequencer.emit_blank(0x35, 0x09, col)
+      expect(sequencer.colors[x_pos]).to eq(2)
     end
   end
 

@@ -23,6 +23,11 @@ module Badline
     # A g-access reaches the pixel output this many columns after it runs.
     GRAPHICS_DELAY = 2
 
+    # What a column's g-access passed to the sequencer.
+    G_BLANK = 0
+    G_IDLE = 1
+    G_DISPLAY = 2
+
     # Columns carrying a per-cycle hook, so an ordinary column costs one
     # array read instead of the dispatch.
     HOOK_COLUMNS = Array.new(63) do |column|
@@ -63,7 +68,9 @@ module Badline
       @color_buffer = Array.new(40, 0)
       @sprite_ba = Array.new(@width / 8, false)
       @g_tick = 0
-      @g_display = Array.new(4, false)
+      @g_kind = Array.new(4, G_BLANK)
+      @g_kept_char = 0
+      @g_kept_color = 0
       @g_char = Array.new(4, 0)
       @g_color = Array.new(4, 1)
       @g_vc = Array.new(4, 0)
@@ -257,26 +264,47 @@ module Badline
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY
-    # columns earlier.
+    # columns earlier. A column with no g-access, or one made while the
+    # vertical border flip-flop is set, latches nothing: it passes on zero
+    # data with the screen byte and colour the last g-access latched, which
+    # an idle g-access clears.
     def draw!
       slot = @g_tick = (@g_tick + 1) & 3
       display_state = @display_state
-      if (@g_display[slot] = display_state.display?)
-        vmli = display_state.vmli
-        @g_char[slot] = @character_buffer[vmli] || 0
-        @g_color[slot] = @color_buffer[vmli] || 1
-        @g_vc[slot] = display_state.vc
-        @g_rc[slot] = display_state.rc
-        display_state.graphics_access(@column)
+      if !display_state.graphics_column?(@column) || @sequencer.vertical_closed?
+        @g_kind[slot] = G_BLANK
+        @g_char[slot] = @g_kept_char
+        @g_color[slot] = @g_kept_color
+      else
+        latch_graphics(slot, display_state)
       end
+      display_state.graphics_access(@column) if display_state.display?
       return if blanking?
 
-      slot = (slot - GRAPHICS_DELAY) & 3
-      col = @column - 16
-      if @g_display[slot]
+      emit_graphics((slot - GRAPHICS_DELAY) & 3, @column - 16)
+    end
+
+    def latch_graphics(slot, display_state)
+      unless display_state.display?
+        @g_kind[slot] = G_IDLE
+        @g_kept_char = @g_kept_color = 0
+        return
+      end
+
+      vmli = display_state.vmli
+      @g_kind[slot] = G_DISPLAY
+      @g_char[slot] = @g_kept_char = @character_buffer[vmli] || 0
+      @g_color[slot] = @g_kept_color = @color_buffer[vmli] || 1
+      @g_vc[slot] = display_state.vc
+      @g_rc[slot] = display_state.rc
+    end
+
+    def emit_graphics(slot, col)
+      case @g_kind[slot]
+      when G_DISPLAY
         @sequencer.emit(@g_char[slot], @g_color[slot], col, @g_vc[slot], @g_rc[slot])
-      else
-        @sequencer.emit_idle(col)
+      when G_IDLE then @sequencer.emit_idle(col)
+      else @sequencer.emit_blank(@g_char[slot], @g_color[slot], col)
       end
     end
 
