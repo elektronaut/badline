@@ -12,8 +12,8 @@
 #   game   IK+'s attract mode from 20M cycles: 8 sprites, bad lines and a
 #          raster IRQ per multiplexed sprite row. Needs
 #          vendor/OneLoad64-Games-Collection-v5 linked into the checkout
-#   synth  idle with SID synthesis on and a sample read every cycle, the
-#          loop Audio::MachinePlayer runs
+#   synth  idle with the SID recording at 44.1 kHz, drained once a frame,
+#          the loop Audio::MachinePlayer runs
 #
 # The default mode samples the workload with stackprof (in the Gemfile's
 # development group, so `bundle install` first) and prints the self time
@@ -68,7 +68,7 @@ module Profiler
         fast_forward = 20_000_000
       end
       @computer.cycle! while @computer.cycles < fast_forward
-      @computer.sid.synthesize! if @synth
+      @computer.sid.record(rate: Badline::Audio::Renderer::DEFAULT_RATE) if @synth
     end
 
     def stub(chip)
@@ -81,10 +81,13 @@ module Profiler
     def run(cycles)
       computer = @computer
       if @synth
+        frame = Badline::Audio::MachinePlayer::FRAME_CYCLES
         sid = computer.sid
-        cycles.times do
-          computer.cycle!
-          sid.sample
+        until cycles.zero?
+          span = [cycles, frame].min
+          span.times { computer.cycle! }
+          sid.drain_samples
+          cycles -= span
         end
       else
         cycles.times { computer.cycle! }
