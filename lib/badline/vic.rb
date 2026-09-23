@@ -75,6 +75,7 @@ module Badline
       @g_color = Array.new(4, 1)
       @g_vc = Array.new(4, 0)
       @g_rc = Array.new(4, 0)
+      @g_display = false
       @lp_triggered = false
       @lp_low = false
 
@@ -188,6 +189,14 @@ module Badline
       latch_lightpen((vic_x >> 1) + 2, line)
     end
 
+    # The byte the VIC fetched in the phi1 half of the cycle the CPU is
+    # running, worked out from the VIC's state. The CPU cycle after column
+    # c is Bauer cycle c + 2, and each Bauer cycle has a fixed access (VICE
+    # `cycle_phi1_fetch`).
+    def phi1_data
+      vic_bank.peek(phi1_address)
+    end
+
     def hblank?
       @column < 10 || @column > 60
     end
@@ -219,6 +228,50 @@ module Badline
         @sequencer.color_patches.log(reg, old, value, @column * 8) unless blanking?
       else
         @sprites.log_change(reg, old, value, @column * 8)
+      end
+    end
+
+    # Bauer cycles 1-10 and 58-63 are sprite p- and s-accesses, 11-15
+    # refresh, 16-55 g-accesses and 56-57 idle. @column has already
+    # advanced, so it is the Bauer cycle less one.
+    def phi1_address
+      cycle = @column + 1
+      if cycle < 11 || cycle > 57
+        sprite_phi1_address((cycle - 58) % 63)
+      elsif cycle < 16
+        0x3f00 | ((0xff - (5 * @rasterline) - (cycle - 11)) & 0xff)
+      elsif cycle < 56
+        graphics_phi1_address
+      else
+        0x3fff
+      end
+    end
+
+    # Each sprite takes two cycles from Bauer 58, the p-access and then the
+    # middle s-access.
+    def sprite_phi1_address(slot)
+      n = slot >> 1
+      return @registers.screen_base + 0x3f8 + n if slot.even?
+
+      @sprites[n].phi1_address || 0x3fff
+    end
+
+    # The g-access of the column just run. In display state it used the
+    # VC and VMLI it then stepped past.
+    def graphics_phi1_address
+      ecm = @registers.ecm.nonzero?
+      return ecm ? 0x39ff : 0x3fff unless @g_display
+
+      address = display_graphics_address(@display_state.vmli - 1, (@display_state.vc - 1) & 0x3ff)
+      ecm ? address & 0x39ff : address
+    end
+
+    def display_graphics_address(vmli, counter)
+      rc = @display_state.rc
+      if @registers.bmm.nonzero?
+        @registers.bitmap_base | (counter << 3) | rc
+      else
+        @registers.char_base | ((@character_buffer[vmli] || 0) << 3) | rc
       end
     end
 
@@ -279,7 +332,8 @@ module Badline
       else
         latch_graphics(slot, display_state)
       end
-      display_state.graphics_access(@column) if display_state.display?
+      @g_display = display_state.display?
+      display_state.graphics_access(@column) if @g_display
       return if blanking?
 
       emit_graphics((slot - GRAPHICS_DELAY) & 3, @column - 16)
@@ -329,7 +383,7 @@ module Badline
     end
 
     def video_matrix(index)
-      vic_bank.peek_phi2(@registers.screen_base + index)
+      vic_bank.peek(@registers.screen_base + index)
     end
 
     def start_line!

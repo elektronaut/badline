@@ -580,6 +580,74 @@ RSpec.describe Badline::VIC do
     it { is_expected.to be(false) }
   end
 
+  # The CPU cycle after @column is Bauer cycle @column + 1. Pinned by
+  # VICII/phi1timing.
+  describe "#phi1_data" do
+    subject { vic.phi1_data }
+
+    let(:ram) { vic.address_bus.ram }
+    let(:line) { 60 }
+
+    before do
+      vic.poke(0xd018, 0x18) # screen @ $0400, char @ $2000
+      ram.poke(0x3fff, 0xff)
+      setup
+      ((line * 63) + column).times { vic.cycle! }
+    end
+
+    context "with a sprite pointer fetch in Bauer cycle 1" do
+      let(:column) { 0 }
+      let(:setup) { ram.poke(0x07fb, 0x33) }
+
+      it { is_expected.to eq(0x33) }
+    end
+
+    context "with the third refresh of line 60 in Bauer cycle 13" do
+      let(:column) { 12 }
+      # REF starts at $ff on line 0 and steps down once per refresh.
+      let(:setup) { ram.poke(0x3f00 | ((0xff - (5 * 60) - 2) & 0xff), 0x5a) }
+
+      it { is_expected.to eq(0x5a) }
+    end
+
+    context "with the idle access in Bauer cycle 56" do
+      let(:column) { 55 }
+      let(:setup) { vic.poke(0xd011, 0x5b) } # ECM set
+
+      it { is_expected.to eq(0xff) }
+    end
+
+    context "with an idle-state g-access and ECM set" do
+      let(:line) { 20 }
+      let(:column) { 30 }
+      let(:setup) { [vic.poke(0xd011, 0x5b), ram.poke(0x39ff, 0xaa)] }
+
+      it { is_expected.to eq(0xaa) }
+    end
+
+    context "with a display-state g-access for cell 5 of row 1" do
+      let(:line) { 59 }
+      let(:column) { 20 }
+      let(:setup) { [ram.poke(0x0400 + 40 + 5, 0x02), ram.poke(0x2010, 0xc3)] }
+
+      it { is_expected.to eq(0xc3) }
+    end
+
+    context "with sprite 0's middle s-access in Bauer cycle 59" do
+      let(:column) { 58 }
+      let(:setup) { [vic.poke(0xd015, 0x01), vic.poke(0xd001, 60), ram.poke(0x07f8, 0x80), ram.poke(0x2001, 0x77)] }
+
+      it { is_expected.to eq(0x77) }
+    end
+
+    context "with sprite 0's DMA off in Bauer cycle 59" do
+      let(:column) { 58 }
+      let(:setup) { ram.poke(0x2001, 0x77) }
+
+      it { is_expected.to eq(0xff) }
+    end
+  end
+
   describe "FLD: withholding bad lines opens an idle gap" do
     let(:bg) { 6 }
     let(:fg) { 1 }

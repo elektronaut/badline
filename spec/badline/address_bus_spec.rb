@@ -81,11 +81,9 @@ describe Badline::AddressBus do
   end
 
   describe "the I/O 1 and 2 pages" do
-    let(:vic_bank) { address_bus.vic.vic_bank }
-
     before do
       address_bus.ram.poke(0x3fff, 0xa5)
-      vic_bank.peek(0x3fff)
+      55.times { address_bus.vic.cycle! } # Bauer cycle 56 idles at $3fff
     end
 
     it "reads the VIC's phi1 byte from I/O 1" do

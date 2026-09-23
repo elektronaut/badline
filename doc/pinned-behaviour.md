@@ -21,6 +21,7 @@ only catches the rows that happen to move.
 - [VIC sprite collisions](#vic-sprite-collisions)
 - [VIC border and idle state](#vic-border-and-idle-state)
 - [VIC bad line and DMA](#vic-bad-line-and-dma)
+- [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
 - [CIA serial shift register](#cia-serial-shift-register)
@@ -454,6 +455,34 @@ only catches the rows that happen to move.
   matching every display row back to its offset in screen memory, so a diff
   reads as "row 0 starts 40 cells in" instead of "11,376 px". Rebuild that
   as a scratch script before touching these tests again.
+
+## VIC phi1 bus
+
+- A CPU read of open I/O ($DE00–$DFFF) returns the byte the VIC fetched in
+  the phi1 half of the same cycle, and a colour RAM read takes its upper
+  nibble from it. `VIC#phi1_data` works the byte out when it is asked for,
+  from the VIC's state at that moment. The CPU cycle after column `c` is
+  Bauer cycle `c + 2` (the display-state frame in
+  [VIC bad line and DMA](#vic-bad-line-and-dma)), which is `@column + 1`
+  once the VIC has advanced. Each Bauer cycle has a fixed access, as in
+  VICE `cycle_phi1_fetch`:
+  - 1–10 and 58–63: two cycles per sprite from sprite 0 at 58, the
+    p-access at `screen_base + $3f8 + n` and then the middle s-access,
+    `pointer * 64 + MC + 1` with DMA on and `$3fff` with it off.
+  - 11–15: refresh at `$3f00 | REF`. REF is `$ff` at line 0 and steps
+    down once per refresh access, five per line.
+  - 16–55: the g-access of the column just run, read at column time, not
+    when the sequencer draws it two columns later. In display state that
+    is the address the sequencer uses, with the VC and VMLI the access
+    stepped past (`& $39ff` with ECM). In idle state it is `$3fff`, or
+    `$39ff` with ECM, whatever the vertical border does.
+  - 56–57: `$3fff`, with or without ECM.
+  - Pinned by `phi1timing`, which reads $DEAD once per cycle across a
+    line in idle state with ECM set. A one-cycle shift of the frame either
+    way fails it on 19 of its 63 columns. The refresh counter, display-state
+    g-accesses and the DMA s-access follow VICE: `phi1timing` fills
+    $3f00–$3ffe with one value and runs with DEN clear and no sprites.
+  - Spec guard: *#phi1_data* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 
 ## VIC light pen
 

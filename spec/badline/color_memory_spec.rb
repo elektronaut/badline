@@ -11,7 +11,7 @@ describe Badline::ColorMemory do
 
     before do
       address_bus.ram.poke(0x3fff, 0xa5)
-      address_bus.vic.vic_bank.peek(0x3fff)
+      55.times { address_bus.vic.cycle! } # Bauer cycle 56 idles at $3fff
       address_bus.poke(0xd805, 0x3c)
     end
 
