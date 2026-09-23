@@ -46,19 +46,25 @@ module Badline
       JOB_OK = 1
       HEADER_NOT_FOUND = 20
 
-      # A U command jumps through the user table by its second character.
-      # UJ and U: take the reset vector, which runs the RAM test. UI and U9
-      # take the NMI vector and U; and UK the IRQ one, which restart the DOS
-      # with its RAM intact. UI+ and UI- only switch the bus speed.
+      # A U command jumps through the user table at $FFEA, indexed by the
+      # low nibble of its second character less one, so UA and UQ are U1.
+      # U1 and U2 read and write a block. U3 to U8 run code in the buffer
+      # at $0500, and the five entries past the table's end take vectors
+      # from the job queue. Neither runs here, so they report OK as a
+      # routine that returns does. U9 (UI) takes the NMI vector and U; the
+      # IRQ one, which restart the DOS with its RAM intact, except that a
+      # + or - after U9 only switches the bus speed. U: takes the reset
+      # vector, which runs the RAM test. U0 restores the table.
+      USER_TABLE = [:block_read, :write_protected, *[:initialized] * 6,
+                    :warm_reset, :cold_reset, :warm_reset, *[:initialized] * 5].freeze
+
       COMMANDS = {
-        /\AU[1A]\s*:?\s*(.*)/i => :block_read,
-        /\AU[9I][+-]/i => :initialized,
-        /\AU[:J]/i => :cold_reset,
-        /\AU[9I;K]/i => :warm_reset,
+        /\AU[9IY)][+-]/i => :initialized,
+        /\AU.\s*:?\s*(.*)/i => :user,
         /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
         /\A[IV]/i => :initialized,
-        /\A(?:U[2B]|B-[WAF])/i => :write_protected
+        /\AB-[WAF]/i => :write_protected
       }.freeze
 
       # A drive powers on reporting its DOS version, as a reset does.
@@ -130,6 +136,7 @@ module Badline
         pattern, action = COMMANDS.find { |candidate, _| candidate.match?(command) }
         return report(SYNTAX_ERROR) unless action
 
+        action = USER_TABLE[(command.getbyte(1) - 1) & 0x0f] if action == :user
         run_command(action, arguments(pattern.match(command)[1]))
       end
 
@@ -147,7 +154,7 @@ module Badline
         when :block_read then block_read(arguments)
         when :counted_block_read then counted_block_read(arguments)
         when :buffer_pointer then buffer_pointer(arguments)
-        when :initialized then initialized(arguments)
+        when :initialized then report(OK)
         when :write_protected then write_protected(arguments)
         when :cold_reset then reset(cold: true)
         when :warm_reset then reset(cold: false)
@@ -239,10 +246,6 @@ module Badline
         return JOB_OK unless error
 
         error == DRIVE_NOT_READY ? 15 : error - 18
-      end
-
-      def initialized(_arguments)
-        report(OK)
       end
 
       def write_protected(_arguments)
