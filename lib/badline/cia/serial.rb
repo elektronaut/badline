@@ -37,7 +37,7 @@ module Badline
       BOUNCE = 0x20
       SETTLED = 0x08
 
-      attr_reader :data, :sp_out, :cnt, :cnt_in
+      attr_reader :data, :sp_out, :cnt, :cnt_in, :idle
       attr_accessor :sp_in
 
       def initialize(control)
@@ -81,16 +81,13 @@ module Badline
       # shift register reports itself empty, which it does without waiting
       # for the underflow that raises CNT over the eighth bit.
       def cycle!(underflowed)
-        if @idle && !underflowed
-          @underflow_high = false
-          return
-        end
+        return if @idle && !underflowed
 
         shift(underflowed)
         @pending -= 1 if @pending&.positive?
         drain_flight
         count_busy
-        @idle = idle?
+        @idle = !underflowed && idle?
         return if @empty_in.nil?
 
         @empty_in -= 1

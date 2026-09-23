@@ -65,7 +65,7 @@ module Badline
       end
 
       def same_page?
-        (@address ^ @program_counter).nobits?(0xff00)
+        @address >> 8 == @program_counter >> 8
       end
 
       # Runs once for each address in JAM_ADDRESSES. By the time a step runs, @index already points at the next one.

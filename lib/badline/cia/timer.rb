@@ -25,10 +25,12 @@ module Badline
       end
 
       def cycle!(feed)
+        feed &&= @control.value & 0x01 != 0
         if @settled
-          return @counter -= 1 if feed && @counter > 1 && started?
+          return @counter -= 1 if feed && @counter > 1
         elsif @empty
-          return enter(feed)
+          enter if feed
+          return
         end
         run_tick(feed)
       end
@@ -36,7 +38,7 @@ module Badline
       def run_tick(feed)
         @underflowed = false
         @oneshot_linger -= 1 if @oneshot_linger.positive?
-        tick(feed && started?)
+        tick(feed)
         settle
       end
 
@@ -63,9 +65,7 @@ module Badline
         @control.value & 0x01 != 0
       end
 
-      def enter(feed)
-        return unless feed && started?
-
+      def enter
         @pipe = 0b10
         @empty = false
       end
