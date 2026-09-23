@@ -59,13 +59,6 @@ describe Badline::KernalTrap::Drive do
       expect(status).to eq("00, OK,00,00")
     end
 
-    %w[u2 ub ur].each do |block_write|
-      it "rejects a block write through #{block_write}" do
-        command("#{block_write} 2 0 18 0")
-        expect(status).to eq("26,WRITE PROTECT ON,00,00")
-      end
-    end
-
     %w[u3 u8 uc uh u< u@ up].each do |user_code|
       it "reports OK for #{user_code}, as if the drive code returned" do
         command(user_code)
@@ -281,6 +274,49 @@ describe Badline::KernalTrap::Drive do
 
     it "reports DRIVE NOT READY" do
       expect(status).to eq("74,DRIVE NOT READY,00,00")
+    end
+  end
+
+  describe "a block write" do
+    before { drive.open(2, "#") }
+
+    %w[u2 ub ur b-w].each do |block_write|
+      it "fails #{block_write} at the block it names" do
+        command("#{block_write}:2,0,18,1")
+        expect(status).to eq("26,WRITE PROTECT ON,18,01")
+      end
+    end
+
+    it "reports NO CHANNEL without an open buffer" do
+      command("u2 3 0 18 1")
+      expect(status).to eq("70,NO CHANNEL,00,00")
+    end
+
+    it "reports a block outside the image" do
+      allow(storage).to receive(:read_block).and_return(nil)
+      command("u2 2 0 36 0")
+      expect(status).to eq("66,ILLEGAL TRACK OR SECTOR,36,00")
+    end
+  end
+
+  describe "a block write on storage without block access" do
+    let(:storage) { instance_double(Badline::Storage::T64) }
+
+    before do
+      drive.open(2, "#")
+      command("u2 2 0 18 1")
+    end
+
+    it "reports DRIVE NOT READY" do
+      expect(status).to eq("74,DRIVE NOT READY,00,00")
+    end
+  end
+
+  describe "a block allocation" do
+    before { command("b-a 0 18 1") }
+
+    it "reports WRITE PROTECT ON" do
+      expect(status).to eq("26,WRITE PROTECT ON,00,00")
     end
   end
 
