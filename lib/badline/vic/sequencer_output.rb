@@ -39,7 +39,7 @@ module Badline
         end
 
         def output_border(x_pos)
-          @colors.fill(@registers.border, x_pos, 8)
+          @colors.fill(@registers.border, x_pos, 8) if @render
           @border_groups[x_pos >> 3] = BorderMask::FULL
           @fg.fill(false, x_pos, 8)
         end
@@ -49,7 +49,7 @@ module Badline
           @border_groups[x_pos >> 3] = BorderMask::NONE
 
           if shift.zero?
-            @colors[x_pos, 8] = @cur_colors
+            @colors[x_pos, 8] = @cur_colors if @render
             if in_gfx
               @fg[x_pos, 8] = @cur_fg
             else
@@ -63,8 +63,10 @@ module Badline
         def output_window_shifted(x_pos, in_gfx, shift)
           keep = 8 - shift
 
-          copy(@cur_colors, 0, @colors, x_pos + shift, keep)
-          copy(@prev_colors, keep, @colors, x_pos, shift)
+          if @render
+            copy(@cur_colors, 0, @colors, x_pos + shift, keep)
+            copy(@prev_colors, keep, @colors, x_pos, shift)
+          end
           output_shifted_fg(x_pos, in_gfx, shift, keep)
         end
 

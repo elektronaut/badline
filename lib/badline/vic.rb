@@ -86,6 +86,7 @@ module Badline
       @lp_triggered = false
       @lp_low = false
       @raster_match = false
+      @render = true
 
       super()
     end
@@ -221,6 +222,18 @@ module Badline
       @rasterline < 16 || @rasterline > 299 || @column < 10 || @column > 60
     end
 
+    def render? = @render
+
+    # Whether finished lines are painted into #display. A headless run that
+    # only reads the machine's state can turn it off: the sprite
+    # collisions, lightpen and every register still behave the same, but
+    # #display keeps the last lines painted. Turned back on, it is whole
+    # again from the start of the next frame.
+    def render=(on)
+      @render = on
+      @sequencer.render = on
+    end
+
     # Reset the dirty flags once the frontend has consumed them.
     def clear_dirty_lines!
       @dirty_lines.fill(false)
@@ -245,7 +258,7 @@ module Badline
 
       if (0x20..0x24).cover?(reg)
         @sequencer.colors_changed! unless reg == 0x20
-        @sequencer.color_patches.log(reg, old, value, @column * 8) unless blanking?
+        @sequencer.color_patches.log(reg, old, value, @column * 8) if @render && !blanking?
       else
         @sprites.log_change(reg, old, value, @column * 8)
       end
@@ -414,12 +427,13 @@ module Badline
     # or not there is a line to draw — then composite the active sprites
     # over the finished background and copy the line into the frame display.
     def finish_line!
-      render = !vblank? && @sprites.active?
-      @sequencer.apply_color_patches unless vblank?
-      @sequencer.snapshot_line if render
-      @sprites.finish_line(render ? @sequencer.colors : nil, @sequencer.fg)
-      @sequencer.apply_border if render
-      return if vblank?
+      return @sprites.finish_line(nil, @sequencer.fg) if vblank? || !@render
+
+      composite = @sprites.active?
+      @sequencer.apply_color_patches
+      @sequencer.snapshot_line if composite
+      @sprites.finish_line(composite ? @sequencer.colors : nil, @sequencer.fg)
+      @sequencer.apply_border if composite
 
       base = @rasterline * @width
       colors = @sequencer.colors
