@@ -76,6 +76,33 @@ describe Badline::KernalTrap::Save do
     specify { expect(ram.read(0xac, 2)).to eq([0x02, 0xc0]) }
   end
 
+  describe "a save the host can't write" do
+    before do
+      File.chmod(0o555, dir)
+      request_save("DATA")
+      run_trap
+    end
+
+    after { File.chmod(0o755, dir) }
+
+    specify { expect(saved_file("data.prg")).to be_nil }
+    specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+    specify { expect(computer.cpu.status.carry?).to be(false) }
+    specify { expect(ram.peek(0x90)).to eq(0x80) }
+  end
+
+  describe "messages for a save the host can't write in direct mode" do
+    before do
+      allow(backend).to receive(:write_file).and_return(false)
+      direct_mode
+      request_save("DATA")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("\nsaving data") }
+    specify { expect(computer.cpu.status.carry?).to be(false) }
+  end
+
   describe "the registers the ROM leaves" do
     before do
       request_save("DATA")

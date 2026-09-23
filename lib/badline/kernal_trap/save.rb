@@ -7,7 +7,10 @@ module Badline
     # (load address followed by the memory range); other devices fall
     # through to the ROM. The ROM prints SAVING in direct mode and returns
     # into the trap, which then writes the file and leaves through the
-    # ROM's own tail with the registers its UNLISTEN and return leave.
+    # ROM's own tail with the registers its UNLISTEN and return leave. A
+    # host write that fails ends the way a 1541 ends a SAVE it can't
+    # write: the drive stops listening, so ST reads DEVICE NOT PRESENT,
+    # and the ROM returns without an error.
     class Save < File
       ADDRESS = 0xf5ed
 
@@ -21,6 +24,9 @@ module Badline
       MISSING_FILE_NAME_EXIT = 0xf710
 
       SECONDARY = 0x61
+
+      # ST bit at $90
+      DEVICE_NOT_PRESENT = 0x80
 
       def initialize(cpu:, bus:, storage:)
         super
@@ -47,7 +53,7 @@ module Badline
 
       def finish
         @saving = false
-        @storage.write_file(name, payload)
+        @bus.poke(0x90, DEVICE_NOT_PRESENT) unless @storage.write_file(name, payload)
         @bus.poke(0xac, @bus.peek(0xae))
         @bus.poke(0xad, @bus.peek(0xaf))
         @cpu.y = 0

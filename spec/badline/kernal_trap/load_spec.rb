@@ -156,6 +156,19 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0x90)).to eq(0x42) }
   end
 
+  describe "a file the host can't read" do
+    before do
+      File.chmod(0o000, File.join(dir, "DATA.PRG"))
+      request_load("DATA")
+      run_trap
+    end
+
+    specify { expect(computer.cpu.status.carry?).to be(true) }
+    specify { expect(computer.cpu.a).to eq(0x04) }
+    specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+    specify { expect(ram.peek(0x90)).to eq(0x42) }
+  end
+
   describe "an empty filename" do
     before do
       request_load("")

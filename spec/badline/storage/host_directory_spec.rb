@@ -100,6 +100,34 @@ describe Badline::Storage::HostDirectory do
     end
   end
 
+  describe "#read_file with files the host can't read" do
+    after { File.chmod(0o755, dir) }
+
+    it "returns nil for an unreadable .prg" do
+      File.chmod(0o000, File.join(dir, "intro.prg"))
+      expect(storage.read_file("INTRO")).to be_nil
+    end
+
+    it "serves the other files past an unreadable .p00" do
+      File.chmod(0o000, File.join(dir, "zz-game.p00"))
+      expect(storage.read_file("LOADER")).to eq([0x00, 0xc0, 0x11, 0x22])
+    end
+
+    it "skips an unreadable .t64" do
+      File.chmod(0o000, File.join(dir, "zz-tape.t64"))
+      expect(storage.read_file("MUSIC")).to be_nil
+    end
+
+    it "returns nil when the directory can't be listed" do
+      File.chmod(0o000, dir)
+      expect(storage.read_file("INTRO")).to be_nil
+    end
+
+    it "returns nil when the directory is gone" do
+      expect(described_class.new(File.join(dir, "gone")).read_file("INTRO")).to be_nil
+    end
+  end
+
   describe "#write_file" do
     before { storage.write_file("NEW GAME", [0x00, 0xc0, 0x42]) }
 
@@ -119,6 +147,29 @@ describe Badline::Storage::HostDirectory do
     it "keeps path separators out of the host filename" do
       storage.write_file("A/B", [0x01])
       expect(File.binread(File.join(dir, "a_b.prg")).bytes).to eq([0x01])
+    end
+
+    it "reports the write" do
+      expect(storage.write_file("MORE", [0x01])).to be(true)
+    end
+  end
+
+  describe "#write_file when the host can't write" do
+    it "reports a failure for a read-only directory" do
+      File.chmod(0o555, dir)
+      expect(storage.write_file("NEW GAME", [0x01])).to be(false)
+    ensure
+      File.chmod(0o755, dir)
+    end
+
+    it "reports a failure for a directory in the way" do
+      Dir.mkdir(File.join(dir, "new game.prg"))
+      expect(storage.write_file("NEW GAME", [0x01])).to be(false)
+    end
+
+    it "reports a failure for a full disk" do
+      allow(File).to receive(:binwrite).and_raise(Errno::ENOSPC)
+      expect(storage.write_file("NEW GAME", [0x01])).to be(false)
     end
   end
 end
