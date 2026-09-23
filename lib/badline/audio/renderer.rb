@@ -60,7 +60,7 @@ module Badline
       # The cycles it takes to close exactly `total_samples` windows; the SID
       # records floor(cycles * rate / clock) of them.
       def total_cycles
-        ((total_samples * TimeOfDay::CLOCK_HZ) + @rate - 1) / @rate
+        ((total_samples * player.clock_hz) + @rate - 1) / @rate
       end
 
       def container_for(path)
@@ -71,13 +71,13 @@ module Badline
       end
 
       def each_frame
-        player.sid.record(rate: @rate, filter_chunk: @filter_chunk)
+        player.sid.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
         total = total_cycles
         remaining = total
         while remaining.positive?
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
-          yield samples, (total - remaining).fdiv(TimeOfDay::CLOCK_HZ)
+          yield samples, (total - remaining).fdiv(player.clock_hz)
         end
       end
     end

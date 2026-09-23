@@ -6,8 +6,8 @@
 module TinySID
   module_function
 
-  def bytes(signature: "PSID", load_address: 0x1000, play: load_address + 0x40)
-    (header(signature, load_address, play) + image).pack("C*")
+  def bytes(signature: "PSID", load_address: 0x1000, play: load_address + 0x40, flags: 0x04)
+    (header(signature, load_address, play, flags) + image).pack("C*")
   end
 
   def write(addr, value) = [0xa9, value, 0x8d, addr & 0xff, addr >> 8]
@@ -22,12 +22,12 @@ module TinySID
     init + ([0xea] * (0x40 - init.length)) + [0x60]
   end
 
-  def header(signature, load_address, play)
+  def header(signature, load_address, play, flags)
     fields = { version: 2, data_offset: 0x7c, load: load_address,
                init: load_address, play:, songs: 2, start_song: 1 }
     words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
     signature.bytes + words + ([0] * 4) + texts +
-      [0x00, 0x04, 0x00, 0x01, 0x00, 0x00]
+      [0x00, flags, 0x00, 0x01, 0x00, 0x00]
   end
 
   def texts
