@@ -354,6 +354,19 @@ describe Badline::KernalTrap::Load do
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
   end
 
+  describe "a relocated load of a file whose header points below $0334" do
+    before do
+      File.binwrite(File.join(dir, "LOW.PRG"), [0x02, 0x00, 0xaa, 0xbb].pack("C*"))
+      ram.write(0xc3, [0x00, 0xc0])
+      request_load("LOW", secondary: 0)
+      trigger_trap
+    end
+
+    it "loads the file in the trap" do
+      expect(ram.read(0xc000, 2)).to eq([0xaa, 0xbb])
+    end
+  end
+
   describe "a load from another device" do
     before do
       request_load("DATA", device: 1)
