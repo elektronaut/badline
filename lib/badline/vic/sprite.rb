@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/vic/sprite/internal_bus"
 require "badline/vic/sprite/shifter"
 
 module Badline
@@ -36,12 +37,14 @@ module Badline
 
       # The s-accesses reload the shift register partway through the line,
       # at raster pixel 459 for sprite 0 and 16 later for each sprite after
-      # it. A sprite still shifting there loses the rest of its row (the
-      # output holds for that one pixel), and the comparator is ignored for
-      # the twelve pixels from it. Decoded from the spritescan dump.
+      # it. A sprite still shifting there loses the rest of its row, and the
+      # comparator is ignored for the twelve pixels from it (the spritescan
+      # dump). Its output holds the last pixel for seven, through K+6
+      # (spritefetchbug).
       RELOAD_X = 459
       RELOAD_STEP = 16
       RELOAD_DEAD = 12
+      RELOAD_HOLD = 7
 
       # On the line of its last row, a sprite whose DMA ended at cycle 16
       # loses its display at cycle 58, so no hit from this pixel on starts
@@ -53,10 +56,11 @@ module Badline
       attr_reader :index, :leftmost, :span, :codes,
                   :reload_leftmost, :reload_span, :reload_codes
 
-      def initialize(index, registers, bank, width)
+      def initialize(index, registers, bank, width, bus = InternalBus.new(bank, width / 8))
         @index = index
         @registers = registers
         @bank = bank
+        @bus = bus
         @width = width
         @bit = 1 << index
         @dma = false
@@ -67,10 +71,10 @@ module Badline
         @crunched_mc = nil
         @bits = 0
         @row_ready = false
-        @codes = Array.new(MAX_SPAN, 0)
+        @codes = Array.new(MAX_SPAN + RELOAD_HOLD, 0)
         @leftmost = 0
         @span = 0
-        @reload_codes = Array.new(MAX_SPAN, 0)
+        @reload_codes = Array.new(MAX_SPAN + RELOAD_HOLD, 0)
         @reload_leftmost = 0
         @reload_span = 0
         @reload_x = (RELOAD_X + (RELOAD_STEP * index)) % width
@@ -80,6 +84,8 @@ module Badline
         @mc_flop = false
         @xe_flop = false
         @first_byte_lost = false
+        @blind = false
+        @show_from = 0
       end
 
       def displaying? = @dma
@@ -147,8 +153,8 @@ module Badline
       end
 
       # Cycles 55 and 56: a Y/enable match starts the DMA and rewinds
-      # MCBASE. Display is enabled separately in cycle 58, so the rows
-      # render from the following line on.
+      # MCBASE, and returns true. Display is enabled separately in cycle 58,
+      # so the rows render from the following line on.
       #
       # On the VIC's side, BA falls at the sprite's own column — 55 for
       # sprite 0, two later for each sprite after it, a column behind the
@@ -159,7 +165,7 @@ module Badline
       # sprite 0, alone among the eight in following the compares
       # immediately (spriteenable2).
       def check_dma(line, column)
-        return if @dma || !enabled? || !y_match?(line)
+        return false if @dma || !enabled? || !y_match?(line)
 
         @first_byte_lost = column + 2 > 55 + (2 * index)
         @dma = true
@@ -180,6 +186,7 @@ module Badline
         else
           @display_on = false
         end
+        blind_fetch if @blind && @display_on
       end
 
       # The address of the s-access that falls in phi1, the middle of the
@@ -195,6 +202,8 @@ module Badline
         @reload_span = 0
         @prev_bits = (@bits if @row_ready && @dma)
         @row_ready = false
+        @blind = !@dma && !@reload_next_line
+        @show_from = 0
         lost = @first_byte_lost
         @first_byte_lost = false
         return unless @dma && @display_on
@@ -244,6 +253,16 @@ module Badline
 
       private
 
+      # On the line whose compare started the DMA, sprites 3-7 ran their
+      # s-accesses before it was on, so the shift register holds what the
+      # VIC saw on its bus instead of a row, and a hit from the display
+      # turning on shows it (sbsprf24).
+      def blind_fetch
+        @bits = @bus.row(index)
+        @row_ready = true
+        @show_from = DISPLAY_OFF_X
+      end
+
       def code_at(raster_x, leftmost, span, codes)
         dist = raster_x - leftmost
         dist += @width if dist.negative?
@@ -251,7 +270,7 @@ module Badline
       end
 
       def sequence_hit(log, start, reload_bits)
-        return if @stop_x && start >= @stop_x
+        return if (@stop_x && start >= @stop_x) || start < @show_from
 
         if start < @reload_x
           sequence_early(log, start)
@@ -265,14 +284,16 @@ module Badline
         return unless bits && @span.zero?
 
         @leftmost = start
-        @span = cut_at_reload(start, run(log, start, @codes, bits), @codes)
+        cut = reload_cut(start)
+        @span = cut_at_reload(cut, run(log, start, @codes, bits, cut), @codes)
       end
 
       def sequence_reloaded(log, start, bits)
         return unless bits && @reload_span.zero?
 
         @reload_leftmost = start
-        @reload_span = cut_at_reload(start, run(log, start, @reload_codes, bits), @reload_codes)
+        cut = reload_cut(start)
+        @reload_span = cut_at_reload(cut, run(log, start, @reload_codes, bits, cut), @reload_codes)
       end
 
       # The row in the shift register ahead of the reload: this line's for
@@ -293,17 +314,6 @@ module Badline
         bits = row_bits(@mc)
         bits |= 0xff << 16 if @first_byte_lost
         bits
-      end
-
-      # A run that reaches the next reload is cut there, holding its last
-      # pixel for one more. Returns the span that is left.
-      def cut_at_reload(start, span, codes)
-        reload = start < @reload_x ? @reload_x : @reload_x + @width
-        cut = reload - start
-        return span if cut > span || cut >= MAX_SPAN
-
-        codes[cut] = codes[cut - 1]
-        cut + 1
       end
 
       # The three s-accesses step MC through the sprite's block, wrapping

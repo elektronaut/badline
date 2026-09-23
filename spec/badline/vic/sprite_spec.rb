@@ -305,9 +305,10 @@ RSpec.describe Badline::VIC::Sprite do
       sprite.sequence
     end
 
-    it "cuts a row short there, holding the last pixel for one more" do
+    # Pinned by spritefetchbug: the held pixel runs to K+6.
+    it "cuts a row short there, holding the last pixel through K+6" do
       sequence_at(346) # first pixel at 450
-      expect(sprite.span).to eq(10)
+      expect(sprite.span).to eq(16)
     end
 
     it "ignores a match in the twelve pixels from it" do
@@ -319,6 +320,42 @@ RSpec.describe Badline::VIC::Sprite do
       put_row(0x20, 0, 0, 0, 0)
       sequence_at(376) # first pixel at 480, on the line showing row 0
       expect(sprite.pixel(480)).to eq(sprite.color)
+    end
+  end
+
+  # Pinned by spritefetchbug: at X = $136 an X-expanded multicolor sprite
+  # loads its last pair on pixel 458, the one before the reload, and it
+  # shows only the pair's high bit, as hi-res does.
+  describe "a multicolor pair loaded on the pixel before the reload" do
+    before do
+      registers.write(0x10, 0x01)
+      registers.write(0x00, 0x36) # first pixel at 414, pairs every 4
+      registers.write(0x1c, 0x01)
+      registers.write(0x1d, 0x01)
+      registers.write(0x25, 5)
+      registers.write(0x26, 7)
+      registers.write(0x27, 1)
+    end
+
+    def last_pair(bits)
+      put_row(0x20, 0, 0, 0, bits)
+      start_display
+      sprite.sequence
+    end
+
+    it "drops the low bit of %11" do
+      last_pair(0b11)
+      expect(sprite.pixel(458)).to eq(1)
+    end
+
+    it "drops the low bit of %01" do
+      last_pair(0b01)
+      expect(sprite.pixel(458)).to be_nil
+    end
+
+    it "holds that pixel through K+6" do
+      last_pair(0b10)
+      expect([sprite.pixel(465), sprite.pixel(466)]).to eq([1, nil])
     end
   end
 

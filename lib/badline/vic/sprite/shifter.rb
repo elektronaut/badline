@@ -46,7 +46,21 @@ module Badline
           (xpos + COMPARE_OFFSET) % @width
         end
 
-        def run(log, start, codes, bits)
+        # Pixels from the X match to the next reload.
+        def reload_cut(start) = (start < @reload_x ? @reload_x : @reload_x + @width) - start
+
+        # A run that reaches the next reload is cut there, holding its last
+        # pixel through K+6. Returns the span that is left.
+        def cut_at_reload(cut, span, codes)
+          return span if cut > span || cut >= MAX_SPAN
+
+          RELOAD_HOLD.times { |i| codes[cut + i] = codes[cut - 1] }
+          cut + RELOAD_HOLD
+        end
+
+        # Shift one firing out into `codes`, up to the sprite's end, `cut`
+        # pixels from the reload.
+        def run(log, start, codes, bits, cut)
           @sr = bits
           log&.rewind
           pos = start
@@ -61,7 +75,7 @@ module Badline
               expanded = log[0x1d].anybits?(@bit)
               boundary = log.next_x
             end
-            count.zero? ? prime(mc) : step(mc, expanded)
+            count.zero? ? prime(mc) : step(mc, expanded, count == cut - 1)
             break if @latch.zero? && @sr.zero?
 
             codes[count] = @latch
@@ -84,7 +98,7 @@ module Badline
         # every other shift, so its pairs stretch with the expansion. Both
         # flip-flops sit idle while their register bit is clear, which is why
         # the first pixel after a mid-sprite change repeats the last one.
-        def step(multicolor, expanded)
+        def step(multicolor, expanded, last)
           shift = true
           if expanded
             shift = @xe_flop
@@ -96,12 +110,14 @@ module Badline
           return unless shift
 
           @sr = (@sr << 1) & 0xffffff
-          load_latch(multicolor)
+          load_latch(multicolor, last)
         end
 
-        def load_latch(multicolor)
+        # A multicolor pair loaded on the last pixel before the reload keeps
+        # only its high bit, as a hi-res pixel does (spritefetchbug).
+        def load_latch(multicolor, last)
           if multicolor
-            @latch = (@sr >> 22) & 3 if @mc_flop
+            @latch = (@sr >> 22) & (last ? 2 : 3) if @mc_flop
             @mc_flop = !@mc_flop
           else
             @latch = (@sr >> 22) & 2

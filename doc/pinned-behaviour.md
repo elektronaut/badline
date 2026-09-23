@@ -284,7 +284,7 @@ only catches the rows that happen to move.
   K = 459 + 16*m (mod 504). That is late in the line for sprites 0–2 and
   early in the next one for 3–7.
   - A sprite still shifting at K loses the rest of its row. Its output
-    holds for that one pixel, then goes dark.
+    holds its last pixel from K through **K+6**, then goes dark.
   - A comparator hit in K..K+11 shows nothing.
   - A hit from K+12 on shows the row the reload brought. For sprites 0–2
     that is the *next* line's row, a line early. For sprites 3–7 it is the
@@ -299,6 +299,42 @@ only catches the rows that happen to move.
     `spritex/demusinterruptus` and `spritegap2` pass on it too.
   - Spec guard: *the reload* in
     [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+  - The hold's length is pinned by `spritefetchbug/test-136-2a`, whose
+    X-expanded sprite 0 sits at X = $136 and is still shifting at 459. Its
+    reference holds the last pixel through 465. Holding it for one pixel
+    fails the test by 134 px. `spritescan` passes either way, because it
+    records only whether a collision happened at each X position.
+- A multicolor pair that the latch loads on **K−1**, the last pixel before
+  the reload, keeps only its high bit, as a hi-res pixel does: %11 shows the
+  sprite's own color and %01 is transparent. The hold then repeats that
+  pixel.
+  - Pinned by `spritefetchbug/test-136-2a`. Its X-expanded multicolor
+    sprite at $136 loads its last pair on pixel 458. Without the rule the
+    test fails by 168 px. The readme lists 136, 13a, 13e, 142, 146 and 14e
+    as the positions where the bug stops being multicolor. Those are the X
+    positions ≡ 2 mod 4, where an X-expanded sprite's pair loads land on
+    458.
+  - Spec guard: *a multicolor pair loaded on the pixel before the reload*
+    in [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- Sprites 3–7 run their s-accesses at the start of the line, so on the line
+  whose compare starts their DMA, those accesses ran with the DMA still
+  off. The shift register loads what the VIC saw anyway. The first and third
+  bytes come from the VIC's internal bus in phi2, which reads $ff unless
+  the CPU reads or writes a VIC register in that cycle, in which case it
+  holds that byte. The middle byte is the idle phi1 fetch at $3fff. A hit
+  after the display turns on at cycle 58 (raster pixel 460 on, X ≥ $164)
+  shows this row on the same line.
+  - Pinned by `sbsprf24-164`. Its sprite 6 at $164 shows `BYTE_S0`, the
+    ghost byte and `BYTE_S2` on line $7a, which the program puts on the bus
+    with the dummy read and the write of `sta $d000,y` in Bauer cycles 7
+    and 8. Without the rule the test goes back from 42 to 51 px. With $ff
+    in place of the bus bytes it is 49 px, and with $ff in place of the
+    ghost byte, 46. `sbsprf24-163`, one pixel to the left, shows nothing
+    on that line.
+  - `Sprite::InternalBus` samples $3fff as the line starts rather than in
+    the sprite's own cycle, which `sbsprf24` can't tell apart.
+  - Spec guard: *the s-accesses before the DMA starts* in
+    [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb).
 - On the line that shows its last row, where MCBASE reached 63 and the DMA
   ended at cycle 16, the sprite loses its display at cycle 58: no hit from
   raster pixel **460** on starts it, though one already shifting runs on,

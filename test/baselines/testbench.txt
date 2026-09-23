@@ -87,7 +87,7 @@ VICII/phi1timing/phi1timing.prg	PASS
 VICII/rasterirq/rasterirq_hold.prg	PASS
 VICII/screenpos/screenpos.prg	PASS
 VICII/sb_sprite_fetch/sbsprf24-163.prg	FAIL	diff=34px exit=$00
-VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=51px exit=$00
+VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=42px exit=$00
 VICII/split-tests/bascan/bascan.prg	PASS
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
@@ -153,8 +153,8 @@ VICII/spriteenable/spriteenable2.prg	PASS
 VICII/spriteenable/spriteenable3.prg	PASS
 VICII/spriteenable/spriteenable4.prg	PASS
 VICII/spriteenable/spriteenable5.prg	PASS
-VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=174px exit=$00
-VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=174px exit=$00
+VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=8px exit=$00
+VICII/spritefetchbug/test-136-2a.prg	FAIL	diff=8px exit=$00
 VICII/spritegap/spritegap2.prg	PASS
 VICII/spritegap/spritegap3.prg	PASS
 VICII/spritepriorities/test1.prg	PASS

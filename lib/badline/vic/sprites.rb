@@ -31,7 +31,8 @@ module Badline
         @registers = registers
         @bank = bank
         @width = width
-        @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, width) }
+        @bus = Sprite::InternalBus.new(bank, width / 8)
+        @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, width, @bus) }
         @collisions = Collisions.new(registers, width)
         @hits = @collisions.hits
         @win_color = Array.new(width, 0)
@@ -53,6 +54,7 @@ module Badline
       # Pixels a sprite drew past the end of the last line land at the start
       # of this one, which is when the beam reaches them.
       def start_line
+        @bus.start_line(@registers[0x15].nonzero?)
         @log.clear
         @sprites.each(&:start_line)
         @collisions.start_line
@@ -97,13 +99,7 @@ module Badline
       def check_dma(line, column)
         return false if @registers[0x15].zero?
 
-        hit = false
-        @sprites.each do |sprite|
-          next if sprite.displaying?
-
-          sprite.check_dma(line, column)
-          hit ||= sprite.displaying?
-        end
+        hit = @sprites.map { |sprite| sprite.check_dma(line, column) }.any?
         @any_dma ||= hit
         hit
       end
@@ -115,6 +111,10 @@ module Badline
         @sprites.each { |sprite| sprite.check_display(line) }
         @sequenced = -1
       end
+
+      # A CPU access to a VIC register, in the cycle after the VIC's
+      # `column`.
+      def bus_data(column, value) = @bus.access(column, value)
 
       # Not gated on the DMA flag: a row fetched at the start of the line
       # still renders when cycle 16 ends the sprite.
