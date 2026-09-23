@@ -10,9 +10,10 @@
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and
 # need the eye. The machine is booted once, and each test runs in a child
 # forked from it that injects the .prg and types RUN; a child that crashes
-# or hangs gets a FAIL row saying so. The 6581 list is fixed below; the 8580 one is read from the
-# testbench testlist, which tags the programs written for the 8580 sid-new,
-# each with its own cycle budget. With --results, the results log — one tab-separated "name STATUS
+# or hangs gets a FAIL row saying so. Both lists are read from the
+# testbench testlist, which tags the programs written for the 8580 sid-new
+# and those for the 6581 sid-old, each with its own cycle budget; the 6581
+# list also takes the untagged programs. With --results, the results log — one tab-separated "name STATUS
 # [detail]" record per test, in test order — is written to PATH; that is the
 # baseline format `rake regression:sid` diffs against the tracked copy in
 # test/baselines/. Filters are name substrings matched as a union; one
@@ -32,28 +33,7 @@ module SIDTests
   TESTLIST = File.expand_path("../vendor/VICE-testprogs/testbench/c64-testlist.in", __dir__)
 
   BOOT_ALLOWANCE = 3_000_000
-  TIMEOUT = 12_000_000
   BATCH = 10_000
-
-  TESTS = %w[
-    busvalue/busvalue.prg
-    envelope/lft-adsr-test.prg
-    envelope/testADSRDelayBug.prg
-    envelope/testFlip00toFF.prg
-    envelope/testFlipFFto00.prg
-    exp_counter_reset/env_test_exr.prg
-    noiselfsrinit/simple.prg
-    osc3-wave0/osc3-wave0.prg
-    osc_topbit/osc_topbit_test_noise_old.prg
-    osc_topbit/osc_topbit_test_pulse_old.prg
-    osc_topbit/osc_topbit_test_triangle_old.prg
-    oscinit/allinit.prg
-    oscinit/noiseinit.prg
-    oscinit/oscinit.prg
-    ringmod/ringmodtest.prg
-    wf12nsr/wf12nsr.prg
-    writedelay/writedelay.prg
-  ].freeze
 
   SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
@@ -61,16 +41,18 @@ module SIDTests
 
   # Test names mapped to their cycle budget after boot.
   def tests(sid_model = :mos6581)
-    return TESTS.to_h { |name| [name, TIMEOUT] } if sid_model == :mos6581
-
-    File.readlines(TESTLIST).filter_map { |line| parse(line) }.to_h
+    File.readlines(TESTLIST).filter_map { |line| parse(line, sid_model) }.to_h
   end
 
   # A testlist row is "dir/,prg,type,cycles[,option...]". Only the exitcode
-  # rows under SID/ tagged sid-new are kept, as [name, cycles].
-  def parse(line)
+  # rows under SID/ are kept, as [name, cycles]: for the 8580 those tagged
+  # sid-new, for the 6581 the rest. Rows that mount a disk image are left
+  # out, since the runner only injects the .prg.
+  def parse(line, sid_model = :mos8580)
     dir, prg, type, cycles, *options = line.strip.split(",")
-    return unless dir&.start_with?("../SID/") && type == "exitcode" && options.include?("sid-new")
+    return unless dir&.start_with?("../SID/") && type == "exitcode"
+    return if options.include?("sid-new") != (sid_model == :mos8580)
+    return if options.any? { it.start_with?("mount") }
 
     ["#{dir.delete_prefix('../SID/')}#{prg}", Integer(cycles)]
   end
@@ -97,7 +79,7 @@ module SIDTests
   # outside its emulated cycles: at a hundred thousand cycles a second,
   # far slower than any machine this runs on, the budget alone would take
   # that long.
-  def score(name, sid_model = :mos6581, timeout = TIMEOUT)
+  def score(name, sid_model, timeout)
     deadline = 60 + ((timeout + BOOT_ALLOWANCE) / 100_000)
     booted(sid_model).run(deadline) do |computer|
       code = exit_code(computer, name, timeout)
