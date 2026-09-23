@@ -315,6 +315,22 @@ describe Badline::Storage::SIDFile do
       expect(tune.bank_for(0xe000)).to eq(0x35)
     end
 
+    context "with an image that reaches under BASIC" do
+      let(:fields) { super().merge(load: 0x9ff0, init: 0x9ff0, play: 0x9ff3) }
+
+      it "banks BASIC out below $a000 too" do
+        expect(tune.bank_for(0x9ff0)).to eq(0x36)
+      end
+    end
+
+    context "with an image that ends at $a000" do
+      let(:fields) { super().merge(load: 0x9fe0, init: 0x9fe0, play: 0x9fe3) }
+
+      it "leaves BASIC in place" do
+        expect(tune.bank_for(0x9fe0)).to eq(0x37)
+      end
+    end
+
     context "with an RSID tune" do
       before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
 
