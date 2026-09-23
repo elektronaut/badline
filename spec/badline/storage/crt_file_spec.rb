@@ -79,6 +79,17 @@ describe Badline::Storage::CRTFile do
     end
   end
 
+  context "with a hardware subtype" do
+    let(:header) do
+      "C64 CARTRIDGE   ".b + [0x40, 0x0101, 57, 0, 1, 1].pack("NnnCCC") +
+        ("\x00" * 5) + "TEST CART".ljust(32, "\x00")
+    end
+
+    it "parses the subtype" do
+      expect(crt.subtype).to eq(1)
+    end
+  end
+
   context "with a bad signature" do
     let(:header) { "C64 FLOPPY DISK ".b + ("\x00" * 48) }
 

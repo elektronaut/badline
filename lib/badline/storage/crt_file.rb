@@ -12,7 +12,7 @@ module Badline
 
       Chip = Data.define(:chip_type, :bank, :address, :data)
 
-      attr_reader :hardware_type, :exrom, :game, :name, :chips
+      attr_reader :hardware_type, :subtype, :exrom, :game, :name, :chips
 
       def initialize(path)
         parse(File.binread(path))
@@ -26,6 +26,7 @@ module Badline
         @hardware_type = bytes[0x16, 2].unpack1("n")
         @exrom = bytes.getbyte(0x18)
         @game = bytes.getbyte(0x19)
+        @subtype = bytes.getbyte(0x1a)
         @name = bytes[0x20, 32].unpack1("Z*")
         @chips = parse_chips(bytes, bytes[0x10, 4].unpack1("N"))
       end

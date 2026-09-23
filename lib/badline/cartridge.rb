@@ -4,10 +4,18 @@ require "badline/cartridge/bank"
 require "badline/cartridge/standard"
 require "badline/cartridge/simons_basic"
 require "badline/cartridge/ocean"
+require "badline/cartridge/fun_play"
+require "badline/cartridge/super_games"
 require "badline/cartridge/westermann"
 require "badline/cartridge/rex_utility"
+require "badline/cartridge/game_system"
+require "badline/cartridge/dinamic"
+require "badline/cartridge/zaxxon"
 require "badline/cartridge/magic_desk"
+require "badline/cartridge/comal80"
 require "badline/cartridge/mach5"
+require "badline/cartridge/rgcd"
+require "badline/cartridge/g_mod2"
 
 module Badline
   class Cartridge
@@ -17,8 +25,10 @@ module Badline
     BANK_SIZE = 0x2000
 
     HARDWARE_TYPES = {
-      0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 11 => :Westermann,
-      12 => :RexUtility, 19 => :MagicDesk, 51 => :Mach5
+      0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay,
+      8 => :SuperGames, 11 => :Westermann, 12 => :RexUtility, 15 => :GameSystem,
+      17 => :Dinamic, 18 => :Zaxxon, 19 => :MagicDesk, 21 => :Comal80,
+      51 => :Mach5, 57 => :RGCD, 60 => :GMod2
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines
