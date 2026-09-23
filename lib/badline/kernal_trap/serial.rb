@@ -115,7 +115,7 @@ module Badline
         return unless @listen_channel
 
         case @frame
-        when OPEN then @drive.open(@listen_channel, Storage.ascii(@buffer))
+        when OPEN then @drive.open(@listen_channel, @buffer.pack("C*"))
         when CLOSE then @drive.close(@listen_channel)
         else @drive.write(@listen_channel, @buffer)
         end
