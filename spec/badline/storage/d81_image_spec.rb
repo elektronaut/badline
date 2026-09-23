@@ -43,4 +43,16 @@ describe Badline::Storage::D81Image do
       expect(image.read_block(50, 40)).to be_nil
     end
   end
+
+  describe "#header_block" do
+    it "starts the directory track" do
+      expect(image.header_block).to eq([40, 0])
+    end
+  end
+
+  describe "#new_entry_block" do
+    it "starts at the first directory block" do
+      expect(image.new_entry_block).to eq([40, 3])
+    end
+  end
 end

@@ -15,6 +15,7 @@ module Badline
           29 => "DISK ID MISMATCH",
           30 => "SYNTAX ERROR",
           62 => "FILE NOT FOUND",
+          63 => "FILE EXISTS",
           66 => "ILLEGAL TRACK OR SECTOR",
           70 => "NO CHANNEL",
           73 => "CBM DOS V2.6 1541",

@@ -295,6 +295,63 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "writing to a channel that isn't open" do
+    before do
+      command("i0")
+      drive.write(2, [0xaa])
+    end
+
+    it "leaves the status alone" do
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "isn't listening" do
+      expect(drive.listening?(2)).to be(false)
+    end
+  end
+
+  describe "an open for writing on a write-protected disk" do
+    before do
+      allow(storage).to receive_messages(read_file: nil, new_entry_block: [18, 4], header_block: [18, 0])
+    end
+
+    it "fails SAVE's channel at the new directory entry's block" do
+      drive.open(1, "game")
+      expect(status).to eq("26,WRITE PROTECT ON,18,04")
+    end
+
+    it "fails a W mode open at the header block" do
+      drive.open(2, "log,s,w")
+      expect(status).to eq("26,WRITE PROTECT ON,18,00")
+    end
+
+    it "leaves the channel closed" do
+      drive.open(2, "log,s,w")
+      expect(drive.listening?(2)).to be(false)
+    end
+
+    it "reports FILE EXISTS for a name on the disk, of any type" do
+      allow(storage).to receive(:read_file).with("log", type: nil).and_return([0x41])
+      drive.open(2, "log,s,w")
+      expect(status).to eq("63,FILE EXISTS,00,00")
+    end
+
+    it "fails a replace with WRITE PROTECT ON" do
+      allow(storage).to receive(:read_file).and_return([0x41])
+      drive.open(1, "@0:game")
+      expect(status).to eq("26,WRITE PROTECT ON,18,04")
+    end
+  end
+
+  describe "an open for writing on storage without blocks" do
+    let(:storage) { instance_double(Badline::Storage::T64, read_file: nil) }
+
+    it "reports WRITE PROTECT ON without a block" do
+      drive.open(1, "game")
+      expect(status).to eq("26,WRITE PROTECT ON,00,00")
+    end
+  end
+
   describe "closing channels" do
     before { drive.open(2, "#") }
 

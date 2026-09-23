@@ -16,6 +16,7 @@ module Badline
       WRITE_PROTECT_ON = 26
       SYNTAX_ERROR = 30
       FILE_NOT_FOUND = 62
+      FILE_EXISTS = 63
       ILLEGAL_TRACK_OR_SECTOR = 66
       NO_CHANNEL = 70
       DOS_VERSION = 73
@@ -84,9 +85,15 @@ module Badline
       end
 
       def write(secondary, bytes)
-        return report(WRITE_PROTECT_ON) unless secondary == COMMAND_CHANNEL
+        return command(bytes) if secondary == COMMAND_CHANNEL
 
-        command(bytes)
+        report(WRITE_PROTECT_ON) if listening?(secondary)
+      end
+
+      # Whether data sent on the channel reaches the drive. The command
+      # channel always listens, other channels once they are open.
+      def listening?(secondary)
+        secondary == COMMAND_CHANNEL || @channels.key?(secondary)
       end
 
       # Returns the next byte and whether it is the channel's last, or nil
@@ -107,9 +114,34 @@ module Badline
       # type the name doesn't pin down.
       def open_file(secondary, name)
         file, type = Storage.parse_name(name)
+        return refuse_write(secondary, name, file) if writing?(secondary, name)
+
         type ||= :prg if secondary < 2
         channel = @channels[secondary] = Channel.for_file(@storage, file, type)
         channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
+      end
+
+      # SAVE's secondary address 1 and a W mode open a file for writing.
+      def writing?(secondary, name)
+        secondary == 1 || name.split(",").drop(1).any? { |field| field.strip.match?(/\AW/i) }
+      end
+
+      # The disk is write-protected, so an open for writing fails and leaves
+      # the channel closed. A name already on the disk fails as FILE EXISTS
+      # unless @ asks to replace it, anything else as WRITE PROTECT ON.
+      def refuse_write(secondary, name, file)
+        @channels.delete(secondary)
+        return report(FILE_EXISTS) if !name.start_with?("@") && @storage.read_file(file, type: nil)
+
+        report(WRITE_PROTECT_ON, *protected_block(secondary))
+      end
+
+      # SAVE's channel fails at the directory block its entry would go to,
+      # a W mode open at the disk's header block.
+      def protected_block(secondary)
+        return [] unless @storage.respond_to?(:header_block)
+
+        secondary == 1 ? @storage.new_entry_block : @storage.header_block
       end
 
       def execute(text)
