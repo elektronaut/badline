@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/kernal_trap/drive/memory"
 require "badline/kernal_trap/drive/status"
 
 module Badline
@@ -23,17 +24,6 @@ module Badline
       DRIVE_NOT_READY = 74
 
       MEMORY_COMMANDS = { "M-W" => :memory_write, "M-R" => :memory_read }.freeze
-
-      RAM_SIZE = 0x800
-
-      # The job queue: a job code for each of five buffers at $00, their
-      # track and sector pairs from $06, and the buffers from $0300. A job
-      # code is replaced by its result, 1 for success or an error table
-      # code: the DOS error less 18, or 15 for DRIVE NOT READY.
-      JOBS = 5
-      READ_JOB = 0x80
-      JOB_OK = 1
-      HEADER_NOT_FOUND = 20
 
       # A U command jumps through the user table at $FFEA, indexed by the
       # low nibble of its second character less one, so UA and UQ are U1.
@@ -61,7 +51,7 @@ module Badline
         @storage = storage
         @channels = {}
         @status = Status.new
-        @ram = Array.new(RAM_SIZE, 0)
+        @memory = Memory.new(storage)
         report(DOS_VERSION)
       end
 
@@ -212,25 +202,19 @@ module Badline
         report(OK)
       end
 
-      # M-W takes an address, a count and that many bytes. Writes past the
-      # RAM are dropped, since the rest of the address space is I/O and ROM.
+      # M-W takes an address, a count and that many bytes.
       def memory_write(arguments)
-        address = word(arguments)
-        arguments[3, arguments[2].to_i].to_a.each.with_index(address) do |byte, target|
-          @ram[target] = byte if target < RAM_SIZE
-        end
-        run_jobs
+        @memory.write(word(arguments), arguments[3, arguments[2].to_i].to_a)
         report(OK)
       end
 
       # M-R takes an address and a count, and answers on the command
       # channel. Without a count, or with only the carriage return PRINT#
-      # ends a line with, it reads one byte. Only the RAM reads back.
+      # ends a line with, it reads one byte.
       def memory_read(arguments)
-        address = word(arguments)
         count = arguments[2..] == ["\r".ord] ? 1 : arguments.fetch(2, 1)
         count = BLOCK_SIZE if count.zero?
-        @status.replace(Array.new(count) { |i| @ram.fetch(address + i, 0) })
+        @status.replace(@memory.read(word(arguments), count))
         nil
       end
 
@@ -238,35 +222,12 @@ module Badline
         arguments[0].to_i | (arguments[1].to_i << 8)
       end
 
-      def run_jobs
-        JOBS.times do |job|
-          next unless @ram[job] == READ_JOB
-
-          track, sector = @ram[6 + (job * 2), 2]
-          @ram[job] = read_job(0x300 + (job * BLOCK_SIZE), track, sector)
-        end
-      end
-
-      def read_job(buffer, track, sector)
-        data = @storage.respond_to?(:read_block) && @storage.read_block(track, sector)
-        return job_result(HEADER_NOT_FOUND) unless data
-
-        @ram[buffer, BLOCK_SIZE] = data
-        job_result(@storage.block_error(track, sector))
-      end
-
-      def job_result(error)
-        return JOB_OK unless error
-
-        error == DRIVE_NOT_READY ? 15 : error - 18
-      end
-
       def write_protected(_arguments)
         report(WRITE_PROTECT_ON)
       end
 
       def reset(cold:)
-        @ram.fill(0) if cold
+        @memory.clear if cold
         @channels.clear
         report(DOS_VERSION)
       end
