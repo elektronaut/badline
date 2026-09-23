@@ -62,5 +62,14 @@ RubyVM::YJIT.enable if options[:jit] && jit_available
 require "badline"
 require "badline/gui"
 
-Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
-                              song: options[:song], sid_model: options[:sid_model]).run
+begin
+  application = Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
+                                              song: options[:song], sid_model: options[:sid_model])
+rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
+       Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
+       Badline::Cartridge::UnsupportedTypeError => e
+  warn "badline: #{media_path}: #{e.message}"
+  exit 1
+end
+
+application.run

@@ -24,12 +24,12 @@ describe Badline::Storage::SIDFile do
   end
 
   def header
-    words = fields.except(:flags).values.flat_map { |value| [value >> 8, value & 0xff] }
+    words = fields.except(:flags, :sids).values.flat_map { |value| [value >> 8, value & 0xff] }
     base = "PSID".bytes + words + [speed].pack("N").bytes + texts
     return base unless fields[:version] > 1
 
     flags = fields[:flags]
-    base + [flags >> 8, flags & 0xff, start_page, 0x01, 0x00, 0x00]
+    base + [flags >> 8, flags & 0xff, start_page, 0x01] + fields.fetch(:sids, [0x00, 0x00])
   end
 
   def texts
@@ -362,6 +362,42 @@ describe Badline::Storage::SIDFile do
     it "rejects a file with no tune data" do
       File.binwrite(path, header.pack("C*"))
       expect { tune }.to raise_error(described_class::FormatError, /No tune data/)
+    end
+
+    context "with Sidplayer MUS data" do
+      let(:fields) { super().merge(flags: 0x05) }
+
+      it "rejects it" do
+        expect { tune }.to raise_error(described_class::FormatError, /MUS/)
+      end
+    end
+
+    context "with a second SID at $d420" do
+      let(:fields) { super().merge(version: 3, sids: [0x42, 0x00]) }
+
+      it "rejects it" do
+        expect { tune }.to raise_error(described_class::FormatError, /2 SIDs/)
+      end
+    end
+
+    context "with a second SID at $de00 and a third at $d500" do
+      let(:fields) { super().merge(version: 4, sids: [0xe0, 0x50]) }
+
+      it "rejects it" do
+        expect { tune }.to raise_error(described_class::FormatError, /3 SIDs/)
+      end
+    end
+
+    context "with SID addresses the header's version doesn't define" do
+      let(:fields) { super().merge(sids: [0x42, 0x50]) }
+
+      it { expect(tune.sids).to eq(1) }
+    end
+
+    context "with a second SID address outside the ranges" do
+      let(:fields) { super().merge(version: 3, sids: [0x43, 0x00]) }
+
+      it { expect(tune.sids).to eq(1) }
     end
 
     it "accepts an RSID signature" do
