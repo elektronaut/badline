@@ -26,6 +26,10 @@ module Badline
       # A tune's init routine is free to unpack itself, but not forever.
       INIT_LIMIT = 10_000_000
 
+      # The CIA 1 timer A latch the PAL KERNAL leaves, 60 underflows a
+      # second.
+      KERNAL_TIMER = 0x4025
+
       attr_reader :sid
 
       def initialize(tune, song: nil, sid_model: tune.sid_model)
@@ -35,6 +39,7 @@ module Badline
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
         @bus.poke(0x01, 0x37)
+        @bus.cia1.timer_a_latch = KERNAL_TIMER
         @cpu = CPU.new(@bus)
         @sid = @bus.sid
         @idle = false
@@ -51,17 +56,26 @@ module Badline
         settle
       end
 
-      # Advances one PAL frame, or `budget` cycles if that is shorter, then
-      # yields whatever the SID recorded over it. Returns the cycles advanced.
+      # Advances one call of play, or `budget` cycles if that is shorter,
+      # then yields whatever the SID recorded over it. Returns the cycles
+      # advanced.
       def frame(budget, &)
         call(@tune.play_address)
-        cycles = [budget, FRAME_CYCLES].min
+        cycles = [budget, period].min
         cycles.times { step }
         @sid.drain_samples.each(&)
         cycles
       end
 
       private
+
+      # A PAL frame, or for a CIA-timed song one period of CIA 1 timer A,
+      # which init and play are both free to reprogram.
+      def period
+        return FRAME_CYCLES unless @tune.cia_timed?(@song + 1)
+
+        @bus.cia1.timer_a_latch + 1
+      end
 
       def stub_address = @stub_address ||= @tune.driver_address
 
