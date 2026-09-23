@@ -4,6 +4,7 @@ require "bundler/gem_tasks"
 require "rake/testtask"
 
 require_relative "test/regression"
+require_relative "spinel/check"
 
 VENDORED_REPOS = {
   "65x02" => {
@@ -340,6 +341,23 @@ end
 
 desc "Run every headless suite against its tracked baseline"
 task regression: REGRESSION_SUITES.keys.map { |suite| "regression:#{suite}" }
+
+namespace :spinel do
+  desc "Compile the Spinel harnesses into #{SpinelCheck::OUT} (SPINEL=compiler, SPINEL_CC=C compiler)"
+  task :build do
+    SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil))
+  end
+
+  desc "Check the Spinel build against CRuby: boot, or boot media for cycles, and SingleStepTests"
+  task :check, %i[media cycles] => %w[spinel:build vendor:65x02] do |_task, args|
+    if args[:media]
+      SpinelCheck.check_boot(args[:cycles] || "23000000", "3000000", args[:media])
+    else
+      SpinelCheck.check_boot
+    end
+    SpinelCheck.check_cpu_tests
+  end
+end
 
 Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
