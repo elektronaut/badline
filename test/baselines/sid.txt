@@ -96,7 +96,7 @@ resid-test/oscsample1-6581.prg	FAIL	exit=$ff
 ringmod/ringmodtest.prg	PASS
 waveforms/waveforms-10-6581.prg	PASS
 waveforms/waveforms-20-6581.prg	PASS
-waveforms/waveforms-40-6581.prg	FAIL	exit=$ff
+waveforms/waveforms-40-6581.prg	PASS
 waveforms/waveforms-80-6581.prg	PASS
 writedelay/writedelay.prg	PASS
 wf12nsr/wf12nsr.prg	FAIL	exit=$ff

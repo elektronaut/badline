@@ -82,7 +82,7 @@ resid-test/oscsample1-8580.prg	FAIL	exit=$ff
 ringmod/ringmodtest.prg	PASS
 waveforms/waveforms-10-8580.prg	PASS
 waveforms/waveforms-20-8580.prg	PASS
-waveforms/waveforms-40-8580.prg	FAIL	exit=$ff
+waveforms/waveforms-40-8580.prg	PASS
 waveforms/waveforms-80-8580.prg	PASS
 writedelay/writedelay.prg	PASS
 wf12nsr/wf12nsr-8580.prg	FAIL	exit=$ff
