@@ -542,11 +542,34 @@ only catches the rows that happen to move.
   That is an XNOR where reSID uses an XOR.
   - Pinned by `SID/ringmod`, which expects OSC3 to read `$ff` with both
     oscillators stopped at zero.
-- The noise LFSR is 23 bits wide. It feeds bit 0 back from bits 22 ^ 17 and
-  shifts on each rising edge of accumulator bit 19. Its eight output taps
-  are bits 20, 18, 14, 11, 9, 5, 2 and 0, driving waveform bits 11 down to 4
-  (Dag Lem's diagram in `SID/noise-reset_new`). It powers on at `$7ffffe`,
-  which is what makes `SID/oscinit`'s `noiseinit` read `$fe`.
+- The noise LFSR is 23 bits wide. It feeds bit 0 back from bits 22 ^ 17.
+  Its eight output taps are bits 20, 18, 14, 11, 9, 5, 2 and 0, driving
+  waveform bits 11 down to 4 (Dag Lem's diagram in `SID/noise-reset_new`).
+  It powers on at `$7ffffe`, which is what makes `SID/oscinit`'s
+  `noiseinit` read `$fe`.
+- Each rise of accumulator bit 19 shifts the LFSR two cycles later, in two
+  phases (libresidfp's shift pipeline). The cycle after the rise is phase
+  1: the register bits float, so a combined waveform pulls nothing down and
+  its output is latched instead. The cycle after that is phase 2: the
+  latched output is written over the taps, then the register shifts.
+  Phase 2 writes back by the test bit release rule below, with the old and
+  new waveform the same: noise combined with anything but pulse alone.
+  Setting the test bit drops a shift in flight.
+  - Pinned by `SID/noisewriteback`'s `noise_writeback_test2` (both chips).
+    It releases the test bit into noise+triangle, which pulls every tap low,
+    then sets the frequency to `$ffff`. Bit 19 rises on the 9th cycle and
+    the read lands on the 11th, the first output after the shift has filled
+    the taps from the bits below: `$14` on the 6581 and `$12` on the 8580,
+    whose OSC3 reads the triangle a cycle late. Shifting on the rise itself
+    lets the triangle pull the new taps down first, and the read is `$10`.
+    The test pins the delay only. Phase 1's float differs from pulling down
+    only when pulse+noise is selected across it, and nothing pins that.
+  - Spec guard: *two cycles after accumulator bit 19 rises* and *around a
+    shift* in [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb),
+    and *carries a noise shift pending across a span edge* in
+    [`sid_spec.rb`](../spec/badline/sid_spec.rb): a catch-up that
+    fast-forwards across a rise carries the shift still in flight into the
+    next span.
 - The test bit does not clear the LFSR. It stalls it halfway through a
   shift with bit 22 forced high. While the bit is held, every bit bleeds up
   to `$7fffff` over `$8000` cycles (`SID/wf12nsr` reads `$ff` off one). On
@@ -562,9 +585,6 @@ only catches the rows that happen to move.
     `SID/noisewriteback`'s `noise_writeback_test1`.
   - Spec guard: *as the test bit falls* in
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
-  - The shift itself is not delayed. libresidfp runs it two cycles after
-    bit 19 rises, as two phases, and `noise_writeback_test2` needs that
-    pipeline, so it still fails.
 - A combined waveform shorts the shapers onto the lines the oscillator reads
   back. A low top bit reaches the accumulator MSB through the sawtooth
   switch and clears it (`SID/osc_topbit`, all three). With noise selected,
