@@ -4,7 +4,8 @@
     ".": {
       "release-type": "ruby",
       "package-name": "badline",
-      "version-file": "lib/badline/version.rb"
+      "version-file": "lib/badline/version.rb",
+      "include-component-in-tag": false
     }
   }
 }
