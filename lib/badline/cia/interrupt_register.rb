@@ -9,8 +9,8 @@ module Badline
       attr_reader :status, :mask, :quiet
 
       def initialize
-        @mask = Status.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, 0])
-        @status = Status.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, :interrupt])
+        @mask = InterruptFlags.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, 0])
+        @status = InterruptFlags.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, :interrupt])
         @pending = 0
         @read = @read_last_cycle = @read_two_cycles_ago = nil
         @timer_b_bug = false
@@ -40,8 +40,9 @@ module Badline
 
       # Latch a source, pulling the interrupt line if it is armed.
       def flag(source)
-        status.public_send(:"#{source}=", true)
-        assert! if mask.public_send(:"#{source}?")
+        bit = source_bit(source)
+        @status.value |= bit
+        assert! if mask.value.anybits?(bit)
       end
 
       # The 6526 timer B bug: an underflow on the cycle after a read still
@@ -70,9 +71,9 @@ module Badline
       # Bit 7 picks between setting and clearing the mask bits given.
       def write(value)
         if value.nobits?(0x80)
-          mask.value &= ~(value & 0x1f)
+          @mask.value &= ~(value & 0x1f)
         else
-          mask.value |= (value & 0x1f)
+          @mask.value |= (value & 0x1f)
         end
         if mask.value.anybits?(status.value & 0x1f)
           assert!(2) unless interrupted?
@@ -81,6 +82,19 @@ module Badline
           # on the next cycle only while a read two cycles back is
           # acknowledging.
           @pending = 0
+        end
+      end
+
+      private
+
+      def source_bit(source)
+        case source
+        when :timer_a then 0x01
+        when :timer_b then 0x02
+        when :alarm then 0x04
+        when :serial then 0x08
+        when :flag then 0x10
+        else raise ArgumentError, "unknown interrupt source #{source}"
         end
       end
     end

@@ -49,10 +49,10 @@ module Badline
       @tod = TimeOfDay.new
       @icr = InterruptRegister.new
       @icr_status = @icr.status
-      @control_a = Status.new(%i[start output out_mode run_mode load
-                                 in_mode serial_mode clock_frequency])
-      @control_b = Status.new(%i[start output out_mode run_mode load
-                                 in_cnt in_timer_a alarm])
+      @control_a = ControlRegister.new(%i[start output out_mode run_mode load
+                                          in_mode serial_mode clock_frequency])
+      @control_b = ControlRegister.new(%i[start output out_mode run_mode load
+                                          in_cnt in_timer_a alarm])
       @ta = Timer.new(@control_a)
       @tb = Timer.new(@control_b)
       @serial = Serial.new(@control_a)
