@@ -180,10 +180,12 @@ module Badline
       end
     end
 
+    # EXROM and GAME select the cartridge whether or not it has a chip
+    # there, and an empty socket leaves the bus floating.
     def map_rom_overlays
-      @read_pages.fill(@cartridge.roml, 0x80, 0x20) if roml?
+      @read_pages.fill(@cartridge.roml || @open_bus, 0x80, 0x20) if roml?
       if romh?
-        @read_pages.fill(@cartridge.romh, 0xa0, 0x20)
+        @read_pages.fill(@cartridge.romh || @open_bus, 0xa0, 0x20)
       elsif basic?
         @read_pages.fill(basic_rom, 0xa0, 0x20)
       end
@@ -254,11 +256,11 @@ module Badline
     end
 
     def roml?
-      @cartridge&.roml && @cartridge.exrom.zero? && io_port.kernal? && io_port.basic?
+      @cartridge&.exrom&.zero? && io_port.kernal? && io_port.basic?
     end
 
     def romh?
-      @cartridge&.romh && @cartridge.exrom.zero? && @cartridge.game.zero? && io_port.kernal?
+      @cartridge&.exrom&.zero? && @cartridge.game.zero? && io_port.kernal?
     end
 
     # In 16K mode LORAM alone leaves $d000 as RAM, where it still maps I/O.
