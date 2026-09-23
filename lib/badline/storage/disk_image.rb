@@ -46,13 +46,12 @@ module Badline
 
       private
 
-      # An error table holds one byte per block, so the image is 257 bytes
-      # per block rather than 256.
+      # An error table holds one byte per block after the last one. The image
+      # sizes that carry one are listed exactly, since a 40-track D64 with a
+      # table is also a whole number of 256-byte blocks.
       def split_error_table
-        return unless (@bytes.length % (SECTOR_SIZE + 1)).zero? &&
-                      !(@bytes.length % SECTOR_SIZE).zero?
-
-        @bytes.pop(@bytes.length / (SECTOR_SIZE + 1))
+        blocks = error_tables[@bytes.length]
+        @bytes.pop(blocks) if blocks
       end
 
       def block?(track, sector)
