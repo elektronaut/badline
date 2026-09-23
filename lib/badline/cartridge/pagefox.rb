@@ -22,6 +22,11 @@ module Badline
         changed!
       end
 
+      def reset
+        select(0)
+        changed!
+      end
+
       private
 
       def select(value)
@@ -44,7 +49,7 @@ module Badline
       def install_chips(chips)
         @roml_banks, @romh_banks = banks_from(chips)
         @ram_banks = Array.new(4) { RAMBank.new }
-        select(0)
+        reset
       end
     end
   end

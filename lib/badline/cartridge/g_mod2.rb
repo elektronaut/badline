@@ -31,6 +31,15 @@ module Badline
         @roml if @flash_writes
       end
 
+      # Reset selects the first bank in 8K mode, and leaves the flash as it
+      # is.
+      def reset
+        @bank = 0
+        @flash_writes = false
+        self.mode = :rom8k
+        select_bank
+      end
+
       private
 
       def select_bank
@@ -46,10 +55,7 @@ module Badline
         end
         @flash = Flash.new(data, model: Flash::AM29F040)
         @flash.on_change { select_bank }
-        @bank = 0
-        @flash_writes = false
-        self.mode = :rom8k
-        select_bank
+        reset
       end
     end
   end

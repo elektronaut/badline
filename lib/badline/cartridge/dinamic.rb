@@ -17,12 +17,17 @@ module Badline
         open_bus(addr)
       end
 
+      def reset
+        @roml = bank(@banks, 0)
+        changed!
+      end
+
       private
 
       def install_chips(chips)
         @banks = banks_from(chips).first
-        @roml = bank(@banks, 0)
         self.mode = :rom8k
+        reset
       end
     end
   end

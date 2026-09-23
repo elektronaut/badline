@@ -18,6 +18,10 @@ module Badline
       end
 
       # The CRT file numbers each bank by the register value that selects it.
+      def reset
+        poke(0xde00, 0)
+      end
+
       def self.bank_number(value)
         ((value >> 3) & 0x07) | ((value & 0x01) << 3)
       end
@@ -27,8 +31,7 @@ module Badline
       def install_chips(chips)
         @banks = []
         chips.each { |chip| @banks[self.class.bank_number(chip.bank)] = rom_bank(chip.data) }
-        @roml = bank(@banks, 0)
-        self.mode = :rom8k
+        reset
       end
     end
   end
