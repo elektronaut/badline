@@ -59,9 +59,23 @@ describe Badline::KernalTrap::Drive do
       expect(status).to eq("00, OK,00,00")
     end
 
-    it "rejects a block write" do
-      command("u2 2 0 18 0")
-      expect(status).to eq("26,WRITE PROTECT ON,00,00")
+    %w[u2 ub ur].each do |block_write|
+      it "rejects a block write through #{block_write}" do
+        command("#{block_write} 2 0 18 0")
+        expect(status).to eq("26,WRITE PROTECT ON,00,00")
+      end
+    end
+
+    %w[u3 u8 uc uh u< u@ up].each do |user_code|
+      it "reports OK for #{user_code}, as if the drive code returned" do
+        command(user_code)
+        expect(status).to eq("00, OK,00,00")
+      end
+    end
+
+    it "accepts U0" do
+      command("u0")
+      expect(status).to eq("00, OK,00,00")
     end
 
     it "takes a command passed as the open filename" do
@@ -196,6 +210,13 @@ describe Badline::KernalTrap::Drive do
       command("b-p 2 253")
       expect(read_channel(2)).to eq([253, 254, 255])
     end
+
+    %w[ua uq].each do |alias_command|
+      it "decodes #{alias_command} as U1" do
+        command("#{alias_command} 2 0 17 3")
+        expect(storage).to have_received(:read_block).with(17, 3)
+      end
+    end
   end
 
   describe "a block the error table marks bad" do
@@ -299,7 +320,7 @@ describe Badline::KernalTrap::Drive do
       drive.write(15, [*"M-W".bytes, 0x00, 0x05, 1, 0xaa])
     end
 
-    %w[uj u: ui u9 u; uk UJ].each do |reset|
+    %w[uj u: uz ui u9 uy u; uk u\[ UJ].each do |reset|
       it "reports the DOS version after #{reset}" do
         command(reset)
         expect(status).to eq("73,CBM DOS V2.6 1541,00,00")
@@ -331,9 +352,11 @@ describe Badline::KernalTrap::Drive do
       expect(memory_at(0x500)).to eq(0xaa)
     end
 
-    it "only switches the bus speed with UI+" do
-      command("ui+")
-      expect(status).to eq("00, OK,00,00")
+    %w[ui+ uy+ u9-].each do |speed|
+      it "only switches the bus speed with #{speed}" do
+        command(speed)
+        expect(status).to eq("00, OK,00,00")
+      end
     end
 
     it "keeps the channels open on UI-" do
