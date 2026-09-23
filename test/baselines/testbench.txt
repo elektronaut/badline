@@ -91,7 +91,7 @@ VICII/sb_sprite_fetch/sbsprf24-164.prg	FAIL	diff=51px exit=$00
 VICII/split-tests/bascan/bascan.prg	PASS
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
 VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=2939px exit=$00
-VICII/split-tests/lightpen/lightpen.prg	FAIL	exit=$ff
+VICII/split-tests/lightpen/lightpen.prg	PASS
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=3116px exit=$00
 VICII/split-tests/spritescan/spritescan.prg	PASS

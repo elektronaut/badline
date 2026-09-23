@@ -131,8 +131,8 @@ module Badline
     def peek(addr)
       i = index(addr) % (2**6)
       case i
-      when 0x11 then (@registers[0x11] & 0x7f) | ((rasterline & 0x100) >> 1)
-      when 0x12 then rasterline & 0xff
+      when 0x11 then (@registers[0x11] & 0x7f) | ((raster_counter & 0x100) >> 1)
+      when 0x12 then raster_counter & 0xff
       when 0x19 then irq_status # Latch + master IRQ bit, unused bits read 1
       when 0x1e, 0x1f then read_collision(i)
       else @registers.read(i)
@@ -215,6 +215,13 @@ module Badline
     end
 
     private
+
+    # The raster counter as $D011/$D012 read it. Every line advances on the
+    # CPU cycle paired with column 62 except line 0, which the counter
+    # reaches a cycle later, together with the line 0 raster compare.
+    def raster_counter
+      @column.zero? && @rasterline.zero? ? @last_line : @rasterline
+    end
 
     # Mid-line writes to the color and sprite registers are logged against
     # the cycle after the write (the CPU runs after the VIC within a machine

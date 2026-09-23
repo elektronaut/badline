@@ -137,6 +137,16 @@ only catches the rows that happen to move.
 - Spec guard: *with the compare at the line wrap* and *with line 0 as the
   target* in [`vic_spec.rb`](../spec/badline/vic_spec.rb). They are the
   only examples that separate this phase from a uniform column-0 compare.
+- `$d011` bit 7 and `$d012` follow the same phase. Every line reads as the
+  new line from the CPU cycle paired with column 62 of the old one. Line 0
+  reads a cycle later: that cycle still reads 311. VICE resets the counter
+  at cycle 2 of line 0 but increments it at cycle 1 of every other line.
+  - Pinned by `split-tests/lightpen`, whose `$d011`/`$d012` pages match
+    `dump6569` byte for byte only with the delay. Without it, index `$47`
+    reads `$1b`/`$00` where the chip reads `$9b`/`$37`, and the test exits
+    `$ff`.
+  - Spec guard: *when the counter wraps to line 0* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 
 ## VIC mid-line register visibility
 
@@ -514,8 +524,12 @@ only catches the rows that happen to move.
   0). A line held low across frame start retriggers with a fixed LPX of
   `$d1`.
 - Calibrated byte-exact against the `split-tests/lightpen` `dump6569`
-  reference. Two tail bytes and the raster-read page remain off by the
-  IRQ-phase cycle.
+  reference, as `makeref` corrects it: the test fixes up the tail bytes of
+  pre-R03 dumps before comparing. All five pages match, the raster-read
+  pages included (see [VIC raster IRQ phase](#vic-raster-irq-phase)).
+- The 6569's offset is 2 half-pixels and the 8565's is 1, so
+  `lp-trigger/test2new`, which wants the 8565, fails by design. badline
+  models only the 6569.
 - Pinned by `lplatency`, `lp-trigger`, and the `fldscroll` tests, which sync
   through the light pen instead of the double IRQ.
 

@@ -38,6 +38,25 @@ RSpec.describe Badline::VIC do
       specify { expect(vic.peek(0xd011) & 0x80).to eq(0x80) }
       specify { expect(vic.peek(0xd012)).to eq(44) }
     end
+
+    # Pinned by split-tests/lightpen: the dump6569 $d011/$d012 pages read
+    # line 311 one cycle past the point every other line advances.
+    context "when the counter wraps to line 0" do
+      before { (312 * 63).times { vic.cycle! } }
+
+      specify { expect(vic.peek(0xd012)).to eq(0x37) }
+      specify { expect(vic.peek(0xd011) & 0x80).to eq(0x80) }
+
+      it "reads line 0 a cycle later" do
+        vic.cycle!
+        expect([vic.peek(0xd011) & 0x80, vic.peek(0xd012)]).to eq([0, 0])
+      end
+    end
+
+    it "advances other lines without the delay" do
+      63.times { vic.cycle! }
+      expect(vic.peek(0xd012)).to eq(1)
+    end
   end
 
   describe "raster IRQ" do
