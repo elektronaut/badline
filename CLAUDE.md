@@ -125,7 +125,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma` and 11 for
-`testbench-cpu`. `sid` takes about 4 min. `lorenz` chains itself and takes
+`testbench-cpu`. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run

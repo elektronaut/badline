@@ -33,10 +33,13 @@ Recorded output of the headless hardware suites, one file per suite:
   tab-separated record as the testbench, in the runner's test order:
   `name<TAB>PASS`, or `name<TAB>FAIL<TAB>detail` where detail is the
   `$D7FF` exit code, or `timeout` when the test never reported.
+  The list is the testlist's `exitcode` rows under `SID/` that are not
+  tagged `sid-new`: the `sid-old` programs and those written for either
+  chip, each against its own testlist cycle budget. Rows that mount a disk
+  image are left out.
 - `sid-8580.txt` — the same runner with `--sid 8580`, which builds the
   machine with an 8580 and runs the programs the testlist tags `sid-new`
-  instead of the fixed 6581 list, each against its own testlist cycle
-  budget. Same record format.
+  instead. Same record format.
 
 Every suite still fails tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
@@ -150,8 +153,9 @@ its last test, or reports a different set of rows from the baseline's
 range, fails. The cuts sit in the CPU instruction tests, and every one has
 to stay before `trap1`: from there on the tests carry state from one to the
 next, which a fresh machine would lose. `rake regression:lorenz` still runs
-the whole chain. `bin/sidtests` is not sharded either,
-and takes about three and a half minutes here and five on CI. `sid-8580`
+the whole chain. `bin/sidtests` is not sharded either. Its 102 6581
+programs take about eleven and a half minutes here, four and a half of
+them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
 runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes
 26 minutes here (20 of CPU, on a loaded machine), which keeps it out of the
 nightly set.
