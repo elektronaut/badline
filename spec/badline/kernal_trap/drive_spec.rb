@@ -433,11 +433,47 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "an open for appending on a write-protected disk" do
+    before do
+      allow(storage).to receive_messages(read_file: [0x41], last_block: [17, 3])
+      drive.open(2, "log,s,a")
+    end
+
+    it "fails at the file's last block" do
+      expect(status).to eq("26,WRITE PROTECT ON,17,03")
+    end
+
+    it "looks the file up by its type" do
+      expect(storage).to have_received(:last_block).with("log", type: :seq)
+    end
+
+    it "leaves the channel closed" do
+      expect(drive.listening?(2)).to be(false)
+    end
+  end
+
+  describe "an open for appending to a missing file" do
+    before do
+      allow(storage).to receive(:read_file).and_return(nil)
+      drive.open(2, "log,a")
+    end
+
+    it "reports FILE NOT FOUND" do
+      expect(status).to eq("62,FILE NOT FOUND,00,00")
+    end
+  end
+
   describe "an open for writing on storage without blocks" do
     let(:storage) { instance_double(Badline::Storage::T64, read_file: nil) }
 
     it "reports WRITE PROTECT ON without a block" do
       drive.open(1, "game")
+      expect(status).to eq("26,WRITE PROTECT ON,00,00")
+    end
+
+    it "fails an append without a block" do
+      allow(storage).to receive(:read_file).and_return([0x41])
+      drive.open(2, "log,a")
       expect(status).to eq("26,WRITE PROTECT ON,00,00")
     end
   end
