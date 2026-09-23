@@ -187,7 +187,8 @@ light pen registers.
   Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon / Super Zaxxon,
   Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD and GMod2, and
   the freezers Action Replay (v4.2 to v6), Atomic Power / Nordic Power,
-  Retro Replay / Nordic Replay and Final Cartridge III / III+.
+  Retro Replay / Nordic Replay, Final Cartridge III / III+ and the KCS
+  Power Cartridge.
   EasyFlash and GMod2 flash takes writes through the chip's command set
   (program, sector and chip erase, autoselect), so games and EAPI can
   save to it. The writes stay in memory and are lost when the emulator
