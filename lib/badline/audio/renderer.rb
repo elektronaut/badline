@@ -2,9 +2,9 @@
 
 module Badline
   module Audio
-    # Renders a .sid tune to a PCM file. A PSID tune with a play address runs
-    # on the bare rig; anything else drives its own interrupts and needs the
-    # whole machine.
+    # Renders a .sid tune to a PCM file, or streams its samples to whoever
+    # plays them. A PSID tune with a play address runs on the bare rig;
+    # anything else drives its own interrupts and needs the whole machine.
     #
     # A .sid file carries no length, so the caller says how many seconds to
     # render.
@@ -33,10 +33,22 @@ module Badline
       end
 
       # Yields the seconds rendered so far after every frame.
-      def render(path, &)
+      def render(path)
         container = container_for(path)
         player.start
-        container.open(path, rate: @rate) { |writer| run(writer, &) }
+        container.open(path, rate: @rate) do |writer|
+          each_frame do |samples, seconds|
+            samples.each { |sample| writer << sample }
+            yield seconds if block_given?
+          end
+        end
+      end
+
+      # Starts the tune, then yields each frame's samples along with the
+      # seconds rendered so far.
+      def stream(&)
+        player.start
+        each_frame(&)
       end
 
       private
@@ -58,13 +70,14 @@ module Badline
         end
       end
 
-      def run(writer)
+      def each_frame
         player.sid.record(rate: @rate, filter_chunk: @filter_chunk)
         total = total_cycles
         remaining = total
         while remaining.positive?
-          remaining -= player.frame(remaining) { |sample| writer << sample }
-          yield((total - remaining).fdiv(TimeOfDay::CLOCK_HZ)) if block_given?
+          samples = []
+          remaining -= player.frame(remaining) { |sample| samples << sample }
+          yield samples, (total - remaining).fdiv(TimeOfDay::CLOCK_HZ)
         end
       end
     end

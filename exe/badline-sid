@@ -29,4 +29,6 @@ begin
 rescue Badline::Audio::CLI::Error => e
   warn "badline-sid: #{e.message}"
   exit 1
+rescue Interrupt
+  exit 130
 end

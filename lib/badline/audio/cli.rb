@@ -3,17 +3,20 @@
 module Badline
   module Audio
     # Runs `badline-sid` once its options have parsed: picks the song and
-    # its length, then renders it.
+    # its length, then plays it or renders it to a file.
     class CLI
       class Error < StandardError; end
 
-      def initialize(options, out: $stdout)
+      # `sink` builds the audio device for playback, given the rate to ask
+      # for and whether it has to be exact.
+      def initialize(options, out: $stdout, sink: SDLSink.method(:new))
         @options = options
         @out = out
+        @sink = sink
       end
 
       def run
-        render
+        @options.render? ? render : play
       rescue Renderer::UnknownFormatError, Storage::SIDFile::FormatError => e
         raise Error, e.message
       end
@@ -38,15 +41,36 @@ module Badline
 
       private
 
-      def render
-        renderer = Renderer.new(tune, seconds:, song:, rate: @options.rate, sid_model:)
-        renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
+      def renderer(rate)
+        Renderer.new(tune, seconds:, song:, rate:, sid_model:).tap do |renderer|
+          renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
+        end
+      end
 
+      def render
+        renderer = renderer(@options.rate)
         @out.puts describe
         @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.output} at #{@options.rate} Hz..."
         started = now
         renderer.render(@options.output) { |done| progress(done) }
         report(now - started)
+      end
+
+      def play
+        sink = open_sink
+        @out.puts describe
+        @out.puts "Playing #{seconds}s on the #{model_name} at #{sink.rate} Hz. Ctrl-C stops."
+        playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
+        result = playback.play(renderer(sink.rate)) { |played| progress(played) }
+        progress(seconds) if result == :finished
+        @out.print "\n" unless @options.quiet?
+        @out.puts(result == :finished ? "Done." : "Stopped.")
+      end
+
+      def open_sink
+        @sink.call(rate: @options.rate, exact_rate: @options.rate_given?)
+      rescue SDLSink::Error => e
+        raise Error, "can't open the audio device: #{e.message}"
       end
 
       def describe
