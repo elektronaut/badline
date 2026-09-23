@@ -56,16 +56,17 @@ module Badline
     attr_writer :clock
 
     class << self
-      def from_file(path)
-        from_crt(Storage::CRTFile.new(path))
+      # Options set the cartridge's jumpers, for the mappers that have them.
+      def from_file(path, **)
+        from_crt(Storage::CRTFile.new(path), **)
       end
 
-      def from_crt(crt)
+      def from_crt(crt, **)
         type = HARDWARE_TYPES.fetch(crt.hardware_type) do
           raise UnsupportedTypeError,
                 "Unsupported cartridge hardware type #{crt.hardware_type}"
         end
-        const_get(type).new(crt)
+        const_get(type).new(crt, **)
       end
     end
 
@@ -126,6 +127,9 @@ module Badline
     # A window taking writes to $E000-$FFFF while reads there see the C64's
     # memory, for a cartridge that asserts Ultimax on write cycles only.
     def romh_writes; end
+
+    # A window at $A000-$BFFF in Ultimax mode, where the C64 maps nothing.
+    def ultimax_a000; end
 
     # The RES line on the expansion port.
     def reset; end

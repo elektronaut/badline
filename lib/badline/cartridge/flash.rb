@@ -30,6 +30,8 @@ module Badline
                            unlock_mask: 0x7fff, manufacturer: 0x01, device: 0xa4)
       AM29F040B = Model.new(size: 0x80000, sector_size: 0x10000, unlock1: 0x555, unlock2: 0x2aa,
                             unlock_mask: 0x7ff, manufacturer: 0x01, device: 0xa4)
+      AM29F010 = Model.new(size: 0x20000, sector_size: 0x4000, unlock1: 0x5555, unlock2: 0x2aaa,
+                           unlock_mask: 0x7fff, manufacturer: 0x01, device: 0x20)
 
       # The datasheet's typical times, in cycles at 1 MHz.
       PROGRAM_CYCLES = 7

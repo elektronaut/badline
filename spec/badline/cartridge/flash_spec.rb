@@ -253,4 +253,28 @@ describe Badline::Cartridge::Flash do
       expect(flash.window(0).peek(0xe001)).to eq(0xa4)
     end
   end
+
+  context "with the Am29F010" do
+    subject(:flash) { described_class.new([0x5a] * 0x20000, model: described_class::AM29F010, clock: -> { now.first }) }
+
+    let(:unlock) { [[0x5555, 0xaa], [0x2aaa, 0x55]] }
+
+    it "reads its device code in autoselect" do
+      unlocked(0x90, 0x5555)
+      expect(flash.read(0x1)).to eq(0x20)
+    end
+
+    it "decodes the unlock addresses from 15 address lines" do
+      command([0x15555, 0xaa], [0x12aaa, 0x55], [0x15555, 0x90])
+      expect(flash.read(0x1)).to eq(0x20)
+    end
+
+    it "erases a sector of 16K" do
+      unlocked(0x80, 0x5555)
+      unlocked(0x30, 0x4000)
+      at(described_class::ERASE_WINDOW_CYCLES + described_class::SECTOR_ERASE_CYCLES)
+      flash.read(0)
+      expect(flash.data.each_slice(0x4000).map(&:uniq)).to eq([[0x5a], [0xff]] + ([[0x5a]] * 6))
+    end
+  end
 end
