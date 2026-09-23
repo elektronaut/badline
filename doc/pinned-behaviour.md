@@ -924,6 +924,17 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   back. Together these run Dag Lem's fast LFSR reset exactly as documented:
   three `$b8`/`$b0` pairs zero the register, and 18 `$88`/`$80` pairs set
   bits 0–17.
+- The shape of a combined waveform without noise comes from a fitted model
+  (`SID::Waveform::Combined`), not from ANDing the shapers: each line is
+  high when its own drive and its neighbours', weighted by distance, clear
+  a threshold. `bin/sidwavefit` fits it to `SID/resid-test`'s oscsample
+  dumps and `bin/sidwavecheck` scores it. A low pulse grounds every line.
+  Noise is still ANDed over the rest of the mix, which keeps the writeback
+  rules above as they were derived.
+  - Not pinned by an exit code: oscsample only fails on the single
+    waveforms, and no scored test reads a combined shape without noise.
+  - Spec guard: [`sid/waveform/combined_spec.rb`](../spec/badline/sid/waveform/combined_spec.rb)
+    checks spot values against the dumps.
 - The pulse comparator's output reaches the lines a cycle after the
   accumulator it compared, on both chips. Setting the test bit forces it
   high at once.
@@ -940,8 +951,9 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     `$00`, before anything has driven the line.
 - The 8580 delays the triangle and sawtooth shapers by half a cycle. OSC3
   latches in the first phase of the clock, so it reads them a whole cycle
-  late, while pulse and noise still mask the value on time (the pulse with
-  its own cycle of lag, above). The audio output is not delayed. This follows libsidplayfp's `tri_saw_pipeline`.
+  late, while pulse and noise still reach the lines on time (the pulse with
+  its own cycle of lag, above). The audio output is not delayed. This
+  follows libsidplayfp's `tri_saw_pipeline`.
   - Pinned by `SID/detect`'s `detect-2-new`. It releases the test bit into
     a `$ffff` sawtooth and reads OSC3 four cycles later: `3` on the 6581,
     `2` on the 8580.

@@ -380,7 +380,7 @@ describe Badline::SID::Waveform do
         expect(waveform.output).to eq(0x003)
       end
 
-      it "masks the delayed sawtooth with the pulse on time" do
+      it "grounds the delayed sawtooth with a low pulse" do
         waveform.pulse_width_high = 0x0f
         restart(0x60, frequency: 0x1000, cycles: 3)
         expect(waveform.osc3).to eq(0x000)
@@ -427,9 +427,20 @@ describe Badline::SID::Waveform do
       expect(waveform.output).to eq(0x000)
     end
 
-    it "ANDs the selected waveforms together" do
-      restart(0x30, frequency: 0x0000)
+    it "reads a combined waveform through the fitted shapes" do
+      restart(0x30, frequency: 0x1000, cycles: 0x7ff)
+      expect(waveform.output).to eq(described_class::Combined.tables(:mos6581)[0x3][0x7ff])
+    end
+
+    it "grounds a combined waveform with the pulse low" do
+      waveform.pulse_width_high = 0x0f
+      restart(0x60, frequency: 0x7ff0, cycles: 1)
       expect(waveform.output).to eq(0x000)
+    end
+
+    it "ANDs noise over the rest of a combined waveform" do
+      restart(0xc0, frequency: 0x0000)
+      expect(waveform.output).to eq(waveform.noise)
     end
 
     it "follows the single selected waveform" do
