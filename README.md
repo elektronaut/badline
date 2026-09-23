@@ -75,19 +75,23 @@ directly. Loaders that upload their own code to the drive with `M-W` and
 
 ## Rendering SID tunes
 
-`badline-render` renders a `.sid` tune to a 16-bit PCM file. The output
+`badline-sid` renders a `.sid` tune to a 16-bit PCM file. The output
 extension picks the format, `.wav` or `.aiff`, and the default is the
 tune's name with `.wav`.
 
 ```sh
-badline-render tune.sid                        # tune.wav, length from HVSC
-badline-render --seconds 180 tune.sid out.aiff
-badline-render --song 3 --rate 48000 tune.sid
-badline-render --sid 8580 tune.sid
-badline-render --filter-chunk 1 tune.sid       # exact filter, slower
+badline-sid tune.sid                           # tune.wav, length from HVSC
+badline-sid --seconds 180 tune.sid -o out.aiff
+badline-sid -s 3 --rate 48000 tune.sid
+badline-sid --sid 8580 tune.sid
+badline-sid --filter-chunk 1 tune.sid          # exact filter, slower
 ```
 
-A `.sid` file doesn't store its length, so `badline-render` looks the
+`--song` (or `-s`) picks the subtune, counting from 1 as HVSC does, and
+defaults to the tune's own start song. The output goes to `--output` (or
+`-o`), or to a second argument after the tune.
+
+A `.sid` file doesn't store its length, so `badline-sid` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
 through `--songlengths`, in a `DOCUMENTS` directory in any of the
 tune's parent directories (the layout of an HVSC collection), or under
@@ -98,7 +102,7 @@ PSID tunes render on a CPU and RAM with only the SID clocked, which is
 faster than real time. RSID tunes set up their own interrupts, so they
 boot a full C64 first and render at about half real time. The filter
 steps four cycles at a time; `--filter-chunk 1` steps it every cycle,
-which is exact and takes about twice as long. `badline-render --help`
+which is exact and takes about twice as long. `badline-sid --help`
 lists the options.
 
 ## Input
@@ -174,7 +178,7 @@ light pen registers.
 Known gaps:
 
 - No live audio. The SID is emulated, but emulation runs below real
-  time, so nothing plays it back yet. `badline-render` is the way to
+  time, so nothing plays it back yet. `badline-sid` is the way to
   hear a tune.
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
