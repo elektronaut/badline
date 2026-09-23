@@ -4,8 +4,8 @@
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
-#                             [--shards N] [--list] [--results PATH]
-#                             [--resume]
+#                             [--carts] [--shards N] [--list]
+#                             [--results PATH] [--resume]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
 # hardware badline models: VICII, CIA, interrupts and CPU. Each process
@@ -21,6 +21,12 @@
 # screenshot test, the text screen for an exitcode one — and the results
 # log, one tab-separated "id STATUS [detail]" record per test in testlist
 # order, to --results (tmp/testbench/results.txt by default).
+#
+# --carts runs the testlist's mountcrt rows instead, from any subtree.
+# Each starts a fresh machine with the cartridge attached at power-on, the
+# way VICE starts it, and runs for the testlist budget alone. A row is
+# listed only when badline has a mapper for its cartridge's hardware type.
+# Its id names the .crt, since the row has no program of its own.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -64,7 +70,15 @@ module Testbench
   # register behaviour badline does not model; the same programs are listed
   # again with cia-old, which is what it does model. vicii-new asks for the
   # 8565 in the same way, and badline models only the 6569.
-  SKIP_OPTIONS = /ntsc|drean|mount|cia-new|vicii-new/
+  # Disk images and memory expansions are not emulated either. A mountcrt
+  # row runs only under --carts.
+  SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|cia-new|vicii-new|
+                  reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
+  CARTRIDGE_OPTION = "mountcrt:"
+
+  # EasyFlash with a supported mapper, but the test writes the flash
+  # through EAPI, and badline's EasyFlash is ROM only.
+  UNSUPPORTED_CARTRIDGES = %w[C64/carts/ef-eapi/test-eapi.crt].freeze
 
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
@@ -99,9 +113,9 @@ module Testbench
     result == "PASS" ? "PASS\n" : "FAIL\t#{result}\n"
   end
 
-  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :occurrence) do
+  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence) do
     def id
-      "#{dir.delete_prefix('../')}/#{prg}"
+      "#{dir.delete_prefix('../').delete_prefix('./')}/#{prg.empty? ? cartridge : prg}"
     end
 
     # Unique where the id is not: should the testlist run a program twice,
@@ -133,7 +147,11 @@ module Testbench
     end
 
     def reference
-      File.join(dir_abs, "references", "#{prg}.png")
+      File.join(dir_abs, "references", "#{prg.empty? ? cartridge : prg}.png")
+    end
+
+    def cartridge_path
+      File.join(dir_abs, cartridge)
     end
   end
 
@@ -142,9 +160,9 @@ module Testbench
 
     # Filters are id substrings, matched as a union; no filter runs
     # everything inside the scope.
-    def tests(filters, scope: nil, exclude: nil)
+    def tests(filters, scope: nil, exclude: nil, carts: false)
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
-        .select { |test| selected?(test, filters, scope, exclude) }
+        .select { |test| test.cartridge.nil? != carts && selected?(test, filters, scope, exclude) }
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
@@ -171,11 +189,28 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless dir.match?(INCLUDED_DIRS) && !dir.match?(EXCLUDED_DIRS)
       return unless RUNNABLE_TYPES.include?(type)
       return if options.any?(SKIP_OPTIONS)
 
-      TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options)
+      test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
+      test if test.cartridge ? runnable_cartridge?(test) : included?(dir)
+    end
+
+    def included?(dir)
+      dir.match?(INCLUDED_DIRS) && !dir.match?(EXCLUDED_DIRS)
+    end
+
+    def cartridge(options)
+      options.find { |option| option.start_with?(CARTRIDGE_OPTION) }&.delete_prefix(CARTRIDGE_OPTION)
+    end
+
+    # Rows that load a program alongside the cartridge all use freezers,
+    # which badline has no mapper for.
+    def runnable_cartridge?(test)
+      return false if UNSUPPORTED_CARTRIDGES.include?(test.id)
+      return false unless test.prg.empty? && File.exist?(test.cartridge_path)
+
+      Badline::Cartridge::HARDWARE_TYPES.key?(Badline::Storage::CRTFile.new(test.cartridge_path).hardware_type)
     end
   end
 
@@ -439,9 +474,21 @@ module Testbench
     # its emulated cycles: at a hundred thousand cycles a second, far slower
     # than any machine this runs on, the budget alone would take that long.
     def in_child(test)
-      @booted ||= ForkedBoot.new(FORWARDED_SIGNALS) { ForkedBoot.computer }
-      deadline = 60 + ((test.timeout + BOOT_ALLOWANCE) / 100_000)
-      @booted.run(deadline) { |computer| run_test(test, computer) }
+      deadline = 60 + (budget(test) / 100_000)
+      booted(test).run(deadline) { |computer| run_test(test, computer) }
+    end
+
+    # A cartridge test starts from power-on, so its machine is never booted.
+    def booted(test)
+      if test.cartridge
+        @powered_on ||= ForkedBoot.new(FORWARDED_SIGNALS) { Badline::Computer.new }
+      else
+        @booted ||= ForkedBoot.new(FORWARDED_SIGNALS) { ForkedBoot.computer }
+      end
+    end
+
+    def budget(test)
+      test.cartridge ? test.timeout : test.timeout + BOOT_ALLOWANCE
     end
 
     def timed
@@ -491,12 +538,14 @@ module Testbench
       attach(test, computer)
       exit_code = nil
       computer.install_debug_register { |value| exit_code = value }
-      budget = test.timeout + BOOT_ALLOWANCE
+      budget = budget(test)
       BATCH.times { computer.cycle! } until exit_code || computer.cycles > budget
       [exit_code, computer]
     end
 
     def attach(test, computer)
+      return Badline::Media.attach(computer, test.cartridge_path) if test.cartridge
+
       computer.mount(Badline::Storage::HostDirectory.new(test.dir_abs))
       Badline::Media.attach(computer, File.join(test.dir_abs, test.prg))
     end
@@ -506,6 +555,8 @@ module Testbench
 
       diff = Screenshot.capture(computer.vic).compare(test)
       return "ref-size" if diff == :ref_size
+      # As in VICE, expect:error on a screenshot test wants a mismatch.
+      return diff.positive? ? "PASS" : "diff=0px want=error" if test.expects == :error
       return "PASS" if diff.zero?
 
       "diff=#{diff}px exit=#{format_code(exit_code)}"
@@ -542,8 +593,9 @@ if $PROGRAM_NAME == __FILE__
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
+  carts = !ARGV.delete("--carts").nil?
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:)
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:)
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?
