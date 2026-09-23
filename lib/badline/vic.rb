@@ -161,6 +161,9 @@ module Badline
       end.tap { |value| @sprites.bus_data(@column, value) }
     end
 
+    # The register file as stored, read without a bus access's side effects.
+    def register_file = Array.new(0x40) { |reg| @registers[reg] }
+
     def poke(addr, value)
       reg = index(addr) % (2**6)
       @sprites.bus_data(@column, value)

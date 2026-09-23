@@ -49,6 +49,13 @@ module Badline
       @latch[:hours]
     end
 
+    # The clock and alarm as stored, read without latching the clock.
+    def registers
+      [@clock[:tenths], @clock[:seconds], @clock[:minutes], @clock[:hours],
+       @alarm[:tenths], @alarm[:seconds], @alarm[:minutes], @alarm[:hours],
+       @stopped ? 1 : 0, @latch ? 1 : 0]
+    end
+
     def write(field, value, alarm:)
       # The frequency counter is held clear while the clock is stopped, and
       # starts counting again from the write to tenths that restarts it.
