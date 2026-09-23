@@ -240,4 +240,61 @@ describe Badline::KernalTrap::Drive do
       expect(drive.read(2)).to be_nil
     end
   end
+
+  describe "drive memory" do
+    def memory_command(*bytes)
+      drive.write(15, bytes)
+    end
+
+    it "reads back what M-W wrote" do
+      memory_command(*"M-W".bytes, 0x00, 0x05, 3, 0xc1, 0x0d, 0x42)
+      memory_command(*"M-R".bytes, 0x00, 0x05, 3)
+      expect(read_channel(15)).to eq([0xc1, 0x0d, 0x42])
+    end
+
+    it "reads one byte without a count" do
+      memory_command(*"M-R".bytes, 0x00, 0x05, 0x0d)
+      expect(read_channel(15)).to eq([0x00])
+    end
+
+    it "reports OK after the bytes read" do
+      memory_command(*"M-R".bytes, 0x00, 0x05)
+      read_channel(15)
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "takes a command passed as the open filename" do
+      drive.open(15, "M-R\x00\x05\x02".b)
+      expect(read_channel(15)).to eq([0x00, 0x00])
+    end
+  end
+
+  describe "a read job" do
+    def run_job(track, sector)
+      drive.write(15, [*"M-W".bytes, 0x06, 0x00, 2, track, sector])
+      drive.write(15, [*"M-W".bytes, 0x00, 0x00, 1, 0x80])
+      drive.write(15, [*"M-R".bytes, 0x00, 0x00, 1])
+      read_channel(15).first
+    end
+
+    it "reads the block into the job's buffer" do
+      run_job(18, 0)
+      drive.write(15, [*"M-R".bytes, 0x10, 0x03, 2])
+      expect(read_channel(15)).to eq([0x10, 0x11])
+    end
+
+    it "reports success" do
+      expect(run_job(18, 0)).to eq(1)
+    end
+
+    it "reports the error table's code for a bad block" do
+      allow(storage).to receive(:block_error).with(2, 1).and_return(21)
+      expect(run_job(2, 1)).to eq(3)
+    end
+
+    it "reports a missing header for a block outside the image" do
+      allow(storage).to receive(:read_block).and_return(nil)
+      expect(run_job(99, 0)).to eq(2)
+    end
+  end
 end

@@ -94,6 +94,17 @@ describe Badline::KernalTrap::Serial do
     end
   end
 
+  describe "a memory command in an open frame" do
+    before do
+      send_frame(0xff, [*"M-W".bytes, 0x00, 0x05, 1, 0xc1])
+      send_frame(0x6f, [*"M-R".bytes, 0x00, 0x05, 1])
+    end
+
+    it "passes the binary arguments through unfolded" do
+      expect(read_bytes(15, 1)).to eq([0xc1])
+    end
+  end
+
   describe "a frame for another device" do
     before { send_frame(0xf2, "DATA".bytes, device: 4) }
 
