@@ -105,16 +105,17 @@ module Badline
     end
 
     # The sprite and border hooks that fall on named cycles, one column
-    # ahead of Bauer's numbering — two for the DMA compares, which the
-    # `spriteenable` references place a column earlier still. Guarded in
+    # ahead of Bauer's numbering — two for MCBASE, the DMA compares and the
+    # expansion flip-flop, which the `spriteenable` and `spritecrunch`
+    # references place a column earlier still. Guarded in
     # #cycle! so an ordinary column pays two compares rather than the
     # dispatch.
     def column_hooks
       case @column
       when 14 then @sprites.advance_mcbase
       when 15 then finish_sprite_mcbase
-      when 53 then toggle_and_check_sprite_dma
-      when 54 then check_sprite_dma
+      when 53 then check_sprite_dma
+      when 54 then check_dma_and_toggle_expansion
       when 57 then @sprites.check_display(@rasterline)
       when 62 then @sequencer.check_vertical_border(@rasterline)
       end
@@ -232,9 +233,9 @@ module Badline
       rebuild_sprite_ba if @sprites.stopped_dma?
     end
 
-    def toggle_and_check_sprite_dma
-      @sprites.toggle_expansion
+    def check_dma_and_toggle_expansion
       check_sprite_dma
+      @sprites.toggle_expansion
     end
 
     # The trigger re-arms at the start of each frame; if the pen line is

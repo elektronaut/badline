@@ -64,6 +64,7 @@ module Badline
         @mcbase = 0
         @mc = 0
         @exp_ff = true
+        @crunched_mc = nil
         @bits = 0
         @row_ready = false
         @codes = Array.new(MAX_SPAN, 0)
@@ -109,27 +110,40 @@ module Badline
 
       def color = @registers[0x27 + index] & 0x0f
 
-      # Cycle 15: MCBASE takes two of the three bytes a displayed row
-      # consumes, but only while the expansion flip-flop is set.
+      # Cycle 16: MCBASE takes MC, which the three s-accesses stepped past
+      # the row, but only while the expansion flip-flop is set.
       def advance_mcbase
-        hold_expansion
-        @mcbase = (@mcbase + 2) & MC_MASK if @exp_ff
+        mc = @crunched_mc || ((@mc + 3) & MC_MASK)
+        @crunched_mc = nil
+        @mcbase = mc if @exp_ff && @dma
       end
 
-      # Cycle 16: the third byte, then the end-of-sprite compare. MCBASE has
-      # to land on 63 exactly — a crunched sprite steps over it and runs on
-      # through the rest of its block. Only the DMA stops here; the display
-      # waits for cycle 58.
+      # The end-of-sprite compare, a column after MCBASE moves. MCBASE has
+      # to land on 63 exactly, so a crunched sprite steps over it and runs
+      # on through the rest of its block. Only the DMA stops here; the
+      # display waits for cycle 58.
       def finish_mcbase
-        hold_expansion
-        @mcbase = (@mcbase + 1) & MC_MASK if @exp_ff
         @dma = false if @mcbase == LAST_MCBASE
       end
 
-      # Cycle 55: MxYE inverts the expansion flip-flop, ahead of the Y
-      # compare that may reset it again.
+      # Clearing MxYE sets the expansion flip-flop at once. Cleared in
+      # cycle 15, while the flip-flop is still reset, it also crunches MC:
+      # the bits step to a mix of MC and MCBASE (Bauer §3.8, VICE
+      # `d017_store`) that cycle 16 then hands to MCBASE.
+      def clear_y_expansion(crunch)
+        return if @exp_ff
+
+        @exp_ff = true
+        return unless crunch && @dma
+
+        mc = (@mc + 3) & MC_MASK
+        @crunched_mc = (0x2a & @mcbase & mc) | (0x15 & (@mcbase | mc))
+      end
+
+      # Cycle 56, after the second Y compare: MxYE inverts the expansion
+      # flip-flop of a sprite with DMA running.
       def toggle_expansion
-        @exp_ff = y_expanded? ? !@exp_ff : true
+        @exp_ff = !@exp_ff if @dma && y_expanded?
       end
 
       # Cycles 55 and 56: a Y/enable match starts the DMA and rewinds
@@ -150,7 +164,7 @@ module Badline
         @first_byte_lost = column + 2 > 55 + (2 * index)
         @dma = true
         @mcbase = 0
-        @exp_ff = false if y_expanded?
+        @exp_ff = true
       end
 
       # Cycle 58: MC is reloaded from MCBASE for the coming row, and a
@@ -284,12 +298,6 @@ module Badline
 
         codes[cut] = codes[cut - 1]
         cut + 1
-      end
-
-      # Bauer §3.8 rule 1: the flip-flop is held set while MxYE is clear,
-      # so an unexpanded sprite advances a row every line.
-      def hold_expansion
-        @exp_ff = true unless y_expanded?
       end
 
       # The three s-accesses step MC through the sprite's block, wrapping
