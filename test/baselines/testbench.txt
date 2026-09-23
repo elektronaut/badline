@@ -92,9 +92,9 @@ VICII/split-tests/fetchsplit/fetchsplit.prg	PASS
 VICII/split-tests/lightpen/lightpen.prg	PASS
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=348px exit=$00
 VICII/split-tests/spritescan/spritescan.prg	PASS
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=71px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=78px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=78px exit=$00
+VICII/vicii_timing/vicii_reg_timing.prg	PASS
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=7px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=7px exit=$00
 VICII/videomode/rmwtest.prg	PASS
 VICII/videomode/videomode1.prg	FAIL	diff=2px exit=$00
 VICII/videomode/videomode2.prg	PASS

@@ -306,5 +306,21 @@ RSpec.describe Badline::VIC::Sequencer do
       paint_line(switch_at: 39, switch_to: 0xc0)
       expect(sequencer.colors[450]).to eq(1) # graphics, not border
     end
+
+    # Pinned by vicii_reg_timing: the 40-column compare falls on its group's
+    # first pixel, which still sees CSEL as the column before had it.
+    it "closes the right border when CSEL clears in the compare's column" do
+      registers.write(0x16, 0xc8)
+      paint_line(switch_at: 40, switch_to: 0xc0)
+      expect(sequencer.colors[450]).to eq(2)
+    end
+
+    # Pinned by border-bm-ysh: the 38-column compare, on its group's last
+    # pixel, sees a CSEL written in that column.
+    it "closes the right border at the 38-column compare in the column CSEL clears" do
+      registers.write(0x16, 0xc8)
+      paint_line(switch_at: 38, switch_to: 0xc0)
+      expect(sequencer.colors[440]).to eq(2)
+    end
   end
 end
