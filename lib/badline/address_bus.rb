@@ -229,8 +229,9 @@ module Badline
       @cartridge&.romh && @cartridge.exrom.zero? && @cartridge.game.zero? && io_port.kernal?
     end
 
+    # In 16K mode LORAM alone leaves $d000 as RAM, where it still maps I/O.
     def character?
-      (io_port.basic? || io_port.kernal?) && !io_port.io?
+      (io_port.kernal? || (io_port.basic? && game_high?)) && !io_port.io?
     end
 
     def io?
