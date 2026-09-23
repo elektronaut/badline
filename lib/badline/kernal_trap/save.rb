@@ -12,7 +12,7 @@ module Badline
       def call
         return unless active?
 
-        name = filename
+        name = Storage.parse_name(filename).first
         if name.empty?
           error(MISSING_FILENAME)
         else

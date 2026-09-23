@@ -322,7 +322,7 @@ RSpec.describe Badline::Computer do
       end
 
       it "still serves LOAD" do
-        allow(read_only).to receive(:read_file).with("DATA").and_return([0x00, 0xc0, 0x42])
+        allow(read_only).to receive(:read_file).with("DATA", type: :prg).and_return([0x00, 0xc0, 0x42])
         run_load
         expect(ram.peek(0xc000)).to eq(0x42)
       end

@@ -105,7 +105,7 @@ module Lorenz
       @entries = []
     end
 
-    def read_file(name)
+    def read_file(name, **)
       @entries << Entry.new(name.downcase, @capture.output.length)
       super || swap_for(name)
     end
