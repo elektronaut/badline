@@ -42,6 +42,7 @@ describe Badline::Cartridge do
     end
 
     it "unmaps ROML when LORAM is cleared" do
+      address_bus[0x00] = 0x2f
       address_bus[0x01] = 0b00110110
       expect(address_bus[0x8000]).to eq(0x00)
     end
@@ -68,6 +69,23 @@ describe Badline::Cartridge do
 
     it "keeps the KERNAL mapped" do
       expect(address_bus[0xe000]).to eq(address_bus.kernal_rom[0xe000])
+    end
+
+    context "with LORAM set and HIRAM cleared" do
+      before do
+        address_bus.ram.poke(0xd000, 0x5a)
+        address_bus[0x00] = 0x2f
+      end
+
+      it "maps RAM over the character ROM" do
+        address_bus[0x01] = 0b00110001
+        expect(address_bus[0xd000]).to eq(0x5a)
+      end
+
+      it "still maps I/O" do
+        address_bus[0x01] = 0b00110101
+        expect(address_bus[0xd000]).to eq(address_bus.vic.peek(0xd000))
+      end
     end
   end
 

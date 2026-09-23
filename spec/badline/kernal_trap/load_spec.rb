@@ -136,6 +136,7 @@ describe Badline::KernalTrap::Load do
 
   describe "with the KERNAL ROM banked out" do
     before do
+      computer.address_bus.poke(0x00, 0x2f)
       computer.address_bus.poke(0x01, 0x35)
       request_load("DATA")
       run_trap

@@ -76,8 +76,8 @@ module Badline
       @color_ram = ColorMemory.new(@vic)
       @open_bus = OpenBus.new(@vic)
 
-      @port_ddr = 0x2f
-      @port_out = 0x37
+      @port_ddr = 0x00
+      @port_out = 0x00
       @port_floating = 0x00
       @io_port = Status.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
 
@@ -94,6 +94,7 @@ module Badline
     end
 
     def disable_overlays!
+      poke(0, 0x2f)
       poke(1, 0)
     end
 
@@ -228,8 +229,9 @@ module Badline
       @cartridge&.romh && @cartridge.exrom.zero? && @cartridge.game.zero? && io_port.kernal?
     end
 
+    # In 16K mode LORAM alone leaves $d000 as RAM, where it still maps I/O.
     def character?
-      (io_port.basic? || io_port.kernal?) && !io_port.io?
+      (io_port.kernal? || (io_port.basic? && game_high?)) && !io_port.io?
     end
 
     def io?

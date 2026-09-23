@@ -5,10 +5,17 @@ require "spec_helper"
 describe Badline::AddressBus do
   let(:address_bus) { described_class.new }
 
-  specify { expect(address_bus[0x0000]).to eq(0x2f) }
-  specify { expect(address_bus[0x0001]).to eq(0b00110111) }
-
   describe "the processor port" do
+    context "when powered on" do
+      it "leaves every DDR bit an input" do
+        expect(address_bus[0x00]).to eq(0x00)
+      end
+
+      it "reads the pulled-up bits high" do
+        expect(address_bus[0x01]).to eq(0x17)
+      end
+    end
+
     context "when all bits are inputs" do
       before do
         address_bus[0x01] = 0x34
@@ -102,6 +109,7 @@ describe Badline::AddressBus do
     context "when I/O is banked out" do
       before do
         address_bus.ram.poke(0xdf80, 0x5a)
+        address_bus[0x00] = 0x2f
         address_bus[0x01] = 0x34
       end
 
@@ -168,6 +176,7 @@ describe Badline::AddressBus do
     end
 
     it "leaves a driven sense line alone" do
+      address_bus[0x01] = 0x37
       address_bus[0x00] = 0xff
       datasette.play!
       expect(address_bus[0x01] & 0x10).to eq(0x10)
@@ -179,6 +188,7 @@ describe Badline::AddressBus do
     end
 
     it "stops the motor while bit 5 is high" do
+      address_bus[0x00] = 0x2f
       address_bus[0x01] = 0x37
       expect(datasette).not_to be_motor
     end

@@ -108,6 +108,7 @@ describe Badline::KernalTrap::Serial do
 
   describe "with the KERNAL ROM banked out" do
     before do
+      computer.address_bus.poke(0x00, 0x2f)
       computer.address_bus.poke(0x01, 0x35)
       ram.poke(described_class::ROUTINES.key(:listen), 0xea) # NOP
       call_routine(:listen, 8)
