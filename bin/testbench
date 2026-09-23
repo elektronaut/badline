@@ -79,8 +79,8 @@ module Testbench
                   reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
 
-  # EasyFlash with a supported mapper, but the test writes the flash
-  # through EAPI, and badline's EasyFlash is ROM only.
+  # The image carries only the EAPI signature, and VICE swaps its own copy
+  # of the Am29F040 EAPI in on attach. Badline doesn't bundle that EAPI.
   UNSUPPORTED_CARTRIDGES = %w[C64/carts/ef-eapi/test-eapi.crt].freeze
 
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
