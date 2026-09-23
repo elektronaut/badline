@@ -603,9 +603,10 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   (`VIC::FETCH_HOLD`). When BMM changes and the access moves from RAM onto
   the character ROM, the low address byte comes from the old mode and the
   rest from the new one.
-  - The hold is pinned by `vicii_reg_timing` (71 → 127 px without it). The
-    address mix is pinned by `modesplit` (348 → 502 px) and `videomode-v`,
-    `-x` and `-y` (6/10/1 → 14/14/9 px).
+  - The hold is pinned by `vicii_reg_timing` (pass → 56 px without it, and
+    7 → 63 px for `-a5` and `-ff`). The address mix is pinned by
+    `modesplit` (48 → 202 px) and `videomode-v`, `-x` and `-y` (5/10/1 →
+    13/14/9 px).
   - Spec guard: *addresses with a BMM that fell in the same column* and
     *mixes the addresses when BMM falls onto the character ROM* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
@@ -618,11 +619,11 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     `videomode-v` makes the second move too (6 → 5 px).
   - The RAM side is pinned by `vicii_reg_timing`, whose ECM row drops ECM
     in text mode with the characters in RAM: holding ECM there as well
-    takes it from 71 to 103 px (from pass to 32 px once the side border
-    compares see CSEL late), and `videomode-z`, a `$7b` → `$3b` fall in
-    RAM, goes from 2 to 5 px. `videomode-x` makes the same fall in RAM and
-    would prefer the hold (10 → 2 px), but its readme says its reference
-    doesn't match every 6569 capture. VICE holds BMM only.
+    takes it from pass to 32 px (7 → 39 px for `-a5` and `-ff`), and
+    `videomode-z`, a `$7b` → `$3b` fall in RAM, from pass to 3 px.
+    `videomode-x` makes the same fall in RAM and would prefer the hold
+    (10 → 2 px), but its readme says its reference doesn't match every 6569
+    capture. VICE holds BMM only.
   - Spec guard: *drops a falling ECM at once when the access left RAM* and
     *holds a falling ECM when the access left the character ROM* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
@@ -632,7 +633,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   `xscroll_pipe`), so a `$d016` write shows a column later than a colour
   or mode write in the same cycle.
   - Pinned by `sbsprf24-163`/`-164` (34/42 px → pass, 40/44 without it),
-    `modesplit` (348 → 444) and `vicii_reg_timing` (71 → 791), and by
+    `modesplit` (48 → 144) and `vicii_reg_timing` (pass → 720), and by
     `border-bm-idle`, `border-bm-ysh` and `border-mcbm`.
   - Spec guard: *loads the byte at the XSCROLL the column before saw* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
@@ -646,9 +647,9 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   - `VIC::GraphicsShifter` runs these groups pixel by pixel: a group where
     the mode or the load point changes, and the group after it. Every other
     group paints whole bytes, which comes to the same pixels.
-  - Pinned by `modesplit` (348 → 1222 px painting whole groups, 716 with
+  - Pinned by `modesplit` (48 → 1222 px painting whole groups, 428 with
     MCM read at pixel 4), the `videomode` rows and `vicii_reg_timing`
-    (71 → 377).
+    (pass → 274).
   - `videomode2` and `videomode-y` disagree on where a falling BMM shows:
     pixel 6 in `videomode2`, pixel 5 in `videomode-y` and in `modesplit`'s
     ECM+BMM → ECM split. The readme says these delays vary with the chip
@@ -673,8 +674,8 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
 - The pixels XSCROLL keeps from the previous byte take the **current**
   colour registers: a `$d021`–`$d024` write repaints that byte before it
   shows. The `ColorPatches` +1 px still applies on top.
-  - Pinned by `modesplit` (348 → 414 px without it) and
-    `vicii_reg_timing` (71 → 283). `colorsplit` (64 px → pass) and
+  - Pinned by `modesplit` (48 → 114 px without it) and
+    `vicii_reg_timing` (pass → 212). `colorsplit` (64 px → pass) and
     `spritefetchbug/test-136-2a` (8 px → pass) go back only when both this
     and the XSCROLL latch are knocked out.
   - Spec guard: *a background write under XSCROLL* in
