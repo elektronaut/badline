@@ -47,6 +47,14 @@ class TestTestbenchTestlist < Minitest::Test
     refute_nil parse("../CIA/tod/,t.prg,exitcode,1000,cia-old")
   end
 
+  def test_drops_rows_for_the_newer_vicii
+    assert_nil parse("../VICII/lp-trigger/,t.prg,exitcode,1000,vicii-pal,vicii-new")
+  end
+
+  def test_keeps_the_vicii_old_half_of_a_doubled_row
+    refute_nil parse("../VICII/videomode/,t.prg,screenshot,1000,vicii-pal,vicii-old")
+  end
+
   def test_ignores_comments_and_blank_lines
     assert_nil parse("# ../CIA/tod/,t.prg,exitcode,1000")
     assert_nil parse("   \n")

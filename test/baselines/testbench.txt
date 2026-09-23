@@ -82,7 +82,6 @@ VICII/greydot/greydot.prg	PASS
 VICII/lplatency/lplatency.prg	PASS
 VICII/lp-trigger/test1.prg	PASS
 VICII/lp-trigger/test2.prg	PASS
-VICII/lp-trigger/test2new.prg	FAIL	exit=$ff
 VICII/phi1timing/phi1timing.prg	PASS
 VICII/rasterirq/rasterirq_hold.prg	PASS
 VICII/screenpos/screenpos.prg	PASS
@@ -90,26 +89,13 @@ VICII/sb_sprite_fetch/sbsprf24-163.prg	PASS
 VICII/sb_sprite_fetch/sbsprf24-164.prg	PASS
 VICII/split-tests/bascan/bascan.prg	PASS
 VICII/split-tests/fetchsplit/fetchsplit.prg	PASS
-VICII/split-tests/fetchsplit/fetchsplit.prg	PASS
 VICII/split-tests/lightpen/lightpen.prg	PASS
-VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=348px exit=$00
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=348px exit=$00
 VICII/split-tests/spritescan/spritescan.prg	PASS
 VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=71px exit=$00
 VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=78px exit=$00
 VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=78px exit=$00
-VICII/vicii_timing/vicii_reg_timing.prg	FAIL	diff=71px exit=$00
-VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=78px exit=$00
-VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=78px exit=$00
 VICII/videomode/rmwtest.prg	PASS
-VICII/videomode/rmwtest.prg	PASS
-VICII/videomode/videomode1.prg	FAIL	diff=2px exit=$00
-VICII/videomode/videomode2.prg	PASS
-VICII/videomode/videomode-v.prg	FAIL	diff=6px exit=$00
-VICII/videomode/videomode-w.prg	FAIL	diff=79px exit=$00
-VICII/videomode/videomode-x.prg	FAIL	diff=10px exit=$00
-VICII/videomode/videomode-y.prg	FAIL	diff=1px exit=$00
-VICII/videomode/videomode-z.prg	FAIL	diff=2px exit=$00
 VICII/videomode/videomode1.prg	FAIL	diff=2px exit=$00
 VICII/videomode/videomode2.prg	PASS
 VICII/videomode/videomode-v.prg	FAIL	diff=6px exit=$00
@@ -154,44 +140,26 @@ VICII/spriteenable/spriteenable3.prg	PASS
 VICII/spriteenable/spriteenable4.prg	PASS
 VICII/spriteenable/spriteenable5.prg	PASS
 VICII/spritefetchbug/test-136-2a.prg	PASS
-VICII/spritefetchbug/test-136-2a.prg	PASS
 VICII/spritegap/spritegap2.prg	PASS
 VICII/spritegap/spritegap3.prg	PASS
 VICII/spritepriorities/test1.prg	PASS
 VICII/spriterestart/spriterestart.prg	PASS
 VICII/spritesplit/ss-exp-unexp-hires.prg	PASS
-VICII/spritesplit/ss-exp-unexp-hires.prg	PASS
-VICII/spritesplit/ss-exp-unexp-mc.prg	PASS
 VICII/spritesplit/ss-exp-unexp-mc.prg	PASS
 VICII/spritesplit/ss-hires-color.prg	PASS
-VICII/spritesplit/ss-hires-color.prg	PASS
-VICII/spritesplit/ss-hires-mc-exp.prg	PASS
 VICII/spritesplit/ss-hires-mc-exp.prg	PASS
 VICII/spritesplit/ss-hires-mc.prg	PASS
-VICII/spritesplit/ss-hires-mc.prg	PASS
-VICII/spritesplit/ss-mc-color0.prg	PASS
 VICII/spritesplit/ss-mc-color0.prg	PASS
 VICII/spritesplit/ss-mc-color1.prg	PASS
-VICII/spritesplit/ss-mc-color1.prg	PASS
-VICII/spritesplit/ss-mc-color2.prg	PASS
 VICII/spritesplit/ss-mc-color2.prg	PASS
 VICII/spritesplit/ss-mc-hires-exp.prg	PASS
-VICII/spritesplit/ss-mc-hires-exp.prg	PASS
-VICII/spritesplit/ss-mc-hires.prg	PASS
 VICII/spritesplit/ss-mc-hires.prg	PASS
 VICII/spritesplit/ss-pri-exp.prg	PASS
-VICII/spritesplit/ss-pri-exp.prg	PASS
-VICII/spritesplit/ss-pri-mc-exp.prg	PASS
 VICII/spritesplit/ss-pri-mc-exp.prg	PASS
 VICII/spritesplit/ss-pri-mc.prg	PASS
-VICII/spritesplit/ss-pri-mc.prg	PASS
-VICII/spritesplit/ss-pri.prg	PASS
 VICII/spritesplit/ss-pri.prg	PASS
 VICII/spritesplit/ss-unexp-exp-hires.prg	PASS
-VICII/spritesplit/ss-unexp-exp-hires.prg	PASS
 VICII/spritesplit/ss-unexp-exp-mc.prg	PASS
-VICII/spritesplit/ss-unexp-exp-mc.prg	PASS
-VICII/spritesplit/ss-xpos.prg	PASS
 VICII/spritesplit/ss-xpos.prg	PASS
 VICII/spritesteal/spritesteal.prg	PASS
 VICII/spritevssprite/spritevssprite.prg	PASS

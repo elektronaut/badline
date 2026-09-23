@@ -681,8 +681,8 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   pre-R03 dumps before comparing. All five pages match, the raster-read
   pages included (see [VIC raster IRQ phase](#vic-raster-irq-phase)).
 - The 6569's offset is 2 half-pixels and the 8565's is 1, so
-  `lp-trigger/test2new`, which wants the 8565, fails by design. badline
-  models only the 6569.
+  `lp-trigger/test2new`, which wants the 8565, would fail by design.
+  badline models only the 6569, and `bin/testbench` skips `vicii-new` rows.
 - Pinned by `lplatency`, `lp-trigger`, and the `fldscroll` tests, which sync
   through the light pen instead of the double IRQ.
 

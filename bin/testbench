@@ -62,8 +62,9 @@ module Testbench
 
   # cia-new asks for the 6526A, whose one-cycle-shorter timer and shift
   # register behaviour badline does not model; the same programs are listed
-  # again with cia-old, which is what it does model.
-  SKIP_OPTIONS = /ntsc|drean|mount|cia-new/
+  # again with cia-old, which is what it does model. vicii-new asks for the
+  # 8565 in the same way, and badline models only the 6569.
+  SKIP_OPTIONS = /ntsc|drean|mount|cia-new|vicii-new/
 
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
@@ -103,9 +104,8 @@ module Testbench
       "#{dir.delete_prefix('../')}/#{prg}"
     end
 
-    # Unique where the id is not: the testlist runs a few programs twice,
-    # under vicii-old and vicii-new, and the baseline keys the second as
-    # id#2.
+    # Unique where the id is not: should the testlist run a program twice,
+    # the baseline keys the second as id#2.
     def key
       occurrence.to_i > 1 ? "#{id}##{occurrence}" : id
     end
