@@ -6,6 +6,7 @@ require "badline/cartridge/simons_basic"
 require "badline/cartridge/ocean"
 require "badline/cartridge/fun_play"
 require "badline/cartridge/super_games"
+require "badline/cartridge/epyx_fastload"
 require "badline/cartridge/westermann"
 require "badline/cartridge/rex_utility"
 require "badline/cartridge/game_system"
@@ -28,10 +29,10 @@ module Badline
 
     HARDWARE_TYPES = {
       0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay,
-      8 => :SuperGames, 11 => :Westermann, 12 => :RexUtility, 15 => :GameSystem,
-      17 => :Dinamic, 18 => :Zaxxon, 19 => :MagicDesk, 21 => :Comal80,
-      32 => :EasyFlash, 51 => :Mach5, 53 => :Pagefox, 57 => :RGCD,
-      60 => :GMod2
+      8 => :SuperGames, 10 => :EpyxFastload, 11 => :Westermann,
+      12 => :RexUtility, 15 => :GameSystem, 17 => :Dinamic, 18 => :Zaxxon,
+      19 => :MagicDesk, 21 => :Comal80, 32 => :EasyFlash, 51 => :Mach5,
+      53 => :Pagefox, 57 => :RGCD, 60 => :GMod2
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines

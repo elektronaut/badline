@@ -60,6 +60,7 @@ module Badline
     end
 
     def attach_cartridge(cartridge)
+      cartridge.clock = -> { @cycles }
       address_bus.attach_cartridge(cartridge)
       cpu.reset!
     end
