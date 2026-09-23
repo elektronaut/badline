@@ -21,11 +21,25 @@ module Badline
       # A LOAD reads only PRG files. An OPEN names the type it wants, or
       # takes the first file of any type with a nil `type`.
       def read_file(name, type: :prg)
-        pattern = Storage.matcher(name)
-        entry = entries.find do |e|
-          (type.nil? || e[:type] == type) && pattern.match?(e[:name])
-        end
+        entry = find_entry(name, type)
         read_chain(entry[:track], entry[:sector]) if entry
+      end
+
+      # The first block in a file's chain that the error table marks bad:
+      # its DOS error, its track and sector, and how many of the file's
+      # bytes come before it. Nil when the whole chain reads cleanly.
+      def read_error(name, type: :prg)
+        entry = find_entry(name, type)
+        return unless @errors && entry
+
+        offset = 0
+        each_sector(entry[:track], entry[:sector]) do |data, track, sector|
+          error = block_error(track, sector)
+          return { error:, track:, sector:, offset: } if error
+
+          offset += data[0].zero? ? data[1] - 1 : SECTOR_SIZE - 2
+        end
+        nil
       end
 
       # Raw block access for the DOS `U1` command. Returns nil for blocks
@@ -59,6 +73,13 @@ module Badline
                             sector.between?(0, sectors_in(track) - 1)
 
         sector_offset(track, sector) + SECTOR_SIZE <= @bytes.length
+      end
+
+      def find_entry(name, type)
+        pattern = Storage.matcher(name)
+        entries.find do |e|
+          (type.nil? || e[:type] == type) && pattern.match?(e[:name])
+        end
       end
 
       def entries
@@ -99,7 +120,7 @@ module Badline
         while track != 0 && !visited[[track, sector]]
           visited[[track, sector]] = true
           data = sector_at(track, sector)
-          yield data
+          yield data, track, sector
           track, sector = data[0, 2]
         end
       end
