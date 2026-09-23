@@ -1,0 +1,11 @@
+module Badline
+  class CPU
+    @operation: Symbol
+    @plan: Array[Symbol]
+
+    class Microcode
+      attr_accessor operation: Symbol
+      attr_accessor plan: Array[Symbol]
+    end
+  end
+end
