@@ -64,6 +64,7 @@ module Badline
       @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank)
       @sprites = VIC::Sprites.new(@registers, @vic_bank, @width)
       @display = Array.new(@width * @height, 0)
+      @lines = Array.new(@height) { Array.new(@width, 0) }
       @dirty_lines = Array.new(@height, true)
 
       @column = 0
@@ -435,11 +436,12 @@ module Badline
       @sprites.finish_line(composite ? @sequencer.colors : nil, @sequencer.fg)
       @sequencer.apply_border if composite
 
-      base = @rasterline * @width
       colors = @sequencer.colors
-      return if @display[base, @width] == colors
+      line = @lines[@rasterline]
+      return if line == colors
 
-      @display[base, @width] = colors
+      line[0, @width] = colors
+      @display[@rasterline * @width, @width] = colors
       @dirty_lines[@rasterline] = true
     end
 
