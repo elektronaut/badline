@@ -30,9 +30,9 @@ module Badline
       addressable_at(start, length: 2**8)
 
       @peripheral = peripheral
-      @data_port_a = 0xff
-      @data_port_b = 0xff
-      @data_dir_a = 0xff
+      @data_port_a = 0x00
+      @data_port_b = 0x00
+      @data_dir_a = 0x00
       @data_dir_b = 0x0
       @port_b4_handler = nil
       @port_b4_high = true

@@ -5,6 +5,11 @@ require "spec_helper"
 describe Badline::VIC::Bank do
   subject(:vic_bank) { described_class.new }
 
+  before do
+    vic_bank.address_bus.cia2.poke(0xdd00, 0x03)
+    vic_bank.address_bus.cia2.poke(0xdd02, 0x03)
+  end
+
   describe ".start" do
     subject { vic_bank.start }
 

@@ -6,7 +6,7 @@ describe Badline::CIA do
   subject(:cia) { described_class.new(start: 0xdc00) }
 
   it "has a default value for data dir A" do
-    expect(cia[0xdc02]).to eq(0xff)
+    expect(cia[0xdc02]).to eq(0x00)
   end
 
   it "has a default value for data dir B" do
@@ -14,7 +14,8 @@ describe Badline::CIA do
   end
 
   it "repeats every 16 bytes" do
-    expect(cia[0xdc12]).to eq(0xff)
+    cia.poke(0xdc02, 0x5a)
+    expect(cia[0xdc12]).to eq(0x5a)
   end
 
   describe "the FLAG pin" do
@@ -48,8 +49,8 @@ describe Badline::CIA do
 
     before do
       cia.on_port_b4_change { |high| edges << high }
-      cia.poke(0xdc03, 0xff) # DDR B: all output
       cia.poke(0xdc01, 0xff) # PB high
+      cia.poke(0xdc03, 0xff) # DDR B: all output
     end
 
     it "reports the new level when PB4 is driven low" do
@@ -659,6 +660,8 @@ describe Badline::CIA do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral: keyboard) }
 
     let(:keyboard) { Badline::Keyboard.new }
+
+    before { cia.poke(0xdc02, 0xff) }
 
     it "returns the port A register when reading port A" do
       cia.poke(0xdc00, 0xfe)
