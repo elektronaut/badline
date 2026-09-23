@@ -18,7 +18,10 @@ module Badline
     class EasyFlash < Cartridge
       BANKS = 64
       EAPI_OFFSET = 0x1800
-      EAPI = File.binread(File.expand_path("../roms/eapi/eapi-am29f040-14", __dir__)).bytes.drop(2).freeze
+
+      def self.eapi
+        @eapi ||= ROM.read("eapi/eapi-am29f040-14").drop(2).freeze
+      end
 
       attr_reader :low_flash, :high_flash
 
@@ -110,7 +113,8 @@ module Badline
       def install_eapi(high)
         return unless high[EAPI_OFFSET, 4] == "eapi".bytes
 
-        high[EAPI_OFFSET, EAPI.length] = EAPI
+        eapi = EasyFlash.eapi
+        high[EAPI_OFFSET, eapi.length] = eapi
       end
 
       def place(flash_data, offset, bytes)
