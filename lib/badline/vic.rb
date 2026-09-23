@@ -28,6 +28,9 @@ module Badline
     G_IDLE = 1
     G_DISPLAY = 2
 
+    # The $d011 mode bits a g-access still sees for a cycle after they fall.
+    FETCH_HOLD = 0x20
+
     # Columns carrying a per-cycle hook, so an ordinary column costs one
     # array read instead of the dispatch.
     HOOK_COLUMNS = Array.new(63) do |column|
@@ -53,6 +56,7 @@ module Badline
       @height = 312
 
       @registers = VIC::Registers.new
+      @register_bytes = @registers.bytes
       @display_state = VIC::DisplayState.new(@registers)
       @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank)
       @sprites = VIC::Sprites.new(@registers, @vic_bank, @width)
@@ -71,11 +75,11 @@ module Badline
       @g_kind = Array.new(4, G_BLANK)
       @g_kept_char = 0
       @g_kept_color = 0
-      @g_char = Array.new(4, 0)
-      @g_color = Array.new(4, 1)
-      @g_vc = Array.new(4, 0)
-      @g_rc = Array.new(4, 0)
+      @g_data = @sequencer.ring_data
+      @g_char = @sequencer.ring_char
+      @g_color = @sequencer.ring_color
       @g_display = false
+      @fetch_d011 = @register_bytes[0x11]
       @lp_triggered = false
       @lp_low = false
       @raster_match = false
@@ -237,6 +241,7 @@ module Badline
       return if old == value
 
       if (0x20..0x24).cover?(reg)
+        @sequencer.colors_changed! unless reg == 0x20
         @sequencer.color_patches.log(reg, old, value, @column * 8) unless blanking?
       else
         @sprites.log_change(reg, old, value, @column * 8)
@@ -271,20 +276,9 @@ module Badline
     # The g-access of the column just run. In display state it used the
     # VC and VMLI it then stepped past.
     def graphics_phi1_address
-      ecm = @registers.ecm.nonzero?
-      return ecm ? 0x39ff : 0x3fff unless @g_display
+      return @registers.ecm.nonzero? ? 0x39ff : 0x3fff unless @g_display
 
-      address = display_graphics_address(@display_state.vmli - 1, (@display_state.vc - 1) & 0x3ff)
-      ecm ? address & 0x39ff : address
-    end
-
-    def display_graphics_address(vmli, counter)
-      rc = @display_state.rc
-      if @registers.bmm.nonzero?
-        @registers.bitmap_base | (counter << 3) | rc
-      else
-        @registers.char_base | ((@character_buffer[vmli] || 0) << 3) | rc
-      end
+      graphics_address(@registers[0x11], @display_state.vmli - 1, (@display_state.vc - 1) & 0x3ff)
     end
 
     # A $d011/$d012 write is compared in the next column. A write after
@@ -340,49 +334,76 @@ module Badline
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY
-    # columns earlier. A column with no g-access, or one made while the
-    # vertical border flip-flop is set, latches nothing: it passes on zero
-    # data with the screen byte and colour the last g-access latched, which
-    # an idle g-access clears.
+    # columns earlier. The access reads its byte now, through the mode,
+    # $d018 and bank of this cycle. A column with no g-access, or one made
+    # while the vertical border flip-flop is set, latches nothing: it passes
+    # on zero data with the screen byte and colour the last g-access
+    # latched, which an idle g-access clears.
     def draw!
       slot = @g_tick = (@g_tick + 1) & 3
       display_state = @display_state
-      if !display_state.graphics_column?(@column) || @sequencer.vertical_closed?
+      access = display_state.graphics_column?(@column) && !@sequencer.vertical_closed?
+      if access
+        latch_graphics(slot, display_state)
+      else
         @g_kind[slot] = G_BLANK
+        @g_data[slot] = 0
         @g_char[slot] = @g_kept_char
         @g_color[slot] = @g_kept_color
-      else
-        latch_graphics(slot, display_state)
       end
       @g_display = display_state.display?
       display_state.graphics_access(@column) if @g_display
-      return if blanking?
-
-      emit_graphics((slot - GRAPHICS_DELAY) & 3, @column - 16)
+      emit_graphics((slot - GRAPHICS_DELAY) & 3, @column - 16) unless blanking?
+      @sequencer.latch_xscroll(@register_bytes[0x16] & 0b111) if access
+      @fetch_d011 = @register_bytes[0x11]
     end
 
     def latch_graphics(slot, display_state)
       unless display_state.display?
         @g_kind[slot] = G_IDLE
-        @g_kept_char = @g_kept_color = 0
+        @g_data[slot] = vic_bank.peek(@registers.ecm.zero? ? 0x3fff : 0x39ff)
+        @g_char[slot] = @g_color[slot] = @g_kept_char = @g_kept_color = 0
         return
       end
 
       vmli = display_state.vmli
       @g_kind[slot] = G_DISPLAY
+      @g_data[slot] = fetch_graphics(vmli, display_state.vc)
       @g_char[slot] = @g_kept_char = @character_buffer[vmli] || 0
       @g_color[slot] = @g_kept_color = @color_buffer[vmli] || 1
-      @g_vc[slot] = display_state.vc
-      @g_rc[slot] = display_state.rc
+    end
+
+    # The g-access sees a mode bit that falls a cycle late: it addresses
+    # with $d011 as this column has it, OR-ed with the bits the column
+    # before had. When BMM changes and the access moves from RAM onto the
+    # character ROM, the low address byte still comes from the old mode
+    # (VICE x64sc `vicii_fetch_graphics`).
+    def fetch_graphics(vmli, counter)
+      d011 = @register_bytes[0x11]
+      last = @fetch_d011
+      return vic_bank.peek(graphics_address(d011, vmli, counter)) if d011 == last
+
+      address = graphics_address(d011 | (last & FETCH_HOLD), vmli, counter)
+      if (d011 ^ last).anybits?(0x20)
+        from = graphics_address(last, vmli, counter)
+        to = graphics_address(d011, vmli, counter)
+        address = (from & 0xff) | (to & 0x3f00) if !vic_bank.character_rom?(from) && vic_bank.character_rom?(to)
+      end
+      vic_bank.peek(address)
+    end
+
+    def graphics_address(d011, vmli, counter)
+      rc = @display_state.rc
+      case d011 & 0x60
+      when 0x00 then @registers.char_base | ((@character_buffer[vmli] || 0) << 3) | rc
+      when 0x20 then @registers.bitmap_base | (counter << 3) | rc
+      when 0x40 then (@registers.char_base | ((@character_buffer[vmli] || 0) << 3) | rc) & 0x39ff
+      else (@registers.bitmap_base | (counter << 3) | rc) & 0x39ff
+      end
     end
 
     def emit_graphics(slot, col)
-      case @g_kind[slot]
-      when G_DISPLAY
-        @sequencer.emit(@g_char[slot], @g_color[slot], col, @g_vc[slot], @g_rc[slot])
-      when G_IDLE then @sequencer.emit_idle(col)
-      else @sequencer.emit_blank(@g_char[slot], @g_color[slot], col)
-      end
+      @sequencer.emit(slot, col, @g_kind[slot] == G_DISPLAY)
     end
 
     # Fold the rest of the line's sprite collisions in — they latch whether

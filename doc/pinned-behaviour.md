@@ -21,6 +21,7 @@ only catches the rows that happen to move.
 - [VIC sprite collisions](#vic-sprite-collisions)
 - [VIC border and idle state](#vic-border-and-idle-state)
 - [VIC bad line and DMA](#vic-bad-line-and-dma)
+- [VIC graphics pipeline](#vic-graphics-pipeline)
 - [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
@@ -445,17 +446,18 @@ only catches the rows that happen to move.
   - Pinned by `hvborder2`, `border-bm-ysh`, `border-bm-ysh2` and
     `border-mcbm`, which go back to 8134, 5575, 4598 and 5595 px when
     either flip-flop paints border (knock-outs measured before the sprite
-    shifter landed; the rows now stand at 3, 50, 71 and 75 px).
+    shifter landed; all four pass since the
+    [graphics pipeline](#vic-graphics-pipeline) rules).
   - Spec guard: *shows the vertical border only through the main
     flip-flop* in
     [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
-- Idle-state graphics decode $3fff/$39ff via `GraphicsMode::Idle`: the
-  byte is painted through the current mode with a zero screen byte and
-  colour nibble (foreground black, background per mode). A guard keeps
+- An idle-state g-access reads $3fff, or $39ff with ECM set, and the byte
+  is painted through the current mode with a zero screen byte and colour
+  nibble (foreground black, background per mode). A guard keeps
   closed-border lines on the bulk path.
   - Pinned by `ss-pri*`, whose diffs collapsed from ~85k px to 220–440 px.
-  - Spec guard: the `GraphicsMode::Idle` group in
-    [`vic/graphics_mode_spec.rb`](../spec/badline/vic/graphics_mode_spec.rb).
+  - Spec guard: *renders the idle byte at $3fff in black* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - A column with no g-access (outside columns 14–53), or one whose
   g-access falls while the vertical border stays closed for the rest of
   the line, shifts out **zero data**. It is painted through the current
@@ -562,6 +564,80 @@ only catches the rows that happen to move.
   matching every display row back to its offset in screen memory, so a diff
   reads as "row 0 starts 40 cells in" instead of "11,376 px". Rebuild that
   as a scratch script before touching these tests again.
+
+## VIC graphics pipeline
+
+The column frame is the one in [VIC bad line and DMA](#vic-bad-line-and-dma).
+A register write in the CPU cycle after column `c - 1` is seen by column
+`c`, and a g-access in column `c` draws in column `c + 2`. The rules follow
+VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
+
+- The g-access reads its byte **in its own column**, through the mode,
+  `$d018` and VIC bank of that cycle, not when the sequencer draws it two
+  columns later. `VIC#fetch_graphics` reads it, and `GraphicsMode` only
+  paints.
+  - Pinned by `gfxfetch` (224 px → pass), which flips the character data
+    between the g-access and the draw, and `fetchsplit` (2939 → 2890 px
+    without it), which splits `$d018` and `$dd00` mid-line.
+  - Spec guard: *reads the byte in its own column* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- The g-access still sees BMM for one column after it falls: it addresses
+  with `$d011` OR-ed with the BMM bit of the column before
+  (`VIC::FETCH_HOLD`). When BMM changes and the access moves from RAM onto
+  the character ROM, the low address byte comes from the old mode and the
+  rest from the new one.
+  - The hold is pinned by `vicii_reg_timing` (71 → 127 px without it). The
+    address mix is pinned by `modesplit` (348 → 502 px) and `videomode-v`,
+    `-x` and `-y` (6/10/1 → 14/14/9 px).
+  - `modesplit` would also have ECM held a column (`FETCH_HOLD = 0x60`,
+    348 → 48 px, with `videomode-x` 10 → 2), but the ECM row of
+    `vicii_reg_timing` shows the same fall without the hold (71/78/78 →
+    103/110/110 px with it, and `videomode-z` 2 → 5). VICE holds BMM only,
+    and so does badline until something separates the two.
+  - Spec guard: *addresses with a BMM that fell in the same column* and
+    *mixes the addresses when BMM falls onto the character ROM* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- The byte a group draws loads into the shift register at pixel XSCROLL,
+  and that XSCROLL is the one the **column before** saw. It is latched in
+  each g-access column with the vertical border open (VICE
+  `xscroll_pipe`), so a `$d016` write shows a column later than a colour
+  or mode write in the same cycle.
+  - Pinned by `sbsprf24-163`/`-164` (34/42 px → pass, 40/44 without it),
+    `modesplit` (348 → 444) and `vicii_reg_timing` (71 → 791), and by
+    `border-bm-idle`, `border-bm-ysh` and `border-mcbm`.
+  - Spec guard: *loads the byte at the XSCROLL the column before saw* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- A mode change takes hold **inside** the group. ECM and BMM rising show
+  at pixel 4 and falling at pixel 6, so a change that clears one bit while
+  it sets the other shows the invalid mode's black on pixels 4 and 5. MCM
+  changes the colour lookup at pixel 4 but how the shift register is read
+  only at pixel 7, where a rising MCM also resets the multicolour
+  flip-flop. The mode applies to the pixels as they leave the shift
+  register, so the boundaries stay put whatever XSCROLL is.
+  - `VIC::GraphicsShifter` runs these groups pixel by pixel: a group where
+    the mode or the load point changes, and the group after it. Every other
+    group paints whole bytes, which comes to the same pixels.
+  - Pinned by `modesplit` (348 → 1222 px painting whole groups, 716 with
+    MCM read at pixel 4), the `videomode` rows and `vicii_reg_timing`
+    (71 → 377).
+  - `videomode2` and `videomode-y` disagree on where a falling BMM shows:
+    pixel 6 in `videomode2`, pixel 5 in `videomode-y` and in `modesplit`'s
+    ECM+BMM → ECM split. The readme says these delays vary with the chip
+    and its temperature. badline keeps VICE's pixel 6, which passes
+    `videomode2` and leaves `videomode-y` 1 px off and 48 of `modesplit`'s
+    348 px, one pixel on each of its first-section lines.
+  - Spec guard: [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb),
+    one example per pixel, and *a mode change inside a group* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+- The pixels XSCROLL keeps from the previous byte take the **current**
+  colour registers: a `$d021`–`$d024` write repaints that byte before it
+  shows. The `ColorPatches` +1 px still applies on top.
+  - Pinned by `modesplit` (348 → 414 px without it) and
+    `vicii_reg_timing` (71 → 283). `colorsplit` (64 px → pass) and
+    `spritefetchbug/test-136-2a` (8 px → pass) go back only when both this
+    and the XSCROLL latch are knocked out.
+  - Spec guard: *a background write under XSCROLL* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
 
 ## VIC phi1 bus
 

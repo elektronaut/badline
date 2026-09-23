@@ -74,6 +74,9 @@ module Badline
     class Registers
       include IntegerHelper
 
+      # The raw register bytes, for the per-column reads on the hot path.
+      attr_reader :bytes
+
       def initialize
         @bytes = Array.new(2**6, 0)
         @irq_line = false

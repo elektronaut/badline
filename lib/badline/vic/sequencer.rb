@@ -3,6 +3,8 @@
 require "badline/vic/border_mask"
 require "badline/vic/color_patches"
 require "badline/vic/graphics_mode"
+require "badline/vic/graphics_shifter"
+require "badline/vic/sequencer_output"
 
 module Badline
   class VIC < Cycleable
@@ -10,6 +12,8 @@ module Badline
     #
     # Turns fetched graphics data into output pixels.
     class Sequencer
+      include Output
+
       DISPLAY_X_BOUNDS = [
         [135, 438].freeze,
         [128, 447].freeze
@@ -57,6 +61,16 @@ module Badline
         @vertical_armed = true
         @main_border = true
         @color_patches = ColorPatches.new(self)
+        @shifter = GraphicsShifter.new(registers)
+        @xscroll = 0
+        @last_shift = 0
+        @last_mode = 0
+        @settling = false
+        @ring_data = Array.new(4, 0)
+        @ring_char = Array.new(4, 0)
+        @ring_color = Array.new(4, 1)
+        @prev_fresh = false
+        @check = true
         new_line(0)
       end
 
@@ -69,7 +83,26 @@ module Badline
         @border_mask.reset
         @prev_colors.fill(@registers.background)
         @prev_fg = GraphicsMode::NO_FG
+        @prev_fresh = false
+        @check = true
         @color_patches.clear
+      end
+
+      # The load point for the next group's byte: XSCROLL as a g-access
+      # column with the border open sees it, a column before the group that
+      # uses it (VICE x64sc `xscroll_pipe`).
+      def latch_xscroll(xscroll = @registers.xscroll)
+        return if xscroll == @xscroll
+
+        @xscroll = xscroll
+        @check = true
+      end
+
+      # A write to a register the painted colours depend on: the byte kept
+      # from the previous group is painted again before its pixels are shown.
+      def colors_changed!
+        @prev_fresh = false
+        @check = true
       end
 
       def apply_color_patches
@@ -120,138 +153,82 @@ module Badline
       # Repaint the border over the composited line, hiding the sprites.
       def apply_border = @border_mask.restore(@colors)
 
-      def emit(screencode, color, col, cell, row)
-        MODES[@registers.mode].decode(screencode, color, cell, row, self)
-        output(col)
-        roll
-      end
+      # The g-accesses the VIC hands over, as a ring the column's slot
+      # indexes: the byte read, the screen byte and the colour nibble. The
+      # slot before is the byte the previous group loaded.
+      attr_reader :ring_data, :ring_char, :ring_color
 
-      # In idle state the g-accesses read $3fff ($39ff with ECM) and the data
-      # is displayed as if the video matrix supplied all-zero bits.
-      def emit_idle(col)
-        if border_hidden?
-          @cur_fg = GraphicsMode::NO_FG
-        else
-          GraphicsMode::IDLE.decode(self)
-        end
-        output(col)
-        roll
-      end
+      # Paints the byte in the slot through the current mode. An idle access
+      # latches 0/0 and one that made no access passes on zero data with the
+      # kept values; under a closed border neither has foreground. A group
+      # where the mode or the load point changes, and the one after it, run
+      # the shift register pixel by pixel.
+      def emit(slot, col, display)
+        mode = @registers.mode
+        return emit_checked(slot, col, display, mode) if @check || mode != @last_mode
 
-      # A column with no g-access, or one made while the vertical border
-      # flip-flop is set, shifts out zero data painted with the screen byte
-      # and colour nibble the last g-access latched.
-      def emit_blank(screencode, color, col)
-        if border_hidden?
-          @cur_fg = GraphicsMode::NO_FG
-        else
-          MODES[@registers.mode].paint(0, screencode, color, self)
-        end
-        output(col)
+        paint_slot(slot, mode, display)
+        output(col, @last_shift)
         roll
       end
 
       private
 
+      # After a mode, XSCROLL or colour change: groups paint whole bytes
+      # again once the change has settled, and run pixel by pixel until then.
+      def emit_checked(slot, col, display, mode)
+        shift = @xscroll
+        if mode == @last_mode && shift == @last_shift && !@settling
+          emit_settled(slot, col, display, mode, shift)
+        else
+          emit_pixels(slot, col, mode, shift, !display && border_hidden?)
+          @settling = mode != @last_mode || shift != @last_shift
+          @last_mode = mode
+          @last_shift = shift
+        end
+      end
+
+      def emit_settled(slot, col, display, mode, shift)
+        repaint_previous(mode, (slot - 1) & 3) unless @prev_fresh || shift.zero?
+        paint_slot(slot, mode, display)
+        output(col, shift)
+        roll
+        @prev_fresh = true
+        @check = false
+      end
+
+      def paint_slot(slot, mode, display)
+        if !display && border_hidden?
+          @cur_fg = GraphicsMode::NO_FG
+        else
+          MODES[mode].paint(@ring_data[slot], @ring_char[slot], @ring_color[slot], self)
+        end
+      end
+
+      def repaint_previous(mode, slot)
+        roll
+        MODES[mode].paint(@ring_data[slot], @ring_char[slot], @ring_color[slot], self)
+        roll
+      end
+
+      def emit_pixels(slot, col, mode, shift, hidden)
+        prime_shifter((slot - 1) & 3) unless @settling
+        @shifter.draw(hidden ? 0 : @ring_data[slot], @ring_char[slot], @ring_color[slot], shift, mode)
+        @cur_colors[0, 8] = @shifter.colors
+        @cur_fg = @shifter.fg
+        output(col, 0)
+        @prev_fresh = false
+        @check = true
+      end
+
+      # Picks up from a group that painted whole bytes.
+      def prime_shifter(slot)
+        @shifter.prime(@ring_data[slot], @ring_char[slot], @ring_color[slot], @last_shift, @last_mode)
+      end
+
       # The group is border throughout when the main flip-flop is set and the
       # vertical one keeps it from clearing.
       def border_hidden? = @main_border && vertical_closed?
-
-      # Write the 8-pixel group for a column into the line buffers. The main
-      # border flip-flop only changes state in the groups containing the
-      # window edge compares, so all other groups take a branch-free bulk
-      # path: fully border or fully window.
-      def output(col)
-        x_pos = (col + 16) * 8
-        win_lo, right_compare = WINDOW_COMPARES[@registers.csel? ? 1 : 0]
-
-        if boundary_group?(x_pos, win_lo, right_compare)
-          output_boundary(x_pos, win_lo, right_compare)
-        elsif @main_border
-          output_border(x_pos)
-        else
-          output_window(x_pos)
-        end
-      end
-
-      # True if the group contains a window edge, where the main border
-      # flip-flop can change state.
-      def boundary_group?(x_pos, win_lo, right_compare)
-        lo_delta = win_lo - x_pos
-        hi_delta = right_compare - x_pos
-        (lo_delta >= 0 && lo_delta < 8) || (hi_delta >= 0 && hi_delta < 8)
-      end
-
-      def output_border(x_pos)
-        @colors.fill(@registers.border, x_pos, 8)
-        @border_groups[x_pos >> 3] = BorderMask::FULL
-        @fg.fill(false, x_pos, 8)
-      end
-
-      def output_window(x_pos)
-        in_gfx = x_pos >= GFX_X_START && x_pos < GFX_X_END
-        @border_groups[x_pos >> 3] = BorderMask::NONE
-
-        if @registers.xscroll.zero?
-          @colors[x_pos, 8] = @cur_colors
-          if in_gfx
-            @fg[x_pos, 8] = @cur_fg
-          else
-            @fg.fill(false, x_pos, 8)
-          end
-        else
-          output_window_shifted(x_pos, in_gfx)
-        end
-      end
-
-      def output_window_shifted(x_pos, in_gfx)
-        shift = @registers.xscroll
-        keep = 8 - shift
-
-        copy(@cur_colors, 0, @colors, x_pos + shift, keep)
-        copy(@prev_colors, keep, @colors, x_pos, shift)
-        output_shifted_fg(x_pos, in_gfx, shift, keep)
-      end
-
-      def output_shifted_fg(x_pos, in_gfx, shift, keep)
-        return @fg.fill(false, x_pos, 8) unless in_gfx
-
-        copy(@cur_fg, 0, @fg, x_pos + shift, keep)
-        copy(@prev_fg, keep, @fg, x_pos, shift)
-      end
-
-      def copy(src, from, dest, to, count)
-        i = 0
-        while i < count
-          dest[to + i] = src[from + i]
-          i += 1
-        end
-      end
-
-      # Slow path for the groups where the border flip-flop can change state.
-      def output_boundary(x_pos, win_lo, right_compare)
-        shift = @registers.xscroll
-        border = @registers.border
-        @border_groups[x_pos >> 3] = BorderMask::MIXED
-
-        i = 0
-        while i < 8
-          src = i - shift
-          if src >= 0
-            pixel = @cur_colors[src]
-            mask = @cur_fg[src]
-          else
-            pixel = @prev_colors[8 + src]
-            mask = @prev_fg[8 + src]
-          end
-          x = x_pos + i
-          shown = pixel_shown?(x, win_lo, right_compare)
-          @colors[x] = shown ? pixel : border
-          @border[x] = !shown
-          @fg[x] = x >= GFX_X_START && x < GFX_X_END ? mask : false
-          i += 1
-        end
-      end
 
       def pixel_shown?(pixel_x, left_compare, right_compare)
         @main_border = true if pixel_x == right_compare

@@ -22,7 +22,11 @@ RSpec.describe Badline::VIC::ColorPatches do
   end
 
   def paint(columns)
-    columns.each { |col| sequencer.emit(0, 1, col, col, 0) }
+    columns.each do |col|
+      sequencer.ring_data[col & 3] = bank.peek(0)
+      sequencer.ring_char[col & 3] = 0
+      sequencer.emit(col & 3, col, true)
+    end
   end
 
   describe "a background write inside the display window" do

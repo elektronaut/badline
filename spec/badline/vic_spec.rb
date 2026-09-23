@@ -280,6 +280,77 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  # Cell 5 of char row 0 on line 52 (row 1): its g-access runs in column
+  # 19 and it draws at column 21. A write made at `run_to(column)` lands in
+  # the CPU cycle after column - 1.
+  describe "g-access timing" do
+    let(:ram) { vic.address_bus.ram }
+    let(:line) { 52 }
+    let(:group) { vic.display[(line * vic.width) + (21 * 8), 8] }
+
+    before do
+      vic.poke(0xd018, 0x18) # video matrix @ $0400, characters @ $2000
+      vic.poke(0xd011, 0x1b)
+      vic.poke(0xd021, 6)
+      ram.poke(0x0400 + 5, 0x41)
+      vic.address_bus.color_ram.poke(0xd800 + 5, 1)
+    end
+
+    def run_to(column)
+      ((line * 63) + column).times { vic.cycle! }
+    end
+
+    def finish_line
+      (63 - vic.column).times { vic.cycle! }
+    end
+
+    # Pinned by gfxfetch, whose writes to the character data land between
+    # the g-access and the column that draws it.
+    it "reads the byte in its own column" do
+      ram.poke(0x2000 + (0x41 * 8) + 1, 0xff)
+      run_to(20)
+      ram.poke(0x2000 + (0x41 * 8) + 1, 0x00)
+      finish_line
+      expect(group).to all(eq(1))
+    end
+
+    # Pinned by sbsprf24-163/-164, whose $d016 writes show a column late.
+    it "loads the byte at the XSCROLL the column before saw" do
+      ram.poke(0x2000 + (0x41 * 8) + 1, 0x80)
+      run_to(21)
+      vic.poke(0xd016, 0xcf)
+      finish_line
+      expect(group).to eq([1, 6, 6, 6, 6, 6, 6, 6])
+    end
+
+    # Bitmap mode from column 10, then text written in the CPU cycle after
+    # column 18, so the g-access of column 19 sees BMM fall.
+    def drop_bitmap
+      run_to(10)
+      vic.poke(0xd011, 0x3b)
+      (19 - vic.column).times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+      finish_line
+    end
+
+    # Pinned by vicii_reg_timing: a g-access in the column BMM falls still
+    # addresses the bitmap.
+    it "addresses with a BMM that fell in the same column" do
+      ram.poke(0x2000 + (5 * 8) + 1, 0xff)
+      drop_bitmap
+      expect(group).to all(eq(1))
+    end
+
+    # Pinned by modesplit: moving from the bitmap in RAM onto the character
+    # ROM, the access keeps the bitmap address's low byte.
+    it "mixes the addresses when BMM falls onto the character ROM" do
+      vic.poke(0xd018, 0x14) # characters @ $1000, the ROM
+      drop_bitmap
+      bits = vic.vic_bank.peek(0x1200 | (5 * 8) | 1)
+      expect(group).to eq(Array.new(8) { |i| bits[7 - i] == 1 ? 1 : 6 })
+    end
+  end
+
   describe "sprite rendering through a full raster" do
     let(:line) { 60 }
     let(:sprite_x) { 100 }
@@ -708,16 +779,27 @@ RSpec.describe Badline::VIC do
       vic.address_bus.color_ram.poke(0xd800 + cell, fg)
     end
 
-    it "renders the gap line as background, not character graphics" do
-      # Run normally up to the first bad line, then keep YSCROLL clear of both
-      # this line and the next, so no further bad line occurs and the chip
-      # slips into idle state.
+    # Run normally up to the first bad line, then keep YSCROLL clear of both
+    # this line and the next, so no further bad line occurs and the chip
+    # slips into idle state.
+    def run_through_gap
       (0..gap_line).each do |line|
         vic.poke(0xd011, 0x18 | ((line + 4) & 0b111)) if line > 52
         63.times { vic.cycle! }
       end
+    end
 
+    it "renders the gap line as background, not character graphics" do
+      run_through_gap
       expect(vic.display[(gap_line * vic.width) + ((16 + cell) * 8)]).to eq(bg)
+    end
+
+    # Pinned by ss-pri*: idle state reads $3fff and paints it black on the
+    # background, as if the video matrix held zero.
+    it "renders the idle byte at $3fff in black" do
+      vic.address_bus.ram.poke(0x3fff, 0b1000_0001)
+      run_through_gap
+      expect(vic.display[(gap_line * vic.width) + ((16 + cell) * 8), 8]).to eq([0, bg, bg, bg, bg, bg, bg, 0])
     end
   end
 
