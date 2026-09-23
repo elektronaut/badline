@@ -48,6 +48,7 @@ module Badline
     def reset!
       status.interrupt = true
       reset_registers
+      @nmi = false
       @irq_sample = @irq_pending = false
       @nmi_sample = @nmi_pending = false
       @skip_poll = false

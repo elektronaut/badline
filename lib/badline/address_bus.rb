@@ -93,6 +93,14 @@ module Badline
       update_overlays!
     end
 
+    # The 6510's RES line clears the port's direction and output registers.
+    # The floating bits keep their charge.
+    def reset_port!
+      @port_ddr = 0x00
+      @port_out = 0x00
+      update_port!
+    end
+
     def disable_overlays!
       poke(0, 0x2f)
       poke(1, 0)

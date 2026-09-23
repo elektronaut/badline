@@ -85,6 +85,72 @@ RSpec.describe Badline::Computer do
     specify { expect(computer.ram.read(load_addr, 6)).to eq(prg_data[2..]) }
   end
 
+  describe "#attach_cartridge on a running machine" do
+    let(:cartridge) do
+      chips = [Badline::Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address: 0x8000, data: [0] * 0x2000)]
+      Badline::Cartridge.from_crt(
+        instance_double(Badline::Storage::CRTFile, hardware_type: 0, exrom: 0, game: 1, name: "TEST", chips:)
+      )
+    end
+
+    # LDA #$ff; STA $dc02; STA $dd03; LDA #$2f; STA $00; LDA #$36; STA $01;
+    # LDA #$19; STA $dc0e; LDA #$0f; STA $d418; STA $dc04; LDA #$81;
+    # STA $dd0d; JMP *
+    let(:program) do
+      [0xa9, 0xff, 0x8d, 0x02, 0xdc, 0x8d, 0x03, 0xdd, 0xa9, 0x2f, 0x85, 0x00,
+       0xa9, 0x36, 0x85, 0x01, 0xa9, 0x19, 0x8d, 0x0e, 0xdc, 0xa9, 0x0f, 0x8d,
+       0x18, 0xd4, 0x8d, 0x04, 0xdc, 0xa9, 0x81, 0x8d, 0x0d, 0xdd, 0x4c, 0x22,
+       0xc0]
+    end
+
+    before do
+      computer.ram.write(0xc000, program)
+      computer.cpu.program_counter = 0xc000
+      200.times { computer.cycle! }
+      computer.attach_cartridge(cartridge)
+    end
+
+    it "clears the CPU port's direction register" do
+      expect(computer.address_bus.peek(0x00)).to eq(0x00)
+    end
+
+    it "reads the port's pulled-up lines" do
+      expect(computer.address_bus.peek(0x01) & 0x07).to eq(0x07)
+    end
+
+    it "takes CIA 1's ports back to inputs" do
+      expect(computer.cia1.peek(0xdc02)).to eq(0x00)
+    end
+
+    it "takes CIA 2's ports back to inputs" do
+      expect(computer.cia2.peek(0xdd03)).to eq(0x00)
+    end
+
+    it "stops CIA 1's timer A" do
+      expect(computer.cia1.control_a.value).to eq(0x00)
+    end
+
+    it "fills CIA 1's timer A latch" do
+      expect(computer.cia1.timer_a_latch).to eq(0xffff)
+    end
+
+    it "masks CIA 2's interrupts" do
+      expect(computer.cia2.interrupt_control.value).to eq(0x00)
+    end
+
+    it "clears the SID's registers" do
+      expect(computer.sid.register(0x18)).to eq(0x00)
+    end
+
+    it "clears the SID's filter" do
+      expect(computer.sid.filter.volume).to eq(0x00)
+    end
+
+    it "runs from the KERNAL's reset vector" do
+      expect(computer.cpu.program_counter).to eq(0xfce2)
+    end
+  end
+
   # SID/writedelay pins the 6581 latching a register write a cycle late.
   # Nothing inside SID delays it: the DSP is clocked ahead of the CPU in
   # #cycle!, so a store lands after the cycle it was issued on. Clocking the

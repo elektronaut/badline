@@ -112,6 +112,18 @@ module Badline
         reset
       end
 
+      def reset
+        @cutoff = 0x000
+        @routing = 0x0
+        @mode = 0x0
+        @volume = 0x0
+        @voice3_off = false
+        @w0 = @w0_table[0]
+        @resonance = RESONANCE[0]
+        @lowpass = @bandpass = @highpass = 0
+        @input = @unfiltered = 0
+      end
+
       def write(reg, value)
         case reg
         when 0x15 then self.cutoff = (@cutoff & 0x7f8) | (value & 0x07)
@@ -150,18 +162,6 @@ module Badline
       def output = @external.output
 
       private
-
-      def reset
-        @cutoff = 0x000
-        @routing = 0x0
-        @mode = 0x0
-        @volume = 0x0
-        @voice3_off = false
-        @w0 = @w0_table[0]
-        @resonance = RESONANCE[0]
-        @lowpass = @bandpass = @highpass = 0
-        @input = @unfiltered = 0
-      end
 
       def write_resonance(value)
         @routing = value & 0x0f

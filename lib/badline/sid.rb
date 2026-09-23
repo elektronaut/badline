@@ -54,14 +54,8 @@ module Badline
     def initialize(model: :mos6581, pots: nil, filter_chunk: FILTER_CHUNK)
       addressable_at(0xd400, length: 2**10)
       @model = model
-      @registers = Memory.new(length: 2**5)
       @pots = pots
-      @bus_value = 0x00
-      @bus_ttl = 0
       @bus_ttl_reset = BUS_TTL.fetch(model)
-      @voices = Array.new(VOICES) { Voice.new(model:) }
-      @voice1, @voice2, @voice3 = @voices
-      @waveform1, @waveform2, @waveform3 = @voices.map(&:waveform)
       @filter = Filter.new(model:)
       @synthesizing = false
       @pending_cycles = 0
@@ -69,7 +63,21 @@ module Badline
       @decimator = nil
       @samples = []
       @filter_chunk = filter_chunk
-      link_oscillators
+      reset!
+    end
+
+    # The RES line clears the registers and the data bus, and puts the
+    # voices and the filter back in their power-on state. Recording carries
+    # on across it.
+    def reset!
+      catch_up
+      @filter.reset
+      @registers = Memory.new(length: 2**5)
+      @bus_value = 0x00
+      @bus_ttl = 0
+      @voices = Voice.linked(VOICES, model:)
+      @voice1, @voice2, @voice3 = @voices
+      @waveform1, @waveform2, @waveform3 = @voices.map(&:waveform)
     end
 
     # The DSP only counts cycles as they pass. Whatever asks for its state
@@ -163,16 +171,6 @@ module Badline
     def register(reg) = @registers.peek(reg)
 
     private
-
-    # Each voice hard-syncs and ring-modulates against the previous one,
-    # wrapping from voice 1 back round to voice 3.
-    def link_oscillators
-      waveforms = @voices.map(&:waveform)
-      waveforms.each_with_index do |waveform, i|
-        waveform.sync_source = waveforms[i - 1]
-        waveform.sync_dest = waveforms[(i + 1) % VOICES]
-      end
-    end
 
     # Runs the cycles that have passed, landing each queued write on the
     # cycle the CPU wrote it on.

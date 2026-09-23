@@ -62,6 +62,17 @@ module Badline
     def attach_cartridge(cartridge)
       cartridge.clock = -> { @cycles }
       address_bus.attach_cartridge(cartridge)
+      reset!
+    end
+
+    # The RES line reaches the CPU and its port, both CIAs and the SID. The
+    # VIC has no reset pin.
+    def reset!
+      address_bus.reset_port!
+      @cia1.reset!
+      @cia2.reset!
+      @sid.reset!
+      @nmi_asserted = false
       cpu.reset!
     end
 
