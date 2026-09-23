@@ -7,7 +7,10 @@ module Badline
     # channel 0, then hands over to the ROM's own tail so it prints
     # SEARCHING FOR and LOADING (or VERIFYING) in direct mode, reports
     # errors and returns with the routine's register/zeropage contract;
-    # other devices fall through to the ROM.
+    # other devices fall through to the ROM. So does a load that reaches
+    # below $0334, into the zero page, the stack or the KERNAL vectors: the
+    # ROM's byte loop then loads it through the serial traps, and a loader
+    # that overwrites ISTOP takes over mid-load as it does on a real drive.
     class Load < File
       ADDRESS = 0xf4a5
 
@@ -41,7 +44,11 @@ module Badline
         return @cpu.program_counter = MISSING_FILE_NAME_EXIT if Storage.parse_name(name).first.empty?
 
         data, complete = receive(name)
-        finish(data, complete)
+        if low_memory?(data)
+          @drive.close(0)
+        else
+          finish(data, complete)
+        end
       end
 
       private
@@ -73,6 +80,10 @@ module Badline
           @bus.poke(0x90, @bus.peek(0x90) & ~EOI) unless complete
           continue_with(SEARCHING_MESSAGE, LOADING_MESSAGE, complete ? LOAD_DONE : BYTE_LOOP)
         end
+      end
+
+      def low_memory?(data)
+        load? && data.length > 2 && load_address(data) < 0x0334
       end
 
       # A=0 is LOAD, A=1 is VERIFY, kept at $93 (VERCK)

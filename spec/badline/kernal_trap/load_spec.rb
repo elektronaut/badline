@@ -320,6 +320,40 @@ describe Badline::KernalTrap::Load do
     end
   end
 
+  describe "a load over the KERNAL vectors" do
+    def run_until(address)
+      trigger_trap
+      5000.times do
+        break if computer.cpu.program_counter == address
+
+        computer.cpu.step!
+      end
+    end
+
+    before do
+      # ISTOP at $0328 points at the ROM's STOP; the file replaces its high
+      # byte, so the byte loop's next STOP call lands at $C0ED
+      File.binwrite(File.join(dir, "VECTOR.PRG"), [0x29, 0x03, 0xc0, 0x11].pack("C*"))
+      ram.write(0x0328, [0xed, 0xf6])
+      request_load("VECTOR")
+      run_until(0xc0ed)
+    end
+
+    specify { expect(computer.cpu.program_counter).to eq(0xc0ed) }
+    specify { expect(ram.read(0x0329, 2)).to eq([0xc0, 0x00]) }
+  end
+
+  describe "a relocated load over the zero page" do
+    before do
+      ram.write(0xc3, [0x02, 0x00])
+      request_load("DATA", secondary: 0)
+      trigger_trap
+    end
+
+    specify { expect(ram.read(0x02, 2)).not_to eq([0xaa, 0xbb]) }
+    specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
+  end
+
   describe "a load from another device" do
     before do
       request_load("DATA", device: 1)
