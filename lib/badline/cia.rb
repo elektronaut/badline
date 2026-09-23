@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "forwardable"
 require "badline/cia/interrupt_register"
 require "badline/cia/serial"
 require "badline/cia/timer"
@@ -9,22 +8,38 @@ module Badline
   # CIA (Complex Interface Adapter) chip
   class CIA
     include Addressable
-    extend Forwardable
 
     attr_reader :start, :control_a, :control_b, :peripheral, :serial
 
-    def_delegator :@icr, :status, :interrupt_status
-    def_delegator :@icr, :mask,   :interrupt_control
-    def_delegator :@icr, :assert!, :interrupt!
+    def interrupt_status = @icr.status
 
-    def_delegator :@ta, :counter,  :timer_a
-    def_delegator :@ta, :counter=, :timer_a=
-    def_delegator :@ta, :latch,    :timer_a_latch
-    def_delegator :@ta, :latch=,   :timer_a_latch=
-    def_delegator :@tb, :counter,  :timer_b
-    def_delegator :@tb, :counter=, :timer_b=
-    def_delegator :@tb, :latch,    :timer_b_latch
-    def_delegator :@tb, :latch=,   :timer_b_latch=
+    def interrupt_control = @icr.mask
+
+    def interrupt!(delay = 1) = @icr.assert!(delay)
+
+    def timer_a = @ta.counter
+
+    def timer_a=(value)
+      @ta.counter = value
+    end
+
+    def timer_a_latch = @ta.latch
+
+    def timer_a_latch=(value)
+      @ta.latch = value
+    end
+
+    def timer_b = @tb.counter
+
+    def timer_b=(value)
+      @tb.counter = value
+    end
+
+    def timer_b_latch = @tb.latch
+
+    def timer_b_latch=(value)
+      @tb.latch = value
+    end
 
     def initialize(start: 0, peripheral: nil)
       addressable_at(start, length: 2**8)

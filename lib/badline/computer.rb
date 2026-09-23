@@ -1,17 +1,33 @@
 # frozen_string_literal: true
 
-require "forwardable"
-
 module Badline
   class Computer
     include IntegerHelper
     include KeyboardBuffer
-    extend Forwardable
 
     attr_reader :address_bus, :cpu, :cycles
 
-    def_delegators :address_bus, :vic, :cia1, :cia2, :sid, :ram, :keyboard, :joystick1, :joystick2,
-                   :control_ports, :datasette, :install_debug_register
+    def vic = address_bus.vic
+
+    def cia1 = address_bus.cia1
+
+    def cia2 = address_bus.cia2
+
+    def sid = address_bus.sid
+
+    def ram = address_bus.ram
+
+    def keyboard = address_bus.keyboard
+
+    def joystick1 = address_bus.joystick1
+
+    def joystick2 = address_bus.joystick2
+
+    def control_ports = address_bus.control_ports
+
+    def datasette = address_bus.datasette
+
+    def install_debug_register(&) = address_bus.install_debug_register(&)
 
     def initialize(debug: false, sid_model: :mos6581)
       @address_bus = AddressBus.new(sid_model:)
