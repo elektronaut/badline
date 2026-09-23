@@ -197,6 +197,43 @@ describe Badline::SID::Waveform do
       restart(0x80, frequency: 0x0000, cycles: 8)
       expect(waveform.shift_register).to eq(0x7ffffc)
     end
+
+    # Pinned by SID/wb_testsuite and SID/noisewriteback (test1): whether the
+    # test bit's release writes the old waveform back depends on the change.
+    # From the power-on LFSR a writeback reads $576bb4 after the shift, a
+    # plain shift $7ffffc.
+    describe "as the test bit falls" do
+      def release(from, to, model: :mos6581)
+        chip = described_class.new(model:)
+        chip.control = (from << 4) | 0x08
+        chip.control = to << 4
+        chip.shift_register
+      end
+
+      it "writes back while noise stays combined" do
+        expect(release(0x9, 0x9)).to eq(0x576bb4)
+      end
+
+      it "writes nothing back dropping to noise alone" do
+        expect(release(0x9, 0x8)).to eq(0x7ffffc)
+      end
+
+      it "writes back dropping to noise alone from all four waveforms" do
+        expect(release(0xf, 0x8)).to eq(0x576bb4)
+      end
+
+      it "writes nothing back into pulse+noise" do
+        expect(release(0x9, 0xc)).to eq(0x7ffffc)
+      end
+
+      it "writes nothing back trading triangle for sawtooth on the 6581" do
+        expect(release(0x9, 0xa)).to eq(0x7ffffc)
+      end
+
+      it "writes back trading triangle for sawtooth on the 8580" do
+        expect(release(0x9, 0xa, model: :mos8580)).to eq(0x576bb4)
+      end
+    end
   end
 
   # SID/osc_topbit: on the 6581 the sawtooth switch wires the accumulator MSB
