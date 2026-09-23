@@ -42,7 +42,7 @@ module Badline
         /\AU.\s*:?\s*(.*)/i => :user,
         /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
-        /\AB-W\s*:?\s*(.*)/i => :block_write,
+        /\AB-W\s*:?\s*(.*)/i => :counted_block_write,
         /\A[IV]/i => :initialized,
         /\AB-[AF]/i => :write_protected
       }.freeze
@@ -63,7 +63,7 @@ module Badline
         if secondary == COMMAND_CHANNEL
           command(name.bytes) unless name.empty?
         elsif name.start_with?("#")
-          @channels[secondary] = Channel.new(Array.new(BLOCK_SIZE, 0))
+          @channels[secondary] = Channel.buffer
           report(OK)
         else
           open_file(secondary, Storage.ascii(name.bytes))
@@ -75,10 +75,15 @@ module Badline
         secondary == COMMAND_CHANNEL ? @channels.clear : @channels.delete(secondary)
       end
 
+      # A buffer channel takes the bytes into its block. A file channel is
+      # open for reading, so writing to it fails as the disk is protected.
       def write(secondary, bytes)
         return command(bytes) if secondary == COMMAND_CHANNEL
 
-        report(WRITE_PROTECT_ON) if listening?(secondary)
+        channel = @channels[secondary]
+        return unless channel
+
+        channel.writable? ? channel.write(bytes) : report(WRITE_PROTECT_ON)
       end
 
       # Whether data sent on the channel reaches the drive. The command
@@ -157,6 +162,7 @@ module Badline
         case action
         when :block_read then block_read(arguments)
         when :block_write then block_write(arguments)
+        when :counted_block_write then counted_block_write(arguments)
         when :counted_block_read then counted_block_read(arguments)
         when :buffer_pointer then buffer_pointer(arguments)
         when :initialized then report(OK)
@@ -174,16 +180,32 @@ module Badline
         return unless data
 
         buffer = @channels[channel]
-        buffer.replace(counted ? data[0, data[0] + 1] : data)
+        buffer.replace(data.dup, counted ? data[0] + 1 : data.length)
         buffer.pointer = 1 if counted
         report_block_error(track, sector)
       end
 
       # The disk is write-protected, so a block write that gets as far as
       # the disk fails at the block it names.
-      def block_write(arguments)
+      def block_write(arguments, counted: false)
         channel, _drive, track, sector = arguments
-        report(WRITE_PROTECT_ON, track, sector) if fetch_block(channel, track, sector)
+        return unless fetch_block(channel, track, sector)
+
+        store_count(@channels[channel]) if counted
+        report(WRITE_PROTECT_ON, track, sector)
+      end
+
+      # B-W first stores the index of the last byte written, the pointer
+      # less one but at least 1, as the block's first byte, which leaves
+      # the pointer at 1. B-R reads that count back.
+      def counted_block_write(arguments)
+        block_write(arguments, counted: true)
+      end
+
+      def store_count(buffer)
+        count = [buffer.pointer - 1, 1].max
+        buffer.pointer = 0
+        buffer.write([count])
       end
 
       # Block access needs an open buffer channel, a disk and a block on it.
@@ -214,7 +236,7 @@ module Badline
         buffer = @channels[channel]
         return report(NO_CHANNEL) unless buffer
 
-        buffer.pointer = position.to_i
+        buffer.pointer = position.to_i & 0xff
         report(OK)
       end
 
