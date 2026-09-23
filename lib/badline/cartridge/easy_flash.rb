@@ -2,12 +2,25 @@
 
 module Badline
   class Cartridge
-    # EasyFlash: 64 banks of 8K ROML and 8K ROMH flash, and 256 bytes of RAM
-    # at $DF00. $DE00 selects the bank. $DE02 sets the memory configuration:
-    # bit 2 hands the GAME line to bit 0 (otherwise the boot jumper holds it
-    # low), bit 1 pulls EXROM low and bit 7 drives the LED. The flash reads
-    # only; writes to it are ignored.
+    # EasyFlash: two Am29F040B flash chips, one for ROML and one for ROMH,
+    # each 64 banks of 8K, and 256 bytes of RAM at $DF00. $DE00 selects the
+    # bank. $DE02 sets the memory configuration: bit 2 hands the GAME line
+    # to bit 0 (otherwise the boot jumper holds it low), bit 1 pulls EXROM
+    # low and bit 7 drives the LED.
+    #
+    # The flash takes writes in Ultimax mode, at $8000 for ROML and $E000
+    # for ROMH, which is how EAPI programs and erases it. The writes stay in
+    # memory; #save_crt writes the flash out as a new image.
     class EasyFlash < Cartridge
+      BANKS = 64
+
+      attr_reader :low_flash, :high_flash
+
+      def clock=(clock)
+        super
+        [@low_flash, @high_flash].each { |flash| flash.clock = clock }
+      end
+
       def readable_io_pages
         [0xdf]
       end
@@ -20,8 +33,8 @@ module Badline
         if addr >= 0xdf00
           @io_ram[addr & 0xff] = value
         elsif addr.nobits?(0x02)
-          select_bank(value & 0x3f)
-          changed!
+          @bank = value & 0x3f
+          select_bank
         else
           @control = value & 0x87
           apply_control
@@ -33,11 +46,24 @@ module Badline
         @control.anybits?(0x80)
       end
 
+      # Writes every bank that isn't blank to a CRT image at path.
+      def save_crt(path)
+        chips = (0...BANKS).flat_map do |number|
+          [[@low_flash, 0x8000], [@high_flash, 0xa000]].filter_map do |flash, address|
+            data = flash.data[number * BANK_SIZE, BANK_SIZE]
+            Storage::CRTFile::Chip.new(chip_type: 2, bank: number, address:, data:) if data.any?(0..0xfe)
+          end
+        end
+        image = Storage::CRTFile::Image.new(hardware_type: 32, subtype: 0, exrom: 1, game: 0, name:, chips:)
+        Storage::CRTFile.write(path, image)
+      end
+
       private
 
-      def select_bank(number)
-        @roml = bank(@roml_banks, number)
-        @romh = bank(@romh_banks, number)
+      def select_bank
+        @roml = @low_flash.window(@bank * BANK_SIZE)
+        @romh = @high_flash.window(@bank * BANK_SIZE)
+        changed!
       end
 
       def apply_control
@@ -48,11 +74,30 @@ module Badline
       end
 
       def install_chips(chips)
-        @roml_banks, @romh_banks = banks_from(chips)
+        low = Array.new(BANKS * BANK_SIZE, 0xff)
+        high = Array.new(BANKS * BANK_SIZE, 0xff)
+        chips.each do |chip|
+          offset = (chip.bank & 0x3f) * BANK_SIZE
+          if chip.address >= ROMH_START
+            place(high, offset, chip.data)
+          else
+            place(low, offset, chip.data)
+            place(high, offset, chip.data[BANK_SIZE..]) if chip.data.length > BANK_SIZE
+          end
+        end
+        @low_flash = Flash.new(low)
+        @high_flash = Flash.new(high)
+        [@low_flash, @high_flash].each { |flash| flash.on_change { select_bank } }
         @io_ram = Array.new(0x100, 0xff)
-        select_bank(0)
+        @bank = 0
         @control = 0
         apply_control
+        select_bank
+      end
+
+      def place(flash_data, offset, bytes)
+        bytes = bytes.first(BANK_SIZE)
+        flash_data[offset, bytes.length] = bytes
       end
     end
   end

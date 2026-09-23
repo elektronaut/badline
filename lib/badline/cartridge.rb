@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/cartridge/bank"
+require "badline/cartridge/flash"
 require "badline/cartridge/standard"
 require "badline/cartridge/simons_basic"
 require "badline/cartridge/ocean"
@@ -120,6 +121,10 @@ module Badline
     end
 
     def poke(_addr, _value); end
+
+    # A window taking writes to $E000-$FFFF while reads there see the C64's
+    # memory, for a cartridge that asserts Ultimax on write cycles only.
+    def romh_writes; end
 
     # The RES line on the expansion port.
     def reset; end

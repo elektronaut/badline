@@ -188,9 +188,12 @@ light pen registers.
   Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD and GMod2, and
   the freezers Action Replay (v4.2 to v6), Atomic Power / Nordic Power,
   Retro Replay / Nordic Replay and Final Cartridge III / III+.
-  EasyFlash, GMod2 and Retro Replay flash is read-only: writes to it are
-  ignored, so games that save to the cartridge can't, and the GMod2
-  EEPROM and the Retro Replay clock port aren't there.
+  EasyFlash and GMod2 flash takes writes through the chip's command set
+  (program, sector and chip erase, autoselect), so games and EAPI can
+  save to it. The writes stay in memory and are lost when the emulator
+  quits: the `.crt` file is never overwritten. Retro Replay flash is
+  read-only, and the GMod2 EEPROM and the Retro Replay clock port aren't
+  there.
 
 Known gaps:
 

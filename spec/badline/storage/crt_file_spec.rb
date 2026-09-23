@@ -105,4 +105,23 @@ describe Badline::Storage::CRTFile do
       expect { crt }.to raise_error(described_class::FormatError)
     end
   end
+
+  describe ".write" do
+    let(:image) do
+      described_class::Image.new(hardware_type: 32, subtype: 1, exrom: 1, game: 0, name: "WRITTEN",
+                                 chips: [described_class::Chip.new(chip_type: 2, bank: 3, address: 0xa000,
+                                                                   data: [0x42] * 0x2000)])
+    end
+
+    before { described_class.write(path, image) }
+
+    it "writes the header fields back" do
+      expect(%i[hardware_type subtype exrom game name].map { |field| crt.public_send(field) })
+        .to eq([32, 1, 1, 0, "WRITTEN"])
+    end
+
+    it "writes the chips back" do
+      expect(crt.chips).to eq(image.chips)
+    end
+  end
 end

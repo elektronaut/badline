@@ -165,6 +165,7 @@ module Badline
     def map_banked_pages
       map_rom_overlays
       map_cartridge_ram
+      @write_pages.fill(@cartridge.romh_writes, 0xe0, 0x20) if @cartridge&.romh_writes
 
       if io?
         map_io_pages
@@ -197,15 +198,21 @@ module Badline
     end
 
     # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
-    # I/O always visible and open address space everywhere else. Cartridge
-    # RAM at ROML takes the writes there.
+    # I/O always visible and open address space everywhere else. The ROML
+    # and ROMH selects fire on writes as well, so cartridge RAM or flash in
+    # either window takes the writes there.
     def map_ultimax_pages
       @read_pages.fill(@open_bus, 0x10, 0xf0)
       @write_pages.fill(@open_bus, 0x10, 0xf0)
       @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
-      map_cartridge_ram_bank(@cartridge.roml, 0x80)
+      map_ultimax_writes(@cartridge.roml, 0x80)
       @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
+      map_ultimax_writes(@cartridge.romh, 0xe0)
       map_io_pages
+    end
+
+    def map_ultimax_writes(bank, first_page)
+      @write_pages.fill(bank, first_page, 0x20) if bank.respond_to?(:poke)
     end
 
     def map_io_pages
