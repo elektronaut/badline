@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/kernal_trap/drive/status"
+
 module Badline
   module KernalTrap
     # The CBM DOS side of the serial bus. Keeps the open channels, the
@@ -18,20 +20,6 @@ module Badline
       NO_CHANNEL = 70
       DOS_VERSION = 73
       DRIVE_NOT_READY = 74
-
-      MESSAGES = [20, 21, 22, 23, 24, 27].to_h { |code| [code, "READ ERROR"] }.merge(
-        OK => " OK",
-        25 => "WRITE ERROR",
-        WRITE_PROTECT_ON => "WRITE PROTECT ON",
-        28 => "WRITE ERROR",
-        29 => "DISK ID MISMATCH",
-        SYNTAX_ERROR => "SYNTAX ERROR",
-        FILE_NOT_FOUND => "FILE NOT FOUND",
-        ILLEGAL_TRACK_OR_SECTOR => "ILLEGAL TRACK OR SECTOR",
-        NO_CHANNEL => "NO CHANNEL",
-        DOS_VERSION => "CBM DOS V2.6 1541",
-        DRIVE_NOT_READY => "DRIVE NOT READY"
-      ).freeze
 
       MEMORY_COMMANDS = { "M-W" => :memory_write, "M-R" => :memory_read }.freeze
 
@@ -71,7 +59,7 @@ module Badline
       def initialize(storage)
         @storage = storage
         @channels = {}
-        @status = Channel.new
+        @status = Status.new
         @ram = Array.new(RAM_SIZE, 0)
         report(DOS_VERSION)
       end
@@ -104,7 +92,7 @@ module Badline
       # Returns the next byte and whether it is the channel's last, or nil
       # when there is nothing left to send.
       def read(secondary)
-        return read_status if secondary == COMMAND_CHANNEL
+        return @status.read if secondary == COMMAND_CHANNEL
 
         channel = @channels[secondary]
         result = channel&.read
@@ -113,13 +101,6 @@ module Badline
       end
 
       private
-
-      def read_status
-        result = @status.read
-        report(OK) if result&.last
-
-        result
-      end
 
       # Secondary addresses 0 and 1 are LOAD and SAVE, which look for a PRG
       # file unless the name asks for another type. Other channels take any
@@ -258,13 +239,7 @@ module Badline
         report(DOS_VERSION)
       end
 
-      def report(code, track = 0, sector = 0)
-        message = format("%<code>02d,%<message>s,%<track>02d,%<sector>02d\r",
-                         code:, message: MESSAGES.fetch(code),
-                         track: track.to_i, sector: sector.to_i)
-        @status.replace(message.bytes)
-        nil
-      end
+      def report(...) = @status.report(...)
     end
   end
 end
