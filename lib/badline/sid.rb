@@ -202,9 +202,11 @@ module Badline
     # never runs past an MSB rise that hard-syncs the next voice, so both
     # land on a whole cycle.
     def span(cycles)
-      return 1 if @waveform1.feedback? || @waveform2.feedback? || @waveform3.feedback?
+      synthesizing = @synthesizing
+      return 1 if @waveform1.stepped?(synthesizing) || @waveform2.stepped?(synthesizing) ||
+                  @waveform3.stepped?(synthesizing)
 
-      span = @synthesizing ? synthesis_span(cycles) : cycles
+      span = synthesizing ? synthesis_span(cycles) : cycles
       span = sync_span(@waveform1, span)
       span = sync_span(@waveform2, span)
       sync_span(@waveform3, span)

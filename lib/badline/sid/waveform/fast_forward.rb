@@ -35,11 +35,21 @@ module Badline
           (distance + @frequency - 1) / @frequency
         end
 
-        # A combined waveform writes back into the oscillator every cycle, so
-        # it cannot be fast-forwarded.
-        def feedback? = !@test && combined?(@selected)
+        # A combined waveform with sawtooth (on the 6581) or noise in the mix
+        # writes back into the oscillator every cycle, so it cannot be
+        # fast-forwarded. Triangle and pulse alone write nothing back.
+        def feedback?
+          combined_waveform? && (@selected.anybits?(0x8) || (@topbit_feedback && @selected.anybits?(0x2)))
+        end
+
+        # Whether a catch-up has to run this oscillator a cycle at a time.
+        # While synthesizing, every combined waveform does, so the filter
+        # integrates it a cycle at a time.
+        def stepped?(synthesizing) = synthesizing ? combined_waveform? : feedback?
 
         private
+
+        def combined_waveform? = !@test && combined?(@selected)
 
         # Advances an accumulator with no shift in flight. Each rise of bit 19
         # shifts the LFSR two cycles on, so a rise in the last two cycles
