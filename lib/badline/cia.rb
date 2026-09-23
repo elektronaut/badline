@@ -71,11 +71,12 @@ module Badline
     def interrupted? = @icr_status.value >= 0x80
 
     def cycle!
-      @icr.cycle!
+      @icr.cycle! unless @icr.quiet
       refresh_port_b4 if @port_b4_handler
       level = @serial.cnt
       level == @cnt_high ? @cnt_rise = false : cnt_edge(level)
-      @serial.cycle!(update_timers) { trigger_serial }
+      underflowed = update_timers
+      @serial.cycle!(underflowed) { trigger_serial } if underflowed || !@serial.idle
       @tod.cycle! { trigger_alarm }
     end
 
@@ -189,33 +190,28 @@ module Badline
     end
 
     # Returns whether timer A underflowed, which clocks the serial port.
+    #
+    # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
+    # underflows, or timer A underflows gated by the CNT level. Every source
+    # drives the same count-enable line, so a cascaded underflow goes through
+    # the input pipeline exactly as a CNT edge does.
     def update_timers
-      @ta.cycle!(@control_a.value.nobits?(0x20) || @cnt_rise)
+      @ta.cycle!(@control_a.value & 0x20 == 0x20 ? @cnt_rise : true)
       underflowed = @ta.underflowed
-      if @control_b.value.nobits?(0x60)
-        @tb.cycle!(true)
-      else
-        cycle_timer_b(underflowed)
-      end
+      @tb.cycle!(
+        case @control_b.value & 0x60
+        when 0x00 then true
+        when 0x20 then @cnt_rise
+        when 0x40 then underflowed
+        else underflowed && @cnt_high
+        end
+      )
       if underflowed
         interrupt_status.timer_a = true
         interrupt! if interrupt_control.timer_a?
       end
       @icr.timer_b_underflow! if @tb.underflowed
       underflowed
-    end
-
-    # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
-    # underflows, or timer A underflows gated by the CNT level. Every source
-    # drives the same count-enable line, so a cascaded underflow goes through
-    # the input pipeline exactly as a CNT edge does. #update_timers takes
-    # ø2 itself.
-    def cycle_timer_b(timer_a_underflowed)
-      case @control_b.value & 0x60
-      when 0x20 then @tb.cycle!(@cnt_rise)
-      when 0x40 then @tb.cycle!(timer_a_underflowed)
-      else           @tb.cycle!(timer_a_underflowed && @cnt_high)
-      end
     end
 
     def write_control_a(value)

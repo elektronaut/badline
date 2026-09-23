@@ -38,7 +38,7 @@ module Badline
 
     def update_number_flags(value)
       status.zero = value.zero?
-      status.negative = value.anybits?(0x80)
+      status.negative = value & 0x80 != 0
       value
     end
 

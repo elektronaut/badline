@@ -6,7 +6,7 @@ module Badline
     # IR bit that drives the interrupt line, with the 6526's acknowledge
     # timing.
     class InterruptRegister
-      attr_reader :status, :mask
+      attr_reader :status, :mask, :quiet
 
       def initialize
         @mask = Status.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, 0])
@@ -17,10 +17,9 @@ module Badline
         @quiet = true
       end
 
-      # Quiet while no read is recent enough to matter and no assert is due.
+      # The CIA skips this while quiet: no read is recent enough to matter
+      # and no assert is due.
       def cycle!
-        return if @quiet
-
         @read_two_cycles_ago = @read_last_cycle
         @read_last_cycle = @read
         @read = nil

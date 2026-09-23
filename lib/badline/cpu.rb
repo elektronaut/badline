@@ -17,8 +17,10 @@ module Badline
     include Operations
     include StackOperations
 
-    attr_reader :memory, :instructions, :boundary_crossed, :cycles
+    attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write
     attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq
+
+    alias pending_write? pending_write
 
     # +ane_constant+ is ANE's magic constant, which varies from chip to
     # chip. The default is the C64 6510's.
@@ -76,10 +78,6 @@ module Badline
       # Record if the next step writes to memory
       @pending_write = @writes[@index]
       nil
-    end
-
-    def pending_write?
-      @pending_write
     end
 
     # Called instead of #cycle! on a cycle the VIC holds the CPU through
