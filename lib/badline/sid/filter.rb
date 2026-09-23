@@ -79,6 +79,9 @@ module Badline
         # fractional bits bring that under one unit.
         FRACTION = 16
 
+        # Its input arrives with the filter's fractional bits still on.
+        INPUT_SHIFT = FRACTION - Filter::FRACTION
+
         attr_reader :output
 
         def initialize
@@ -87,8 +90,10 @@ module Badline
           @output = 0
         end
 
+        # Takes the input in 1/2^Filter::FRACTION units, and reads the
+        # output out in whole ones.
         def cycle!(input, cycles = 1)
-          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * ((input << FRACTION) - @lowpass)) >> 12
+          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * ((input << INPUT_SHIFT) - @lowpass)) >> 12
           delta_highpass = (W0_HIGHPASS * cycles * (@lowpass - @highpass)) >> 20
           @output = (@lowpass - @highpass) >> FRACTION
           @lowpass += delta_lowpass
@@ -136,11 +141,11 @@ module Badline
         @bandpass -= (w0 * @highpass) >> 20
         @lowpass -= (w0 * @bandpass) >> 20
         @highpass = ((@bandpass * @resonance) >> 10) - @lowpass - (@input << FRACTION)
-        @external.cycle!(mix, cycles)
+        @external.cycle!(fine_mix, cycles)
       end
 
       # The SID's own audio pin, before the board's RC network.
-      def mix = (@unfiltered + filtered + @mixer_dc) * @volume
+      def mix = fine_mix >> FRACTION
 
       def output = @external.output
 
@@ -192,12 +197,16 @@ module Badline
         end
       end
 
+      # The mix with the integrators' fractional bits kept, so the RC
+      # network isn't fed the filter's output floored to whole units.
+      def fine_mix = (((@unfiltered + @mixer_dc) << FRACTION) + filtered) * @volume
+
       def filtered
         value = 0
         value += @lowpass  if @mode.anybits?(0x1)
         value += @bandpass if @mode.anybits?(0x2)
         value += @highpass if @mode.anybits?(0x4)
-        value >> FRACTION
+        value
       end
     end
   end
