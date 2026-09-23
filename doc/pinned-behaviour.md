@@ -947,7 +947,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   dumps and `bin/sidwavecheck` scores it. A low pulse grounds every line.
   Noise is still ANDed over the rest of the mix, which keeps the writeback
   rules above as they were derived.
-  - Not pinned by an exit code: oscsample only fails on the single
+  - Not pinned by an exit code: oscsample only scores the single
     waveforms, and no scored test reads a combined shape without noise.
   - Spec guard: [`sid/waveform/combined_spec.rb`](../spec/badline/sid/waveform/combined_spec.rb)
     checks spot values against the dumps.
