@@ -6,16 +6,20 @@ module Badline
       SECTOR_SIZE = 256
       ENTRY_SIZE = 32
       ENTRIES_PER_SECTOR = 8
-      FILETYPE_PRG = 0x02
+      FILETYPES = { seq: 0x01, prg: 0x02, usr: 0x03 }.freeze
       NAME_PADDING = 0xa0
 
       def initialize(path)
         @bytes = File.binread(path).bytes
       end
 
-      def read_file(name)
+      # A LOAD reads only PRG files. An OPEN names the type it wants, or
+      # takes the first file of any type with a nil `type`.
+      def read_file(name, type: :prg)
         pattern = Storage.matcher(name)
-        entry = entries.find { |e| pattern.match?(e[:name]) }
+        entry = entries.find do |e|
+          (type.nil? || e[:type] == type) && pattern.match?(e[:name])
+        end
         read_chain(entry[:track], entry[:sector]) if entry
       end
 
@@ -44,9 +48,11 @@ module Badline
       def parse_entries(data)
         (0...ENTRIES_PER_SECTOR).filter_map do |i|
           entry = data[i * ENTRY_SIZE, ENTRY_SIZE]
-          next unless (entry[2] & 0x07) == FILETYPE_PRG
+          type = FILETYPES.key(entry[2] & 0x07)
+          next unless type
 
           { name: decode_name(entry[5, 16]),
+            type:,
             track: entry[3],
             sector: entry[4] }
         end

@@ -16,6 +16,7 @@ describe Badline::Storage::D64Image do
   before do
     write_entry(0, type: 0x82, name: "DATA", track: 17, sector: 0)
     write_entry(1, type: 0x81, name: "NOTES", track: 17, sector: 5)
+    write_entry(2, type: 0x80, name: "GONE", track: 17, sector: 5)
     write_chain
     File.binwrite(path, bytes.pack("C*"))
   end
@@ -34,6 +35,7 @@ describe Badline::Storage::D64Image do
     bytes[data_offset, 2] = [17, 1] # next: track 17, sector 1
     bytes[data_offset + 2, 254] = [0x00, 0xc0] + ([0x11] * 252)
     bytes[data_offset + 256, 6] = [0, 5, 0x22, 0x22, 0x22, 0x22]
+    bytes[data_offset + (5 * 256), 4] = [0, 3, 0x33, 0x44]
   end
 
   describe "#read_file" do
@@ -57,8 +59,24 @@ describe Badline::Storage::D64Image do
       expect(image.read_file("*").first(2)).to eq([0x00, 0xc0])
     end
 
-    it "ignores non-PRG files" do
+    it "reads only PRG files by default" do
       expect(image.read_file("notes")).to be_nil
+    end
+
+    it "reads a SEQ file by its type" do
+      expect(image.read_file("notes", type: :seq)).to eq([0x33, 0x44])
+    end
+
+    it "skips files of another type" do
+      expect(image.read_file("*", type: :seq)).to eq([0x33, 0x44])
+    end
+
+    it "matches any type without one" do
+      expect(image.read_file("n*", type: nil)).to eq([0x33, 0x44])
+    end
+
+    it "never reads a deleted file" do
+      expect(image.read_file("gone", type: nil)).to be_nil
     end
 
     it "returns nil for an unknown name" do

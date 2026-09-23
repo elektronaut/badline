@@ -7,7 +7,7 @@ module Badline
         @path = path
       end
 
-      def read_file(name)
+      def read_file(name, **)
         entry = find(name)
         return unless entry
 
