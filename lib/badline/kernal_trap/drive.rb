@@ -16,26 +16,22 @@ module Badline
       FILE_NOT_FOUND = 62
       ILLEGAL_TRACK_OR_SECTOR = 66
       NO_CHANNEL = 70
+      DOS_VERSION = 73
       DRIVE_NOT_READY = 74
 
-      MESSAGES = {
+      MESSAGES = [20, 21, 22, 23, 24, 27].to_h { |code| [code, "READ ERROR"] }.merge(
         OK => " OK",
-        20 => "READ ERROR",
-        21 => "READ ERROR",
-        22 => "READ ERROR",
-        23 => "READ ERROR",
-        24 => "READ ERROR",
         25 => "WRITE ERROR",
         WRITE_PROTECT_ON => "WRITE PROTECT ON",
-        27 => "READ ERROR",
         28 => "WRITE ERROR",
         29 => "DISK ID MISMATCH",
         SYNTAX_ERROR => "SYNTAX ERROR",
         FILE_NOT_FOUND => "FILE NOT FOUND",
         ILLEGAL_TRACK_OR_SECTOR => "ILLEGAL TRACK OR SECTOR",
         NO_CHANNEL => "NO CHANNEL",
+        DOS_VERSION => "CBM DOS V2.6 1541",
         DRIVE_NOT_READY => "DRIVE NOT READY"
-      }.freeze
+      ).freeze
 
       MEMORY_COMMANDS = { "M-W" => :memory_write, "M-R" => :memory_read }.freeze
 
@@ -50,8 +46,15 @@ module Badline
       JOB_OK = 1
       HEADER_NOT_FOUND = 20
 
+      # A U command jumps through the user table by its second character.
+      # UJ and U: take the reset vector, which runs the RAM test. UI and U9
+      # take the NMI vector and U; and UK the IRQ one, which restart the DOS
+      # with its RAM intact. UI+ and UI- only switch the bus speed.
       COMMANDS = {
         /\AU[1A]\s*:?\s*(.*)/i => :block_read,
+        /\AU[9I][+-]/i => :initialized,
+        /\AU[:J]/i => :cold_reset,
+        /\AU[9I;K]/i => :warm_reset,
         /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
         /\A[IV]/i => :initialized,
@@ -141,6 +144,8 @@ module Badline
         when :buffer_pointer then buffer_pointer(arguments)
         when :initialized then initialized(arguments)
         when :write_protected then write_protected(arguments)
+        when :cold_reset then reset(cold: true)
+        when :warm_reset then reset(cold: false)
         when :memory_write then memory_write(arguments)
         when :memory_read then memory_read(arguments)
         end
@@ -237,6 +242,12 @@ module Badline
 
       def write_protected(_arguments)
         report(WRITE_PROTECT_ON)
+      end
+
+      def reset(cold:)
+        @ram.fill(0) if cold
+        @channels.clear
+        report(DOS_VERSION)
       end
 
       def report(code, track = 0, sector = 0)

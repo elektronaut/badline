@@ -241,6 +241,60 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "a reset command" do
+    def memory_at(address)
+      drive.write(15, [*"M-R".bytes, address & 0xff, address >> 8, 1])
+      read_channel(15).first
+    end
+
+    before do
+      drive.open(2, "#")
+      drive.write(15, [*"M-W".bytes, 0x00, 0x05, 1, 0xaa])
+    end
+
+    %w[uj u: ui u9 u; uk UJ].each do |reset|
+      it "reports the DOS version after #{reset}" do
+        command(reset)
+        expect(status).to eq("73,CBM DOS V2.6 1541,00,00")
+      end
+
+      it "closes the open channels on #{reset}" do
+        command(reset)
+        expect(drive.read(2)).to be_nil
+      end
+    end
+
+    it "takes a reset passed as the open filename" do
+      drive.open(15, "u;")
+      expect(status).to eq("73,CBM DOS V2.6 1541,00,00")
+    end
+
+    it "clears the drive's memory through the reset vector" do
+      command("u:")
+      expect(memory_at(0x500)).to eq(0)
+    end
+
+    it "keeps the drive's memory through the NMI vector" do
+      command("ui")
+      expect(memory_at(0x500)).to eq(0xaa)
+    end
+
+    it "keeps the drive's memory through the IRQ vector" do
+      command("u;")
+      expect(memory_at(0x500)).to eq(0xaa)
+    end
+
+    it "only switches the bus speed with UI+" do
+      command("ui+")
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "keeps the channels open on UI-" do
+      command("ui-")
+      expect(drive.read(2)).not_to be_nil
+    end
+  end
+
   describe "drive memory" do
     def memory_command(*bytes)
       drive.write(15, bytes)
