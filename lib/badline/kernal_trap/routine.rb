@@ -25,6 +25,13 @@ module Badline
         @cpu.program_counter = (uint16(pull_byte, pull_byte) + 1) & 0xffff
       end
 
+      # Runs the ROM routines in order, each returning into the next, and
+      # the last one to the trapped routine's caller
+      def continue_with(first, *rest)
+        rest.reverse_each { |address| push_address((address - 1) & 0xffff) }
+        @cpu.program_counter = first
+      end
+
       def push_address(address)
         push_byte(high_byte(address))
         push_byte(low_byte(address))

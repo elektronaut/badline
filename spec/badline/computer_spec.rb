@@ -302,10 +302,19 @@ RSpec.describe Badline::Computer do
       computer.cpu.cycle!
     end
 
+    def return_to_caller
+      500.times do
+        break if computer.cpu.program_counter == 0x1235
+
+        computer.cpu.step!
+      end
+    end
+
     context "with a backend that can write" do
       before do
         computer.mount(writable)
         run_save
+        return_to_caller
       end
 
       it "saves through the backend" do
