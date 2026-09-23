@@ -216,7 +216,7 @@ module Badline
             boundary = log.next_x
           end
           code = codes[index]
-          place(pos, palette[code], bit, priority) if code.nonzero?
+          place(pos, palette[code], bit, priority) unless code.zero?
           index += 1
           pos += 1
         end
@@ -254,7 +254,7 @@ module Badline
       def apply(colors, mask)
         pos = @lo
         while pos < @hi
-          if @hits[pos].nonzero?
+          unless @hits[pos].zero?
             colors[pos] = @win_color[pos] unless @win_priority[pos] && mask[pos]
             @hits[pos] = 0
           end
