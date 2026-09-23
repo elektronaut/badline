@@ -66,6 +66,19 @@ describe Badline::Cartridge::EasyFlash do
     expect(bus[0xde00]).to eq(bus.vic.phi1_data)
   end
 
+  it "clears the bank and mode registers on reset" do
+    bus[0xde00] = 0x02
+    bus[0xde02] = 0x07
+    bus.cartridge.reset
+    expect([bus.ultimax, bus[0xe000]]).to eq([true, 0x20])
+  end
+
+  it "keeps the RAM over a reset" do
+    bus[0xdf42] = 0x5a
+    bus.cartridge.reset
+    expect(bus[0xdf42]).to eq(0x5a)
+  end
+
   describe "the flash" do
     def flash_command(base, *writes)
       writes.each { |offset, value| bus[base | offset] = value }

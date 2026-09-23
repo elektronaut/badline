@@ -28,4 +28,10 @@ describe Badline::Cartridge::FunPlay do
     bus[0xde00] = 0x86
     expect(bus[0x8000]).to eq(0x00)
   end
+
+  it "selects the first bank in 8K mode on reset" do
+    bus[0xde00] = 0x86
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x10)
+  end
 end

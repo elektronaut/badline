@@ -34,4 +34,11 @@ describe Badline::Cartridge::SuperGames do
     bus[0xdf00] = 0x01
     expect(bus[0x8000]).to eq(0x10)
   end
+
+  it "unlocks the register and selects the first bank on reset" do
+    bus[0xdf00] = 0x0d
+    bus.cartridge.reset
+    bus[0xdf00] = 0x01
+    expect(bus[0x8000]).to eq(0x20)
+  end
 end

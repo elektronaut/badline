@@ -64,4 +64,10 @@ describe Badline::Cartridge::Pagefox do
       expect(bus[0x8000]).to eq(0x00)
     end
   end
+
+  it "selects the first EPROM half in 16K mode on reset" do
+    bus[0xde80] = 0x16
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x10)
+  end
 end

@@ -34,4 +34,10 @@ describe Badline::Cartridge::SimonsBasic do
     bus[0xde00] = 0
     expect(bus[0xa000]).to eq(0x11)
   end
+
+  it "switches ROMH back in on reset" do
+    bus[0xde00]
+    bus.cartridge.reset
+    expect(bus[0xa000]).not_to eq(basic)
+  end
 end

@@ -19,6 +19,18 @@ describe Badline::Cartridge::GMod2 do
     expect(bus[0x8000]).to eq(0x00)
   end
 
+  it "selects the first bank in 8K mode on reset" do
+    bus[0xde00] = 0x7f
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x10)
+  end
+
+  it "stops taking flash writes on reset" do
+    bus[0xde00] = 0xc0
+    bus.cartridge.reset
+    expect(bus.cartridge.romh_writes).to be_nil
+  end
+
   describe "the flash" do
     # The bank register drives the chip's upper address lines, so each
     # unlock cycle selects the bank its address falls in.

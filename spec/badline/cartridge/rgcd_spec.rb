@@ -26,6 +26,12 @@ describe Badline::Cartridge::RGCD do
     expect(bus[0x8000]).to eq(0x00)
   end
 
+  it "switches the ROM back in on reset" do
+    bus[0xde00] = 0x08
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x10)
+  end
+
   context "when it is the Hucky board" do
     let(:subtype) { 1 }
 

@@ -45,4 +45,10 @@ describe Badline::Cartridge::EpyxFastload do
     now[0] = 3000
     expect(bus[0xdf00]).to eq(0x20)
   end
+
+  it "shows the ROM again after a reset" do
+    now[0] = 3000
+    cartridge.reset
+    expect(bus[0x8000]).to eq(0x01)
+  end
 end

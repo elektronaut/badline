@@ -21,6 +21,12 @@ describe Badline::Cartridge::Comal80 do
     expect(bus[0x8000]).to eq(0x00)
   end
 
+  it "selects the first bank in 16K mode on reset" do
+    bus[0xde00] = 0x42
+    bus.cartridge.reset
+    expect(bus[0xa000]).to eq(0x11)
+  end
+
   context "when it is the grey board" do
     let(:subtype) { 1 }
 
