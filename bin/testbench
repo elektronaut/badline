@@ -534,7 +534,10 @@ module Testbench
       end
     end
 
+    # Only a screenshot test reads the display, so an exitcode test runs
+    # with the VIC's colours unpainted.
     def execute(test, computer)
+      computer.vic.render = test.type != "exitcode"
       attach(test, computer)
       exit_code = nil
       computer.install_debug_register { |value| exit_code = value }

@@ -13,7 +13,8 @@
 # would: when the next test is missing from the mounted image but is on
 # Disk4.d64 beside it, that disk goes into the drive before the LOAD is
 # served. Test output is captured through the CHROUT trap and echoed to
-# stdout. When a failed test halts waiting for a keypress (detected by
+# stdout, and nothing reads the display, so the VIC leaves its colours
+# unpainted. When a failed test halts waiting for a keypress (detected by
 # GETIN polling), a space is injected to continue — STOP would exit some
 # tests to BASIC and kill the chain. Ends once `finish` prints the suite
 # completion message and its "- ok", on a BASIC READY prompt, on a hard
@@ -328,6 +329,7 @@ if $PROGRAM_NAME == __FILE__
   max_cycles = (ARGV[2] || 10_000_000_000).to_i
 
   computer = Badline::Computer.new
+  computer.vic.render = false
   capture = computer.capture_output
   load_log = Lorenz.mount(computer, image, capture, start_test)
   warn "Mounted #{image} as device 8"
