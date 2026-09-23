@@ -38,11 +38,10 @@ module Badline
           seq.cur_fg = PAIR_FG[data]
           colors = seq.cur_colors
           palette = @palette
-          i = 0
-          while i < 8
-            colors[i] = colors[i + 1] = palette[(data >> (6 - i)) & 0b11]
-            i += 2
-          end
+          colors[0] = colors[1] = palette[data >> 6]
+          colors[2] = colors[3] = palette[(data >> 4) & 0b11]
+          colors[4] = colors[5] = palette[(data >> 2) & 0b11]
+          colors[6] = colors[7] = palette[data & 0b11]
         end
       end
 
