@@ -54,6 +54,13 @@ you can type the `LOAD` yourself. `--song N` picks a subtune of a
 without YJIT, which is otherwise switched on at startup.
 `badline --help` lists the options.
 
+The KERNAL, BASIC and character ROMs come with the gem. To run other
+images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
+directory that holds `kernal.rom`, `basic.rom` and `character.rom`,
+plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
+Ruby, `Badline.rom_path = dir` does the same before a
+`Badline::Computer` is built, and `nil` restores the bundled set.
+
 ## Media
 
 | Format | Handling |
