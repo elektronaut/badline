@@ -110,8 +110,8 @@ describe Badline::Cartridge do
       expect(address_bus[0xe000]).to eq(0x4c)
     end
 
-    it "opens the unmapped address space" do
-      expect(address_bus[0x2000]).to eq(0xff)
+    it "reads open bus from the unmapped address space" do
+      expect(address_bus[0x2000]).to eq(address_bus.vic.phi1_data)
     end
 
     it "drops writes to the open address space" do

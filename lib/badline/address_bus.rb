@@ -29,17 +29,10 @@ module Badline
   class AddressBus
     include Addressable
 
-    # Unmapped address space for Ultimax cartridges.
-    module OpenSpace
-      module_function
-
-      def peek(_addr) = 0xff
-      def poke(_addr, _value); end
-    end
-
-    # I/O 1 and 2 with nothing on the bus. A read picks up the byte the VIC
-    # fetched in the preceding phi1 half-cycle, and a write goes nowhere.
-    class OpenIO
+    # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
+    # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
+    # and a write goes nowhere.
+    class OpenBus
       def initialize(vic)
         @vic = vic
       end
@@ -81,7 +74,7 @@ module Badline
       @datasette.on_sense_change { @io_port.value = port_value }
 
       @color_ram = ColorMemory.new(@vic)
-      @open_io = OpenIO.new(@vic)
+      @open_bus = OpenBus.new(@vic)
 
       @port_ddr = 0x2f
       @port_out = 0x37
@@ -181,8 +174,8 @@ module Badline
     # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
     # I/O always visible and open address space everywhere else.
     def map_ultimax_pages
-      @read_pages.fill(OpenSpace, 0x10, 0xf0)
-      @write_pages.fill(OpenSpace, 0x10, 0xf0)
+      @read_pages.fill(@open_bus, 0x10, 0xf0)
+      @write_pages.fill(@open_bus, 0x10, 0xf0)
       @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
       @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
       map_io_pages
@@ -191,7 +184,7 @@ module Badline
     def map_io_pages
       {
         vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_io => 0xde..0xdf
+        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_bus => 0xde..0xdf
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
