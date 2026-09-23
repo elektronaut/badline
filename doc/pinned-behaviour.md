@@ -147,6 +147,22 @@ only catches the rows that happen to move.
     `$ff`.
   - Spec guard: *when the counter wraps to line 0* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- The compare latches the flag only on a change from no match to match,
+  and it runs again after every `$d011`/`$d012` write as well as at each
+  line step (VICE x64sc compares in every cycle). A write after column 61
+  is left to the line step, so a target moved to the next line there
+  still matches when the line steps: the match holds and nothing latches.
+  A write that moves the target onto the current line latches at once.
+  - Pinned by `rasterirq_hold` (11672 px → pass). It goes back to 11672 px
+    when the line step latches on any match, and to 345 px when writes
+    don't run the compare, which also breaks `greydot` (1576 px), because
+    the stale match state then swallows a later edge.
+  - The latch on a write that moves the target onto the current line is
+    VICE's behaviour. No test pins it: `rasterirq_hold` and `greydot` still
+    pass when a write only updates the match state.
+  - Spec guard: *with the target stepped along with the raster line* and
+    *when a write moves the target onto the current line* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 
 ## VIC mid-line register visibility
 
@@ -350,15 +366,40 @@ only catches the rows that happen to move.
 
 ## VIC border and idle state
 
-- The vertical border flip-flop is checked at cycle 63 (VIC hook, column 62)
-  *and* at the left X compare inside `pixel_shown?` (Bauer §3.9 rules 2–5),
-  not at line start, so mid-frame RSEL/DEN toggles open and close the
-  border.
-  - Pinned by `dentest` and `border`.
+- The vertical border compares run in every cycle of a line, as VICE x64sc
+  runs them. The top compare (line 51 with RSEL set, 55 with it clear, and
+  DEN set) resets the flip-flop at once. The bottom compare (251 or 247)
+  only arms it, and the armed state takes hold at the line's first cycle
+  and at the left window edge (Bauer §3.9 rules 2–5). Between writes
+  nothing changes, so the VIC compares at each line's first cycle and after
+  each `$d011` write.
+  - The line's first cycle is the previous line's column 62 (Bauer cycle 1,
+    the column the bad line compare also gives to the next line), and it
+    compares the line about to start. A `$d011` write after column 61 is
+    compared there, against the next line. A write after column 62 has
+    missed it.
+    - Pinned by `denrsel-s0`/`-s1`: s1 clears RSEL and DEN one cycle later
+      than s0, just after line 51's first-cycle compare, so the border
+      opens. Pinned with them by `denrsel-1`/`-2`/`-s2`, `den10-51-1` (all
+      64000–87040 px → pass), `vborder-33-08`/`-09`, `vborder2-22` and
+      `vborder2-64`, which fail again when column 62 compares the line
+      ending. `border-bm-idle` (8057 → 9 px) goes back too.
+  - A write is compared in the next column, so RSEL touching a bottom
+    compare line mid-line closes the border from the next line.
+    - Pinned by `vborder2-63` and `vborder-32-08`/`-09`, which fail when
+      only the line start and the left edge compare, and `vborder-33-08`
+      and `vborder2-36`, which move further.
+  - The 40-column left compare runs in column 15 (Bauer 17), a column
+    before the column that draws its pixel, so a `$d011` write after
+    column 15 misses it. The 38-column one (Bauer 18) runs in column 16.
+    - Pinned by `vborder2-36` (320 px → pass), which fails alone when the
+      compare sees `$d011` as of column 16. `vborder2-35` is the other side
+      of the pair.
   - Spec guard: *vertical border flip-flop* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb). Its
-    mid-line DEN example separates the left-edge compare from a line-start
-    one.
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb), one context per rule,
+    each failing under its knock-out, and *vertical border flip-flop* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb) for
+    the armed bottom compare and the 40-column left compare.
 - The border colour shows where the **main** flip-flop is set, and only
   there. The vertical flip-flop keeps the main one from clearing at the
   left compare and withholds the graphics data, but it does not paint
