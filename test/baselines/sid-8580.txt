@@ -1,5 +1,18 @@
+busvalue/busvalue.prg	PASS
 detect/detect-1-new.prg	PASS
 detect/detect-2-new.prg	PASS
+env_test/env_test_ra_0000.prg	PASS
+env_test/env_test_ra_0100.prg	PASS
+env_test/env_test_adra_1.prg	PASS
+env_test/env_test_adra_2.prg	PASS
+env_test/env_test_ar_1.prg	PASS
+env_test/env_test_ar_2.prg	PASS
+env_test/env_test_ar_3.prg	PASS
+envelope/testADSRDelayBug.prg	PASS
+envelope/testFlip00toFF.prg	PASS
+envelope/testFlipFFto00.prg	PASS
+envelope/lft-adsr-test.prg	PASS
+exp_counter_reset/env_test_exr.prg	PASS
 noiselfsrinit/simple.prg	PASS
 noiselfsrinit/scan.prg	PASS
 noisewriteback/noise_writeback_test1-new.prg	PASS
@@ -56,10 +69,20 @@ osc3-wave0/osc3-wave0-new.prg	PASS
 osc_topbit/osc_topbit_test_noise_new.prg	PASS
 osc_topbit/osc_topbit_test_pulse_new.prg	PASS
 osc_topbit/osc_topbit_test_triangle_new.prg	PASS
+oscinit/oscinit.prg	PASS
+oscinit/noiseinit.prg	PASS
+oscinit/allinit.prg	PASS
+resid-test/envdelay.prg	PASS
+resid-test/envrate.prg	PASS
+resid-test/envsustain.prg	PASS
+resid-test/envtime.prg	PASS
+resid-test/noisetest.prg	PASS
 resid-test/oscsample0-8580.prg	FAIL	exit=$ff
 resid-test/oscsample1-8580.prg	FAIL	exit=$ff
+ringmod/ringmodtest.prg	PASS
 waveforms/waveforms-10-8580.prg	PASS
 waveforms/waveforms-20-8580.prg	PASS
 waveforms/waveforms-40-8580.prg	FAIL	exit=$ff
 waveforms/waveforms-80-8580.prg	PASS
+writedelay/writedelay.prg	PASS
 wf12nsr/wf12nsr-8580.prg	FAIL	exit=$ff

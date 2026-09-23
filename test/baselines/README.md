@@ -58,7 +58,8 @@ Recorded output of the headless hardware suites, one file per suite:
   image are left out.
 - `sid-8580.txt` — the same runner with `--sid 8580`, which builds the
   machine with an 8580 and runs the programs the testlist tags `sid-new`
-  instead. Same record format.
+  in place of the `sid-old` ones. The untagged programs, written for
+  either chip, run on both. Same record format.
 
 Every suite still fails tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
@@ -184,9 +185,10 @@ cycles, five minutes here, which is little more than the 90M-cycle hang at
 whole chain. `bin/sidtests` is not sharded either. Its 102 6581
 programs take about eleven and a half minutes here, four and a half of
 them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
-runs 65 programs, 48 of them the `wb_testsuite` writeback checks, and takes
-26 minutes here (20 of CPU, on a loaded machine), which keeps it out of the
-nightly set.
+runs 88 programs, 48 of them the `wb_testsuite` writeback checks, and takes
+about 29 minutes here (23 of CPU, on a loaded machine), which keeps it out
+of the nightly set. The 23 programs it shares with the 6581 list add two
+and a half of those minutes.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
 ~450M cycles each and use nearly all of it whether they pass or fail, which

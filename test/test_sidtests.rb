@@ -19,8 +19,8 @@ class TestSIDTestsTestlist < Minitest::Test
     assert_nil parse("../SID/detect/,detect-2-old.prg,exitcode,5600000,sid-old")
   end
 
-  def test_drops_rows_for_either_chip_from_the_8580_list
-    assert_nil parse("../SID/busvalue/,busvalue.prg,exitcode,5500000")
+  def test_keeps_rows_for_either_chip_in_the_8580_list
+    assert_equal ["busvalue/busvalue.prg", 5_500_000], parse("../SID/busvalue/,busvalue.prg,exitcode,5500000")
   end
 
   def test_parses_a_6581_row

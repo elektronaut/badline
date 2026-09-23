@@ -53,8 +53,8 @@ REGRESSION_SUITES = {
 # 13 rows at about a minute.
 # testbench-carts is the testlist's mountcrt rows, from whichever subtree
 # lists them, for the cartridge types badline has a mapper for.
-# sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new programs;
-# :args go to the runner as they are.
+# sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
+# untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
   "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
   "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
