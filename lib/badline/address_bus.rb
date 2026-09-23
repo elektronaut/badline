@@ -88,6 +88,7 @@ module Badline
 
     def attach_cartridge(cartridge)
       @cartridge = cartridge
+      cartridge.connect(ram: @ram, open_bus: @open_bus)
       cartridge.on_change { update_overlays! }
       update_overlays!
     end

@@ -6,27 +6,21 @@ module Badline
       def poke(addr, value)
         return if addr > 0xdeff
 
-        select_bank((value & 0x3f) % @roml_banks.length)
+        select_bank((value & 0x3f) % @banks.length)
         changed!
       end
 
       private
 
+      # In 16K mode the selected bank shows through ROMH as well.
       def select_bank(number)
-        @roml = @roml_banks[number]
-        @romh = @romh_banks[number] if @romh_banks
+        @roml = @banks[number]
+        @romh = @roml if game.zero?
       end
 
       def install_chips(chips)
-        @roml_banks = []
-        @romh_banks = game.zero? ? [] : nil
-        chips.each { |chip| install_chip(chip) }
+        @banks = banks_from(chips).first
         select_bank(0)
-      end
-
-      def install_chip(chip)
-        @roml_banks[chip.bank] = rom_bank(chip.data, ROML_START)
-        @romh_banks[chip.bank] = rom_bank(chip.data, ROMH_START) if @romh_banks
       end
     end
   end
