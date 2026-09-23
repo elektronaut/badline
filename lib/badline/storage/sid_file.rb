@@ -149,6 +149,8 @@ module Badline
         raise FormatError, "Missing PSID or RSID signature" unless %w[PSID RSID].include?(@format)
         raise FormatError, "Truncated header" if truncated?
         raise FormatError, "No tune data" if data.empty?
+        raise FormatError, "Sidplayer MUS data, which needs a MUS player" if mus?
+        raise FormatError, "Written for #{sids} SIDs; only one is emulated" if sids > 1
       end
 
       def version = word(0x04)
@@ -164,6 +166,20 @@ module Badline
       def init_address = word(0x0a).nonzero? || load_address
       def end_address = load_address + data.length
       def psid? = @format == "PSID"
+
+      # Flag bit 0 marks a PSID body as Compute's Sidplayer data rather than
+      # code.
+      def mus? = psid? && flags[0] == 1
+
+      # A v3 header can place a second SID at `$Dxx0` and a v4 header a
+      # third, each given by its middle byte: even, and in `$d420-$d7e0` or
+      # `$de00-$dfe0`. Anything else means the SID isn't there.
+      def sids
+        1 + [0x7a, 0x7b].first([version - 2, 0].max).count do |offset|
+          page = @bytes[offset].to_i
+          page.even? && ((0x42..0x7e).cover?(page) || (0xe0..0xfe).cover?(page))
+        end
+      end
 
       # Flag bits 4-5 name the SID the tune was written for: 01 the 6581,
       # 10 the 8580, 11 either and 00 unknown. Only an 8580-only tune gets one.
