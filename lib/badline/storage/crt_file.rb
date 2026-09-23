@@ -30,9 +30,10 @@ module Badline
         @chips = parse_chips(bytes, bytes[0x10, 4].unpack1("N"))
       end
 
+      # Trailing bytes too short to hold a CHIP header are ignored.
       def parse_chips(bytes, offset)
         chips = []
-        while offset < bytes.length
+        while offset + CHIP_HEADER_SIZE <= bytes.length
           chip, offset = parse_chip(bytes, offset)
           chips << chip
         end
