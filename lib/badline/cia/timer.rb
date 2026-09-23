@@ -15,6 +15,7 @@ module Badline
         @underflowed = false
         @oneshot_linger = 0
         @toggle = true
+        settle
       end
 
       # The level this timer drives on its port B pin: a square wave that
@@ -24,11 +25,10 @@ module Badline
       end
 
       def cycle!(feed)
-        return @counter -= 1 if feed && steady?
-
-        if (@pipe | @load_delay | @oneshot_linger).zero? && !@reload
-          @pipe = 0b10 if feed && started?
-          return
+        if @settled
+          return @counter -= 1 if feed && @counter > 1 && started?
+        elsif @empty
+          return enter(feed)
         end
         run_tick(feed)
       end
@@ -37,6 +37,7 @@ module Badline
         @underflowed = false
         @oneshot_linger -= 1 if @oneshot_linger.positive?
         tick(feed && started?)
+        settle
       end
 
       def write_control(value)
@@ -44,6 +45,7 @@ module Badline
         @oneshot_linger = 2 if control.run_mode? && value.nobits?(0x08)
         control.value = value & ~0x10
         @load_delay = 3 if value.anybits?(0x10)
+        settle
       end
 
       def write_latch_low(value)
@@ -58,12 +60,22 @@ module Badline
       private
 
       def started?
-        control.value.anybits?(0x01)
+        @control.value & 0x01 != 0
       end
 
-      def steady?
-        @counter > 1 && @pipe == 0b11 && !@reload &&
-          (@load_delay | @oneshot_linger).zero? && started?
+      def enter(feed)
+        return unless feed && started?
+
+        @pipe = 0b10
+        @empty = false
+      end
+
+      # With no load, reload or one-shot linger pending, a full pipe only
+      # counts and an empty one only waits to be fed.
+      def settle
+        quiet = (@load_delay | @oneshot_linger).zero? && !@reload
+        @settled = quiet && @pipe == 0b11
+        @empty = quiet && @pipe.zero?
       end
 
       def tick(feed)
