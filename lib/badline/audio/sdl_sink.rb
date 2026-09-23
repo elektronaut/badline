@@ -52,6 +52,8 @@ module Badline
 
       def start = sdl(:SDL_PauseAudioDevice, @device, 0)
 
+      def pause = sdl(:SDL_PauseAudioDevice, @device, 1)
+
       def clear = sdl(:SDL_ClearQueuedAudio, @device)
 
       def close

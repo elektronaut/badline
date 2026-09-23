@@ -34,9 +34,14 @@ describe Badline::Audio::Playback do
       expect(sink.started_with).to eq(160)
     end
 
-    it "closes the device once the queue has drained" do
+    it "returns once the queue has drained" do
       playback.play(renderer)
-      expect(sink.closed_with).to eq(0)
+      expect(sink.queued).to eq(0)
+    end
+
+    it "leaves the device open for the next song" do
+      playback.play(renderer)
+      expect(sink.closed?).to be(false)
     end
 
     it "finishes" do
@@ -98,10 +103,33 @@ describe Badline::Audio::Playback do
         play
         expect(sink.cleared).to be(true)
       end
+    end
 
-      it "closes the device" do
+    context "when paused" do
+      let(:sleeper) do
+        lambda do |seconds|
+          stalls << [renderer.rendered, sink.running?] if playback.paused?
+          playback.resume if stalls.length == 5
+          sink.advance(seconds)
+        end
+      end
+      let(:stalls) { [] }
+
+      def play = playback.play(renderer) { |seconds| playback.pause if seconds.between?(0.3, 0.32) }
+
+      it "stalls rendering until it resumes" do
         play
-        expect(sink.closed?).to be(true)
+        expect(stalls.map(&:first).uniq.length).to eq(1)
+      end
+
+      it "holds the device while paused" do
+        play
+        expect(stalls.map(&:last).uniq).to eq([false])
+      end
+
+      it "plays everything once resumed" do
+        play
+        expect(sink.played).to eq(1000)
       end
     end
 
@@ -112,9 +140,9 @@ describe Badline::Audio::Playback do
         expect(playback.play(renderer)).to eq(:interrupted)
       end
 
-      it "drops the queue and closes the device" do
+      it "drops the queue" do
         playback.play(renderer)
-        expect([sink.cleared, sink.closed_with]).to eq([true, 0])
+        expect(sink.cleared).to be(true)
       end
     end
 

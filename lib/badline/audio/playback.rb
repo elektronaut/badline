@@ -7,9 +7,10 @@ module Badline
     # queue has drained below `ahead` seconds, and the device only starts
     # once the queue first reaches it.
     #
-    # A sink answers #rate, #queue(samples), #queued_seconds, #start, #clear
-    # and #close. An emulator running below real time lets the queue run dry
-    # and the audio stutters; `on_underrun` hears about the first time.
+    # A sink answers #rate, #queue(samples), #queued_seconds, #start, #pause
+    # and #clear; whoever opened it closes it. An emulator running below
+    # real time lets the queue run dry and the audio stutters; `on_underrun`
+    # hears about the first time.
     class Playback
       AHEAD = 0.15
 
@@ -20,10 +21,13 @@ module Badline
         @on_underrun = on_underrun
         @started = false
         @stopped = false
+        @paused = false
         @underrun = false
       end
 
       def stopped? = @stopped
+
+      def paused? = @paused
 
       def underrun? = @underrun
 
@@ -31,10 +35,23 @@ module Badline
       # played out.
       def stop = @stopped = true
 
+      # Holds the device where it is. Rendering stalls too, since the queue
+      # stops draining.
+      def pause
+        @paused = true
+        @sink.pause if @started
+      end
+
+      def resume
+        @paused = false
+        @sink.start if @started
+      end
+
       # Plays to the end of the renderer and waits for the device to finish,
       # yielding the seconds played so far after each frame. Returns
       # :finished, :stopped, or :interrupted after a Ctrl-C.
       def play(renderer)
+        @sink.pause
         renderer.stream do |samples, rendered|
           break if @stopped
 
@@ -48,7 +65,6 @@ module Badline
         :interrupted
       ensure
         @sink.clear if @stopped
-        @sink.close
       end
 
       private
@@ -68,8 +84,8 @@ module Badline
       def start
         return if @started
 
-        @sink.start
         @started = true
+        @sink.start unless @paused
       end
 
       def underrun!

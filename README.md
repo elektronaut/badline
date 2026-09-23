@@ -93,6 +93,12 @@ counting from 1 as HVSC does, and defaults to the tune's own start
 song. Playback asks the device for 44.1 kHz and takes whatever rate it
 offers, unless `--rate` says otherwise. Ctrl-C stops it.
 
+Played on a terminal, `badline-sid` shows the tune's name, author and
+release, the song number and the time played against the song's
+length. `n` or → skips to the next song, `p` or ← goes back one, space
+pauses and `q` quits. `--no-tui`, or output that isn't a terminal,
+gives plain progress output instead.
+
 A `.sid` file doesn't store its length, so `badline-sid` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
 through `--songlengths`, in a `DOCUMENTS` directory in any of the
