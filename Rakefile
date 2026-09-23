@@ -179,22 +179,28 @@ end
 
 # Re-records a stretch of a chained suite: the run resumes just ahead of
 # first, stops once last's segment is whole, and only the rows in between
-# are spliced in. The outcome row is left as the last whole run recorded it.
+# are spliced in. The outcome row is left as the last whole run recorded it,
+# unless last is the outcome row itself: then the run goes on to the end of
+# the chain and records how it ended.
 def record_chain(suite, first, last = nil, *extra)
   raise "#{suite} takes a [first,last] stretch of the chain, not a filter list." if extra.any?
 
   recorded = read_recorded(suite)
   range = Regression::ChainRange.new(recorded, first, last)
-  args = ["--stop-after", range.last]
-  args.push("--resume", range.resume_at) if range.resume_at
   results = File.join(REGRESSION_DIR, "#{suite}-record.txt")
-  run_suite(suite, results, args)
+  run_suite(suite, results, chain_args(range))
   fresh = range.select(Regression.read(results))
   unless range.reached?(fresh)
     warn "WARNING: #{suite} ended before reaching #{range.last}. " \
          "Recording only the rows it reached."
   end
   splice_recorded(suite, recorded, fresh)
+end
+
+def chain_args(range)
+  args = range.to_end? ? [] : ["--stop-after", range.last]
+  args.push("--resume", range.resume_at) if range.resume_at
+  args
 end
 
 # Runs stretch number (from 1) of a chained suite and compares its rows
@@ -204,37 +210,25 @@ end
 # also carries the (suite) row.
 def run_stretch(suite, number)
   recorded = read_recorded(suite)
-  range, final = stretch_range(suite, recorded, number)
-  args = final ? [] : ["--stop-after", range.last]
-  args.push("--resume", range.resume_at) if range.resume_at
+  range = stretch_range(suite, recorded, number)
   results = File.join(REGRESSION_DIR, "#{suite}-#{number}.txt")
-  run_suite(suite, results, args)
-  fresh = Regression.read(results)
-  rows = range.select(fresh)
-  expected = recorded.slice(*stretch_keys(recorded, range))
-  if final
-    rows[Regression::ChainRange::OUTCOME] = fresh[Regression::ChainRange::OUTCOME]
-    expected[Regression::ChainRange::OUTCOME] = recorded[Regression::ChainRange::OUTCOME]
-  end
-  compare_stretch("#{suite}-#{number}", expected, rows.compact)
+  run_suite(suite, results, chain_args(range))
+  rows = range.select(Regression.read(results))
+  expected = range.select(recorded)
+  compare_stretch("#{suite}-#{number}", expected, rows)
   raise "#{suite}-#{number} ended before reaching #{range.last}." unless range.reached?(rows)
   return if rows.keys == expected.keys
 
   raise "#{suite}-#{number} reported #{rows.length} rows where the baseline has #{expected.length}."
 end
 
-# The range of stretch number, and whether it is the last.
+# The range of stretch number, the last one running to the end of the chain.
 def stretch_range(suite, recorded, number)
   cuts = ALL_SUITES.fetch(suite).fetch(:cuts)
   keys = recorded.keys - [Regression::ChainRange::OUTCOME]
   first = number == 1 ? keys.first : keys[keys.index(cuts[number - 2]) + 1]
-  final = number == cuts.length + 1
-  [Regression::ChainRange.new(recorded, first, final ? keys.last : cuts[number - 1]), final]
-end
-
-def stretch_keys(recorded, range)
-  keys = recorded.keys - [Regression::ChainRange::OUTCOME]
-  keys[keys.index(range.first)..keys.index(range.last)]
+  last = number == cuts.length + 1 ? Regression::ChainRange::OUTCOME : cuts[number - 1]
+  Regression::ChainRange.new(recorded, first, last)
 end
 
 def compare_stretch(name, expected, rows)

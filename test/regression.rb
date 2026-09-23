@@ -101,8 +101,9 @@ module Regression
   # partial run is a range of the chain rather than a set of ids. Resuming
   # at a test by typing its LOAD leaves the READY prompt and the typed name
   # in that test's segment, so the run resumes one test earlier and throws
-  # that segment away. The outcome row records how the whole chain ended,
-  # which a partial run cannot say, so it is never part of the range.
+  # that segment away. The outcome row records how the chain ended, which
+  # only a run to the end of the chain can say, so it is part of the range
+  # only when the range's last row is the outcome row itself.
   class ChainRange
     OUTCOME = "(suite)"
 
@@ -112,10 +113,17 @@ module Regression
       @keys = baseline.keys - [OUTCOME]
       @first = first
       @last = last || first
-      [@first, @last].each do |name|
-        raise ArgumentError, "#{name} is not a row of the baseline. Check the test name." unless @keys.include?(name)
-      end
+      check_row(@first)
+      return if to_end?
+
+      check_row(@last)
       raise ArgumentError, "#{@last} comes before #{@first} in the chain." if index(@last) < index(@first)
+    end
+
+    # A range that runs on to wherever the chain ends, the outcome row
+    # included.
+    def to_end?
+      @last == OUTCOME
     end
 
     # The test to resume at, or nil to autostart the chain from its first
@@ -132,7 +140,7 @@ module Regression
       raise ArgumentError, "The run never reached #{@first}." unless from
 
       to = keys.index(@last) || (keys.length - 1)
-      fresh.slice(*keys[from..to])
+      fresh.slice(*keys[from..to], *([OUTCOME] if to_end?))
     end
 
     def reached?(rows)
@@ -140,6 +148,10 @@ module Regression
     end
 
     private
+
+    def check_row(name)
+      raise ArgumentError, "#{name} is not a row of the baseline. Check the test name." unless @keys.include?(name)
+    end
 
     def index(name)
       @keys.index(name)
