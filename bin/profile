@@ -9,6 +9,8 @@
 #
 # Workloads:
 #   idle   the READY prompt after boot (bad lines on, sprites off)
+#   text   idle with every screen cell holding a random
+#          screen code, so the hires paint path draws a full screen
 #   game   IK+'s attract mode from 20M cycles: 8 sprites, bad lines and a
 #          raster IRQ per multiplexed sprite row. Needs
 #          vendor/OneLoad64-Games-Collection-v5 linked into the checkout
@@ -42,7 +44,7 @@ require "optparse"
 require "rbconfig"
 
 module Profiler
-  WORKLOADS = %w[idle game synth].freeze
+  WORKLOADS = %w[idle text game synth].freeze
   STUBS = %w[vic cia cpu sid chips].freeze
   GAME = "vendor/OneLoad64-Games-Collection-v5/IK+.crt"
   ROOT = File.expand_path("..", __dir__)
@@ -68,7 +70,13 @@ module Profiler
         fast_forward = 20_000_000
       end
       @computer.cycle! while @computer.cycles < fast_forward
+      fill_screen if name == "text"
       @computer.sid.record(rate: Badline::Audio::Renderer::DEFAULT_RATE) if @synth
+    end
+
+    def fill_screen
+      random = Random.new(1)
+      1000.times { |offset| @computer.ram.poke(0x0400 + offset, random.rand(1..255)) }
     end
 
     def stub(chip)
@@ -248,7 +256,7 @@ end
 options = { cycles: nil, top: 15, pairs: 3, lib: File.join(Profiler::ROOT, "lib") }
 
 parser = OptionParser.new do |opts|
-  opts.banner = "Usage: bin/profile [idle|game|synth] [options]"
+  opts.banner = "Usage: bin/profile [idle|text|game|synth] [options]"
   opts.on("--cycles N", Integer, "Cycles to measure (default: 5000000 profiled, 3000000 timed)") do |n|
     options[:cycles] = n
   end
