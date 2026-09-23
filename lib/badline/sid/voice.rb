@@ -33,6 +33,11 @@ module Badline
         @dc_offset = DC_OFFSET.fetch(model)
       end
 
+      def reset!
+        @waveform.reset!
+        @envelope = Envelope.new
+      end
+
       def control=(value)
         @waveform.control = value
         @envelope.control = value
