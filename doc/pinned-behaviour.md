@@ -655,6 +655,18 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     and its temperature. badline keeps VICE's pixel 6, which passes
     `videomode2` and leaves `videomode-y` 1 px off and all 48 px left in
     `modesplit`, one pixel on each of its first-section lines.
+  - An MCM that falls out of the invalid ECM+MCM text mode is a pixel
+    later on both counts. The lookup stays black through pixel 4 and
+    changes at pixel 5, and the pairs are read through pixel 7, with
+    hi-res reads starting at the next group's pixel 0.
+    - Pinned by `videomode1` and `videomode-z` (2 px each → pass), whose
+      illegal → ECM text split drops MCM. With the fall at pixels 4 and 7,
+      the reference's black pixel 4 and last-pair foreground on pixel 7
+      are both lost. Applying the late timing to every falling MCM breaks
+      `videomode2`, `vicii_reg_timing`, `modesplit` and `videomode-v`,
+      `-w`, `-x` and `-y`.
+    - Spec guard: *takes an MCM falling out of ECM+MCM a pixel late* in
+      [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
   - Spec guard: [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb),
     one example per pixel, and *a mode change inside a group* in
     [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).

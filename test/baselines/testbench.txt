@@ -96,13 +96,13 @@ VICII/vicii_timing/vicii_reg_timing.prg	PASS
 VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=7px exit=$00
 VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=7px exit=$00
 VICII/videomode/rmwtest.prg	PASS
-VICII/videomode/videomode1.prg	FAIL	diff=2px exit=$00
+VICII/videomode/videomode1.prg	PASS
 VICII/videomode/videomode2.prg	PASS
 VICII/videomode/videomode-v.prg	FAIL	diff=5px exit=$00
 VICII/videomode/videomode-w.prg	FAIL	diff=79px exit=$00
 VICII/videomode/videomode-x.prg	FAIL	diff=10px exit=$00
 VICII/videomode/videomode-y.prg	FAIL	diff=1px exit=$00
-VICII/videomode/videomode-z.prg	FAIL	diff=2px exit=$00
+VICII/videomode/videomode-z.prg	PASS
 VICII/vspbug/vsp_bug.prg	PASS
 VICII/vsp-tester/vsp-tester.prg	FAIL	exit=$ff
 VICII/sequencer-bug/bug.prg	PASS
