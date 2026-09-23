@@ -73,37 +73,40 @@ through `OPEN` and `CHRIN` as well. The command channel answers `I`,
 directly. Loaders that upload their own code to the drive with `M-W` and
 `M-E`, and copy protection that reads raw GCR, won't work.
 
-## Rendering SID tunes
+## Playing and rendering SID tunes
 
-`badline-sid` renders a `.sid` tune to a 16-bit PCM file. The output
-extension picks the format, `.wav` or `.aiff`, and the default is the
-tune's name with `.wav`.
+`badline-sid` plays a `.sid` tune on the host's audio device, or with
+`--output` (or `-o`) renders it to a 16-bit PCM file instead. The
+output extension picks the format, `.wav` or `.aiff`.
 
 ```sh
-badline-sid tune.sid                           # tune.wav, length from HVSC
+badline-sid tune.sid                           # play, length from HVSC
+badline-sid -s 3 tune.sid                      # play the third subtune
 badline-sid --seconds 180 tune.sid -o out.aiff
-badline-sid -s 3 --rate 48000 tune.sid
+badline-sid -s 3 --rate 48000 tune.sid -o out.wav
 badline-sid --sid 8580 tune.sid
-badline-sid --filter-chunk 1 tune.sid          # exact filter, slower
+badline-sid --filter-chunk 1 tune.sid -o out.wav   # exact filter, slower
 ```
 
-`--song` (or `-s`) picks the subtune, counting from 1 as HVSC does, and
-defaults to the tune's own start song. The output goes to `--output` (or
-`-o`), or to a second argument after the tune.
+Both modes take the same options. `--song` (or `-s`) picks the subtune,
+counting from 1 as HVSC does, and defaults to the tune's own start
+song. Playback asks the device for 44.1 kHz and takes whatever rate it
+offers, unless `--rate` says otherwise. Ctrl-C stops it.
 
 A `.sid` file doesn't store its length, so `badline-sid` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
 through `--songlengths`, in a `DOCUMENTS` directory in any of the
 tune's parent directories (the layout of an HVSC collection), or under
-`$HVSC_BASE/DOCUMENTS`. Without a database or `--seconds` it renders
+`$HVSC_BASE/DOCUMENTS`. Without a database or `--seconds` it runs for
 60 seconds.
 
-PSID tunes render on a CPU and RAM with only the SID clocked, which is
-faster than real time. RSID tunes set up their own interrupts, so they
-boot a full C64 first and render at about half real time. The filter
-steps four cycles at a time; `--filter-chunk 1` steps it every cycle,
-which is exact and takes about twice as long. `badline-sid --help`
-lists the options.
+PSID tunes run on a CPU and RAM with only the SID clocked, at about
+twice real time, so they play smoothly. RSID tunes set up their own
+interrupts, so they boot a full C64 first and run at about half real
+time. They render fine but stutter when played, and `badline-sid` says
+so when it falls behind. The filter steps four cycles at a time;
+`--filter-chunk 1` steps it every cycle, which is exact and takes about
+twice as long. `badline-sid --help` lists the options.
 
 ## Input
 
@@ -177,9 +180,9 @@ light pen registers.
 
 Known gaps:
 
-- No live audio. The SID is emulated, but emulation runs below real
-  time, so nothing plays it back yet. `badline-sid` is the way to
-  hear a tune.
+- No live audio in the emulator window. The SID is emulated, but the
+  whole machine runs below real time. `badline-sid` plays `.sid` tunes
+  on their own.
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.
