@@ -54,6 +54,8 @@ module Badline
       def initialize(model: :mos6581)
         @topbit_feedback = model != :mos8580
         @tri_saw_delay = model == :mos8580
+        @pulse_noise_read = PULSE_NOISE_READ.fetch(model)
+        @pulse_noise_write = PULSE_NOISE_WRITE.fetch(model)
         @combined = Combined.tables(model)
         @shift_register_reset_delay = SHIFT_REGISTER_RESET_DELAY.fetch(model)
         @accumulator = POWER_ON_ACCUMULATOR
@@ -196,10 +198,12 @@ module Badline
         end
       end
 
-      # A low pulse grounds every line. Noise is ANDed over the rest of the
-      # mix: the references hold no noise combinations to fit.
+      # A low pulse grounds every line. Noise with pulse alone loses its
+      # lowest lines; noise with triangle or sawtooth is ANDed over the rest
+      # of the mix.
       def combined(selected, saw, tri)
         return 0x000 if selected.anybits?(0x4) && @pulse.zero?
+        return noise & @pulse_noise_read if selected == 0xc
 
         rest = selected & 0x7
         value = case rest
@@ -244,7 +248,7 @@ module Badline
       # down: the output is latched instead, for the second phase to write.
       def feed_back(value)
         @accumulator &= ~MSB if @topbit_feedback && @selected.anybits?(0x2) && value.nobits?(0x800)
-        write_shift_register(value) if @selected.anybits?(0x8) && @shift_pipeline != 1
+        write_shift_register(write_back(@selected, value)) if @selected.anybits?(0x8) && @shift_pipeline != 1
       end
 
       # A rise of bit 19 starts a shift that takes two more cycles
@@ -259,7 +263,7 @@ module Badline
         if previous.nobits?(0x080000) && @accumulator.anybits?(0x080000)
           @shift_pipeline = 2
         elsif @shift_pipeline.positive? && (@shift_pipeline -= 1).zero?
-          write_shift_register(@output) if release_writes_back?(@selected, @selected)
+          write_shift_register(write_back(@selected, @output)) if release_writes_back?(@selected, @selected)
           shift_noise
         end
       end
