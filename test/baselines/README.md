@@ -82,12 +82,28 @@ reach are recorded with a warning. `rake regression:lorenz` still runs only
 the whole chain; a range record already reports what it changed before it
 writes.
 
-The testbench runs forks over four shards by default — each test boots its
-own machine, so they are independent — and merges the per-test records back
-into testlist order. `SHARDS=8 rake regression:testbench` or
+The testbench runs forks over four shards by default — each test gets its
+own copy of the machine, so they are independent — and merges the per-test
+records back into testlist order. `SHARDS=8 rake regression:testbench` or
 `ruby --yjit bin/testbench --shards 8 ...` overrides it, capped by the core
 count. The default is deliberately well short of the cores available, since
 several workspaces share the machine.
+
+Every test starts from the same 2.5M cycles of KERNAL boot, so each
+`bin/testbench` shard, and `bin/sidtests` once per SID model, boots a
+machine to that point once and forks a child per test from it
+(`test/forked_boot.rb`). The child attaches the program on the cycle a
+freshly booted machine would have loaded it, so its state matches the
+old boot-per-test path cycle for cycle. The boot is paid once per shard
+instead of once per test, which saves about six seconds a test: a
+55-test subset went from 29 to 21 minutes of serial time, the 53 short
+tests in it from 7 minutes to 1.3, and nine 6581 SID tests from 105
+seconds to 61. The suite timings below were measured before this change,
+so they overstate what a run costs now. A child that raises, dies
+or runs past a wall-clock deadline well beyond its cycle budget gets a
+`FAIL` row saying `crashed: …` or `hung: …`, and the next test forks
+from the same clean boot. TERM or INT takes the running child down with
+its shard.
 
 Two subtrees of the testlist are deliberately left out. `CPU/decimalmode`
 is 41 exhaustive ADC/SBC sweeps that `rake test` already covers per-opcode

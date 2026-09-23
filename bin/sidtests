@@ -8,8 +8,9 @@
 #
 # Only the programs that report through the $D7FF debug register can be
 # scored automatically ($00 pass, $ff fail); the rest print to the screen and
-# need the eye. Each test boots a fresh machine, injects the .prg and types
-# RUN. The 6581 list is fixed below; the 8580 one is read from the
+# need the eye. The machine is booted once, and each test runs in a child
+# forked from it that injects the .prg and types RUN; a child that crashes
+# or hangs gets a FAIL row saying so. The 6581 list is fixed below; the 8580 one is read from the
 # testbench testlist, which tags the programs written for the 8580 sid-new,
 # each with its own cycle budget. With --results, the results log — one tab-separated "name STATUS
 # [detail]" record per test, in test order — is written to PATH; that is the
@@ -24,6 +25,7 @@ lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "fileutils"
+require_relative "../test/forked_boot"
 
 module SIDTests
   ROOT = File.expand_path("../vendor/VICE-testprogs/SID", __dir__)
@@ -82,8 +84,7 @@ module SIDTests
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
-  def exit_code(name, sid_model, timeout)
-    computer = Badline::Computer.new(sid_model:)
+  def exit_code(computer, name, timeout)
     Badline::Media.attach(computer, File.join(ROOT, name))
     code = nil
     computer.install_debug_register { |value| code = value }
@@ -91,11 +92,24 @@ module SIDTests
     code
   end
 
+  # Each test runs in a child forked from a machine booted once per SID
+  # model (see ForkedBoot). The deadline only catches a child stuck
+  # outside its emulated cycles: at a hundred thousand cycles a second,
+  # far slower than any machine this runs on, the budget alone would take
+  # that long.
   def score(name, sid_model = :mos6581, timeout = TIMEOUT)
-    code = exit_code(name, sid_model, timeout)
-    return "PASS" if code&.zero?
+    deadline = 60 + ((timeout + BOOT_ALLOWANCE) / 100_000)
+    booted(sid_model).run(deadline) do |computer|
+      code = exit_code(computer, name, timeout)
+      next "PASS" if code&.zero?
 
-    code ? format("exit=$%02x", code) : "timeout"
+      code ? format("exit=$%02x", code) : "timeout"
+    end
+  end
+
+  def booted(sid_model)
+    @booted ||= {}
+    @booted[sid_model] ||= ForkedBoot.new(%w[TERM INT]) { ForkedBoot.computer(sid_model:) }
   end
 
   # Filters are name substrings, matched as a union; no filter runs
