@@ -3,9 +3,12 @@
 module Badline
   module Storage
     # A host directory served as a drive: .prg files by their host name,
-    # .p00 and .t64 entries by their embedded names. A host file that can't
-    # be read is left out, and a failed write reports false.
+    # .p00 and .t64 entries by their embedded names. A .prg the host can't
+    # read is still listed but fails to read, a .p00 or .t64 whose names
+    # can't be read is left out, and a failed write reports false.
     class HostDirectory
+      NO_SYNC = 21
+
       def initialize(path)
         @path = path
       end
@@ -15,7 +18,16 @@ module Badline
         return unless entry
 
         archive = entry[:archive]
-        archive ? archive.read_file(entry[:name]) : file_bytes(entry[:file])
+        archive ? archive.read_file(entry[:name]) : file_bytes(entry[:file]) || []
+      end
+
+      # A listed file the host can't read fails before its first byte, as
+      # a 1541 does on a disk it finds no sync on.
+      def read_error(name, **)
+        entry = find(name)
+        return unless entry && entry[:file] && !file_bytes(entry[:file])
+
+        { error: NO_SYNC, track: 0, sector: 0, offset: 0 }
       end
 
       def write_file(name, bytes)
