@@ -4,8 +4,8 @@ module Badline
   module Storage
     class D64Image < DiskImage
       # Image sizes with an error table, mapped to its length: 35 tracks
-      # (174848 bytes without one) and 40 tracks (196608)
-      ERROR_TABLES = { 175_531 => 683, 197_376 => 768 }.freeze
+      # (174848 bytes without one), 40 tracks (196608) and 42 tracks (205312)
+      ERROR_TABLES = { 175_531 => 683, 197_376 => 768, 206_114 => 802 }.freeze
 
       private
 
