@@ -106,6 +106,23 @@ module MachineDiff
 
   module_function
 
+  # The readers a checkpoint takes, for a revision from before the chips had them.
+  def backport_readers
+    unless Badline::VIC.method_defined?(:register_file)
+      Badline::VIC.class_eval { def register_file = Array.new(0x40) { |reg| @registers[reg] } }
+    end
+    Badline::CIA.class_eval { def time_of_day = @tod } unless Badline::CIA.method_defined?(:time_of_day)
+    return if Badline::TimeOfDay.method_defined?(:registers)
+
+    Badline::TimeOfDay.class_eval do
+      def registers
+        [@clock[:tenths], @clock[:seconds], @clock[:minutes], @clock[:hours],
+         @alarm[:tenths], @alarm[:seconds], @alarm[:minutes], @alarm[:hours],
+         @stopped ? 1 : 0, @latch ? 1 : 0]
+      end
+    end
+  end
+
   def machine(scenario, options, dir)
     computer = Badline::Computer.new
     case scenario
@@ -239,6 +256,10 @@ end
 $LOAD_PATH.unshift(options[:lib])
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
 require "badline"
-require_relative "../lib/badline/checkpoint"
+checkpoint = File.expand_path("../lib/badline/checkpoint.rb", __dir__)
+Badline.__send__(:remove_const, :Checkpoint) if defined?(Badline::Checkpoint) && !$LOADED_FEATURES.include?(checkpoint)
+require checkpoint
+
+MachineDiff.backport_readers
 
 options[:against] ? MachineDiff.compare(scenario, options) : MachineDiff.print_run(scenario, options)

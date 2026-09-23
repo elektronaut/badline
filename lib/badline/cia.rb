@@ -17,6 +17,8 @@ module Badline
 
     def interrupt!(delay = 1) = @icr.assert!(delay)
 
+    def time_of_day = @tod
+
     def timer_a = @ta.counter
 
     def timer_a=(value)

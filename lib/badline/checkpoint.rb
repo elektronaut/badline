@@ -1,24 +1,6 @@
 # frozen_string_literal: true
 
 module Badline
-  # The register file as stored, read without a bus access's side effects.
-  class VIC
-    def register_file = Array.new(0x40) { |reg| @registers[reg] }
-  end
-
-  class CIA
-    def time_of_day = @tod
-  end
-
-  # The clock and alarm as stored, read without latching the clock.
-  class TimeOfDay
-    def registers
-      [@clock[:tenths], @clock[:seconds], @clock[:minutes], @clock[:hours],
-       @alarm[:tenths], @alarm[:seconds], @alarm[:minutes], @alarm[:hours],
-       @stopped ? 1 : 0, @latch ? 1 : 0]
-    end
-  end
-
   # A digest of the machine's state at one cycle, for comparing two runs of
   # the same scenario, on two builds or two revisions. Each component is
   # hashed on its own with 32-bit FNV-1a, so a mismatch names the part of the
