@@ -191,6 +191,13 @@ describe Badline::SID::Filter do
       expect(filter.lowpass).to eq(-1)
     end
 
+    # -0.74 × 15 is -11.1, where a low-pass read out in whole units would
+    # take 15 off the mix.
+    it "scales the low-pass's fraction of a unit by the volume in the mix" do
+      run(2)
+      expect(filter.mix).to eq((((256 * 2) + described_class::MIXER_DC[:mos6581]) * 0x0f) - 12)
+    end
+
     it "settles the low-pass onto the inverted input" do
       run(10_000)
       expect(filter.lowpass).to be_within(1).of(-256)
@@ -232,7 +239,7 @@ describe Badline::SID::Filter do
     subject(:external) { described_class::External.new }
 
     def run(input, cycles)
-      cycles.times { external.cycle!(input) }
+      cycles.times { external.cycle!(input << described_class::FRACTION) }
       external.output
     end
 
