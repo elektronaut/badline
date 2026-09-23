@@ -25,7 +25,7 @@ module Badline
       private
 
       def install_chips(chips)
-        @roml = banks_from(chips).first.compact.first
+        @roml = banks_from(chips).first.compact.first || EMPTY_BANK
         reset
       end
     end

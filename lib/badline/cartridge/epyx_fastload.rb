@@ -61,7 +61,7 @@ module Badline
       end
 
       def install_chips(chips)
-        @rom = banks_from(chips).first.compact.first
+        @rom = banks_from(chips).first.compact.first || EMPTY_BANK
         @roml = Window.new(self, @rom)
         @discharged_at = 0
         self.mode = :rom8k
