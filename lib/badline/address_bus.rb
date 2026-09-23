@@ -40,11 +40,11 @@ module Badline
     # I/O 1 and 2 with nothing on the bus. A read picks up the byte the VIC
     # fetched in the preceding phi1 half-cycle, and a write goes nowhere.
     class OpenIO
-      def initialize(vic_bank)
-        @vic_bank = vic_bank
+      def initialize(vic)
+        @vic = vic
       end
 
-      def peek(_addr) = @vic_bank.phi1_data
+      def peek(_addr) = @vic.phi1_data
       def poke(_addr, _value); end
     end
 
@@ -80,8 +80,8 @@ module Badline
       @datasette.on_flag { @cia1.flag! }
       @datasette.on_sense_change { @io_port.value = port_value }
 
-      @color_ram = ColorMemory.new(@vic.vic_bank)
-      @open_io = OpenIO.new(@vic.vic_bank)
+      @color_ram = ColorMemory.new(@vic)
+      @open_io = OpenIO.new(@vic)
 
       @port_ddr = 0x2f
       @port_out = 0x37

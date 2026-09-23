@@ -182,6 +182,12 @@ module Badline
         end
       end
 
+      # The address of the s-access that falls in phi1, the middle of the
+      # three, or nil when the sprite's DMA is off and the VIC idles there.
+      def phi1_address
+        (pointer * 64) + ((@mc + 1) & MC_MASK) if @dma
+      end
+
       # The row fetched at the end of the previous line renders on this one.
       # A lost first s-access reads back the $ff the CPU is still driving.
       def start_line

@@ -12,26 +12,12 @@ module Badline
 
       attr_reader :address_bus
 
-      # The byte the last phi1 fetch left on the data bus. Colour RAM drives
-      # only the low four lines, so a CPU read there takes its upper nibble
-      # from this.
-      attr_reader :phi1_data
-
       def initialize(address_bus = nil)
         addressable_at(0x0000, length: 2**14)
         @address_bus = address_bus || AddressBus.new
-        @phi1_data = 0
       end
 
-      # A phi1 fetch: a g- or p-access. A sprite's three s-accesses are read
-      # together through here as well, so its last byte stands in for the
-      # middle one that really runs in phi1.
       def peek(offset)
-        @phi1_data = peek_phi2(offset)
-      end
-
-      # A phi2 fetch, the c-access, which leaves the phi1 bus value alone.
-      def peek_phi2(offset)
         return ultimax_peek(offset) if @address_bus.ultimax
 
         bits = bank_switch_register
