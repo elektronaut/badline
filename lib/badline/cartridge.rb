@@ -14,6 +14,7 @@ require "badline/cartridge/zaxxon"
 require "badline/cartridge/magic_desk"
 require "badline/cartridge/comal80"
 require "badline/cartridge/mach5"
+require "badline/cartridge/pagefox"
 require "badline/cartridge/rgcd"
 require "badline/cartridge/g_mod2"
 
@@ -28,7 +29,7 @@ module Badline
       0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay,
       8 => :SuperGames, 11 => :Westermann, 12 => :RexUtility, 15 => :GameSystem,
       17 => :Dinamic, 18 => :Zaxxon, 19 => :MagicDesk, 21 => :Comal80,
-      51 => :Mach5, 57 => :RGCD, 60 => :GMod2
+      51 => :Mach5, 53 => :Pagefox, 57 => :RGCD, 60 => :GMod2
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines

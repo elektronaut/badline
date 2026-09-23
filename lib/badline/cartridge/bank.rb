@@ -18,6 +18,28 @@ module Badline
       alias [] peek
     end
 
+    # Cartridge RAM mapped into the ROML or ROMH window. Writes land in the
+    # C64's RAM underneath as well.
+    class RAMBank
+      attr_writer :backing
+
+      def initialize
+        @data = Array.new(BANK_SIZE, 0)
+        @backing = nil
+      end
+
+      def peek(addr)
+        @data[addr & 0x1fff]
+      end
+      alias [] peek
+
+      def poke(addr, value)
+        @data[addr & 0x1fff] = value
+        @backing&.poke(addr, value)
+      end
+      alias []= poke
+    end
+
     EMPTY_BANK = Bank.new([0xff])
   end
 end

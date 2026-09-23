@@ -154,6 +154,7 @@ module Badline
 
     def map_banked_pages
       map_rom_overlays
+      map_cartridge_ram
 
       if io?
         map_io_pages
@@ -170,6 +171,19 @@ module Badline
         @read_pages.fill(basic_rom, 0xa0, 0x20)
       end
       @read_pages.fill(kernal_rom, 0xe0, 0x20) if kernal?
+    end
+
+    # Cartridge RAM in the ROML or ROMH window decodes writes itself,
+    # whatever the $01 lines say.
+    def map_cartridge_ram
+      return unless @cartridge&.exrom&.zero?
+
+      map_cartridge_ram_bank(@cartridge.roml, 0x80)
+      map_cartridge_ram_bank(@cartridge.romh, 0xa0) if @cartridge.game.zero?
+    end
+
+    def map_cartridge_ram_bank(bank, first_page)
+      @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
     end
 
     # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
