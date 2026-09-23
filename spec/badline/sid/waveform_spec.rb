@@ -294,6 +294,50 @@ describe Badline::SID::Waveform do
     end
   end
 
+  # Whether a catch-up has to step the oscillator cycle by cycle.
+  describe "#feedback?" do
+    it "is set for a combined sawtooth on the 6581" do
+      start(0x30)
+      expect(waveform).to be_feedback
+    end
+
+    it "is set for noise in a combined waveform" do
+      start(0x90)
+      expect(waveform).to be_feedback
+    end
+
+    it "is clear for a combined triangle and pulse" do
+      start(0x50)
+      expect(waveform).not_to be_feedback
+    end
+
+    it "is clear while the test bit is held" do
+      start(0x38)
+      expect(waveform).not_to be_feedback
+    end
+
+    describe "on the 8580" do
+      subject(:waveform) { described_class.new(model: :mos8580) }
+
+      it "is clear for a combined sawtooth" do
+        start(0x30)
+        expect(waveform).not_to be_feedback
+      end
+    end
+  end
+
+  describe "#stepped?" do
+    it "leaves a combined triangle and pulse to fast-forward" do
+      start(0x50)
+      expect(waveform.stepped?(false)).to be(false)
+    end
+
+    it "steps a combined triangle and pulse while synthesizing" do
+      start(0x50)
+      expect(waveform.stepped?(true)).to be(true)
+    end
+  end
+
   describe "#osc3" do
     it "follows the output on the 6581" do
       restart(0x20, frequency: 0x1000, cycles: 3)
