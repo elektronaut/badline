@@ -611,6 +611,53 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "a LOAD of a name starting with *" do
+    def memory_write(address, byte)
+      drive.write(15, [*"M-W".bytes, address & 0xff, address >> 8, 1, byte])
+    end
+
+    before do
+      allow(storage).to receive_messages(first_block: [17, 0], read_file_at: [0x00, 0xc0, 0x60])
+    end
+
+    it "takes the first file before any LOAD" do
+      drive.open(0, "*")
+      expect(read_channel(0)).to eq([0x01, 0x08, 0x2a])
+    end
+
+    it "reopens the file the last LOAD opened" do
+      drive.open(0, "GAME")
+      drive.open(0, "*")
+      expect(storage).to have_received(:read_file_at).with(17, 0)
+    end
+
+    it "reopens the file at the block M-W put at $7E and $026F" do
+      memory_write(0x7e, 17)
+      memory_write(0x26f, 3)
+      drive.open(0, "*")
+      expect(read_channel(0)).to eq([0x00, 0xc0, 0x60])
+    end
+
+    it "keeps a LOAD's first block where M-R reads it" do
+      drive.open(0, "GAME")
+      drive.write(15, [*"M-R".bytes, 0x7e, 0x00, 1])
+      expect(read_channel(15)).to eq([17])
+    end
+
+    it "looks the name up on other channels" do
+      memory_write(0x7e, 17)
+      drive.open(2, "*")
+      expect(storage).not_to have_received(:read_file_at)
+    end
+
+    it "reports a block outside the image" do
+      allow(storage).to receive(:read_file_at).and_return(nil)
+      memory_write(0x7e, 99)
+      drive.open(0, "*")
+      expect(status).to eq("66,ILLEGAL TRACK OR SECTOR,99,00")
+    end
+  end
+
   describe "a read job" do
     def run_job(track, sector)
       drive.write(15, [*"M-W".bytes, 0x06, 0x00, 2, track, sector])

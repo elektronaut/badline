@@ -42,6 +42,18 @@ module Badline
         nil
       end
 
+      # The track and sector a file's chain starts at.
+      def first_block(name, type: :prg)
+        entry = find_entry(name, type)
+        [entry[:track], entry[:sector]] if entry
+      end
+
+      # The bytes of the chain that starts at the block, or nil when the
+      # block is outside the image's geometry.
+      def read_file_at(track, sector)
+        read_chain(track, sector) if block?(track, sector)
+      end
+
       # The track and sector of the last block in a file's chain.
       def last_block(name, type: :prg)
         entry = find_entry(name, type)

@@ -124,7 +124,7 @@ module Badline
         return refuse_write(secondary, name, file) if secondary == 1 || mode?(name, "W")
         return refuse_append(secondary, file, type) if mode?(name, "A")
 
-        channel = @channels[secondary] = Channel.for_file(@storage, file, type)
+        channel = @channels[secondary] = Channel.for_name(@storage, @memory, secondary, name, type)
         channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
       end
 

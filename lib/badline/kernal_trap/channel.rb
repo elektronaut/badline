@@ -37,6 +37,29 @@ module Badline
         new(data[0, failure[:offset] - 1] || [], error: failure.values_at(:error, :track, :sector))
       end
 
+      # The file an open names. The drive keeps the first block of the file
+      # a LOAD (secondary address 0) opens at $7E and $026F of its memory,
+      # and a LOAD of a name starting with "*" reopens that file rather than
+      # the first one on the disk. Loaders write the block there with M-W
+      # to load a file the directory doesn't list.
+      def self.for_name(storage, memory, secondary, name, type)
+        file = Storage.parse_name(name).first
+        return for_file(storage, file, type) unless secondary.zero? && storage.respond_to?(:first_block)
+
+        last = memory.last_program if name.start_with?("*")
+        return at_block(storage, *last) if last
+
+        block = storage.first_block(file, type:)
+        memory.last_program = block if block
+        for_file(storage, file, type)
+      end
+
+      # The file whose chain starts at the block.
+      def self.at_block(storage, track, sector)
+        data = storage.read_file_at(track, sector)
+        data ? new(data) : new([], error: [Drive::ILLEGAL_TRACK_OR_SECTOR, track, sector])
+      end
+
       def replace(bytes, length = bytes.length)
         @bytes = bytes
         @length = length
