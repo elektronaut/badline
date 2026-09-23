@@ -11,8 +11,14 @@ module Badline
     # The flash takes writes in Ultimax mode, at $8000 for ROML and $E000
     # for ROMH, which is how EAPI programs and erases it. The writes stay in
     # memory; #save_crt writes the flash out as a new image.
+    #
+    # An image built for EasyFlash carries an EAPI, the flash driver, at $B800
+    # in bank 0 of ROMH. On attach, as in VICE, the bundled Am29F040 EAPI
+    # (roms/eapi) takes its place, so the image drives the flash emulated here.
     class EasyFlash < Cartridge
       BANKS = 64
+      EAPI_OFFSET = 0x1800
+      EAPI = File.binread(File.expand_path("../roms/eapi/eapi-am29f040-14", __dir__)).bytes.drop(2).freeze
 
       attr_reader :low_flash, :high_flash
 
@@ -93,11 +99,18 @@ module Badline
             place(high, offset, chip.data[BANK_SIZE..]) if chip.data.length > BANK_SIZE
           end
         end
+        install_eapi(high)
         @low_flash = Flash.new(low)
         @high_flash = Flash.new(high)
         [@low_flash, @high_flash].each { |flash| flash.on_change { select_bank } }
         @io_ram = Array.new(0x100, 0xff)
         reset
+      end
+
+      def install_eapi(high)
+        return unless high[EAPI_OFFSET, 4] == "eapi".bytes
+
+        high[EAPI_OFFSET, EAPI.length] = EAPI
       end
 
       def place(flash_data, offset, bytes)
