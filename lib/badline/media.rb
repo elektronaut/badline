@@ -14,12 +14,14 @@ module Badline
     }.freeze
 
     class << self
-      def attach(computer, path, autostart: true, song: nil)
+      # `cartridge` sets the jumpers of a .crt cartridge that has them, such
+      # as `{ flash_jumper: true }` for the Retro Replay's flash mode.
+      def attach(computer, path, autostart: true, song: nil, cartridge: {})
         if File.directory?(path)
           computer.mount(Storage::HostDirectory.new(path))
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
-          attach_cartridge(computer, path)
+          attach_cartridge(computer, path, cartridge)
         elsif File.extname(path).downcase == ".sid"
           attach_sid(computer, path, autostart:, song:)
         elsif File.extname(path).downcase == ".tap"
@@ -41,8 +43,8 @@ module Badline
 
       private
 
-      def attach_cartridge(computer, path)
-        computer.attach_cartridge(Cartridge.from_file(path))
+      def attach_cartridge(computer, path, options)
+        computer.attach_cartridge(Cartridge.from_file(path, **options))
         "Attached cartridge #{path}"
       end
 

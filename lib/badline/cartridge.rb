@@ -56,16 +56,17 @@ module Badline
     attr_writer :clock
 
     class << self
-      def from_file(path)
-        from_crt(Storage::CRTFile.new(path))
+      # Options set the cartridge's jumpers, for the mappers that have them.
+      def from_file(path, **)
+        from_crt(Storage::CRTFile.new(path), **)
       end
 
-      def from_crt(crt)
+      def from_crt(crt, **)
         type = HARDWARE_TYPES.fetch(crt.hardware_type) do
           raise UnsupportedTypeError,
                 "Unsupported cartridge hardware type #{crt.hardware_type}"
         end
-        const_get(type).new(crt)
+        const_get(type).new(crt, **)
       end
     end
 

@@ -2,10 +2,14 @@
 
 module Badline
   class Cartridge
-    # Retro Replay: eight 8K ROM banks and four 8K RAM banks, with the Action
-    # Replay's register at $DE00 and an extended one at $DE01. The Nordic
-    # Replay (subtype 1) adds the Nordic Power configuration. The flash
-    # reads only, and the clock port isn't there.
+    # Retro Replay: an Am29F010 flash chip of two 64K halves, each eight 8K
+    # ROM banks, and four 8K RAM banks, with the Action Replay's register at
+    # $DE00 and an extended one at $DE01. The Nordic Replay (subtype 1) adds
+    # the Nordic Power configuration. The clock port isn't there.
+    #
+    # CRT banks 0-7 are the chip's upper half and banks 8-15 its lower half.
+    # The cartridge runs from the upper half, or from the lower one with the
+    # bank jumper set.
     #
     # $DE00 writes:
     #   bit 0      pulls GAME low
@@ -29,6 +33,15 @@ module Badline
     # nothing at ROML and keeps the RAM in I/O, and the Nordic Replay maps
     # the ROM at ROML and the RAM at ROMH, as the Nordic Power does. Frozen
     # in that configuration, the Nordic Replay maps the RAM at $A000.
+    #
+    # The flash jumper puts the cartridge in flash mode, which starts with
+    # the cartridge switched off ($02) and has no freeze. $DE00 selects 8K
+    # mode unless it switches the cartridge off, and writes to ROML reach
+    # the flash, and the C64's RAM underneath, or the RAM when selected.
+    # $DE01 isn't write-once and has no REU-compatible map, and with the
+    # bank jumper set its bit 5 clear selects the other half of the flash,
+    # until the next $DE00 write. $DE00 reads the flash jumper in bit 0 and
+    # the half in bit 5.
     class RetroReplay < Cartridge
       include Freezer
 
@@ -36,9 +49,18 @@ module Badline
       IO1_PAGE = 0x1e00
       IO2_PAGE = 0x1f00
 
-      def initialize(crt)
+      attr_reader :flash
+
+      def initialize(crt, flash_jumper: false, bank_jumper: false)
         @nordic = crt.subtype == 1
+        @flash_jumper = flash_jumper
+        @bank_jumper = bank_jumper
+        super(crt)
+      end
+
+      def clock=(clock)
         super
+        @flash.clock = clock
       end
 
       def connect(ram:, open_bus:)
@@ -83,7 +105,7 @@ module Badline
         @active = true
         @frozen = false
         self.nmi = false
-        control(0)
+        control(@flash_jumper ? 0x02 : 0x00)
       end
 
       def freeze!
@@ -97,11 +119,11 @@ module Badline
       private
 
       def freeze_allowed?
-        !@no_freeze
+        !@no_freeze && !@flash_jumper
       end
 
       def status
-        ((@bank & 0x03) << 3) | ((@bank & 0x04) << 5) |
+        ((@bank & 0x03) << 3) | ((@bank & 0x04) << 5) | ((@bank & 0x08) << 2) | (@flash_jumper ? 0x01 : 0) |
           (@allow_bank ? 0x02 : 0) | (button_pressed? ? 0x04 : 0) | (@reu_mapping ? 0x40 : 0)
       end
 
@@ -143,6 +165,7 @@ module Badline
       end
 
       def control(value)
+        value = flash_mode_control(value)
         @bank = bank_bits(value)
         @phi1_ultimax = false
         @config = CONTROL_MODES[value & 0x03]
@@ -160,6 +183,13 @@ module Badline
         @active = false if value.anybits?(0x04)
       end
 
+      # Flash mode leaves 8K mode only to switch the cartridge off.
+      def flash_mode_control(value)
+        return value unless @flash_jumper && (value & 0x03) != 0x02
+
+        value & ~0x03
+      end
+
       def acknowledge_freeze
         @frozen = false
         self.nmi = false
@@ -169,10 +199,11 @@ module Badline
         unless @write_once
           @allow_bank = value.anybits?(0x02)
           @no_freeze = value.anybits?(0x04)
-          @reu_mapping = value.anybits?(0x40)
-          @write_once = true
+          @reu_mapping = value.anybits?(0x40) && !@flash_jumper
+          @write_once = !@flash_jumper
         end
         @bank = bank_bits(value)
+        @bank |= 0x08 if @flash_jumper && @bank_jumper && value.nobits?(0x20)
         configure
       end
 
@@ -182,7 +213,7 @@ module Badline
 
       def configure
         self.mode = @config
-        @rom = bank(@rom_banks, @bank)
+        @rom = flash_window(@bank)
         @roml = roml_window
         @romh = romh_window
         changed!
@@ -192,13 +223,21 @@ module Badline
         nothing = @open_bus || EMPTY_BANK
         return @ram_enabled ? WriteOnlyRAM.new(@ram_data[@bank & 0x03], nothing) : nothing if @frozen
         return ram_window(@bank & 0x03) if @ram_enabled
-        return @rom if (@nordic && @ram_at_a000) || @config != :rom16k
+        return flash_writes if (@nordic && @ram_at_a000) || @config != :rom16k
 
         nothing
       end
 
+      # A RAM bank over the flash window takes writes for the chip and the
+      # C64's RAM alike.
+      def flash_writes
+        return @rom unless @flash_jumper
+
+        RAMBank.new(@rom).tap { |window| window.backing = @ram }
+      end
+
       def ram_window(number)
-        if @config == :ultimax
+        if @config == :ultimax || @flash_jumper
           @isolated[number]
         else
           (@nordic ? @through : @readers)[number]
@@ -210,11 +249,21 @@ module Badline
         return @isolated[ram_view_bank] if nordic_ram && !@frozen
         return @rom if @allow_bank || !(@ram_enabled || nordic_ram)
 
-        bank(@rom_banks, @bank & ~0x03)
+        flash_window(@bank & ~0x03)
+      end
+
+      def flash_window(number)
+        @flash.window((@bank_jumper ? 0 : 0x10000) + (number * BANK_SIZE))
       end
 
       def install_chips(chips)
-        @rom_banks = banks_from(chips).first
+        data = Array.new(0x20000, 0xff)
+        chips.each do |chip|
+          bytes = chip.data.first(BANK_SIZE)
+          data[((chip.bank & 0x0f) ^ 0x08) * BANK_SIZE, bytes.length] = bytes
+        end
+        @flash = Flash.new(data, model: Flash::AM29F010)
+        @flash.on_change { configure }
         @ram_data = Array.new(4) { Array.new(BANK_SIZE, 0) }
         @through = @ram_data.map { |data| RAMBank.new(data) }
         @isolated = @ram_data.map { |data| RAMBank.new(data) }

@@ -199,6 +199,13 @@ describe Badline::Media do
         expect(described_class.attach(computer, crt_path))
           .to include("game.crt")
       end
+
+      it "sets the cartridge's jumpers" do
+        allow(computer).to receive(:attach_cartridge)
+        allow(Badline::Cartridge).to receive(:from_file)
+        described_class.attach(computer, crt_path, cartridge: { flash_jumper: true })
+        expect(Badline::Cartridge).to have_received(:from_file).with(crt_path, flash_jumper: true)
+      end
     end
 
     context "with a SID tune" do
