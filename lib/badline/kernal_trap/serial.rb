@@ -23,6 +23,7 @@ module Badline
       CLOSE = 0xe0
 
       # ST bits at $90
+      DEVICE_NOT_PRESENT = 0x80
       EOI = 0x40
       READ_TIMEOUT = 0x02
 
@@ -95,8 +96,16 @@ module Badline
         return unless @listening
 
         @buffer << @cpu.a
+        update_status(DEVICE_NOT_PRESENT) unless accepted?
         @cpu.status.carry = false
         return_to_caller
+      end
+
+      # The drive acknowledges every byte of an open or close frame, but
+      # takes data only on a channel it has open. Otherwise nothing holds
+      # the data line when a byte starts, so the KERNAL finds no device.
+      def accepted?
+        [OPEN, CLOSE].include?(@frame) || @drive.listening?(@listen_channel)
       end
 
       def unlisten
@@ -104,13 +113,23 @@ module Badline
 
         @listening = false
         deliver_frame
-        return_to_caller
+        release_bus
       end
 
       def untalk
         return unless @talking
 
         @talking = false
+        release_bus
+      end
+
+      # UNLSN and UNTLK end by releasing ATN, the clock and the data line on
+      # CIA 2's port A, and leave the port's last read in the accumulator.
+      def release_bus
+        @bus.poke(0xdd00, @bus.peek(0xdd00) & 0xc7)
+        @cpu.a = @bus.peek(0xdd00) & 0xdf
+        @cpu.status.negative = @cpu.a.anybits?(0x80)
+        @cpu.status.zero = @cpu.a.zero?
         return_to_caller
       end
 

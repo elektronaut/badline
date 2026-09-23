@@ -58,6 +58,22 @@ module Badline
         DOS_ERRORS[@errors[track_offset(track) + sector]]
       end
 
+      # The block holding the disk name and ID, at the start of the
+      # directory track.
+      def header_block = [directory_track, 0]
+
+      # The directory block a new file's entry goes into: the first with a
+      # free slot, or the last one when every slot is taken.
+      def new_entry_block
+        last = nil
+        each_sector(directory_track, directory_sector) do |data, track, sector|
+          return [track, sector] if (0...ENTRIES_PER_SECTOR).any? { |i| data[(i * ENTRY_SIZE) + 2].zero? }
+
+          last = [track, sector]
+        end
+        last
+      end
+
       private
 
       # An error table holds one byte per block after the last one. The image

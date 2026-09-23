@@ -258,4 +258,39 @@ describe Badline::Storage::D64Image do
       end
     end
   end
+
+  describe "#header_block" do
+    it "starts the directory track" do
+      expect(image.header_block).to eq([18, 0])
+    end
+  end
+
+  describe "#new_entry_block" do
+    def fill_first_directory_block(next_track: 0, next_sector: 0)
+      (3..7).each { |index| write_entry(index, type: 0x82, name: "F#{index}", track: 17, sector: 0) }
+      bytes[dir_offset, 2] = [next_track, next_sector]
+      File.binwrite(path, bytes.pack("C*"))
+    end
+
+    it "takes the first block with a free slot" do
+      expect(image.new_entry_block).to eq([18, 1])
+    end
+
+    it "takes a scratched entry as a free slot" do
+      fill_first_directory_block(next_track: 18, next_sector: 4)
+      write_entry(4, type: 0x00, name: "OLD", track: 17, sector: 0)
+      File.binwrite(path, bytes.pack("C*"))
+      expect(image.new_entry_block).to eq([18, 1])
+    end
+
+    it "moves on to the next block when one is full" do
+      fill_first_directory_block(next_track: 18, next_sector: 4)
+      expect(image.new_entry_block).to eq([18, 4])
+    end
+
+    it "falls back to the last block when every slot is taken" do
+      fill_first_directory_block
+      expect(image.new_entry_block).to eq([18, 1])
+    end
+  end
 end

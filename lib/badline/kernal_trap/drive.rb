@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/kernal_trap/drive/status"
+
 module Badline
   module KernalTrap
     # The CBM DOS side of the serial bus. Keeps the open channels, the
@@ -14,24 +16,11 @@ module Badline
       WRITE_PROTECT_ON = 26
       SYNTAX_ERROR = 30
       FILE_NOT_FOUND = 62
+      FILE_EXISTS = 63
       ILLEGAL_TRACK_OR_SECTOR = 66
       NO_CHANNEL = 70
       DOS_VERSION = 73
       DRIVE_NOT_READY = 74
-
-      MESSAGES = [20, 21, 22, 23, 24, 27].to_h { |code| [code, "READ ERROR"] }.merge(
-        OK => " OK",
-        25 => "WRITE ERROR",
-        WRITE_PROTECT_ON => "WRITE PROTECT ON",
-        28 => "WRITE ERROR",
-        29 => "DISK ID MISMATCH",
-        SYNTAX_ERROR => "SYNTAX ERROR",
-        FILE_NOT_FOUND => "FILE NOT FOUND",
-        ILLEGAL_TRACK_OR_SECTOR => "ILLEGAL TRACK OR SECTOR",
-        NO_CHANNEL => "NO CHANNEL",
-        DOS_VERSION => "CBM DOS V2.6 1541",
-        DRIVE_NOT_READY => "DRIVE NOT READY"
-      ).freeze
 
       MEMORY_COMMANDS = { "M-W" => :memory_write, "M-R" => :memory_read }.freeze
 
@@ -71,7 +60,7 @@ module Badline
       def initialize(storage)
         @storage = storage
         @channels = {}
-        @status = Channel.new
+        @status = Status.new
         @ram = Array.new(RAM_SIZE, 0)
         report(DOS_VERSION)
       end
@@ -96,15 +85,21 @@ module Badline
       end
 
       def write(secondary, bytes)
-        return report(WRITE_PROTECT_ON) unless secondary == COMMAND_CHANNEL
+        return command(bytes) if secondary == COMMAND_CHANNEL
 
-        command(bytes)
+        report(WRITE_PROTECT_ON) if listening?(secondary)
+      end
+
+      # Whether data sent on the channel reaches the drive. The command
+      # channel always listens, other channels once they are open.
+      def listening?(secondary)
+        secondary == COMMAND_CHANNEL || @channels.key?(secondary)
       end
 
       # Returns the next byte and whether it is the channel's last, or nil
       # when there is nothing left to send.
       def read(secondary)
-        return read_status if secondary == COMMAND_CHANNEL
+        return @status.read if secondary == COMMAND_CHANNEL
 
         channel = @channels[secondary]
         result = channel&.read
@@ -114,21 +109,39 @@ module Badline
 
       private
 
-      def read_status
-        result = @status.read
-        report(OK) if result&.last
-
-        result
-      end
-
       # Secondary addresses 0 and 1 are LOAD and SAVE, which look for a PRG
       # file unless the name asks for another type. Other channels take any
       # type the name doesn't pin down.
       def open_file(secondary, name)
         file, type = Storage.parse_name(name)
+        return refuse_write(secondary, name, file) if writing?(secondary, name)
+
         type ||= :prg if secondary < 2
         channel = @channels[secondary] = Channel.for_file(@storage, file, type)
         channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
+      end
+
+      # SAVE's secondary address 1 and a W mode open a file for writing.
+      def writing?(secondary, name)
+        secondary == 1 || name.split(",").drop(1).any? { |field| field.strip.match?(/\AW/i) }
+      end
+
+      # The disk is write-protected, so an open for writing fails and leaves
+      # the channel closed. A name already on the disk fails as FILE EXISTS
+      # unless @ asks to replace it, anything else as WRITE PROTECT ON.
+      def refuse_write(secondary, name, file)
+        @channels.delete(secondary)
+        return report(FILE_EXISTS) if !name.start_with?("@") && @storage.read_file(file, type: nil)
+
+        report(WRITE_PROTECT_ON, *protected_block(secondary))
+      end
+
+      # SAVE's channel fails at the directory block its entry would go to,
+      # a W mode open at the disk's header block.
+      def protected_block(secondary)
+        return [] unless @storage.respond_to?(:header_block)
+
+        secondary == 1 ? @storage.new_entry_block : @storage.header_block
       end
 
       def execute(text)
@@ -258,13 +271,7 @@ module Badline
         report(DOS_VERSION)
       end
 
-      def report(code, track = 0, sector = 0)
-        message = format("%<code>02d,%<message>s,%<track>02d,%<sector>02d\r",
-                         code:, message: MESSAGES.fetch(code),
-                         track: track.to_i, sector: sector.to_i)
-        @status.replace(message.bytes)
-        nil
-      end
+      def report(...) = @status.report(...)
     end
   end
 end

@@ -84,6 +84,34 @@ describe Badline::KernalTrap::Serial do
     it "returns the status message" do
       expect(read_bytes(15, 12).pack("C*")).to eq("00, OK,00,00")
     end
+
+    it "takes the data" do
+      expect(ram.peek(0x90)).to eq(0)
+    end
+  end
+
+  describe "data for a channel that isn't open" do
+    before { send_frame(0x62, [0x01, 0x08]) }
+
+    it "finds no device" do
+      expect(ram.peek(0x90)).to eq(0x80)
+    end
+  end
+
+  describe "the end of a frame" do
+    before do
+      computer.address_bus.poke(0xdd02, 0x3f)
+      computer.address_bus.poke(0xdd00, 0x3f)
+      send_frame(0x6f, "I0\r".bytes)
+    end
+
+    it "releases ATN, the clock and the data line" do
+      expect(computer.address_bus.peek(0xdd00) & 0x38).to eq(0)
+    end
+
+    it "leaves the port's read in the accumulator" do
+      expect(cpu.a).to eq(0xc7)
+    end
   end
 
   describe "a shifted PETSCII filename" do
