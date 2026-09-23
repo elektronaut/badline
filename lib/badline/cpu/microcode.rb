@@ -107,60 +107,58 @@ module Badline
     # - +optional_dummy+: true for indexed reads, which skip the extra
     #   cycle unless indexing crosses a page
     Microcode = Struct.new(:operation, :plan, :writes, :optional_dummy) do
-      class << self
-        def table
-          Array.new(256) do |opcode|
-            instruction = Instruction.find(opcode)
-            raise InvalidOpcodeError, format("$%02x", opcode) unless instruction
+      def self.table
+        Array.new(256) do |opcode|
+          instruction = Instruction.find(opcode)
+          raise InvalidOpcodeError, format("$%02x", opcode) unless instruction
 
-            build(instruction)
-          end.freeze
-        end
+          build(instruction)
+        end.freeze
+      end
 
-        def write_mask(plan)
-          plan.map { |step| WRITE_STEPS.include?(step) }.freeze
-        end
+      def self.write_mask(plan)
+        plan.map { |step| WRITE_STEPS.include?(step) }.freeze
+      end
 
-        private
+      def self.build(instruction)
+        plan = plan_for(instruction)
+        new(instruction.name, plan, write_mask(plan),
+            instruction.boundary_cycle?)
+      end
 
-        def build(instruction)
-          plan = plan_for(instruction)
-          new(instruction.name, plan, write_mask(plan),
-              instruction.boundary_cycle?)
-        end
-
-        def plan_for(instruction)
-          case instruction.name
-          when :jmp
-            if instruction.addressing_mode == :indirect
-              JMP_INDIRECT_PLAN
-            else
-              JMP_ABSOLUTE_PLAN
-            end
-          when *BRANCHES then BRANCH_PLAN
-          else SPECIAL_PLANS[instruction.name] || addressed_plan(instruction)
-          end
-        end
-
-        def addressed_plan(instruction)
-          mode = instruction.addressing_mode
-          case mode
-          when :implied then IMPLIED_PLAN
-          when :accumulator then ACCUMULATOR_PLAN
-          when :immediate then IMMEDIATE_PLAN
+      def self.plan_for(instruction)
+        case instruction.name
+        when :jmp
+          if instruction.addressing_mode == :indirect
+            JMP_INDIRECT_PLAN
           else
-            [:op_fetch, *ADDRESSING_STEPS.fetch(mode),
-             *OPERATION_STEPS.fetch(operation_kind(instruction.name))].freeze
+            JMP_ABSOLUTE_PLAN
           end
-        end
-
-        def operation_kind(name)
-          return :write if STORES.include?(name)
-          return :rmw if READ_MODIFY_WRITES.include?(name)
-
-          :read
+        when *BRANCHES then BRANCH_PLAN
+        else SPECIAL_PLANS[instruction.name] || addressed_plan(instruction)
         end
       end
+
+      def self.addressed_plan(instruction)
+        mode = instruction.addressing_mode
+        case mode
+        when :implied then IMPLIED_PLAN
+        when :accumulator then ACCUMULATOR_PLAN
+        when :immediate then IMMEDIATE_PLAN
+        else
+          [:op_fetch, *ADDRESSING_STEPS.fetch(mode),
+           *OPERATION_STEPS.fetch(operation_kind(instruction.name))].freeze
+        end
+      end
+
+      def self.operation_kind(name)
+        return :write if STORES.include?(name)
+        return :rmw if READ_MODIFY_WRITES.include?(name)
+
+        :read
+      end
+
+      private_class_method :build, :plan_for, :addressed_plan, :operation_kind
     end
 
     FETCH_WRITES = Microcode.write_mask(FETCH_PLAN)
