@@ -8,10 +8,11 @@ describe Badline::SID::Voice do
   let(:wave_zero) { described_class::WAVE_ZERO[:mos6581] }
   let(:dc_offset) { described_class::DC_OFFSET[:mos6581] }
 
-  # Sawtooth of the power-on accumulator, with the gate open.
+  # Sawtooth of the power-on accumulator, with the gate open up to the
+  # first attack step.
   def gate_sawtooth
     voice.control = 0x21
-    9.times { voice.cycle! }
+    12.times { voice.cycle! }
   end
 
   it "sits on the DC offset while the envelope is closed" do
@@ -26,7 +27,7 @@ describe Badline::SID::Voice do
 
   it "scales the swing by the envelope" do
     voice.control = 0x21
-    (9 * 4).times { voice.cycle! }
+    ((9 * 4) + 3).times { voice.cycle! }
     expect(voice.output).to eq(((0x555 - wave_zero) * 4) + dc_offset)
   end
 
@@ -34,7 +35,7 @@ describe Badline::SID::Voice do
     voice.waveform.pulse_width_low = 0xff
     voice.waveform.pulse_width_high = 0x0f
     voice.control = 0x41
-    9.times { voice.cycle! }
+    12.times { voice.cycle! }
     expect(voice.output).to eq(dc_offset - wave_zero)
   end
 

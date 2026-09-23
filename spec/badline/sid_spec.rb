@@ -63,7 +63,7 @@ describe Badline::SID do
     it "reads the voice 3 envelope" do
       gate_voice3(0x21)
       sid.synthesize!
-      (9 * 3).times { sid.cycle! }
+      ((9 * 3) + 4).times { sid.cycle! }
       expect(sid[0xd41c]).to eq(0x03)
     end
 
@@ -315,6 +315,7 @@ describe Badline::SID do
     it "reaches the voice envelopes" do
       sid[0xd414] = 0x80
       sid[0xd412] = 0x11
+      2.times { sid.cycle! }
       expect(sid.voices[2].envelope.state).to eq(:attack)
     end
 
