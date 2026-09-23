@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/kernal_trap/drive/memory"
+require "badline/kernal_trap/drive/parameters"
 require "badline/kernal_trap/drive/status"
 
 module Badline
@@ -164,11 +165,7 @@ module Badline
         return report(SYNTAX_ERROR) unless action
 
         action = USER_TABLE[(command.getbyte(1) - 1) & 0x0f] if action == :user
-        run_command(action, arguments(pattern.match(command)[1]))
-      end
-
-      def arguments(text)
-        text.to_s.scan(/\d+/).map(&:to_i)
+        run_command(action, Parameters.parse(pattern.match(command)[1]))
       end
 
       def command(bytes)
