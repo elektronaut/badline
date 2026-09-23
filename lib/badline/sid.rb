@@ -147,7 +147,7 @@ module Badline
     end
 
     def cycle!
-      age_bus if @bus_ttl.positive?
+      age_bus if @bus_ttl != 0
       @pending_cycles += 1
     end
 
