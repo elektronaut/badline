@@ -1,0 +1,136 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Fits the combined waveform model in lib/badline/sid/waveform/combined.rb
+# to OSC3 dumps of real chips, and prints the PARAMETERS it ships with.
+#
+#   ruby --yjit bin/sidwavefit [--starts N] [--jobs N]
+#
+# The references are Dag Lem's SID/resid-test dumps in VICE-testprogs:
+# oscsample0-<chip>wf<wave>.dat (pulse width $000) and oscsample1-...
+# (pulse width $100), for the 6581 and the 8580 and waves $30, $50, $60 and
+# $70. Each holds OSC3 for the 4096 phases of a $1000 frequency, the top
+# eight bits of each output. The first four entries are blanked, and a
+# pulse still low (below $102 in the $100 dumps) grounds the output, so
+# neither is fitted. On the 6581 a combined sawtooth clears the accumulator
+# MSB (SID/osc_topbit), so its dumps never reach the upper half of the
+# phase: only $004-$800 is fitted there.
+#
+# The fit minimizes the bits wrong over both dumps. It runs in two stages,
+# both a coordinate descent with halving steps: first with the neighbour
+# weights tied to two geometric series (w^d below, v^d above) from --starts
+# seeded random points, then with all 22 weights free, from the best of
+# those. Everything is seeded, so the same references fit the same numbers.
+# bin/sidwavecheck scores the PARAMETERS the emulator ships with.
+
+require "json"
+load File.expand_path("sidwavecheck", __dir__)
+
+module SIDWaveFit
+  Combined = SIDWaveCheck::Combined
+  CHIPS = SIDWaveCheck::CHIPS
+  SELECTIONS = SIDWaveCheck::SELECTIONS
+  WEIGHTS = Combined::BITS - 1
+
+  module_function
+
+  def targets(...) = SIDWaveCheck.targets(...)
+
+  def score(selected, params, targets) = SIDWaveCheck.errors(Combined.table(selected, params), targets)
+
+  def geometric(tri, pulse, below, above, threshold)
+    [tri, pulse, threshold] + Array.new(WEIGHTS) { |d| below**(d + 1) } + Array.new(WEIGHTS) { |d| above**(d + 1) }
+  end
+
+  # Tries each parameter a step either way, keeping any move that does no
+  # worse, and halves the steps once a pass finds nothing better.
+  def descend(params, limits, steps, &score)
+    best = score.call(params)
+    while steps.max > 0.001
+      before = best
+      best, params = sweep(params, best, limits, steps, &score)
+      steps = steps.map { |step| step / 2 } unless best < before
+    end
+    [best, params]
+  end
+
+  def sweep(params, best, limits, steps)
+    params.each_index do |k|
+      [-1, 1].each do |direction|
+        trial = params.dup
+        trial[k] = (trial[k] + (direction * steps[k])).clamp(*limits[k]).round(4)
+        next if trial == params
+
+        errors = yield(trial)
+        next if errors > best
+
+        best = errors
+        params = trial
+      end
+    end
+    [best, params]
+  end
+
+  TIED_LIMITS = [[0.0, 8.0], [0.0, 8.0], [0.0, 0.99], [0.0, 0.99], [0.3, 1.0]].freeze
+  FREE_LIMITS = ([[0.0, 10.0], [0.0, 10.0], [0.3, 1.0]] + Array.new(2 * WEIGHTS) { [0.0, 3.0] }).freeze
+
+  def fit(chip, selected, starts)
+    targets = targets(chip, selected)
+    random = Random.new((CHIPS.fetch(chip).to_i * 16) + selected)
+    tied = Array.new(starts) do
+      start = TIED_LIMITS.map { |low, high| (low + (random.rand * (high - low))).round(4) }
+      descend(start, TIED_LIMITS, [0.4, 0.4, 0.15, 0.15, 0.05]) { |p| score(selected, geometric(*p), targets) }
+    end.min_by(&:first)
+    start = geometric(*tied.last).map { |value| value.round(4) }
+    steps = [0.3, 0.3, 0.03] + Array.new(2 * WEIGHTS, 0.2)
+    descend(start, FREE_LIMITS, steps) { |p| score(selected, p, targets) }.last
+  end
+
+  # Fits every combination, --jobs at a time, each in its own process.
+  def fit_all(starts, jobs)
+    work = CHIPS.keys.product(SELECTIONS)
+    results = {}
+    work.each_slice(jobs) do |slice|
+      readers = slice.map do |chip, selected|
+        reader, writer = IO.pipe
+        fork do
+          reader.close
+          writer.write(JSON.generate(fit(chip, selected, starts)))
+          exit!(0)
+        end
+        writer.close
+        [chip, selected, reader]
+      end
+      readers.each do |chip, selected, reader|
+        (results[chip] ||= {})[selected] = JSON.parse(reader.read)
+        reader.close
+      end
+      Process.waitall
+    end
+    results
+  end
+
+  def literal(parameters)
+    lines = ["PARAMETERS = {"]
+    parameters.each do |chip, sets|
+      lines << "  #{chip}: {"
+      sets.each { |selected, params| lines << "    0x#{selected} => #{params.inspect}," }
+      lines << "  },"
+    end
+    lines << "}.freeze"
+    lines.join("\n")
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  args = ARGV.dup
+  option = lambda do |name, default|
+    index = args.index(name)
+    index ? Integer(args.delete_at(index + 1)).tap { args.delete_at(index) } : default
+  end
+  starts = option.call("--starts", 40)
+  jobs = option.call("--jobs", 4)
+  parameters = SIDWaveFit.fit_all(starts, jobs)
+  SIDWaveCheck.report(parameters)
+  puts SIDWaveFit.literal(parameters)
+end
