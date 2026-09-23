@@ -904,8 +904,24 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     next span.
 - The test bit does not clear the LFSR. It stalls it halfway through a
   shift with bit 22 forced high. While the bit is held, every bit bleeds up
-  to `$7fffff` over `$8000` cycles (`SID/wf12nsr` reads `$ff` off one). On
-  release, one bit clocks in. Before it does, the old waveform's output is
+  to `$7fffff`: after `$950000` cycles on the 8580 (`SID/bitfade`'s
+  `delaynoise` on a real 8580; VICE's `~8000` there is its own emulation)
+  and after `$80000` on the 6581. On release, one bit clocks in.
+  - Pinned by `SID/resid-test`'s `oscsample0`/`oscsample1` (both chips).
+    They hold the test bit about `$8800` cycles between their eight noise
+    runs, and the real chips' dumps read each run on from the register the
+    last one left, so the bleed has to take longer. The old `$8000` fails
+    all four rows. The 6581 value is not measured anywhere: it only has to
+    fall between that hold and the second `SID/noise-reset_old` allows the
+    6581 (60 frames, about `$120000` cycles), and `$80000` sits between
+    them. The scored tests that wait for the bleed hold the bit far longer
+    (`resid-test/noisetest` about `$1680000`, `waveforms-80` and
+    `noise_writeback_test1` about `$f60000`), so the 8580's `$950000`
+    passes them too. On a real chip the bits rise one at a time, at a rate
+    that varies with the chip's temperature (`SID/wf12nsr`'s
+    `quicktest.prg` on a 6581), which nothing scored depends on.
+  - Spec guard: *bleeding through a held test bit* in
+    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb). Before it does, the old waveform's output is
   written back only for some waveform changes. Noise has to have been
   combined before the release and still be selected after it. A change to
   noise alone writes nothing back unless all four waveforms were selected

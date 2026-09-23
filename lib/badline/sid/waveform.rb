@@ -34,10 +34,12 @@ module Badline
       SHIFT_REGISTER_RESET = 0x7fffff
       NOISE_SEED = 0x7ffffe
 
-      # Cycles the test bit needs to bleed the LFSR high; SID/bitfade reads
-      # delaynoise at ~$8000. SID/wf12nsr's slow reset allows a second for it,
-      # its fast one (SID/noise-reset_new) does not wait at all.
-      SHIFT_REGISTER_RESET_DELAY = 0x8000
+      # Cycles the test bit needs to bleed the LFSR high. SID/bitfade's
+      # delaynoise measures ~$950000 on a real 8580. Nothing measures the
+      # 6581: SID/resid-test's oscsample dumps show it holding its bits
+      # through the ~$8800 cycles between runs, and the slow reset
+      # (SID/noise-reset_old) allows it a second.
+      SHIFT_REGISTER_RESET_DELAY = { mos6581: 0x80000, mos8580: 0x950000 }.freeze
 
       # Cycles the floating DAC input holds its charge (SID/osc3-wave0).
       FLOATING_OUTPUT_TTL = 0x4000
@@ -59,6 +61,7 @@ module Badline
         @topbit_feedback = model != :mos8580
         @tri_saw_delay = model == :mos8580
         @combined = Combined.tables(model)
+        @shift_register_reset_delay = SHIFT_REGISTER_RESET_DELAY.fetch(model)
         @accumulator = POWER_ON_ACCUMULATOR
         @sync_source = @sync_dest = self
         reset!
@@ -67,8 +70,7 @@ module Badline
       # The RES line clears the registers and reseeds the LFSR, but leaves
       # the accumulator alone (SID/oscinit).
       def reset!
-        @delayed_sawtooth = 0x000
-        @delayed_triangle = 0x000
+        @delayed_sawtooth = @delayed_triangle = 0x000
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
         @shift_pipeline = 0
@@ -119,7 +121,7 @@ module Badline
           @accumulator = 0x000000
           @pulse = 0xfff
           @shift_pipeline = 0
-          @shift_register_reset = SHIFT_REGISTER_RESET_DELAY unless @test
+          @shift_register_reset = @shift_register_reset_delay unless @test
         elsif @test
           release_test(previous)
         end
