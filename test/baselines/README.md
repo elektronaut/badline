@@ -19,6 +19,21 @@ Recorded output of the headless hardware suites, one file per suite:
   non-zero code and `expect:timeout` wants no report at all, and a row that
   misses either way records `want=error` / `want=timeout` alongside the
   code it did get.
+- `testbench-carts.txt` — the same runner with `--carts`, over the
+  testlist's `mountcrt` rows from whichever subtree lists them
+  (`C64/carts`, `C64/autostart`, `CPU/cpuport`, the testbench's own
+  `selftest`). Each row is keyed by its `.crt`, since it has no program of
+  its own, and starts from power-on with the cartridge attached instead of
+  from the booted machine. It runs for the testlist budget alone, the way
+  VICE runs it. A row is listed only when badline has a mapper for the
+  cartridge's hardware type, so the freezers (Action Replay, Retro Replay,
+  Nordic Power) drop out, and so does every row that loads
+  a program alongside its cartridge, since only freezers do that. So does
+  `C64/carts/ef-eapi`, which writes the EasyFlash's flash, and badline's
+  EasyFlash is ROM only. Rows that need an REU drop out as well. Its
+  screenshot rows compare like the others, except that `expect:error`
+  wants a mismatch, as in VICE: the `selftest` fail row's reference says
+  FAIL where the program draws nothing.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -103,7 +118,8 @@ several workspaces share the machine.
 Every test starts from the same 2.5M cycles of KERNAL boot, so each
 `bin/testbench` shard, and `bin/sidtests` once per SID model, boots a
 machine to that point once and forks a child per test from it
-(`test/forked_boot.rb`). The child attaches the program on the cycle a
+(`test/forked_boot.rb`). A `testbench-carts` shard forks its children
+from a machine at power-on instead, never booted. The child attaches the program on the cycle a
 freshly booted machine would have loaded it, so its state matches the
 old boot-per-test path cycle for cycle. The boot is paid once per shard
 instead of once per test, which saves about six seconds a test: a
@@ -149,6 +165,7 @@ what the suite cost before it was sharded:
 | `testbench-interrupts` | 13 | 4 min | 2 min | 1 min |
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
+| `testbench-carts` | 18 | 2 min | 2 min | 1 min |
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as

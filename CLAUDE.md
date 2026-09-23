@@ -39,7 +39,7 @@ requires only the namespace file.
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, and cartridges with `--carts` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
@@ -124,8 +124,8 @@ default. `SHARDS=N rake regression:<suite>` or `bin/testbench --shards N`
 overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
-`testbench-interrupts`, 37 for `testbench-irqdma` and 11 for
-`testbench-cpu`. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
+`testbench-cpu` and 1 for `testbench-carts`. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -167,7 +167,8 @@ the rows your change can't reach tell you nothing about it.
 Pick the filters from the suites your change can move: VIC → `testbench`;
 CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
-`testbench-cia` rows; SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-cia` rows; cartridge mappers, banking or power-on state →
+`testbench-carts`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz

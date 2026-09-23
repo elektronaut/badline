@@ -21,6 +21,7 @@ on:
           - testbench-interrupts
           - testbench-irqdma
           - testbench-cpu
+          - testbench-carts
           - sid-8580
 # No concurrency group: nothing here cancels anything, so a nightly run and
 # a dispatched one never touch each other.

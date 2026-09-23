@@ -61,6 +61,59 @@ class TestTestbenchTestlist < Minitest::Test
   end
 end
 
+class TestTestbenchCartridges < Minitest::Test
+  def setup
+    @dir = Dir.mktmpdir
+    write_crt("standard.crt", 0)
+    write_crt("actionreplay.crt", 1)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def write_crt(name, hardware_type)
+    header = "C64 CARTRIDGE   ".b + [0x40, 0x0100, hardware_type].pack("Nnn") + "\x00\x01".b
+    File.binwrite(File.join(@dir, name), header.ljust(0x40, "\x00"))
+  end
+
+  def parse(options, prg: "")
+    Testbench::Testlist.parse("#{@dir}/,#{prg},exitcode,100000,#{options}")
+  end
+
+  def test_names_a_row_after_its_cartridge
+    assert_equal "#{@dir}/standard.crt", parse("mountcrt:standard.crt").id
+  end
+
+  def test_keeps_the_cartridge_from_any_subtree
+    assert_equal "standard.crt", parse("mountcrt:standard.crt").cartridge
+  end
+
+  def test_drops_a_cartridge_type_without_a_mapper
+    assert_nil parse("mountcrt:actionreplay.crt")
+  end
+
+  def test_drops_a_missing_cartridge
+    assert_nil parse("mountcrt:missing.crt")
+  end
+
+  def test_drops_a_program_loaded_alongside_a_cartridge
+    assert_nil parse("mountcrt:standard.crt", prg: "t.prg")
+  end
+
+  def test_drops_a_cartridge_that_needs_a_memory_expansion
+    assert_nil parse("reu512k,mountcrt:standard.crt")
+  end
+
+  def test_drops_the_flash_writing_easyflash_test
+    assert_nil Testbench::Testlist.parse("../C64/carts/ef-eapi/,,exitcode,4000000,mountcrt:test-eapi.crt")
+  end
+
+  def test_a_plain_row_is_not_a_cartridge_row
+    assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").cartridge
+  end
+end
+
 class TestTestbenchExpectations < Minitest::Test
   def test_case(*options)
     Testbench::TestCase.new("../CPU/cpujam", "t.prg", "exitcode", 1000, options)
