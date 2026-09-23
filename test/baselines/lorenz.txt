@@ -260,5 +260,41 @@ cia1ta	PASS	(old cia)
 cia1tb	PASS	(old cia)
 cia2ta	PASS	(old cia)
 cia2tb	PASS	(old cia)
-aneb	FAIL	- load error!
-(suite)	FAIL	hung after aneb
+aneb	PASS	magic value: ef
+lxab	PASS	magic value: ee
+trap1ane	PASS	ane magic value: ef
+trap2ane	PASS	ane magic value: ef
+trap3ane	PASS	ane magic value: ef
+trap4ane	PASS	ane magic value: ef
+trap5ane	PASS	ane magic value: ef
+trap6ane	PASS	ane magic value: ef
+trap7ane	PASS	ane magic value: ef
+trap8ane	PASS	ane magic value: ef
+trap9ane	PASS	ane magic value: ef
+trap10ane	PASS	ane magic value: ef
+trap11ane	PASS	ane magic value: ef
+trap12ane	PASS	ane magic value: ef
+trap13ane	PASS	ane magic value: ef
+trap14ane	PASS	ane magic value: ef
+trap15ane	PASS	ane magic value: ef
+trap16ane	PASS	ane magic value: ef
+trap17ane	PASS	ane magic value: ef
+trap1lxa	PASS	lxa magic value: ee
+trap2lxa	PASS	lxa magic value: ee
+trap3lxa	PASS	lxa magic value: ee
+trap4lxa	PASS	lxa magic value: ee
+trap5lxa	PASS	lxa magic value: ee
+trap6lxa	PASS	lxa magic value: ee
+trap7lxa	PASS	lxa magic value: ee
+trap8lxa	PASS	lxa magic value: ee
+trap9lxa	PASS	lxa magic value: ee
+trap10lxa	PASS	lxa magic value: ee
+trap11lxa	PASS	lxa magic value: ee
+trap12lxa	PASS	lxa magic value: ee
+trap13lxa	PASS	lxa magic value: ee
+trap14lxa	PASS	lxa magic value: ee
+trap15lxa	PASS	lxa magic value: ee
+trap16lxa	PASS	lxa magic value: ee
+trap17lxa	PASS	lxa magic value: ee
+finish	PASS	test suite 2.15+ completed
+(suite)	PASS	completed after finish
