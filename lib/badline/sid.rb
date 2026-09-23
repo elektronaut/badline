@@ -124,7 +124,7 @@ module Badline
 
     def env3
       catch_up
-      @voice3.envelope.output
+      @voice3.envelope.env3
     end
 
     def output

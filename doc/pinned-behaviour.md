@@ -970,6 +970,42 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   bug.
 - Pinned by `SID/envelope` (`testADSRDelayBug`, `testFlip00toFF`,
   `testFlipFFto00`, `lft-adsr-test`) and `SID/exp_counter_reset`.
+- Each stage runs a cycle or more behind the one feeding it, after reSID
+  1.0's single-cycle pipeline (VICE's `resid/envelope.h`), not reSID 0.16's
+  step-on-match:
+  - The rate counter compares against `PERIODS` (8, 31, 62, …) *before* it
+    counts. A match holds the counter for a cycle and resets it to 0 on the
+    next, so the period is one cycle longer than the comparison value.
+  - An attack step lands two cycles after that reset. A decay or release
+    step with the divider at 1 also lands two cycles after it, through a
+    one-cycle divider stage. With the divider above 1, it takes one cycle
+    more.
+  - ENV3 reads the counter as it stood at the start of the cycle, one cycle
+    behind the audio path.
+  - A rising gate runs the decay state and decay rate for one cycle and
+    enters attack on the second. A step already set off by a pending reset
+    or divider still lands, as an attack step, two cycles after the edge
+    (four with the divider above 1), and a divider one cycle from landing
+    holds the attack off a cycle more.
+  - A falling gate switches the rate over on its second cycle, or its third
+    with a step in flight. Out of decay it switches a cycle sooner.
+  - Pinned by `SID/env_test`, all seven. The readme says they pass on a
+    real 6581 and 8580. Knock-outs, each failing the listed tests:
+    attack step one cycle after the reset (all seven), divider stage
+    always one cycle (all seven), ENV3 reading the live counter (all
+    seven), a rising gate ignoring the pending step (`ra_0000`, `ra_0100`,
+    `adra_1`, `adra_2`), attack on the first cycle after the edge
+    (`ra_0100`, `adra_1`, `adra_2`), no decay rate on that first cycle
+    (`ra_0100`), and a falling gate always taking two cycles (`ar_1`,
+    `ar_2`). `SID/envelope`, `SID/exp_counter_reset` and the four
+    `resid-test/env*` programs pass either way.
+  - Spec guard: *gate edge*, *attack*, *#env3*, *exponential divider*,
+    *gate falling with a step in flight* and *gate rising as the rate
+    counter matches* in
+    [`sid/envelope_spec.rb`](../spec/badline/sid/envelope_spec.rb). Its
+    *#fast_forward* examples hold the batched catch-up to the same timing:
+    between steps a span jumps from one match to the next, and the cycles
+    around each step run whole.
 
 ## `.sid` tune banking
 
