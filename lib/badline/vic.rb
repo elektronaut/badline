@@ -114,11 +114,13 @@ module Badline
     def column_hooks
       case @column
       when 14 then @sprites.advance_mcbase
-      when 15 then finish_sprite_mcbase
+      when 15
+        @sequencer.left_compare_vertical_border
+        finish_sprite_mcbase
       when 53 then check_sprite_dma
       when 54 then check_dma_and_toggle_expansion
       when 57 then @sprites.check_display(@rasterline)
-      when 62 then @sequencer.check_vertical_border(@rasterline)
+      when 62 then @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1)
       end
     end
 
@@ -143,6 +145,7 @@ module Badline
       reg = index(addr) % (2**6)
       log_register_change(reg, value)
       @registers.write(reg, value)
+      compare_raster_writes(reg)
     end
 
     def position
@@ -280,6 +283,15 @@ module Badline
       else
         @registers.char_base | ((@character_buffer[vmli] || 0) << 3) | rc
       end
+    end
+
+    # A $d011 write is compared in the next column. A write after column 61
+    # is left to column 62, which compares the next line.
+    def compare_raster_writes(reg)
+      return unless reg == 0x11
+      return if @column == @columns_per_line - 1
+
+      @sequencer.compare_vertical_border(@rasterline)
     end
 
     def check_sprite_dma

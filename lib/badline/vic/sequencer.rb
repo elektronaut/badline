@@ -54,6 +54,7 @@ module Badline
         @prev_colors = Array.new(8, 0)
         @prev_fg = GraphicsMode::NO_FG
         @vertical_border = true
+        @vertical_armed = true
         @main_border = true
         @color_patches = ColorPatches.new(self)
         new_line(0)
@@ -62,6 +63,7 @@ module Badline
       # Reset the line buffers at the start of a rasterline.
       def new_line(line)
         @line = line
+        @left_vertical_border = nil
         @colors.fill(@registers.border)
         @fg.fill(false)
         @border_mask.reset
@@ -74,14 +76,28 @@ module Badline
         @color_patches.apply(@colors, @fg)
       end
 
-      # The vertical border flip-flop is set on the bottom compare line and
-      # reset on the top compare line when DEN is set. The compares run at
-      # cycle 63 and at the left window edge (Bauer §3.9 rules 2-5), so
-      # mid-frame RSEL/DEN toggles can open or close the border.
-      def check_vertical_border(line = @line)
+      # The vertical border compares run in every cycle of their line (VICE
+      # x64sc). The top one resets the flip-flop at once when DEN is set. The
+      # bottom one only arms it, and the armed state takes hold at the line's
+      # first cycle and at the left window edge (Bauer §3.9 rules 2-5). The
+      # VIC calls this after each $d011 write.
+      def compare_vertical_border(line)
         top, bottom = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
-        @vertical_border = true if line == bottom
-        @vertical_border = false if line == top && @registers.display_enabled?
+        @vertical_armed = true if line == bottom
+        @vertical_armed = @vertical_border = false if line == top && @registers.display_enabled?
+      end
+
+      # The line's first cycle, Bauer's cycle 1, which is the last column of
+      # the line before it.
+      def start_vertical_border(line)
+        compare_vertical_border(line)
+        @vertical_border = @vertical_armed
+      end
+
+      # The 40-column left compare, a column before the column that draws its
+      # pixel. The 38-column one runs in the drawing column.
+      def left_compare_vertical_border
+        @left_vertical_border = start_vertical_border(@line) if @registers.csel?
       end
 
       def border_at?(pixel_x) = @border_mask.at?(pixel_x)
@@ -239,11 +255,12 @@ module Badline
 
       def pixel_shown?(pixel_x, left_compare, right_compare)
         @main_border = true if pixel_x == right_compare
-        if pixel_x == left_compare
-          check_vertical_border
-          @main_border = false unless @vertical_border
-        end
+        @main_border = false if pixel_x == left_compare && !left_vertical_border
         !@main_border
+      end
+
+      def left_vertical_border
+        @left_vertical_border.nil? ? start_vertical_border(@line) : @left_vertical_border
       end
 
       def roll

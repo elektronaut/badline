@@ -735,6 +735,76 @@ RSpec.describe Badline::VIC do
       end
     end
 
+    def run_through(line)
+      vic.cycle! until vic.rasterline == line + 1
+      vic.display[(line * vic.width) + x]
+    end
+
+    # RSEL and DEN clear for a line from a write in the given cycle, counted
+    # from the top of the frame.
+    def clear_rsel_den_at(cycle)
+      vic.poke(0xd011, 0x1b)
+      cycle.times { vic.cycle! }
+      vic.poke(0xd011, 0x03)
+      63.times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+    end
+
+    # RSEL clears for four cycles from a write in the given cycle.
+    def blip_rsel_at(cycle)
+      vic.poke(0xd011, 0x1b)
+      cycle.times { vic.cycle! }
+      vic.poke(0xd011, 0x13)
+      4.times { vic.cycle! }
+      vic.poke(0xd011, 0x1b)
+    end
+
+    # The last column of a line is the next line's first cycle, and the top
+    # compare runs there. Pinned by denrsel-s0/-s1, den10-51-* and
+    # denrsel-*, which fail when that column compares the line ending.
+    context "when RSEL and DEN clear around line 51's first cycle" do
+      it "misses the top compare when cleared ahead of it" do
+        clear_rsel_den_at((51 * 63) - 1)
+        expect(run_through(100)).to eq(border)
+      end
+
+      it "opens the border when cleared after it" do
+        clear_rsel_den_at(51 * 63)
+        expect(run_through(100)).not_to eq(border)
+      end
+    end
+
+    # The compares run in every cycle, so a bottom compare line RSEL only
+    # touches mid-line arms the flip-flop, and the next line starts closed.
+    # Pinned by vborder2-63 and vborder-32-*, which fail when only the line
+    # start and the left edge compare.
+    context "when RSEL clears for a moment mid-line on line 247" do
+      before { blip_rsel_at((247 * 63) + 30) }
+
+      it "leaves line 247 open" do
+        expect(run_through(247)).not_to eq(border)
+      end
+
+      it "closes the border from line 248" do
+        expect(run_through(248)).to eq(border)
+      end
+    end
+
+    # The 40-column left compare runs in column 15 and sees a write made
+    # after column 14 but not one made after column 15. Pinned by
+    # vborder2-35/-36.
+    context "when RSEL clears for a moment at line 247's left edge" do
+      it "closes line 247 when cleared ahead of the compare" do
+        blip_rsel_at((247 * 63) + 15)
+        expect(run_through(247)).to eq(border)
+      end
+
+      it "leaves line 247 open when cleared after it" do
+        blip_rsel_at((247 * 63) + 16)
+        expect(run_through(247)).not_to eq(border)
+      end
+    end
+
     context "when RSEL is cleared past the RSEL=0 bottom compare" do
       it "keeps the bottom border open below raster 250" do
         vic.poke(0xd011, 0x1b)                 # DEN=1, RSEL=1, YSCROLL=3

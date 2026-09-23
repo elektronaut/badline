@@ -153,18 +153,19 @@ RSpec.describe Badline::VIC::Sequencer do
     end
   end
 
-  # Bauer §3.9 rules 2-5: the vertical flip-flop is compared at cycle 63 and
-  # again at the left window edge, never at line start, so DEN and RSEL
-  # toggled mid-frame still open or close the border. Pinned by dentest and
-  # border.
+  # Bauer §3.9 rules 2-5: the top compare resets the vertical flip-flop at
+  # once, the bottom one arms it for the next line's first cycle or the left
+  # window edge, so DEN and RSEL toggled mid-frame still open or close the
+  # border. Pinned by dentest and border.
   describe "vertical border flip-flop" do
     # RSEL=1 puts the top compare on line 51; CSEL=40 puts the left one at
     # pixel 128, the first pixel of display column 0.
-    def paint_line(line, den:, den_midline: false)
+    def paint_line(line, den:, den_midline: false, left_compare_first: false)
       registers.write(0x16, 0xc8)
       registers.write(0x11, 0x08 | (den ? 0x10 : 0x00))
       put_char(0, 0)
       sequencer.new_line(line)
+      sequencer.left_compare_vertical_border if left_compare_first
       registers.write(0x11, 0x18) if den_midline
       (-2..3).each { |c| emit_at(0, c) }
       sequencer.colors[128]
@@ -184,6 +185,30 @@ RSpec.describe Badline::VIC::Sequencer do
 
     it "leaves the border closed on any other line" do
       expect(paint_line(52, den: true)).to eq(2)
+    end
+
+    # Pinned by vborder2-36: the 40-column left compare runs a column before
+    # the column that draws its pixel.
+    it "keeps the DEN the 40-column left compare saw a column earlier" do
+      expect(paint_line(51, den: false, den_midline: true, left_compare_first: true)).to eq(2)
+    end
+
+    context "with the window open at the bottom compare line" do
+      before do
+        registers.write(0x11, 0x18) # DEN=1, RSEL=1: bottom compare on 251
+        sequencer.start_vertical_border(51)
+        sequencer.new_line(251)
+        sequencer.compare_vertical_border(251)
+      end
+
+      it "only arms the flip-flop for the rest of the line" do
+        expect(sequencer.vertical_closed?).to be(false)
+      end
+
+      it "closes it at the next line's first cycle" do
+        sequencer.start_vertical_border(252)
+        expect(sequencer.vertical_closed?).to be(true)
+      end
     end
   end
 
