@@ -190,11 +190,32 @@ describe Badline::SID::Waveform do
       expect(waveform.shift_register).to eq(described_class::NOISE_SEED)
     end
 
-    # SID/wf12nsr reads $ff off a register the test bit has held for a while.
-    it "bleeds every bit high once the test bit has held long enough" do
-      waveform.control = 0x88
-      described_class::SHIFT_REGISTER_RESET_DELAY.times { waveform.cycle! }
-      expect(waveform.noise).to eq(0xff0)
+    describe "bleeding through a held test bit" do
+      def held(model, cycles)
+        chip = described_class.new(model:)
+        chip.control = 0x88
+        chip.control = 0x80
+        chip.control = 0x88
+        chip.fast_forward(cycles - 1)
+        chip.cycle!
+        chip.noise
+      end
+
+      it "bleeds every bit high once the test bit has held long enough" do
+        expect(held(:mos6581, 0x80000)).to eq(0xff0)
+      end
+
+      # Pinned by SID/resid-test's oscsample dumps (both chips), which hold
+      # the test bit ~$8800 cycles between runs and read the noise run on
+      # from where the last one left it.
+      it "keeps the register's bits through the holds between oscsample runs" do
+        expect(held(:mos6581, 0x10000)).to eq(0xfe0)
+      end
+
+      # SID/bitfade's delaynoise reads ~$950000 on a real 8580.
+      it "takes far longer on the 8580" do
+        expect([held(:mos8580, 0x94ffff), held(:mos8580, 0x950000)]).to eq([0xfe0, 0xff0])
+      end
     end
 
     # Bit 22 is forced high while the test bit is set, so the bit clocked in
@@ -236,7 +257,7 @@ describe Badline::SID::Waveform do
       def shift_under_triangle(model, cycles)
         chip = described_class.new(model:)
         chip.control = 0x08
-        described_class::SHIFT_REGISTER_RESET_DELAY.times { chip.cycle! }
+        chip.fast_forward(described_class::SHIFT_REGISTER_RESET_DELAY.fetch(model))
         chip.control = 0x90
         chip.cycle!
         chip.frequency_low = chip.frequency_high = 0xff

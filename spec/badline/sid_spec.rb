@@ -225,7 +225,7 @@ describe Badline::SID do
     end
 
     it "bleeds the LFSR through a held test bit" do
-      expect_batched_to_match([[0x01, 0x80], [0x04, 0x81], [0x04, 0x88]], 0x9000)
+      expect_batched_to_match([[0x01, 0x80], [0x04, 0x81], [0x04, 0x88]], 0x81000)
     end
 
     it "resets a synced oscillator on the cycle the source wraps" do

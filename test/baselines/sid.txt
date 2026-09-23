@@ -91,8 +91,8 @@ resid-test/envrate.prg	PASS
 resid-test/envsustain.prg	PASS
 resid-test/envtime.prg	PASS
 resid-test/noisetest.prg	PASS
-resid-test/oscsample0-6581.prg	FAIL	exit=$ff
-resid-test/oscsample1-6581.prg	FAIL	exit=$ff
+resid-test/oscsample0-6581.prg	PASS
+resid-test/oscsample1-6581.prg	PASS
 ringmod/ringmodtest.prg	PASS
 waveforms/waveforms-10-6581.prg	PASS
 waveforms/waveforms-20-6581.prg	PASS
