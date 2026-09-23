@@ -68,7 +68,9 @@ module SIDTests
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
+  # Nothing reads the display, so the VIC leaves its colours unpainted.
   def exit_code(computer, name, timeout)
+    computer.vic.render = false
     Badline::Media.attach(computer, File.join(ROOT, name))
     code = nil
     computer.install_debug_register { |value| code = value }
