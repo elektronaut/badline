@@ -191,10 +191,12 @@ module Badline
       # The `$01` value a routine at `address` has to run under, following
       # libsidplayfp's iomap: RAM under BASIC from `$a000`, RAM under both
       # ROMs and no I/O for a routine in the I/O window itself, RAM under the
-      # KERNAL from `$e000`. An RSID tune banks itself and gets nil.
+      # KERNAL from `$e000`. A routine below `$a000` still gets BASIC banked
+      # out when the image reaches into it, as VSID does, since it may call
+      # into the part that lies there. An RSID tune banks itself and gets nil.
       def bank_for(address)
         return unless psid?
-        return 0x37 if address < 0xa000
+        return (under_basic? ? 0x36 : 0x37) if address < 0xa000
         return 0x36 if address < 0xd000
         return 0x34 if address < 0xe000
 
@@ -235,6 +237,10 @@ module Badline
 
       def body
         @body ||= @bytes[data_offset..] || []
+      end
+
+      def under_basic?
+        load_address < 0xc000 && end_address > 0xa000
       end
 
       # The tape buffer and the free block below the stack page, neither
