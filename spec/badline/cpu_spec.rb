@@ -209,6 +209,97 @@ describe Badline::CPU do
     end
   end
 
+  # Pinned by interrupts/irqdma and Lorenz irq/nmi
+  describe "interrupts sampled while stalled by the VIC" do
+    before do
+      memory.write(0xfffa, [0x39, 0x05])
+      memory.write(0xfffe, [0x40, 0x05])
+    end
+
+    # Runs +cycles+ cycles of the program, raises +line+, stalls the CPU
+    # for one cycle, then runs +steps+ more instructions.
+    def stall_after(program, cycles:, steps:, line: :irq=)
+      memory.write(start_addr, program)
+      cycles.times { cpu.cycle! }
+      cpu.public_send(line, true) if line
+      cpu.stall!
+      steps.times { cpu.step! }
+    end
+
+    context "when the IRQ rises while a NOP is stalled on its last cycle" do
+      before { stall_after([0xea, 0xe8], cycles: 1, steps: 2) }
+
+      it "enters the handler right after the NOP" do
+        expect(cpu.program_counter).to eq(0x0540)
+      end
+    end
+
+    context "when the NMI rises while a NOP is stalled on its last cycle" do
+      before { stall_after([0xea, 0xe8], cycles: 1, steps: 2, line: :nmi=) }
+
+      it "enters the handler right after the NOP" do
+        expect(cpu.program_counter).to eq(0x0539)
+      end
+    end
+
+    context "when the IRQ rises while a CLI is stalled on its execute cycle" do
+      before do
+        cpu.status.interrupt = true
+        stall_after([0x58, 0xe8], cycles: 1, steps: 2)
+      end
+
+      it "enters the handler right after the CLI" do
+        expect(cpu.program_counter).to eq(0x0540)
+      end
+    end
+
+    context "when the IRQ rises while an SEI is stalled on its execute cycle" do
+      before { stall_after([0x78, 0xe8, 0xe8], cycles: 1, steps: 3) }
+
+      it "masks the IRQ" do
+        expect(cpu.x).to eq(2)
+      end
+    end
+
+    context "when an SEI's fetch sampled the IRQ before the stall" do
+      before do
+        cpu.irq = true
+        stall_after([0x78, 0xe8], cycles: 1, steps: 2, line: nil)
+      end
+
+      it "keeps the sample and enters the handler right after the SEI" do
+        expect(cpu.program_counter).to eq(0x0540)
+      end
+    end
+
+    context "when the IRQ rises while a PLP pulling I = 1 is stalled on its stack read" do
+      before do
+        cpu.stack_pointer = 0xfe
+        memory.poke(0x01ff, 0x04)
+        stall_after([0x28, 0xe8], cycles: 3, steps: 2)
+      end
+
+      it "masks with the old I and enters the handler right after the PLP" do
+        expect(cpu.program_counter).to eq(0x0540)
+      end
+    end
+
+    context "when a taken same-page branch is stalled on its last cycle" do
+      before do
+        memory.write(start_addr, [0xd0, 0x02, 0xea, 0xea, 0xe8])
+        cpu.cycle! # BNE cycle 1
+        cpu.irq = true
+        cpu.cycle! # BNE cycle 2
+        cpu.stall!
+        3.times { cpu.step! }
+      end
+
+      it "still skips the poll and executes the next instruction before the handler" do
+        expect(cpu.x).to eq(1)
+      end
+    end
+  end
+
   describe "#pending_write?" do
     # STA $10: fetch (read), operand (read), store (write).
     before { memory.write(start_addr, [0x85, 0x10]) }

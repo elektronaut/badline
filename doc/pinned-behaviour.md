@@ -53,6 +53,25 @@ only catches the rows that happen to move.
   service, because the line belongs to the device.
 - Pinned by Lorenz `irq` and `nmi` (`nmi` subtest `00/5` for the pipeline
   clear).
+- A cycle the VIC stalls through BA (`CPU#stall!`) keeps sampling the lines
+  but doesn't advance the pipeline: `irq_sample ||= irq && !I` and
+  `nmi_sample ||= nmi`, OR-ed with the sample it held, while `pending`
+  doesn't shift and `@skip_poll` stays owed to the next real cycle. The I
+  used is the one the stalled step leaves when it comes from the opcode: a
+  stalled CLI execute cycle masks with I = 0 and a stalled SEI with I = 1.
+  Every other step uses the current I. PLP too: its pulled I only arrives
+  with the stalled stack read.
+  - Each piece is forced by an `interrupts/irqdma` case. A NOP stalled on
+    its last cycle with the IRQ rising in the stall is taken after that NOP
+    (test 1). An SEI whose fetch sampled the IRQ, stalled on its execute
+    cycle, is still taken after the SEI (`||=`), while an IRQ rising in the
+    SEI stall is masked (test 7, `$d015=03`). A CLI stalled with the IRQ
+    rising is taken after the CLI (test 7, `$d015=01`). A PLP stalled on its
+    stack read pulling I = 1 is taken after the PLP (test 6, `$d015=40`
+    offset 106). Consuming `@skip_poll` in the stall breaks test 5.
+  - Pinned by `interrupts/irqdma` (all 16 rows) and Lorenz `irq` and `nmi`.
+  - Spec guard: *interrupts sampled while stalled by the VIC* in
+    [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per piece.
 - Spec guard: the *interrupt recognition timing* group in
   [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per quirk.
 
@@ -68,8 +87,9 @@ only catches the rows that happen to move.
 ## CPU unstable stores under DMA
 
 - A cycle the VIC holds the CPU through BA is not a CPU cycle.
-  `Computer#cycle!` calls `CPU#stall!` instead of `CPU#cycle!`, which only
-  records `@cycles`, so the interrupt pipeline doesn't advance.
+  `Computer#cycle!` calls `CPU#stall!` instead of `CPU#cycle!`, which
+  records `@cycles`. The interrupt pipeline's `pending` stage doesn't
+  advance, but the line sample does (see *CPU interrupt recognition*).
 - SHA, SHX, SHY and SHS/TAS drop the `& (H+1)` from the stored value when
   the CPU is stalled **immediately before the dummy read**, the
   second-to-last cycle (VICE x64sc's `LOAD_CHECK_BA_LOW_DUMMY`). A stall at

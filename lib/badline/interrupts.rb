@@ -19,6 +19,27 @@ module Badline
       @nmi_sample = @nmi
     end
 
+    # A cycle the VIC stalls through BA keeps sampling the lines, OR-ed with
+    # the sample it already holds, but the boundary pipeline doesn't advance
+    # and a skipped poll stays owed to the next real cycle.
+    def sample_while_stalled
+      @irq_sample ||= @irq && !interrupt_disabled_after_stall?
+      @nmi_sample = true if @nmi
+    end
+
+    # A stalled CLI or SEI execute cycle masks with the I it is about to
+    # set. Every other step masks with the current I, PLP included: its
+    # pulled I only arrives with the stalled stack read.
+    def interrupt_disabled_after_stall?
+      return @status.interrupt? unless @plan.equal?(CPU::IMPLIED_PLAN)
+
+      case @operation
+      when :cli then false
+      when :sei then true
+      else @status.interrupt?
+      end
+    end
+
     # Runs in the opcode fetch cycle in place of the fetch, with no bus
     # access, and switches to the interrupt plan.
     def start_interrupt

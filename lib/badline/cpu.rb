@@ -82,9 +82,11 @@ module Badline
     end
 
     # Called instead of #cycle! on a cycle the VIC holds the CPU through
-    # BA. Records which cycle the CPU was stalled before.
+    # BA. Records which cycle the CPU was stalled before, and keeps
+    # sampling the interrupt lines.
     def stall!
       @stalled_at = @cycles
+      sample_while_stalled
     end
 
     def jammed?
