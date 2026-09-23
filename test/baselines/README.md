@@ -30,10 +30,9 @@ Recorded output of the headless hardware suites, one file per suite:
   keyed `prg+crt`: it boots from power-on with the cartridge in, then loads
   and runs the program like any other row, with the same boot allowance.
   A row is listed only when badline has a mapper for the cartridge's
-  hardware type. `C64/carts/ef-eapi` drops out too, since it writes the
-  EasyFlash's flash and badline's EasyFlash is ROM only, and so do rows
-  that need an REU. `C64/carts/rr-freeze` is an analyzer that waits for
-  someone to press the freeze button, so it isn't runnable either. Its
+  hardware type. Rows that need an REU drop out too. `C64/carts/rr-freeze`
+  is an analyzer that waits for someone to press the freeze button, so it
+  isn't runnable either. Its
   screenshot rows compare like the others, except that `expect:error`
   wants a mismatch, as in VICE: the `selftest` fail row's reference says
   FAIL where the program draws nothing.
