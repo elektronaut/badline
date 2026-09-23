@@ -2,11 +2,13 @@
 
 module Badline
   class Cartridge
+    # Ocean: up to 64 8K banks. A write to I/O 1 selects the bank from bits
+    # 0-5, masked to the size of the ROM.
     class Ocean < Cartridge
       def poke(addr, value)
         return if addr > 0xdeff
 
-        select_bank((value & 0x3f) % @banks.length)
+        select_bank(value & @bank_mask)
         changed!
       end
 
@@ -19,12 +21,13 @@ module Badline
 
       # In 16K mode the selected bank shows through ROMH as well.
       def select_bank(number)
-        @roml = @banks[number]
+        @roml = bank(@banks, number)
         @romh = @roml if game.zero?
       end
 
       def install_chips(chips)
         @banks = banks_from(chips).first
+        @bank_mask = bank_mask(@banks) & 0x3f
         reset
       end
     end

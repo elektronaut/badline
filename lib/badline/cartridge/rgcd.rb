@@ -40,7 +40,7 @@ module Badline
 
       def install_chips(chips)
         @banks = banks_from(chips).first
-        @bank_mask = @hucky ? @banks.length - 1 : 0x07
+        @bank_mask = @hucky ? bank_mask(@banks) : 0x07
         reset
       end
     end
