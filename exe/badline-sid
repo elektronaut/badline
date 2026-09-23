@@ -4,144 +4,29 @@
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
-require "optparse"
-
-FALLBACK_SECONDS = 60.0
-
-options = { rate: 44_100, jit: true }
-
-banner = <<~BANNER
-  Usage: badline-render [options] tune.sid [output]
-
-  Renders a .sid tune to 16-bit PCM. The container follows the output
-  file's extension, .wav or .aiff; with no output given the tune's own
-  name gains a .wav extension.
-
-  A .sid file carries no length of its own. Without --seconds the tune is
-  looked up by MD5 in HVSC's Songlengths.md5, taken from --songlengths, from
-  the DOCUMENTS directory of an HVSC collection above the tune, or from
-  $HVSC_BASE. Failing all of those it renders #{FALLBACK_SECONDS.to_i} seconds.
-
-  PSID tunes render on a bare CPU and SID, faster than real
-  time. RSID tunes boot the whole machine and render at about half real
-  time. --filter-chunk 1 runs the filter cycle by cycle, which is exact but
-  takes about twice as long.
-
-  Options:
-BANNER
-
-parser = OptionParser.new do |opts|
-  opts.banner = banner
-
-  opts.on("--seconds N", Float, "Length to render (default: the tune's own)") do |n|
-    options[:seconds] = n
-  end
-
-  opts.on("--songlengths PATH", "HVSC Songlengths.md5 to take the length from") do |path|
-    options[:songlengths] = path
-  end
-
-  opts.on("--song N", Integer, "Subtune to play (default: the tune's own)") do |n|
-    options[:song] = n
-  end
-
-  opts.on("--rate HZ", Integer, "Output sample rate (default: 44100)") { |n| options[:rate] = n }
-
-  opts.on("--sid MODEL", { "6581" => :mos6581, "8580" => :mos8580 },
-          "SID to render on: 6581 or 8580 (default: the tune's own, else 6581)") do |model|
-    options[:sid_model] = model
-  end
-
-  opts.on("--filter-chunk N", Integer,
-          "Filter step in cycles, 1 is exact (default: 4)") { |n| options[:filter_chunk] = n }
-
-  opts.on("--quiet", "Don't report progress") { options[:quiet] = true }
-
-  opts.on("--disable-jit", "Run without enabling YJIT") do
-    options[:jit] = false
-  end
-
-  opts.on("-h", "--help", "Show this help") do
-    puts opts
-    exit
-  end
-end
+require "badline/audio/options"
 
 begin
-  parser.parse!
-  raise OptionParser::InvalidArgument, "--filter-chunk #{options[:filter_chunk]}" if options[:filter_chunk]&.< 1
-rescue OptionParser::ParseError => e
-  warn "badline-render: #{e.message}"
-  warn "Try 'badline-render --help' for more information."
+  options = Badline::Audio::Options.parse(ARGV)
+rescue Badline::Audio::Options::Error => e
+  warn "badline-sid: #{e.message}"
+  warn "Try 'badline-sid --help' for more information."
   exit 1
 end
 
-tune_path = ARGV[0]
-unless tune_path
-  warn parser.help
-  exit 1
+if options.help?
+  puts options.help
+  exit
 end
-
-[tune_path, options[:songlengths]].compact.each do |path|
-  next if File.exist?(path)
-
-  warn "badline-render: no such file: #{path}"
-  exit 1
-end
-
-output_path = ARGV[1] || "#{File.basename(tune_path, '.*')}.wav"
 
 jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
-RubyVM::YJIT.enable if options[:jit] && jit_available
+RubyVM::YJIT.enable if options.jit? && jit_available
 
 require "badline"
 
-def describe(tune, song)
-  [tune.name, tune.author, tune.released].reject(&:empty?).join(" / ").then do |header|
-    header.empty? ? "song #{song}" : "#{header} (song #{song})"
-  end
-end
-
-# HVSC's database is keyed by the tune's MD5 and lists one length per song.
-def songlength(tune, tune_path, song, hint)
-  path = hint || Badline::Storage::SongLengths.locate(tune_path)
-  path && Badline::Storage::SongLengths.new(path).lengths(tune.md5)&.at(song - 1)
-end
-
 begin
-  tune = Badline::Storage::SIDFile.new(tune_path)
-rescue Badline::Storage::SIDFile::FormatError => e
-  warn "badline-render: #{tune_path}: #{e.message}"
+  Badline::Audio::CLI.new(options).run
+rescue Badline::Audio::CLI::Error => e
+  warn "badline-sid: #{e.message}"
   exit 1
 end
-
-song = (options[:song] || tune.start_song).clamp(1, tune.songs)
-seconds = options[:seconds] ||
-          songlength(tune, tune_path, song, options[:songlengths]) ||
-          FALLBACK_SECONDS
-sid_model = options[:sid_model] || tune.sid_model
-renderer = Badline::Audio::Renderer.new(tune, seconds:, song:, rate: options[:rate], sid_model:)
-renderer.filter_chunk = options[:filter_chunk] if options[:filter_chunk]
-
-puts describe(tune, song)
-puts "Rendering #{seconds}s for the #{sid_model.to_s.delete_prefix('mos')} to #{output_path} " \
-     "at #{options[:rate]} Hz..."
-
-started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-begin
-  renderer.render(output_path) do |done|
-    next if options[:quiet]
-
-    print format("\r%<done>6.1fs / %<total>.1fs", done:, total: seconds)
-    $stdout.flush
-  end
-rescue Badline::Audio::Renderer::UnknownFormatError, Badline::Storage::SIDFile::FormatError => e
-  warn "\nbadline-render: #{e.message}"
-  exit 1
-end
-
-elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-print "\r" unless options[:quiet]
-puts format("Wrote %<path>s in %<elapsed>.1fs (%<speed>.2fx real time).",
-            path: output_path, elapsed:, speed: seconds / elapsed)
