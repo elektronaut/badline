@@ -864,6 +864,10 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   ones stored inverted) and survives reset. `SID/osc3-wave0` only reads the
   documented `$00`/`$ff` because of it.
   - Pinned by `SID/oscinit` (all three).
+  - Spec guard: *leaves the SID's accumulators alone* in
+    [`computer_spec.rb`](../spec/badline/computer_spec.rb). The testbench
+    only runs `SID/oscinit` from power-on, so only the spec catches a reset
+    that rebuilds the voices.
 - Ring modulation substitutes the triangle's MSB with
   `!Saw & ((!V3 & Ring) ^ bit23)`, where `V3` is the modulating voice's MSB.
   That is an XNOR where reSID uses an XOR.

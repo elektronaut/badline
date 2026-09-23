@@ -55,8 +55,15 @@ module Badline
       def initialize(model: :mos6581)
         @topbit_feedback = model != :mos8580
         @tri_saw_delay = model == :mos8580
-        @tri_saw = 0x000
         @accumulator = POWER_ON_ACCUMULATOR
+        @sync_source = @sync_dest = self
+        reset!
+      end
+
+      # The RES line clears the registers and reseeds the LFSR, but leaves
+      # the accumulator alone (SID/oscinit).
+      def reset!
+        @tri_saw = 0x000
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
         @shift_pipeline = 0
@@ -71,8 +78,6 @@ module Badline
         @floating_ttl = 0
         @output = 0x000
         @stale = true
-        @sync_source = self
-        @sync_dest = self
       end
 
       def sync? = @sync

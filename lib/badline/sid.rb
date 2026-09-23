@@ -63,21 +63,21 @@ module Badline
       @decimator = nil
       @samples = []
       @filter_chunk = filter_chunk
-      reset!
-    end
-
-    # The RES line clears the registers and the data bus, and puts the
-    # voices and the filter back in their power-on state. Recording carries
-    # on across it.
-    def reset!
-      catch_up
-      @filter.reset
-      @registers = Memory.new(length: 2**5)
-      @bus_value = 0x00
-      @bus_ttl = 0
       @voices = Voice.linked(VOICES, model:)
       @voice1, @voice2, @voice3 = @voices
       @waveform1, @waveform2, @waveform3 = @voices.map(&:waveform)
+      reset!
+    end
+
+    # The RES line clears the registers, the data bus, the filter and the
+    # voices, all but their accumulators. Recording carries on across it.
+    def reset!
+      catch_up
+      @registers = Memory.new(length: 2**5)
+      @bus_value = 0x00
+      @bus_ttl = 0
+      @voices.each(&:reset!)
+      @filter.reset
     end
 
     # The DSP only counts cycles as they pass. Whatever asks for its state
