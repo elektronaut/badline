@@ -109,13 +109,6 @@ module Badline
           uint16(data[0], data[1].to_i)
         end
       end
-
-      # Runs the ROM routines in order, each returning into the next, and
-      # the last one to the trapped routine's caller
-      def continue_with(first, *rest)
-        rest.reverse_each { |address| push_address((address - 1) & 0xffff) }
-        @cpu.program_counter = first
-      end
     end
   end
 end
