@@ -9,10 +9,17 @@ describe Badline::KernalTrap::Save do
   let(:ram) { computer.ram }
   let(:dir) { Dir.mktmpdir }
   let(:backend) { Badline::Storage::HostDirectory.new(dir) }
+  let(:capture) { computer.capture_output }
 
   before do
     computer.mount(backend)
+    capture
     ram.write(0xc000, [0xaa, 0xbb])
+    # CLRCHN is JMP ($0322) and CHROUT is JMP ($0326); point both at an RTS
+    ram.write(0x0322, [0x00, 0x60])
+    ram.write(0x0326, [0x00, 0x60])
+    ram.poke(0x6000, 0x60)
+    ram.poke(0x9d, 0x00)
   end
 
   after { FileUtils.remove_entry(dir) }
@@ -32,9 +39,22 @@ describe Badline::KernalTrap::Save do
     computer.cpu.stack_pointer = 0xfd
   end
 
-  def run_trap
+  def trigger_trap
     computer.cpu.program_counter = described_class::ADDRESS
     computer.cpu.cycle!
+  end
+
+  def run_trap
+    trigger_trap
+    500.times do
+      break if computer.cpu.program_counter == 0x1235
+
+      computer.cpu.step!
+    end
+  end
+
+  def direct_mode
+    ram.poke(0x9d, 0x80)
   end
 
   def saved_file(name)
@@ -52,6 +72,83 @@ describe Badline::KernalTrap::Save do
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
     specify { expect(computer.cpu.status.carry?).to be(false) }
     specify { expect(ram.peek(0x90)).to eq(0x00) }
+    specify { expect(ram.peek(0xb9)).to eq(0x61) }
+    specify { expect(ram.read(0xac, 2)).to eq([0x02, 0xc0]) }
+  end
+
+  describe "the registers the ROM leaves" do
+    before do
+      request_save("DATA")
+      computer.cpu.x = 0xc1
+      computer.cpu.y = 0xc0
+      ram.poke(0x90, 0x80)
+      run_trap
+    end
+
+    specify { expect(computer.cpu.x).to eq(0xc1) }
+    specify { expect(computer.cpu.y).to eq(0x00) }
+    specify { expect(computer.cpu.a).to eq(computer.address_bus.peek(0xdd00) & 0xdf) }
+    specify { expect(computer.cpu.status.overflow?).to be(true) }
+    specify { expect(ram.peek(0x90)).to eq(0x00) }
+  end
+
+  describe "releasing the serial clock and data lines" do
+    before do
+      computer.address_bus.poke(0xdd02, 0x3f)
+      computer.address_bus.poke(0xdd00, 0x37)
+      request_save("DATA")
+      run_trap
+    end
+
+    specify { expect(computer.address_bus.peek(0xdd00) & 0x30).to eq(0) }
+  end
+
+  describe "messages in program mode" do
+    before do
+      request_save("DATA")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("") }
+  end
+
+  describe "messages in direct mode" do
+    before do
+      direct_mode
+      request_save("DATA")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("\nsaving data") }
+    specify { expect(saved_file("data.prg")).to eq([0x00, 0xc0, 0xaa, 0xbb]) }
+    specify { expect(computer.cpu.y).to eq(0x00) }
+    specify { expect(computer.cpu.status.carry?).to be(false) }
+  end
+
+  describe "messages for an empty filename in direct mode" do
+    before do
+      direct_mode
+      request_save("")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("") }
+    specify { expect(computer.cpu.a).to eq(0x08) }
+    specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+  end
+
+  describe "a save after an interrupted one" do
+    before do
+      direct_mode
+      request_save("DATA")
+      trigger_trap
+      computer.reset!
+      ram.poke(0x9d, 0x80)
+      request_save("MORE")
+      run_trap
+    end
+
+    specify { expect(saved_file("more.prg")).to eq([0x00, 0xc0, 0xaa, 0xbb]) }
   end
 
   describe "returning to the caller" do
@@ -75,7 +172,9 @@ describe Badline::KernalTrap::Save do
   end
 
   describe "a range wrapping through $FFFF" do
-    let(:vector) { [computer.address_bus.peek(0xfffe), computer.address_bus.peek(0xffff)] }
+    def vector
+      [computer.address_bus.peek(0xfffe), computer.address_bus.peek(0xffff)]
+    end
 
     before do
       request_save("WRAP", from: 0xfffe, upto: 0x0000)
@@ -129,7 +228,7 @@ describe Badline::KernalTrap::Save do
   describe "a save to another device" do
     before do
       request_save("DATA", device: 1)
-      run_trap
+      trigger_trap
     end
 
     specify { expect(saved_file("data.prg")).to be_nil }
@@ -141,7 +240,7 @@ describe Badline::KernalTrap::Save do
       computer.address_bus.poke(0x00, 0x2f)
       computer.address_bus.poke(0x01, 0x35)
       request_save("DATA")
-      run_trap
+      trigger_trap
     end
 
     specify { expect(saved_file("data.prg")).to be_nil }
@@ -153,7 +252,7 @@ describe Badline::KernalTrap::Save do
 
     before do
       request_save("DATA")
-      run_trap
+      trigger_trap
     end
 
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
