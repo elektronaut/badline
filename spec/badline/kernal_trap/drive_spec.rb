@@ -66,8 +66,8 @@ describe Badline::KernalTrap::Drive do
   describe "a file channel" do
     before { drive.open(2, "0:data,p,r") }
 
-    it "looks the name up without the drive prefix or type" do
-      expect(storage).to have_received(:read_file).with("data")
+    it "looks the name up without the drive prefix, by its type" do
+      expect(storage).to have_received(:read_file).with("data", type: :prg)
     end
 
     it "hands out the file bytes" do
@@ -76,6 +76,28 @@ describe Badline::KernalTrap::Drive do
 
     it "reports OK" do
       expect(status).to eq("00, OK,00,00")
+    end
+  end
+
+  describe "the file type an open asks for" do
+    it "reads a SEQ file" do
+      drive.open(2, "scores,s,r")
+      expect(storage).to have_received(:read_file).with("scores", type: :seq)
+    end
+
+    it "reads a USR file" do
+      drive.open(2, "notes,u")
+      expect(storage).to have_received(:read_file).with("notes", type: :usr)
+    end
+
+    it "takes any type without a type field" do
+      drive.open(2, "anything")
+      expect(storage).to have_received(:read_file).with("anything", type: nil)
+    end
+
+    it "takes only a PRG on the LOAD secondary address" do
+      drive.open(0, "program,s")
+      expect(storage).to have_received(:read_file).with("program", type: :prg)
     end
   end
 

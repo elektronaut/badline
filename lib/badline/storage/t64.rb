@@ -15,7 +15,7 @@ module Badline
         raise FormatError, "Missing T64 signature" unless @bytes[0, 3] == SIGNATURE
       end
 
-      def read_file(name)
+      def read_file(name, **)
         pattern = Storage.matcher(name)
         entry = entries.find { |e| pattern.match?(e[:name]) }
         return unless entry
