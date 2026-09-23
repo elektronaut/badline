@@ -87,8 +87,10 @@ module Badline
       # A g-access in display state consumes one buffer cell and one video
       # matrix address. A row that opens mid-line makes fewer of them, and
       # the shortfall carries into VCBASE.
+      def graphics_column?(column) = column.between?(GRAPHICS_FIRST, GRAPHICS_LAST)
+
       def graphics_access(column)
-        return unless column.between?(GRAPHICS_FIRST, GRAPHICS_LAST)
+        return unless graphics_column?(column)
 
         @vc = (@vc + 1) & 0x3ff
         @vmli += 1

@@ -86,6 +86,17 @@ module Badline
 
       def border_at?(pixel_x) = @border_mask.at?(pixel_x)
 
+      # True while the vertical border flip-flop is set and stays set for the
+      # rest of the line: it can only clear mid-line on a top compare line
+      # with DEN set.
+      def vertical_closed?
+        return false unless @vertical_border
+        return true unless @line == 51 || @line == 55
+
+        top, = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
+        !(@line == top && @registers.display_enabled?)
+      end
+
       # Snapshot the finished line so apply_border can restore the border
       # pixels sprites were composited over, keeping mid-line border splits.
       def snapshot_line = @border_mask.snapshot(@colors)
@@ -100,11 +111,9 @@ module Badline
       end
 
       # In idle state the g-accesses read $3fff ($39ff with ECM) and the data
-      # is displayed as if the video matrix supplied all-zero bits. The decode
-      # is skipped while the vertical border is closed and cannot open on this
-      # line, since no pixel of the group can be shown.
+      # is displayed as if the video matrix supplied all-zero bits.
       def emit_idle(col)
-        if idle_pixels_hidden?
+        if border_hidden?
           @cur_fg = GraphicsMode::NO_FG
         else
           GraphicsMode::IDLE.decode(self)
@@ -113,18 +122,24 @@ module Badline
         roll
       end
 
+      # A column with no g-access, or one made while the vertical border
+      # flip-flop is set, shifts out zero data painted with the screen byte
+      # and colour nibble the last g-access latched.
+      def emit_blank(screencode, color, col)
+        if border_hidden?
+          @cur_fg = GraphicsMode::NO_FG
+        else
+          MODES[@registers.mode].paint(0, screencode, color, self)
+        end
+        output(col)
+        roll
+      end
+
       private
 
-      # While the vertical border is closed, the only line where it can open
-      # mid-line is a top compare line with DEN set, so all others skip the
-      # decode after two compares.
-      def idle_pixels_hidden?
-        return false unless @vertical_border
-        return true unless @line == 51 || @line == 55
-
-        top, = BORDER_Y_BOUNDS[@registers.rsel? ? 1 : 0]
-        !(@line == top && @registers.display_enabled?)
-      end
+      # The group is border throughout when the main flip-flop is set and the
+      # vertical one keeps it from clearing.
+      def border_hidden? = @main_border && vertical_closed?
 
       # Write the 8-pixel group for a column into the line buffers. The main
       # border flip-flop only changes state in the groups containing the
@@ -135,11 +150,11 @@ module Badline
         win_lo, right_compare = WINDOW_COMPARES[@registers.csel? ? 1 : 0]
 
         if boundary_group?(x_pos, win_lo, right_compare)
-          output_boundary(col, x_pos, win_lo, right_compare)
-        elsif @main_border || @vertical_border
+          output_boundary(x_pos, win_lo, right_compare)
+        elsif @main_border
           output_border(x_pos)
         else
-          output_window(col, x_pos)
+          output_window(x_pos)
         end
       end
 
@@ -157,7 +172,7 @@ module Badline
         @fg.fill(false, x_pos, 8)
       end
 
-      def output_window(col, x_pos)
+      def output_window(x_pos)
         in_gfx = x_pos >= GFX_X_START && x_pos < GFX_X_END
         @border_groups[x_pos >> 3] = BorderMask::NONE
 
@@ -169,32 +184,24 @@ module Badline
             @fg.fill(false, x_pos, 8)
           end
         else
-          output_window_shifted(col, x_pos, in_gfx)
+          output_window_shifted(x_pos, in_gfx)
         end
       end
 
-      def output_window_shifted(col, x_pos, in_gfx)
+      def output_window_shifted(x_pos, in_gfx)
         shift = @registers.xscroll
         keep = 8 - shift
 
         copy(@cur_colors, 0, @colors, x_pos + shift, keep)
-        if col.positive? # the left column only exists from column 1 on
-          copy(@prev_colors, keep, @colors, x_pos, shift)
-        else
-          @colors.fill(@registers.background, x_pos, shift)
-        end
-        output_shifted_fg(col, x_pos, in_gfx, shift, keep)
+        copy(@prev_colors, keep, @colors, x_pos, shift)
+        output_shifted_fg(x_pos, in_gfx, shift, keep)
       end
 
-      def output_shifted_fg(col, x_pos, in_gfx, shift, keep)
+      def output_shifted_fg(x_pos, in_gfx, shift, keep)
         return @fg.fill(false, x_pos, 8) unless in_gfx
 
         copy(@cur_fg, 0, @fg, x_pos + shift, keep)
-        if col.positive?
-          copy(@prev_fg, keep, @fg, x_pos, shift)
-        else
-          @fg.fill(false, x_pos, shift)
-        end
+        copy(@prev_fg, keep, @fg, x_pos, shift)
       end
 
       def copy(src, from, dest, to, count)
@@ -206,10 +213,8 @@ module Badline
       end
 
       # Slow path for the groups where the border flip-flop can change state.
-      def output_boundary(col, x_pos, win_lo, right_compare)
+      def output_boundary(x_pos, win_lo, right_compare)
         shift = @registers.xscroll
-        bg = @registers.background
-        bleed = col.positive?
         border = @registers.border
         @border_groups[x_pos >> 3] = BorderMask::MIXED
 
@@ -219,12 +224,9 @@ module Badline
           if src >= 0
             pixel = @cur_colors[src]
             mask = @cur_fg[src]
-          elsif bleed
+          else
             pixel = @prev_colors[8 + src]
             mask = @prev_fg[8 + src]
-          else
-            pixel = bg
-            mask = false
           end
           x = x_pos + i
           shown = pixel_shown?(x, win_lo, right_compare)
@@ -241,7 +243,7 @@ module Badline
           check_vertical_border
           @main_border = false unless @vertical_border
         end
-        !(@main_border || @vertical_border)
+        !@main_border
       end
 
       def roll
