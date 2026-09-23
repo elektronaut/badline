@@ -192,9 +192,11 @@ light pen registers.
   EasyFlash and GMod2 flash takes writes through the chip's command set
   (program, sector and chip erase, autoselect), so games and EAPI can
   save to it. The writes stay in memory and are lost when the emulator
-  quits: the `.crt` file is never overwritten. Retro Replay flash is
-  read-only, and the GMod2 EEPROM and the Retro Replay clock port aren't
-  there.
+  quits: the `.crt` file is never overwritten. The Retro Replay's flash
+  works the same way in flash mode, which the flash jumper enables:
+  `Media.attach(computer, path, cartridge: { flash_jumper: true })`, with
+  `bank_jumper: true` to run from the second 64K of a 128K image. The
+  GMod2 EEPROM and the Retro Replay clock port aren't there.
 
 Known gaps:
 
