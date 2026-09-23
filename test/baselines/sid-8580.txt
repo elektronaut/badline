@@ -3,7 +3,7 @@ detect/detect-2-new.prg	PASS
 noiselfsrinit/simple.prg	PASS
 noiselfsrinit/scan.prg	PASS
 noisewriteback/noise_writeback_test1-new.prg	PASS
-noisewriteback/noise_writeback_test2-new.prg	FAIL	exit=$ff
+noisewriteback/noise_writeback_test2-new.prg	PASS
 wb_testsuite/noise_writeback_check_8_to_8_new.prg	PASS
 wb_testsuite/noise_writeback_check_8_to_9_new.prg	PASS
 wb_testsuite/noise_writeback_check_8_to_A_new.prg	PASS

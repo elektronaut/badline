@@ -14,11 +14,11 @@ module Badline
           if @test
             bleed_shift_register(cycles)
           else
-            previous = @accumulator
-            @accumulator += @frequency * cycles
-            # Bit 19 rises at most once a cycle, on each odd multiple of 2^19.
-            (((@accumulator + 0x80000) >> 20) - ((previous + 0x80000) >> 20)).times { shift_noise }
-            @accumulator &= 0xffffff
+            while @shift_pipeline.positive? && cycles.positive?
+              advance
+              cycles -= 1
+            end
+            skip_ahead(cycles) if cycles.positive?
           end
           @stale = true
         end
@@ -40,6 +40,34 @@ module Badline
         def feedback? = !@test && combined?(@selected)
 
         private
+
+        # Advances an accumulator with no shift in flight. Each rise of bit 19
+        # shifts the LFSR two cycles on, so a rise in the last two cycles
+        # leaves its shift pending for the cycles after.
+        def skip_ahead(cycles)
+          previous = @accumulator
+          @accumulator += @frequency * cycles
+          rises = bit19_rises(previous, @accumulator)
+          if rises.positive?
+            @shift_pipeline = pipeline_after(cycles)
+            rises -= 1 if @shift_pipeline.positive?
+            rises.times { shift_noise }
+          end
+          @accumulator &= 0xffffff
+        end
+
+        # Bit 19 rises at most once a cycle, on each odd multiple of 2^19,
+        # and at most once in any eight.
+        def bit19_rises(from, to) = ((to + 0x80000) >> 20) - ((from + 0x80000) >> 20)
+
+        # How far a rise on one of the last two cycles has come.
+        def pipeline_after(cycles)
+          last = @accumulator - @frequency
+          return 2 if bit19_rises(last, @accumulator).positive?
+          return 1 if cycles > 1 && bit19_rises(last - @frequency, last).positive?
+
+          0
+        end
 
         def drain_floating(cycles)
           return unless @floating_ttl.positive?

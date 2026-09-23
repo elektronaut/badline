@@ -59,6 +59,7 @@ module Badline
         @accumulator = POWER_ON_ACCUMULATOR
         @shift_register = NOISE_SEED
         @shift_register_reset = 0
+        @shift_pipeline = 0
         @frequency = 0x0000
         @pulse_width = 0x000
         @selected = 0x0
@@ -105,6 +106,7 @@ module Badline
         test = value.anybits?(0x08)
         if test
           @accumulator = 0x000000
+          @shift_pipeline = 0
           @shift_register_reset = SHIFT_REGISTER_RESET_DELAY unless @test
         elsif @test
           release_test(previous)
@@ -231,10 +233,12 @@ module Badline
       # through the sawtooth switch it clears the accumulator MSB on the next
       # cycle, and with noise selected it lands in the LFSR, where a bit
       # pulled low can never come back. The 8580 buffers the top bit behind a
-      # flip-flop before the sawtooth switch, so only the LFSR sees it.
+      # flip-flop before the sawtooth switch, so only the LFSR sees it. In the
+      # first phase of a shift the register bits float, so nothing is pulled
+      # down: the output is latched instead, for the second phase to write.
       def feed_back(value)
         @accumulator &= ~MSB if @topbit_feedback && @selected.anybits?(0x2) && value.nobits?(0x800)
-        write_shift_register(value) if @selected.anybits?(0x8)
+        write_shift_register(value) if @selected.anybits?(0x8) && @shift_pipeline != 1
       end
 
       def write_shift_register(value)
@@ -263,11 +267,21 @@ module Badline
         !(@topbit_feedback && [previous & 0x3, selected & 0x3].sort == [0x1, 0x2])
       end
 
+      # A rise of bit 19 starts a shift that takes two more cycles
+      # (SID/noisewriteback's noise_writeback_test2, after libresidfp's shift
+      # pipeline). The first phase latches the output, and the second writes
+      # it over the taps, by the test bit release rule with the waveform left
+      # alone, before the register shifts.
       def advance
         previous = @accumulator
         @accumulator = (previous + @frequency) & 0xffffff
         @msb_rising = previous.nobits?(MSB) && @accumulator.anybits?(MSB)
-        shift_noise if previous.nobits?(0x080000) && @accumulator.anybits?(0x080000)
+        if previous.nobits?(0x080000) && @accumulator.anybits?(0x080000)
+          @shift_pipeline = 2
+        elsif @shift_pipeline.positive? && (@shift_pipeline -= 1).zero?
+          write_shift_register(@output) if release_writes_back?(@selected, @selected)
+          shift_noise
+        end
       end
 
       # Bit 0 feeds back bits 22 and 17, with the test bit forcing bit 22 high.

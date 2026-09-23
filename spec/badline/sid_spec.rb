@@ -210,6 +210,15 @@ describe Badline::SID do
                                [4003, 0x04, 0x90], [6000, 0x04, 0xc1], [9000, 0x04, 0x81]])
     end
 
+    # Pinned by SID/noisewriteback (test2): a shift lands two cycles after
+    # bit 19 rises, so a span can end with one still in flight. Here noise
+    # joins the triangle one and two cycles after a rise, so the register
+    # the triangle pulls down depends on whether the shift has landed.
+    it "carries a noise shift pending across a span edge" do
+      expect_batched_to_match([[0x0f, 0x80], [0x12, 0x88], [0x12, 0x80],
+                               [17, 0x12, 0x90], [20, 0x12, 0x80], [50, 0x12, 0x90]], 100)
+    end
+
     it "bleeds the LFSR through a held test bit" do
       expect_batched_to_match([[0x01, 0x80], [0x04, 0x81], [0x04, 0x88]], 0x9000)
     end
