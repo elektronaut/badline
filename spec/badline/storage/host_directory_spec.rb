@@ -103,9 +103,9 @@ describe Badline::Storage::HostDirectory do
   describe "#read_file with files the host can't read" do
     after { File.chmod(0o755, dir) }
 
-    it "returns nil for an unreadable .prg" do
+    it "returns no bytes for an unreadable .prg" do
       File.chmod(0o000, File.join(dir, "intro.prg"))
-      expect(storage.read_file("INTRO")).to be_nil
+      expect(storage.read_file("INTRO")).to eq([])
     end
 
     it "serves the other files past an unreadable .p00" do
@@ -125,6 +125,25 @@ describe Badline::Storage::HostDirectory do
 
     it "returns nil when the directory is gone" do
       expect(described_class.new(File.join(dir, "gone")).read_file("INTRO")).to be_nil
+    end
+  end
+
+  describe "#read_error" do
+    it "reports an unreadable .prg as a READ ERROR before its first byte" do
+      File.chmod(0o000, File.join(dir, "intro.prg"))
+      expect(storage.read_error("INTRO")).to eq({ error: 21, track: 0, sector: 0, offset: 0 })
+    end
+
+    it "is nil for a readable file" do
+      expect(storage.read_error("INTRO")).to be_nil
+    end
+
+    it "is nil for a .t64 entry" do
+      expect(storage.read_error("MUSIC")).to be_nil
+    end
+
+    it "is nil for an unknown name" do
+      expect(storage.read_error("MISSING")).to be_nil
     end
   end
 

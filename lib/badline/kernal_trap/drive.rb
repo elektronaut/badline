@@ -86,6 +86,15 @@ module Badline
         channel.writable? ? channel.write(bytes) : report(WRITE_PROTECT_ON)
       end
 
+      # A SAVE the trap hands over whole, to storage that can write files.
+      # A write the host refuses fails as a write-protected disk does.
+      # Returns whether the file was written.
+      def save(name, bytes)
+        saved = @storage.write_file(name, bytes)
+        saved ? report(OK) : report(WRITE_PROTECT_ON)
+        saved
+      end
+
       # Whether data sent on the channel reaches the drive. The command
       # channel always listens, other channels once they are open.
       def listening?(secondary)

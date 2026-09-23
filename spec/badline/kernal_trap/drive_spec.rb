@@ -478,6 +478,31 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "a SAVE handed over whole" do
+    let(:storage) { instance_double(Badline::Storage::HostDirectory, write_file: true) }
+
+    it "writes the file" do
+      drive.save("game", [0x01, 0x08])
+      expect(storage).to have_received(:write_file).with("game", [0x01, 0x08])
+    end
+
+    it "reports OK" do
+      drive.save("game", [0x01, 0x08])
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "reports WRITE PROTECT ON when the host refuses the write" do
+      allow(storage).to receive(:write_file).and_return(false)
+      drive.save("game", [0x01, 0x08])
+      expect(status).to eq("26,WRITE PROTECT ON,00,00")
+    end
+
+    it "returns whether the file was written" do
+      allow(storage).to receive(:write_file).and_return(false)
+      expect(drive.save("game", [0x01, 0x08])).to be(false)
+    end
+  end
+
   describe "closing channels" do
     before { drive.open(2, "#") }
 
