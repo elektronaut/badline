@@ -51,6 +51,8 @@ REGRESSION_SUITES = {
 # 16 programs measuring DMA against interrupts over ~450M cycles each,
 # which is nearly all of that subtree's runtime and leaves the remaining
 # 13 rows at about a minute.
+# testbench-carts is the testlist's mountcrt rows, from whichever subtree
+# lists them, for the cartridge types badline has a mapper for.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new programs;
 # :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -59,6 +61,7 @@ OPT_IN_SUITES = {
                               exclude: "interrupts/irqdma/" },
   "testbench-irqdma" => { runner: "bin/testbench", scope: "interrupts/irqdma/" },
   "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" },
+  "testbench-carts" => { runner: "bin/testbench", args: %w[--carts] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 
