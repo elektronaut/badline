@@ -65,7 +65,8 @@ class TestTestbenchCartridges < Minitest::Test
   def setup
     @dir = Dir.mktmpdir
     write_crt("standard.crt", 0)
-    write_crt("actionreplay.crt", 1)
+    write_crt("kcs.crt", 2)
+    File.binwrite(File.join(@dir, "t.prg"), "\x01\x08".b)
   end
 
   def teardown
@@ -90,15 +91,19 @@ class TestTestbenchCartridges < Minitest::Test
   end
 
   def test_drops_a_cartridge_type_without_a_mapper
-    assert_nil parse("mountcrt:actionreplay.crt")
+    assert_nil parse("mountcrt:kcs.crt")
   end
 
   def test_drops_a_missing_cartridge
     assert_nil parse("mountcrt:missing.crt")
   end
 
-  def test_drops_a_program_loaded_alongside_a_cartridge
-    assert_nil parse("mountcrt:standard.crt", prg: "t.prg")
+  def test_names_a_row_that_loads_a_program_after_both
+    assert_equal "#{@dir}/t.prg+standard.crt", parse("mountcrt:standard.crt", prg: "t.prg").id
+  end
+
+  def test_drops_a_missing_program_loaded_alongside_a_cartridge
+    assert_nil parse("mountcrt:standard.crt", prg: "missing.prg")
   end
 
   def test_drops_a_cartridge_that_needs_a_memory_expansion
