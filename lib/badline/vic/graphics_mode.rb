@@ -15,19 +15,29 @@ module Badline
         Array.new(8) { |i| (data >> (6 - (i & ~1))).allbits?(0b10) }.freeze
       end.freeze
 
+      # The same patterns as masks, all bits set for a foreground pixel.
+      HIRES_MASK = Array.new(256) do |data|
+        Array.new(8) { |i| data.anybits?(1 << (7 - i)) ? -1 : 0 }.freeze
+      end.freeze
+
       NO_FG = HIRES_FG[0]
 
       module Hires
         def paint_hires(data, color, background, seq)
-          fg = seq.cur_fg = HIRES_FG[data]
+          seq.cur_fg = HIRES_FG[data]
           colors = seq.cur_colors
           return colors.fill(background) if data.zero?
 
-          i = 0
-          while i < 8
-            colors[i] = fg[i] ? color : background
-            i += 1
-          end
+          mask = HIRES_MASK[data]
+          flip = color ^ background
+          colors[0] = background ^ (flip & mask[0])
+          colors[1] = background ^ (flip & mask[1])
+          colors[2] = background ^ (flip & mask[2])
+          colors[3] = background ^ (flip & mask[3])
+          colors[4] = background ^ (flip & mask[4])
+          colors[5] = background ^ (flip & mask[5])
+          colors[6] = background ^ (flip & mask[6])
+          colors[7] = background ^ (flip & mask[7])
         end
       end
 
