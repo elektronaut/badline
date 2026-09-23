@@ -144,6 +144,23 @@ describe Badline::SID::Waveform do
     end
   end
 
+  describe "#reset!" do
+    it "releases a pulse held low" do
+      waveform.pulse_width_high = 0x0f
+      restart(0x40, frequency: 0x1000, cycles: 2)
+      waveform.reset!
+      expect(waveform.pulse).to eq(0xfff)
+    end
+
+    it "clears the 8580's delayed sawtooth" do
+      chip = described_class.new(model: :mos8580)
+      chip.control = 0x20
+      chip.cycle!
+      chip.reset!
+      expect(chip.tap { |c| c.control = 0x20 }.osc3).to eq(0x000)
+    end
+  end
+
   describe "noise" do
     it "gathers eight taps off the seeded LFSR" do
       expect(waveform.noise).to eq(0xfe0)
