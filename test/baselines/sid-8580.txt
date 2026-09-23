@@ -77,8 +77,8 @@ resid-test/envrate.prg	PASS
 resid-test/envsustain.prg	PASS
 resid-test/envtime.prg	PASS
 resid-test/noisetest.prg	PASS
-resid-test/oscsample0-8580.prg	FAIL	exit=$ff
-resid-test/oscsample1-8580.prg	FAIL	exit=$ff
+resid-test/oscsample0-8580.prg	PASS
+resid-test/oscsample1-8580.prg	PASS
 ringmod/ringmodtest.prg	PASS
 waveforms/waveforms-10-8580.prg	PASS
 waveforms/waveforms-20-8580.prg	PASS
