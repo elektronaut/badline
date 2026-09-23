@@ -302,12 +302,50 @@ only catches the rows that happen to move.
     [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb). Its
     mid-line DEN example separates the left-edge compare from a line-start
     one.
-- Idle-state graphics decode $3fff/$39ff via `GraphicsMode::Idle`
-  (foreground black, background per mode). A guard keeps closed-border
-  lines on the bulk path.
+- The border colour shows where the **main** flip-flop is set, and only
+  there. The vertical flip-flop keeps the main one from clearing at the
+  left compare and withholds the graphics data, but it does not paint
+  border itself. So with the side border held open, the lines inside the
+  vertical border show zero data in the latched colours (VICE x64sc
+  `draw_border8`).
+  - Pinned by `hvborder2`, `border-bm-ysh`, `border-bm-ysh2` and
+    `border-mcbm`, which go back to 8134, 5575, 4598 and 5595 px when
+    either flip-flop paints border (knock-outs measured before the sprite
+    shifter landed; the rows now stand at 3, 50, 71 and 75 px).
+  - Spec guard: *shows the vertical border only through the main
+    flip-flop* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+- Idle-state graphics decode $3fff/$39ff via `GraphicsMode::Idle`: the
+  byte is painted through the current mode with a zero screen byte and
+  colour nibble (foreground black, background per mode). A guard keeps
+  closed-border lines on the bulk path.
   - Pinned by `ss-pri*`, whose diffs collapsed from ~85k px to 220–440 px.
   - Spec guard: the `GraphicsMode::Idle` group in
     [`vic/graphics_mode_spec.rb`](../spec/badline/vic/graphics_mode_spec.rb).
+- A column with no g-access (outside columns 14–53), or one whose
+  g-access falls while the vertical border stays closed for the rest of
+  the line, shifts out **zero data**. It is painted through the current
+  mode with the screen byte and colour nibble the last g-access latched:
+  a display-state one latches its buffer cell, an idle one latches 0/0,
+  and the value carries across lines. So a zero pixel is $d021 in the text
+  and multicolour bitmap modes, the kept screen byte's low nibble in
+  standard bitmap, the ECM background it selects, and black in the
+  invalid modes (VICE x64sc `draw_graphics8`).
+  - Pinned by `sbsprf24-163`/`-164` (401/428 → 34/51 px),
+    `spritefetchbug` (302 → 174), `hvborder1` (191 → 43) and
+    `vicii_reg_timing` (8865 → 1773), which decoded memory at VC there
+    before. The kept colours are pinned by
+    `border-bm-ysh`/`-ysh2`, which go back to 5580/4741 px with 0/0
+    instead.
+  - The top compare line counts as open for the whole line, because the
+    vertical flip-flop only clears at the left compare, two columns after
+    the first g-accesses are sampled. Without that, every picture loses
+    the start of its first line (`greydot`, `dmadelay`, `dentest`).
+  - Spec guard: *a column with no g-access* in
+    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+- The XSCROLL bleed at column 0 takes its pixels from the group before
+  it, the zero-data group, rather than filling with $d021. Only
+  `border-bm-ysh2` separates the two (+6 px).
 
 ## VIC bad line and DMA
 
@@ -356,10 +394,10 @@ only catches the rows that happen to move.
   - Pinned by `split-tests/bascan`, a per-cycle dump of when the stall
     first catches a CIA timer read. Its `$d012` reads are the same dump's
     check that the raster sync itself did not move.
-  - The end is not observable in `bascan`. Measured before the display
-    state was re-phased, a 45-cycle stall that keeps the old end (CPU
-    halted through the cycle after column 54) breaks `colorfetchbug`,
-    `vborder*` and `spriteenable3`–`5`.
+  - The end is pinned too. Re-measured in this frame, a 45-cycle stall
+    (CPU halted through the cycle after column 54) breaks `bascan`
+    itself, all five `colorfetchbug` rows, `flibug/blackmail*`,
+    `spriteenable3`–`5` and several `vborder*` rows.
   - Spec guard: *#ba_low?* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - The DEN latch is level-sensitive across the raster counter's increment,
   so its window runs from the last column of line 47 through the last
