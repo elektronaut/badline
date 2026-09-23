@@ -184,8 +184,8 @@ trap stalls the Lorenz chain.
 `ruby --yjit bin/benchmark` measures post-boot speed. Absolute numbers
 depend on the machine and its load: parallel worktrees running suites can
 cost 20% or more, and wall-clock variance is ±15% even when idle. For an
-A/B, run `ruby --yjit bin/profile <idle|game|synth> --compare <sha>`. It pins
-the base to a commit, because another worktree's fetch can move
+A/B, run `ruby --yjit bin/profile <idle|text|game|synth> --compare <sha>`.
+It pins the base to a commit, because another worktree's fetch can move
 `origin/main` mid-comparison. It also times in process CPU time, which holds
 about ±3% under load. Without `--compare`, `bin/profile` samples with
 stackprof and splits self time by subsystem. It drops stackprof's GC
