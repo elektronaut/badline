@@ -16,7 +16,6 @@ module Badline
     def_delegator :@icr, :status, :interrupt_status
     def_delegator :@icr, :mask,   :interrupt_control
     def_delegator :@icr, :assert!, :interrupt!
-    def_delegator :@icr, :interrupted?
 
     def_delegator :@ta, :counter,  :timer_a
     def_delegator :@ta, :counter=, :timer_a=
@@ -37,10 +36,12 @@ module Badline
       @data_dir_b = 0x0
       @port_b4_handler = nil
       @port_b4_high = true
+      @port_b4_driven_high = true
       @cnt_high = true
       @cnt_rise = false
       @tod = TimeOfDay.new
       @icr = InterruptRegister.new
+      @icr_status = @icr.status
       @control_a = Status.new(%i[start output out_mode run_mode load
                                  in_mode serial_mode clock_frequency])
       @control_b = Status.new(%i[start output out_mode run_mode load
@@ -60,12 +61,14 @@ module Badline
     # line drives it, on CIA 2 the serial bus SRQ.
     def flag! = raise_interrupt(:flag)
 
+    def interrupted? = @icr_status.value >= 0x80
+
     def cycle!
       @icr.cycle!
-      refresh_port_b4
-      sample_cnt
-      update_timers
-      @serial.cycle!(@ta.underflowed) { trigger_serial }
+      refresh_port_b4 if @port_b4_handler
+      level = @serial.cnt
+      level == @cnt_high ? @cnt_rise = false : cnt_edge(level)
+      @serial.cycle!(update_timers) { trigger_serial }
       @tod.cycle! { trigger_alarm }
     end
 
@@ -134,17 +137,15 @@ module Badline
 
     def update_port_b
       yield
-      refresh_port_b4
+      @port_b4_driven_high = driven_lines(@data_port_b, @data_dir_b).anybits?(0x10)
+      refresh_port_b4 if @port_b4_handler
     end
 
     # PB4 is also control port 1's fire line, and a peripheral pulls it low
     # without any register write, so the level is resampled every cycle rather
     # than only after a poke.
     def refresh_port_b4
-      return unless @port_b4_handler
-
-      high = driven_lines(@data_port_b, @data_dir_b).anybits?(0x10) &&
-             (peripheral.nil? || peripheral.port_b4_high?)
+      high = @port_b4_driven_high && (peripheral.nil? || peripheral.port_b4_high?)
       return if high == @port_b4_high
 
       @port_b4_high = high
@@ -174,37 +175,39 @@ module Badline
 
     # CNT is sampled once a cycle. When the serial port drives it from this
     # cycle's timer A underflow, the new level is picked up on the next one.
-    def sample_cnt
-      level = @serial.cnt
-      return @cnt_rise = false if level == @cnt_high
-
+    def cnt_edge(level)
       @cnt_high = level
       @cnt_rise = level
       @serial.rising_edge! { trigger_serial } if level
     end
 
+    # Returns whether timer A underflowed, which clocks the serial port.
     def update_timers
       @ta.cycle!(@control_a.value.nobits?(0x20) || @cnt_rise)
-      cycle_timer_b
-      if @ta.underflowed
+      underflowed = @ta.underflowed
+      if @control_b.value.nobits?(0x60)
+        @tb.cycle!(true)
+      else
+        cycle_timer_b(underflowed)
+      end
+      if underflowed
         interrupt_status.timer_a = true
         interrupt! if interrupt_control.timer_a?
       end
-      return unless @tb.underflowed
-
-      @icr.timer_b_underflow!
+      @icr.timer_b_underflow! if @tb.underflowed
+      underflowed
     end
 
     # CRB bits 6-5 pick timer B's source: ø2, CNT edges, timer A
     # underflows, or timer A underflows gated by the CNT level. Every source
     # drives the same count-enable line, so a cascaded underflow goes through
-    # the input pipeline exactly as a CNT edge does.
-    def cycle_timer_b
+    # the input pipeline exactly as a CNT edge does. #update_timers takes
+    # ø2 itself.
+    def cycle_timer_b(timer_a_underflowed)
       case @control_b.value & 0x60
-      when 0x00 then @tb.cycle!(true)
       when 0x20 then @tb.cycle!(@cnt_rise)
-      when 0x40 then @tb.cycle!(@ta.underflowed)
-      else           @tb.cycle!(@ta.underflowed && @cnt_high)
+      when 0x40 then @tb.cycle!(timer_a_underflowed)
+      else           @tb.cycle!(timer_a_underflowed && @cnt_high)
       end
     end
 

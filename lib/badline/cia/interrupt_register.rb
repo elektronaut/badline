@@ -14,25 +14,29 @@ module Badline
         @pending = 0
         @read = @read_last_cycle = @read_two_cycles_ago = nil
         @timer_b_bug = false
+        @quiet = true
       end
 
+      # Quiet while no read is recent enough to matter and no assert is due.
       def cycle!
+        return if @quiet
+
         @read_two_cycles_ago = @read_last_cycle
         @read_last_cycle = @read
         @read = nil
-        return unless @pending.positive?
-
-        @pending -= 1
-        status.interrupt = true if @pending.zero?
+        if @pending.positive?
+          @pending -= 1
+          status.interrupt = true if @pending.zero?
+        end
+        @quiet = @pending.zero? && @read_last_cycle.nil? && @read_two_cycles_ago.nil?
       end
 
-      def interrupted?
-        status.value.anybits?(0x80)
-      end
+      def interrupted? = status.value >= 0x80
 
       # Schedules IR to rise after delay cycles, keeping an earlier one.
       def assert!(delay = 1)
         @pending = @pending.positive? ? [@pending, delay].min : delay
+        @quiet = false
       end
 
       # Latch a source, pulling the interrupt line if it is armed.
@@ -57,6 +61,7 @@ module Badline
         @timer_b_bug = false
         value = status.value
         @read = @pending == 1 ? value | 0x80 : value
+        @quiet = false
         value |= 0x80 if @read_last_cycle&.anybits?(0x80)
         status.value = 0x0
         @pending = 0
