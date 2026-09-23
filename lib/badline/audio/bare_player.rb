@@ -32,6 +32,9 @@ module Badline
         @tune = tune
         @song = (song || tune.start_song).clamp(1, tune.songs) - 1
         @bus = AddressBus.new(sid_model:)
+        # The CPU port as the KERNAL leaves it, which a PSID tune expects.
+        @bus.poke(0x00, 0x2f)
+        @bus.poke(0x01, 0x37)
         @cpu = CPU.new(@bus)
         @sid = @bus.sid
         @idle = false

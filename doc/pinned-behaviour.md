@@ -810,6 +810,12 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
 - DDR at `$00`/`$01`: inputs are pulled up, bit 5 reads low, and bits 3, 6
   and 7 float.
 - Pinned by Lorenz `mmu` and `cpuport`.
+- DDR and data both power on at `$00`, so `$00` reads `$00` and `$01` reads
+  `$17` until the KERNAL sets them.
+  - Pinned by `CPU/cpuport/initvalue.crt`, which runs from a cartridge
+    before the KERNAL does.
+  - Spec guard: *when powered on* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
 
 ## SID oscillator
 

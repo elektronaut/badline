@@ -42,6 +42,7 @@ describe Badline::Cartridge do
     end
 
     it "unmaps ROML when LORAM is cleared" do
+      address_bus[0x00] = 0x2f
       address_bus[0x01] = 0b00110110
       expect(address_bus[0x8000]).to eq(0x00)
     end

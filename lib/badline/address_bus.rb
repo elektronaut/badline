@@ -76,8 +76,8 @@ module Badline
       @color_ram = ColorMemory.new(@vic)
       @open_bus = OpenBus.new(@vic)
 
-      @port_ddr = 0x2f
-      @port_out = 0x37
+      @port_ddr = 0x00
+      @port_out = 0x00
       @port_floating = 0x00
       @io_port = Status.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
 
@@ -94,6 +94,7 @@ module Badline
     end
 
     def disable_overlays!
+      poke(0, 0x2f)
       poke(1, 0)
     end
 
