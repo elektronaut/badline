@@ -141,6 +141,31 @@ RSpec.describe Badline::VIC do
       end
     end
 
+    # The compare latches only as the line and the target come to match, so
+    # a target stepped along with the raster line holds the match. Pinned by
+    # rasterirq_hold, which fails when the line step latches on any match.
+    context "with the target stepped along with the raster line" do
+      before do
+        vic.poke(0xd012, 18)
+        ((19 * 63) - 1).times { vic.cycle! } # line 18, column 62
+        vic.poke(0xd019, 0x01)
+        vic.poke(0xd012, 19)
+        vic.cycle! # the step to line 19
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(0) }
+    end
+
+    context "when a write moves the target onto the current line" do
+      before do
+        ((20 * 63) + 30).times { vic.cycle! }
+        vic.poke(0xd019, 0x01)
+        vic.poke(0xd012, 20)
+      end
+
+      specify { expect(vic.peek(0xd019) & 0x01).to eq(1) }
+    end
+
     context "when raster target requires 9 bits using register 0x11" do
       before do
         vic.poke(0xd011, 0x80)
