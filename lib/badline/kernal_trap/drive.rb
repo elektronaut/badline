@@ -20,7 +20,16 @@ module Badline
 
       MESSAGES = {
         OK => " OK",
+        20 => "READ ERROR",
+        21 => "READ ERROR",
+        22 => "READ ERROR",
+        23 => "READ ERROR",
+        24 => "READ ERROR",
+        25 => "WRITE ERROR",
         WRITE_PROTECT_ON => "WRITE PROTECT ON",
+        27 => "READ ERROR",
+        28 => "WRITE ERROR",
+        29 => "DISK ID MISMATCH",
         SYNTAX_ERROR => "SYNTAX ERROR",
         FILE_NOT_FOUND => "FILE NOT FOUND",
         ILLEGAL_TRACK_OR_SECTOR => "ILLEGAL TRACK OR SECTOR",
@@ -116,7 +125,14 @@ module Badline
 
         buffer.replace(counted ? data[0, data[0] + 1] : data)
         buffer.pointer = 1 if counted
-        report(OK)
+        report_block_error(track, sector)
+      end
+
+      # A block the image's error table marks bad still fills the buffer,
+      # but the read reports its error, which copy protection checks for.
+      def report_block_error(track, sector)
+        error = @storage.block_error(track, sector)
+        error ? report(error, track, sector) : report(OK)
       end
 
       # B-R takes the block's first byte as the index of its last one, and

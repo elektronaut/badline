@@ -109,4 +109,39 @@ describe Badline::Storage::D64Image do
       expect(image.read_block(36, 0)).to be_nil
     end
   end
+
+  describe "#block_error" do
+    it "reports no error for an image without an error table" do
+      expect(image.block_error(17, 0)).to be_nil
+    end
+
+    context "with an error table" do
+      before do
+        errors = Array.new(683, 1)
+        errors[(17 * 21) + 18] = 5 # track 18, sector 18
+        errors[(16 * 21) + 1] = 15 # track 17, sector 1
+        File.binwrite(path, (bytes + errors).pack("C*"))
+      end
+
+      it "reports a clean block as readable" do
+        expect(image.block_error(17, 0)).to be_nil
+      end
+
+      it "maps a checksum error to DOS error 23" do
+        expect(image.block_error(18, 18)).to eq(23)
+      end
+
+      it "maps a missing drive to DOS error 74" do
+        expect(image.block_error(17, 1)).to eq(74)
+      end
+
+      it "keeps the table out of the blocks" do
+        expect(image.read_block(36, 0)).to be_nil
+      end
+
+      it "still reads files" do
+        expect(image.read_file("data").length).to eq(258)
+      end
+    end
+  end
 end
