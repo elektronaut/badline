@@ -123,6 +123,22 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "an old-style block read" do
+    before do
+      allow(storage).to receive(:read_block).and_return([3, 10, 20, 30, 40, 50])
+      drive.open(5, "#")
+      command("b-r:5,0,2,15\r")
+    end
+
+    it "reads the requested block" do
+      expect(storage).to have_received(:read_block).with(2, 15)
+    end
+
+    it "hands out the bytes its first byte counts" do
+      expect(read_channel(5)).to eq([10, 20, 30])
+    end
+  end
+
   describe "a block read without an open buffer" do
     before { command("u1 2 0 18 1") }
 
