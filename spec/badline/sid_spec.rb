@@ -202,6 +202,11 @@ describe Badline::SID do
                                [3000, 0x04, 0x31], [9000, 0x04, 0x21], [12_000, 0x0b, 0x71]])
     end
 
+    it "fast-forwards a combined triangle and pulse" do
+      expect_batched_to_match([[0x01, 0x5c], [0x03, 0x08], [0x04, 0x51], [0x05, 0x09], [0x0b, 0x31],
+                               [7000, 0x04, 0x55], [7000, 0x12, 0x51]])
+    end
+
     # Dag Lem's LFSR reset runs through the writeback and the test bit
     # release, in the middle of a batched run.
     it "steps noise written back into the LFSR" do
