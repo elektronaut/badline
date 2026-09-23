@@ -106,7 +106,23 @@ describe Badline::SID::Waveform do
     it "reads low below the pulse width" do
       waveform.pulse_width_low = 0xff
       waveform.pulse_width_high = 0x0f
+      waveform.cycle!
       expect(waveform.pulse).to eq(0x000)
+    end
+
+    # Pinned by SID/resid-test's oscsample1 and SID/waveforms' waveforms-40
+    # (both chips): at frequency $1000 the phase reaches a width of $100 on
+    # cycle $100, and the output follows on cycle $101.
+    it "reaches the output a cycle after the accumulator it compared" do
+      waveform.pulse_width_high = 0x01
+      restart(0x40, frequency: 0x1000, cycles: 0x100)
+      expect(waveform.output).to eq(0x000)
+    end
+
+    it "has reached it the cycle after that" do
+      waveform.pulse_width_high = 0x01
+      restart(0x40, frequency: 0x1000, cycles: 0x101)
+      expect(waveform.output).to eq(0xfff)
     end
 
     it "reads high from the pulse width up" do

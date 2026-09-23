@@ -18,6 +18,9 @@ module Badline
     # itself is approximated by ANDing the shapers — the analog result only
     # comes out of sampled tables.
     #
+    # The pulse comparator's output reaches the lines a cycle after the
+    # accumulator it compared.
+    #
     # With nothing selected the DAC input floats, holding the last value
     # driven onto it until the charge drains away.
     class Waveform
@@ -50,7 +53,7 @@ module Badline
                     [0x000004, 0x020], [0x000001, 0x010]].freeze
 
       attr_accessor :sync_source, :sync_dest
-      attr_reader :accumulator, :shift_register, :frequency, :pulse_width
+      attr_reader :accumulator, :shift_register, :frequency, :pulse_width, :pulse
 
       def initialize(model: :mos6581)
         @topbit_feedback = model != :mos8580
@@ -76,6 +79,7 @@ module Badline
         @msb_rising = false
         @floating = 0x000
         @floating_ttl = 0
+        @pulse = 0xfff
         @output = 0x000
         @stale = true
       end
@@ -111,6 +115,7 @@ module Badline
         test = value.anybits?(0x08)
         if test
           @accumulator = 0x000000
+          @pulse = 0xfff
           @shift_pipeline = 0
           @shift_register_reset = SHIFT_REGISTER_RESET_DELAY unless @test
         elsif @test
@@ -122,6 +127,7 @@ module Badline
 
       def cycle!
         latch_output
+        compare_pulse
         @test ? bleed_shift_register : advance
         @stale = true
       end
@@ -171,10 +177,6 @@ module Badline
         (folded >> 11) & 0xfff
       end
 
-      def pulse
-        @test || (@accumulator >> 12) >= @pulse_width ? 0xfff : 0x000
-      end
-
       # Eight taps off the 23-bit LFSR, gathered into a 12-bit sample.
       def noise
         ((@shift_register & 0x100000) >> 9) |
@@ -207,6 +209,8 @@ module Badline
         value &= noise              if selected.anybits?(0x8)
         value
       end
+
+      def compare_pulse(phase = @accumulator >> 12) = (@pulse = @test || phase >= @pulse_width ? 0xfff : 0x000)
 
       def tri_saw
         value = 0xfff
