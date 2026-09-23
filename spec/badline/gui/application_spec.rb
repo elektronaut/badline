@@ -41,12 +41,12 @@ describe Badline::GUI::Application do
   describe "the SID model" do
     it "fits the machine with the one asked for" do
       described_class.new(sid_model: :mos8580)
-      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos8580)
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos8580)
     end
 
     it "fits a 6581 by default" do
       described_class.new
-      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos6581)
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581)
     end
   end
 
