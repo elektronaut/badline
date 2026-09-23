@@ -320,9 +320,63 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
-  describe "writing to a data channel" do
+  describe "writing to a buffer channel" do
+    def buffer_at(position, count = 1)
+      command("b-p 2 #{position}")
+      Array.new(count) { drive.read(2).first }
+    end
+
     before do
       drive.open(2, "#")
+      command("b-p 2 1")
+      drive.write(2, [0x41, 0x42, 0x43])
+    end
+
+    it "leaves the status alone" do
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "fills the buffer from the pointer" do
+      expect(buffer_at(0, 4)).to eq([0x00, 0x41, 0x42, 0x43])
+    end
+
+    it "wraps the pointer within the block" do
+      command("b-p 2 255")
+      drive.write(2, [0x0d, 0x0e])
+      expect(buffer_at(0)).to eq([0x0e])
+    end
+
+    it "stores the index of the last byte written on B-W" do
+      command("b-w 2 0 18 1")
+      expect(buffer_at(0)).to eq([3])
+    end
+
+    it "stores 1 on B-W when nothing has been written" do
+      command("b-p 2 0")
+      command("b-w 2 0 18 1")
+      expect(buffer_at(0)).to eq([1])
+    end
+
+    it "leaves the pointer at 1 after B-W" do
+      command("b-w 2 0 18 1")
+      expect(drive.read(2)).to eq([0x41, false])
+    end
+
+    it "keeps the block as it is on U2" do
+      command("u2 2 0 18 1")
+      expect(buffer_at(0)).to eq([0x00])
+    end
+
+    it "keeps the image's block out of it" do
+      command("u1 2 0 18 1")
+      drive.write(2, [0xff])
+      expect(storage.read_block(18, 1).first).to eq(0)
+    end
+  end
+
+  describe "writing to a file channel" do
+    before do
+      drive.open(2, "data")
       drive.write(2, [0xaa])
     end
 

@@ -11,9 +11,16 @@ module Badline
       attr_accessor :pointer
       attr_reader :error
 
-      def initialize(bytes = [], error: nil)
+      def initialize(bytes = [], error: nil, writable: false)
         replace(bytes)
         @error = error
+        @writable = writable
+      end
+
+      # A block buffer opened with "#". It takes the bytes written to it,
+      # and hands out the whole block unless a B-R sets a shorter end.
+      def self.buffer
+        new(Array.new(Drive::BLOCK_SIZE, 0), writable: true)
       end
 
       # A file's bytes, up to the first block its chain can't read. The
@@ -30,13 +37,24 @@ module Badline
         new(data[0, failure[:offset] - 1] || [], error: failure.values_at(:error, :track, :sector))
       end
 
-      def replace(bytes)
+      def replace(bytes, length = bytes.length)
         @bytes = bytes
+        @length = length
         @pointer = 0
       end
 
+      def writable? = @writable
+
       def exhausted?
-        @pointer >= @bytes.length
+        @pointer >= @length
+      end
+
+      # Each byte lands at the pointer, which wraps within the block.
+      def write(bytes)
+        bytes.each do |byte|
+          @bytes[@pointer] = byte
+          @pointer = (@pointer + 1) & 0xff
+        end
       end
 
       def read
