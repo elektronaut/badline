@@ -261,10 +261,11 @@ describe Badline::SID do
       expect(sid.drain_samples).to be_empty
     end
 
+    # 176_790 * e^(-50_000 * 105 / 2^20) over the sample divisor.
     it "records the silent 6581 mix settling off its DC offset" do
       sid[0xd418] = 0x0f
       50_000.times { sid.cycle! }
-      expect(sid.drain_samples.last).to eq(226)
+      expect(sid.drain_samples.last).to eq(107)
     end
 
     # A chunk of 1 is the exact per-cycle filter, window for window.
@@ -323,22 +324,24 @@ describe Badline::SID do
       expect(sid.filter.mix).to eq(176_790)
     end
 
-    # The RC network on the board strips that offset back off, down to the
-    # residual its high-pass integrator stalls on.
+    # The RC network on the board strips that offset back off, over the
+    # high-pass's 10 ms time constant.
     it "drains the DC offset off the output" do
-      50_000.times { sid.cycle! }
-      expect(sid.output).to eq(9986)
+      100_000.times { sid.cycle! }
+      expect(sid.output.abs).to be < 10
     end
 
     it "scales the mix into a signed 16-bit sample" do
       100.times { sid.cycle! }
-      expect(sid.sample).to eq(15_931)
+      expect(sid.sample).to eq(15_927)
     end
 
+    # Less the charge the high-pass took in the one cycle at full volume,
+    # which it gives back over its time constant.
     it "is silent at volume zero" do
       sid[0xd418] = 0x00
       1000.times { sid.cycle! }
-      expect(sid.output).to eq(0)
+      expect(sid.output).to be_within(20).of(0)
     end
 
     it "swings the mix with an open voice" do
