@@ -47,7 +47,7 @@ module Badline
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :ultimax, :datasette
+                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette
 
     def initialize(sid_model: :mos6581)
       @ram = Memory.new([0xff, 0x07], length: 2**16, start: 0)
@@ -155,6 +155,7 @@ module Badline
     # of range checks.
     def update_overlays!
       @ultimax = @cartridge ? @cartridge.ultimax? : false
+      @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
       @read_pages.fill(@ram)
       @write_pages.fill(@ram)
 
@@ -196,11 +197,13 @@ module Badline
     end
 
     # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
-    # I/O always visible and open address space everywhere else.
+    # I/O always visible and open address space everywhere else. Cartridge
+    # RAM at ROML takes the writes there.
     def map_ultimax_pages
       @read_pages.fill(@open_bus, 0x10, 0xf0)
       @write_pages.fill(@open_bus, 0x10, 0xf0)
       @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
+      map_cartridge_ram_bank(@cartridge.roml, 0x80)
       @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
       map_io_pages
     end

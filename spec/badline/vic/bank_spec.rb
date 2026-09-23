@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../../support/cartridge_builder"
 
 describe Badline::VIC::Bank do
   subject(:vic_bank) { described_class.new }
@@ -42,5 +43,23 @@ describe Badline::VIC::Bank do
     end
 
     it { is_expected.to eq(0x0b) }
+  end
+
+  context "with a cartridge in Ultimax mode for the CPU's half of the cycle only" do
+    include CartridgeBuilder
+
+    before do
+      cartridge = build_cartridge(36, (0..3).map { |n| chip(bank: n, fill: 0x10 * (n + 1)) })
+      vic_bank.address_bus.attach_cartridge(cartridge)
+      vic_bank.address_bus.poke(0xde00, 0x03)
+    end
+
+    it "reads the character ROM in the first half" do
+      expect(vic_bank.peek(0x1000)).to eq(vic_bank.address_bus.character_rom.peek(0xd000))
+    end
+
+    it "reads ROMH in the second half" do
+      expect(vic_bank.peek_phi2(0x3000)).to eq(0x10)
+    end
   end
 end

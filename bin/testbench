@@ -26,7 +26,10 @@
 # Each starts a fresh machine with the cartridge attached at power-on, the
 # way VICE starts it, and runs for the testlist budget alone. A row is
 # listed only when badline has a mapper for its cartridge's hardware type.
-# Its id names the .crt, since the row has no program of its own.
+# Its id names the .crt when the row has no program of its own. A row that
+# also loads a program boots with the cartridge attached, loads the program
+# as the other rows do and gets their boot allowance; its id names both,
+# as prg+crt.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -115,7 +118,13 @@ module Testbench
 
   TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence) do
     def id
-      "#{dir.delete_prefix('../').delete_prefix('./')}/#{prg.empty? ? cartridge : prg}"
+      "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
+    end
+
+    def name
+      return cartridge if prg.empty?
+
+      cartridge ? "#{prg}+#{cartridge}" : prg
     end
 
     # Unique where the id is not: should the testlist run a program twice,
@@ -204,11 +213,10 @@ module Testbench
       options.find { |option| option.start_with?(CARTRIDGE_OPTION) }&.delete_prefix(CARTRIDGE_OPTION)
     end
 
-    # Rows that load a program alongside the cartridge all use freezers,
-    # which badline has no mapper for.
     def runnable_cartridge?(test)
       return false if UNSUPPORTED_CARTRIDGES.include?(test.id)
-      return false unless test.prg.empty? && File.exist?(test.cartridge_path)
+      return false unless File.exist?(test.cartridge_path)
+      return false unless test.prg.empty? || File.exist?(File.join(test.dir_abs, test.prg))
 
       Badline::Cartridge::HARDWARE_TYPES.key?(Badline::Storage::CRTFile.new(test.cartridge_path).hardware_type)
     end
@@ -478,7 +486,8 @@ module Testbench
       booted(test).run(deadline) { |computer| run_test(test, computer) }
     end
 
-    # A cartridge test starts from power-on, so its machine is never booted.
+    # A cartridge test starts from power-on, so its machine is never booted:
+    # one that loads a program boots in the child, with the cartridge in.
     def booted(test)
       if test.cartridge
         @powered_on ||= ForkedBoot.new(FORWARDED_SIGNALS) { Badline::Computer.new }
@@ -488,7 +497,7 @@ module Testbench
     end
 
     def budget(test)
-      test.cartridge ? test.timeout : test.timeout + BOOT_ALLOWANCE
+      test.prg.empty? ? test.timeout : test.timeout + BOOT_ALLOWANCE
     end
 
     def timed
@@ -547,7 +556,8 @@ module Testbench
     end
 
     def attach(test, computer)
-      return Badline::Media.attach(computer, test.cartridge_path) if test.cartridge
+      Badline::Media.attach(computer, test.cartridge_path) if test.cartridge
+      return if test.prg.empty?
 
       computer.mount(Badline::Storage::HostDirectory.new(test.dir_abs))
       Badline::Media.attach(computer, File.join(test.dir_abs, test.prg))

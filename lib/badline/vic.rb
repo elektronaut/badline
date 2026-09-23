@@ -444,7 +444,7 @@ module Badline
     end
 
     def video_matrix(index)
-      vic_bank.peek(@registers.screen_base + index)
+      vic_bank.peek_phi2(@registers.screen_base + index)
     end
 
     def start_line!

@@ -18,7 +18,7 @@ module Badline
       end
 
       def peek(offset)
-        return ultimax_peek(offset) if @address_bus.ultimax
+        return ultimax_peek(offset) if @address_bus.phi1_ultimax
 
         bits = bank_switch_register
         if bits.allbits?(0b01) && (offset & 0xf000) == 0x1000
@@ -26,6 +26,13 @@ module Badline
         else
           @address_bus.ram.peek(BANK_STARTS[bits] + offset)
         end
+      end
+
+      # A fetch in the second half of the cycle, the c-access, sees the
+      # memory configuration the CPU does in that half. No cartridge drives
+      # Ultimax mode in the first half alone, so otherwise it reads as #peek.
+      def peek_phi2(offset)
+        @address_bus.ultimax ? ultimax_peek(offset) : peek(offset)
       end
 
       def peek_color(offset)
@@ -38,7 +45,7 @@ module Badline
 
       # True if the VIC reads the character ROM at this offset.
       def character_rom?(offset)
-        !@address_bus.ultimax && bank_switch_register.allbits?(0b01) && (offset & 0xf000) == 0x1000
+        !@address_bus.phi1_ultimax && bank_switch_register.allbits?(0b01) && (offset & 0xf000) == 0x1000
       end
 
       def start

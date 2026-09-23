@@ -15,7 +15,7 @@ describe Badline::Cartridge do
 
   describe ".from_crt" do
     it "raises on unsupported hardware types" do
-      expect { described_class.from_crt(crt(hardware_type: 3, exrom: 0, game: 1, chips: [])) }
+      expect { described_class.from_crt(crt(hardware_type: 2, exrom: 0, game: 1, chips: [])) }
         .to raise_error(described_class::UnsupportedTypeError)
     end
   end
@@ -27,6 +27,11 @@ describe Badline::Cartridge do
     end
 
     before { address_bus.attach_cartridge(cartridge) }
+
+    it "ignores the freeze button" do
+      cartridge.press_button
+      expect(cartridge.nmi?).to be(false)
+    end
 
     it "maps ROML at $8000" do
       expect(address_bus[0x8000]).to eq(0x42)

@@ -62,7 +62,7 @@ without YJIT, which is otherwise switched on at startup.
 | `.d64`, `.d71`, `.d81` | Mounted read-only as device 8, then `LOAD"*",8,1` and `RUN` |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
-| `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types, including freezers, are rejected |
+| `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
 | A directory | Mounted read-write as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
@@ -185,10 +185,12 @@ light pen registers.
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann Learning,
   Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon / Super Zaxxon,
-  Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD and GMod2.
-  EasyFlash and GMod2 flash is read-only: writes to it are ignored, so
-  games that save to the cartridge can't, and the GMod2 EEPROM isn't
-  there.
+  Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD and GMod2, and
+  the freezers Action Replay (v4.2 to v6), Atomic Power / Nordic Power,
+  Retro Replay / Nordic Replay and Final Cartridge III / III+.
+  EasyFlash, GMod2 and Retro Replay flash is read-only: writes to it are
+  ignored, so games that save to the cartridge can't, and the GMod2
+  EEPROM and the Retro Replay clock port aren't there.
 
 Known gaps:
 
@@ -199,8 +201,8 @@ Known gaps:
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.
 - No NTSC machine, no REU, and no `RESTORE` key.
-- No freezer cartridges (Action Replay, Final Cartridge III, Retro
-  Replay), which need a freeze button.
+- The emulator window has no freeze button yet, so a freezer cartridge
+  runs its menu but can't freeze a program.
 
 ## Contributing
 
