@@ -60,22 +60,22 @@ wb_testsuite/noise_writeback_check_D_to_8_old.prg	PASS
 wb_testsuite/noise_writeback_check_D_to_9_old.prg	PASS
 wb_testsuite/noise_writeback_check_D_to_A_old.prg	PASS
 wb_testsuite/noise_writeback_check_D_to_B_old.prg	PASS
-wb_testsuite/noise_writeback_check_D_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_D_to_C_old.prg	PASS
 wb_testsuite/noise_writeback_check_D_to_D_old.prg	PASS
-wb_testsuite/noise_writeback_check_D_to_E_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_D_to_E_old.prg	PASS
 wb_testsuite/noise_writeback_check_D_to_F_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_8_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_9_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_A_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_B_old.prg	PASS
-wb_testsuite/noise_writeback_check_E_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_E_to_C_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_E_old.prg	PASS
 wb_testsuite/noise_writeback_check_E_to_F_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_8_old.prg	FAIL	exit=$ff
 wb_testsuite/noise_writeback_check_F_to_9_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_A_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_B_old.prg	PASS
-wb_testsuite/noise_writeback_check_F_to_C_old.prg	FAIL	exit=$ff
+wb_testsuite/noise_writeback_check_F_to_C_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_D_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_E_old.prg	PASS
 wb_testsuite/noise_writeback_check_F_to_F_old.prg	PASS

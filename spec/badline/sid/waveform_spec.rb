@@ -318,6 +318,23 @@ describe Badline::SID::Waveform do
       it "writes back trading triangle for sawtooth on the 8580" do
         expect(release(0x9, 0xa, model: :mos8580)).to eq(0x576bb4)
       end
+
+      # Pinned by SID/wb_testsuite (D->C, D->E, E->C and F->C on the 6581):
+      # the three lowest noise lines are written low.
+      it "writes pulse+noise's lowest lines low when only it stays selected on the 6581" do
+        expect(release(0xd, 0xc)).to eq(0x7fffb4)
+      end
+
+      # Pinned by SID/wb_testsuite (C->9 and C->E on the 8580) and
+      # SID/wf12nsr's pulse+noise row: two noise lines are written low.
+      it "writes pulse+noise's writeback shape on the 8580" do
+        expect(release(0xc, 0x9, model: :mos8580)).to eq(0x7ffff4)
+      end
+
+      # Pinned by SID/wb_testsuite (C->A on the 8580).
+      it "writes nothing back trading pulse for sawtooth on the 8580" do
+        expect(release(0xc, 0xa, model: :mos8580)).to eq(0x7ffffc)
+      end
     end
   end
 
@@ -477,8 +494,43 @@ describe Badline::SID::Waveform do
     end
 
     it "ANDs noise over the rest of a combined waveform" do
+      restart(0x10, frequency: 0x3500, cycles: 0x100)
+      waveform.control = 0x90
+      expect(waveform.output).to eq(0x6a0 & 0xfc0)
+    end
+
+    # Pinned by SID/wf12nsr (the noise+triangle and noise+sawtooth rows): the
+    # LFSR is written by a lower threshold than OSC3 reads, so a line left
+    # high between two low ones reads high but is written low.
+    it "writes a lone line of a noise combination back low" do
+      restart(0x10, frequency: 0x3500, cycles: 0x100)
+      waveform.control = 0x90
+      waveform.cycle!
+      expect(waveform.noise).to eq(0x600)
+    end
+
+    it "drops pulse+noise's two lowest noise lines on the 6581" do
       restart(0xc0, frequency: 0x0000)
-      expect(waveform.output).to eq(waveform.noise)
+      expect(waveform.output).to eq(0xfe0 & 0xfc0)
+    end
+
+    # Pinned by SID/wf12nsr's pulse+noise row on the 8580: it reads $f8
+    # while the register keeps $fc.
+    context "with pulse+noise on the 8580" do
+      subject(:waveform) { described_class.new(model: :mos8580) }
+
+      before do
+        restart(0xc0, frequency: 0x0000)
+        waveform.cycle!
+      end
+
+      it "drops the three lowest noise lines from the output" do
+        expect(waveform.output).to eq(0xf80)
+      end
+
+      it "writes only the two lowest back" do
+        expect(waveform.noise).to eq(0xfc0)
+      end
     end
 
     it "follows the single selected waveform" do
