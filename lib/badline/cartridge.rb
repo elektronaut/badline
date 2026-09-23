@@ -2,8 +2,12 @@
 
 require "badline/cartridge/bank"
 require "badline/cartridge/standard"
+require "badline/cartridge/simons_basic"
 require "badline/cartridge/ocean"
+require "badline/cartridge/westermann"
+require "badline/cartridge/rex_utility"
 require "badline/cartridge/magic_desk"
+require "badline/cartridge/mach5"
 
 module Badline
   class Cartridge
@@ -13,7 +17,8 @@ module Badline
     BANK_SIZE = 0x2000
 
     HARDWARE_TYPES = {
-      0 => :Standard, 5 => :Ocean, 19 => :MagicDesk
+      0 => :Standard, 4 => :SimonsBasic, 5 => :Ocean, 11 => :Westermann,
+      12 => :RexUtility, 19 => :MagicDesk, 51 => :Mach5
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines
