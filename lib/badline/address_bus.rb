@@ -79,7 +79,7 @@ module Badline
       @port_ddr = 0x00
       @port_out = 0x00
       @port_floating = 0x00
-      @io_port = Status.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
+      @io_port = PortStatus.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
 
       @read_pages = Array.new(256)
       @write_pages = Array.new(256)

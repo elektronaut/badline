@@ -28,7 +28,7 @@ module Badline
       @debug = debug
       @ane_constant = ane_constant
       @memory = memory || Memory.new
-      @status = Status.new(STATUS_FLAGS, value: 0b00100000)
+      @status = CPUStatus.new(STATUS_FLAGS, value: 0b00100000)
       reset_registers
 
       @nmi = @irq = false

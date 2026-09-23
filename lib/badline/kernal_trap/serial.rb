@@ -41,12 +41,25 @@ module Badline
 
       def install
         ROUTINES.each do |address, routine|
-          @cpu.install_trap(address) { send(routine) if kernal? }
+          @cpu.install_trap(address) { call_routine(routine) if kernal? }
         end
         self
       end
 
       private
+
+      def call_routine(routine)
+        case routine
+        when :talk then talk
+        when :listen then listen
+        when :second then second
+        when :tksa then tksa
+        when :ciout then ciout
+        when :untalk then untalk
+        when :unlisten then unlisten
+        when :acptr then acptr
+        end
+      end
 
       # Addressing the bus starts a new frame. The channel number arrives
       # in the secondary address that follows.

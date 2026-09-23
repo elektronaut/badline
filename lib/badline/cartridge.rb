@@ -35,12 +35,12 @@ module Badline
     BANK_SIZE = 0x2000
 
     HARDWARE_TYPES = {
-      0 => :Standard, 1 => :ActionReplay, 2 => :KCSPower, 3 => :FinalCartridge3,
-      4 => :SimonsBasic, 5 => :Ocean, 7 => :FunPlay, 8 => :SuperGames,
-      9 => :AtomicPower, 10 => :EpyxFastload, 11 => :Westermann,
-      12 => :RexUtility, 15 => :GameSystem, 17 => :Dinamic, 18 => :Zaxxon,
-      19 => :MagicDesk, 21 => :Comal80, 32 => :EasyFlash, 36 => :RetroReplay,
-      51 => :Mach5, 53 => :Pagefox, 57 => :RGCD, 60 => :GMod2
+      0 => Standard, 1 => ActionReplay, 2 => KCSPower, 3 => FinalCartridge3,
+      4 => SimonsBasic, 5 => Ocean, 7 => FunPlay, 8 => SuperGames,
+      9 => AtomicPower, 10 => EpyxFastload, 11 => Westermann,
+      12 => RexUtility, 15 => GameSystem, 17 => Dinamic, 18 => Zaxxon,
+      19 => MagicDesk, 21 => Comal80, 32 => EasyFlash, 36 => RetroReplay,
+      51 => Mach5, 53 => Pagefox, 57 => RGCD, 60 => GMod2
     }.freeze
 
     # The EXROM and GAME line levels of each memory configuration. The lines
@@ -62,11 +62,11 @@ module Badline
       end
 
       def from_crt(crt, **)
-        type = HARDWARE_TYPES.fetch(crt.hardware_type) do
+        mapper = HARDWARE_TYPES.fetch(crt.hardware_type) do
           raise UnsupportedTypeError,
                 "Unsupported cartridge hardware type #{crt.hardware_type}"
         end
-        const_get(type).new(crt, **)
+        mapper.new(crt, **)
       end
     end
 

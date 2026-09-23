@@ -54,8 +54,8 @@ class TestCPU < Minitest::Test
   end
 
   def assert_status(expected_value, actual)
-    expectation = Badline::Status.new(Badline::CPU::STATUS_FLAGS,
-                                      value: expected_value)
+    expectation = Badline::CPUStatus.new(Badline::CPU::STATUS_FLAGS,
+                                         value: expected_value)
 
     assert_equal(expectation.carry, actual.carry, "status: carry")
     assert_equal(expectation.zero, actual.zero, "status: zero")

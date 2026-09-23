@@ -122,7 +122,7 @@ module Badline
         pattern, action = COMMANDS.find { |candidate, _| candidate.match?(command) }
         return report(SYNTAX_ERROR) unless action
 
-        send(action, arguments(pattern.match(command)[1]))
+        run_command(action, arguments(pattern.match(command)[1]))
       end
 
       def arguments(text)
@@ -131,7 +131,19 @@ module Badline
 
       def command(bytes)
         action = MEMORY_COMMANDS[bytes[0, 3].pack("C*")]
-        action ? send(action, bytes[3..]) : execute(Storage.ascii(bytes))
+        action ? run_command(action, bytes[3..]) : execute(Storage.ascii(bytes))
+      end
+
+      def run_command(action, arguments)
+        case action
+        when :block_read then block_read(arguments)
+        when :counted_block_read then counted_block_read(arguments)
+        when :buffer_pointer then buffer_pointer(arguments)
+        when :initialized then initialized(arguments)
+        when :write_protected then write_protected(arguments)
+        when :memory_write then memory_write(arguments)
+        when :memory_read then memory_read(arguments)
+        end
       end
 
       def block_read(arguments, counted: false)

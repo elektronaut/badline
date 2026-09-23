@@ -10,22 +10,6 @@ describe Badline::Status do
 
   it { is_expected.to eq(0x0) }
 
-  it "defines setter methods" do
-    status.foo = true
-    status.baz = true
-    expect(status.value).to eq(0x09)
-  end
-
-  it "defines boolean methods" do
-    status.baz = true
-    expect(status.baz?).to be(true)
-  end
-
-  it "defines accessor methods" do
-    status.baz = true
-    expect(status.baz).to be(1)
-  end
-
   describe ".bitmask" do
     subject { status.bitmask }
 
@@ -50,5 +34,47 @@ describe Badline::Status do
     it { is_expected.to eq(0b11101011) }
 
     specify { expect(status.low_mask).to eq(0b00010100) }
+  end
+
+  describe Badline::CPUStatus do
+    let(:status) { described_class.new(Badline::CPU::STATUS_FLAGS) }
+
+    it "has setter methods" do
+      status.carry = true
+      status.negative = 1
+      expect(status.value).to eq(0xa1)
+    end
+
+    it "has boolean methods" do
+      status.zero = true
+      expect(status.zero?).to be(true)
+    end
+
+    it "has accessor methods" do
+      status.overflow = true
+      expect(status.overflow).to be(1)
+    end
+
+    it "clears a flag set to 0" do
+      status.value = 0xff
+      status.decimal = 0
+      expect(status.value).to eq(0xf7)
+    end
+  end
+
+  describe Badline::ControlRegister do
+    let(:status) { described_class.new(%i[start output out_mode run_mode load in_cnt in_timer_a alarm]) }
+
+    it "maps the CRB bits" do
+      status.alarm = true
+      status.in_timer_a = true
+      expect(status.value).to eq(0xc0)
+    end
+
+    it "maps the CRA bits" do
+      status.clock_frequency = true
+      status.serial_mode = true
+      expect(status.value).to eq(0xc0)
+    end
   end
 end

@@ -63,8 +63,11 @@ module Badline
       end
 
       def entries
-        @entries ||= each_sector(directory_track, directory_sector)
-                     .flat_map { |data| parse_entries(data) }
+        @entries ||= begin
+          list = []
+          each_sector(directory_track, directory_sector) { |data| list.concat(parse_entries(data)) }
+          list
+        end
       end
 
       def parse_entries(data)
@@ -85,14 +88,14 @@ module Badline
       end
 
       def read_chain(track, sector)
-        each_sector(track, sector).flat_map do |data|
-          data[0].zero? ? data[2..data[1]] : data[2..]
+        bytes = []
+        each_sector(track, sector) do |data|
+          bytes.concat(data[0].zero? ? data[2..data[1]] : data[2..])
         end
+        bytes
       end
 
       def each_sector(track, sector)
-        return to_enum(:each_sector, track, sector) unless block_given?
-
         visited = {}
         while track != 0 && !visited[[track, sector]]
           visited[[track, sector]] = true
