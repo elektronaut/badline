@@ -104,11 +104,36 @@ RSpec.describe Badline::Computer do
        0x8d, 0x0d, 0xdd, 0x4c, 0x27, 0xc0]
     end
 
+    let(:fresh) { described_class.new }
+
+    def vic_registers(machine)
+      Array.new(0x2f) { |register| machine.address_bus.peek(0xd000 + register) }
+    end
+
     before do
       computer.ram.write(0xc000, program)
       computer.cpu.program_counter = 0xc000
-      200.times { computer.cycle! }
+      computer.cpu.status.interrupt = true
+      { 0xd011 => 0x3b, 0xd012 => 0x80, 0xd01a => 0x0f, 0xd020 => 0x05, 0xd021 => 0x06 }
+        .each { |address, value| computer.address_bus.poke(address, value) }
+      (63 * 200).times { computer.cycle! }
       computer.attach_cartridge(cartridge)
+    end
+
+    it "takes the VIC's registers back to their power-on values" do
+      expect(vic_registers(computer)).to eq(vic_registers(fresh))
+    end
+
+    it "takes the VIC back to the top of the frame" do
+      expect([computer.vic.rasterline, computer.vic.column]).to eq([0, 0])
+    end
+
+    it "drops the VIC's interrupt" do
+      expect(computer.vic.interrupted?).to be(false)
+    end
+
+    it "clears RAM" do
+      expect(computer.ram.read(0xc000, program.length)).to all(eq(0))
     end
 
     it "clears the CPU port's direction register" do
