@@ -17,6 +17,7 @@ class FakeSink
     @peak = 0
     @closed_with = nil
     @cleared = false
+    @running = false
   end
 
   def queue(samples)
@@ -30,10 +31,15 @@ class FakeSink
 
   def start
     @started_with = @queued unless started?
+    @running = true
     play_out if @instant
   end
 
+  def pause = @running = false
+
   def started? = !@started_with.nil?
+
+  def running? = @running
 
   def clear
     @queued = 0
@@ -47,7 +53,7 @@ class FakeSink
   def total_seconds = @total.fdiv(rate)
 
   def advance(seconds)
-    return unless started?
+    return unless running?
 
     consumed = [(seconds * rate).ceil, @queued].min
     @queued -= consumed

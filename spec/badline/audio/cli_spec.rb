@@ -193,4 +193,33 @@ describe Badline::Audio::CLI do
       end
     end
   end
+
+  describe "#interactive?" do
+    subject(:cli) { described_class.new(options, out:, input:) }
+
+    let(:options) { Badline::Audio::Options.parse(arguments + [tune_path]) }
+    let(:out) { StringIO.new.tap { |io| def io.tty? = true } }
+
+    def input = StringIO.new.tap { |io| def io.tty? = true }
+
+    it "is on a terminal" do
+      expect(cli.interactive?).to be(true)
+    end
+
+    context "with --no-tui" do
+      let(:arguments) { ["--no-tui"] }
+
+      it "is off" do
+        expect(cli.interactive?).to be(false)
+      end
+    end
+
+    context "when the output isn't a terminal" do
+      let(:out) { StringIO.new }
+
+      it "is off" do
+        expect(cli.interactive?).to be(false)
+      end
+    end
+  end
 end

@@ -28,6 +28,9 @@ module Badline
         the DOCUMENTS directory of an HVSC collection above the tune, or from
         $HVSC_BASE. Failing all of those it runs for #{FALLBACK_SECONDS.to_i} seconds.
 
+        Played on a terminal, n or → skips to the next song, p or ← to the
+        previous one, space pauses and q quits.
+
         PSID tunes run on a bare CPU and SID, faster than real time. RSID
         tunes boot the whole machine and run at about half real time, so
         they stutter when played. --filter-chunk 1 runs the filter cycle by
@@ -43,6 +46,7 @@ module Badline
       def initialize
         @jit = true
         @quiet = false
+        @tui = true
         @help = false
       end
 
@@ -69,6 +73,8 @@ module Badline
       def help? = @help
 
       def quiet? = @quiet
+
+      def tui? = @tui
 
       def jit? = @jit
 
@@ -122,6 +128,7 @@ module Badline
 
       def define_run_options(opts)
         opts.on("--quiet", "Don't report progress") { @quiet = true }
+        opts.on("--no-tui", "Play without the interactive display, even on a terminal") { @tui = false }
         opts.on("--disable-jit", "Run without enabling YJIT") { @jit = false }
         opts.on("-h", "--help", "Show this help") { @help = true }
       end

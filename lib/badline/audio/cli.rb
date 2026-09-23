@@ -3,16 +3,19 @@
 module Badline
   module Audio
     # Runs `badline-sid` once its options have parsed: picks the song and
-    # its length, then plays it or renders it to a file.
+    # its length, then plays it or renders it to a file. Played on a
+    # terminal, the console lets the listener step between songs.
     class CLI
       class Error < StandardError; end
 
       # `sink` builds the audio device for playback, given the rate to ask
       # for and whether it has to be exact.
-      def initialize(options, out: $stdout, sink: SDLSink.method(:new))
+      def initialize(options, out: $stdout, input: $stdin, sink: SDLSink.method(:new))
         @options = options
         @out = out
+        @input = input
         @sink = sink
+        @lengths = {}
       end
 
       def run
@@ -33,22 +36,26 @@ module Badline
         end
       end
 
-      def seconds
-        @seconds ||= @options.seconds || songlength || Options::FALLBACK_SECONDS
+      def seconds = length(song)
+
+      def length(song)
+        @lengths[song] ||= @options.seconds || songlength(song) || Options::FALLBACK_SECONDS
       end
 
       def sid_model = @options.sid_model || tune.sid_model
 
+      def interactive? = @options.tui? && @input.tty? && @out.tty?
+
       private
 
-      def renderer(rate)
-        Renderer.new(tune, seconds:, song:, rate:, sid_model:).tap do |renderer|
+      def renderer(song, rate)
+        Renderer.new(tune, seconds: length(song), song:, rate:, sid_model:).tap do |renderer|
           renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
         end
       end
 
       def render
-        renderer = renderer(@options.rate)
+        renderer = renderer(song, @options.rate)
         @out.puts describe
         @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.output} at #{@options.rate} Hz..."
         started = now
@@ -58,13 +65,29 @@ module Badline
 
       def play
         sink = open_sink
+        interactive? ? play_interactively(sink) : play_plainly(sink)
+      ensure
+        sink&.close
+      end
+
+      def play_plainly(sink)
         @out.puts describe
         @out.puts "Playing #{seconds}s on the #{model_name} at #{sink.rate} Hz. Ctrl-C stops."
         playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
-        result = playback.play(renderer(sink.rate)) { |played| progress(played) }
+        result = playback.play(renderer(song, sink.rate)) { |played| progress(played) }
         progress(seconds) if result == :finished
         @out.print "\n" unless @options.quiet?
         @out.puts(result == :finished ? "Done." : "Stopped.")
+      end
+
+      def play_interactively(sink)
+        console = Console.new(input: @input, output: @out)
+        jukebox = Jukebox.new(sink, console, songs: tune.songs, renderer: method(:renderer), length: method(:length))
+        console.session do
+          console.header([tune.name, tune.author, tune.released].reject(&:empty?) +
+                         ["#{model_name} at #{sink.rate} Hz"])
+          jukebox.run(song)
+        end
       end
 
       def open_sink
@@ -80,9 +103,13 @@ module Badline
 
       # HVSC's database is keyed by the tune's MD5 and lists one length per
       # song.
-      def songlength
+      def songlength(song) = songlengths&.at(song - 1)
+
+      def songlengths
+        return @songlengths if defined?(@songlengths)
+
         path = @options.songlengths || Storage::SongLengths.locate(@options.tune_path)
-        path && Storage::SongLengths.new(path).lengths(tune.md5)&.at(song - 1)
+        @songlengths = path && Storage::SongLengths.new(path).lengths(tune.md5)
       end
 
       def model_name = sid_model.to_s.delete_prefix("mos")

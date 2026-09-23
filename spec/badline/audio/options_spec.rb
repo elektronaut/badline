@@ -51,6 +51,10 @@ describe Badline::Audio::Options do
       expect(options.jit?).to be(true)
     end
 
+    it "shows the interactive display on a terminal" do
+      expect(options.tui?).to be(true)
+    end
+
     it "reports progress" do
       expect(options.quiet?).to be(false)
     end
@@ -123,12 +127,13 @@ describe Badline::Audio::Options do
   describe "the rendering options" do
     let(:argv) do
       ["--seconds", "12.5", "--rate", "48000", "--sid", "8580", "--filter-chunk", "1",
-       "--quiet", "--disable-jit", tune_path]
+       "--quiet", "--disable-jit", "--no-tui", tune_path]
     end
 
     it "parses each of them" do
-      expect([options.seconds, options.rate, options.sid_model, options.filter_chunk, options.quiet?, options.jit?])
-        .to eq([12.5, 48_000, :mos8580, 1, true, false])
+      expect([options.seconds, options.rate, options.sid_model, options.filter_chunk,
+              options.quiet?, options.jit?, options.tui?])
+        .to eq([12.5, 48_000, :mos8580, 1, true, false, false])
     end
 
     it "holds the device to the rate asked for" do
