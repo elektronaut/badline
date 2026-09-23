@@ -227,5 +227,33 @@ describe Badline::Cartridge::RetroReplay do
       bus[0xa123] = 0x5a
       expect(bus[0xa123]).to eq(0x5a)
     end
+
+    context "when frozen with the RAM at ROMH" do
+      before do
+        cartridge.press_button
+        cartridge.freeze!
+        bus[0xde00] = 0x22
+      end
+
+      it "maps the RAM at $A000 in Ultimax mode" do
+        bus[0xa123] = 0x5a
+        expect([bus.ultimax, bus[0xa123]]).to eq([true, 0x5a])
+      end
+
+      it "keeps the ROM at $E000" do
+        expect(bus[0xe000]).to eq(0x10)
+      end
+
+      it "keeps writes to $A000 out of the C64 RAM" do
+        bus[0xa123] = 0x5a
+        expect(bus.ram[0xa123]).to eq(0x00)
+      end
+    end
+
+    it "reads open bus at $A000 when frozen otherwise" do
+      cartridge.press_button
+      cartridge.freeze!
+      expect(bus[0xa000]).to eq(bus.vic.phi1_data)
+    end
   end
 end

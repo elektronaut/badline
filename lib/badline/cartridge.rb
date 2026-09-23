@@ -127,6 +127,9 @@ module Badline
     # memory, for a cartridge that asserts Ultimax on write cycles only.
     def romh_writes; end
 
+    # A window at $A000-$BFFF in Ultimax mode, where the C64 maps nothing.
+    def ultimax_a000; end
+
     # The RES line on the expansion port.
     def reset; end
 

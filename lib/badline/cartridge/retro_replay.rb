@@ -27,7 +27,8 @@ module Badline
     # The RAM at ROML takes writes only in Ultimax mode, except on the Nordic
     # Replay. With RAM and only EXROM released ($22) the Retro Replay maps
     # nothing at ROML and keeps the RAM in I/O, and the Nordic Replay maps
-    # the ROM at ROML and the RAM at ROMH, as the Nordic Power does.
+    # the ROM at ROML and the RAM at ROMH, as the Nordic Power does. Frozen
+    # in that configuration, the Nordic Replay maps the RAM at $A000.
     class RetroReplay < Cartridge
       include Freezer
 
@@ -71,6 +72,10 @@ module Badline
 
       def phi1_ultimax?
         @phi1_ultimax
+      end
+
+      def ultimax_a000
+        @isolated[ram_view_bank] if @nordic && @ram_at_a000 && @frozen
       end
 
       # Reset leaves the write-once bits of $DE01 as they are.
