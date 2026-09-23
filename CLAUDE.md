@@ -17,7 +17,8 @@ live in subdirectories:
 - **VIC-II**: `vic.rb` and `vic/`, covering the sequencer, sprites, graphics
   modes, border and register timing
 - **CIA**: `cia.rb` and `cia/` (timers, serial), plus `time_of_day.rb`
-- **SID**: `sid.rb` and `sid/`. `audio/` renders tunes offline
+- **SID**: `sid.rb` and `sid/`. `audio/` renders tunes offline for
+  `exe/badline-sid`
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
   traps that stand in for a drive), `media.rb` (attach and autostart),

@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
+require "badline/audio/options"
+
+begin
+  options = Badline::Audio::Options.parse(ARGV)
+rescue Badline::Audio::Options::Error => e
+  warn "badline-sid: #{e.message}"
+  warn "Try 'badline-sid --help' for more information."
+  exit 1
+end
+
+if options.help?
+  puts options.help
+  exit
+end
+
+jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+RubyVM::YJIT.enable if options.jit? && jit_available
+
+require "badline"
+
+begin
+  Badline::Audio::CLI.new(options).run
+rescue Badline::Audio::CLI::Error => e
+  warn "badline-sid: #{e.message}"
+  exit 1
+end
