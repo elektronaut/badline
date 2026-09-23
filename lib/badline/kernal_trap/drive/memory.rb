@@ -39,6 +39,16 @@ module Badline
           @ram.fill(0)
         end
 
+        # The first block of the file the last LOAD read, which the DOS
+        # keeps at $7E and $026F, or nil while the track there is 0.
+        def last_program
+          [@ram[0x7e], @ram[0x26f]] unless @ram[0x7e].zero?
+        end
+
+        def last_program=(block)
+          @ram[0x7e], @ram[0x26f] = block
+        end
+
         private
 
         def run_jobs

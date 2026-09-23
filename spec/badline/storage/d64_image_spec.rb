@@ -273,6 +273,26 @@ describe Badline::Storage::D64Image do
     end
   end
 
+  describe "#first_block" do
+    it "takes the block the directory entry points at" do
+      expect(image.first_block("data")).to eq([17, 0])
+    end
+
+    it "returns nil for an unknown name" do
+      expect(image.first_block("missing")).to be_nil
+    end
+  end
+
+  describe "#read_file_at" do
+    it "reads the chain that starts at the block" do
+      expect(image.read_file_at(17, 5)).to eq([0x33, 0x44])
+    end
+
+    it "returns nil for a block outside the image" do
+      expect(image.read_file_at(36, 0)).to be_nil
+    end
+  end
+
   describe "#header_block" do
     it "starts the directory track" do
       expect(image.header_block).to eq([18, 0])
