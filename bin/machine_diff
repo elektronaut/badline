@@ -1,0 +1,244 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Runs a scenario and prints a Badline::Checkpoint every K cycles: one
+# digest each for the CPU, RAM, colour RAM, the framebuffer, and the VIC,
+# CIA and SID registers. Two runs that print the same lines left the
+# machine in the same state at every checkpoint.
+#
+#   ruby --yjit bin/machine_diff [scenario|media] [--cycles N] [--every K]
+#   ruby --yjit bin/machine_diff [scenario|media] --save FILE
+#   ruby --yjit bin/machine_diff [scenario|media] --against REV|FILE
+#
+# Scenarios:
+#   boot   power on and sit at the READY prompt
+#   type   boot, then type `print 6*7` (or --text) at the prompt
+#   demo   a program built here: a raster IRQ that changes the background
+#          colour, eight sprites, a sounding SID voice and CIA 2 timer A,
+#          started with RUN
+#   disk   the demo program in a host directory mounted as device 8,
+#          loaded through the KERNAL traps with LOAD"*",8,1 and RUN
+# Anything else is a path handed to Badline::Media.attach: a PRG, a disk
+# or tape image, a CRT or a directory.
+#
+# --against REV extracts REV's lib/ into tmp/machine_diff/<sha>/, runs the
+# same scenario on it alongside this run and stops at the first
+# checkpoint that differs, naming the components that differ. --against
+# FILE compares with lines saved by --save. Either way the exit status is
+# 1 on a difference.
+
+require "English"
+require "fileutils"
+require "optparse"
+require "rbconfig"
+require "tmpdir"
+
+# 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
+DEMO_PRG = [
+  0x01, 0x08, # load address
+  0x0b, 0x08, 0x0a, 0x00, 0x9e, 0x32, 0x30, 0x36, 0x31, 0x00, 0x00, 0x00,
+  0x78,                   # sei
+  0xa9, 0x7f,             # lda #$7f
+  0x8d, 0x0d, 0xdc,       # sta $dc0d
+  0xad, 0x0d, 0xdc,       # lda $dc0d
+  0xa9, 0x01,             # lda #$01
+  0x8d, 0x1a, 0xd0,       # sta $d01a
+  0xa9, 0x1b,             # lda #$1b
+  0x8d, 0x11, 0xd0,       # sta $d011
+  0xa9, 0x80,             # lda #$80
+  0x8d, 0x12, 0xd0,       # sta $d012
+  0xa9, 0x85,             # lda #<irq
+  0x8d, 0x14, 0x03,       # sta $0314
+  0xa9, 0x08,             # lda #>irq
+  0x8d, 0x15, 0x03,       # sta $0315
+  0xa2, 0x3f,             # ldx #$3f
+  0x8a,                   # txa
+  0x9d, 0x40, 0x03,       # sta $0340,x
+  0xca,                   # dex
+  0x10, 0xf9,             # bpl $0831
+  0xa2, 0x0f,             # ldx #$0f
+  0x8a,                   # txa
+  0x0a, 0x0a, 0x0a, 0x0a, # asl x4
+  0x69, 0x30,             # adc #$30
+  0x9d, 0x00, 0xd0,       # sta $d000,x
+  0xca,                   # dex
+  0x10, 0xf3,             # bpl $083a
+  0xa2, 0x07,             # ldx #$07
+  0xa9, 0x0d,             # lda #$0d
+  0x9d, 0xf8, 0x07,       # sta $07f8,x
+  0x8a,                   # txa
+  0x9d, 0x27, 0xd0,       # sta $d027,x
+  0xca,                   # dex
+  0x10, 0xf4,             # bpl $0849
+  0xa9, 0xff,             # lda #$ff
+  0x8d, 0x15, 0xd0,       # sta $d015
+  0x8d, 0x1c, 0xd0,       # sta $d01c
+  0xa9, 0x0f,             # lda #$0f
+  0x8d, 0x18, 0xd4,       # sta $d418
+  0xa9, 0x10,             # lda #$10
+  0x8d, 0x01, 0xd4,       # sta $d401
+  0xa9, 0x09,             # lda #$09
+  0x8d, 0x05, 0xd4,       # sta $d405
+  0xa9, 0x21,             # lda #$21
+  0x8d, 0x04, 0xd4,       # sta $d404
+  0xa9, 0xff,             # lda #$ff
+  0x8d, 0x04, 0xdd,       # sta $dd04
+  0x8d, 0x05, 0xdd,       # sta $dd05
+  0xa9, 0x11,             # lda #$11
+  0x8d, 0x0e, 0xdd,       # sta $dd0e
+  0x58,                   # cli
+  0xee, 0x00, 0x04,       # inc $0400
+  0x4c, 0x7f, 0x08,       # jmp $087f
+  0xee, 0x19, 0xd0,       # irq: inc $d019
+  0xee, 0x21, 0xd0,       # inc $d021
+  0xe6, 0xfb,             # inc $fb
+  0xa5, 0xfb,             # lda $fb
+  0x8d, 0x01, 0xd4,       # sta $d401
+  0xad, 0x12, 0xd0,       # lda $d012
+  0x49, 0x40,             # eor #$40
+  0x8d, 0x12, 0xd0,       # sta $d012
+  0x4c, 0x81, 0xea        # jmp $ea81
+].pack("C*").freeze
+
+module MachineDiff
+  ROOT = File.expand_path("..", __dir__)
+  SCENARIOS = %w[boot type demo disk].freeze
+
+  module_function
+
+  def machine(scenario, options, dir)
+    computer = Badline::Computer.new
+    case scenario
+    when "boot" then nil
+    when "type" then computer.on_init { computer.type_text(options[:text]) }
+    when "demo"
+      File.binwrite(File.join(dir, "demo.prg"), DEMO_PRG)
+      Badline::Media.attach(computer, File.join(dir, "demo.prg"))
+    when "disk"
+      File.binwrite(File.join(dir, "demo.prg"), DEMO_PRG)
+      Badline::Media.attach(computer, dir)
+      computer.type_text(Badline::Media::AUTOSTART)
+    else Badline::Media.attach(computer, scenario)
+    end
+    computer
+  end
+
+  # Yields a checkpoint every options[:every] cycles, up to options[:cycles].
+  def run(scenario, options)
+    Dir.mktmpdir do |dir|
+      computer = machine(scenario, options, dir)
+      every = options[:every]
+      (options[:cycles] / every).times do
+        every.times { computer.cycle! }
+        yield Badline::Checkpoint.take(computer)
+      end
+    end
+  end
+
+  def print_run(scenario, options)
+    out = options[:save] ? File.open(options[:save], "w") : nil
+    run(scenario, options) do |checkpoint|
+      puts checkpoint
+      $stdout.flush
+      out&.puts(checkpoint)
+    end
+  ensure
+    out&.close
+  end
+
+  def base_lib(rev)
+    sha = IO.popen(["git", "-C", ROOT, "rev-parse", "--verify", "#{rev}^{commit}"], &:read).strip
+    abort "machine_diff: unknown revision #{rev}" unless $CHILD_STATUS.success?
+    dir = File.join(ROOT, "tmp/machine_diff", sha)
+    unless File.directory?("#{dir}/lib")
+      FileUtils.mkdir_p(dir)
+      system("git -C #{ROOT} archive #{sha} lib | tar -x -C #{dir}", exception: true)
+    end
+    [sha, "#{dir}/lib"]
+  end
+
+  def child_command(scenario, options, lib)
+    [RbConfig.ruby, "--yjit", __FILE__, scenario, "--lib", lib,
+     "--cycles", options[:cycles].to_s, "--every", options[:every].to_s, "--text", options[:text]]
+  end
+
+  def compare(scenario, options)
+    against = options[:against]
+    if File.file?(against)
+      puts "#{scenario} against #{against}"
+      File.open(against) { |io| compare_with(scenario, options, io) }
+    else
+      sha, lib = base_lib(against)
+      puts "#{scenario} against #{sha[0, 10]}"
+      IO.popen(child_command(scenario, options, lib)) do |io|
+        compare_with(scenario, options, io)
+      ensure
+        stop(io.pid)
+      end
+    end
+  end
+
+  def stop(pid)
+    Process.kill("TERM", pid)
+  rescue Errno::ESRCH
+    nil
+  end
+
+  def compare_with(scenario, options, io)
+    count = 0
+    run(scenario, options) do |ours|
+      line = io.gets
+      abort "machine_diff: the other run ended before cycle #{ours.cycle}" unless line
+
+      theirs = Badline::Checkpoint.parse(line)
+      report_difference(ours, theirs) unless ours == theirs
+      puts ours
+      count += 1
+    end
+    puts "#{count} checkpoints match"
+  end
+
+  def report_difference(ours, theirs)
+    puts "  this run: #{ours}", "  against:  #{theirs}"
+    differing = ours.cycle == theirs.cycle ? ours.differences(theirs).join(", ") : "cycle count"
+    puts "First difference at cycle #{ours.cycle}: #{differing}"
+    exit 1
+  end
+end
+
+options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib") }
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/machine_diff [#{MachineDiff::SCENARIOS.join('|')}|media] [options]"
+  opts.on("--cycles N", Integer, "Cycles to run (default: 10000000)") { |n| options[:cycles] = n }
+  opts.on("--every K", Integer, "Cycles between checkpoints (default: 1000000)") { |n| options[:every] = n }
+  opts.on("--text TEXT", "What the type scenario types (default: print 6*7 and RETURN)") do |text|
+    options[:text] = text
+  end
+  opts.on("--save FILE", "Also write the checkpoints to FILE") { |path| options[:save] = path }
+  opts.on("--against REV_OR_FILE", "Compare with REV's lib/ or with a file from --save") do |against|
+    options[:against] = against
+  end
+  opts.on("--lib DIR", "Load badline from DIR") { |dir| options[:lib] = File.expand_path(dir) }
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  abort "machine_diff: #{e.message}\n#{parser.banner}"
+end
+abort "machine_diff: --every must be positive" unless options[:every].positive?
+
+scenario = ARGV.shift || "boot"
+unless MachineDiff::SCENARIOS.include?(scenario)
+  abort "machine_diff: no scenario or file named #{scenario}" unless File.exist?(scenario)
+
+  scenario = File.expand_path(scenario)
+end
+
+$LOAD_PATH.unshift(options[:lib])
+RubyVM::YJIT.enable if defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+require "badline"
+require_relative "../lib/badline/checkpoint"
+
+options[:against] ? MachineDiff.compare(scenario, options) : MachineDiff.print_run(scenario, options)
