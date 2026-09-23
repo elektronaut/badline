@@ -286,7 +286,11 @@ class TestTestbenchInterruption < Minitest::Test
   end
 
   def teardown
-    [@runner, *@shards].each { |pid| Process.kill("KILL", pid) if alive?(pid) }
+    [@runner, *@shards].each do |pid|
+      Process.kill("KILL", pid)
+    rescue Errno::ESRCH
+      nil
+    end
     Process.wait(@runner) unless @status
     FileUtils.rm_rf(File.dirname(@results))
   end

@@ -69,7 +69,10 @@ class TestForkedBootSignals < Minitest::Test
   end
 
   def teardown
-    Process.kill("KILL", @child) if alive?(@child)
+    Process.kill("KILL", @child)
+    Process.wait(@child)
+  rescue Errno::ESRCH, Errno::ECHILD
+    nil
   end
 
   def test_the_process_dies_of_the_signal
