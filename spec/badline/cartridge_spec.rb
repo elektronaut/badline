@@ -15,7 +15,7 @@ describe Badline::Cartridge do
 
   describe ".from_crt" do
     it "raises on unsupported hardware types" do
-      expect { described_class.from_crt(crt(hardware_type: 2, exrom: 0, game: 1, chips: [])) }
+      expect { described_class.from_crt(crt(hardware_type: 6, exrom: 0, game: 1, chips: [])) }
         .to raise_error(described_class::UnsupportedTypeError)
     end
   end
