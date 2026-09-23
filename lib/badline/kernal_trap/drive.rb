@@ -30,6 +30,7 @@ module Badline
 
       COMMANDS = {
         /\AU[1A]\s*:?\s*(.*)/i => :block_read,
+        /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
         /\A[IV]/i => :initialized,
         /\A(?:U[2B]|B-[WAF])/i => :write_protected
@@ -115,7 +116,7 @@ module Badline
         text.to_s.scan(/\d+/).map(&:to_i)
       end
 
-      def block_read(arguments)
+      def block_read(arguments, counted: false)
         channel, _drive, track, sector = arguments
         buffer = @channels[channel]
         return report(NO_CHANNEL) unless buffer
@@ -124,8 +125,15 @@ module Badline
         data = sector && @storage.read_block(track, sector)
         return report(ILLEGAL_TRACK_OR_SECTOR, track, sector) unless data
 
-        buffer.replace(data)
+        buffer.replace(counted ? data[0, data[0] + 1] : data)
+        buffer.pointer = 1 if counted
         report(OK)
+      end
+
+      # B-R takes the block's first byte as the index of its last one, and
+      # hands out the bytes from the second up to there.
+      def counted_block_read(arguments)
+        block_read(arguments, counted: true)
       end
 
       def buffer_pointer(arguments)
