@@ -9,8 +9,13 @@ module Badline
       FILETYPES = { seq: 0x01, prg: 0x02, usr: 0x03 }.freeze
       NAME_PADDING = 0xa0
 
+      # Error table codes and the DOS errors they stand for: 20 to 29 are
+      # the read, write and ID errors, 74 is DRIVE NOT READY.
+      DOS_ERRORS = (2..11).to_h { |code| [code, code + 18] }.merge(15 => 74).freeze
+
       def initialize(path)
         @bytes = File.binread(path).bytes
+        @errors = split_error_table
       end
 
       # A LOAD reads only PRG files. An OPEN names the type it wants, or
@@ -31,7 +36,24 @@ module Badline
         sector_at(track, sector)
       end
 
+      # The DOS error a read of the block raises, from the error table an
+      # image can carry after its last block, or nil when it reads cleanly.
+      def block_error(track, sector)
+        return unless @errors && block?(track, sector)
+
+        DOS_ERRORS[@errors[track_offset(track) + sector]]
+      end
+
       private
+
+      # An error table holds one byte per block, so the image is 257 bytes
+      # per block rather than 256.
+      def split_error_table
+        return unless (@bytes.length % (SECTOR_SIZE + 1)).zero? &&
+                      !(@bytes.length % SECTOR_SIZE).zero?
+
+        @bytes.pop(@bytes.length / (SECTOR_SIZE + 1))
+      end
 
       def block?(track, sector)
         return false unless track.between?(1, 255) &&
@@ -85,7 +107,11 @@ module Badline
       end
 
       def sector_offset(track, sector)
-        ((1...track).sum { |t| sectors_in(t) } + sector) * SECTOR_SIZE
+        (track_offset(track) + sector) * SECTOR_SIZE
+      end
+
+      def track_offset(track)
+        (1...track).sum { |t| sectors_in(t) }
       end
     end
   end

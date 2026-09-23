@@ -8,7 +8,8 @@ describe Badline::KernalTrap::Drive do
   let(:storage) do
     instance_double(Badline::Storage::D64Image,
                     read_file: [0x01, 0x08, 0x2a],
-                    read_block: Array.new(256) { |i| i })
+                    read_block: Array.new(256) { |i| i },
+                    block_error: nil)
   end
 
   def read_channel(secondary)
@@ -142,6 +143,22 @@ describe Badline::KernalTrap::Drive do
     it "moves the buffer pointer" do
       command("b-p 2 253")
       expect(read_channel(2)).to eq([253, 254, 255])
+    end
+  end
+
+  describe "a block the error table marks bad" do
+    before do
+      allow(storage).to receive(:block_error).with(18, 18).and_return(23)
+      drive.open(2, "#")
+      command("u1:2 0 18 18")
+    end
+
+    it "reports the read error with its track and sector" do
+      expect(status).to eq("23,READ ERROR,18,18")
+    end
+
+    it "still fills the buffer" do
+      expect(read_channel(2)).to eq((0..255).to_a)
     end
   end
 
