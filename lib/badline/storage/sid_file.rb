@@ -195,8 +195,9 @@ module Badline
         @data ||= body.drop(word(0x08).zero? ? 2 : 0).first(0x10000 - load_address)
       end
 
-      # A set speed bit asks for CIA timer pacing instead of a raster IRQ;
-      # the driver paces everything off the raster either way.
+      # A set speed bit asks for CIA timer pacing instead of a raster IRQ.
+      # The bare player honours it; the machine driver paces everything off
+      # the raster either way.
       def cia_timed?(song = start_song)
         speed[[song - 1, 31].min] == 1
       end
