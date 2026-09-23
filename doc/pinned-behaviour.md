@@ -184,16 +184,42 @@ only catches the rows that happen to move.
   - Pinned by `spriteenable2`.
   - Spec guard: *the first s-access of a new DMA* in
     [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
-- Rows come from MCBASE/MC, not from a line counter (Bauer §3.8). MCBASE
-  steps +2 at cycle 15 and +1 at cycle 16 while the expansion flip-flop is
-  set, and MC reloads from MCBASE at cycle 58. The sprite ends only when
-  MCBASE lands on **exactly** 63, so a crunched sprite steps over it and
-  runs on through the rest of its block. The flip-flop is held set while
-  MxYE is clear, inverted at cycle 55 when MxYE is set, and reset by the Y
-  match.
-  - Pinned by `spritedma/d017-54` and `spritedma/d017-57`.
+- Rows come from MCBASE/MC, not from a line counter (Bauer §3.8). MC
+  steps once per s-access, so it stands three past MCBASE after a row's
+  fetch. At Bauer cycle 16 (**VIC column 14**) MCBASE takes MC while the
+  expansion flip-flop is set, and MC reloads from MCBASE at cycle 58. The
+  end-of-sprite compare runs a column later, at column 15, where the BA
+  columns are rebuilt. The sprite ends only when MCBASE lands on
+  **exactly** 63, so a crunched sprite steps over it and runs on through
+  the rest of its block.
+  - Pinned by `spritecrunch2-09`, whose $d017 clears land in the CPU cycle
+    after column 14. The reference repeats one row for 48 lines, so MCBASE
+    has already moved when the flip-flop is set. Moving MCBASE with the
+    compare at column 15 fails it (804 px).
+- The expansion flip-flop is set by the Y match that starts the DMA, and
+  set **at once** by a $d017 write that clears MxYE, not at a column hook
+  (VICE `d017_store`). At Bauer cycle 56 (**VIC column 54, after the second
+  Y compare**) it inverts for each sprite with DMA running and MxYE set.
+  - Pinned by `spritecrunch2-25`–`29`. Their $d017 sets land from the CPU
+    cycle after column 48 to the one after column 55, one column later
+    every 8 lines, so they straddle the inversion. Inverting at column 53
+    fails all five (228–472 px), and inverting ahead of the compare breaks
+    `spritedma/d017-54` and `d017-57` as well.
+- **Sprite crunch**: a $d017 write that clears MxYE in Bauer cycle 15 (the
+  CPU cycle after VIC column 13) while the flip-flop is reset steps MC to
+  `(0x2a & (MCBASE & MC)) | (0x15 & (MCBASE | MC))`, which column 14 then
+  hands to MCBASE. From MCBASE $00 that is $01, from $01 or $04–$06 it is
+  $05, from $03 it is $07, as the `spritecrunch` readme's table has it.
+  - Pinned by `spritecrunch-3b/3c/3d-00` (the same program, whose clear
+    lands in that cycle once), `spritecrunch2-08` and `sequencer-bug`. There
+    the crunch on line 52 steps MCBASE from $03 to $07, off the multiples of
+    three, so the expanded sprites wrap through their block and run for 84
+    lines instead of 42. Without the formula, or with the window a column either side,
+    all five fail (`sequencer-bug` 8064 px, 384 px a column early).
+  - `spritedma/d017-54` and `d017-57` pass with and without it.
   - Spec guard: *sprite crunch* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb), one example
+    per row of the readme's table.
 - Sprite pixels come from a per-pixel sequencer, not from a decoded row. A
   live X comparator fires one pixel before the sprite's first pixel, the
   expansion flip-flop gates the shift, and in multicolor a two-bit latch
