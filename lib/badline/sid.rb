@@ -95,12 +95,13 @@ module Badline
 
     # Starts collecting the output, averaged down to `rate` samples a
     # second, for #drain_samples. `filter_chunk` overrides the one the SID
-    # was built with, for a machine that built its own.
-    def record(rate:, filter_chunk: @filter_chunk)
+    # was built with, for a machine that built its own. `clock_hz` is the
+    # rate the SID's cycles are taken to run at.
+    def record(rate:, filter_chunk: @filter_chunk, clock_hz: TimeOfDay::CLOCK_HZ)
       synthesize!
       catch_up
       @filter_chunk = filter_chunk
-      @decimator = Decimator.new(clock_hz: TimeOfDay::CLOCK_HZ, rate:)
+      @decimator = Decimator.new(clock_hz:, rate:)
       @samples = []
     end
 

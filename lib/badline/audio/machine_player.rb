@@ -28,6 +28,9 @@ module Badline
 
       def sid = @computer.sid
 
+      # The machine is PAL whatever the tune asks for.
+      def clock_hz = TimeOfDay::CLOCK_HZ
+
       # Advances one PAL frame, or `budget` cycles if that is shorter, then
       # yields whatever the SID recorded over it. Returns the cycles advanced.
       def frame(budget, &)

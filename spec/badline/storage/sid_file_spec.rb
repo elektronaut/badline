@@ -147,6 +147,16 @@ describe Badline::Storage::SIDFile do
     end
   end
 
+  describe "#ntsc?" do
+    { 0b00 => false, 0b01 => false, 0b10 => true, 0b11 => false }.each do |bits, ntsc|
+      context "with clock bits #{format('%02b', bits)}" do
+        let(:fields) { super().merge(flags: bits << 2) }
+
+        it { expect(tune.ntsc?).to be(ntsc) }
+      end
+    end
+  end
+
   describe "a version 1 header" do
     let(:fields) { super().merge(version: 1, data_offset: 0x76) }
 

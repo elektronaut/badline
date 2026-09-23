@@ -16,11 +16,12 @@ describe Badline::Audio::Renderer do
   let(:signature) { "PSID" }
   let(:play) { load_address + 0x40 }
 
-  before { File.binwrite(tune_path, TinySID.bytes(signature:, load_address:, play:)) }
+  before { File.binwrite(tune_path, TinySID.bytes(signature:, load_address:, play:, flags:)) }
   after { FileUtils.remove_entry(dir) }
 
   def tune_path = File.join(dir, "tune.sid")
   def load_address = 0x1000
+  def flags = 0x04
   def output(name) = File.join(dir, name)
   def samples(name) = File.binread(output(name))[44..].unpack("s<*")
 
@@ -29,6 +30,12 @@ describe Badline::Audio::Renderer do
   def steady_peak(name)
     data = samples(name)
     data[(data.length / 2)..].map(&:abs).max
+  end
+
+  def rising_crossings(name)
+    data = samples(name)[1000..]
+    mean = data.sum / data.length
+    data.each_cons(2).count { |a, b| a < mean && b >= mean }
   end
 
   describe "#player" do
@@ -138,6 +145,24 @@ describe Badline::Audio::Renderer do
       it "plays the song it was given" do
         renderer.render(output("out.wav"))
         expect(steady_peak("out.wav")).to be > 3000
+      end
+    end
+
+    context "with an NTSC tune" do
+      let(:options) { { song: 2, seconds: 0.5 } }
+
+      def flags = 0x08
+
+      # The triangle at $1121 runs at 257 Hz on a PAL clock and 267 Hz on an
+      # NTSC one, 96 and 100 cycles over the steady 0.375 s.
+      it "plays it at the NTSC clock's pitch" do
+        renderer.render(output("out.wav"))
+        expect(rising_crossings("out.wav")).to eq(100)
+      end
+
+      it "still writes as many samples as the length asks for" do
+        renderer.render(output("out.wav"))
+        expect(samples("out.wav").length).to eq(4000)
       end
     end
   end

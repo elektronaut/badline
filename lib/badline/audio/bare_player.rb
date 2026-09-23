@@ -8,6 +8,10 @@ module Badline
     # which is what makes this path about three times faster than the whole
     # machine.
     #
+    # Nothing on the rig ties it to PAL, so an NTSC tune gets an NTSC
+    # machine: 60 Hz frames, the NTSC KERNAL's timer and `$02a6`, and a
+    # clock of 1022727 Hz for the SID's output.
+    #
     # Calls go through a six-byte stub whose JSR operand the dispatch trap
     # rewrites:
     #
@@ -23,12 +27,22 @@ module Badline
       # 312 raster lines of 63 cycles.
       FRAME_CYCLES = 19_656
 
+      # 263 raster lines of 65 cycles.
+      NTSC_FRAME_CYCLES = 17_095
+
+      NTSC_CLOCK_HZ = 1_022_727
+
       # A tune's init routine is free to unpack itself, but not forever.
       INIT_LIMIT = 10_000_000
 
       # The CIA 1 timer A latch the PAL KERNAL leaves, 60 underflows a
       # second.
       KERNAL_TIMER = 0x4025
+
+      NTSC_KERNAL_TIMER = 0x4295
+
+      # The KERNAL's PAL/NTSC flag, 1 for PAL.
+      VIDEO_STANDARD = 0x02a6
 
       attr_reader :sid
 
@@ -39,7 +53,8 @@ module Badline
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
         @bus.poke(0x01, 0x37)
-        @bus.cia1.timer_a_latch = KERNAL_TIMER
+        @bus.poke(VIDEO_STANDARD, tune.ntsc? ? 0 : 1)
+        @bus.cia1.timer_a_latch = tune.ntsc? ? NTSC_KERNAL_TIMER : KERNAL_TIMER
         @cpu = CPU.new(@bus)
         @sid = @bus.sid
         @idle = false
@@ -67,12 +82,14 @@ module Badline
         cycles
       end
 
+      def clock_hz = @tune.ntsc? ? NTSC_CLOCK_HZ : TimeOfDay::CLOCK_HZ
+
       private
 
-      # A PAL frame, or for a CIA-timed song one period of CIA 1 timer A,
+      # A video frame, or for a CIA-timed song one period of CIA 1 timer A,
       # which init and play are both free to reprogram.
       def period
-        return FRAME_CYCLES unless @tune.cia_timed?(@song + 1)
+        return (@tune.ntsc? ? NTSC_FRAME_CYCLES : FRAME_CYCLES) unless @tune.cia_timed?(@song + 1)
 
         @bus.cia1.timer_a_latch + 1
       end
