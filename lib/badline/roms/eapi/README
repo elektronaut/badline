@@ -1,0 +1,41 @@
+EasyFlash EAPI for the Am29F040
+===============================
+
+eapi-am29f040-14 is the EasyFlash flash driver (EAPI) for the AMD Am29F040,
+version 1.4, by Thomas 'skoe' Giesel. It is third-party software, not part
+of badline, and is distributed under the zlib licence in LICENSE.md.
+
+It is the unaltered output of assembling the upstream source, a C64 PRG
+(a two-byte load address, $C000, then 768 bytes):
+
+  Source:   https://gitlab.com/easyflash/eapi
+  Revision: 1b4ea15d44974d18f6f82156b935f59d2f85596c
+  File:     eapi-am29f040.s (includes eapi_defs.s)
+  Built:    acme -l out/eapi-am29f040-14.labels -o out/eapi-am29f040-14 eapi-am29f040.s
+            (the repository's Makefile rule, with ACME 0.96.4)
+  SHA-256:  4c32d425d7b0a1f659e007bccad5c43603a93236974ef19743b2eefb812ab9ed
+
+The source file's notice:
+
+  (c) 2009-2010 Thomas 'skoe' Giesel
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+When an EasyFlash image carries an EAPI, as its "eapi" signature at $B800
+in bank 0 of ROMH shows, badline replaces those 768 bytes with this driver
+on attach, the way VICE does, so the image drives the flash chip badline
+emulates.

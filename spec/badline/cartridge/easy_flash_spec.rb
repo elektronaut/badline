@@ -123,6 +123,32 @@ describe Badline::Cartridge::EasyFlash do
     end
   end
 
+  describe "the EAPI" do
+    let(:eapi) { File.binread(File.expand_path("../../../lib/badline/roms/eapi/eapi-am29f040-14", __dir__)).bytes }
+    let(:romh) { ([0x20] * 0x1800) + "eapiOLD DRIVER".bytes + ([0x33] * 0x7f2) }
+    let(:chips) { [chip(bank: 0, fill: 0x10), Badline::Storage::CRTFile::Chip.new(chip_type: 2, bank: 0, address: 0xa000, data: romh)] }
+
+    it "replaces the image's EAPI with the bundled one" do
+      expect(bus.cartridge.high_flash.data[0x1800, 0x300]).to eq(eapi.drop(2))
+    end
+
+    it "leaves the rest of the bank alone" do
+      expect(bus.cartridge.high_flash.data[0x1b00, 0x500].uniq).to eq([0x33])
+    end
+
+    it "maps the bundled EAPI at $F800 in Ultimax mode" do
+      expect(bus[0xf804]).to eq(0xc1)
+    end
+
+    context "without an EAPI signature" do
+      let(:romh) { [0x20] * 0x2000 }
+
+      it "leaves the image as it is" do
+        expect(bus.cartridge.high_flash.data[0x1800, 0x300].uniq).to eq([0x20])
+      end
+    end
+  end
+
   describe "#save_crt" do
     let(:dir) { Dir.mktmpdir }
     let(:path) { File.join(dir, "saved.crt") }

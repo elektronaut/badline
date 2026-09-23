@@ -110,10 +110,6 @@ class TestTestbenchCartridges < Minitest::Test
     assert_nil parse("reu512k,mountcrt:standard.crt")
   end
 
-  def test_drops_the_flash_writing_easyflash_test
-    assert_nil Testbench::Testlist.parse("../C64/carts/ef-eapi/,,exitcode,4000000,mountcrt:test-eapi.crt")
-  end
-
   def test_a_plain_row_is_not_a_cartridge_row
     assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").cartridge
   end

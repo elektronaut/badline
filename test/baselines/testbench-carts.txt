@@ -61,3 +61,4 @@ C64/carts/retroreplay/writeonce.prg+rrdummy.crt	PASS
 C64/carts/ultimax/8k-vic-rr.crt	PASS
 C64/carts/ultimax/16k-vic-rr.crt	PASS
 C64/carts/ultimax/ultimax-vic-rr.crt	PASS
+C64/carts/ef-eapi/test-eapi.crt	PASS

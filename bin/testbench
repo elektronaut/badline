@@ -79,10 +79,6 @@ module Testbench
                   reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
 
-  # The image carries only the EAPI signature, and VICE swaps its own copy
-  # of the Am29F040 EAPI in on attach. Badline doesn't bundle that EAPI.
-  UNSUPPORTED_CARTRIDGES = %w[C64/carts/ef-eapi/test-eapi.crt].freeze
-
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
   BOOT_ALLOWANCE = 3_000_000
@@ -214,7 +210,6 @@ module Testbench
     end
 
     def runnable_cartridge?(test)
-      return false if UNSUPPORTED_CARTRIDGES.include?(test.id)
       return false unless File.exist?(test.cartridge_path)
       return false unless test.prg.empty? || File.exist?(File.join(test.dir_abs, test.prg))
 

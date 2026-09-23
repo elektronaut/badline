@@ -191,8 +191,10 @@ light pen registers.
   Power Cartridge.
   EasyFlash and GMod2 flash takes writes through the chip's command set
   (program, sector and chip erase, autoselect), so games and EAPI can
-  save to it. The writes stay in memory and are lost when the emulator
-  quits: the `.crt` file is never overwritten. The Retro Replay's flash
+  save to it. An EasyFlash image's EAPI is swapped for a bundled copy of
+  the Am29F040 EAPI on attach, as VICE does. The writes stay in memory
+  and are lost when the emulator quits: the `.crt` file is never
+  overwritten. The Retro Replay's flash
   works the same way in flash mode, which the flash jumper enables:
   `Media.attach(computer, path, cartridge: { flash_jumper: true })`, with
   `bank_jumper: true` to run from the second 64K of a 128K image. The
@@ -221,3 +223,11 @@ commit format, and the project has a
 ## License
 
 Released under the [MIT License](MIT-LICENSE).
+
+Badline bundles one piece of third-party software:
+`lib/badline/roms/eapi/eapi-am29f040-14`, the EasyFlash flash driver
+(EAPI) for the Am29F040, © 2009–2010 Thomas 'skoe' Giesel, assembled
+unaltered from [its upstream source](https://gitlab.com/easyflash/eapi).
+It isn't part of badline and is distributed under the zlib licence; see
+[its README](lib/badline/roms/eapi/README) and
+[LICENSE.md](lib/badline/roms/eapi/LICENSE.md).
