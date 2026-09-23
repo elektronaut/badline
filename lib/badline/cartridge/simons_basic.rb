@@ -18,6 +18,10 @@ module Badline
         select_mode(:rom16k) if addr < 0xdf00
       end
 
+      def reset
+        select_mode(:rom16k)
+      end
+
       private
 
       def select_mode(mode)
@@ -29,7 +33,7 @@ module Badline
         roml, romh = banks_from(chips)
         @roml = roml.first
         @romh = romh.first
-        self.mode = :rom16k
+        reset
       end
     end
   end

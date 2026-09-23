@@ -33,6 +33,10 @@ module Badline
         end
       end
 
+      def reset
+        @romh.select(0)
+      end
+
       private
 
       def install_chips(chips)

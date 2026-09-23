@@ -26,4 +26,10 @@ describe Badline::Cartridge::Zaxxon do
     bus[0x8fff]
     expect(bus[0xa000]).to eq(0x20)
   end
+
+  it "selects the first ROMH bank on reset" do
+    bus[0x9000]
+    bus.cartridge.reset
+    expect(bus[0xa000]).to eq(0x20)
+  end
 end

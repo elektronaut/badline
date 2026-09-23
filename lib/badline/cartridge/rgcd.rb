@@ -19,6 +19,13 @@ module Badline
         changed!
       end
 
+      def reset
+        @disabled = false
+        self.mode = :rom8k
+        select(0)
+        changed!
+      end
+
       private
 
       def select(value)
@@ -34,9 +41,7 @@ module Badline
       def install_chips(chips)
         @banks = banks_from(chips).first
         @bank_mask = @hucky ? @banks.length - 1 : 0x07
-        @disabled = false
-        self.mode = :rom8k
-        select(0)
+        reset
       end
     end
   end

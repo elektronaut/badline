@@ -22,4 +22,10 @@ describe Badline::Cartridge::Westermann do
     bus[0xde00]
     expect(bus[0xa000]).to eq(0x11)
   end
+
+  it "switches ROMH back in on reset" do
+    bus[0xdf00]
+    bus.cartridge.reset
+    expect(bus[0xa000]).to eq(0x11)
+  end
 end

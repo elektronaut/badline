@@ -46,6 +46,14 @@ module Badline
         @control.anybits?(0x80)
       end
 
+      # Reset clears both registers, and leaves the flash and the RAM.
+      def reset
+        @bank = 0
+        @control = 0
+        apply_control
+        select_bank
+      end
+
       # Writes every bank that isn't blank to a CRT image at path.
       def save_crt(path)
         chips = (0...BANKS).flat_map do |number|
@@ -89,10 +97,7 @@ module Badline
         @high_flash = Flash.new(high)
         [@low_flash, @high_flash].each { |flash| flash.on_change { select_bank } }
         @io_ram = Array.new(0x100, 0xff)
-        @bank = 0
-        @control = 0
-        apply_control
-        select_bank
+        reset
       end
 
       def place(flash_data, offset, bytes)

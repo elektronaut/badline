@@ -22,4 +22,10 @@ describe Badline::Cartridge::RexUtility do
     bus[0xdfc0]
     expect(bus[0x8000]).to eq(0x10)
   end
+
+  it "switches the ROM back in on reset" do
+    bus[0xdf00]
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x10)
+  end
 end

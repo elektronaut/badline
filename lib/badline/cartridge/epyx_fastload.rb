@@ -49,6 +49,11 @@ module Badline
         @ram.peek(addr)
       end
 
+      # Reset discharges the capacitor, so the ROM shows.
+      def reset
+        discharge!
+      end
+
       private
 
       def discharge!

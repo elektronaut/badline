@@ -207,6 +207,12 @@ describe Badline::Cartridge do
       address_bus[0xde00] = 0x00
       expect(address_bus[0x8000]).to eq(0x10)
     end
+
+    it "selects the first bank with the ROM in on reset" do
+      address_bus[0xde00] = 0x81
+      cartridge.reset
+      expect(address_bus[0x8000]).to eq(0x10)
+    end
   end
 
   describe "an Ocean cartridge" do
@@ -232,6 +238,12 @@ describe Badline::Cartridge do
     it "mirrors the selected bank at $A000" do
       address_bus[0xde00] = 0x81
       expect(address_bus[0xa000]).to eq(0x21)
+    end
+
+    it "selects the first bank on reset" do
+      address_bus[0xde00] = 0x81
+      cartridge.reset
+      expect(address_bus[0xa000]).to eq(0x20)
     end
   end
 end

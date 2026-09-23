@@ -28,4 +28,10 @@ describe Badline::Cartridge::Mach5 do
     bus[0xde00] = 0
     expect(bus[0x8000]).to eq(0x01)
   end
+
+  it "switches the ROM back in on reset" do
+    bus[0xdf00] = 0
+    bus.cartridge.reset
+    expect(bus[0x8000]).to eq(0x01)
+  end
 end

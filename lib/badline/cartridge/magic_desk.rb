@@ -11,11 +11,15 @@ module Badline
         changed!
       end
 
+      def reset
+        poke(0xde00, 0)
+      end
+
       private
 
       def install_chips(chips)
         @banks = banks_from(chips).first
-        @roml = @banks.first
+        reset
       end
     end
   end

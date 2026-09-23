@@ -26,6 +26,11 @@ module Badline
         changed!
       end
 
+      def reset
+        select(0, :rom16k)
+        changed!
+      end
+
       private
 
       def select(number, mode)
@@ -36,7 +41,7 @@ module Badline
 
       def install_chips(chips)
         @roml_banks, @romh_banks = banks_from(chips)
-        select(0, :rom16k)
+        reset
       end
     end
   end

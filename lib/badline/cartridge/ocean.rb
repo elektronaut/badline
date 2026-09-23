@@ -10,6 +10,11 @@ module Badline
         changed!
       end
 
+      def reset
+        select_bank(0)
+        changed!
+      end
+
       private
 
       # In 16K mode the selected bank shows through ROMH as well.
@@ -20,7 +25,7 @@ module Badline
 
       def install_chips(chips)
         @banks = banks_from(chips).first
-        select_bank(0)
+        reset
       end
     end
   end

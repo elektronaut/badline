@@ -19,6 +19,10 @@ module Badline
         select(addr) if addr < 0xdf00
       end
 
+      def reset
+        select(0)
+      end
+
       private
 
       def select(addr)
@@ -28,8 +32,8 @@ module Badline
 
       def install_chips(chips)
         @banks = banks_from(chips).first
-        @roml = bank(@banks, 0)
         self.mode = :rom8k
+        reset
       end
     end
   end
