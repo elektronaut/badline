@@ -139,11 +139,12 @@ module Badline
       when 0x19 then irq_status # Latch + master IRQ bit, unused bits read 1
       when 0x1e, 0x1f then read_collision(i)
       else @registers.read(i)
-      end
+      end.tap { |value| @sprites.bus_data(@column, value) }
     end
 
     def poke(addr, value)
       reg = index(addr) % (2**6)
+      @sprites.bus_data(@column, value)
       log_register_change(reg, value)
       @registers.write(reg, value)
       compare_raster_writes(reg)

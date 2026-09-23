@@ -91,6 +91,41 @@ RSpec.describe Badline::VIC::Sprites do
     end
   end
 
+  # Pinned by sbsprf24-164: sprite 6 at X $164 shows, on the line of its
+  # Y match, what its s-accesses in Bauer cycles 7 and 8 saw with the DMA
+  # still off: the CPU's VIC register accesses in phi2 and $3fff in phi1.
+  describe "the s-accesses before the DMA starts" do
+    before do
+      setup_sprite(6, ptr: 0x20, color: 5, x_pos: 0x64)
+      registers.write(0x10, 0x40)
+      ram.poke(0x3fff, 0b0100_1101)
+    end
+
+    def match_line(x_pos = 0x64, bus: true)
+      registers.write(0x0c, x_pos)
+      sprites.start_line
+      [0b1010_1100, 0b0010_0110].each_with_index { |value, i| sprites.bus_data(6 + i, value) } if bus
+      sprites.check_dma(60, 53)
+      sprites.check_display(60)
+      sprites.finish_line(colors, fg)
+    end
+
+    it "shows the bus bytes and the idle fetch from the display turning on" do
+      match_line
+      expect(colors[460, 24].join).to eq("565655666566556566566556")
+    end
+
+    it "reads $ff where the CPU leaves the VIC alone" do
+      match_line(bus: false)
+      expect(colors[460, 8]).to eq([5] * 8)
+    end
+
+    it "shows nothing from a hit before the display turns on" do
+      match_line(0x63)
+      expect(colors[459, 24]).to eq([6] * 24)
+    end
+  end
+
   describe "X-coordinate wrap" do
     # X 420 -> raster (420 + 104) % 504 = 20, so the sprite shows at the far
     # left of the line rather than running off the right edge.
