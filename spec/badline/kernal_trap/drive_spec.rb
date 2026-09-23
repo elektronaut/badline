@@ -34,7 +34,12 @@ describe Badline::KernalTrap::Drive do
   end
 
   describe "the command channel" do
-    it "reports OK before anything happens" do
+    it "reports the DOS version at power-on" do
+      expect(status).to eq("73,CBM DOS V2.6 1541,00,00")
+    end
+
+    it "reports OK once the power-on message has been read" do
+      status
       expect(status).to eq("00, OK,00,00")
     end
 

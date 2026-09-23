@@ -61,12 +61,13 @@ module Badline
         /\A(?:U[2B]|B-[WAF])/i => :write_protected
       }.freeze
 
+      # A drive powers on reporting its DOS version, as a reset does.
       def initialize(storage)
         @storage = storage
         @channels = {}
         @status = Channel.new
         @ram = Array.new(RAM_SIZE, 0)
-        report(OK)
+        report(DOS_VERSION)
       end
 
       # A name on the command channel is a command, "#" opens a block
