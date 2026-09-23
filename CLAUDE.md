@@ -52,6 +52,12 @@ timer test takes about 25 minutes.
 where that time goes. `test/baselines/README.md`
 documents the baseline format, the suites and how rows are compared.
 
+`bin/machine_diff <scenario|media> --against <rev>` checks that a change
+leaves emulation alone. It runs the scenario on this tree and on `<rev>`'s
+`lib/` side by side, digests the CPU, RAM, VIC, CIAs and SID every million
+cycles, and names the first component that differs. Use it for refactors
+and speed work.
+
 ## Driving the emulator headlessly
 
 `exe/badline <media>` opens the SDL window, which is no use for checking
