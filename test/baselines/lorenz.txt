@@ -1,4 +1,4 @@
-*	PASS	ready. | start | Commodore 64 Emulator Test Suite | Public Domain, no Copyright | basic commands
+*	PASS	searching for * | loading | ready. | start | Commodore 64 Emulator Test Suite | Public Domain, no Copyright | basic commands
 ldab	PASS
 ldaz	PASS
 ldazx	PASS

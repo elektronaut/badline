@@ -8,10 +8,17 @@ describe Badline::KernalTrap::Load do
   let(:computer) { Badline::Computer.new }
   let(:ram) { computer.ram }
   let(:dir) { Dir.mktmpdir }
+  let(:capture) { computer.capture_output }
 
   before do
     File.binwrite(File.join(dir, "DATA.PRG"), [0x00, 0xc0, 0xaa, 0xbb].pack("C*"))
     computer.mount(Badline::Storage::HostDirectory.new(dir))
+    capture
+    # CLRCHN is JMP ($0322) and CHROUT is JMP ($0326); point both at an RTS
+    ram.write(0x0322, [0x00, 0x60])
+    ram.write(0x0326, [0x00, 0x60])
+    ram.poke(0x6000, 0x60)
+    ram.poke(0x9d, 0x00)
   end
 
   after { FileUtils.remove_entry(dir) }
@@ -30,9 +37,22 @@ describe Badline::KernalTrap::Load do
     computer.cpu.stack_pointer = 0xfd
   end
 
-  def run_trap
+  def trigger_trap
     computer.cpu.program_counter = described_class::ADDRESS
     computer.cpu.cycle!
+  end
+
+  def run_trap
+    trigger_trap
+    500.times do
+      break if computer.cpu.program_counter == 0x1235
+
+      computer.cpu.step!
+    end
+  end
+
+  def direct_mode
+    ram.poke(0x9d, 0x80)
   end
 
   describe "a load to the embedded address" do
@@ -110,6 +130,18 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0xc000)).to eq(0) }
     specify { expect(computer.cpu.status.carry?).to be(false) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+    specify { expect(ram.peek(0x90)).to eq(0x50) }
+  end
+
+  describe "a verify request that matches memory" do
+    before do
+      ram.write(0xc000, [0xaa, 0xbb])
+      request_load("DATA")
+      computer.cpu.a = 1
+      run_trap
+    end
+
+    specify { expect(ram.peek(0x90)).to eq(0x40) }
   end
 
   describe "a missing file" do
@@ -121,6 +153,7 @@ describe Badline::KernalTrap::Load do
     specify { expect(computer.cpu.status.carry?).to be(true) }
     specify { expect(computer.cpu.a).to eq(0x04) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+    specify { expect(ram.peek(0x90)).to eq(0x42) }
   end
 
   describe "an empty filename" do
@@ -131,12 +164,67 @@ describe Badline::KernalTrap::Load do
 
     specify { expect(computer.cpu.a).to eq(0x08) }
     specify { expect(computer.cpu.status.carry?).to be(true) }
+    specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
+  end
+
+  describe "messages in program mode" do
+    before do
+      request_load("DATA")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("") }
+  end
+
+  describe "messages for a load in direct mode" do
+    before do
+      direct_mode
+      request_load("DATA")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("\nsearching for data\nloading") }
+    specify { expect(computer.cpu.status.carry?).to be(false) }
+    specify { expect(computer.cpu.x).to eq(0x02) }
+    specify { expect(computer.cpu.y).to eq(0xc0) }
+  end
+
+  describe "messages for a verify in direct mode" do
+    before do
+      direct_mode
+      request_load("DATA")
+      computer.cpu.a = 1
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("\nsearching for data\nverifying") }
+  end
+
+  describe "messages for a missing file in direct mode" do
+    before do
+      direct_mode
+      request_load("NOPE")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("\nsearching for nope") }
+    specify { expect(computer.cpu.a).to eq(0x04) }
+  end
+
+  describe "messages for an empty filename in direct mode" do
+    before do
+      direct_mode
+      request_load("")
+      run_trap
+    end
+
+    specify { expect(capture.output).to eq("") }
   end
 
   describe "a load from another device" do
     before do
       request_load("DATA", device: 1)
-      run_trap
+      trigger_trap
     end
 
     specify { expect(ram.peek(0xc000)).to eq(0) }
@@ -148,7 +236,7 @@ describe Badline::KernalTrap::Load do
       computer.address_bus.poke(0x00, 0x2f)
       computer.address_bus.poke(0x01, 0x35)
       request_load("DATA")
-      run_trap
+      trigger_trap
     end
 
     specify { expect(ram.peek(0xc000)).to eq(0) }
