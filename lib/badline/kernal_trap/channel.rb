@@ -8,19 +8,24 @@ module Badline
     # channel cut short by a read error never flags one, and holds the
     # error for the drive to report once its bytes run out.
     class Channel
-      attr_accessor :pointer
+      attr_accessor :pointer, :buffer
       attr_reader :error
 
-      def initialize(bytes = [], error: nil, writable: false)
+      def initialize(bytes = [], error: nil, writable: false, base: 0)
+        @base = base
         replace(bytes)
         @error = error
         @writable = writable
       end
 
-      # A block buffer opened with "#". It takes the bytes written to it,
-      # and hands out the whole block unless a B-R sets a shorter end.
-      def self.buffer
-        new(Array.new(Drive::BLOCK_SIZE, 0), writable: true)
+      # A block buffer opened with "#", which reads and writes one of the
+      # drive's buffers in its RAM, so M-R and M-W reach the same bytes. It
+      # hands out the whole block unless a B-R sets a shorter end.
+      def self.buffer(memory, number)
+        new(memory.ram, writable: true, base: Drive::Memory.buffer_address(number)).tap do |channel|
+          channel.buffer = number
+          channel.rewind(Drive::BLOCK_SIZE)
+        end
       end
 
       # A file's bytes, up to the first block its chain can't read. The
@@ -62,8 +67,21 @@ module Badline
 
       def replace(bytes, length = bytes.length)
         @bytes = bytes
+        rewind(length)
+      end
+
+      def rewind(length)
         @length = length
         @pointer = 0
+      end
+
+      # A block read into the channel. A buffer channel takes it into its
+      # buffer, a file channel hands it out in place of the file.
+      def load(block, length)
+        return replace(block.dup, length) unless @writable
+
+        @bytes[@base, block.length] = block
+        rewind(length)
       end
 
       def writable? = @writable
@@ -72,10 +90,15 @@ module Badline
         @pointer >= @length
       end
 
+      # A file that holds nothing but its error never opened.
+      def failed?
+        exhausted? && !@error.nil?
+      end
+
       # Each byte lands at the pointer, which wraps within the block.
       def write(bytes)
         bytes.each do |byte|
-          @bytes[@pointer] = byte
+          @bytes[@base + @pointer] = byte
           @pointer = (@pointer + 1) & 0xff
         end
       end
@@ -83,7 +106,7 @@ module Badline
       def read
         return if exhausted?
 
-        byte = @bytes[@pointer]
+        byte = @bytes[@base + @pointer]
         @pointer += 1
         [byte, exhausted? && !@error]
       end
