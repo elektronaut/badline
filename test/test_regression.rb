@@ -371,14 +371,10 @@ class TestRegressionSplice < Minitest::Test
   end
 end
 
-load File.expand_path("../bin/lorenz", __dir__)
+require_relative "lorenz_chain"
+require_relative "lorenz_run"
 
 class TestLorenzSegments < Minitest::Test
-  Capture = Struct.new(:output)
-  Log = Data.define(:entries)
-  Machine = Struct.new(:cpu)
-  CPU = Class.new { def install_trap(*) = nil }
-
   TRANSCRIPT = "ldab - ok\nldaz - ok\nldazx"
 
   def test_a_stopped_run_drops_its_last_segment
@@ -394,15 +390,15 @@ class TestLorenzSegments < Minitest::Test
   end
 
   def test_the_kept_segment_is_trimmed_of_the_next_name
-    assert_equal "ldaz\tPASS", runner("stopped").segments.last.to_record
+    assert_equal "ldaz\tPASS", lorenz_run("stopped").segments.last.to_record
   end
 
-  def test_the_chain_stops_once_it_loads_past_the_stop_test
-    assert runner(nil, stop_after: "LDAZ").send(:moved_past_stop?)
+  def test_a_segment_a_key_landed_in_fails
+    assert_equal "FAIL", lorenz_run("hung", keys: [15]).segments[1].verdict
   end
 
-  def test_the_chain_runs_on_while_the_stop_test_is_the_last_loaded
-    refute runner(nil, stop_after: "ldazx").send(:moved_past_stop?)
+  def test_the_outcome_names_the_last_test_loaded
+    assert_equal "(suite)\tFAIL\thung after ldazx", lorenz_run("hung").outcome_record
   end
 
   def test_a_finished_suite_counts_the_finish_row
@@ -413,28 +409,80 @@ class TestLorenzSegments < Minitest::Test
   private
 
   def names(result)
-    runner(result).segments.map(&:name)
+    lorenz_run(result).segments.map(&:name)
   end
 
-  def runner(result, stop_after: nil)
-    entries = %w[ldab ldaz ldazx].map { |name| Lorenz::LoadLog::Entry.new(name, TRANSCRIPT.index(name)) }
-    runner = Lorenz::Runner.new(Machine.new(CPU.new), Capture.new(TRANSCRIPT), Log.new(entries:),
-                                stop_after:)
-    runner.instance_variable_set(:@result, result)
-    runner
+  def lorenz_run(result, keys: [])
+    loads = %w[ldab ldaz ldazx].map { |name| [name, TRANSCRIPT.index(name)] }
+    Lorenz::Run.new(TRANSCRIPT, loads, keys, result)
+  end
+end
+
+class TestLorenzRunParse < Minitest::Test
+  OUTPUT = <<~OUT
+    load 0 ldab
+    load 10 ldaz
+    key 12
+    result hung 33270000
+    transcript 26
+    ldab - ok
+    ldaz - ok
+    ldazx
+  OUT
+
+  def test_it_reads_the_rows_a_run_recorded
+    assert_equal ["ldab\tPASS", "ldaz\tFAIL\thalted for a keypress | - ok | ldazx",
+                  "(suite)\tFAIL\thung after ldaz"],
+                 Lorenz::Run.parse(OUTPUT).records
+  end
+
+  def test_the_transcript_keeps_its_last_newline
+    assert_equal "ldab - ok\nldaz - ok\nldazx\n", Lorenz::Run.parse(OUTPUT).transcript
+  end
+
+  def test_a_cut_short_transcript_is_refused
+    assert_raises(ArgumentError) { Lorenz::Run.parse(OUTPUT.delete_suffix("ldazx\n")) }
+  end
+
+  def test_output_without_a_transcript_is_refused
+    assert_raises(ArgumentError) { Lorenz::Run.parse("result hung 1\n") }
+  end
+end
+
+class TestLorenzChain < Minitest::Test
+  Capture = Struct.new(:output)
+  Disk = Struct.new(:names)
+  Machine = Struct.new(:cpu)
+  CPU = Class.new { def install_trap(*) = nil }
+
+  def test_the_chain_stops_once_it_loads_past_the_stop_test
+    assert chain(stop_after: "LDAZ").send(:moved_past_stop?)
+  end
+
+  def test_the_chain_runs_on_while_the_stop_test_is_the_last_loaded
+    refute chain(stop_after: "ldazx").send(:moved_past_stop?)
+  end
+
+  def test_the_chain_runs_on_without_a_stop_test
+    refute chain.send(:moved_past_stop?)
+  end
+
+  private
+
+  def chain(stop_after: nil)
+    Lorenz::Chain.new(Machine.new(CPU.new), Capture.new(+""), Disk.new(%w[ldab ldaz ldazx]), 0, stop_after)
   end
 end
 
 class TestLorenzDiskSwap < Minitest::Test
   Capture = Struct.new(:output)
-  Disk = Struct.new(:files) do
-    def read_file(name) = files[name]
-    def label = files.keys.first
+  Image = Struct.new(:files) do
+    def read_file(name, type: :prg) = (files[name] if type == :prg)
   end
 
   def setup
-    @log = Lorenz::LoadLog.new(Disk.new({ "cia2tb" => [1] }), Capture.new(+""),
-                               spares: [["Disk4.d64", Disk.new({ "aneb" => [2], "lxab" => [3] })]])
+    @disk = Lorenz::Disk.new(Image.new({ "cia2tb" => [1] }), Capture.new(+""))
+    @disk.spare("Disk4.d64", Image.new({ "aneb" => [2], "lxab" => [3] }))
   end
 
   def test_a_program_on_the_mounted_image_loads_from_it
@@ -448,7 +496,7 @@ class TestLorenzDiskSwap < Minitest::Test
   def test_the_spare_stays_mounted_once_swapped_in
     load_program("aneb")
 
-    assert_equal "aneb", @log.label
+    assert_nil load_program("cia2tb")
   end
 
   def test_a_program_on_no_disk_stays_missing
@@ -458,11 +506,11 @@ class TestLorenzDiskSwap < Minitest::Test
   def test_the_load_is_logged_once
     load_program("aneb")
 
-    assert_equal %w[aneb], @log.entries.map(&:name)
+    assert_equal %w[aneb], @disk.names
   end
 
   def test_there_is_no_spare_beside_an_image_without_one
-    Dir.mktmpdir { |dir| assert_empty Lorenz.spares(File.join(dir, "Lorenz.d81")) }
+    Dir.mktmpdir { |dir| assert_nil Lorenz.spare_path(File.join(dir, "Lorenz.d81")) }
   end
 
   def test_the_spare_is_not_the_mounted_image_itself
@@ -470,7 +518,7 @@ class TestLorenzDiskSwap < Minitest::Test
       image = File.join(dir, Lorenz::NEXT_DISK)
       File.write(image, "")
 
-      assert_empty Lorenz.spares(image)
+      assert_nil Lorenz.spare_path(image)
     end
   end
 
@@ -478,7 +526,7 @@ class TestLorenzDiskSwap < Minitest::Test
 
   def load_program(name)
     data = nil
-    capture_io { data = @log.read_file(name) }
+    capture_io { data = @disk.read_file(name) }
     data
   end
 end
