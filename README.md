@@ -62,11 +62,12 @@ Ruby, `Badline.rom_path = dir` does the same before a
 `Badline::Computer` is built, and `nil` restores the bundled set.
 
 `--sound` plays the SID through the host's audio device, and `F10`
-mutes and unmutes it. Sound is off by default. The whole machine runs
-below real time, so the sound stutters: it plays in bursts with silent
-gaps between them, at the right pitch. It never slows the emulation
-down, and a machine running faster than real time drops whole frames of
-sound rather than falling behind.
+mutes and unmutes it. Sound is off by default. While it plays, the
+audio device sets the pace instead of the display, so the machine never
+runs ahead of the sound or drifts behind it. The whole machine runs
+below real time, though, so the sound stutters: it plays in bursts with
+silent gaps between them, at the right pitch, and never slows the
+emulation down.
 
 ## Media
 

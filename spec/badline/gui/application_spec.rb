@@ -100,6 +100,16 @@ describe Badline::GUI::Application do
       expect(computer.sid.synthesizing?).to be(false)
     end
 
+    it "paces the frames by the display without sound" do
+      run_sound(sound: false)
+      expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: true))
+    end
+
+    it "paces the frames by the audio device with sound" do
+      run_sound
+      expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: false))
+    end
+
     it "queues a frame of the SID's output" do
       run_sound
       expect(sink.queued).to be_within(1).of(44_100 / 50)
@@ -129,6 +139,11 @@ describe Badline::GUI::Application do
       it "says so" do
         run_sound
         expect(Warning).to have_received(:warn).with(/can't open the audio device: no device/, anything)
+      end
+
+      it "paces the frames by the display" do
+        run_sound
+        expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: true))
       end
 
       it "runs without sound" do

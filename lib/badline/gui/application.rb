@@ -36,18 +36,16 @@ module Badline
         @mode = :keyboard
         @pot_device = nil
         @panes = [ScreenPane.new(@computer)]
+        @stream = open_stream if sound
+        @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
           title: TITLE,
           width: canvas_width, height: canvas_height,
-          vsync: ENV["NOVSYNC"].nil?
+          vsync: @paced && !@stream
         )
         @gamepads = Gamepads.new(@computer)
         @gamepads.names.each { |name| puts "Gamepad: #{name}" }
-        @stream = open_stream if sound
-
-        rate = @window.refresh_rate
-        @cycles_per_frame = PAL_CLOCK_HZ / rate
-        puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
+        fit_frame
       end
 
       def run
@@ -58,6 +56,7 @@ module Badline
           @cycles_per_frame.times { @computer.cycle! }
           @stream&.feed
           @window.draw(@panes)
+          @stream.pace(@frame_seconds) if @stream && @paced
         end
       ensure
         @stream&.close
@@ -150,6 +149,13 @@ module Badline
                           on_underrun: -> { puts "Running below real time, so the sound will stutter." })
       rescue Audio::SDLSink::Error => e
         warn "badline: no sound, can't open the audio device: #{e.message}"
+      end
+
+      def fit_frame
+        rate = @window.refresh_rate
+        @cycles_per_frame = PAL_CLOCK_HZ / rate
+        @frame_seconds = @cycles_per_frame.fdiv(PAL_CLOCK_HZ)
+        puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
       end
 
       def attach_pot_device

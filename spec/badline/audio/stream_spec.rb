@@ -139,6 +139,68 @@ describe Badline::Audio::Stream do
     end
   end
 
+  describe "#pace" do
+    let(:clock) { FakeClock.new(sink) }
+
+    before { stream.clock = clock }
+
+    # Each frame renders 20 ms of samples in `cost` seconds, then paces;
+    # the frames are `period` seconds apart when the clock paces them.
+    def paced(frames, cost: 0.005, period: 0.02)
+      frames.times do
+        stream.feed
+        clock.pass(cost)
+        stream.pace(period)
+      end
+    end
+
+    it "waits a frame on the clock while the queue fills" do
+      stream.feed
+      stream.pace(0.02)
+      stream.pace(0.02)
+      expect(clock.now).to eq(0.02)
+    end
+
+    it "doesn't wait on the clock for a frame that ran late" do
+      stream.pace(0.02)
+      clock.pass(0.05)
+      stream.pace(0.02)
+      expect(clock.slept).to eq(0.0)
+    end
+
+    it "waits for the device to play the queue down to the lead" do
+      paced(10)
+      expect(sink.queued).to be <= 100
+    end
+
+    it "keeps the lead once the device plays" do
+      paced(3000)
+      expect(sink.queued).to be >= 100 - 20
+    end
+
+    it "never runs dry above real time, however long the frames' period" do
+      paced(3000, period: 0.0202)
+      expect(stream.underruns).to eq(0)
+    end
+
+    it "drops nothing above real time" do
+      paced(3000)
+      expect(stream.dropped).to eq(0)
+    end
+
+    it "runs the machine at the device's rate" do
+      paced(3000)
+      expect(clock.now).to be_within(0.2).of(60.0)
+    end
+
+    it "paces by the clock while muted" do
+      paced(10)
+      stream.toggle_mute
+      paced(1)
+      expect { paced(10) }.to change(clock, :now).by(be_within(0.001).of(0.2))
+    end
+  end
+
   it "closes the device" do
     stream.close
     expect(sink.closed?).to be(true)

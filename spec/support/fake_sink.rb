@@ -84,3 +84,25 @@ class FakeRenderer
     end
   end
 end
+
+# A clock for Stream#pace on the sink's simulated time: sleeping and
+# #pass both advance it, and the sink plays out as it goes.
+class FakeClock
+  attr_reader :now, :slept
+
+  def initialize(sink)
+    @sink = sink
+    @now = 0.0
+    @slept = 0.0
+  end
+
+  def sleep(seconds)
+    @slept += seconds
+    pass(seconds)
+  end
+
+  def pass(seconds)
+    @now += seconds
+    @sink.advance(seconds)
+  end
+end
