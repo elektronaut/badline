@@ -87,7 +87,11 @@ module Badline
       # around each step run whole. Frozen at zero, a period changes
       # nothing, so whole periods are counted off at once.
       def fast_forward(cycles)
-        while cycles.positive?
+        return if cycles.zero?
+        return count_off(cycles) if @rate_counter + cycles < @rate_period && !pipelined?
+        return spin_frozen(cycles) if frozen?
+
+        while cycles != 0
           if pipelined?
             cycle!
             cycles -= 1
@@ -168,9 +172,9 @@ module Badline
       end
 
       def run_pipeline
-        state_change if @state_pipeline.positive?
-        land_step if @envelope_pipeline.positive?
-        if @exponential_pipeline.positive? && (@exponential_pipeline -= 1).zero?
+        state_change if @state_pipeline != 0
+        land_step if @envelope_pipeline != 0
+        if @exponential_pipeline != 0 && (@exponential_pipeline -= 1).zero?
           exponential_step
         elsif @reset_rate_counter
           reset_rate_counter
@@ -189,12 +193,36 @@ module Badline
         @rate_counter -= 0x7fff if @rate_counter > 0x7fff
       end
 
+      # Cycles that end before the rate counter's next match only count.
+      def count_off(cycles)
+        @env3 = @counter
+        @rate_counter += cycles
+      end
+
+      # Frozen at zero, with nothing in flight but a rate counter reset, the
+      # rate counter only goes round its period.
+      def frozen?
+        @hold_zero && @state != :attack && @rate_counter <= @rate_period &&
+          (@state_pipeline | @envelope_pipeline | @exponential_pipeline).zero?
+      end
+
+      # Counts the cycles off as positions round the period: 1 up to the
+      # period itself, then one more for the cycle the counter resets on.
+      def spin_frozen(cycles)
+        @env3 = @counter
+        lap = @rate_period + 1
+        position = (@reset_rate_counter ? lap : @rate_counter) + cycles
+        position = ((position - 1) % lap) + 1 if position > lap
+        @reset_rate_counter = position == lap
+        @rate_counter = @reset_rate_counter ? @rate_period : position
+      end
+
       # With the counter on its period, a frozen envelope comes back to the
       # same state every period plus one cycles. Otherwise the next cycle
       # starts a step.
       def skip_frozen_periods(cycles)
         cycles %= @rate_period + 1 if @hold_zero && @state != :attack
-        return cycles unless cycles.positive?
+        return cycles if cycles.zero?
 
         cycle!
         cycles - 1

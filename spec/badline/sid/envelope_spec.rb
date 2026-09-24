@@ -344,5 +344,12 @@ describe Badline::SID::Envelope do
                                    [40_000, :control=, 0x00], [90_000, :control=, 0x01]])
       expect(forwarded).to eq(stepped)
     end
+
+    # The attack that follows steps on the frozen rate counter's phase.
+    it "matches stepping a frozen envelope a few cycles at a time" do
+      idle = [2, 7, 1, 9, 8, 3, 11, 5, 9, 4].map { |cycles| [cycles, :sustain_release=, 0x00] }
+      stepped, forwarded = settle(idle + [[6, :control=, 0x01], [40, :attack_decay=, 0x00]])
+      expect(forwarded).to eq(stepped)
+    end
   end
 end
