@@ -36,8 +36,10 @@ module Badline
       end
 
       # CBM-style filename pattern: "*" and "?" wildcards, case-insensitive.
+      # The DOS stops comparing at the first "*", so whatever follows it
+      # is ignored.
       def matcher(name)
-        escaped = Regexp.escape(name.downcase)
+        escaped = Regexp.escape(name.downcase.sub(/\*.*/m, "*"))
                         .gsub('\*', ".*")
                         .gsub('\?', ".")
         Regexp.new("\\A#{escaped}\\z")
