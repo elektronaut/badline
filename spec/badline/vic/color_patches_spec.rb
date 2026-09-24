@@ -16,6 +16,7 @@ RSpec.describe Badline::VIC::ColorPatches do
   before do
     registers.write(0x20, 2) # border
     registers.write(0x21, 6) # background
+    registers.write(0x11, 0x1b) # DEN=1, RSEL=1
     registers.write(0x16, 0xc8) # CSEL=40
     bank.address_bus.ram.poke(0, 0) # character 0, all background bits
     sequencer.new_line(51)

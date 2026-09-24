@@ -11,6 +11,7 @@ RSpec.describe Badline::VIC::Sequencer do
   let(:x_pos) { (col + 16) * 8 }
 
   before do
+    registers.write(0x11, 0x1b) # DEN=1, RSEL=1, YSCROLL=3
     registers.write(0x20, 2)
     registers.write(0x21, 6)
   end

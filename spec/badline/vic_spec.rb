@@ -390,6 +390,7 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd000, sprite_x)
       vic.poke(0xd001, line)
       vic.poke(0xd027, 5)    # sprite 0 colour
+      vic.poke(0xd020, 14)   # border colour
       vic.address_bus.ram.poke(0x07f8, 0x80)        # sprite 0 data @ $2000
       vic.address_bus.ram.poke(0x2000, 0b1000_0000) # row 0, leftmost pixel set
     end
@@ -489,6 +490,7 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd018, 0x18) # screen @ $0400, char @ $2000, ptrs @ $07f8
       vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3
       vic.poke(0xd016, 0xc0) # CSEL=38 (column 0 falls under the border)
+      vic.poke(0xd020, 14)   # border colour
       vic.poke(0xd015, 0x01)     # enable sprite 0
       vic.poke(0xd000, 24)       # sprite X 24 -> raster 128 (column 0)
       vic.poke(0xd001, line - 1) # Y match one line up; row 0 displays at line
@@ -517,7 +519,9 @@ RSpec.describe Badline::VIC do
     # A sprite over a character's foreground pixel on the line, as in the
     # 38-column border example above but with the border open.
     def configure(chip)
-      { 0xd018 => 0x18, 0xd015 => 0x01, 0xd000 => 24, 0xd001 => line - 1 }.each { |reg, value| chip.poke(reg, value) }
+      { 0xd011 => 0x1b, 0xd018 => 0x18, 0xd015 => 0x01, 0xd000 => 24, 0xd001 => line - 1 }.each do |reg, value|
+        chip.poke(reg, value)
+      end
       { 0x0400 => 1, 0x2009 => 0x80, 0x07f8 => 0x90, 0x2400 => 0x80 }.each do |addr, value|
         chip.address_bus.ram.poke(addr, value)
       end
@@ -603,6 +607,7 @@ RSpec.describe Badline::VIC do
 
     before do
       vic.open_bus = -> { 0xa7 }
+      vic.poke(0xd011, 0x1b)
       vic.address_bus.color_ram.poke(0xd800 + 40 + 3, 0x05)
       ((58 * 63) + 60).times { vic.cycle! } # the row from line 51 ends on 58
       vic.poke(0xd011, 0x1c) # YSCROLL=4 keeps line 59 from matching
@@ -769,6 +774,7 @@ RSpec.describe Badline::VIC do
     let(:line) { 60 }
 
     before do
+      vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3
       vic.poke(0xd018, 0x18) # screen @ $0400, char @ $2000
       ram.poke(0x3fff, 0xff)
       setup
@@ -870,10 +876,12 @@ RSpec.describe Badline::VIC do
 
   describe "vertical border flip-flop" do
     let(:x) { (16 + 10) * 8 } # a pixel well inside the horizontal window
-    let(:border) { 14 }       # default border colour
+    let(:border) { 14 }
 
     before do
+      vic.poke(0xd016, 0x08) # CSEL=40
       vic.poke(0xd018, 0x18)
+      vic.poke(0xd020, border)
       vic.poke(0xd021, 6) # background, distinct from the border
       ram = vic.address_bus.ram
       256.times { |i| ram.poke(0x0400 + i, 1) }      # screen full of char 1
@@ -1068,7 +1076,7 @@ RSpec.describe Badline::VIC do
       before do
         run_frames(2)
         vic.clear_dirty_lines!
-        vic.poke(0xd020, 0)
+        vic.poke(0xd020, 5)
         run_frames(1)
       end
 

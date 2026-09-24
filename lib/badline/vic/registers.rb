@@ -53,21 +53,21 @@ module Badline
     #
     # All color registers are 4bit, bits 4-7 always read 1.
     #
-    #   $D020: Border color        - Default: 14, light blue
-    #   $D021: Background color 0  - Default: 6,  blue
-    #   $D022: Background color 1  - Default: 1,  white
-    #   $D023: Background color 2  - Default: 2,  red
-    #   $D024: Background color 3  - Default: 3,  cyan
-    #   $D025: Sprite multicolor 0 - Default: 4,  purple
-    #   $D026: Sprite multicolor 1 - Default: 0,  black
-    #   $D027: Sprite 0 color      - Default: 1,  white
-    #   $D028: Sprite 1 color      - Default: 2,  red
-    #   $D029: Sprite 2 color      - Default: 3,  cyan
-    #   $D02A: Sprite 3 color      - Default: 4,  purple
-    #   $D02B: Sprite 4 color      - Default: 5,  green
-    #   $D02C: Sprite 5 color      - Default: 6,  blue
-    #   $D02D: Sprite 6 color      - Default: 7,  yellow
-    #   $D02E: Sprite 7 color      - Default: 12, medium gray
+    #   $D020: Border color
+    #   $D021: Background color 0
+    #   $D022: Background color 1
+    #   $D023: Background color 2
+    #   $D024: Background color 3
+    #   $D025: Sprite multicolor 0
+    #   $D026: Sprite multicolor 1
+    #   $D027: Sprite 0 color
+    #   $D028: Sprite 1 color
+    #   $D029: Sprite 2 color
+    #   $D02A: Sprite 3 color
+    #   $D02B: Sprite 4 color
+    #   $D02C: Sprite 5 color
+    #   $D02D: Sprite 6 color
+    #   $D02E: Sprite 7 color
     #
     # $D02F-$D03F: Not in use, always reads 0xff
     # $D040-$D3FF: Repeat $D0000 to $D03F every 64 bytes
@@ -77,10 +77,10 @@ module Badline
       # The raw register bytes, for the per-column reads on the hot path.
       attr_reader :bytes
 
+      # Every register powers on as zero, as in VICE.
       def initialize
         @bytes = Array.new(2**6, 0)
         @irq_line = false
-        write_defaults
       end
 
       # True while any enabled latch bit is set in $D019/$D01A. Cached and
@@ -156,17 +156,6 @@ module Badline
 
       def read_clear(reg)
         @bytes[reg].tap { @bytes[reg] = 0 }
-      end
-
-      def write_defaults
-        write_each(0x20, [14, 6, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6, 7, 12])
-        write_each(0x11, [0x1b, 0]) # $D011: DEN=1, RSEL=1, YSCROLL=3
-        write_each(0x16, [0xc8])    # $D016: Text mode, XSCROLL=0
-        write_each(0x19, [0, 0])    # IRQ flags
-      end
-
-      def write_each(addr, values)
-        values.each_with_index { |v, i| @bytes[addr + i] = v }
       end
     end
   end
