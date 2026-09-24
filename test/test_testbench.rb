@@ -439,3 +439,99 @@ class TestTestbenchProgress < Minitest::Test
     StubRunner.new(scores, @results, shards:, resume:).tap { |runner| capture_io { runner.run } }
   end
 end
+
+class TestTestbenchEngine < Minitest::Test
+  # Stands in for a Spinel build of spinel/testbench.rb: a test whose key
+  # says so crashes the build, hangs it or fails, and the rest pass.
+  BUILD = <<~RUBY
+    #!/usr/bin/env ruby
+    File.readlines(ARGV[0]).each do |line|
+      key, type = line.split("\\t")
+      exit 3 if key.include?("crash")
+      sleep 30 if key.include?("hang")
+      puts "test \#{key}", "exit \#{key.include?('fail') ? 255 : 0}", "cycles 1"
+      if type == "exitcode"
+        puts "text", *Array.new(25) { "ready." }
+      else
+        puts "screen", *Array.new(272) { "0e" * 192 }
+      end
+      puts "done"
+      $stdout.flush
+    end
+  RUBY
+
+  Test = Struct.new(:key, :type, :deadline) do
+    def budget = 1000
+    def cartridge = nil
+    def prg = "#{key}.prg"
+    def dir_abs = "/tests"
+  end
+
+  def setup
+    @dir = Dir.mktmpdir("engine")
+    @build = File.join(@dir, "build")
+    File.write(@build, BUILD)
+    File.chmod(0o755, @build)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def test_a_test_is_a_line_of_tab_separated_fields
+    test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
+
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\n", Testbench::Engine.spec(test)
+  end
+
+  def test_a_screenshot_reads_as_rows_of_palette_indices
+    outcome = Testbench::Engine.parse(record("screen", "0e" * 192), Test.new("t", "screenshot"))
+
+    assert_equal [0, 14], outcome.screen.first.first(2)
+  end
+
+  def test_a_test_that_never_reported_has_no_exit_code
+    assert_nil Testbench::Engine.parse(record("text", "ready."), Test.new("t", "exitcode")).exit_code
+  end
+
+  def test_a_record_for_another_test_is_refused
+    assert_raises(ArgumentError) { Testbench::Engine.parse(record("text", "ready."), Test.new("u", "exitcode")) }
+  end
+
+  def test_each_test_gets_its_exit_code
+    assert_equal [0, 255], run_engine(%w[pass fail])
+  end
+
+  def test_a_crash_fails_its_test_and_the_rest_run_on
+    assert_equal ["crashed: exit 3", 0], run_engine(%w[crash pass])
+  end
+
+  def test_a_hung_test_is_killed_and_the_rest_run_on
+    assert_equal ["hung: killed after 1s", 0], run_engine(%w[hang pass], deadline: 0.5)
+  end
+
+  def test_an_engine_run_writes_the_rows_bin_testbench_would
+    tests = %w[pass crash].map { |name| Testbench::TestCase.new("../VICII/x", "#{name}.prg", "exitcode", 1000, []) }
+    results = File.join(@dir, "results.txt")
+    capture_io { Testbench::Runner.new(tests, results, shards: 2, engine: @build).run }
+
+    assert_equal "VICII/x/pass.prg\tPASS\nVICII/x/crash.prg\tFAIL\tcrashed: exit 3\n", File.read(results)
+  end
+
+  private
+
+  def record(kind, row)
+    rows = Array.new(kind == "screen" ? 272 : 25, row)
+    ["test t", "exit none", "cycles 1", kind, *rows, "done"].join("\n") << "\n"
+  end
+
+  # The exit code each test reported, or how it failed to.
+  def run_engine(keys, deadline: 10)
+    engine = Testbench::Engine.new(@build, File.join(@dir, "list"), spawned: ->(_) {}, stopped: -> {})
+    results = []
+    engine.run(keys.map { |key| Test.new(key, "exitcode", deadline) }) do |_, outcome|
+      results << (outcome.is_a?(String) ? outcome : outcome.exit_code)
+    end
+    results
+  end
+end
