@@ -366,6 +366,25 @@ RSpec.describe Badline::Computer do
       end
     end
 
+    context "when the machine resets" do
+      let(:disk) do
+        instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0],
+                                                    read_file_at: [0x00, 0xc0, 0x02], read_error: nil)
+      end
+
+      before do
+        computer.mount(disk)
+        run_load
+        return_to_caller
+        computer.reset!
+        run_load("*")
+      end
+
+      it "resets the drive, whose RAM forgets the last LOAD's first block" do
+        expect(disk).not_to have_received(:read_file_at)
+      end
+    end
+
     context "with a read-only backend" do
       before { computer.mount(read_only) }
 
