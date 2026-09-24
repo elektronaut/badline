@@ -46,6 +46,7 @@ require "English"
 require "fileutils"
 require "optparse"
 require "rbconfig"
+require_relative "../test/jit"
 
 module Profiler
   WORKLOADS = %w[idle text game synth].freeze
@@ -191,20 +192,8 @@ module Profiler
     def percent(count) = format("%<percent>5.1f%%", percent: 100.0 * count / @total)
   end
 
-  def yjit? = defined?(RubyVM::YJIT) && RubyVM::YJIT.enabled?
-  def zjit? = defined?(RubyVM::ZJIT) && RubyVM::ZJIT.enabled?
-
-  # The JIT this process runs with, for the children to run with too.
-  # TruffleRuby has no RubyVM and takes no flag.
-  def jit_flags
-    return ["--zjit"] if zjit?
-    return ["--yjit"] if yjit?
-
-    []
-  end
-
   def measure_in_child(workload, options, lib: options[:lib], stub: nil)
-    command = [RbConfig.ruby, *jit_flags, __FILE__, workload, "--measure", "--lib", lib]
+    command = [RbConfig.ruby, *Jit.flags, __FILE__, workload, "--measure", "--lib", lib]
     command += ["--stub", stub] if stub
     command += ["--cycles", options[:cycles].to_s] if options[:cycles]
     output = IO.popen(command, &:read)
@@ -310,7 +299,7 @@ when :ceiling then Profiler.ceiling(workload, options)
 when :compare then Profiler.compare(workload, options)
 else
   $LOAD_PATH.unshift(options[:lib])
-  RubyVM::YJIT.enable if defined?(RubyVM::YJIT) && !Profiler.yjit? && !Profiler.zjit?
+  Jit.enable
   require "badline"
   options[:mode] == :measure ? Profiler.measure(workload, options) : Profiler.profile(workload, options)
 end
