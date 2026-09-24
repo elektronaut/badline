@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "badline/gui"
+require_relative "../../support/fake_sink"
 
 describe Badline::GUI::Application do
   let(:computer) { Badline::Computer.new }
@@ -41,12 +42,12 @@ describe Badline::GUI::Application do
   describe "the SID model" do
     it "fits the machine with the one asked for" do
       described_class.new(sid_model: :mos8580)
-      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos8580)
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos8580)
     end
 
     it "fits a 6581 by default" do
       described_class.new
-      expect(Badline::Computer).to have_received(:new).with(debug: false, sid_model: :mos6581)
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581)
     end
   end
 
@@ -69,6 +70,86 @@ describe Badline::GUI::Application do
     it "fires paddle B on port 2 with the right button" do
       run_with(tabs: 5, button: 3)
       expect(ports.read_a(0xff, 0xff)).to eq(0b11110111)
+    end
+  end
+
+  describe "sound" do
+    let(:sink) { FakeSink.new(rate: 44_100) }
+
+    before do
+      allow(Badline::Audio::SDLSink).to receive(:new).and_return(sink)
+      allow(window).to receive(:refresh_rate).and_return(50)
+    end
+
+    def key_down(sym) = SDL2::Event::KeyDown.new.tap { |event| event.sym = sym }
+
+    # One frame per event, and one more for the quit.
+    def run_sound(*events, sound: true)
+      events += [SDL2::Event::Quit.new]
+      allow(SDL2::Event).to receive(:poll) { events.shift }
+      described_class.new(sound:).tap(&:run)
+    end
+
+    it "opens no audio device by default" do
+      run_sound(sound: false)
+      expect(Badline::Audio::SDLSink).not_to have_received(:new)
+    end
+
+    it "leaves the SID unsynthesized by default" do
+      run_sound(sound: false)
+      expect(computer.sid.synthesizing?).to be(false)
+    end
+
+    it "paces the frames by the display without sound" do
+      run_sound(sound: false)
+      expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: true))
+    end
+
+    it "paces the frames by the audio device with sound" do
+      run_sound
+      expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: false))
+    end
+
+    it "queues a frame of the SID's output" do
+      run_sound
+      expect(sink.queued).to be_within(1).of(44_100 / 50)
+    end
+
+    it "closes the device on quit" do
+      run_sound
+      expect(sink.closed?).to be(true)
+    end
+
+    it "mutes with F10" do
+      run_sound(key_down(SDL2::Key::F10))
+      expect(sink.queued).to eq(0)
+    end
+
+    it "shows the mute in the title" do
+      run_sound(key_down(SDL2::Key::F10))
+      expect(window).to have_received(:title=).with("Badline [MUTED]")
+    end
+
+    context "when the device won't open" do
+      before do
+        allow(Badline::Audio::SDLSink).to receive(:new).and_raise(Badline::Audio::SDLSink::Error, "no device")
+        allow(Warning).to receive(:warn)
+      end
+
+      it "says so" do
+        run_sound
+        expect(Warning).to have_received(:warn).with(/can't open the audio device: no device/, anything)
+      end
+
+      it "paces the frames by the display" do
+        run_sound
+        expect(Badline::GUI::Window).to have_received(:new).with(hash_including(vsync: true))
+      end
+
+      it "runs without sound" do
+        run_sound
+        expect(computer.sid.synthesizing?).to be(false)
+      end
     end
   end
 

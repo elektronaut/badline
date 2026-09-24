@@ -6,6 +6,7 @@ module Badline
       PAL_CLOCK_HZ = 985_248
       TITLE = "Badline"
       TOGGLE_SYM = SDL2::Key::TAB
+      MUTE_SYM = SDL2::Key::F10
       REVERSE_MOD = SDL2::Key::Mod::SHIFT
 
       SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
@@ -28,24 +29,23 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      def initialize(media_path: nil, autostart: true, song: nil, sid_model: nil, debug: false)
-        @computer = Computer.new(debug:, sid_model: sid_model || Media.sid_model(media_path))
+      def initialize(media_path: nil, autostart: true, song: nil, sid_model: nil, sound: false)
+        @computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
         puts Media.attach(@computer, media_path, autostart:, song:) if media_path
 
         @mode = :keyboard
         @pot_device = nil
         @panes = [ScreenPane.new(@computer)]
+        @stream = open_stream if sound
+        @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
           title: TITLE,
           width: canvas_width, height: canvas_height,
-          vsync: ENV["NOVSYNC"].nil?
+          vsync: @paced && !@stream
         )
         @gamepads = Gamepads.new(@computer)
         @gamepads.names.each { |name| puts "Gamepad: #{name}" }
-
-        rate = @window.refresh_rate
-        @cycles_per_frame = PAL_CLOCK_HZ / rate
-        puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
+        fit_frame
       end
 
       def run
@@ -54,9 +54,12 @@ module Badline
           handle_events
           @gamepads.poll
           @cycles_per_frame.times { @computer.cycle! }
+          @stream&.feed
           @window.draw(@panes)
+          @stream.pace(@frame_seconds) if @stream && @paced
         end
       ensure
+        @stream&.close
         @gamepads.close
         puts @computer.cpu.inspect
       end
@@ -84,6 +87,7 @@ module Badline
 
       def handle_key_down(event)
         return cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1) if event.sym == TOGGLE_SYM
+        return toggle_mute if event.sym == MUTE_SYM
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
@@ -94,7 +98,7 @@ module Badline
       end
 
       def handle_key_up(event)
-        return if event.sym == TOGGLE_SYM
+        return if [TOGGLE_SYM, MUTE_SYM].include?(event.sym)
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
@@ -123,7 +127,35 @@ module Badline
         @mode = modes[(modes.index(@mode) + step) % modes.size]
         release_inputs
         attach_pot_device
-        @window.title = [TITLE, MODES[@mode] && "[#{MODES[@mode]}]"].compact.join(" ")
+        update_title
+      end
+
+      def toggle_mute
+        return unless @stream
+
+        @stream.toggle_mute
+        update_title
+      end
+
+      def update_title
+        tags = [MODES[@mode], @stream&.muted? && "MUTED"].select(&:itself)
+        @window.title = [TITLE, *tags.map { |tag| "[#{tag}]" }].join(" ")
+      end
+
+      def open_stream
+        sink = Audio::SDLSink.new(rate: Audio::Renderer::DEFAULT_RATE)
+        puts "Sound at #{sink.rate} Hz, F10 mutes"
+        Audio::Stream.new(sink, @computer.sid,
+                          on_underrun: -> { puts "Running below real time, so the sound will stutter." })
+      rescue Audio::SDLSink::Error => e
+        warn "badline: no sound, can't open the audio device: #{e.message}"
+      end
+
+      def fit_frame
+        rate = @window.refresh_rate
+        @cycles_per_frame = PAL_CLOCK_HZ / rate
+        @frame_seconds = @cycles_per_frame.fdiv(PAL_CLOCK_HZ)
+        puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
       end
 
       def attach_pot_device
