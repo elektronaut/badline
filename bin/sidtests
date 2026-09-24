@@ -22,21 +22,20 @@
 # cannot pass for a clean partial re-record. --sid picks the chip the
 # machine is built with and the list it runs (default 6581); each chip has
 # its own baseline, sid.txt and sid-8580.txt.
+#
+# Running a test on the machine lives in test/sidtests_machine.rb, which
+# Spinel compiles too (spinel/sidtests.rb).
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "fileutils"
 require_relative "../test/forked_boot"
+require_relative "../test/sidtests_machine"
 
 module SIDTests
   ROOT = File.expand_path("../vendor/VICE-testprogs/SID", __dir__)
   TESTLIST = File.expand_path("../vendor/VICE-testprogs/testbench/c64-testlist.in", __dir__)
-
-  BOOT_ALLOWANCE = 3_000_000
-  BATCH = 10_000
-
-  SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
   module_function
 
@@ -68,16 +67,6 @@ module SIDTests
     arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
   end
 
-  # Nothing reads the display, so the VIC leaves its colours unpainted.
-  def exit_code(computer, name, timeout)
-    computer.vic.render = false
-    Badline::Media.attach(computer, File.join(ROOT, name))
-    code = nil
-    computer.install_debug_register { |value| code = value }
-    BATCH.times { computer.cycle! } until code || computer.cycles > timeout + BOOT_ALLOWANCE
-    code
-  end
-
   # Each test runs in a child forked from a machine booted once per SID
   # model (see ForkedBoot). The deadline only catches a child stuck
   # outside its emulated cycles: at a hundred thousand cycles a second,
@@ -85,12 +74,7 @@ module SIDTests
   # that long.
   def score(name, sid_model, timeout)
     deadline = 60 + ((timeout + BOOT_ALLOWANCE) / 100_000)
-    booted(sid_model).run(deadline) do |computer|
-      code = exit_code(computer, name, timeout)
-      next "PASS" if code&.zero?
-
-      code ? format("exit=$%02x", code) : "timeout"
-    end
+    booted(sid_model).run(deadline) { |computer| exit_code(computer, File.join(ROOT, name), timeout) }
   end
 
   def booted(sid_model)
@@ -131,10 +115,6 @@ module SIDTests
   def write_results(path, results)
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, results.map { |name, result| record(name, result) }.join)
-  end
-
-  def record(name, result)
-    result == "PASS" ? "#{name}\tPASS\n" : "#{name}\tFAIL\t#{result}\n"
   end
 end
 

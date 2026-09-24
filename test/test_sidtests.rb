@@ -65,3 +65,21 @@ class TestSIDTestsSelection < Minitest::Test
     assert_equal ["typo"], SIDTests.unmatched(%w[detect typo], TESTS)
   end
 end
+
+class TestSIDTestsVerdict < Minitest::Test
+  def test_a_zero_exit_code_passes
+    assert_equal "PASS", SIDTests.verdict(0)
+  end
+
+  def test_another_exit_code_is_named_in_hex
+    assert_equal "exit=$0f", SIDTests.verdict(0x0f)
+  end
+
+  def test_no_exit_code_is_a_timeout
+    assert_equal "timeout", SIDTests.verdict(nil)
+  end
+
+  def test_a_failure_records_its_detail
+    assert_equal "wf12nsr/wf12nsr.prg\tFAIL\texit=$ff\n", SIDTests.record("wf12nsr/wf12nsr.prg", "exit=$ff")
+  end
+end

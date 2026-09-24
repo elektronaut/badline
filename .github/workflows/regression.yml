@@ -57,7 +57,7 @@ jobs:
             if [ -n "$last" ]; then
               changed=$(gh api "repos/$GITHUB_REPOSITORY/compare/$last...$GITHUB_SHA" \
                 --jq 'if (.files | length) >= 300 then "lib/" else .files[].filename end' |
-                grep -E '^(lib/|bin/(lorenz|sidtests|testbench)$|test/baselines/|test/(regression|lorenz_chain|lorenz_run)\.rb$|Rakefile$|\.github/workflows/regression\.yml$)' ||
+                grep -E '^(lib/|bin/(lorenz|sidtests|testbench)$|test/baselines/|test/(regression|lorenz_chain|lorenz_run|sidtests_machine|forked_boot)\.rb$|Rakefile$|\.github/workflows/regression\.yml$)' ||
                 true)
               if [ -z "$changed" ]; then
                 echo "Nothing the suites run changed since $last. Skipping."

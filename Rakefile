@@ -5,6 +5,7 @@ require "rake/testtask"
 
 require_relative "test/regression"
 require_relative "spinel/check"
+require_relative "spinel/sidtests_check"
 
 VENDORED_REPOS = {
   "65x02" => {
@@ -386,6 +387,23 @@ namespace :spinel do
     end
     raise problems.join("\n") if problems.any?
   end
+end
+
+# The SID testprogs on the Spinel build, for the chip bin/sidtests --sid
+# takes, compared as regression:sid and regression:sid-8580 compare them.
+def spinel_sidtests(sid)
+  suite = { "6581" => "sid", "8580" => "sid-8580" }.fetch(sid) { raise "No SID model #{sid}. Pick 6581 or 8580." }
+  load File.expand_path("bin/sidtests", __dir__)
+  SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[sidtests])
+  tests = SIDTests.tests(SIDTests::SID_MODELS.fetch(sid))
+  results = SpinelSIDTests.run("spinel-#{suite}", tests, sid, shards: Integer(ENV.fetch("SHARDS", "4")))
+  compare_baseline(suite, results)
+end
+
+desc "Run the SID testprogs for a chip (6581 or 8580) on the Spinel build, over SHARDS processes (4), " \
+     "and compare them against #{BASELINE_DIR}/sid.txt or sid-8580.txt"
+task "spinel:sidtests", [:sid] => "vendor:VICE-testprogs" do |_task, args|
+  spinel_sidtests(args[:sid] || "6581")
 end
 
 Rake::TestTask.new do |task|
