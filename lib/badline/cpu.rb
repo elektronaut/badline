@@ -24,10 +24,10 @@ module Badline
 
     # +ane_constant+ is ANE's magic constant, which varies from chip to
     # chip. The default is the C64 6510's.
-    def initialize(memory = nil, debug: false, ane_constant: 0xef)
+    def initialize(memory, debug: false, ane_constant: 0xef)
       @debug = debug
       @ane_constant = ane_constant
-      @memory = memory || Memory.new
+      @memory = memory
       @status = CPUStatus.new(STATUS_FLAGS, value: 0b00100000)
       reset_registers
 
