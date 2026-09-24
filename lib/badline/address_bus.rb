@@ -51,7 +51,7 @@ module Badline
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
                 :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette
 
-    def initialize(sid_model: :mos6581)
+    def initialize(sid_model: :mos6581, cia_model: :mos6526)
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
       @cartridge = nil
       @debug_register = nil
@@ -65,8 +65,8 @@ module Badline
       @joystick2 = Joystick.new
       @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
       @vic  = VIC.new(self)
-      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports)
-      @cia2 = CIA.new(start: 0xdd00)
+      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model)
+      @cia2 = CIA.new(start: 0xdd00, model: cia_model)
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
       @sid = SID.new(model: sid_model, pots: @control_ports)
