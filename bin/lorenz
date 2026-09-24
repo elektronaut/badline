@@ -34,274 +34,58 @@
 # `rake regression:lorenz` for diffing a run against the tracked baseline
 # in test/baselines/, and `rake "regression:record:lorenz[first,last]"`
 # for re-recording a stretch of the chain.
+#
+# The machine-driving half lives in test/lorenz_chain.rb, which Spinel
+# compiles too (spinel/lorenz.rb), and the rows come from test/lorenz_run.rb.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
-require "delegate"
-require "digest"
 require "fileutils"
+require_relative "../test/lorenz_chain"
+require_relative "../test/lorenz_run"
 
 module Lorenz
-  DEFAULT_IMAGE = File.expand_path(
-    "../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81", __dir__
-  )
   ARTIFACT_DIR = File.expand_path("../tmp/lorenz", __dir__)
 
-  GETIN_LIMIT = 100
-  GETIN_GRACE = -200
-  HANG_CYCLES = 90_000_000
-  BATCH = 10_000
-
-  AUTOSTART = %(lO"*",8,1\rrun\r)
-  COMPLETION = "test suite 2.15+ completed - ok"
-  NEXT_DISK = "Disk4.d64"
-
-  # A test that neither ends in the suite's "- ok" nor prints anything
-  # beyond its own name has failed; the dumps it prints instead say so.
-  # Several of those dumps name neither word and then fall through to the
-  # suite's own "- ok" exit path, so the keypress they halt for is the only
-  # reliable signal — a segment an injection landed in has failed.
-  OK_SUFFIX = "- ok"
-  FAILURE_MARKER = /fail|error/i
-
-  # Detail long enough to bury the row (the CIA dump tests print tables)
-  # is cut down to a digest, which still changes whenever the dump does.
-  DETAIL_LIMIT = 160
-
-  # Removes "--name value" or "--name=value" from argv, returning the value.
-  def self.take_option(argv, name)
-    index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
-    return unless index
-
-    arg = argv.delete_at(index)
-    arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
-  end
-
-  def self.screen_ascii(code)
-    code &= 0x7f
-    case code
-    when 0x01..0x1a then (code + 0x60).chr
-    when 0x00, 0x1b..0x1f then (code + 0x40).chr
-    when 0x20..0x3f, 0x41..0x5a then code.chr
-    else " "
-    end
-  end
-
-  # Wraps the mounted image to note which program the suite loads next and
-  # how much transcript had been printed by then. A program the mounted
-  # image lacks is looked for on the spares, [path, storage] pairs in disk
-  # order, and the first one holding it replaces the mounted image before
-  # the LOAD is served.
-  class LoadLog < SimpleDelegator
-    Entry = Struct.new(:name, :offset)
-
-    attr_reader :entries
-
-    def initialize(storage, capture, spares: [])
-      super(storage)
-      @capture = capture
-      @spares = spares
-      @entries = []
-    end
-
-    def read_file(name, **)
-      @entries << Entry.new(name.downcase, @capture.output.length)
-      super || swap_for(name)
-    end
-
-    private
-
-    def swap_for(name)
-      index = @spares.index { |_, disk| disk.read_file(name) }
+  class << self
+    # Removes "--name value" or "--name=value" from argv, returning the value.
+    def take_option(argv, name)
+      index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
       return unless index
 
-      path, disk = @spares[index]
-      @spares = @spares.drop(index + 1)
-      warn "#{name.downcase} is not on the mounted image, swapping in #{path}"
-      __setobj__(disk)
-      disk.read_file(name)
-    end
-  end
-
-  # One test's slice of the transcript, reduced to a verdict and a detail
-  # column. The loader announces the next test's name before handing over,
-  # so that announcement is trimmed off the end of the slice it precedes.
-  class Segment
-    attr_reader :name
-
-    def initialize(name, text, halted:)
-      @name = name
-      @text = text
-      @halted = halted
+      arg = argv.delete_at(index)
+      arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
     end
 
-    def verdict
-      passed? ? "PASS" : "FAIL"
-    end
-
-    def detail
-      @detail ||= abbreviate([("halted for a keypress" if @halted), printed]
-                               .compact.join(" | "))
-    end
-
-    def to_record
-      [name, verdict, (detail unless detail.empty?)].compact.join("\t")
-    end
-
-    private
-
-    def passed?
-      !@halted && @text.rstrip.end_with?(OK_SUFFIX) && !body.match?(FAILURE_MARKER)
-    end
-
-    def printed
-      body.gsub(/\s*\n\s*/, " | ").squeeze(" ").strip
-    end
-
-    # Both the loader and the test itself echo the name, sometimes with a
-    # " (old cia)" variant marker appended to the second one.
-    def body
-      @body ||= begin
-        text = @text.strip
-        text = text.delete_prefix(name).strip while text.start_with?(name)
-        text.delete_suffix(OK_SUFFIX).strip
+    def screen_ascii(code)
+      code &= 0x7f
+      case code
+      when 0x01..0x1a then (code + 0x60).chr
+      when 0x00, 0x1b..0x1f then (code + 0x40).chr
+      when 0x20..0x3f, 0x41..0x5a then code.chr
+      else " "
       end
     end
 
-    def abbreviate(detail)
-      return detail if detail.length <= DETAIL_LIMIT
+    # Runs the chain, echoing the transcript as it grows.
+    def drive(chain)
+      until chain.result
+        text = chain.step
+        next if text.empty?
 
-      "#{detail[0, DETAIL_LIMIT - 20].rstrip}… sha=#{Digest::SHA256.hexdigest(detail)[0, 8]}"
-    end
-  end
-
-  # Drives the machine until the suite finishes, hangs or drops to BASIC.
-  class Runner
-    attr_reader :result
-
-    def initialize(computer, capture, load_log, stop_after: nil)
-      @computer = computer
-      @capture = capture
-      @load_log = load_log
-      @stop_after = stop_after&.downcase
-      @printed = 0
-      @last_progress = 0
-      @getin_hits = 0
-      @key_offsets = []
-      computer.cpu.install_trap(0xffe4) { @getin_hits += 1 }
-    end
-
-    def keys_sent = @key_offsets.length
-
-    def run(max_cycles)
-      until @result
-        BATCH.times { @computer.cycle! }
-        echo
-        classify(max_cycles)
-        send_key if @getin_hits > GETIN_LIMIT
-      end
-      @result
-    end
-
-    def transcript
-      @capture.output
-    end
-
-    # A test's segment is whole once the chain loads the next one, or when
-    # the suite ends on its own. Stopping or timing out cuts the last one.
-    def segments
-      entries = @load_log.entries
-      whole = %w[stopped timeout].include?(@result) ? entries.length - 1 : entries.length
-      entries.take(whole).each_with_index.map do |entry, index|
-        following = entries[index + 1]
-        span = entry.offset...(following&.offset || transcript.length)
-        text = transcript[span]
-        text = text.delete_suffix(following.name) if following
-        Segment.new(entry.name, text, halted: @key_offsets.any? { span.cover?(it) })
+        print text
+        $stdout.flush
       end
     end
 
-    # The chain can break mid-suite, which would otherwise only show up as
-    # rows going missing — a keyed diff reports those without failing.
-    def outcome_record
-      last = @load_log.entries.last&.name
-      detail = last ? "#{@result} after #{last}" : @result
-      ["(suite)", @result == "completed" ? "PASS" : "FAIL", detail].join("\t")
+    def write_results(path, run)
+      write(path, run.records.join("\n"))
     end
 
-    private
-
-    def echo
-      out = @capture.output
-      return unless out.length > @printed
-
-      print out[@printed..]
-      $stdout.flush
-      @printed = out.length
-      @last_progress = @computer.cycles
-      @getin_hits = 0
-    end
-
-    def classify(max_cycles)
-      @result = "completed" if @capture.output.include?(COMPLETION)
-      if @computer.cycles - @last_progress > HANG_CYCLES
-        @result = @capture.output.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
-      end
-      @result = "timeout" if @computer.cycles > max_cycles
-      @result ||= "stopped" if moved_past_stop?
-    end
-
-    def moved_past_stop?
-      return false unless @stop_after
-
-      index = @load_log.entries.index { it.name == @stop_after }
-      !index.nil? && index < @load_log.entries.length - 1
-    end
-
-    # The offset the injection lands at is what attributes it to a segment:
-    # the resumed chain prints on past it, so the test that stopped is the
-    # one whose slice still covers it.
-    def send_key
-      @key_offsets << @capture.output.length
-      warn "[#{@computer.cycles}] test halted waiting for key, sending space " \
-           "(##{keys_sent})"
-      @computer.type_text(" ")
-      @getin_hits = GETIN_GRACE
-    end
-  end
-
-  class << self
-    def mount(computer, path, capture, start_test)
-      log = LoadLog.new(open_image(path), capture, spares: spares(path))
-      computer.mount(log)
-      computer.type_text(start_test ? %(lO"#{start_test}",8\rrun\r) : AUTOSTART)
-      log
-    end
-
-    def open_image(path)
-      storage = Badline::Media::MOUNT_TYPES.fetch(File.extname(path).downcase) do
-        raise "#{path} is not a mountable disk image"
-      end
-      storage.new(path)
-    end
-
-    # The disk the chain carries on from once the mounted image runs out.
-    def spares(path)
-      spare = File.join(File.dirname(path), NEXT_DISK)
-      return [] if !File.exist?(spare) || File.identical?(spare, path)
-
-      [[spare, open_image(spare)]]
-    end
-
-    def write_results(path, runner)
-      records = runner.segments.map(&:to_record) << runner.outcome_record
-      write(path, records.join("\n"))
-    end
-
-    def write_transcript(runner)
+    def write_transcript(run)
       path = File.join(ARTIFACT_DIR, "transcript.txt")
-      write(path, runner.transcript)
+      write(path, run.transcript)
       path
     end
 
@@ -331,15 +115,17 @@ if $PROGRAM_NAME == __FILE__
   computer = Badline::Computer.new
   computer.vic.render = false
   capture = computer.capture_output
-  load_log = Lorenz.mount(computer, image, capture, start_test)
+  disk = Lorenz.mount(computer, image, capture, start_test)
   warn "Mounted #{image} as device 8"
 
-  runner = Lorenz::Runner.new(computer, capture, load_log, stop_after:)
-  result = runner.run(max_cycles)
+  chain = Lorenz::Chain.new(computer, capture, disk, max_cycles, stop_after)
+  Lorenz.drive(chain)
+  result = chain.result
+  run = Lorenz::Run.new(capture.output, disk.names.zip(disk.offsets), chain.key_offsets, result)
 
-  warn "Transcript written to #{Lorenz.write_transcript(runner)}"
-  Lorenz.write_results(results_path, runner) if results_path
+  warn "Transcript written to #{Lorenz.write_transcript(run)}"
+  Lorenz.write_results(results_path, run) if results_path
   Lorenz.dump_screen(computer) unless %w[completed stopped].include?(result)
-  warn "[#{result}] #{computer.cycles} cycles, #{runner.keys_sent} keys sent"
+  warn "[#{result}] #{computer.cycles} cycles, #{chain.keys_sent} keys sent"
   exit(%w[completed ready-prompt stopped].include?(result) ? 0 : 1)
 end

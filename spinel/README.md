@@ -15,6 +15,10 @@ CRuby.
 - `convert.rb` samples the SingleStepTests JSON into the line format
   `cpu_tests.rb` reads, since the Spinel build has no JSON library. It runs
   on CRuby only.
+- `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
+  `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
+  for CRuby to turn into baseline rows. See
+  [The Lorenz chain](#the-lorenz-chain) below.
 - `window.rb` opens an SDL2 window and plays the machine in it. It builds
   with Spinel only; see [A window](#a-window) below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
@@ -69,6 +73,48 @@ bin/machine_diff game.crt --cycles 23000000 --against tmp/spinel/game.txt
 
 Both harnesses print timings. They show where the time goes but aren't a
 benchmark, so use `bin/benchmark` and `bin/profile` for CRuby speed.
+
+## The Lorenz chain
+
+```sh
+rake spinel:lorenz
+rake "spinel:lorenz[whole]"
+```
+
+`spinel:lorenz` builds `lorenz` and runs the chain on it, checked row by
+row against `test/baselines/lorenz.txt` as `rake regression:lorenz` checks
+`bin/lorenz`. By default it runs the chain's four stretches, the ones
+`rake regression:lorenz-1` to `lorenz-4` run, side by side, one process
+each. `[whole]` runs the whole chain in one process instead. It fails on
+any row that differs from the baseline, and on a stretch that ends short
+or reports a different set of rows.
+
+The compiled binary only emulates. It drives the chain with
+`Lorenz::Chain` and `Lorenz::Disk` from `test/lorenz_chain.rb`, the same
+code `bin/lorenz` drives it with: the LOAD log, the swap to `Disk4.d64`,
+the space typed when a test halts for a key, and the checks for the end
+of the chain. What it records goes to stdout, which the task keeps in
+`tmp/spinel/lorenz-N.out`:
+
+```
+load OFFSET NAME        one per program the suite loaded
+key OFFSET              one per key typed
+result RESULT CYCLES
+transcript LENGTH
+...the transcript
+```
+
+`Lorenz::Run` in `test/lorenz_run.rb` turns that into rows on CRuby, where
+the digests and the regexps are, and writes them beside the output as
+`lorenz-N.txt`. `Lorenz.run_chain` does the work between the arguments and
+that text, so it can be compiled as an extension later.
+
+To run a stretch by hand:
+
+```sh
+spinel -I lib --no-line-map --rbs spinel/sig spinel/lorenz.rb -o tmp/spinel/lorenz
+tmp/spinel/lorenz vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81 --resume rola --stop-after cmpix
+```
 
 ## A window
 
