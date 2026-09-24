@@ -22,6 +22,10 @@ CRuby.
 - `sidtests.rb` runs a list of SID testprogs with the same code as
   `bin/sidtests` (`test/sidtests_machine.rb`) and prints a baseline row per
   test. See [The SID testprogs](#the-sid-testprogs) below.
+- `testbench.rb` runs VICE testbench tests with the same code as
+  `bin/testbench` (`test/testbench_machine.rb`) and prints what each test
+  left behind, for `bin/testbench` to score. See
+  [The testbench](#the-testbench) below.
 - `window.rb` opens an SDL2 window and plays the machine in it. It builds
   with Spinel only; see [A window](#a-window) below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
@@ -170,6 +174,70 @@ To run a list by hand:
 spinel -I lib --no-line-map --rbs spinel/sig spinel/sidtests.rb -o tmp/spinel/sidtests
 tmp/spinel/sidtests tmp/spinel/spinel-sid-1.list
 ```
+
+## The testbench
+
+```sh
+rake spinel:testbench
+rake "spinel:testbench[testbench-cia]"
+rake "spinel:testbench[all]"
+```
+
+`spinel:testbench` builds `testbench` and runs a `bin/testbench` suite on
+it, `testbench` (`VICII/`) unless given another, and compares the rows
+against the suite's baseline in `test/baselines/` as
+`rake regression:<suite>` does. `[all]` runs `testbench`,
+`testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
+`testbench-cpu` and `testbench-carts` in turn, and fails at the end if any
+of them changed. `SHARDS` and `RESUME=1` work as they do for
+`rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
+
+The task runs `bin/testbench --engine tmp/spinel/testbench`, so CRuby
+keeps everything but the emulation: the testlist and its filters, the
+shards, `--resume` and the progress file, and the scoring, down to
+decoding the reference PNGs and writing the failure artifacts. It writes
+each shard's tests to `<results>.engine-N` and starts one build process
+per shard, which reads them one per line, as tab-separated fields:
+
+```
+KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY    CARTRIDGE or PROGRAM empty if the test has none
+```
+
+The compiled binary only emulates. For each test it builds a fresh
+machine, booted to the cycle where a program loads unless the test starts
+from a cartridge, and runs the test with `Testbench::Execution` from
+`test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
+process. It prints what the test left behind, which `Testbench::Engine`
+(`test/testbench_engine.rb`) reads and hands to the same scoring:
+
+```
+test KEY
+exit CODE|none
+cycles CYCLES
+text            then the 25 lines of the text screen, for an exitcode test
+screen          or 272 lines of 384 hex palette indices, for a screenshot test
+done
+```
+
+`bin/testbench` forks each test from a machine it booted once. The build
+can't fork, so it boots each test itself. A test that outlives its
+deadline is killed with its build process, and one the build dies on gets
+a crashed row, as in process. The shard's other tests carry on in a new
+process. `Testbench.run_test` does the work between a test's line and its
+record, so it can be compiled as an extension later.
+
+`--engine` takes `bin/testbench`'s filters like any other run:
+
+```sh
+spinel -I lib --no-line-map --rbs spinel/sig spinel/testbench.rb -o tmp/spinel/testbench
+ruby --yjit bin/testbench --engine tmp/spinel/testbench VICII/spritegap/spritegap3.prg
+```
+
+`testbench.rb` requires `debug_register.rb` too, as `sidtests.rb` does.
+`sig/cartridge.rbs` types the `romh:` keyword of `ActionReplay#select` as
+untyped. Without it, Spinel types the keyword from the one call that
+passes it, Atomic Power's, as a RAM bank, and raises TypeError when an
+Action Replay falls back on the default, its ROM bank.
 
 ## A window
 
