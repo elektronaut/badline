@@ -8,8 +8,9 @@ module Badline
     # channel cut short by a read error never flags one, and holds the
     # error for the drive to report once its bytes run out.
     class Channel
-      attr_accessor :pointer, :buffer
-      attr_reader :error
+      attr_accessor :buffer
+      attr_reader :error, :pointer
+      attr_writer :lead
 
       def initialize(bytes = [], error: nil, writable: false, base: 0)
         @base = base
@@ -20,11 +21,16 @@ module Badline
 
       # A block buffer opened with "#", which reads and writes one of the
       # drive's buffers in its RAM, so M-R and M-W reach the same bytes. It
-      # hands out the whole block unless a B-R sets a shorter end.
+      # hands out the whole block unless a B-R sets a shorter end. The DOS
+      # opens it with the pointer at 1 and the buffer's number as the byte
+      # to send, so the first read answers with the number and the next
+      # one moves on to the third byte.
       def self.buffer(memory, number)
         new(memory.ram, writable: true, base: Drive::Memory.buffer_address(number)).tap do |channel|
           channel.buffer = number
           channel.rewind(Drive::BLOCK_SIZE)
+          channel.pointer = 1
+          channel.lead = number
         end
       end
 
@@ -72,7 +78,12 @@ module Badline
 
       def rewind(length)
         @length = length
-        @pointer = 0
+        self.pointer = 0
+      end
+
+      def pointer=(position)
+        @pointer = position
+        @lead = nil
       end
 
       # A block read into the channel. A buffer channel takes it into its
@@ -97,6 +108,7 @@ module Badline
 
       # Each byte lands at the pointer, which wraps within the block.
       def write(bytes)
+        @lead = nil
         bytes.each do |byte|
           @bytes[@base + @pointer] = byte
           @pointer = (@pointer + 1) & 0xff
@@ -106,7 +118,8 @@ module Badline
       def read
         return if exhausted?
 
-        byte = @bytes[@base + @pointer]
+        byte = @lead || @bytes[@base + @pointer]
+        @lead = nil
         @pointer += 1
         [byte, exhausted? && !@error]
       end

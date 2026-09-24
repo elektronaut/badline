@@ -633,10 +633,28 @@ describe Badline::KernalTrap::Drive do
 
     before { drive.open(2, "#") }
 
-    it "shows M-R what PRINT# wrote" do
+    it "shows M-R what PRINT# wrote, from the second byte on" do
       drive.write(2, [0x41, 0x42])
-      memory_command(*"M-R".bytes, 0x00, 0x06, 2)
-      expect(read_channel(15)).to eq([0x41, 0x42])
+      memory_command(*"M-R".bytes, 0x00, 0x06, 3)
+      expect(read_channel(15)).to eq([0x00, 0x41, 0x42])
+    end
+
+    it "answers the first read with the buffer's number" do
+      expect(drive.read(2)).to eq([3, false])
+    end
+
+    it "moves on to the third byte after the buffer's number" do
+      memory_command(*"M-W".bytes, 0x00, 0x06, 3, 0xa0, 0xa1, 0xa2)
+      expect(read_channel(2).first(2)).to eq([3, 0xa2])
+    end
+
+    it "hands out the rest of the buffer after the number" do
+      expect(read_channel(2).length).to eq(255)
+    end
+
+    it "hands out the buffer rather than its number once written to" do
+      drive.write(2, [0x41])
+      expect(drive.read(2)).to eq([0x00, false])
     end
 
     it "hands out what M-W wrote" do
