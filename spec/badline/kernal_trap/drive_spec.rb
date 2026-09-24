@@ -808,6 +808,28 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "a disk change" do
+    subject(:swapped) { described_class.new(other_disk, memory) }
+
+    let(:memory) { Badline::KernalTrap::Drive::Memory.new }
+    let(:drive) { described_class.new(storage, memory) }
+    let(:other_disk) { instance_double(Badline::Storage::D64Image, read_block: Array.new(256, 0xee), block_error: nil) }
+
+    before { drive.write(15, [*"M-W".bytes, 0x00, 0x05, 1, 0xaa]) }
+
+    it "keeps the RAM the drive it replaces had" do
+      swapped.write(15, [*"M-R".bytes, 0x00, 0x05, 1])
+      expect(swapped.read(15)).to eq([0xaa, true])
+    end
+
+    it "runs read jobs on the new disk" do
+      swapped.write(15, [*"M-W".bytes, 0x06, 0x00, 2, 18, 0])
+      swapped.write(15, [*"M-W".bytes, 0x00, 0x00, 1, 0x80])
+      swapped.write(15, [*"M-R".bytes, 0x00, 0x03, 1])
+      expect(swapped.read(15)).to eq([0xee, true])
+    end
+  end
+
   describe "a read job" do
     def run_job(track, sector)
       drive.write(15, [*"M-W".bytes, 0x06, 0x00, 2, track, sector])

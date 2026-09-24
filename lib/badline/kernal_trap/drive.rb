@@ -49,12 +49,14 @@ module Badline
         /\AB-[AF]/i => :write_protected
       }.freeze
 
-      # A drive powers on reporting its DOS version, as a reset does.
-      def initialize(storage)
+      # A drive powers on reporting its DOS version, as a reset does. It
+      # takes the RAM of the drive it replaces when the disk changes.
+      def initialize(storage, memory = Memory.new)
         @storage = storage
         @channels = Channels.new
         @status = Status.new
-        @memory = Memory.new(storage)
+        @memory = memory
+        memory.storage = storage
         report(DOS_VERSION)
       end
 
@@ -285,9 +287,7 @@ module Badline
         arguments[0].to_i | (arguments[1].to_i << 8)
       end
 
-      def write_protected(_arguments)
-        report(WRITE_PROTECT_ON)
-      end
+      def write_protected(_arguments) = report(WRITE_PROTECT_ON)
 
       def reset(cold:)
         @memory.clear if cold
