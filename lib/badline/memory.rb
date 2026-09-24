@@ -10,11 +10,11 @@ module Badline
     end
 
     def peek(addr)
-      @storage[index(addr)]
+      @storage[offset_of(addr)]
     end
 
     def poke(addr, value)
-      @storage[index(addr)] = value
+      @storage[offset_of(addr)] = value
       value
     end
 

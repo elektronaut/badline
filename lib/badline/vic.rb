@@ -151,7 +151,7 @@ module Badline
     end
 
     def peek(addr)
-      i = index(addr) % (2**6)
+      i = offset_of(addr) % (2**6)
       case i
       when 0x11 then (@registers[0x11] & 0x7f) | ((raster_counter & 0x100) >> 1)
       when 0x12 then raster_counter & 0xff
@@ -165,7 +165,7 @@ module Badline
     def register_file = Array.new(0x40) { |reg| @registers[reg] }
 
     def poke(addr, value)
-      reg = index(addr) % (2**6)
+      reg = offset_of(addr) % (2**6)
       @sprites.bus_data(@column, value)
       log_register_change(reg, value)
       @registers.write(reg, value)

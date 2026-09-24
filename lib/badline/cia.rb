@@ -117,7 +117,7 @@ module Badline
     end
 
     def peek(addr)
-      case index(addr) & 0x0f
+      case offset_of(addr) & 0x0f
       when 0x00 then read_port_a
       when 0x01 then read_port_b
       when 0x02 then @data_dir_a
@@ -138,7 +138,7 @@ module Badline
     end
 
     def poke(addr, value)
-      case index(addr) & 0x0f
+      case offset_of(addr) & 0x0f
       when 0x00 then @data_port_a = value
       when 0x01 then update_port_b { @data_port_b = value }
       when 0x02 then @data_dir_a = value
