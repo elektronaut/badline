@@ -16,10 +16,11 @@ module Badline
         @phase = 0
         @sum = 0
         @count = 0
+        @cycles_to_close = window_cycles
       end
 
       # Cycles until the current window closes, counting the next one as 1.
-      def cycles_to_close = (@clock_hz - @phase + @rate - 1) / @rate
+      attr_reader :cycles_to_close
 
       # Returns the averaged sample when these cycles close a window, and
       # nil otherwise. They must not run past the window's end.
@@ -27,13 +28,17 @@ module Badline
         @sum += sample * cycles
         @count += cycles
         @phase += @rate * cycles
+        @cycles_to_close -= cycles
         return unless @phase >= @clock_hz
 
         @phase -= @clock_hz
+        @cycles_to_close = window_cycles
         average
       end
 
       private
+
+      def window_cycles = (@clock_hz - @phase + @rate - 1) / @rate
 
       def average
         value = @sum.fdiv(@count).round

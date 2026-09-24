@@ -11,10 +11,13 @@ module Badline
       # cycle the CPU wrote it on.
       def catch_up
         replayed = 0
-        @deferred_writes.each do |cycle, reg, value|
+        i = 0
+        while i < @deferred_writes.length
+          cycle = @deferred_writes[i]
           run(cycle - replayed)
           replayed = cycle
-          apply_write(reg, value)
+          apply_write(@deferred_writes[i + 1], @deferred_writes[i + 2])
+          i += 3
         end
         run(@pending_cycles - replayed)
         @deferred_writes.clear
@@ -22,7 +25,7 @@ module Badline
       end
 
       def run(cycles)
-        while cycles.positive?
+        while cycles != 0
           span = span(cycles)
           fast_forward(span - 1) if span > 1
           clock!(span)
@@ -35,11 +38,11 @@ module Badline
       # never runs past an MSB rise that hard-syncs the next voice, so both
       # land on a whole cycle.
       def span(cycles)
-        synthesizing = @synthesizing
-        return 1 if @waveform1.stepped?(synthesizing) || @waveform2.stepped?(synthesizing) ||
-                    @waveform3.stepped?(synthesizing)
+        return 1 if @stepped
 
-        span = synthesizing ? synthesis_span(cycles) : cycles
+        span = @synthesizing ? synthesis_span(cycles) : cycles
+        return span unless @synced
+
         span = sync_span(@waveform1, span)
         span = sync_span(@waveform2, span)
         sync_span(@waveform3, span)
@@ -52,6 +55,13 @@ module Badline
         return span unless @decimator
 
         [@decimator.cycles_to_close, span].min
+      end
+
+      # Whether a span has to step, or watch for hard sync, only changes with
+      # a voice's control register.
+      def update_span_rules
+        @stepped = @voices.any? { |voice| voice.waveform.stepped?(@synthesizing) }
+        @synced = @voices.any? { |voice| voice.waveform.sync? }
       end
 
       def sync_span(waveform, span)
@@ -89,7 +99,12 @@ module Badline
         @samples << sample if sample
       end
 
-      def current_sample = (@filter.output / SAMPLE_DIVISOR).clamp(-0x8000, 0x7fff)
+      def current_sample
+        sample = @filter.output / SAMPLE_DIVISOR
+        return sample unless sample < -0x8000 || sample > 0x7fff
+
+        sample.clamp(-0x8000, 0x7fff)
+      end
     end
   end
 end

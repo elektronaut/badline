@@ -182,7 +182,7 @@ module Badline
         @unfiltered = 0
         route_voice(voice1.output >> 7, 0x1)
         route_voice(voice2.output >> 7, 0x2)
-        if @routing.anybits?(0x4)
+        if @routing & 0x4 != 0
           @input += voice3.output >> 7
         elsif !@voice3_off
           @unfiltered += voice3.output >> 7
@@ -190,7 +190,7 @@ module Badline
       end
 
       def route_voice(output, bit)
-        if @routing.anybits?(bit)
+        if @routing & bit == bit
           @input += output
         else
           @unfiltered += output
@@ -203,9 +203,9 @@ module Badline
 
       def filtered
         value = 0
-        value += @lowpass  if @mode.anybits?(0x1)
-        value += @bandpass if @mode.anybits?(0x2)
-        value += @highpass if @mode.anybits?(0x4)
+        value += @lowpass  if @mode & 0x1 != 0
+        value += @bandpass if @mode & 0x2 != 0
+        value += @highpass if @mode & 0x4 != 0
         value
       end
     end

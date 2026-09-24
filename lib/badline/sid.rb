@@ -60,6 +60,7 @@ module Badline
       @bus_ttl_reset = BUS_TTL.fetch(model)
       @filter = Filter.new(model:)
       @synthesizing = false
+      @stepped = @synced = false
       @pending_cycles = 0
       @deferred_writes = []
       @decimator = nil
@@ -80,6 +81,7 @@ module Badline
       @bus_ttl = 0
       @voices.each(&:reset!)
       @filter.reset
+      update_span_rules
     end
 
     # The DSP only counts cycles as they pass. Whatever asks for its state
@@ -92,6 +94,7 @@ module Badline
       return if @synthesizing
 
       @synthesizing = true
+      update_span_rules
       catch_up
     end
 
@@ -187,8 +190,8 @@ module Badline
 
     def write_register(reg, value)
       @registers.poke(reg, value)
-      catch_up if @deferred_writes.length == DEFERRED_WRITES
-      @deferred_writes << [@pending_cycles, reg, value]
+      catch_up if @deferred_writes.length == DEFERRED_WRITES * 3
+      @deferred_writes.push(@pending_cycles, reg, value)
     end
 
     def apply_write(reg, value)
@@ -202,7 +205,9 @@ module Badline
       when 1 then voice.waveform.frequency_high = value
       when 2 then voice.waveform.pulse_width_low = value
       when 3 then voice.waveform.pulse_width_high = value
-      when 4 then voice.control = value
+      when 4
+        voice.control = value
+        update_span_rules
       when 5 then voice.envelope.attack_decay = value
       when 6 then voice.envelope.sustain_release = value
       end

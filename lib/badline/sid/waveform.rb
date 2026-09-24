@@ -218,7 +218,7 @@ module Badline
       def compare_pulse(phase = @accumulator >> 12) = (@pulse = @test || phase >= @pulse_width ? 0xfff : 0x000)
 
       # More than one bit set in the selection.
-      def combined?(selected) = selected.anybits?(selected - 1)
+      def combined?(selected) = selected & (selected - 1) != 0
 
       # The one point in the cycle where the waveform selector drives the DAC:
       # either it latches a fresh value, or nothing drives the line and the
@@ -259,10 +259,10 @@ module Badline
       def advance
         previous = @accumulator
         @accumulator = (previous + @frequency) & 0xffffff
-        @msb_rising = previous.nobits?(MSB) && @accumulator.anybits?(MSB)
-        if previous.nobits?(0x080000) && @accumulator.anybits?(0x080000)
+        @msb_rising = @accumulator & ~previous & MSB != 0
+        if @accumulator & ~previous & 0x080000 != 0
           @shift_pipeline = 2
-        elsif @shift_pipeline.positive? && (@shift_pipeline -= 1).zero?
+        elsif @shift_pipeline != 0 && (@shift_pipeline -= 1).zero?
           write_shift_register(write_back(@selected, @output)) if release_writes_back?(@selected, @selected)
           shift_noise
         end
@@ -277,12 +277,12 @@ module Badline
       # TriXOR = !Saw & ((!V3 & Ring) ^ bit23), where V3 is the modulating
       # voice's MSB (SID/ringmod).
       def inverted?(selected)
-        return false if selected.anybits?(0x2)
+        return false if selected & 0x2 != 0
 
-        msb = @accumulator.anybits?(MSB)
+        msb = @accumulator & MSB != 0
         return msb unless @ring
 
-        msb != @sync_source.accumulator.nobits?(MSB)
+        msb == (@sync_source.accumulator & MSB != 0)
       end
     end
   end
