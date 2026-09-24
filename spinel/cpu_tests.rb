@@ -23,7 +23,7 @@ module CPUTests
     attr_reader :accesses
 
     def initialize
-      super
+      super(Array.new(0x10000, 0))
       @accesses = []
       @logging = false
     end
