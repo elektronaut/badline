@@ -113,6 +113,10 @@ module Badline
         secondary == COMMAND_CHANNEL || @channels.open?(secondary)
       end
 
+      # The serial bus's RESET line restarts the DOS through its reset
+      # vector, as U: does.
+      def reset! = reset(cold: true)
+
       # Returns the next byte and whether it is the channel's last, or nil
       # when there is nothing left to send.
       def read(secondary)

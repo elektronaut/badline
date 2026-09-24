@@ -45,6 +45,7 @@ module Badline
       @freeze_writes = 0
       @init_handlers = []
       @pending_keys = nil
+      @drive = nil
     end
 
     INIT_THRESHOLD = 2_500_000
@@ -92,14 +93,16 @@ module Badline
       reset!
     end
 
-    # The RES line reaches the CPU and its port, both CIAs, the SID and the
-    # cartridge port. The VIC has no reset pin.
+    # The RES line reaches the CPU and its port, both CIAs, the SID, the
+    # cartridge port and, through the serial bus's RESET line, the drive.
+    # The VIC has no reset pin.
     def reset!
       address_bus.reset_port!
       @cia1.reset!
       @cia2.reset!
       @sid.reset!
       address_bus.cartridge&.reset
+      @drive&.reset!
       @freezing = false
       @nmi_asserted = false
       cpu.reset!
@@ -123,13 +126,13 @@ module Badline
     # A disk swap keeps the drive's RAM, which only a drive reset clears.
     def mount(storage)
       @drive_memory ||= KernalTrap::Drive::Memory.new
-      drive = KernalTrap::Drive.new(storage, @drive_memory)
-      load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive:)
+      @drive = KernalTrap::Drive.new(storage, @drive_memory)
+      load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-      KernalTrap::Serial.new(cpu:, bus: address_bus, drive:).install
+      KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive).install
       return unless storage.respond_to?(:write_file)
 
-      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive:)
+      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end
 

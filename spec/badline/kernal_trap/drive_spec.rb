@@ -759,6 +759,22 @@ describe Badline::KernalTrap::Drive do
       command("ui-")
       expect(drive.read(2)).not_to be_nil
     end
+
+    context "when the serial bus's RESET line resets the drive" do
+      before { drive.reset! }
+
+      it "reports the DOS version" do
+        expect(status).to eq("73,CBM DOS V2.6 1541,00,00")
+      end
+
+      it "closes the open channels" do
+        expect(drive.read(2)).to be_nil
+      end
+
+      it "clears the drive's memory" do
+        expect(memory_at(0x500)).to eq(0)
+      end
+    end
   end
 
   describe "drive memory" do
