@@ -35,6 +35,22 @@ RSpec.describe Badline::VIC::GraphicsShifter do
     expect(group(from: 4, to: 0)).to eq([5, 5, 5, 5, 5, 5, 6, 6])
   end
 
+  # Pinned by videomode2 and vicii_reg_timing's BMM row.
+  it "takes a BMM falling out of hi-res bitmap at pixel 6" do
+    expect(group(from: 2, to: 0, screencode: 0x47)).to eq([7, 7, 7, 7, 7, 7, 6, 6])
+  end
+
+  # Pinned by modesplit and the E+B row of vicii_reg_timing-a5 and -ff.
+  it "takes a BMM falling out of ECM+BMM at pixel 5" do
+    expect(group(from: 6, to: 4)).to eq([0, 0, 0, 0, 0, 5, 5, 5])
+  end
+
+  # Pinned by videomode-y.
+  it "takes a BMM falling out of multicolour bitmap at pixel 5" do
+    expect(group(from: 3, to: 1, data: 0b0101_0101, screencode: 0x47, color: 0x0e))
+      .to eq([4, 4, 4, 4, 4, 5, 5, 5])
+  end
+
   # The lookup switches to multicolour at pixel 4, but the register is read
   # as hi-res until pixel 7, where the multicolour flip-flop resets and the
   # pixel holds.
