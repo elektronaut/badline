@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.3.0](https://github.com/elektronaut/badline/compare/v0.2.1...v0.3.0) (2026-09-24)
+
+Sound is the headline: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default, because the emulator still runs below real time on CRuby and the sound stutters there. This release also brings the virtual drive closer to a real 1541 (buffer channels in drive RAM, DOS command parsing, the BAM in buffer 4, `LOAD"*"`), cartridge banking fixes, and `Badline::Checkpoint` with `bin/machine_diff` for checking that a change leaves emulation alone.
+
+
+
+### Features
+
+* add Badline::Checkpoint, a per-component digest of machine state ([183e164](https://github.com/elektronaut/badline/commit/183e16438b4b1bfae5c16b10f29f2b08d0a6b297))
+* add bin/machine_diff, a differential run harness ([58f695a](https://github.com/elektronaut/badline/commit/58f695a32096fe61d7395fcec9a76d8d84b5e440))
+* load ROMs from a configurable Badline.rom_path ([4fa12c8](https://github.com/elektronaut/badline/commit/4fa12c8e55004eebe0b1a14e80f03713306e3acf))
+* pace the window to the audio device while sound plays ([031b001](https://github.com/elektronaut/badline/commit/031b00196ee9a881740047c726231ffc0400d03d))
+* play the SID in the emulator window with --sound ([4cbd211](https://github.com/elektronaut/badline/commit/4cbd211ca986834e3d8fcbafdabc5586c87ec950))
+
+
+### Bug Fixes
+
+* answer a buffer channel's first read with its buffer number ([851e0d2](https://github.com/elektronaut/badline/commit/851e0d2bb71db51cc36607da90b4f7891b32bced))
+* bank BASIC out for PSID routines whose image reaches under it ([9c5bf57](https://github.com/elektronaut/badline/commit/9c5bf57646ca8de8687679accdca26ac4dd68931))
+* bank sparse and odd-sized cartridge images like the hardware ([1560f63](https://github.com/elektronaut/badline/commit/1560f63678a254bfa53e8915c35851dab00dc27b))
+* drop the carriage return that ends a file name, as the 1541 does ([3ca3d51](https://github.com/elektronaut/badline/commit/3ca3d518808cf87ab0e14a3b312e972883fc4699))
+* fail a block write at the block it names ([4b9664c](https://github.com/elektronaut/badline/commit/4b9664ca02bd0026334ffee01d4f6a5cfc354f73))
+* fail an append open on a write-protected disk ([b5c7baf](https://github.com/elektronaut/badline/commit/b5c7bafed7f189c3e7a0074d27f0b76e8ffb3b56))
+* fail an unreadable host file with a READ ERROR ([8b3d8f4](https://github.com/elektronaut/badline/commit/8b3d8f4eeae28a4ef61ef72e76dcfc02cefb738f))
+* fill a buffer channel with the bytes written to it ([36c3660](https://github.com/elektronaut/badline/commit/36c3660e1c170ea058b80d3a0b10ec019aa84058))
+* give single-bank mappers erased ROM when the image has no chip ([07e5bf3](https://github.com/elektronaut/badline/commit/07e5bf39b26e022f814c99b0d9226cecf3114400))
+* ignore whatever follows a star in a DOS file name ([b2f8831](https://github.com/elektronaut/badline/commit/b2f8831b193e496d19c03388fe0613b9f9c9abb3))
+* keep the drive's buffer channels in its RAM ([9efefe4](https://github.com/elektronaut/badline/commit/9efefe44520067db27496ea2af85468228c6579f))
+* keep the drive's RAM when the disk changes ([2c07d0e](https://github.com/elektronaut/badline/commit/2c07d0eb73120dfe1eda69a5fc8ad43a31d83ef2))
+* leave secondary address $60 in $B9 after a trapped LOAD ([d7366a8](https://github.com/elektronaut/badline/commit/d7366a8aaf0fe13d239035178751fc8f783d7a30))
+* mask Ocean and Magic Desk bank selection to the ROM size ([e6d36a0](https://github.com/elektronaut/badline/commit/e6d36a004583d18e225e4bb5cfccdd69380d523e))
+* play NTSC PSID tunes on an NTSC clock on the bare rig ([006e04b](https://github.com/elektronaut/badline/commit/006e04b03985ef5d2fe57bab6c862bbe97d65f50))
+* read DOS command parameters the way the 1541 does ([db5b4fc](https://github.com/elektronaut/badline/commit/db5b4fc06b82f5423453ee988d30f407a8565ed1))
+* read open bus from a cartridge's empty ROM socket ([fee013d](https://github.com/elektronaut/badline/commit/fee013dcff2a062b75713b268422171e79a50375))
+* read the BAM into buffer 4 when the drive initializes a disk ([c1320a5](https://github.com/elektronaut/badline/commit/c1320a5d2f7d9fcd24e800fcacaf07ba8b07b889))
+* reopen the last loaded file on a LOAD of "*" ([64b3991](https://github.com/elektronaut/badline/commit/64b3991b9e1c91190e9b47e44238b93e0ea74850))
+* report host SAVE and read failures on the drive's error channel ([039b6da](https://github.com/elektronaut/badline/commit/039b6da1779397e56ebf6cc25effe656ca85c1f6))
+* reset the drive with the machine, as the serial bus's RESET line does ([4044db6](https://github.com/elektronaut/badline/commit/4044db6ae1bd241381c2d7651cf2a44b1ae8a61a))
+* RUN BASIC RSID tunes instead of calling their first byte ([d9a51c2](https://github.com/elektronaut/badline/commit/d9a51c2eebd5092e97da576c438a647079458e78))
+* show a BMM falling out of multicolour bitmap or ECM+BMM at pixel 5 ([988a0c6](https://github.com/elektronaut/badline/commit/988a0c60e40c720e8e1cd7acf0506107902a1ccb))
+* **vic:** power on with every register zero, as VICE does ([d5bf757](https://github.com/elektronaut/badline/commit/d5bf75756d2edfdf3b6bf40214615262b79958a6))
+* wrap a buffer channel's reads back to its second byte, as the DOS does ([9c9f0ed](https://github.com/elektronaut/badline/commit/9c9f0edb7b92b580bb2cb71668e5fa07fa8e3bd9))
+
+
+### Performance Improvements
+
+* cut the SID's per-span catch-up overhead ([f50ede8](https://github.com/elektronaut/badline/commit/f50ede8472389c28c1dde70909794ef69ae77238))
+* type the hot core for Spinel with RBS seeds ([90d31b0](https://github.com/elektronaut/badline/commit/90d31b02331982e216284f2ac533f5a6aa934bf9))
+
 ## [0.2.1](https://github.com/elektronaut/badline/compare/v0.2.0...v0.2.1) (2026-09-23)
 
 
