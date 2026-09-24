@@ -650,12 +650,24 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   - Pinned by `modesplit` (48 → 1222 px painting whole groups, 428 with
     MCM read at pixel 4), the `videomode` rows and `vicii_reg_timing`
     (pass → 274).
-  - `videomode2` and `videomode-y` disagree on where a falling BMM shows:
-    pixel 6 in `videomode2`, pixel 5 in `videomode-y` and in `modesplit`'s
-    ECM+BMM → ECM split. The readme says these delays vary with the chip
-    and its temperature. badline keeps VICE's pixel 6, which passes
-    `videomode2` and leaves `videomode-y` 1 px off and all 48 px left in
-    `modesplit`, one pixel on each of its first-section lines.
+  - A falling BMM shows at pixel 5 instead of 6 unless it leaves hi-res
+    bitmap: out of multicolour bitmap, and out of the invalid ECM+BMM
+    modes, whether ECM falls with it or stays.
+    - Pinned by `modesplit` (48 px → pass), whose first section drops BMM
+      out of ECM+BMM, by the E+B row of `vicii_reg_timing-a5` and `-ff`
+      (7 px each → pass), which drops ECM and BMM together, and by
+      `videomode-y` (1 px → pass), which drops it out of multicolour
+      bitmap. The hi-res exception is pinned by `videomode2` and the BMM
+      row of `vicii_reg_timing` (pass → 1 and 7 px without it).
+    - Two references disagree, and both are marked unsafe in the
+      testlist: `videomode-v` drops BMM out of multicolour bitmap and
+      `videomode-w` out of ECM+BMM, and both want pixel 6 (+1 px each).
+      The readme says these delays vary with the chip and its
+      temperature.
+    - Spec guard: *takes a BMM falling out of hi-res bitmap at pixel 6*,
+      *out of ECM+BMM at pixel 5* and *out of multicolour bitmap at
+      pixel 5* in
+      [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
   - An MCM that falls out of the invalid ECM+MCM text mode is a pixel
     later on both counts. The lookup stays black through pixel 4 and
     changes at pixel 5, and the pairs are read through pixel 7, with
