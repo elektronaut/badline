@@ -57,7 +57,8 @@ if media_path && !File.exist?(media_path)
   exit 1
 end
 
-jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+zjit = defined?(RubyVM::ZJIT) && RubyVM::ZJIT.enabled?
+jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled? && !zjit
 RubyVM::YJIT.enable if options[:jit] && jit_available
 
 require "badline"
