@@ -1,0 +1,153 @@
+name: Spinel
+on:
+  workflow_dispatch:
+  # Pull requests start the workflow, but its jobs only run when the
+  # repository variable SPINEL_ON_PULL_REQUEST is "true" (Settings > Secrets
+  # and variables > Actions > Variables). Unset, they skip.
+  pull_request:
+concurrency:
+  group: spinel-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+env:
+  # The Spinel commit the harnesses build with. Bumping it rebuilds the
+  # cached compiler.
+  SPINEL_REF: 4e2a9eb5679270a9f4c6895dc9b29acbd0d9af74
+jobs:
+  # Builds the compiler once, so the suites below restore it instead of
+  # each building it on a cold cache.
+  compiler:
+    name: Spinel compiler
+    if: github.event_name != 'pull_request' || vars.SPINEL_ON_PULL_REQUEST == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Locate Spinel
+        run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+      - name: Cache Spinel
+        id: spinel-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+      - name: Build Spinel
+        if: steps.spinel-cache.outputs.cache-hit != 'true'
+        run: |
+          start=$SECONDS
+          git clone --quiet --filter=blob:none https://github.com/matz/spinel "$SPINEL_DIR"
+          git -C "$SPINEL_DIR" checkout --quiet "$SPINEL_REF"
+          make -C "$SPINEL_DIR" deps
+          make -C "$SPINEL_DIR" -j"$(nproc)"
+          printf '| Step | Time |\n| --- | --- |\n| Build Spinel | %s s |\n' "$((SECONDS - start))" >> "$GITHUB_STEP_SUMMARY"
+      - name: Print the Spinel version
+        run: '"$SPINEL_DIR/bin/spinel" --version'
+
+  suite:
+    name: "Spinel (${{ matrix.suite }})"
+    needs: compiler
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: check
+            harnesses: boot cpu_tests
+            task: spinel:check
+          - suite: lorenz
+            harnesses: lorenz
+            task: spinel:lorenz
+          - suite: testbench
+            harnesses: testbench
+            task: spinel:testbench[testbench]
+          - suite: testbench-cia
+            harnesses: testbench
+            task: spinel:testbench[testbench-cia]
+          - suite: testbench-interrupts
+            harnesses: testbench
+            task: spinel:testbench[testbench-interrupts]
+          - suite: testbench-irqdma
+            harnesses: testbench
+            task: spinel:testbench[testbench-irqdma]
+          - suite: testbench-cpu
+            harnesses: testbench
+            task: spinel:testbench[testbench-cpu]
+          - suite: testbench-carts
+            harnesses: testbench
+            task: spinel:testbench[testbench-carts]
+          - suite: sid
+            harnesses: sidtests
+            task: spinel:sidtests[6581]
+          - suite: sid-8580
+            harnesses: sidtests
+            task: spinel:sidtests[8580]
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+      - uses: ruby/setup-ruby@v1.324.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Locate Spinel
+        run: |
+          echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+          echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
+          echo "Cores: $(nproc)"
+          printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Restore Spinel
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+          fail-on-cache-miss: true
+      - name: Put Spinel on PATH
+        run: |
+          echo "$SPINEL_DIR/bin" >> "$GITHUB_PATH"
+          "$SPINEL_DIR/bin/spinel" --version
+      - name: Cache 65x02 test fixtures
+        uses: actions/cache@v4
+        with:
+          path: vendor/65x02
+          key: 65x02-fixtures-6502-v1
+      - name: Cache VICE-testprogs
+        uses: actions/cache@v4
+        with:
+          path: vendor/VICE-testprogs
+          key: vice-testprogs-v1
+      - name: Check out the vendored suites
+        run: bundle exec rake vendor:checkout
+      # The rake tasks build their own harnesses. Building them here times
+      # the compile on its own, and SPINEL=true below makes the task's own
+      # build a no-op that leaves these binaries in place.
+      - name: Build the harness
+        env:
+          HARNESSES: ${{ matrix.harnesses }}
+        run: |
+          start=$SECONDS
+          bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: ENV["HARNESSES"].split)'
+          echo "| Build $HARNESSES | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
+      # spinel:lorenz runs the chain's four stretches side by side, and the
+      # testbench and SID tasks run SHARDS processes, set to the core count.
+      - name: Run ${{ matrix.task }}
+        env:
+          SPINEL: "true"
+          TASK: ${{ matrix.task }}
+        run: |
+          start=$SECONDS
+          bundle exec rake "$TASK"
+          echo "| $TASK | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spinel-${{ matrix.suite }}
+          path: |
+            tmp/spinel/*.out
+            tmp/spinel/*.txt
+            tmp/regression
+            tmp/testbench
+          if-no-files-found: ignore
