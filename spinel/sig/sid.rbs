@@ -1,28 +1,236 @@
 module Badline
   class SID
+    @pending_cycles: Integer
+    @deferred_writes: Array[Integer]
+    @samples: Array[Integer]
+    @filter_chunk: Integer
+    @bus_value: Integer
+    @bus_ttl: Integer
+    @bus_ttl_reset: Integer
+    @synthesizing: bool
+    @stepped: bool
+    @synced: bool
+    @filter: Filter
+    @decimator: Decimator?
+    @voices: Array[Voice]
+    @voice1: Voice
+    @voice2: Voice
+    @voice3: Voice
+    @waveform1: Waveform
+    @waveform2: Waveform
+    @waveform3: Waveform
+
     def apply_write: (Integer, Integer) -> void
     def write_voice: (Integer, Integer) -> void
 
+    module CatchUp
+      @pending_cycles: Integer
+      @deferred_writes: Array[Integer]
+      @samples: Array[Integer]
+      @filter_chunk: Integer
+      @synthesizing: bool
+      @stepped: bool
+      @synced: bool
+      @filter: Filter
+      @decimator: Decimator?
+      @voices: Array[Voice]
+      @voice1: Voice
+      @voice2: Voice
+      @voice3: Voice
+      @waveform1: Waveform
+      @waveform2: Waveform
+      @waveform3: Waveform
+
+      def run: (Integer) -> void
+      def span: (Integer) -> Integer
+      def synthesis_span: (Integer) -> Integer
+      def sync_span: (Waveform, Integer) -> Integer
+      def fast_forward: (Integer) -> void
+      def clock!: (Integer) -> void
+      def record_sample: (Integer) -> void
+      def current_sample: () -> Integer
+    end
+
+    class Decimator
+      @clock_hz: Integer
+      @rate: Integer
+      @phase: Integer
+      @sum: Integer
+      @count: Integer
+      @cycles_to_close: Integer
+
+      def push: (Integer, Integer) -> Integer?
+      def average: () -> Integer
+    end
+
     class Voice
+      @waveform: Waveform
+      @envelope: Envelope
+      @wave_zero: Integer
+      @dc_offset: Integer
+
       def control=: (Integer) -> void
+      def fast_forward: (Integer) -> void
+      def output: () -> Integer
     end
 
     class Waveform
+      @accumulator: Integer
+      @shift_register: Integer
+      @shift_register_reset: Integer
+      @shift_register_reset_delay: Integer
+      @shift_pipeline: Integer
+      @frequency: Integer
+      @pulse_width: Integer
+      @selected: Integer
+      @pulse: Integer
+      @output: Integer
+      @floating: Integer
+      @floating_ttl: Integer
+      @delayed_sawtooth: Integer
+      @delayed_triangle: Integer
+      @pulse_noise_read: Integer
+      @pulse_noise_write: Integer
+      @combined: Hash[Integer, Array[Integer]]
+      @test: bool
+      @ring: bool
+      @sync: bool
+      @msb_rising: bool
+      @stale: bool
+      @topbit_feedback: bool
+      @tri_saw_delay: bool
+      @sync_source: Waveform
+      @sync_dest: Waveform
+
       def frequency_low=: (Integer) -> void
       def frequency_high=: (Integer) -> void
       def pulse_width_low=: (Integer) -> void
       def pulse_width_high=: (Integer) -> void
       def control=: (Integer) -> void
+      def output: () -> Integer
+      def osc3: () -> Integer
+      def sawtooth: () -> Integer
+      def triangle: (?Integer) -> Integer
+      def noise: () -> Integer
+      def shape: (Integer, ?Integer, ?Integer) -> Integer
+      def combined: (Integer, Integer, Integer) -> Integer
+      def compare_pulse: (?Integer) -> Integer
+      def feed_back: (Integer) -> void
+
+      module FastForward
+        @accumulator: Integer
+        @shift_register: Integer
+        @shift_register_reset: Integer
+        @shift_pipeline: Integer
+        @frequency: Integer
+        @selected: Integer
+        @pulse: Integer
+        @pulse_width: Integer
+        @output: Integer
+        @floating: Integer
+        @floating_ttl: Integer
+        @pulse_noise_write: Integer
+        @test: bool
+        @msb_rising: bool
+        @stale: bool
+        @topbit_feedback: bool
+        @sync_dest: Waveform
+
+        def fast_forward: (Integer) -> void
+        def cycles_to_msb_rise: () -> Integer?
+        def feedback?: () -> bool
+        def stepped?: (bool) -> bool
+        def skip_ahead: (Integer) -> void
+        def bit19_rises: (Integer, Integer) -> Integer
+        def pipeline_after: (Integer) -> Integer
+        def drain_floating: (Integer) -> void
+        def bleed_shift_register: (?Integer) -> void
+      end
+
+      module NoiseWriteback
+        @accumulator: Integer
+        @shift_register: Integer
+        @shift_register_reset: Integer
+        @shift_pipeline: Integer
+        @frequency: Integer
+        @selected: Integer
+        @pulse: Integer
+        @pulse_width: Integer
+        @output: Integer
+        @floating: Integer
+        @floating_ttl: Integer
+        @pulse_noise_write: Integer
+        @test: bool
+        @msb_rising: bool
+        @stale: bool
+        @topbit_feedback: bool
+
+        def write_back: (Integer, Integer) -> Integer
+        def write_shift_register: (Integer) -> void
+        def release_writes_back?: (Integer, Integer) -> bool
+      end
     end
 
     class Envelope
+      @attack: Integer
+      @decay: Integer
+      @sustain: Integer
+      @release: Integer
+      @counter: Integer
+      @env3: Integer
+      @rate_counter: Integer
+      @rate_period: Integer
+      @exponential_counter: Integer
+      @exponential_period: Integer
+      @state_pipeline: Integer
+      @envelope_pipeline: Integer
+      @exponential_pipeline: Integer
+      @gate: bool
+      @reset_rate_counter: bool
+      @hold_zero: bool
+
       def control=: (Integer) -> void
       def attack_decay=: (Integer) -> void
       def sustain_release=: (Integer) -> void
+      def cycle!: () -> void
+      def fast_forward: (Integer) -> void
+      def cycles_to_match: () -> Integer
+      def advance_rate_counter: (Integer) -> void
+      def skip_frozen_periods: (Integer) -> Integer
     end
 
     class Filter
+      @cutoff: Integer
+      @routing: Integer
+      @mode: Integer
+      @volume: Integer
+      @w0: Integer
+      @w0_table: Array[Integer]
+      @resonance: Integer
+      @mixer_dc: Integer
+      @lowpass: Integer
+      @bandpass: Integer
+      @highpass: Integer
+      @input: Integer
+      @unfiltered: Integer
+      @voice3_off: bool
+      @external: External
+
       def write: (Integer, Integer) -> void
+      def cycle!: (Array[Voice], ?Integer) -> void
+      def output: () -> Integer
+      def route: (Array[Voice]) -> void
+      def route_voice: (Integer, Integer) -> void
+      def fine_mix: () -> Integer
+      def filtered: () -> Integer
+
+      class External
+        @lowpass: Integer
+        @highpass: Integer
+        @output: Integer
+
+        def cycle!: (Integer, ?Integer) -> Integer
+      end
     end
   end
 end
