@@ -237,6 +237,23 @@ describe Badline::KernalTrap::Drive do
       expect(read_channel(2)).to eq([253, 254, 255])
     end
 
+    it "flags the block's last byte with EOI" do
+      command("b-p 2 255")
+      expect(drive.read(2)).to eq([255, true])
+    end
+
+    it "wraps back to the second byte past the end" do
+      read_channel(2)
+      expect(read_channel(2)).to eq((1..255).to_a)
+    end
+
+    it "runs a pointer set past a shorter end around the block" do
+      allow(storage).to receive(:read_block).and_return([3, *1..255])
+      command("b-r 2 0 18 1")
+      command("b-p 2 254")
+      expect(read_channel(2)).to eq([254, 255, 3, 1, 2, 3])
+    end
+
     %w[ua uq].each do |alias_command|
       it "decodes #{alias_command} as U1" do
         command("#{alias_command} 2 0 17 3")
@@ -273,6 +290,11 @@ describe Badline::KernalTrap::Drive do
     end
 
     it "hands out the bytes its first byte counts" do
+      expect(read_channel(5)).to eq([10, 20, 30])
+    end
+
+    it "wraps back to the second byte after the last one it counts" do
+      read_channel(5)
       expect(read_channel(5)).to eq([10, 20, 30])
     end
   end
@@ -650,6 +672,12 @@ describe Badline::KernalTrap::Drive do
 
     it "hands out the rest of the buffer after the number" do
       expect(read_channel(2).length).to eq(255)
+    end
+
+    it "wraps past the buffer's end to its second byte, not its number" do
+      memory_command(*"M-W".bytes, 0x01, 0x06, 1, 0xa1)
+      read_channel(2)
+      expect(drive.read(2)).to eq([0xa1, false])
     end
 
     it "hands out the buffer rather than its number once written to" do

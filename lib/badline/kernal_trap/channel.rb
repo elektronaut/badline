@@ -21,10 +21,11 @@ module Badline
 
       # A block buffer opened with "#", which reads and writes one of the
       # drive's buffers in its RAM, so M-R and M-W reach the same bytes. It
-      # hands out the whole block unless a B-R sets a shorter end. The DOS
-      # opens it with the pointer at 1 and the buffer's number as the byte
-      # to send, so the first read answers with the number and the next
-      # one moves on to the third byte.
+      # hands out the whole block unless a B-R sets a shorter end, and
+      # flags that byte as the last. The DOS opens it with the pointer at 1
+      # and the buffer's number as the byte to send, so the first read
+      # answers with the number and the next one moves on to the third
+      # byte.
       def self.buffer(memory, number)
         new(memory.ram, writable: true, base: Drive::Memory.buffer_address(number)).tap do |channel|
           channel.buffer = number
@@ -116,12 +117,26 @@ module Badline
       end
 
       def read
+        return read_buffer if @writable
         return if exhausted?
 
         byte = @lead || @bytes[@base + @pointer]
         @lead = nil
         @pointer += 1
         [byte, exhausted? && !@error]
+      end
+
+      private
+
+      # A buffer never runs out. Past its last byte, which goes out with
+      # EOI, the pointer wraps back to the second, and a pointer set past
+      # the end runs on around the block to it.
+      def read_buffer
+        byte = @lead || @bytes[@base + @pointer]
+        @lead = nil
+        last = @pointer == @length - 1
+        @pointer = last ? 1 : (@pointer + 1) & 0xff
+        [byte, last]
       end
     end
   end
