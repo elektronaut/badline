@@ -76,6 +76,9 @@ jobs:
           - suite: testbench-carts
             harnesses: testbench
             task: spinel:testbench[testbench-carts]
+          - suite: testbench-cia-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-cia-new]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]

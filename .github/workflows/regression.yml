@@ -22,6 +22,7 @@ on:
           - testbench-irqdma
           - testbench-cpu
           - testbench-carts
+          - testbench-cia-new
           - sid-8580
 # No concurrency group: nothing here cancels anything, so a nightly run and
 # a dispatched one never touch each other.
