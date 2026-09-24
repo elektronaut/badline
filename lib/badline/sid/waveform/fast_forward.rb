@@ -14,11 +14,11 @@ module Badline
           if @test
             bleed_shift_register(cycles)
           else
-            while @shift_pipeline.positive? && cycles.positive?
+            while @shift_pipeline != 0 && cycles != 0
               advance
               cycles -= 1
             end
-            skip_ahead(cycles) if cycles.positive?
+            skip_ahead(cycles) if cycles != 0 && @frequency != 0
             compare_pulse(((@accumulator - @frequency) & 0xffffff) >> 12)
           end
           @stale = true
@@ -59,9 +59,9 @@ module Badline
           previous = @accumulator
           @accumulator += @frequency * cycles
           rises = bit19_rises(previous, @accumulator)
-          if rises.positive?
+          if rises != 0
             @shift_pipeline = pipeline_after(cycles)
-            rises -= 1 if @shift_pipeline.positive?
+            rises -= 1 if @shift_pipeline != 0
             rises.times { shift_noise }
           end
           @accumulator &= 0xffffff
@@ -74,27 +74,27 @@ module Badline
         # How far a rise on one of the last two cycles has come.
         def pipeline_after(cycles)
           last = @accumulator - @frequency
-          return 2 if bit19_rises(last, @accumulator).positive?
-          return 1 if cycles > 1 && bit19_rises(last - @frequency, last).positive?
+          return 2 if bit19_rises(last, @accumulator) != 0
+          return 1 if cycles > 1 && bit19_rises(last - @frequency, last) != 0
 
           0
         end
 
         def drain_floating(cycles)
-          return unless @floating_ttl.positive?
+          return if @floating_ttl.zero?
 
           @floating_ttl -= cycles
-          return if @floating_ttl.positive?
+          return unless @floating_ttl <= 0
 
           @floating_ttl = 0
           @floating = 0x000
         end
 
         def bleed_shift_register(cycles = 1)
-          return unless @shift_register_reset.positive?
+          return if @shift_register_reset.zero?
 
           @shift_register_reset -= cycles
-          return if @shift_register_reset.positive?
+          return unless @shift_register_reset <= 0
 
           @shift_register_reset = 0
           @shift_register = SHIFT_REGISTER_RESET
