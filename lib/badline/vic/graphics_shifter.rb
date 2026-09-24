@@ -9,7 +9,8 @@ module Badline
     #
     # The byte a group draws loads at pixel XSCROLL. ECM and BMM take hold at
     # pixel 4 as they rise and at pixel 6 as they fall (the 6569's colour
-    # latency). MCM takes hold at pixel 4 for the colour lookup but only at
+    # latency), except that BMM falls at pixel 5 out of any mode but hi-res
+    # bitmap. MCM takes hold at pixel 4 for the colour lookup but only at
     # pixel 7 for how the register is read, where a rising MCM also resets
     # the multicolour flip-flop. An MCM that falls out of the invalid
     # ECM+MCM mode is a pixel later on both counts: the lookup changes at
@@ -67,7 +68,7 @@ module Badline
         case pixel
         when 0 then end_late_read
         when 4 then step_lookup(mode)
-        when 5 then @mode_lookup &= ~1 if @late_mcm
+        when 5 then step_early_fall(mode)
         when 6 then @mode_lookup &= mode | 1
         when 7 then step_read
         end
@@ -76,6 +77,11 @@ module Badline
       def step_lookup(mode)
         @late_mcm = @mode_lookup.allbits?(ECM_MCM) && mode.nobits?(1)
         @mode_lookup = (@mode_lookup & ~1) | (mode & 1) | (@late_mcm ? 1 : 0) | (mode & ECM_BMM)
+      end
+
+      def step_early_fall(mode)
+        @mode_lookup &= ~1 if @late_mcm
+        @mode_lookup &= mode | ~BMM unless @mode_lookup == BMM
       end
 
       def step_read
