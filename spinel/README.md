@@ -19,10 +19,13 @@ CRuby.
   `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See
   [The Lorenz chain](#the-lorenz-chain) below.
+- `sidtests.rb` runs a list of SID testprogs with the same code as
+  `bin/sidtests` (`test/sidtests_machine.rb`) and prints a baseline row per
+  test. See [The SID testprogs](#the-sid-testprogs) below.
 - `window.rb` opens an SDL2 window and plays the machine in it. It builds
   with Spinel only; see [A window](#a-window) below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
-- `check.rb` backs the rake tasks below.
+- `check.rb` and `sidtests_check.rb` back the rake tasks below.
 
 ## Building
 
@@ -114,6 +117,58 @@ To run a stretch by hand:
 ```sh
 spinel -I lib --no-line-map --rbs spinel/sig spinel/lorenz.rb -o tmp/spinel/lorenz
 tmp/spinel/lorenz vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81 --resume rola --stop-after cmpix
+```
+
+## The SID testprogs
+
+```sh
+rake spinel:sidtests
+rake "spinel:sidtests[8580]"
+```
+
+`spinel:sidtests` builds `sidtests` and runs the SID testprogs for a chip
+on it, 6581 unless given 8580, and compares the rows against
+`test/baselines/sid.txt` or `sid-8580.txt` as `rake regression:sid` and
+`regression:sid-8580` compare `bin/sidtests`' rows. It splits the tests
+into `SHARDS` lists (4 by default) of about the same total cycle budget
+and runs one process per list side by side. It fails if a process fails
+or leaves a test without a row.
+
+CRuby reads the testlist, picks the tests for the chip and writes each
+list to `tmp/spinel/spinel-sid-N.list` (`spinel-sid-8580-N.list` for the
+8580):
+
+```
+sid 6581|8580       the chip every machine is built with
+root PATH           the directory the test names are under
+test CYCLES NAME    one per test, in the order to run them
+```
+
+The compiled binary only emulates. For each test it builds a fresh
+machine, attaches the program and runs it until it reports through
+`$D7FF` or runs out of its budget, with `SIDTests.exit_code` from
+`test/sidtests_machine.rb`, the code `bin/sidtests` scores a test with. It
+prints each test's row in the baseline format, which the task keeps in
+`tmp/spinel/spinel-sid-N.out` and gathers into `spinel-sid.txt` in test
+order. `bin/sidtests` boots once and forks each test from the booted
+machine. The Spinel build can't fork, so it boots each test itself.
+Attaching at power-on loads the program at the same cycle as attaching to
+the booted machine, so the rows come out the same. `SIDTests.run_list`
+does the work between the list and the rows, so it can be compiled as an
+extension later.
+
+`sidtests.rb` requires `debug_register.rb`, which reopens
+`Badline::Computer`, `AddressBus` and `DebugRegister` to hand the debug
+register's handler on as a value. Spinel drops a block passed on to a
+constructor with an anonymous `&`, and refuses one that reads a local when
+it is passed on through a method that takes an anonymous `&`.
+`Computer#install_debug_register` does both.
+
+To run a list by hand:
+
+```sh
+spinel -I lib --no-line-map --rbs spinel/sig spinel/sidtests.rb -o tmp/spinel/sidtests
+tmp/spinel/sidtests tmp/spinel/spinel-sid-1.list
 ```
 
 ## A window
