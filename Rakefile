@@ -291,7 +291,7 @@ def splice_recorded(suite, recorded, fresh)
   puts "Recorded #{baseline}: #{splice.summary}."
 end
 
-def compare_baseline(suite, results)
+def compare_baseline(suite, results, name: suite)
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
     raise "No baseline at #{baseline}. Record one with " \
@@ -299,11 +299,39 @@ def compare_baseline(suite, results)
   end
 
   comparison = Regression::Comparison.new(
-    suite, Regression.read(baseline), Regression.read(results)
+    name, Regression.read(baseline), Regression.read(results)
   )
   comparison.report($stdout)
   comparison.publish
-  raise "#{suite} changed against #{baseline}." if comparison.changed?
+  raise "#{name} changed against #{baseline}." if comparison.changed?
+end
+
+# The bin/testbench suites on the Spinel build: bin/testbench runs each
+# one's tests on tmp/spinel/testbench, one build process per shard, and
+# scores them as it does in process.
+SPINEL_TESTBENCH_SUITES = ALL_SUITES.select { |_, config| config[:runner] == "bin/testbench" }.keys.freeze
+
+def spinel_testbench_suites(suite)
+  return SPINEL_TESTBENCH_SUITES if suite == "all"
+  raise "#{suite} is not a bin/testbench suite: #{SPINEL_TESTBENCH_SUITES.join(', ')}." unless
+    SPINEL_TESTBENCH_SUITES.include?(suite)
+
+  [suite]
+end
+
+# Runs each suite and compares it against its baseline, going on to the
+# next when one changed, and fails once they have all run.
+def run_spinel_testbench(suites)
+  engine = SpinelCheck.binary("testbench")
+  problems = suites.filter_map do |suite|
+    results = File.join(SpinelCheck::OUT, "#{suite}.txt")
+    run_suite(suite, results, ["--engine", engine])
+    compare_baseline(suite, results, name: "spinel-#{suite}")
+    nil
+  rescue RuntimeError => e
+    e.message
+  end
+  raise problems.join("\n") if problems.any?
 end
 
 namespace :vendor do
@@ -404,6 +432,14 @@ desc "Run the SID testprogs for a chip (6581 or 8580) on the Spinel build, over 
      "and compare them against #{BASELINE_DIR}/sid.txt or sid-8580.txt"
 task "spinel:sidtests", [:sid] => "vendor:VICE-testprogs" do |_task, args|
   spinel_sidtests(args[:sid] || "6581")
+end
+
+desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build " \
+     "and compare it against its baseline in #{BASELINE_DIR}"
+task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
+  suites = spinel_testbench_suites(args[:suite] || "testbench")
+  SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[testbench])
+  run_spinel_testbench(suites)
 end
 
 Rake::TestTask.new do |task|

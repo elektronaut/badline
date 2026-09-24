@@ -5,7 +5,7 @@
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--shards N] [--list]
-#                             [--results PATH] [--resume]
+#                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
 # hardware badline models: VICII, CIA, interrupts and CPU. Each process
@@ -43,6 +43,11 @@
 # forked over --shards processes (SHARDS in the environment, 4 by
 # default) and the per-test records merged back into testlist order.
 #
+# --engine runs the tests on a Spinel build of spinel/testbench.rb instead,
+# one build process per shard, each booting a fresh machine per test. The
+# build only emulates, and the rows are scored here as they are for a
+# test run in process (see Testbench::Engine in test/testbench_engine.rb).
+#
 # Each row also lands in PATH.progress the moment its test finishes. The
 # results file is written only when every row is in, so a run that is
 # killed leaves no results, but its progress file keeps what it finished,
@@ -55,6 +60,7 @@ require "chunky_png"
 require "etc"
 require_relative "../test/forked_boot"
 require_relative "../test/testbench_machine"
+require_relative "../test/testbench_engine"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -372,8 +378,11 @@ module Testbench
       [count, Etc.nprocessors].min
     end
 
-    def initialize(tests, results_path, shards: 1, resume: false)
+    # engine is the path of a Spinel build of spinel/testbench.rb to run
+    # the tests on, one build process per shard, instead of forking.
+    def initialize(tests, results_path, shards: 1, resume: false, engine: nil)
       @tests = tests
+      @engine = engine
       @results_path = results_path
       @progress = Progress.new("#{results_path}.progress")
       @resume = resume
@@ -385,7 +394,13 @@ module Testbench
       FileUtils.mkdir_p([ARTIFACT_DIR, File.dirname(@results_path)])
       @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       pending = pending_tests
-      [@shards, pending.length].min > 1 ? run_sharded(pending) : pending.each { |test| run_one(test) }
+      if @engine
+        run_engines(pending)
+      elsif [@shards, pending.length].min > 1
+        run_sharded(pending)
+      else
+        pending.each { |test| run_one(test) }
+      end
       @results = collect
       summarize
       @results.count { |_, result| result != "PASS" }
@@ -440,6 +455,34 @@ module Testbench
         Process.kill(signal, pid)
       rescue Errno::ESRCH
         nil
+      end
+    end
+
+    # Each shard's tests run on a build process of their own, read by a
+    # thread here that scores each test as its record comes in. Stopping
+    # the runner stops the builds, whose unfinished tests get no row.
+    def run_engines(tests)
+      groups = Shards.split(tests, [@shards, tests.length].min)
+      lock = Mutex.new
+      forwarding_signals do
+        groups.each_with_index.map do |group, n|
+          Thread.new { run_engine(group, "#{@results_path}.engine-#{n}", lock) }
+        end.each(&:join)
+      end
+    end
+
+    def run_engine(group, list, lock)
+      spawned = lambda do |pid|
+        @shard_pids << pid
+        forward(@interrupted) if @interrupted
+      end
+      engine = Engine.new(@engine, list, spawned:, stopped: -> { @interrupted })
+      engine.run(group) do |test, outcome, elapsed|
+        result = outcome.is_a?(Engine::Outcome) ? score(test, outcome.exit_code, outcome.screen) : outcome
+        lock.synchronize do
+          @progress.append(test, result)
+          report(test, result, elapsed)
+        end
       end
     end
 
@@ -564,6 +607,7 @@ if $PROGRAM_NAME == __FILE__
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
   carts = !ARGV.delete("--carts").nil?
+  engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
   tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:)
 
@@ -580,7 +624,7 @@ if $PROGRAM_NAME == __FILE__
   end
 
   begin
-    failures = Testbench::Runner.new(tests, results_path, shards:, resume:).run
+    failures = Testbench::Runner.new(tests, results_path, shards:, resume:, engine:).run
   rescue Testbench::Interrupted => e
     warn e.message
     exit(128 + Signal.list.fetch(e.signal))
