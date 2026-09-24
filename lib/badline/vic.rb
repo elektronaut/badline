@@ -79,7 +79,7 @@ module Badline
       @sequencer.render = @render
       @sprites = VIC::Sprites.new(@registers, @vic_bank, @width)
       @display.fill(0)
-      @lines.each { |line| line.fill(0) }
+      @height.times { |row| @lines[row].fill(0) }
       @dirty_lines.fill(true)
 
       @column = 0

@@ -28,7 +28,7 @@ module Badline
 
     # Refills the whole memory as if newly built with `initial`
     def clear!(initial = [])
-      @storage.replace(zero_fill(initial))
+      @storage = zero_fill(initial)
     end
 
     private
