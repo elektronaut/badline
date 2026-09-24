@@ -39,12 +39,19 @@ class TestTestbenchTestlist < Minitest::Test
   end
 
   def test_drops_options_the_emulator_does_not_model
-    assert_nil parse("../CIA/tod/,t.prg,exitcode,1000,cia-new")
     assert_nil parse("../VICII/border/,t.prg,exitcode,1000,vicii-ntsc")
   end
 
-  def test_keeps_the_cia_old_half_of_a_doubled_row
-    refute_nil parse("../CIA/tod/,t.prg,exitcode,1000,cia-old")
+  def test_runs_the_cia_old_half_of_a_doubled_row_on_the_old_chip
+    assert_equal :mos6526, parse("../CIA/tod/,t.prg,exitcode,1000,cia-old").cia_model
+  end
+
+  def test_runs_the_cia_new_half_of_a_doubled_row_on_the_new_chip
+    assert_equal :mos6526a, parse("../CIA/tod/,t.prg,exitcode,1000,cia-new").cia_model
+  end
+
+  def test_runs_an_untagged_row_on_the_old_chip
+    assert_equal :mos6526, parse("../CIA/tod/,t.prg,exitcode,1000").cia_model
   end
 
   def test_drops_rows_for_the_newer_vicii
@@ -428,6 +435,15 @@ class TestTestbenchProgress < Minitest::Test
     assert_equal ["VICII/x/t0.prg", "VICII/x/t0.prg#2"], tests.map(&:key)
   end
 
+  def test_each_cia_counts_its_own_occurrences
+    old, new = %w[cia-old cia-new].map do |option|
+      Testbench::TestCase.new("../CIA/x", "t.prg", "exitcode", 1000, [option])
+    end
+    tests = Testbench::Testlist.numbered([new, old])
+
+    assert_equal ["CIA/x/t.prg", "CIA/x/t.prg"], tests.map(&:key)
+  end
+
   private
 
   def progress
@@ -465,6 +481,7 @@ class TestTestbenchEngine < Minitest::Test
     def cartridge = nil
     def prg = "#{key}.prg"
     def dir_abs = "/tests"
+    def cia_model = :mos6526
   end
 
   def setup
@@ -481,7 +498,8 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\n", Testbench::Engine.spec(test)
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\n",
+                 Testbench::Engine.spec(test)
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices

@@ -4,7 +4,7 @@
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
-#                             [--carts] [--shards N] [--list]
+#                             [--carts] [--cia-new] [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
@@ -30,6 +30,9 @@
 # also loads a program boots with the cartridge attached, loads the program
 # as the other rows do and gets their boot allowance; its id names both,
 # as prg+crt.
+#
+# --cia-new runs the rows the testlist tags cia-new instead, each on a
+# machine whose CIAs are 6526As. Every other row runs on the 6526.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -76,15 +79,19 @@ module Testbench
   INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU)/}
   EXCLUDED_DIRS = %r{\A\.\./CPU/decimalmode/}
 
-  # cia-new asks for the 6526A, whose one-cycle-shorter timer and shift
-  # register behaviour badline does not model; the same programs are listed
-  # again with cia-old, which is what it does model. vicii-new asks for the
-  # 8565 in the same way, and badline models only the 6569.
-  # Disk images and memory expansions are not emulated either. A mountcrt
-  # row runs only under --carts.
-  SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|cia-new|vicii-new|
+  # The Lorenz suite's 6526 half runs as bin/lorenz's chain off
+  # Lorenz.d81, but nothing chains the 6526A half, so its cia-new rows run
+  # here.
+  LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
+
+  # vicii-new asks for the 8565, and badline models only the 6569. Disk
+  # images and memory expansions are not emulated either. A mountcrt row
+  # runs only under --carts, and a cia-new row, which asks for the 6526A,
+  # only under --cia-new.
+  SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|vicii-new|
                   reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
+  CIA_NEW_OPTION = "cia-new"
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -110,6 +117,11 @@ module Testbench
   TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence) do
     def id
       "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
+    end
+
+    # The CIA the row asks for: the 6526A for cia-new, else the 6526.
+    def cia_model
+      options.include?(CIA_NEW_OPTION) ? :mos6526a : :mos6526
     end
 
     def name
@@ -172,16 +184,21 @@ module Testbench
 
     # Filters are id substrings, matched as a union; no filter runs
     # everything inside the scope.
-    def tests(filters, scope: nil, exclude: nil, carts: false)
+    def tests(filters, scope: nil, exclude: nil, carts: false, cia_new: false)
+      cia_model = cia_new ? :mos6526a : :mos6526
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
-        .select { |test| test.cartridge.nil? != carts && selected?(test, filters, scope, exclude) }
+        .select do |test|
+          test.cartridge.nil? != carts && test.cia_model == cia_model &&
+            selected?(test, filters, scope, exclude)
+        end
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
-    # filters select.
+    # filters select, and separately for each CIA: a program listed for
+    # both keeps the key it has in each suite.
     def numbered(tests)
       seen = Hash.new(0)
-      tests.each { |test| test.occurrence = seen[test.id] += 1 }
+      tests.each { |test| test.occurrence = seen[[test.id, test.cia_model]] += 1 }
     end
 
     def selected?(test, filters, scope, exclude)
@@ -205,10 +222,12 @@ module Testbench
       return if options.any?(SKIP_OPTIONS)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
-      test if test.cartridge ? runnable_cartridge?(test) : included?(dir)
+      test if test.cartridge ? runnable_cartridge?(test) : included?(dir, test.cia_model)
     end
 
-    def included?(dir)
+    def included?(dir, cia_model)
+      return dir.match?(LORENZ_DIR) if cia_model == :mos6526a && dir.start_with?("../general/")
+
       dir.match?(INCLUDED_DIRS) && !dir.match?(EXCLUDED_DIRS)
     end
 
@@ -518,11 +537,12 @@ module Testbench
 
     # A cartridge test starts from power-on, so its machine is never booted:
     # one that loads a program boots in the child, with the cartridge in.
+    # Each CIA model gets a machine of its own.
     def booted(test)
-      if test.cartridge
-        @powered_on ||= ForkedBoot.new(FORWARDED_SIGNALS) { Testbench.machine(true) }
-      else
-        @booted ||= ForkedBoot.new(FORWARDED_SIGNALS) { Testbench.machine(false) }
+      @machines ||= {}
+      cartridge = !test.cartridge.nil?
+      @machines[[cartridge, test.cia_model]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+        Testbench.machine(cartridge, test.cia_model)
       end
     end
 
@@ -607,9 +627,10 @@ if $PROGRAM_NAME == __FILE__
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
   carts = !ARGV.delete("--carts").nil?
+  cia_new = !ARGV.delete("--cia-new").nil?
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:)
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:, cia_new:)
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?
