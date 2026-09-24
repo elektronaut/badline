@@ -5,8 +5,8 @@ require "spec_helper"
 RSpec.describe Badline::VIC::DisplayState do
   subject(:state) { described_class.new(registers) }
 
-  # Default $D011 is 0x1b: DEN=1, RSEL=1, YSCROLL=3.
-  let(:registers) { Badline::VIC::Registers.new }
+  # $D011 as the KERNAL leaves it: DEN=1, RSEL=1, YSCROLL=3.
+  let(:registers) { Badline::VIC::Registers.new.tap { |regs| regs.write(0x11, 0x1b) } }
 
   # Mirrors VIC#cycle!: the g-access runs ahead of the compare, and
   # advances the counters whenever the logic is in display state.
