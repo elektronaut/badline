@@ -25,13 +25,16 @@
 # same scenario on it alongside this run and stops at the first
 # checkpoint that differs, naming the components that differ. --against
 # FILE compares with lines saved by --save. Either way the exit status is
-# 1 on a difference.
+# 1 on a difference. The run for REV goes under the JIT this one runs
+# under: --zjit, --yjit, or none on TruffleRuby. Without either flag,
+# CRuby enables YJIT at startup.
 
 require "English"
 require "fileutils"
 require "optparse"
 require "rbconfig"
 require "tmpdir"
+require_relative "../test/jit"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
 DEMO_PRG = [
@@ -175,7 +178,7 @@ module MachineDiff
   end
 
   def child_command(scenario, options, lib)
-    [RbConfig.ruby, "--yjit", __FILE__, scenario, "--lib", lib,
+    [RbConfig.ruby, *Jit.flags, __FILE__, scenario, "--lib", lib,
      "--cycles", options[:cycles].to_s, "--every", options[:every].to_s, "--text", options[:text]]
   end
 
@@ -254,7 +257,7 @@ unless MachineDiff::SCENARIOS.include?(scenario)
 end
 
 $LOAD_PATH.unshift(options[:lib])
-RubyVM::YJIT.enable if defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
+Jit.enable
 require "badline"
 checkpoint = File.expand_path("../lib/badline/checkpoint.rb", __dir__)
 Badline.__send__(:remove_const, :Checkpoint) if defined?(Badline::Checkpoint) && !$LOADED_FEATURES.include?(checkpoint)
