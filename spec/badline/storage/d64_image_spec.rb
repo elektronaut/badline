@@ -55,6 +55,10 @@ describe Badline::Storage::D64Image do
       expect(image.read_file("d*")).to eq(image.read_file("data"))
     end
 
+    it "ignores whatever follows a star" do
+      expect(image.read_file("d*  x")).to eq(image.read_file("data"))
+    end
+
     it "returns the first PRG for a bare wildcard" do
       expect(image.read_file("*").first(2)).to eq([0x00, 0xc0])
     end
