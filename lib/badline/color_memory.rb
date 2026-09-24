@@ -10,7 +10,7 @@ module Badline
     end
 
     def peek(addr)
-      (@vic.phi1_data & 0xf0) | @storage[index(addr)]
+      (@vic.phi1_data & 0xf0) | @storage[offset_of(addr)]
     end
 
     def poke(addr, value)
@@ -19,7 +19,7 @@ module Badline
 
     # The four bits the cell stores, as the VIC's c-access sees them.
     def nibble(addr)
-      @storage[index(addr)]
+      @storage[offset_of(addr)]
     end
   end
 end

@@ -153,7 +153,7 @@ module Badline
     end
 
     def peek(addr)
-      case index(addr) % (2**5)
+      case offset_of(addr) % (2**5)
       when 0x19 then latch(pots ? pots.pot_x : 0xff)
       when 0x1a then latch(pots ? pots.pot_y : 0xff)
       when 0x1b then latch(osc3)
@@ -163,7 +163,7 @@ module Badline
     end
 
     def poke(addr, value)
-      reg = index(addr) % (2**5)
+      reg = offset_of(addr) % (2**5)
       write_register(reg, value) if reg <= 0x18
       latch(value)
     end

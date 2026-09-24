@@ -51,7 +51,7 @@ module Badline
 
     private
 
-    def index(addr)
+    def offset_of(addr)
       i = addr - @start
       raise OutOfBoundsError, "#{addr.inspect} (#{range})" unless i >= 0 && i < @length
 
