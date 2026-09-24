@@ -30,6 +30,7 @@ module Badline
         def initialize
           @storage = nil
           @ram = Array.new(SIZE, 0)
+          @bam = false
         end
 
         # Writes past the RAM are dropped, since the rest of the address
@@ -46,8 +47,26 @@ module Badline
           Array.new(count) { |i| @ram.fetch(address + i, 0) }
         end
 
+        # A reset through the reset vector clears the RAM, and the BAM
+        # with it, until the next open initializes the disk again.
         def clear
           @ram.fill(0)
+          @bam = false
+        end
+
+        # Initializing the disk reads its BAM, the header block, into buffer
+        # 4, where M-R finds it. Storage without blocks has none.
+        def read_bam
+          @bam = true
+          block = @storage.respond_to?(:header_block) && @storage.read_block(*@storage.header_block)
+          load_buffer(Channels::BAM_BUFFER, block) if block
+        end
+
+        # Whether the BAM has been read since the last reset.
+        def bam? = @bam
+
+        def load_buffer(number, block)
+          @ram[Memory.buffer_address(number), block.length] = block
         end
 
         # The first block of the file the last LOAD read, which the DOS
@@ -67,15 +86,15 @@ module Badline
             next unless @ram[job] == READ_JOB
 
             track, sector = @ram[6 + (job * 2), 2]
-            @ram[job] = read_job(Memory.buffer_address(job), track, sector)
+            @ram[job] = read_job(job, track, sector)
           end
         end
 
-        def read_job(buffer, track, sector)
+        def read_job(number, track, sector)
           data = @storage.respond_to?(:read_block) && @storage.read_block(track, sector)
           return job_result(HEADER_NOT_FOUND) unless data
 
-          @ram[buffer, BLOCK_SIZE] = data
+          load_buffer(number, data)
           job_result(@storage.block_error(track, sector))
         end
 

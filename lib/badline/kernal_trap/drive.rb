@@ -48,25 +48,30 @@ module Badline
         /\AB-R\s*:?\s*(.*)/i => :counted_block_read,
         /\AB-P\s*:?\s*(.*)/i => :buffer_pointer,
         /\AB-W\s*:?\s*(.*)/i => :counted_block_write,
-        /\A[IV]/i => :initialized,
+        /\AI/i => :initialize_disk,
+        /\AV/i => :initialized,
         /\AB-[AF]/i => :write_protected
       }.freeze
 
       # A drive powers on reporting its DOS version, as a reset does. It
-      # takes the RAM of the drive it replaces when the disk changes.
+      # takes the RAM of the drive it replaces when the disk changes, and
+      # initializes the new disk.
       def initialize(storage, memory = Memory.new)
         @storage = storage
         @channels = Channels.new
         @status = Status.new
         @memory = memory
         memory.storage = storage
+        memory.read_bam
         report(DOS_VERSION)
       end
 
       # A name on the command channel is a command, "#" opens a block
       # buffer, anything else opens a file for reading. The name comes as
       # the bytes sent, because a memory command's arguments are binary.
+      # Opening a data channel initializes a disk a reset left uninitialized.
       def open(secondary, name)
+        @memory.read_bam unless @memory.bam? || secondary == COMMAND_CHANNEL
         if secondary == COMMAND_CHANNEL
           command(name.bytes) unless name.empty?
         elsif name.start_with?("#")
@@ -196,6 +201,7 @@ module Badline
         when :counted_block_read then counted_block_read(arguments)
         when :buffer_pointer then buffer_pointer(arguments)
         when :initialized then report(OK)
+        when :initialize_disk then initialize_disk
         when :write_protected then write_protected(arguments)
         when :cold_reset then reset(cold: true)
         when :warm_reset then reset(cold: false)
@@ -230,6 +236,13 @@ module Badline
         @memory.clear if cold
         @channels.clear
         report(DOS_VERSION)
+      end
+
+      # I closes the data channels and reads the BAM again.
+      def initialize_disk
+        @channels.clear
+        @memory.read_bam
+        report(OK)
       end
 
       def report(...) = @status.report(...)

@@ -789,6 +789,72 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "the BAM" do
+    let(:bam) { [18, 1, 0x41, *Array.new(253, 0xff)] }
+    let(:storage) do
+      instance_double(Badline::Storage::D64Image, header_block: [18, 0], read_block: bam,
+                                                  block_error: nil, read_error: nil,
+                                                  read_file: [0x01, 0x08, 0x2a], first_block: [17, 0])
+    end
+
+    def bam_buffer
+      drive.write(15, [*"M-R".bytes, 0x00, 0x07, 3])
+      read_channel(15)
+    end
+
+    def scribble
+      drive.write(15, [*"M-W".bytes, 0x00, 0x07, 3, 1, 2, 3])
+    end
+
+    it "sits in buffer 4 once the disk is mounted" do
+      expect(bam_buffer).to eq([18, 1, 0x41])
+    end
+
+    it "is read from the disk's header block" do
+      bam_buffer
+      expect(storage).to have_received(:read_block).with(18, 0)
+    end
+
+    it "is read again on I" do
+      scribble
+      command("i0")
+      expect(bam_buffer).to eq([18, 1, 0x41])
+    end
+
+    it "reports OK on I" do
+      command("i0")
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "closes the data channels on I" do
+      drive.open(2, "#")
+      command("i")
+      expect(drive.read(2)).to be_nil
+    end
+
+    it "is gone after a reset through the reset vector" do
+      command("u:")
+      expect(bam_buffer).to eq([0, 0, 0])
+    end
+
+    it "is read again when a data channel opens after the reset" do
+      command("u:")
+      drive.open(0, "PROGRAM")
+      expect(bam_buffer).to eq([18, 1, 0x41])
+    end
+
+    it "is read only once a reset calls for it" do
+      scribble
+      drive.open(2, "#")
+      expect(bam_buffer).to eq([1, 2, 3])
+    end
+
+    it "stays out of drive memory on storage without blocks" do
+      described_class.new(instance_double(Badline::Storage::HostDirectory), memory = described_class::Memory.new)
+      expect(memory.read(0x700, 3)).to eq([0, 0, 0])
+    end
+  end
+
   describe "a LOAD of a name starting with *" do
     def memory_write(address, byte)
       drive.write(15, [*"M-W".bytes, address & 0xff, address >> 8, 1, byte])
