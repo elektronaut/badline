@@ -120,6 +120,29 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "a carriage return in a file name" do
+    # The 1541's CMDSET ($C2B3) shortens the name before OPEN looks it up.
+    it "drops one that ends the name" do
+      drive.open(0, "s2\r")
+      expect(storage).to have_received(:read_file).with("s2", type: :prg)
+    end
+
+    it "drops one before the last byte, with that byte" do
+      drive.open(0, "s2\rx")
+      expect(storage).to have_received(:read_file).with("s2", type: :prg)
+    end
+
+    it "keeps one further in" do
+      drive.open(2, "a\rbc")
+      expect(storage).to have_received(:read_file).with("a\rbc", type: nil)
+    end
+
+    it "keeps a name that is only a carriage return" do
+      drive.open(2, "\r")
+      expect(storage).to have_received(:read_file).with("\r", type: nil)
+    end
+  end
+
   describe "a missing file" do
     before do
       allow(storage).to receive(:read_file).and_return(nil)

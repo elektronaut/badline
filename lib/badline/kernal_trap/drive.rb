@@ -67,7 +67,7 @@ module Badline
           @channels[secondary] = Channel.buffer
           report(OK)
         else
-          open_file(secondary, Storage.ascii(name.bytes))
+          open_file(secondary, Storage.ascii(without_return(name.bytes)))
         end
       end
 
@@ -114,6 +114,13 @@ module Badline
       end
 
       private
+
+      # The DOS cuts a name of two or more bytes at a carriage return in
+      # its last or second-to-last byte, as PRINT# ends a line with one.
+      def without_return(bytes)
+        cut = bytes.rindex(0x0d)
+        cut && bytes.length > 1 && cut >= bytes.length - 2 ? bytes[0, cut] : bytes
+      end
 
       # Secondary addresses 0 and 1 are LOAD and SAVE, which look for a PRG
       # file unless the name asks for another type. Other channels take any
