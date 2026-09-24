@@ -16,6 +16,14 @@ module Badline
         JOB_OK = 1
         HEADER_NOT_FOUND = 20
 
+        # The RAM itself, which buffer channels read and write in place.
+        attr_reader :ram
+
+        # Buffer n takes the page $0300 + n * $100.
+        def self.buffer_address(number)
+          0x300 + (number * BLOCK_SIZE)
+        end
+
         def initialize(storage)
           @storage = storage
           @ram = Array.new(SIZE, 0)
@@ -56,7 +64,7 @@ module Badline
             next unless @ram[job] == READ_JOB
 
             track, sector = @ram[6 + (job * 2), 2]
-            @ram[job] = read_job(0x300 + (job * BLOCK_SIZE), track, sector)
+            @ram[job] = read_job(Memory.buffer_address(job), track, sector)
           end
         end
 

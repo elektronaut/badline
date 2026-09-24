@@ -550,6 +550,115 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "buffer allocation" do
+    def buffer_of(secondary)
+      command("b-p #{secondary} 0")
+      drive.write(secondary, [secondary])
+      (0...4).find { |number| memory_at(0x300 + (number * 0x100)) == secondary }
+    end
+
+    def memory_at(address)
+      drive.write(15, [*"M-R".bytes, address & 0xff, address >> 8, 1])
+      read_channel(15).first
+    end
+
+    it "gives the first buffer channel buffer 3, as the BAM holds buffer 4" do
+      drive.open(2, "#")
+      expect(buffer_of(2)).to eq(3)
+    end
+
+    it "hands out the highest free buffer" do
+      (2..5).each { |secondary| drive.open(secondary, "#") }
+      expect((2..5).map { |secondary| buffer_of(secondary) }).to eq([3, 2, 1, 0])
+    end
+
+    it "reports NO CHANNEL once the four free buffers are taken" do
+      (2..6).each { |secondary| drive.open(secondary, "#") }
+      expect(status).to eq("70,NO CHANNEL,00,00")
+    end
+
+    it "leaves the channel closed when no buffer is free" do
+      (2..6).each { |secondary| drive.open(secondary, "#") }
+      expect(drive.listening?(6)).to be(false)
+    end
+
+    it "counts a buffer for an open file" do
+      drive.open(2, "data")
+      drive.open(3, "#")
+      expect(buffer_of(3)).to eq(2)
+    end
+
+    it "reports NO CHANNEL for a file once the buffers are taken" do
+      (2..5).each { |secondary| drive.open(secondary, "#") }
+      drive.open(6, "data")
+      expect(status).to eq("70,NO CHANNEL,00,00")
+    end
+
+    it "frees the buffer when the channel closes" do
+      drive.open(2, "#")
+      drive.close(2)
+      drive.open(3, "#")
+      expect(buffer_of(3)).to eq(3)
+    end
+
+    it "frees a channel's buffer when its secondary address opens again" do
+      drive.open(2, "#")
+      drive.open(2, "#")
+      expect(buffer_of(2)).to eq(3)
+    end
+
+    it "takes the buffer a name asks for" do
+      drive.open(2, "#1")
+      expect(buffer_of(2)).to eq(1)
+    end
+
+    [["the BAM's buffer", "#4"], ["a buffer past the fifth", "#5"]].each do |what, name|
+      it "reports NO CHANNEL for #{what}" do
+        drive.open(2, name)
+        expect(status).to eq("70,NO CHANNEL,00,00")
+      end
+    end
+
+    it "keeps a channel open when the buffer it asks for again is taken" do
+      drive.open(2, "#3")
+      drive.open(2, "#3")
+      expect(buffer_of(2)).to eq(3)
+    end
+  end
+
+  describe "a buffer channel in drive RAM" do
+    def memory_command(*bytes)
+      drive.write(15, bytes)
+    end
+
+    before { drive.open(2, "#") }
+
+    it "shows M-R what PRINT# wrote" do
+      drive.write(2, [0x41, 0x42])
+      memory_command(*"M-R".bytes, 0x00, 0x06, 2)
+      expect(read_channel(15)).to eq([0x41, 0x42])
+    end
+
+    it "hands out what M-W wrote" do
+      memory_command(*"M-W".bytes, 0xfe, 0x06, 2, 0xc1, 0xc2)
+      command("b-p 2 254")
+      expect(read_channel(2)).to eq([0xc1, 0xc2])
+    end
+
+    it "shows M-R the block U1 read" do
+      command("u1 2 0 18 1")
+      memory_command(*"M-R".bytes, 0x10, 0x06, 2)
+      expect(read_channel(15)).to eq([0x10, 0x11])
+    end
+
+    it "hands out the block a read job put in it" do
+      memory_command(*"M-W".bytes, 0x0c, 0x00, 2, 18, 0)
+      memory_command(*"M-W".bytes, 0x03, 0x00, 1, 0x80)
+      command("b-p 2 254")
+      expect(read_channel(2)).to eq([254, 255])
+    end
+  end
+
   describe "a reset command" do
     def memory_at(address)
       drive.write(15, [*"M-R".bytes, address & 0xff, address >> 8, 1])

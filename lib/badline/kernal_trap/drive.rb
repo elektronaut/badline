@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/kernal_trap/drive/channels"
 require "badline/kernal_trap/drive/memory"
 require "badline/kernal_trap/drive/parameters"
 require "badline/kernal_trap/drive/status"
@@ -51,7 +52,7 @@ module Badline
       # A drive powers on reporting its DOS version, as a reset does.
       def initialize(storage)
         @storage = storage
-        @channels = {}
+        @channels = Channels.new
         @status = Status.new
         @memory = Memory.new(storage)
         report(DOS_VERSION)
@@ -64,8 +65,8 @@ module Badline
         if secondary == COMMAND_CHANNEL
           command(name.bytes) unless name.empty?
         elsif name.start_with?("#")
-          @channels[secondary] = Channel.buffer
-          report(OK)
+          opened = @channels.open_buffer(secondary, Parameters.parse(name[1..]).first, @memory)
+          report(opened ? OK : NO_CHANNEL)
         else
           open_file(secondary, Storage.ascii(without_return(name.bytes)))
         end
@@ -73,7 +74,7 @@ module Badline
 
       # Closing the command channel closes every other channel with it.
       def close(secondary)
-        secondary == COMMAND_CHANNEL ? @channels.clear : @channels.delete(secondary)
+        secondary == COMMAND_CHANNEL ? @channels.clear : @channels.close(secondary)
       end
 
       # A buffer channel takes the bytes into its block. A file channel is
@@ -99,7 +100,7 @@ module Badline
       # Whether data sent on the channel reaches the drive. The command
       # channel always listens, other channels once they are open.
       def listening?(secondary)
-        secondary == COMMAND_CHANNEL || @channels.key?(secondary)
+        secondary == COMMAND_CHANNEL || @channels.open?(secondary)
       end
 
       # Returns the next byte and whether it is the channel's last, or nil
@@ -131,8 +132,10 @@ module Badline
         return refuse_write(secondary, name, file) if secondary == 1 || mode?(name, "W")
         return refuse_append(secondary, file, type) if mode?(name, "A")
 
-        channel = @channels[secondary] = Channel.for_name(@storage, @memory, secondary, name, type)
-        channel.exhausted? && channel.error ? report(*channel.error) : report(OK)
+        channel = @channels.open_file(secondary, Channel.for_name(@storage, @memory, secondary, name, type))
+        return report(NO_CHANNEL) unless channel
+
+        channel.failed? ? report(*channel.error) : report(OK)
       end
 
       def mode?(name, mode)
@@ -143,7 +146,7 @@ module Badline
       # the channel closed. A name already on the disk fails as FILE EXISTS
       # unless @ asks to replace it, anything else as WRITE PROTECT ON.
       def refuse_write(secondary, name, file)
-        @channels.delete(secondary)
+        @channels.close(secondary)
         return report(FILE_EXISTS) if !name.start_with?("@") && @storage.read_file(file, type: nil)
 
         report(WRITE_PROTECT_ON, *protected_block(secondary))
@@ -152,7 +155,7 @@ module Badline
       # An A mode open needs the file on the disk. It fails at the file's
       # last block, the first one an append writes back.
       def refuse_append(secondary, file, type)
-        @channels.delete(secondary)
+        @channels.close(secondary)
         return report(FILE_NOT_FOUND) unless @storage.read_file(file, type:)
 
         report(WRITE_PROTECT_ON, *(@storage.last_block(file, type:) if @storage.respond_to?(:last_block)))
@@ -202,7 +205,7 @@ module Badline
         return unless data
 
         buffer = @channels[channel]
-        buffer.replace(data.dup, counted ? data[0] + 1 : data.length)
+        buffer.load(data, counted ? data[0] + 1 : data.length)
         buffer.pointer = 1 if counted
         report_block_error(track, sector)
       end
