@@ -1,0 +1,12 @@
+module Badline
+  class CIA
+    class Timer
+      @counter: Integer
+    end
+
+    class Serial
+      @data: Integer
+      @shift: Integer
+    end
+  end
+end

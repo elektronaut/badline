@@ -1,0 +1,24 @@
+module Badline
+  class VIC
+    @render: bool
+    def render=: (bool) -> void
+
+    class Sequencer
+      @render: bool
+    end
+
+    class Sprite
+      @sr: Integer
+      @latch: Integer
+      @leftmost: Integer
+      @span: Integer
+      @reload_leftmost: Integer
+      @reload_span: Integer
+    end
+
+    class Sprites
+      @lo: Integer
+      @hi: Integer
+    end
+  end
+end

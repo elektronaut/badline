@@ -1,0 +1,56 @@
+module Badline
+  class Memory
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+    def []=: (Integer, Integer) -> void
+  end
+
+  class ColorMemory
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+    def nibble: (Integer) -> Integer
+  end
+
+  class ROM
+    def poke: (Integer, Integer) -> void
+  end
+
+  class AddressBus
+    @port_ddr: Integer
+    @port_out: Integer
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+
+    class OpenBus
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+  end
+
+  class DebugRegister
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+  end
+
+  class VIC
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+    def phi1_data: () -> Integer
+
+    class Bank
+      def peek: (Integer) -> Integer
+      def peek_phi2: (Integer) -> Integer
+      def peek_color: (Integer) -> Integer
+    end
+  end
+
+  class CIA
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+  end
+
+  class SID
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+  end
+end

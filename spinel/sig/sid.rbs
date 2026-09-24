@@ -1,0 +1,28 @@
+module Badline
+  class SID
+    def apply_write: (Integer, Integer) -> void
+    def write_voice: (Integer, Integer) -> void
+
+    class Voice
+      def control=: (Integer) -> void
+    end
+
+    class Waveform
+      def frequency_low=: (Integer) -> void
+      def frequency_high=: (Integer) -> void
+      def pulse_width_low=: (Integer) -> void
+      def pulse_width_high=: (Integer) -> void
+      def control=: (Integer) -> void
+    end
+
+    class Envelope
+      def control=: (Integer) -> void
+      def attack_decay=: (Integer) -> void
+      def sustain_release=: (Integer) -> void
+    end
+
+    class Filter
+      def write: (Integer, Integer) -> void
+    end
+  end
+end
