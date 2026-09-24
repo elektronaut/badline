@@ -217,13 +217,8 @@ def run_stretch(suite, number)
   range = stretch_range(suite, recorded, number)
   results = File.join(REGRESSION_DIR, "#{suite}-#{number}.txt")
   run_suite(suite, results, chain_args(range))
-  rows = range.select(Regression.read(results))
-  expected = range.select(recorded)
-  compare_stretch("#{suite}-#{number}", expected, rows)
-  raise "#{suite}-#{number} ended before reaching #{range.last}." unless range.reached?(rows)
-  return if rows.keys == expected.keys
-
-  raise "#{suite}-#{number} reported #{rows.length} rows where the baseline has #{expected.length}."
+  problem = stretch_problem("#{suite}-#{number}", range, recorded, results)
+  raise problem if problem
 end
 
 # The range of stretch number, the last one running to the end of the chain.
@@ -235,11 +230,32 @@ def stretch_range(suite, recorded, number)
   Regression::ChainRange.new(recorded, first, last)
 end
 
-def compare_stretch(name, expected, rows)
+# Compares a run of range against the baseline, returning what is wrong
+# with it, if anything.
+def stretch_problem(name, range, recorded, results)
+  rows = range.select(Regression.read(results))
+  expected = range.select(recorded)
   comparison = Regression::Comparison.new(name, expected, rows)
   comparison.report($stdout)
   comparison.publish
-  raise "#{name} changed against the baseline." if comparison.changed?
+  return "#{name} changed against the baseline." if comparison.changed?
+  return "#{name} ended before reaching #{range.last}." unless range.reached?(rows)
+  return if rows.keys == expected.keys
+
+  "#{name} reported #{rows.length} rows where the baseline has #{expected.length}."
+end
+
+# The Lorenz chain on the Spinel build: each stretch of `rake regression:lorenz-N`,
+# or the whole chain in one run.
+def spinel_lorenz_ranges(recorded, whole)
+  if whole
+    first = (recorded.keys - [Regression::ChainRange::OUTCOME]).first
+    return { "lorenz" => Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME) }
+  end
+
+  (1..(ALL_SUITES.fetch("lorenz").fetch(:cuts).length + 1)).to_h do |number|
+    ["lorenz-#{number}", stretch_range("lorenz", recorded, number)]
+  end
 end
 
 # regression:<suite>-<n> for each stretch of a suite with :cuts.
@@ -356,6 +372,19 @@ namespace :spinel do
       SpinelCheck.check_boot
     end
     SpinelCheck.check_cpu_tests
+  end
+
+  desc "Run the Lorenz chain on the Spinel build, its stretches side by side (or [whole] in one run), " \
+       "and compare it against #{BASELINE_DIR}/lorenz.txt"
+  task :lorenz, [:whole] => "vendor:VICE-testprogs" do |_task, args|
+    SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[lorenz])
+    recorded = read_recorded("lorenz")
+    ranges = spinel_lorenz_ranges(recorded, args[:whole] == "whole")
+    results = SpinelCheck.run_lorenz(ranges.transform_values { |range| chain_args(range) })
+    problems = ranges.filter_map do |name, range|
+      stretch_problem("spinel-#{name}", range, recorded, results.fetch(name))
+    end
+    raise problems.join("\n") if problems.any?
   end
 end
 
