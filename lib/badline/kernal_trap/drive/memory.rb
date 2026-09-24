@@ -19,13 +19,16 @@ module Badline
         # The RAM itself, which buffer channels read and write in place.
         attr_reader :ram
 
+        # The disk that read jobs read from.
+        attr_writer :storage
+
         # Buffer n takes the page $0300 + n * $100.
         def self.buffer_address(number)
           0x300 + (number * BLOCK_SIZE)
         end
 
-        def initialize(storage)
-          @storage = storage
+        def initialize
+          @storage = nil
           @ram = Array.new(SIZE, 0)
         end
 

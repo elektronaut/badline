@@ -298,11 +298,11 @@ RSpec.describe Badline::Computer do
     let(:writable) { instance_double(Badline::Storage::HostDirectory, write_file: nil) }
     let(:read_only) { instance_double(Badline::Storage::T64) }
 
-    # Filename "DATA" at $0340, device 8, return address $1234 on the stack
-    def request
-      ram.write(0x0340, "DATA".bytes)
+    # Filename at $0340, device 8, return address $1234 on the stack
+    def request(name = "DATA")
+      ram.write(0x0340, name.bytes)
       ram.write(0xbb, [0x40, 0x03])
-      ram.poke(0xb7, 4)
+      ram.poke(0xb7, name.length)
       ram.poke(0xba, 8)
       ram.poke(0xb9, 1)
       ram.write(0x01fe, [0x34, 0x12])
@@ -317,8 +317,8 @@ RSpec.describe Badline::Computer do
       run_routine(Badline::KernalTrap::Save::ADDRESS)
     end
 
-    def run_load
-      request
+    def run_load(name = "DATA")
+      request(name)
       run_routine(Badline::KernalTrap::Load::ADDRESS)
     end
 
@@ -344,6 +344,25 @@ RSpec.describe Badline::Computer do
 
       it "saves through the backend" do
         expect(writable).to have_received(:write_file).with("DATA", [0x00, 0xc0, 0xaa, 0xbb])
+      end
+    end
+
+    context "when the disk changes" do
+      let(:second_disk) do
+        instance_double(Badline::Storage::D64Image, first_block: nil, read_file_at: [0x00, 0xc0, 0x02])
+      end
+
+      before do
+        computer.mount(instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01],
+                                                                   first_block: [17, 0], read_error: nil))
+        run_load
+        return_to_caller
+        computer.mount(second_disk)
+        run_load("*")
+      end
+
+      it "keeps the drive's RAM, where the last LOAD left its first block" do
+        expect(second_disk).to have_received(:read_file_at).with(17, 0)
       end
     end
 

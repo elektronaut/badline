@@ -120,8 +120,10 @@ module Badline
       address_bus.cartridge&.release_button
     end
 
+    # A disk swap keeps the drive's RAM, which only a drive reset clears.
     def mount(storage)
-      drive = KernalTrap::Drive.new(storage)
+      @drive_memory ||= KernalTrap::Drive::Memory.new
+      drive = KernalTrap::Drive.new(storage, @drive_memory)
       load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive:)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
       KernalTrap::Serial.new(cpu:, bus: address_bus, drive:).install
