@@ -163,10 +163,10 @@ extension later.
 
 `sidtests.rb` requires `debug_register.rb`, which reopens
 `Badline::Computer`, `AddressBus` and `DebugRegister` to hand the debug
-register's handler on as a value. Spinel drops a block passed on to a
-constructor with an anonymous `&`, and refuses one that reads a local when
-it is passed on through a method that takes an anonymous `&`.
-`Computer#install_debug_register` does both.
+register's handler on as a value. Spinel refuses a block that reads a
+local when it is passed on with an anonymous `&` into a constructor, as
+`Computer#install_debug_register` passes it, and the handler
+`SIDTests.exit_code` installs reads one.
 
 To run a list by hand:
 
@@ -232,12 +232,6 @@ record, so it can be compiled as an extension later.
 spinel -I lib --no-line-map --rbs spinel/sig spinel/testbench.rb -o tmp/spinel/testbench
 ruby --yjit bin/testbench --engine tmp/spinel/testbench VICII/spritegap/spritegap3.prg
 ```
-
-`testbench.rb` requires `debug_register.rb` too, as `sidtests.rb` does.
-`sig/cartridge.rbs` types the `romh:` keyword of `ActionReplay#select` as
-untyped. Without it, Spinel types the keyword from the one call that
-passes it, Atomic Power's, as a RAM bank, and raises TypeError when an
-Action Replay falls back on the default, its ROM bank.
 
 ## A window
 

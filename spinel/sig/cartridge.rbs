@@ -1,7 +1,0 @@
-module Badline
-  class Cartridge
-    class ActionReplay
-      def select: (Symbol, untyped, io2_ram: bool, ?romh: untyped) -> untyped
-    end
-  end
-end

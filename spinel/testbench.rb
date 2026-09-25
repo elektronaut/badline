@@ -43,7 +43,6 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 require_relative "../test/testbench_machine"
-require_relative "debug_register"
 
 module Testbench
   HEX_DIGITS = "0123456789abcdef"

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-# Spinel mishandles a block passed on with an anonymous &: into a
-# constructor it arrives as nil, and through a method that passes it on a
-# block that reads a local is refused. Computer#install_debug_register
-# does both, so the Spinel harnesses that use the debug register require
-# this to hand the handler on as a value and set it after
+# Spinel refuses a block that reads a local when it is passed on with an
+# anonymous & into a constructor, and loses the block's writes to one.
+# Computer#install_debug_register passes its block on that way, and
+# SIDTests.exit_code hands it one that reads a local, so sidtests.rb
+# requires this to hand the handler on as a value and set it after
 # DebugRegister.new instead.
 module Badline
   class DebugRegister
