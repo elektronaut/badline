@@ -55,6 +55,11 @@ REGRESSION_SUITES = {
 # 13 rows at about a minute.
 # testbench-carts is the testlist's mountcrt rows, from whichever subtree
 # lists them, for the cartridge types badline has a mapper for.
+# testbench-cia-new is the testlist's cia-new rows, from whichever subtree
+# lists them, on a machine with 6526A CIAs. It is a suite of its own rather
+# than rows added to testbench-cia and the rest, because those baselines
+# are the 6526's, and many of its programs are listed for both chips under
+# the same id.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -64,6 +69,7 @@ OPT_IN_SUITES = {
   "testbench-irqdma" => { runner: "bin/testbench", scope: "interrupts/irqdma/" },
   "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" },
   "testbench-carts" => { runner: "bin/testbench", args: %w[--carts] },
+  "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 

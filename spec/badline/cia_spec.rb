@@ -351,6 +351,112 @@ describe Badline::CIA do
     end
   end
 
+  describe "the model" do
+    it "is the 6526 unless given" do
+      expect(cia.model).to eq(:mos6526)
+    end
+
+    it "refuses a chip it does not model" do
+      expect { described_class.new(model: :mos8521) }.to raise_error(ArgumentError)
+    end
+  end
+
+  # The flag rises on cycle 3.
+  describe "the 6526A interrupt register" do
+    subject(:cia) { described_class.new(start: 0xdc00, model: :mos6526a) }
+
+    before do
+      cia.control_a.start = true
+      cia.timer_a = 0x01
+      cia.timer_a_latch = 0xff
+      cia.interrupt_control.timer_a = true
+    end
+
+    def run_reading(cycles, read_at:)
+      cycles.times do |cycle|
+        cia.cycle!
+        cia.peek(0xdc0d) if cycle + 1 == read_at
+      end
+    end
+
+    # Pinned by CIA/irqdelay/irqdelay-new, which tells the chips apart by it.
+    it "asserts the interrupt line on the flag's own cycle" do
+      run_reading(3, read_at: nil)
+      expect(cia.interrupted?).to be(true)
+    end
+
+    # Pinned by interrupts/cia-int/cia-int-irq-new and CIA/dd0dtest/dd0dtest
+    # (test 17).
+    context "when the ICR was read on the cycle before the flag" do
+      before { run_reading(3, read_at: 2) }
+
+      it "waits a cycle to assert the interrupt line" do
+        expect(cia.interrupted?).to be(false)
+      end
+
+      it "asserts it on the next cycle" do
+        cia.cycle!
+        expect(cia.interrupted?).to be(true)
+      end
+    end
+
+    # Pinned by CIA/dd0dtest/dd0dtest (test 17): the read on the flag cycle
+    # of inc $dd0d,x sees IR, so the RMW writes $81 and $82 back.
+    it "reads an IR due on the next cycle as set" do
+      run_reading(3, read_at: 2)
+      expect(cia[0xdc0d]).to eq(0x81)
+    end
+
+    # Pinned by CIA/dd0dtest/dd0dtest (tests 18 and 19): the second read of
+    # inc $dd0d,x still sees the source, so the RMW writes $81 and $82 back.
+    context "when the ICR is read" do
+      before { run_reading(3, read_at: 3) }
+
+      it "releases the interrupt line at once" do
+        expect(cia.interrupted?).to be(false)
+      end
+
+      it "still reads every bit on the next cycle" do
+        cia.cycle!
+        expect(cia[0xdc0d]).to eq(0x81)
+      end
+
+      it "clears them the cycle after that" do
+        2.times { cia.cycle! }
+        expect(cia[0xdc0d]).to eq(0x00)
+      end
+    end
+
+    # Pinned by Lorenz imrnew.
+    context "when a mask write arms a pending source" do
+      before do
+        cia.interrupt_control.timer_a = false
+        run_reading(4, read_at: nil)
+        cia.poke(0xdc0d, 0x81)
+      end
+
+      it "asserts the interrupt line one cycle later" do
+        cia.cycle!
+        expect(cia.interrupted?).to be(true)
+      end
+    end
+
+    # Pinned by CIA/ciavarious/cia3new (tests K and L) and
+    # cia-timer-newcias.
+    context "when timer B underflows on the cycle after a read" do
+      before do
+        cia.control_b.start = true
+        cia.timer_b = 0x01
+        cia.timer_b_latch = 0xff
+        run_reading(3, read_at: 2)
+      end
+
+      it "keeps the flag for the next read, with no timer B bug" do
+        expect(cia[0xdc0d] & 0x02).to eq(0x02)
+      end
+    end
+  end
+
   describe "timer A" do
     before do
       cia.interrupt_control.timer_a = true

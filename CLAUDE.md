@@ -173,7 +173,8 @@ the rows your change can't reach tell you nothing about it.
 Pick the filters from the suites your change can move: VIC → `testbench`;
 CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
-`testbench-cia` rows; cartridge mappers, banking or power-on state →
+`testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
+the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
 `testbench-carts`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The

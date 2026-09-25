@@ -25,6 +25,7 @@ only catches the rows that happen to move.
 - [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
+- [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
 - [SID oscillator](#sid-oscillator)
@@ -771,13 +772,17 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   `CIA/ciavarious/cia3` K/L, `cia3a` D/H, `cia4` X, `cia8` A/C/F/J/L
   (the readme's old-versus-new CIA cells) and `CIA/cia-timer/cia-timer-oldcias`,
   and ported from VICE's `CIA_IM_TBB`.
-- The modelled revision is the **6526**, not the 6526A, matching
-  `Lorenz.d81`. That is all the `(*1)` cells of `cia1ta`/`cia1tb` measure,
-  and it is an ICR difference, not a counter one. Those cells read the ICR
-  on the very cycle the underflow flag rises, so the source bit is up while
-  IR is not: they read `$01`/`$02`, where a 6526A reads `$81`/`$82`. Counter
-  readback is identical on both revisions. `Lorenznew.d81` expects the
-  6526A and must not be mixed in.
+- Every rule in this section is the **6526**'s, the chip `CIA.new`
+  builds unless given `model: :mos6526a`, and the one `Lorenz.d81`
+  expects. That is all the `(*1)` cells of `cia1ta`/`cia1tb` measure, and
+  it is an ICR difference, not a counter one. Those cells read the ICR on
+  the very cycle the underflow flag rises, so the source bit is up while
+  IR is not: they read `$01`/`$02`, where a 6526A reads `$81`/`$82`.
+  Counter readback is identical on both revisions. `Lorenznew.d81` expects
+  the 6526A and must not be mixed into the `lorenz` chain. Its tests run
+  one at a time on a 6526A machine in `testbench-cia-new` instead. See
+  [CIA 6526A interrupt register](#cia-6526a-interrupt-register) for what
+  changes.
 - Timer B's cascade decodes CRB, not CRA. Every count source (ø2, a CNT
   edge, a cascaded timer A underflow) drives the same two-stage
   count-enable pipeline, so a timer A underflow decrements timer B two
@@ -804,6 +809,65 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   [`cia_spec.rb`](../spec/badline/cia_spec.rb)'s *6526 interrupt
   acknowledge* and *6526 timer B bug* groups guard the three ICR rules
   above, on a bare CIA.
+
+## CIA 6526A interrupt register
+
+The 6526A (`CIA.new(model: :mos6526a)`, `Computer.new(cia_model:
+:mos6526a)`), fitted to the C64C, differs from the 6526 only in its
+interrupt control register. Its timers and shift register run the rules
+above unchanged: every `testbench-cia-new` row passes on the 6526's
+timer and serial code, the long counter sweeps `cia1tanew`, `cia1tbnew`,
+`cia2tanew` and `cia2tbnew` included. VICE's `ciatimer.c` has no model
+check either. Each rule below is gated on the model in
+[`cia/interrupt_register.rb`](../lib/badline/cia/interrupt_register.rb),
+and each was knocked out: removing it fails the rows named.
+
+- **IR on the flag's cycle.** A source flag whose mask bit is set raises
+  IR on the cycle the flag rises, not a cycle later. The exception is a
+  flag that rises on the cycle after an ICR read: that one raises IR a
+  cycle later, as on the 6526 (VICE's `rdi + 1 == rclk`).
+  - The early IR is pinned by `CIA/irqdelay/irqdelay-new`,
+    `irqdelay-oneshot-new`, `irqdelay2-new`, `irqdelay-cia1-4-new` and
+    `irqdelay-cia1-oneshot-4-new`, `interrupts/branchquirk/branchquirk-new`
+    and `branchquirk-nminew`, `interrupts/cia-int/cia-int-irq-new` and
+    `cia-int-nmi-new`, `interrupts/irq-ackn-bug/cia1new` and `cia2new`,
+    `interrupts/irqnmi/irqnmi-new`, `CIA/CIA-AcountsB/cmp-b-counts-a-new`,
+    `CIA/cia-timer/cia-timer-newcias`, `CIA/timerbasics/timer_test1_new`
+    and `CIA/dd0dtest/dd0dtest`.
+  - The exception after a read is pinned by `cia-int-irq-new`,
+    `cia-int-nmi-new` and `dd0dtest` test 17, which fail when every flag
+    raises IR at once.
+- **A read sees an IR about to rise.** A read on the cycle before IR is
+  due returns IR set, and cancels the assert as on the 6526. On the 6526,
+  only a read on the next cycle sees it.
+  - Pinned by `dd0dtest` test 17. The two reads of `inc $dd0d,x` land on
+    the cycles before and of timer A's flag, so the second sees `$81` and
+    the RMW writes `$81`/`$82` back, arming timer B, whose NMI handler
+    then reads `$82`. Without the rule the second read sees `$01`, timer B
+    stays masked and no NMI comes.
+- **The acknowledge holds every bit.** A read releases the interrupt line
+  at once, but the bits it read, sources and IR alike, stay readable on
+  the next cycle, along with anything flagged since. They clear the cycle
+  after that. The 6526 holds only IR (see *Old-CIA acknowledge* above).
+  - Pinned by `dd0dtest` tests 18 and 19. Their `inc $dd0d,x` reads `$81`
+    on the flag cycle and again on the next cycle, where a 6526 reads
+    `$80`, so the RMW writes `$82` and arms timer B.
+- **A mask write raises IR a cycle later**, where the 6526 takes two.
+  - Pinned by Lorenz `imrnew`.
+- **No timer B bug.** An underflow on the cycle after an ICR read keeps
+  its flag.
+  - Pinned by `CIA/ciavarious/cia3new`, `cia3anew`, `cia4new` and
+    `cia8new` (the readme's old-versus-new cells) and
+    `CIA/cia-timer/cia-timer-newcias`.
+- Two of VICE's model checks are left out, because no testprog tells
+  them apart. VICE stops a mask write from raising IR on the cycle after
+  an ICR read, and applies the 6526's mask cancel (*Old-CIA mask cancel*
+  above) only to the 6526. Adding the first, or dropping the second for
+  the 6526A, passes every `testbench-cia-new` row, so the 6526A keeps the
+  6526's behaviour on both.
+- Spec guard: *the 6526A interrupt register* in
+  [`cia_spec.rb`](../spec/badline/cia_spec.rb), one example per rule,
+  each failing when its rule is knocked out.
 
 ## CIA serial shift register
 

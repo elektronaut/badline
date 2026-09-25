@@ -8,7 +8,9 @@ module Badline
     class InterruptRegister
       attr_reader :status, :mask, :quiet
 
-      def initialize
+      # The 6526A is the faster of the two: see the rules below.
+      def initialize(model = :mos6526)
+        @fast = model == :mos6526a
         @mask = InterruptFlags.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, 0])
         @status = InterruptFlags.new([:timer_a, :timer_b, :alarm, :serial, :flag, 0, 0, :interrupt])
         @pending = 0
@@ -32,37 +34,51 @@ module Badline
 
       def interrupted? = status.value >= 0x80
 
+      # Raises IR on this cycle.
+      def assert_now
+        status.interrupt = true
+        @pending = 0
+      end
+
       # Schedules IR to rise after delay cycles, keeping an earlier one.
       def assert!(delay = 1)
         @pending = @pending.positive? ? [@pending, delay].min : delay
         @quiet = false
       end
 
-      # Latch a source, pulling the interrupt line if it is armed.
+      # Latch a source, pulling the interrupt line if it is armed. The 6526
+      # raises IR a cycle after the flag. The 6526A raises it on the flag's
+      # own cycle, unless the ICR was read on the cycle before.
       def flag(source)
         bit = source_bit(source)
         @status.value |= bit
-        assert! if mask.value.anybits?(bit)
+        return unless mask.value.anybits?(bit)
+
+        @fast && @read_last_cycle.nil? ? assert_now : assert!
       end
 
       # The 6526 timer B bug: an underflow on the cycle after a read still
-      # raises the flag, but the next read drops it unseen.
+      # raises the flag, but the next read drops it unseen. The 6526A has
+      # no such bug.
       def timer_b_underflow!
-        @timer_b_bug = !@read_last_cycle.nil?
+        @timer_b_bug = !@fast && !@read_last_cycle.nil?
         flag(:timer_b)
       end
 
       # A read releases the interrupt line at once, and cancels an assert
-      # due on the next cycle, but on the 6526 its IR acknowledge lands a
-      # cycle late: the next cycle still reads IR set if it was set, or
-      # about to be.
+      # due on the next cycle, but its acknowledge lands a cycle late. On
+      # the 6526 that holds only IR: the next cycle still reads IR set if it
+      # was set, or about to be. The 6526A reads an IR about to rise as set
+      # at once, and holds every bit it read: the next cycle reads them all
+      # again, along with anything flagged since.
       def read
         status.timer_b = false if @timer_b_bug
         @timer_b_bug = false
         value = status.value
+        value |= 0x80 if @fast && @pending == 1
         @read = @pending == 1 ? value | 0x80 : value
         @quiet = false
-        value |= 0x80 if @read_last_cycle&.anybits?(0x80)
+        value |= held(@read_last_cycle) if @read_last_cycle
         status.value = 0x0
         @pending = 0
         value
@@ -76,7 +92,7 @@ module Badline
           @mask.value |= (value & 0x1f)
         end
         if mask.value.anybits?(status.value & 0x1f)
-          assert!(2) unless interrupted?
+          assert!(arm_delay) unless interrupted?
         elsif @pending == 1 && @read_two_cycles_ago
           # On the 6526, masking the pending source cancels the assert due
           # on the next cycle only while a read two cycles back is
@@ -86,6 +102,14 @@ module Badline
       end
 
       private
+
+      # Arming a pending source raises IR two cycles later on the 6526,
+      # and one cycle later on the 6526A.
+      def arm_delay = @fast ? 1 : 2
+
+      # What a read on the cycle before still holds: IR on the 6526, and
+      # every bit it read on the 6526A.
+      def held(last) = @fast ? last : last & 0x80
 
       def source_bit(source)
         case source

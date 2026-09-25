@@ -9,7 +9,11 @@ module Badline
   class CIA
     include Addressable
 
-    attr_reader :start, :control_a, :control_b, :peripheral, :serial
+    # The original NMOS 6526 of the breadbin C64, and the HMOS 6526A of the
+    # C64C, which differs from it only in its interrupt control register.
+    MODELS = %i[mos6526 mos6526a].freeze
+
+    attr_reader :start, :control_a, :control_b, :peripheral, :serial, :model
 
     def interrupt_status = @icr.status
 
@@ -43,8 +47,12 @@ module Badline
       @tb.latch = value
     end
 
-    def initialize(start: 0, peripheral: nil)
+    def initialize(start: 0, peripheral: nil, model: :mos6526)
+      raise ArgumentError, "unknown CIA model #{model}" unless MODELS.include?(model)
+
       addressable_at(start, length: 2**8)
+
+      @model = model
 
       @peripheral = peripheral
       @port_b4_handler = nil
@@ -64,7 +72,7 @@ module Badline
       @cnt_high = true
       @cnt_rise = false
       @tod = TimeOfDay.new
-      @icr = InterruptRegister.new
+      @icr = InterruptRegister.new(@model)
       @icr_status = @icr.status
       @control_a = ControlRegister.new(%i[start output out_mode run_mode load
                                           in_mode serial_mode clock_frequency])
@@ -223,10 +231,7 @@ module Badline
         else underflowed && @cnt_high
         end
       )
-      if underflowed
-        interrupt_status.timer_a = true
-        interrupt! if interrupt_control.timer_a?
-      end
+      @icr.flag(:timer_a) if underflowed
       @icr.timer_b_underflow! if @tb.underflowed
       underflowed
     end

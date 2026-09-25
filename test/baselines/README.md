@@ -36,6 +36,19 @@ Recorded output of the headless hardware suites, one file per suite:
   screenshot rows compare like the others, except that `expect:error`
   wants a mismatch, as in VICE: the `selftest` fail row's reference says
   FAIL where the program draws nothing.
+- `testbench-cia-new.txt` — the same runner with `--cia-new`, over the
+  rows the testlist tags `cia-new`, from whichever subtree lists them, each
+  run on a machine whose CIAs are 6526As. Every other suite's rows run on
+  the 6526. This includes the `cia-new` rows of
+  `general/Lorenz-2.15/src`, the 6526A half of the Lorenz CIA tests:
+  their 6526 half runs in `lorenz`, and nothing chains the 6526A half.
+  It is a suite of its own rather than rows added to `testbench-cia`,
+  `testbench-interrupts` and `testbench-irqdma`, because those baselines
+  are the 6526's, and many programs are listed for both chips under the
+  same id (`CIA/dd0dtest/dd0dtest.prg`, the three `interrupts/irqdma`
+  rows). Kept apart, each id keeps one key, one verdict and one machine
+  per baseline, and a change to either chip's rules moves only its own
+  suite. All `exitcode` tests.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -139,10 +152,8 @@ its shard.
 Two subtrees of the testlist are deliberately left out. `CPU/decimalmode`
 is 41 exhaustive ADC/SBC sweeps that `rake test` already covers per-opcode
 against SingleStepTests' bus-level traces, for a worst case near nine
-hours. Every row carrying `cia-new` asks for the 6526A, whose timer and
-shift register differ from the 6526 badline models; the testlist lists the
-same 71 programs again under `cia-old`, and those are the ones that run.
-Rows carrying `vicii-new` ask for the 8565 in the same way, and badline
+hours. Rows carrying `cia-new` ask for the 6526A, and run only in
+`testbench-cia-new`, on a 6526A machine. Rows carrying `vicii-new` ask for the 8565 in the same way, and badline
 models only the 6569. All but `VICII/lp-trigger/test2new` repeat a
 `vicii-old` row, so the 31 programs listed twice run once.
 
@@ -170,6 +181,10 @@ what the suite cost before it was sharded:
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 | `testbench-carts` | 63 | 11 min | 7 min | 2 min |
+| `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
+
+The `testbench-cia-new` row was measured on a four-core cloud container,
+not the laptop, and on CRuby with YJIT.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as

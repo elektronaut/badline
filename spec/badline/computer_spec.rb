@@ -31,6 +31,17 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "the CIA model" do
+    it "fits 6526s unless given" do
+      expect([computer.cia1.model, computer.cia2.model]).to eq(%i[mos6526 mos6526])
+    end
+
+    it "fits the model given to both CIAs" do
+      computer = described_class.new(cia_model: :mos6526a)
+      expect([computer.cia1.model, computer.cia2.model]).to eq(%i[mos6526a mos6526a])
+    end
+  end
+
   describe "light pen on control port 1" do
     before { 100.times { computer.cycle! } }
 

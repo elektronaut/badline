@@ -192,7 +192,9 @@ title shows `[MUTED]` while it's off.
   border, VIC banks and the light pen.
 - **CIA 1 and 2**: timers, time-of-day clocks with alarms, the serial
   shift register, interrupts, the keyboard matrix with its ghost keys,
-  the control ports and the paddle multiplexer.
+  the control ports and the paddle multiplexer. The machine has the
+  original 6526s; `Badline::Computer.new(cia_model: :mos6526a)` fits the
+  C64C's 6526As instead, whose interrupt register timing differs.
 - **SID**: the 6581 and the 8580, with oscillators, ring modulation and
   sync, the envelope generator including the ADSR delay bug, the filter,
   and the RC network on the board that removes the DC offset from the
