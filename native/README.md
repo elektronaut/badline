@@ -51,6 +51,8 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
     directions, and `controls.rb` (`Controls`) routes them to the
     keyboard or the joysticks.
+  - `gamepads.rb` (`Gamepads`) opens and polls the game controllers, and
+    `pad_port.rb` (`PadPort`) maps each one onto a joystick.
   - `options.rb` (`Options`) parses the command line.
   - `pacer.rb` (`Pacer`) and `frame_rate.rb` (`FrameRate`) decide how many
     cycles a frame clocks and how long it waits.
@@ -104,6 +106,10 @@ changed into a streaming texture, presents it and waits.
   joystick mode, the arrow keys and space drive joystick 2 and WASD and
   left shift drive joystick 1. F9 swaps the two, for games that read
   port 1, and the title bar names the port the arrows drive.
+- Game controllers drive the joysticks as in `exe/badline-ruby`: the
+  first one found drives joystick 2 and a second one joystick 1. The
+  D-pad and the left stick steer, and every face and shoulder button
+  fires. Controllers are picked up when they are plugged in or out.
 
 Every 50 frames it prints the frame rate, the time per frame spent on
 events, emulation, audio, the texture upload, presenting and waiting, and
@@ -119,7 +125,7 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
   tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
 ```
 
-There is no gamepad, mouse or paddle support yet.
+There is no mouse or paddle support yet.
 
 ### Pacing
 
