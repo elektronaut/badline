@@ -2,9 +2,10 @@
 
 module Badline
   module Audio
-    # Runs `badline-sid` once its options have parsed: picks the song and
-    # its length, then plays it or renders it to a file. Played on a
-    # terminal, the console lets the listener step between songs.
+    # Runs `badline-ruby --headless` or `--audio-out` once its options have
+    # parsed: picks the song and its length, then plays it or renders it
+    # to a file. Played on a terminal, the console lets the listener step
+    # between songs.
     class CLI
       class Error < StandardError; end
 
@@ -39,7 +40,7 @@ module Badline
       def seconds = length(song)
 
       def length(song)
-        @lengths[song] ||= @options.seconds || songlength(song) || Options::FALLBACK_SECONDS
+        @lengths[song] ||= @options.seconds || songlength(song) || Badline::Options::FALLBACK_SECONDS
       end
 
       def sid_model = @options.sid_model || tune.sid_model
@@ -57,9 +58,9 @@ module Badline
       def render
         renderer = renderer(song, @options.rate)
         @out.puts describe
-        @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.output} at #{@options.rate} Hz..."
+        @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.audio_out} at #{@options.rate} Hz..."
         started = now
-        renderer.render(@options.output) { |done| progress(done) }
+        renderer.render(@options.audio_out) { |done| progress(done) }
         report(now - started)
       end
 
@@ -124,7 +125,7 @@ module Badline
       def report(elapsed)
         @out.print "\r" unless @options.quiet?
         @out.puts format("Wrote %<path>s in %<elapsed>.1fs (%<speed>.2fx real time).",
-                         path: @options.output, elapsed:, speed: seconds / elapsed)
+                         path: @options.audio_out, elapsed:, speed: seconds / elapsed)
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
