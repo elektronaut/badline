@@ -172,7 +172,7 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0xb9)).to eq(0x60) }
   end
 
-  describe "a file the host can't read" do
+  describe "a file the host can't read", :file_permissions do
     before do
       File.chmod(0o000, File.join(dir, "DATA.PRG"))
       request_load("DATA")
