@@ -183,6 +183,7 @@ RSpec.describe Badline::Computer do
       expect(computer.sid.filter.volume).to eq(0x00)
     end
 
+    # Pinned by SID/oscinit
     it "leaves the SID's accumulators alone" do
       expect(computer.sid.voices[2].waveform.accumulator).to eq(0x000000)
     end
@@ -192,7 +193,7 @@ RSpec.describe Badline::Computer do
     end
   end
 
-  # SID/writedelay pins the 6581 latching a register write a cycle late.
+  # Pinned by SID/writedelay: the 6581 latches a register write a cycle late.
   # Nothing inside SID delays it: the DSP is clocked ahead of the CPU in
   # #cycle!, so a store lands after the cycle it was issued on. Clocking the
   # SID after the CPU instead makes the write take hold a cycle early, and

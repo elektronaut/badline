@@ -6,6 +6,7 @@ describe Badline::AddressBus do
   let(:address_bus) { described_class.new }
 
   describe "the processor port" do
+    # Pinned by CPU/cpuport/initvalue.crt
     context "when powered on" do
       it "leaves every DDR bit an input" do
         expect(address_bus[0x00]).to eq(0x00)
