@@ -74,6 +74,7 @@ describe Badline::CPU do
     end
   end
 
+  # Pinned by Lorenz irq/nmi
   describe "interrupt recognition timing" do
     before do
       memory.write(0xfffa, [0x39, 0x05])
