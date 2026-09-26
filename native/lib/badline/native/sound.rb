@@ -57,8 +57,12 @@ module Badline
         end
       end
 
-      def wait
-        SDL.SDL_Delay(1) while queued_seconds > AHEAD
+      # How much the audio queue holds, in seconds.
+      def level = queued_seconds
+
+      # Waits until the queue is down to `level` seconds.
+      def wait(level = AHEAD)
+        SDL.SDL_Delay(1) while queued_seconds > level
       end
 
       def toggle_mute

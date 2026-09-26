@@ -2,35 +2,34 @@
 
 module Badline
   module Native
-    # Opens the window, then runs the machine a PAL frame at a time: poll
-    # events, clock 312 lines of 63 cycles, queue the SID's samples, upload
-    # the changed lines, present and wait. With sound playing, the wait lasts
-    # until the audio queue is down to Sound::AHEAD; otherwise it waits out
-    # the rest of the 20 ms.
+    # Opens the window, then runs the machine a frame at a time: poll
+    # events, clock the frame's cycles, queue the SID's samples, upload the
+    # changed lines, present and wait. Pacer decides the cycles and the wait.
     class App
-      FRAME_CYCLES = 312 * 63
-      FRAME_SECONDS = 0.02
       SCALE = 2
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      def initialize(computer, frame_limit:, paced:, screenshot:, sound:)
+      # Takes the frame limit, the pacing, the screenshot path and the sound
+      # from Options.
+      def initialize(computer, options)
         @computer = computer
-        @frame_limit = frame_limit
-        @paced = paced
-        @screenshot = screenshot
+        @frame_limit = options.frames
+        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?)
+        @screenshot = options.screenshot
         @screen = Screen.new(computer.vic)
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         open_window
-        @sound = Sound.new(computer.sid, sound)
+        @sound = Sound.new(computer.sid, options.sound?)
       end
 
       def run
         @frames = 0
         @running = true
-        @deadline = @reported = now
+        @started = @reported = now
+        @pacer.start(@started)
         @reported_samples = 0
         frame while @running
         @sound.close
@@ -51,7 +50,7 @@ module Badline
         stamps << now
         draw
         stamps << now
-        pace
+        @pacer.wait(@sound)
         stamps << now
         finish_frame(stamps)
       end
@@ -62,6 +61,7 @@ module Badline
         @slowest = took if took > @slowest
         @frames += 1
         @running = false if @frames == @frame_limit
+        @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?
       end
 
@@ -73,7 +73,10 @@ module Badline
           TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
           Screen::WIDTH * SCALE, Screen::HEIGHT * SCALE, SDL::WINDOW_RESIZABLE
         )
-        @renderer = SDL.SDL_CreateRenderer(@window, -1, SDL::RENDERER_ACCELERATED)
+        flags = SDL::RENDERER_ACCELERATED
+        flags |= SDL::RENDERER_PRESENTVSYNC if @pacer.vsync?
+        @renderer = SDL.SDL_CreateRenderer(@window, -1, flags)
+        fit_display if @pacer.vsync?
         SDL.SDL_RenderSetLogicalSize(@renderer, Screen::WIDTH, Screen::HEIGHT)
         create_texture
       end
@@ -130,10 +133,16 @@ module Badline
         SDL.SDL_SetWindowTitle(@window, title)
       end
 
+      def fit_display
+        SDL.SDL_GetWindowDisplayMode(@window, SDL.display_mode)
+        @pacer.fit(SDL.mode_refresh(SDL.display_mode))
+      end
+
       def emulate
         computer = @computer
+        cycles = @pacer.cycles(@sound)
         i = 0
-        while i < FRAME_CYCLES
+        while i < cycles
           computer.cycle!
           i += 1
         end
@@ -151,19 +160,9 @@ module Badline
         SDL.SDL_RenderPresent(@renderer)
       end
 
-      def pace
-        return unless @paced
-        return @sound.wait if @sound.playing?
-
-        @deadline += FRAME_SECONDS
-        started = now
-        @deadline = started if @deadline < started - FRAME_SECONDS
-        left = @deadline - started
-        SDL.SDL_Delay((left * 1000).to_i) if left > 0.001
-        nil while now < @deadline
-      end
-
       def report(at)
+        @pacer.check(50, at - @reported, at)
+        @pacer.measure(50, at - @reported)
         fps = 50 / (at - @reported)
         stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
         puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"

@@ -16,6 +16,7 @@ module Badline
       ffi_func :SDL_SetWindowTitle, %i[ptr str], :void
       ffi_func :SDL_DestroyWindow, [:ptr], :void
       ffi_func :SDL_CreateRenderer, %i[ptr int uint32], :ptr
+      ffi_func :SDL_GetWindowDisplayMode, %i[ptr ptr], :int
       ffi_func :SDL_DestroyRenderer, [:ptr], :void
       ffi_func :SDL_RenderSetLogicalSize, %i[ptr int int], :int
       ffi_func :SDL_CreateTexture, %i[ptr uint32 int int int], :ptr
@@ -49,6 +50,10 @@ module Badline
       ffi_write_i32 :rect_w, 8
       ffi_write_i32 :rect_h, 12
 
+      # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
+      ffi_buffer :display_mode, 24
+      ffi_read_i32 :mode_refresh, 12
+
       ffi_buffer :output_w, 4
       ffi_buffer :output_h, 4
       ffi_read_i32 :read_i32, 0
@@ -68,6 +73,7 @@ module Badline
       ffi_const :WINDOWPOS_CENTERED, 0x2fff0000
       ffi_const :WINDOW_RESIZABLE, 0x20
       ffi_const :RENDERER_ACCELERATED, 0x02
+      ffi_const :RENDERER_PRESENTVSYNC, 0x04
       ffi_const :PIXELFORMAT_RGB888, 0x16161804
       ffi_const :TEXTUREACCESS_STREAMING, 1
       ffi_const :QUIT, 0x100
