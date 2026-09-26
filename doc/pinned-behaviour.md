@@ -997,7 +997,8 @@ and each was knocked out: removing it fails the rows named.
     that varies with the chip's temperature (`SID/wf12nsr`'s
     `quicktest.prg` on a 6581), which nothing scored depends on.
   - Spec guard: *bleeding through a held test bit* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb). Before it does, the old waveform's output is
+    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+- Before the bit clocks in on release, the old waveform's output is
   written back only for some waveform changes. Noise has to have been
   combined before the release and still be selected after it. A change to
   noise alone writes nothing back unless all four waveforms were selected
@@ -1174,9 +1175,13 @@ and each was knocked out: removing it fails the rows named.
 - A tune's init and play routines must run with the ROMs banked to match
   the address they live at, following libsidplayfp's iomap: `$37` below
   `$a000`, `$36` under BASIC, `$34` in the `$d000` I/O window, `$35` under
-  the KERNAL. Restore `$01` afterwards so the caller's banking survives.
-  This entry is the rule, and it should outlive whichever code carries it.
+  the KERNAL. A routine below `$a000` gets `$36` too when the tune's image
+  reaches under BASIC, as VSID does, since it may call into that part.
+  Restore `$01` afterwards so the caller's banking survives. This entry is
+  the rule, and it should outlive whichever code carries it.
 - Derived against six OneLoad64 tunes (Galway, Tel, Gray, Dunn, Cooksey).
+  Green Beret's init sits at `$9fe3` and calls its own code at `$aaca`,
+  which forces the `$36` below `$a000`.
   `SIDFile#bank_for` is the one copy of the map: `Driver` wraps both calls
   in a `$01` save/bank/restore, and `BarePlayer#dispatch` pokes it before
   handing the CPU the stub.
