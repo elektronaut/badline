@@ -194,7 +194,8 @@ what the suite cost before it was sharded:
 The `testbench-cia-new` and `testbench-expansions` rows were measured on
 a four-core cloud container, not the laptop, and on CRuby with YJIT.
 `memory-expansions/c64-georam-emd.prg` is nearly all of
-`testbench-expansions`, which no sharding shortens.
+`testbench-expansions`, which no sharding shortens. Its worst case is
+the rows' budgets at the throughput of that run, not a timed run.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
