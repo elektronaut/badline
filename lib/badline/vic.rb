@@ -36,6 +36,10 @@ module Badline
     G_IDLE = 1
     G_DISPLAY = 2
 
+    # The idle g-access in the column a mid-row bad line opens display
+    # state reads here on a 6569.
+    DMA_DELAY_IDLE_ADDRESS = 0x38ff
+
     # The $d011 mode bits a g-access still sees for a cycle after they fall:
     # BMM always, and ECM too when the access it leaves read the character
     # ROM.
@@ -65,6 +69,7 @@ module Badline
       @lightpen_extra = model == :mos8565 ? 1 : 2
       @grey_dots = model == :mos8565
       @delayed_fetch = model == :mos8565
+      @dma_delay_idle = model == :mos6569
       @address_bus = address_bus || AddressBus.new
       @vic_bank = VIC::Bank.new(@address_bus)
       @debug = debug
@@ -122,7 +127,7 @@ module Badline
       # The g-access runs in the first half of the cycle, ahead of the bad
       # line compare, and the c-access in the second half, after it.
       draw!
-      @display_state.cycle(@rasterline, @column)
+      compare_bad_line
 
       fetch_character_data! if dma_active?
 
@@ -427,6 +432,20 @@ module Badline
       @g_data[slot] = fetch_graphics(vmli, display_state.vc)
       @g_char[slot] = @g_kept_char = @character_buffer[vmli] || 0
       @g_color[slot] = @g_kept_color = @color_buffer[vmli] || 1
+    end
+
+    # On the 6569 a bad line that opens display state mid-row (DMA delay)
+    # moves the idle g-access of the column that triggers it from $3fff (or
+    # $39ff) to DMA_DELAY_IDLE_ADDRESS, unless YSCROLL is 0 (vsp-tester,
+    # colorfetchbug/main).
+    def compare_bad_line
+      display_state = @display_state
+      display_state.cycle(@rasterline, @column)
+      slot = @g_tick
+      return unless @dma_delay_idle && @g_kind[slot] == G_IDLE && display_state.display?
+      return if @registers.yscroll.zero?
+
+      @g_data[slot] = vic_bank.peek(DMA_DELAY_IDLE_ADDRESS)
     end
 
     # The 6569's g-access sees a mode bit that falls a cycle late: it

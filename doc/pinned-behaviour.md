@@ -578,6 +578,31 @@ only catches the rows that happen to move.
     cells take their colour from the halted opcode.
   - Spec guard: *an FLI match in column 13* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- On the 6569, a match that opens display state in a g-access column, which
+  is a DMA delay out of idle state, moves that column's idle g-access from
+  `$3fff` (or `$39ff`) to `$38ff`, but only when YSCROLL is nonzero, so
+  only when the trigger line's low three bits are nonzero. The address wins over
+  ECM's `$39ff`. Nothing else enters the condition: not the column, BMM,
+  RC, VC or the previous fetch. The column is the one just before the
+  first display-state g-access. This rule is empirical and fitted to the
+  two tests below. It is the same condition the Denise emulator converged
+  on, and no hardware explanation for the YSCROLL gate is known. The
+  readme lists `$38ff` for every 6569 it measured. Among 8565s it lists
+  `$3807`, `$38c7`, `$38d7` and `$38ff`, varying from chip to chip, and no
+  testbench row pins one, so the 8565 keeps `$3fff` there.
+  `VIC::DMA_DELAY_IDLE_ADDRESS` holds the 6569's address.
+  - Pinned by `vsp-tester`, which triggers on raster `$32` with YSCROLL 2
+    and reads the address back through sprite collisions. It passes on
+    `$38ff`, `$3807`, `$38c7` or `$38d7`, and reports `$3fff` (exit `$ff`)
+    without this rule.
+  - Pinned by `colorfetchbug/main`, whose only idle trigger is on raster
+    `$30` with YSCROLL 0 and whose reference shows `$3fff` there. Without
+    the YSCROLL gate it fails by 7 px. `sequencer-bug` (YSCROLL 3) reads
+    `$38ff` and passes either way.
+  - Spec guard: *reads the idle byte at $38ff when YSCROLL is nonzero* and
+    *reads the idle byte at $3fff when YSCROLL is 0*, plus the 8565's
+    *reads the idle byte at $3fff when YSCROLL is nonzero*, in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
 - These rows can't be read as pixel counts. The sweep became readable by
   OCRing each reference PNG against `lib/badline/roms/character.rom` and
   matching every display row back to its offset in screen memory, so a diff
@@ -833,7 +858,8 @@ What the 8565 references don't settle, and so what stays as it is:
   differ from chip to chip and change as the machine warms up.
 - VICE's idle g-access also reads ECM from the `$d011` of the column
   before on the 8565. No testprog tells it apart, so the 8565 keeps the
-  6569's idle access.
+  6569's idle access, without the 6569's `$38ff` read where a DMA delay
+  starts.
 
 ## CIA 6526 timer pipeline
 
