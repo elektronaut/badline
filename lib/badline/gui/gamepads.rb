@@ -9,8 +9,8 @@ module Badline
     # face and shoulder button fires.
     #
     # SDL announces arrivals by device index but reports button presses by
-    # instance id, and the binding gives no way to line the two up, so this
-    # class polls the controllers every frame. It only releases directions it
+    # instance id, so rather than line the two up, this class polls the
+    # controllers every frame. It only releases directions it
     # pressed itself, so the keyboard mapping keeps working with a pad
     # connected.
     class Gamepads
@@ -18,39 +18,39 @@ module Badline
       PORTS = [2, 1].freeze
 
       BUTTONS = {
-        up: [SDL2::GameController::Button::DPAD_UP],
-        down: [SDL2::GameController::Button::DPAD_DOWN],
-        left: [SDL2::GameController::Button::DPAD_LEFT],
-        right: [SDL2::GameController::Button::DPAD_RIGHT],
-        fire: [SDL2::GameController::Button::A, SDL2::GameController::Button::B,
-               SDL2::GameController::Button::X, SDL2::GameController::Button::Y,
-               SDL2::GameController::Button::LEFTSHOULDER,
-               SDL2::GameController::Button::RIGHTSHOULDER]
+        up: [SDL::CONTROLLER_BUTTON_DPAD_UP],
+        down: [SDL::CONTROLLER_BUTTON_DPAD_DOWN],
+        left: [SDL::CONTROLLER_BUTTON_DPAD_LEFT],
+        right: [SDL::CONTROLLER_BUTTON_DPAD_RIGHT],
+        fire: [SDL::CONTROLLER_BUTTON_A, SDL::CONTROLLER_BUTTON_B,
+               SDL::CONTROLLER_BUTTON_X, SDL::CONTROLLER_BUTTON_Y,
+               SDL::CONTROLLER_BUTTON_LEFTSHOULDER, SDL::CONTROLLER_BUTTON_RIGHTSHOULDER]
       }.freeze
 
       AXES = {
-        up: [SDL2::GameController::Axis::LEFTY, -1],
-        down: [SDL2::GameController::Axis::LEFTY, 1],
-        left: [SDL2::GameController::Axis::LEFTX, -1],
-        right: [SDL2::GameController::Axis::LEFTX, 1]
+        up: [SDL::CONTROLLER_AXIS_LEFTY, -1],
+        down: [SDL::CONTROLLER_AXIS_LEFTY, 1],
+        left: [SDL::CONTROLLER_AXIS_LEFTX, -1],
+        right: [SDL::CONTROLLER_AXIS_LEFTX, 1]
       }.freeze
 
       def initialize(computer)
-        SDL2.init(SDL2::INIT_GAMECONTROLLER)
+        SDL.check(SDL::InitSubSystem.call(SDL::INIT_GAMECONTROLLER))
         @computer = computer
         @controllers = []
         @pressed = Array.new(PORTS.size) { [] }
         rescan
       end
 
-      def names = @controllers.map(&:name)
+      def names = @controllers.map { |controller| SDL::GameControllerName.call(controller) }
 
       def rescan
         close
-        @controllers = (0...SDL2::Joystick.num_connected_joysticks)
-                       .select { |index| SDL2::Joystick.game_controller?(index) }
+        @controllers = (0...SDL::NumJoysticks.call)
+                       .select { |index| SDL::IsGameController.call(index) == 1 }
                        .first(PORTS.size)
-                       .map { |index| SDL2::GameController.open(index) }
+                       .map { |index| SDL::GameControllerOpen.call(index) }
+                       .reject(&:null?)
       end
 
       def poll
@@ -58,7 +58,7 @@ module Badline
       end
 
       def close
-        @controllers.each { |controller| controller.destroy unless controller.destroy? }
+        @controllers.each { |controller| SDL::GameControllerClose.call(controller) }
         @controllers = []
         @pressed.size.times { |index| release(index) }
       end
@@ -78,7 +78,7 @@ module Badline
       end
 
       def active?(controller, direction)
-        BUTTONS.fetch(direction).any? { |button| controller.button_pressed?(button) } ||
+        BUTTONS.fetch(direction).any? { |button| SDL::GameControllerGetButton.call(controller, button) == 1 } ||
           tilted?(controller, direction)
       end
 
@@ -86,7 +86,7 @@ module Badline
         axis, sign = AXES[direction]
         return false unless axis
 
-        controller.axis(axis) * sign > DEADZONE
+        SDL::GameControllerGetAxis.call(controller, axis) * sign > DEADZONE
       end
 
       def joystick(index)

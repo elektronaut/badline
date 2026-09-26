@@ -10,7 +10,7 @@ module Badline
         @height = height
         @left = left
         @top = top
-        @rect = SDL2::Rect.new(left, top, width, height)
+        @rect = [left, top, width, height].pack("l4")
       end
 
       def render(_renderer)
@@ -19,16 +19,17 @@ module Badline
 
       private
 
+      # The pixels are little-endian RGBA dwords, red in the low byte.
       def blit(renderer, pixels)
-        surface = SDL2::Surface.from_string(
+        surface = SDL::CreateRGBSurfaceFrom.call(
           pixels, width, height, 32, width * 4,
           0x0000_00ff, 0x0000_ff00, 0x00ff_0000, 0xff00_0000
         )
-        texture = renderer.create_texture_from(surface)
-        renderer.copy(texture, nil, @rect)
+        texture = SDL::CreateTextureFromSurface.call(renderer, surface)
+        SDL::RenderCopy.call(renderer, texture, nil, @rect)
       ensure
-        texture&.destroy
-        surface&.destroy
+        SDL::DestroyTexture.call(texture) if texture
+        SDL::FreeSurface.call(surface) if surface
       end
     end
   end
