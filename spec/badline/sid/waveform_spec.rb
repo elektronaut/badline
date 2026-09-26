@@ -290,6 +290,7 @@ describe Badline::SID::Waveform do
     describe "as the test bit falls" do
       def release(from, to, model: :mos6581)
         chip = described_class.new(model:)
+        chip.control = 0x88
         chip.control = (from << 4) | 0x08
         chip.control = to << 4
         chip.shift_register
@@ -303,8 +304,10 @@ describe Badline::SID::Waveform do
         expect(release(0x9, 0x8)).to eq(0x7ffffc)
       end
 
-      it "writes back dropping to noise alone from all four waveforms" do
-        expect(release(0xf, 0x8)).to eq(0x576bb4)
+      # Pinned by SID/wb_testsuite (F->8 on the 6581, and the samplings of
+      # both chips).
+      it "writes nothing back dropping to noise alone from all four waveforms" do
+        expect(release(0xf, 0x8)).to eq(0x7ffffc)
       end
 
       it "writes nothing back into pulse+noise" do
@@ -334,6 +337,38 @@ describe Badline::SID::Waveform do
       # Pinned by SID/wb_testsuite (C->A on the 8580).
       it "writes nothing back trading pulse for sawtooth on the 8580" do
         expect(release(0xc, 0xa, model: :mos8580)).to eq(0x7ffffc)
+      end
+
+      # Pinned by SID/wb_testsuite (C->F on the 8580): every line is written
+      # low, where the old waveform's writeback shape would leave $7ffff4.
+      it "writes every line low changing from pulse+noise to all four on the 8580" do
+        expect(release(0xc, 0xf, model: :mos8580)).to eq(0x576bb4)
+      end
+    end
+
+    # Pinned by SID/noiselfsrinit (simple and scan, both chips): its $f8/$80
+    # pairs zero the register by setting the test bit onto all four
+    # waveforms from noise alone. From the power-on LFSR, released once
+    # into noise, a writeback leaves $6bb5d8.
+    describe "as the test bit rises" do
+      def raise_onto(control, model: :mos6581)
+        chip = described_class.new(model:)
+        chip.control = 0x08
+        chip.control = 0x80
+        chip.control = control
+        chip.shift_register
+      end
+
+      it "writes a noise combination back" do
+        expect(raise_onto(0xf8)).to eq(0x6bb5d8)
+      end
+
+      it "writes a noise combination back on the 8580" do
+        expect(raise_onto(0xf8, model: :mos8580)).to eq(0x6bb5d8)
+      end
+
+      it "writes nothing back onto noise alone" do
+        expect(raise_onto(0x88)).to eq(0x7ffffc)
       end
     end
   end

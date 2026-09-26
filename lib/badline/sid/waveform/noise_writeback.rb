@@ -49,29 +49,47 @@ module Badline
           NOISE_TAPS.each { |bit, line| @shift_register &= ~bit if value.nobits?(line) }
         end
 
+        # Setting the test bit starts the bleed, and writes the output of a
+        # noise combination back first, from the accumulator it had. Only
+        # SID/noiselfsrinit sets the bit onto such a combination from outside
+        # it: its $f8/$80 pairs go from noise alone to all four.
+        def raise_test
+          @shift_register_reset = @shift_register_reset_delay
+          return unless @selected.anybits?(0x8) && combined?(@selected) && @shift_pipeline != 1
+
+          write_shift_register(write_back(@selected, shape(@selected)))
+        end
+
         # Releasing the test bit finishes the shift it interrupted: the old
         # waveform's output may be written back first, then a bit clocks in
-        # over the forced-high bit 22. On the 6581, a change that keeps only
-        # pulse+noise of the old waveform writes the lowest noise lines low.
+        # over the forced-high bit 22.
         def release_test(previous)
-          if @topbit_feedback && previous != 0xc && (previous & @selected) == 0xc
-            write_shift_register(noise & PULSE_NOISE_RELEASE)
-          elsif release_writes_back?(previous, @selected)
-            write_shift_register(write_back(previous, shape(previous)))
-          end
+          value = release_write(previous)
+          write_shift_register(value) if value
           shift_noise(1)
+        end
+
+        # What the release writes over the taps, or nil. On the 6581, a change
+        # that keeps only pulse+noise of the old waveform writes the lowest
+        # noise lines low. On the 8580, a change from pulse+noise to all four
+        # writes every line low.
+        def release_write(previous)
+          if @topbit_feedback
+            return noise & PULSE_NOISE_RELEASE if previous != 0xc && (previous & @selected) == 0xc
+          elsif previous == 0xc && @selected == 0xf
+            return 0x000
+          end
+          write_back(previous, shape(previous)) if release_writes_back?(previous, @selected)
         end
 
         # Which waveform changes write the old output back as the test bit
         # falls (SID/wb_testsuite, after libresidfp's do_writeback). Noise has
-        # to have been combined before and still be selected after. Dropping
-        # to noise alone writes nothing back unless all four were selected,
-        # nor does changing to pulse+noise or from pulse+noise to
-        # sawtooth+noise, nor, on the 6581, trading triangle for sawtooth or
-        # back.
+        # to have been combined before and still be combined after. Nothing
+        # is written back on changing to pulse+noise or from pulse+noise to
+        # sawtooth+noise, nor, on the 6581, on trading triangle for sawtooth
+        # or back.
         def release_writes_back?(previous, selected)
-          return false if previous <= 0x8 || selected < 0x8
-          return previous == 0xf if selected == 0x8
+          return false if previous <= 0x8 || selected <= 0x8
           return false if selected == 0xc || (previous == 0xc && selected == 0xa)
 
           !(@topbit_feedback && [previous & 0x3, selected & 0x3].sort == [0x1, 0x2])

@@ -978,6 +978,15 @@ and each was knocked out: removing it fails the rows named.
     [`sid_spec.rb`](../spec/badline/sid_spec.rb): a catch-up that
     fast-forwards across a rise carries the shift still in flight into the
     next span.
+- Setting the test bit onto noise combined with another waveform writes
+  that combination's output back into the LFSR first, from the accumulator
+  it had, before the bit clears it.
+  - Pinned by `SID/noiselfsrinit`'s `simple` and `scan` (both chips). Their
+    `$f8`/`$80` pairs set the test bit onto all four waveforms from noise
+    alone, and zero the register only if this writes back. The release that
+    follows goes to noise alone, which writes nothing back (below).
+  - Spec guard: *as the test bit rises* in
+    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
 - The test bit does not clear the LFSR. It stalls it halfway through a
   shift with bit 22 forced high. While the bit is held, every bit bleeds up
   to `$7fffff`: after `$950000` cycles on the 8580 (`SID/bitfade`'s
@@ -1000,26 +1009,30 @@ and each was knocked out: removing it fails the rows named.
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
 - Before the bit clocks in on release, the old waveform's output is
   written back only for some waveform changes. Noise has to have been
-  combined before the release and still be selected after it. A change to
-  noise alone writes nothing back unless all four waveforms were selected
-  before. A change to pulse+noise writes nothing back, nor does a change
-  from pulse+noise to sawtooth+noise. On the 6581, trading triangle for
-  sawtooth or back writes nothing back. The rule follows libresidfp's
-  `do_writeback`. What is written is the writeback shape below, not the
-  OSC3 read. One more case is not in that rule: on the 6581, a change that
-  keeps only pulse+noise of the old waveform (`D`/`E`/`F`→`C`, `D`→`E`)
-  writes the three lowest noise lines low (`$f8`).
-  - Pinned by `SID/wb_testsuite` (the `9`/`A`/`D`/`E`→`8` rows on both
+  combined before the release and still be combined after it, so a change
+  to noise alone writes nothing back. A change to pulse+noise writes
+  nothing back, nor does a change from pulse+noise to sawtooth+noise. On
+  the 6581, trading triangle for sawtooth or back writes nothing back. The
+  rule follows libresidfp's `do_writeback`. What is written is the
+  writeback shape below, not the OSC3 read. Two more cases are not in that
+  rule. On the 6581, a change that keeps only pulse+noise of the old
+  waveform (`D`/`E`/`F`→`C`, `D`→`E`) writes the three lowest noise lines
+  low (`$f8`). On the 8580, a change from pulse+noise to all four
+  (`C`→`F`) writes every line low.
+  - Pinned by `SID/wb_testsuite` (the `9`/`A`/`D`/`E`/`F`→`8` rows on both
     chips, and the 6581's `9`↔`A`, `9`/`A`→`C` and `D`→`A` rows) and by
     `SID/noisewriteback`'s `noise_writeback_test1`. The 6581's `$f8` case
     is pinned by its `D`→`C`, `D`→`E`, `E`→`C` and `F`→`C` rows, and
     dropping it fails all four. The 8580's `C`→`A` row pins the
     pulse+noise to sawtooth+noise exception: without it the release writes
-    the 8580's `$fc` and the row fails.
-  - Known conflict: the 6581's `F`→`8` row expects no writeback, but
-    `SID/noiselfsrinit`'s `simple` and `scan` zero the register with
-    `$f8`/`$80` pairs, which needs `F`→`8` to write back. The row stays
-    failing.
+    the 8580's `$fc` and the row fails. The 8580's `C`→`F` row pins the
+    all-low case: writing the old waveform's `$fc` back makes the first read
+    `$fc`, where the row expects the `$6c` that `F`→`F` reads. Both 8580
+    samplings in `SID/wb_testsuite/samplings` read `$6c` for `C`→`F`.
+  - `F`→`8` wrote back until the test bit's rise (above) took over
+    zeroing the register for `SID/noiselfsrinit`. Every sampling in
+    `SID/wb_testsuite/samplings`, both chips, reads `F`→`8` as a plain
+    shift.
   - Spec guard: *as the test bit falls* in
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
 - A combined waveform shorts the shapers onto the lines the oscillator reads
@@ -1063,11 +1076,15 @@ and each was knocked out: removing it fails the rows named.
     fails wfc and the `C`→`9`/`C`→`E` rows; applying the lone-line rule to
     the read as well makes `noise_writeback_test2` read `$00` on both
     chips.
-  - Not fitted: the 6581's pulse+noise row of `SID/wf12nsr`. The program
-    never sets voice 3's pulse width, and the 6581 reference reads as if
-    the pulse was low when the test bit fell, grounding every line. From
-    power-on the width is zero and the pulse high. Forcing a width of
-    `$800` before the row makes it pass.
+  - Can't pass: the 6581's pulse+noise row of `SID/wf12nsr`. The program
+    never writes voice 3's pulse width, so the row depends on whatever width
+    the machine it was recorded on held. The 6581 reference reads `$00`
+    right after the release into pulse+noise at frequency `$ffff`, as if
+    the pulse was still low and grounding every line. After power-on or
+    reset the width is zero and the pulse is high. With the width set
+    before the program runs, the row passes from `$1a0` up and fails from
+    `$198` down. The 8580 program passes from a zero width. `SID/wf12nsr`'s `quicktest.prg` doesn't set the width
+    either. The row stays failing.
   - Spec guard: *writes a lone line of a noise combination back low*, *with
     pulse+noise on the 8580* and *as the test bit falls* in
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
