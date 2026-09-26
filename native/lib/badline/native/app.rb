@@ -100,15 +100,21 @@ module Badline
       end
 
       def handle_events
-        while SDL.SDL_PollEvent(SDL.event) != 0
-          type = SDL.event_type(SDL.event)
-          if type == SDL::QUIT
-            @running = false
-          elsif [SDL::KEYDOWN, SDL::KEYUP].include?(type) && SDL.event_repeat(SDL.event).zero?
-            handle_key(SDL.event_scancode(SDL.event), type == SDL::KEYDOWN)
-          elsif [SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED].include?(type)
-            @gamepads.rescan
-          end
+        handle_event(SDL.event_type(SDL.event)) while SDL.SDL_PollEvent(SDL.event) != 0
+      end
+
+      def handle_event(type)
+        case type
+        when SDL::QUIT
+          @running = false
+        when SDL::KEYDOWN, SDL::KEYUP
+          handle_key(SDL.event_scancode(SDL.event), type == SDL::KEYDOWN) if SDL.event_repeat(SDL.event).zero?
+        when SDL::MOUSEMOTION
+          @controls.mouse_motion(SDL.event_xrel(SDL.event), SDL.event_yrel(SDL.event))
+        when SDL::MOUSEBUTTONDOWN, SDL::MOUSEBUTTONUP
+          @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
+        when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
+          @gamepads.rescan
         end
       end
 
@@ -122,7 +128,8 @@ module Badline
 
       def handle_toggle(scancode)
         if scancode == Keys::TAB
-          @controls.toggle_joystick_mode
+          @controls.cycle_mode(SDL.event_mod(SDL.event).anybits?(SDL::KMOD_SHIFT) ? -1 : 1)
+          SDL.SDL_SetRelativeMouseMode(@controls.pot_device? ? 1 : 0)
         elsif scancode == Keys::F9
           @controls.swap_ports
         else
@@ -133,7 +140,7 @@ module Badline
 
       def update_title
         title = TITLE
-        title += " [JOY #{@controls.arrows_port}]" if @controls.joystick_mode
+        title += " [#{@controls.tag}]" unless @controls.tag.empty?
         title += " [MUTED]" if @sound.muted?
         SDL.SDL_SetWindowTitle(@window, title)
       end
