@@ -10,7 +10,7 @@ options = { autostart: true, jit: true, sound: false }
 
 parser = OptionParser.new do |opts|
   opts.banner = <<~BANNER
-    Usage: badline [options] [media]
+    Usage: badline-ruby [options] [media]
 
     Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
     a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
@@ -47,14 +47,14 @@ end
 begin
   parser.parse!
 rescue OptionParser::ParseError => e
-  warn "badline: #{e.message}"
-  warn "Try 'badline --help' for more information."
+  warn "badline-ruby: #{e.message}"
+  warn "Try 'badline-ruby --help' for more information."
   exit 1
 end
 
 media_path = ARGV[0]
 if media_path && !File.exist?(media_path)
-  warn "badline: no such file or directory: #{media_path}"
+  warn "badline-ruby: no such file or directory: #{media_path}"
   exit 1
 end
 
@@ -71,7 +71,7 @@ begin
 rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e
-  warn "badline: #{media_path}: #{e.message}"
+  warn "badline-ruby: #{media_path}: #{e.message}"
   exit 1
 end
 

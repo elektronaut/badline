@@ -33,17 +33,17 @@ Or add `gem "badline"` to your Gemfile and run `bundle install`.
 
 ## Usage
 
-Run `badline` with no arguments to boot to the BASIC prompt, or give it
+Run `badline-ruby` with no arguments to boot to the BASIC prompt, or give it
 something to load:
 
 ```sh
-badline                     # READY.
-badline game.prg            # Load and run a program
-badline game.d64            # Mount a disk image as device 8 and load it
-badline game.tap            # Insert a tape and load it
-badline game.crt            # Attach a cartridge
-badline tune.sid            # Play a SID tune
-badline ~/c64               # Mount a directory as device 8
+badline-ruby                # READY.
+badline-ruby game.prg       # Load and run a program
+badline-ruby game.d64       # Mount a disk image as device 8 and load it
+badline-ruby game.tap       # Insert a tape and load it
+badline-ruby game.crt       # Attach a cartridge
+badline-ruby tune.sid       # Play a SID tune
+badline-ruby ~/c64          # Mount a directory as device 8
 ```
 
 Programs, disk and tape images and SID tunes start automatically, and
@@ -52,7 +52,7 @@ from it. `--no-autostart` attaches the media and stops at `READY.`, so
 you can type the `LOAD` yourself. `--song N` picks a subtune of a
 `.sid` file, `--sid 8580` fits the newer SID, and `--disable-jit` runs
 without YJIT, which is otherwise switched on at startup.
-`badline --help` lists the options.
+`badline-ruby --help` lists the options.
 
 The KERNAL, BASIC and character ROMs come with the gem. To run other
 images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a

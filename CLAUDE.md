@@ -61,7 +61,7 @@ and speed work.
 
 ## Driving the emulator headlessly
 
-`exe/badline <media>` opens the SDL window, which is no use for checking
+`exe/badline-ruby <media>` opens the SDL window, which is no use for checking
 work. Drive a `Badline::Computer` from Ruby instead, as the `bin/` runners do:
 
 ```ruby
