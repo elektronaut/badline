@@ -38,7 +38,7 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
 
 ## The source
 
-- `native/badline.rb` is the entry point: it reads the arguments, builds
+- `native/badline.rb` is the entry point: it reads the options, builds
   the machine and runs the window.
 - `native/lib/badline/native.rb` requires the emulator core from `lib/`
   file by file, since `lib/badline.rb` also loads the CRuby front end,
@@ -51,26 +51,46 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
     directions, and `controls.rb` (`Controls`) routes them to the
     keyboard or the joysticks.
+  - `options.rb` (`Options`) parses the command line.
   - `version.rb` and `build_info.rb` make the `--version` line.
 
 The files under `native/` stay inside the subset of Ruby Spinel compiles,
 which `spec/spinel_subset_spec.rb` enforces. The parts that don't touch
-SDL, such as the version line, also load on CRuby, where the specs cover
+SDL, such as the options and the version line, also load on CRuby, where the specs cover
 them.
 
 ## Running
 
 ```sh
-tmp/native/badline [media] [frames] [paced|unpaced] [sound] [screenshot.bmp]
-tmp/native/badline vendor/OneLoad64-Games-Collection-v5/IK+.crt sound
+tmp/native/badline [options] [media]
+tmp/native/badline --sound vendor/OneLoad64-Games-Collection-v5/IK+.crt
 ```
+
+It takes `exe/badline-ruby`'s window options, parsed by
+`Badline::Native::Options` inside Spinel's subset rather than with
+OptionParser. `badline --help` lists them:
+
+- `-s`, `--song N` picks a subtune of a `.sid` file, and `--sid 6581` or
+  `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
+  the 6581.
+- `--no-autostart` attaches the media and stops at `READY.`.
+- `--sound` plays the SID, and F10 mutes and unmutes it. Sound is off
+  unless asked for (`--no-sound`), as in `exe/badline-ruby`.
+- `--version` names the build.
+
+Values can also come as `--song=2`, and `--` ends the options. Three more
+options are for testing:
+
+- `--frames N` quits after that many frames.
+- `--unpaced` drops the 50 Hz pacing, so the frame rate shows how much
+  headroom there is (the display refresh still caps it).
+- `--screenshot FILE` saves the last frame as a BMP, as the renderer drew
+  it, read back before it is presented.
 
 It boots the machine, or attaches and autostarts a media file, and runs
 it a PAL frame at a time: it polls SDL events, clocks 19,656 cycles,
 queues the SID's samples when sound is on, repacks the lines the VIC
-changed into a streaming texture, presents it and waits. The arguments
-can come in any order: a number is the frame count, a `.bmp` path the
-screenshot, and anything else the media.
+changed into a streaming texture, presents it and waits.
 
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
   C64 keys `GUI::KeyMap` gives the same keys by name. Esc is RUN/STOP.
@@ -78,13 +98,6 @@ screenshot, and anything else the media.
   joystick mode, the arrow keys and space drive joystick 2 and WASD and
   left shift drive joystick 1. F9 swaps the two, for games that read
   port 1, and the title bar names the port the arrows drive.
-- `sound` plays the SID, and F10 mutes and unmutes it. Sound is off
-  unless asked for, as in `exe/badline-ruby`.
-- `frames` quits after that many frames, and `unpaced` drops the 50 Hz
-  pacing, so the frame rate shows how much headroom there is (the display
-  refresh still caps it).
-- A screenshot path saves the last frame as the renderer drew it, read
-  back before it is presented.
 
 Every 50 frames it prints the frame rate, the time per frame spent on
 events, emulation, audio, the texture upload, presenting and waiting, and
@@ -97,7 +110,7 @@ for a screenshot:
 
 ```sh
 SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
-  tmp/native/badline 150 unpaced tmp/native/ready.bmp
+  tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
 ```
 
 There is no gamepad, mouse or paddle support yet.

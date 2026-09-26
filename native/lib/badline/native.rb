@@ -37,6 +37,7 @@ require "badline/media"
 
 require "badline/native/build_info"
 require "badline/native/version"
+require "badline/native/options"
 require "badline/native/sdl"
 require "badline/native/screen"
 require "badline/native/sound"

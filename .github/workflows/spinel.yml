@@ -78,7 +78,7 @@ jobs:
           SDL_AUDIODRIVER: dummy
         run: |
           tmp/native/badline --version
-          tmp/native/badline 150 unpaced sound tmp/native/ready.bmp
+          tmp/native/badline --frames 150 --unpaced --sound --screenshot tmp/native/ready.bmp
       - name: Upload the screenshot
         uses: actions/upload-artifact@v4
         with:
