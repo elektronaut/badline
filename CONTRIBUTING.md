@@ -40,8 +40,6 @@ is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 **Describe what changed, not what it might fix.** The diff shows how. Broad claims steer reviewers the same way hypotheses steer investigators.
 
-**List deployment requirements.** Migrations, environment variables, config changes, and ordering across services are easy to miss in a diff and costly to discover during a deploy.
-
 ### Security
 
 **Never report vulnerabilities publicly.** Report them privately as described in [SECURITY.md](SECURITY.md).
