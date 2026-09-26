@@ -76,7 +76,7 @@ Recorded output of the headless hardware suites, one file per suite:
   in place of the `sid-old` ones. The untagged programs, written for
   either chip, run on both. Same record format.
 
-Every suite still fails tests. The baselines record those failures as they
+Some suites still fail tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
 
     rake regression                     # run the nightly set, diff against these files
@@ -124,7 +124,7 @@ reach are recorded with a warning. `rake regression:lorenz` still runs only
 the whole chain; a range record already reports what it changed before it
 writes.
 
-The testbench runs forks over four shards by default — each test gets its
+The testbench forks over four shards by default — each test gets its
 own copy of the machine, so they are independent — and merges the per-test
 records back into testlist order. `SHARDS=8 rake regression:testbench` or
 `ruby --yjit bin/testbench --shards 8 ...` overrides it, capped by the core
@@ -180,7 +180,7 @@ what the suite cost before it was sharded:
 | `testbench-interrupts` | 13 | 4 min | 2 min | 1 min |
 | `testbench-irqdma` | 16 | 170 min | 129 min | 37 min |
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
-| `testbench-carts` | 63 | 11 min | 7 min | 2 min |
+| `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
 
 The `testbench-cia-new` row was measured on a four-core cloud container,
@@ -205,7 +205,7 @@ programs take about eleven and a half minutes here, four and a half of
 them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
 runs 88 programs, 48 of them the `wb_testsuite` writeback checks, and takes
 about 29 minutes here (23 of CPU, on a loaded machine), which keeps it out
-of the nightly set. The 23 programs it shares with the 6581 list add two
+of the nightly set. The 25 programs it shares with the 6581 list add two
 and a half of those minutes.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
