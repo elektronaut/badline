@@ -21,9 +21,11 @@ module Testbench
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs the test asks
-  # for.
-  def self.machine(cartridge, cia_model = :mos6526)
+  # for. georam is the size in kilobytes of a GEO-RAM plugged in before
+  # power-on, or nil for none.
+  def self.machine(cartridge, cia_model = :mos6526, georam = nil)
     computer = Badline::Computer.new(cia_model:)
+    computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: georam)) if georam
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
   end

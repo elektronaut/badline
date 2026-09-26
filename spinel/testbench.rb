@@ -50,16 +50,19 @@ module Testbench
   # The CIA model a test line names.
   def self.cia_model(name) = name == "mos6526a" ? :mos6526a : :mos6526
 
+  # The GEO-RAM size a test line names, in kilobytes, or nil for none.
+  def self.georam(fields) = fields.length > 7 && !fields[7].empty? ? fields[7].to_i : nil
+
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
-  # cartridge path, program, directory and CIA model, with an empty
-  # cartridge or program for a test without one. A String in and a String
+  # cartridge path, program, directory, CIA model and GEO-RAM size, with an
+  # empty cartridge, program or size for a test without one. A String in and a String
   # out, so that `spin ext` can export it to CRuby as it stands.
   def self.run_test(test)
     fields = test.chomp.split("\t")
     type = fields[1]
     cartridge = fields[3].empty? ? nil : fields[3]
-    computer = machine(cartridge, cia_model(fields[6]))
+    computer = machine(cartridge, cia_model(fields[6]), georam(fields))
     exit_code = Execution.new(computer).run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
     out = "test #{fields[0]}\n"

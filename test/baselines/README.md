@@ -49,6 +49,13 @@ Recorded output of the headless hardware suites, one file per suite:
   rows). Kept apart, each id keeps one key, one verdict and one machine
   per baseline, and a change to either chip's rules moves only its own
   suite. All `exitcode` tests.
+- `testbench-expansions.txt` — the same runner with `--expansions`, over
+  the rows that ask for a memory expansion badline emulates, from
+  whichever subtree lists them: the `geo512k` rows of `GEO-RAM` and
+  `memory-expansions`. Each boots with a 512K GEO-RAM plugged in, then
+  loads and runs its program like any other row. Rows that ask for an
+  REU, Isepic, DQBB, +60K, +256K or RamCart drop out. All `exitcode`
+  tests.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -182,9 +189,12 @@ what the suite cost before it was sharded:
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 | `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
+| `testbench-expansions` | 4 | 17 min | 11 min | 10 min |
 
-The `testbench-cia-new` row was measured on a four-core cloud container,
-not the laptop, and on CRuby with YJIT.
+The `testbench-cia-new` and `testbench-expansions` rows were measured on
+a four-core cloud container, not the laptop, and on CRuby with YJIT.
+`memory-expansions/c64-georam-emd.prg` is nearly all of
+`testbench-expansions`, which no sharding shortens.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as

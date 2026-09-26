@@ -122,6 +122,44 @@ class TestTestbenchCartridges < Minitest::Test
   end
 end
 
+class TestTestbenchExpansions < Minitest::Test
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), "\x01\x08".b)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(options, prg: "t.prg")
+    Testbench::Testlist.parse("#{@dir}/,#{prg},exitcode,100000,#{options}")
+  end
+
+  def test_keeps_a_geo512k_row_from_any_subtree
+    assert_equal 512, parse("geo512k").georam
+  end
+
+  def test_drops_a_missing_program
+    assert_nil parse("geo512k", prg: "missing.prg")
+  end
+
+  def test_drops_rows_for_expansions_badline_does_not_emulate
+    assert_nil parse("reu512k")
+  end
+
+  def test_a_plain_row_has_no_georam
+    assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").georam
+  end
+
+  def test_only_an_expansions_run_takes_a_georam_row
+    test = parse("geo512k")
+
+    refute_includes Testbench::Rows.plain, test
+    assert_includes Testbench::Rows.new(carts: false, cia_new: false, expansions: true), test
+  end
+end
+
 class TestTestbenchExpectations < Minitest::Test
   def test_case(*options)
     Testbench::TestCase.new("../CPU/cpujam", "t.prg", "exitcode", 1000, options)
@@ -482,6 +520,7 @@ class TestTestbenchEngine < Minitest::Test
     def prg = "#{key}.prg"
     def dir_abs = "/tests"
     def cia_model = :mos6526
+    def georam = nil
   end
 
   def setup
@@ -498,8 +537,14 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\t\n",
                  Testbench::Engine.spec(test)
+  end
+
+  def test_a_test_line_ends_with_the_georam_size
+    test = Testbench::TestCase.new("../GEO-RAM", "t.prg", "exitcode", 1000, ["geo512k"])
+
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\t512\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices

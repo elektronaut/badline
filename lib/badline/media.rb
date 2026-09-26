@@ -85,10 +85,11 @@ module Badline
 
       def start_prg(computer, data, autostart:)
         load_addr = computer.load_prg(data)
-        # Run only makes sense for programs at BASIC start.
-        return unless autostart && load_addr == BASIC_START
-
         end_addr = load_addr + data.length - 2
+        # Run only makes sense for programs that reach BASIC start. Some
+        # load a byte early, at $0800, with their BASIC line at $0801.
+        return unless autostart && load_addr <= BASIC_START && end_addr > BASIC_START
+
         computer.ram.write(0x2d, [end_addr & 0xff, end_addr >> 8])
         computer.type_text("run\r")
       end
