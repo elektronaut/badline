@@ -39,6 +39,13 @@ module Badline
       ffi_func :SDL_PauseAudioDevice, %i[uint32 int], :void
       ffi_func :SDL_QueueAudio, %i[uint32 int_array uint32], :int
       ffi_func :SDL_GetQueuedAudioSize, [:uint32], :uint32
+      ffi_func :SDL_NumJoysticks, [], :int
+      ffi_func :SDL_IsGameController, [:int], :int
+      ffi_func :SDL_GameControllerOpen, [:int], :ptr
+      ffi_func :SDL_GameControllerClose, [:ptr], :void
+      ffi_func :SDL_GameControllerName, [:ptr], :str
+      ffi_func :SDL_GameControllerGetButton, %i[ptr int], :uint8
+      ffi_func :SDL_GameControllerGetAxis, %i[ptr int], :int16
       ffi_func :SDL_ClearQueuedAudio, [:uint32], :void
 
       ffi_buffer :event, 56
@@ -69,6 +76,7 @@ module Badline
 
       ffi_const :INIT_AUDIO, 0x10
       ffi_const :INIT_VIDEO, 0x20
+      ffi_const :INIT_GAMECONTROLLER, 0x2000
       ffi_const :INIT_EVENTS, 0x4000
       ffi_const :WINDOWPOS_CENTERED, 0x2fff0000
       ffi_const :WINDOW_RESIZABLE, 0x20
@@ -79,6 +87,8 @@ module Badline
       ffi_const :QUIT, 0x100
       ffi_const :KEYDOWN, 0x300
       ffi_const :KEYUP, 0x301
+      ffi_const :CONTROLLERDEVICEADDED, 0x653
+      ffi_const :CONTROLLERDEVICEREMOVED, 0x654
       ffi_const :AUDIO_S16LSB, 0x8010
       ffi_const :ALLOW_FREQUENCY_CHANGE, 0x01
     end
