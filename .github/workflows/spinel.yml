@@ -43,6 +43,49 @@ jobs:
       - name: Print the Spinel version
         run: '"$SPINEL_DIR/bin/spinel" --version'
 
+  # Builds the native badline and runs it headless for a few frames.
+  native:
+    name: Native badline
+    needs: compiler
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+      - uses: ruby/setup-ruby@v1.324.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Locate Spinel
+        run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+      - name: Restore Spinel
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+          fail-on-cache-miss: true
+      - name: Build the native badline
+        run: SPINEL="$SPINEL_DIR/bin/spinel" bundle exec rake native:build
+      - name: Run it headless
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          tmp/native/badline --version
+          tmp/native/badline 150 unpaced sound tmp/native/ready.bmp
+      - name: Upload the screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-badline
+          path: tmp/native/ready.bmp
+          if-no-files-found: ignore
+
   suite:
     name: "Spinel (${{ matrix.suite }})"
     needs: compiler

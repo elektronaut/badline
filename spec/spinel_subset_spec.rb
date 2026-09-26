@@ -28,6 +28,16 @@ describe SpinelSubset do
     end
   end
 
+  describe "the native badline" do
+    let(:root) { File.expand_path("..", __dir__) }
+    let(:files) { Dir.glob(File.join(root, "native/{badline.rb,lib/**/*.rb}")) }
+
+    it "stays inside Spinel's subset" do
+      violations = described_class.scan(files, root:).map(&:to_s)
+      expect(violations).to be_empty, "Outside Spinel's subset:\n#{violations.join("\n")}"
+    end
+  end
+
   describe ".scan" do
     it "names the file, line and construct" do
       expect(scan("x = 1\nsend(name)\n")).to eq(["code.rb:2: send with a computed name"])
