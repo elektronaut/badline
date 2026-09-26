@@ -205,9 +205,13 @@ what the suite cost before it was sharded:
 | `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
 | `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
+| `testbench-reu` | 111 | 368 min | 47 min | 39 min |
 
-The `testbench-cia-new` and `testbench-vicii-new` rows were measured on a
-four-core cloud container, not the laptop, and on CRuby with YJIT.
+The `testbench-cia-new`, `testbench-vicii-new` and `testbench-reu` rows
+were measured on a four-core cloud container, not the laptop, and on CRuby
+with YJIT. Most of `testbench-reu`'s wall clock is one row:
+`REU/floatingbus/floating3b` never reports, and runs out its 1.5 billion
+cycles in about 37 minutes.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
