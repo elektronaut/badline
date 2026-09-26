@@ -80,7 +80,7 @@ Check style before pushing:
 bundle exec rubocop
 ```
 
-## Pull requests
+## Tests and commits
 
 - Add tests for any behavior you change.
 - Write commit messages using
