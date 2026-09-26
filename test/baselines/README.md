@@ -257,3 +257,37 @@ within its cycle budget, not one that reported a failure code. Ids that
 
 Re-record only after deciding the new output is correct, and say why in the
 commit message.
+
+## Rows that stay failing
+
+Four testbench rows fail against references or checks that don't hold for
+every 6569, or that depend on where the program starts. They stay
+recorded as `FAIL`, and a change that moves them is still a change to
+explain.
+
+- `VICII/videomode/videomode-v.prg`, `-w.prg` and `-x.prg` (6, 80 and
+  10 px). All three are marked `comment:unsafe reference` in the
+  testlist. Their readme says the split delays vary with the VIC and its
+  temperature, and that a 6569R5 capture of `-x` matches the 8565
+  reference instead of the 6569 one.
+  - 79 of `-w`'s 80 px are one stretch of raster line 121, painted
+    multicolour text. The 6569 reference paints it red and white, which
+    aren't in the program's multicolour registers (`$d022` = 7,
+    `$d023` = 5), and that PNG has no yellow or green anywhere. Its 8565
+    reference and the 6569 references of `-v`, `-x` and `-y` use yellow
+    and green. With those two colours put back on that line, `-w` differs
+    by 1 px.
+  - The pixels left over (6 in `-v`, 1 in `-w`, 10 in `-x`) are mode-split
+    edges. Moving them trades against rules pinned by safer references
+    (`modesplit`, `videomode-y`, `videomode-z`, `vicii_reg_timing`). See
+    [VIC graphics pipeline](../../doc/pinned-behaviour.md#vic-graphics-pipeline).
+- `interrupts/irq-ackn-bug/irq-ack-vicii.prg` (`testbench-interrupts`,
+  exit `$ff`). One of its 48 samples differs: the first one, `sta` on
+  the raster row, reads `-` where the reference says `*`. That sample
+  runs before the program's double-IRQ sync has settled. The testbench
+  starts the program with the raster latch pending since line `$45`,
+  and `cli` lands on line `$4a`. The second IRQ, set for line `$4b`,
+  then falls on a bad line, and the sample misses its raster IRQ. Every
+  later sample runs from a frame where the sync holds. Started 997 to
+  38,883 cycles later, in 997-cycle steps, the program passed 39 times
+  out of 39.
