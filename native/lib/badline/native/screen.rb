@@ -12,7 +12,6 @@ module Badline
       COL_OFFSET = 96
       ROW_OFFSET = 20
       ROW_BYTES = WIDTH * 4
-      ROW_WORDS = WIDTH / 2
 
       COLORS = [
         0x000000, 0xffffff, 0x924a40, 0x84c5cc,
@@ -27,7 +26,7 @@ module Badline
 
       def initialize(vic)
         @vic = vic
-        @pixels = Array.new(HEIGHT * ROW_WORDS, 0)
+        @pixels = IO::Buffer.new(HEIGHT * ROW_BYTES)
       end
 
       # Repacks only the lines the VIC has changed since the last frame.
@@ -47,12 +46,12 @@ module Badline
         display = @vic.display
         pixels = @pixels
         from = ((row + ROW_OFFSET) * @vic.width) + COL_OFFSET
-        to = row * ROW_WORDS
-        last = to + ROW_WORDS
+        to = row * ROW_BYTES
+        last = to + ROW_BYTES
         while to < last
-          pixels[to] = PAIRS[(display[from] & 0x0f) | ((display[from + 1] & 0x0f) << 4)]
+          pixels.set_value(:u64, to, PAIRS[(display[from] & 0x0f) | ((display[from + 1] & 0x0f) << 4)])
           from += 2
-          to += 1
+          to += 8
         end
       end
     end

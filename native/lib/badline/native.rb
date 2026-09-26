@@ -35,6 +35,9 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 
+# IO::Buffer, which Spinel splices in only for the main file.
+require "io/buffer"
+
 require "badline/native/build_info"
 require "badline/native/version"
 require "badline/native/options"
