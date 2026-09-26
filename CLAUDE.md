@@ -29,7 +29,8 @@ in the order `Computer#cycle!` clocks them. Changes there move the test
 suites below. `gui/` changes move none of them.
 
 Namespaced groups live in `lib/badline/<namespace>/`, with a sibling
-`lib/badline/<namespace>.rb` that requires the members. `lib/badline.rb`
+`lib/badline/<namespace>.rb` that requires the members, directly or through
+other members. `lib/badline.rb`
 requires only the namespace file.
 
 ### Oracles
@@ -119,11 +120,12 @@ worktree and owns a different set of files.
 
 - `rake vendor:checkout` fetches SingleStepTests and VICE-testprogs into
   `vendor/`
-- `bundle exec rspec`: line coverage is about 95%. `spec/spec_helper.rb`
+- `bundle exec rspec`: line coverage is about 97%. `spec/spec_helper.rb`
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
   by default: run them with `bundle exec rspec --tag slow`
-- `rake test`: SingleStepTests. Run it for any CPU change
+- `rake test`: SingleStepTests, plus the Minitest tests for the regression
+  runners in `test/`. Run it for any CPU change
 
 The headless suites are expensive. `bin/testbench` forks over 4 shards by
 default. `SHARDS=N rake regression:<suite>` or `bin/testbench --shards N`
