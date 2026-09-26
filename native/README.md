@@ -49,8 +49,9 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
   - `screen.rb` (`Screen`) repacks the VIC's display for the texture.
   - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue.
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
-    directions, and `controls.rb` (`Controls`) routes them to the
-    keyboard or the joysticks.
+    directions, and `controls.rb` (`Controls`) holds the input mode and
+    routes keys and the mouse to the keyboard, the joysticks or a pot
+    device.
   - `gamepads.rb` (`Gamepads`) opens and polls the game controllers, and
     `pad_port.rb` (`PadPort`) maps each one onto a joystick.
   - `options.rb` (`Options`) parses the command line.
@@ -103,10 +104,16 @@ changed into a streaming texture, presents it and waits.
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
   C64 keys `GUI::KeyMap` gives the same keys by name. Esc is RUN/STOP
   and Page Up is RESTORE.
-- Tab switches to joystick mode and back. As in the SDL front end's
-  joystick mode, the arrow keys and space drive joystick 2 and WASD and
-  left shift drive joystick 1. F9 swaps the two, for games that read
-  port 1, and the title bar names the port the arrows drive.
+- Tab steps through `exe/badline-ruby`'s input modes, and shift-Tab
+  steps back: keyboard, joystick, a 1351 mouse on port 1 or 2, and
+  paddles on port 1 or 2. The title bar names the mode.
+- In joystick mode, as in the SDL front end's, the arrow keys and space
+  drive joystick 2 and WASD and left shift drive joystick 1. F9 swaps the
+  two, for games that read port 1, and the title bar names the port the
+  arrows drive.
+- In the mouse and paddle modes the host mouse is held in relative mode.
+  Its motion moves the 1351 or turns the paddles, and its left and right
+  buttons go to the 1351's buttons or the two paddles' fire buttons.
 - Game controllers drive the joysticks as in `exe/badline-ruby`: the
   first one found drives joystick 2 and a second one joystick 1. The
   D-pad and the left stick steer, and every face and shoulder button
@@ -125,8 +132,6 @@ for a screenshot:
 SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
   tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
 ```
-
-There is no mouse or paddle support yet.
 
 ### Pacing
 
