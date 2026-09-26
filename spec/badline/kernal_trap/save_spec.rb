@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
+require_relative "../../support/blank_disk"
 
 describe Badline::KernalTrap::Save do
   let(:computer) { Badline::Computer.new }
@@ -272,6 +273,51 @@ describe Badline::KernalTrap::Save do
 
     specify { expect(saved_file("data.prg")).to be_nil }
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
+  end
+
+  describe "saving to a disk image" do
+    include BlankDisk
+
+    let(:backend) { Badline::Storage::D64Image.new(blank_d64(File.join(dir, "disk.d64"))) }
+
+    def disk = Badline::Storage::D64Image.new(File.join(dir, "disk.d64"))
+
+    it "writes the file to the image" do
+      request_save("DATA")
+      run_trap
+      expect(disk.read_file("data")).to eq([0x00, 0xc0, 0xaa, 0xbb])
+    end
+
+    it "leaves ST clear" do
+      request_save("DATA")
+      run_trap
+      expect(ram.peek(0x90)).to eq(0x00)
+    end
+
+    context "with the name already on the disk" do
+      before do
+        backend.write_file("DATA", [0x00, 0xc0])
+        ram.poke(0x90, 0x00)
+      end
+
+      it "reports DEVICE NOT PRESENT" do
+        request_save("DATA")
+        run_trap
+        expect(ram.peek(0x90)).to eq(0x80)
+      end
+
+      it "leaves the file as it was" do
+        request_save("DATA")
+        run_trap
+        expect(disk.read_file("data")).to eq([0x00, 0xc0])
+      end
+
+      it "writes over it with @" do
+        request_save("@0:DATA")
+        run_trap
+        expect(disk.read_file("data")).to eq([0x00, 0xc0, 0xaa, 0xbb])
+      end
+    end
   end
 
   describe "a read-only storage backend" do

@@ -130,15 +130,16 @@ module Badline
       @restore_pulse = true
     end
 
-    # A disk swap keeps the drive's RAM, which only a drive reset clears.
+    # Puts the storage in device 8. Mounting again swaps the disk at any
+    # point while the machine runs: the drive keeps its RAM, which only a
+    # drive reset clears, and its status.
     def mount(storage)
-      @drive_memory ||= KernalTrap::Drive::Memory.new
-      @drive = KernalTrap::Drive.new(storage, @drive_memory)
+      return @drive.insert(storage) if @drive
+
+      @drive = KernalTrap::Drive.new(storage)
       load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
       KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive).install
-      return unless storage.respond_to?(:write_file)
-
       save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end

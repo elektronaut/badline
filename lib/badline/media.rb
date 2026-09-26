@@ -33,6 +33,17 @@ module Badline
         end
       end
 
+      # Swaps the disk in device 8 for a disk image or a host directory,
+      # while the machine runs, without loading anything. The drive keeps
+      # its RAM and its status.
+      def insert_disk(computer, path)
+        storage = disk_storage(path)
+        raise ArgumentError, "#{path} is not a disk image or a directory" unless storage
+
+        computer.mount(storage)
+        "Inserted #{path} in device 8"
+      end
+
       # The SID a machine for `path` should be built with. A .sid tune names
       # its own; everything else gets the 6581.
       def sid_model(path)
@@ -42,6 +53,13 @@ module Badline
       end
 
       private
+
+      def disk_storage(path)
+        return Storage::HostDirectory.new(path) if File.directory?(path)
+
+        storage = MOUNT_TYPES[File.extname(path).downcase]
+        storage.new(path) if storage && storage < Storage::DiskImage
+      end
 
       def attach_cartridge(computer, path, options)
         computer.attach_cartridge(Cartridge.from_file(path, **options))

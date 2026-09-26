@@ -30,7 +30,8 @@ module Badline
         { error: NO_SYNC, track: 0, sector: 0, offset: 0 }
       end
 
-      def write_file(name, bytes)
+      # Writes a .prg of any file type, over the one of the same name.
+      def write_file(name, bytes, **)
         host_name = "#{name.downcase.tr('/', '_')}.prg"
         File.binwrite(File.join(@path, host_name), bytes.pack("C*"))
         true

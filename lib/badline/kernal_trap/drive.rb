@@ -5,24 +5,31 @@ require "badline/kernal_trap/drive/channels"
 require "badline/kernal_trap/drive/memory"
 require "badline/kernal_trap/drive/parameters"
 require "badline/kernal_trap/drive/status"
+require "badline/kernal_trap/drive/writes"
+require "badline/kernal_trap/drive/write_file"
 
 module Badline
   module KernalTrap
     # The CBM DOS side of the serial bus. Keeps the open channels, the
     # command channel and its status message. `U1` reads a raw block into a
     # buffer channel, which is how block-access loaders bypass the KERNAL's
-    # LOAD.
+    # LOAD. A disk image whose host file takes writes takes files, blocks
+    # and BAM changes too. Other disks are write-protected, though storage
+    # that can write files still takes a SAVE handed over whole.
     class Drive
       include BlockCommands
+      include Writes
 
       COMMAND_CHANNEL = 15
       BLOCK_SIZE = 256
 
       OK = 0
+      FILES_SCRATCHED = 1
       WRITE_PROTECT_ON = 26
       SYNTAX_ERROR = 30
       FILE_NOT_FOUND = 62
       FILE_EXISTS = 63
+      NO_BLOCK = 65
       ILLEGAL_TRACK_OR_SECTOR = 66
       NO_CHANNEL = 70
       DOS_VERSION = 73
@@ -50,21 +57,35 @@ module Badline
         /\AB-W\s*:?\s*(.*)/i => :counted_block_write,
         /\AI/i => :initialize_disk,
         /\AV/i => :initialized,
-        /\AB-[AF]/i => :write_protected
+        /\AB-A\s*:?\s*(.*)/i => :block_allocate,
+        /\AB-F\s*:?\s*(.*)/i => :block_free,
+        /\AS[^:]*:(.*)/im => :scratch
       }.freeze
 
+      # Commands that take their argument as text rather than numbers.
+      TEXT_COMMANDS = %i[scratch].freeze
+
       # A drive powers on reporting its DOS version, as a reset does. It
-      # takes the RAM of the drive it replaces when the disk changes, and
-      # initializes the new disk.
+      # can take the RAM of a drive it replaces, and initializes its disk.
       def initialize(storage, memory = Memory.new)
-        @storage = storage
         @channels = Channels.new
         @status = Status.new
         @memory = memory
-        memory.storage = storage
-        memory.read_bam
+        insert(storage)
         report(DOS_VERSION)
       end
+
+      # Changes the disk. The drive keeps its RAM and its status, closes
+      # its channels, and initializes the new disk.
+      def insert(storage)
+        @storage = storage
+        @channels.clear
+        @memory.storage = storage
+        @memory.read_bam
+      end
+
+      # Whether the disk takes a SAVE handed over whole.
+      def saves? = @storage.respond_to?(:write_file)
 
       # A name on the command channel is a command, "#" opens a block
       # buffer, anything else opens a file for reading. The name comes as
@@ -82,13 +103,19 @@ module Badline
         end
       end
 
-      # Closing the command channel closes every other channel with it.
+      # Closing the command channel closes every other channel with it,
+      # and a file open for writing is lost. Closing a file open for
+      # writing writes it to the disk.
       def close(secondary)
-        secondary == COMMAND_CHANNEL ? @channels.clear : @channels.close(secondary)
+        return @channels.clear if secondary == COMMAND_CHANNEL
+
+        channel = @channels.close(secondary)
+        writing { channel.store(@storage) } if channel.is_a?(WriteFile)
       end
 
-      # A buffer channel takes the bytes into its block. A file channel is
-      # open for reading, so writing to it fails as the disk is protected.
+      # A buffer channel takes the bytes into its block, and a file open for
+      # writing gathers them. A file open for reading fails as a
+      # write-protected disk does.
       def write(secondary, bytes)
         return command(bytes) if secondary == COMMAND_CHANNEL
 
@@ -99,12 +126,11 @@ module Badline
       end
 
       # A SAVE the trap hands over whole, to storage that can write files.
-      # A write the host refuses fails as a write-protected disk does.
-      # Returns whether the file was written.
-      def save(name, bytes)
-        saved = @storage.write_file(name, bytes)
-        saved ? report(OK) : report(WRITE_PROTECT_ON)
-        saved
+      # A disk image refuses a name it already has unless `replace` asks to
+      # write over it, and a write the host refuses fails as a
+      # write-protected disk does. Returns whether the file was written.
+      def save(name, bytes, replace: false)
+        writing { @storage.write_file(name, bytes, type: :prg, replace:) }
       end
 
       # Whether data sent on the channel reaches the drive. The command
@@ -139,12 +165,12 @@ module Badline
 
       # Secondary addresses 0 and 1 are LOAD and SAVE, which look for a PRG
       # file unless the name asks for another type. Other channels take any
-      # type the name doesn't pin down.
+      # type the name doesn't pin down, and write a SEQ file.
       def open_file(secondary, name)
         file, type = Storage.parse_name(name)
         type ||= :prg if secondary < 2
-        return refuse_write(secondary, name, file) if secondary == 1 || mode?(name, "W")
-        return refuse_append(secondary, file, type) if mode?(name, "A")
+        return open_write(secondary, name, file, type) if secondary == 1 || mode?(name, "W")
+        return open_append(secondary, file, type) if mode?(name, "A")
 
         channel = @channels.open_file(secondary, Channel.for_name(@storage, @memory, secondary, name, type))
         return report(NO_CHANNEL) unless channel
@@ -156,40 +182,14 @@ module Badline
         name.split(",").drop(1).any? { |field| field.strip[0]&.upcase == mode }
       end
 
-      # The disk is write-protected, so an open for writing fails and leaves
-      # the channel closed. A name already on the disk fails as FILE EXISTS
-      # unless @ asks to replace it, anything else as WRITE PROTECT ON.
-      def refuse_write(secondary, name, file)
-        @channels.close(secondary)
-        return report(FILE_EXISTS) if !name.start_with?("@") && @storage.read_file(file, type: nil)
-
-        report(WRITE_PROTECT_ON, *protected_block(secondary))
-      end
-
-      # An A mode open needs the file on the disk. It fails at the file's
-      # last block, the first one an append writes back.
-      def refuse_append(secondary, file, type)
-        @channels.close(secondary)
-        return report(FILE_NOT_FOUND) unless @storage.read_file(file, type:)
-
-        report(WRITE_PROTECT_ON, *(@storage.last_block(file, type:) if @storage.respond_to?(:last_block)))
-      end
-
-      # SAVE's channel fails at the directory block its entry would go to,
-      # a W mode open at the disk's header block.
-      def protected_block(secondary)
-        return [] unless @storage.respond_to?(:header_block)
-
-        secondary == 1 ? @storage.new_entry_block : @storage.header_block
-      end
-
       def execute(text)
         command = text.strip
         pattern, action = COMMANDS.find { |candidate, _| candidate.match?(command) }
         return report(SYNTAX_ERROR) unless action
 
         action = USER_TABLE[(command.getbyte(1) - 1) & 0x0f] if action == :user
-        run_command(action, Parameters.parse(pattern.match(command)[1]))
+        argument = pattern.match(command)[1]
+        run_command(action, TEXT_COMMANDS.include?(action) ? argument : Parameters.parse(argument))
       end
 
       def command(bytes)
@@ -206,7 +206,9 @@ module Badline
         when :buffer_pointer then buffer_pointer(arguments)
         when :initialized then report(OK)
         when :initialize_disk then initialize_disk
-        when :write_protected then write_protected(arguments)
+        when :block_allocate then block_allocate(arguments)
+        when :block_free then block_free(arguments)
+        when :scratch then scratch(arguments)
         when :cold_reset then reset(cold: true)
         when :warm_reset then reset(cold: false)
         when :memory_write then memory_write(arguments)
@@ -233,8 +235,6 @@ module Badline
       def word(arguments)
         arguments[0].to_i | (arguments[1].to_i << 8)
       end
-
-      def write_protected(_arguments) = report(WRITE_PROTECT_ON)
 
       def reset(cold:)
         @memory.clear if cold

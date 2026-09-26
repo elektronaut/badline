@@ -16,6 +16,21 @@ module Badline
   module Storage
     FILE_TYPES = { "S" => :seq, "P" => :prg, "U" => :usr }.freeze
 
+    # A write the disk refuses, with the DOS error it fails with.
+    class WriteError < StandardError
+      WRITE_PROTECT_ON = 26
+      FILE_NOT_FOUND = 62
+      FILE_EXISTS = 63
+      DISK_FULL = 72
+
+      attr_reader :code
+
+      def initialize(code)
+        @code = code
+        super("DOS error #{code}")
+      end
+    end
+
     class << self
       # Folds shifted PETSCII letters to their ASCII equivalents.
       def ascii(bytes)

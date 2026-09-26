@@ -13,6 +13,16 @@ module Badline
 
       def directory_track = 18
       def directory_sector = 1
+      def directory_interleave = 3
+      def interleave = 10
+      def reserved_tracks = [18]
+
+      # The BAM in the header block covers the 35 tracks of a standard
+      # disk. The layouts that extend it to 40 tracks differ between DOS
+      # versions, so the tracks past 35 stay unused.
+      def bam_tracks = 1..35
+      def bam_count(track) = [18, 0, 4 * track]
+      def bam_bitmap(track) = [18, 0, (4 * track) + 1]
 
       def sectors_in(track)
         case track
