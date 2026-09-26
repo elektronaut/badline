@@ -5,17 +5,20 @@ module Badline
     # A mid-line color register write becomes visible one pixel into the
     # column emitted the cycle after the write. That emit paints the whole
     # column with the new color, so the boundary pixel is patched back to
-    # the old one before the line is finished.
+    # the old one before the line is finished. On the 8565 the boundary
+    # pixel shows light grey instead, the grey dot, whatever the old and new
+    # colors are.
     class ColorPatches
-      def initialize(sequencer)
+      def initialize(sequencer, grey_dots: false)
         @sequencer = sequencer
+        @grey_dots = grey_dots
         @patches = []
       end
 
       def clear = @patches.clear
 
       def log(reg, old, value, boundary_x)
-        @patches << [boundary_x, reg, old & 0x0f, value & 0x0f]
+        @patches << [boundary_x, reg, @grey_dots ? GREY_DOT : old & 0x0f, value & 0x0f]
       end
 
       def apply(colors, fg_mask)

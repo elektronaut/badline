@@ -3,7 +3,9 @@
 require "spec_helper"
 
 RSpec.describe Badline::VIC::Sprite do
-  subject(:sprite) { described_class.new(0, registers, bank, 504) }
+  subject(:sprite) { described_class.new(0, registers, bank, bus) }
+
+  let(:bus) { Badline::VIC::Sprite::InternalBus.new(bank, 63) }
 
   let(:registers) { Badline::VIC::Registers.new }
   let(:bank) { Badline::VIC::Bank.new }
@@ -258,6 +260,30 @@ RSpec.describe Badline::VIC::Sprite do
       log.prepare
       sprite.sequence(log)
       expect(sprite.codes[21, 3]).to eq([0, 1, 1])
+    end
+
+    context "with an 8565" do
+      subject(:sprite) { described_class.new(0, registers, bank, bus, model: :mos8565) }
+
+      def switch_at(pixel, from, to)
+        registers.write(0x1c, from)
+        log.log(204 + pixel, 0x1c, from, to)
+        log.prepare
+        sprite.sequence(log)
+        sprite.codes[20, 4]
+      end
+
+      # Pinned by ss-hires-mc: the hi-res path leaves the flip-flop set, so
+      # the first multicolor pixel loads a pair, here the %10 of bits 21-22.
+      it "loads a pair on the first multicolor pixel" do
+        expect(switch_at(21, 0x00, 0x01)).to eq([0, 2, 2, 2])
+      end
+
+      # Pinned by ss-mc-hires: halfway through a pair the flip-flop is clear,
+      # so the first hi-res pixel sets it and holds the pair.
+      it "holds a pair over a hi-res pixel with the flip-flop clear" do
+        expect(switch_at(21, 0x01, 0x00)).to eq([1, 1, 0, 2])
+      end
     end
 
     # A sprite whose comparator has already fired keeps its position; one

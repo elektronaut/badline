@@ -42,6 +42,16 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "the VIC-II model" do
+    it "fits a 6569 unless given" do
+      expect(computer.vic.model).to eq(:mos6569)
+    end
+
+    it "fits the model given" do
+      expect(described_class.new(vic_model: :mos8565).vic.model).to eq(:mos8565)
+    end
+  end
+
   describe "light pen on control port 1" do
     before { 100.times { computer.cycle! } }
 

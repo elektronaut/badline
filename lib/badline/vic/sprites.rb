@@ -27,12 +27,17 @@ module Badline
         [0x25, 0x26, *0x27..0x2e].each { |reg| delays[reg] = COLOR_DELAY }
       end.freeze
 
-      def initialize(registers, bank, width)
+      # The 8565's sprite sequencers take a multicolor change a pixel
+      # sooner than the 6569's.
+      WRITE_DELAY_8565 = WRITE_DELAY.dup.tap { |delays| delays[0x1c] = SEQUENCER_DELAY - 1 }.freeze
+
+      def initialize(registers, bank, width, model: :mos6569)
         @registers = registers
+        @write_delay = model == :mos8565 ? WRITE_DELAY_8565 : WRITE_DELAY
         @bank = bank
         @width = width
         @bus = Sprite::InternalBus.new(bank, width / 8)
-        @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, width, @bus) }
+        @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, @bus, model:) }
         @collisions = Collisions.new(registers, width)
         @hits = @collisions.hits
         @win_color = Array.new(width, 0)
@@ -123,7 +128,7 @@ module Badline
       # Record a mid-line write at the pixel where it becomes visible.
       def log_change(reg, old, value, beam_x)
         clear_y_expansion(old & ~value, beam_x) if reg == 0x17
-        delay = WRITE_DELAY[reg]
+        delay = @write_delay[reg]
         return unless delay && active?
 
         @log.log(beam_x + delay, reg, old, value)

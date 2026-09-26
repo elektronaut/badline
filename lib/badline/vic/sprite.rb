@@ -56,12 +56,13 @@ module Badline
       attr_reader :index, :leftmost, :span, :codes,
                   :reload_leftmost, :reload_span, :reload_codes
 
-      def initialize(index, registers, bank, width, bus = InternalBus.new(bank, width / 8))
+      def initialize(index, registers, bank, bus, model: :mos6569)
         @index = index
+        @new_chip = model == :mos8565
         @registers = registers
         @bank = bank
         @bus = bus
-        @width = width
+        @width = bus.columns * 8
         @bit = 1 << index
         @dma = false
         @display_on = false
@@ -77,8 +78,8 @@ module Badline
         @reload_codes = Array.new(MAX_SPAN + RELOAD_HOLD, 0)
         @reload_leftmost = 0
         @reload_span = 0
-        @reload_x = (RELOAD_X + (RELOAD_STEP * index)) % width
-        @reload_next_line = RELOAD_X + (RELOAD_STEP * index) < width
+        @reload_x = (RELOAD_X + (RELOAD_STEP * index)) % @width
+        @reload_next_line = RELOAD_X + (RELOAD_STEP * index) < @width
         @sr = 0
         @latch = 0
         @mc_flop = false

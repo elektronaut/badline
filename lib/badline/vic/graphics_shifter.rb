@@ -16,16 +16,27 @@ module Badline
     # ECM+MCM mode is a pixel later on both counts: the lookup changes at
     # pixel 5 and the read at the next group's pixel 0. The mode bits are
     # the sequencer's: ECM 4, BMM 2, MCM 1.
+    #
+    # The 8565 has no colour latency: ECM and BMM take hold, rising or
+    # falling, at the next group's pixel 0, and an MCM that falls out of
+    # ECM+MCM does so on time. Where that pixel 0 takes the group out of an
+    # invalid mode into multicolour bitmap, a background pixel there is
+    # still black.
     class GraphicsShifter
+      ECM = 0b100
       ECM_BMM = 0b110
+      MULTICOLOR_BITMAP = 0b011
       ECM_MCM = 0b101
       BMM = 0b010
 
       # The group #draw painted, and which of its pixels are foreground.
       attr_reader :colors, :fg
 
-      def initialize(registers)
+      def initialize(registers, model: :mos6569)
         @registers = registers
+        @latency = model != :mos8565
+        @next_ecm_bmm = 0
+        @black_background = false
         @colors = Array.new(8, 0)
         @fg = Array.new(8, false)
         @gbuf = 0
@@ -43,6 +54,7 @@ module Badline
       # the byte loaded at pixel shift under an unchanging mode.
       def prime(data, screencode, color, shift, mode)
         @mode_lookup = mode
+        @next_ecm_bmm = mode & ECM_BMM
         @mode_read = mode & 1
         @late_read = false
         load(data, screencode, color)
@@ -56,32 +68,44 @@ module Badline
           step_mode(i, mode)
           load(data, screencode, color) if i == shift
           pixel = read_pixel
-          @colors[i] = lookup(pixel)
+          @colors[i] = @black_background && pixel < 2 ? 0 : lookup(pixel)
+          @black_background = false
           @fg[i] = pixel >= 2
           i += 1
         end
+        @next_ecm_bmm = mode & ECM_BMM
       end
 
       private
 
       def step_mode(pixel, mode)
         case pixel
-        when 0 then end_late_read
+        when 0 then start_group
         when 4 then step_lookup(mode)
         when 5 then step_early_fall(mode)
-        when 6 then @mode_lookup &= mode | 1
+        when 6 then @mode_lookup &= mode | 1 if @latency
         when 7 then step_read
         end
       end
 
+      def start_group
+        end_late_read
+        return if @latency
+
+        invalid = @mode_lookup > ECM
+        @mode_lookup = (@mode_lookup & ~ECM_BMM) | @next_ecm_bmm
+        @black_background = invalid && @mode_lookup == MULTICOLOR_BITMAP
+      end
+
       def step_lookup(mode)
-        @late_mcm = @mode_lookup.allbits?(ECM_MCM) && mode.nobits?(1)
-        @mode_lookup = (@mode_lookup & ~1) | (mode & 1) | (@late_mcm ? 1 : 0) | (mode & ECM_BMM)
+        @late_mcm = @latency && @mode_lookup.allbits?(ECM_MCM) && mode.nobits?(1)
+        rising = @latency ? mode & ECM_BMM : 0
+        @mode_lookup = (@mode_lookup & ~1) | (mode & 1) | (@late_mcm ? 1 : 0) | rising
       end
 
       def step_early_fall(mode)
         @mode_lookup &= ~1 if @late_mcm
-        @mode_lookup &= mode | ~BMM unless @mode_lookup == BMM
+        @mode_lookup &= mode | ~BMM if @latency && @mode_lookup != BMM
       end
 
       def step_read

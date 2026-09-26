@@ -71,8 +71,8 @@ module Badline
           while count < MAX_SPAN
             if pos >= boundary
               log.advance(pos)
-              mc = log[0x1c].anybits?(@bit)
               expanded = log[0x1d].anybits?(@bit)
+              mc = logged_multicolor(log, mc, expanded, count)
               boundary = log.next_x
             end
             count.zero? ? prime(mc) : step(mc, expanded, count == cut - 1)
@@ -88,9 +88,27 @@ module Badline
         # The X match loads the shift register and arms both flip-flops, so
         # the sprite's first pixel comes straight off the fetched row.
         def prime(multicolor)
-          @mc_flop = false
+          @mc_flop = @new_chip && !multicolor
           @xe_flop = false
           @latch = (@sr >> 22) & (multicolor ? 3 : 2)
+        end
+
+        # The multicolor bit as the log has it at the pixel. A change after
+        # the first pixel reaches the 8565's flip-flop.
+        def logged_multicolor(log, was, expanded, count)
+          multicolor = log[0x1c].anybits?(@bit)
+          switch_multicolor(multicolor, expanded) if @new_chip && multicolor != was && count.positive?
+          multicolor
+        end
+
+        # On the 8565 a multicolor change works on the flip-flop instead of
+        # the next pixels. It stays as it is unless the change lands between
+        # the two halves of an expanded pixel, where it flips, or is set by a
+        # switch to hi-res.
+        def switch_multicolor(multicolor, expanded)
+          return unless expanded && !@xe_flop
+
+          @mc_flop = multicolor ? !@mc_flop : true
         end
 
         # One pixel of the sequencer. An unexpanded sprite shifts every pixel;
@@ -106,7 +124,7 @@ module Badline
           else
             @xe_flop = false
           end
-          @mc_flop = false unless multicolor
+          @mc_flop = false unless multicolor || @new_chip
           return unless shift
 
           @sr = (@sr << 1) & 0xffffff
@@ -115,10 +133,14 @@ module Badline
 
         # A multicolor pair loaded on the last pixel before the reload keeps
         # only its high bit, as a hi-res pixel does (spritefetchbug).
+        # On the 8565 a hi-res pixel with the multicolor flip-flop clear
+        # sets it and loads nothing, so the latch repeats its last pixel.
         def load_latch(multicolor, last)
           if multicolor
             @latch = (@sr >> 22) & (last ? 2 : 3) if @mc_flop
             @mc_flop = !@mc_flop
+          elsif @new_chip && !@mc_flop
+            @mc_flop = true
           else
             @latch = (@sr >> 22) & 2
           end
