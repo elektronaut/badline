@@ -98,6 +98,10 @@ describe Badline::Storage::HostDirectory do
     it "ignores .t64 files without the signature" do
       expect(storage.read_file("zz-junk")).to be_nil
     end
+
+    it "returns nil when the directory is gone" do
+      expect(described_class.new(File.join(dir, "gone")).read_file("INTRO")).to be_nil
+    end
   end
 
   describe "#read_file with files the host can't read", :file_permissions do
@@ -121,10 +125,6 @@ describe Badline::Storage::HostDirectory do
     it "returns nil when the directory can't be listed" do
       File.chmod(0o000, dir)
       expect(storage.read_file("INTRO")).to be_nil
-    end
-
-    it "returns nil when the directory is gone" do
-      expect(described_class.new(File.join(dir, "gone")).read_file("INTRO")).to be_nil
     end
   end
 
