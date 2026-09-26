@@ -214,15 +214,11 @@ Before filing an issue or opening a pull request, read CONTRIBUTING.md and follo
 
 ## Git
 
-- **Don't stage, commit, push or open a PR** unless your task says so in
-  those words. Wanting a PR, a finished feature or green CI doesn't count
-  as permission. Finish the work, report what changed, and stop. A dirty
-  tree is the expected end state
 - Hunks are staged by hand during review, so a partially staged file is
   deliberate. Use `git diff HEAD` to see everything
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `chore:`, …).
   release-please derives version bumps and the changelog from the prefixes
 - No `Co-Authored-By` or `Claude-Session` trailers, even where `git log`
   shows them
-- When a task explicitly asks for a PR, the branch is already from
-  `origin/main` (see above). Open it with `gh pr create --base main`
+- Open pull requests against `main`, from a branch cut from `origin/main`
+  (see above): `gh pr create --base main`
