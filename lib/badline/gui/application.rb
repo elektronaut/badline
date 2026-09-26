@@ -29,9 +29,10 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      def initialize(media_path: nil, autostart: true, song: nil, sid_model: nil, sound: false)
-        @computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
-        puts Media.attach(@computer, media_path, autostart:, song:) if media_path
+      # machine takes autostart, song, sid_model and reu, the size in K of
+      # an REU to plug in, if any.
+      def initialize(media_path: nil, sound: false, **machine)
+        @computer = build_computer(media_path, **machine)
 
         @mode = :keyboard
         @pot_device = nil
@@ -66,6 +67,13 @@ module Badline
       end
 
       private
+
+      def build_computer(media_path, autostart: true, song: nil, sid_model: nil, reu: nil)
+        computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
+        computer.attach_reu(REU.new(reu)) if reu
+        puts Media.attach(computer, media_path, autostart:, song:) if media_path
+        computer
+      end
 
       def handle_events
         while (event = SDL.poll_event)

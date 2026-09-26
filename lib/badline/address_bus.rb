@@ -49,11 +49,11 @@ module Badline
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette
+                :control_ports, :cartridge, :reu, :ultimax, :phi1_ultimax, :datasette
 
     def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
-      @cartridge = nil
+      @cartridge = @reu = nil
       @debug_register = nil
 
       @basic_rom     = ROM.load("basic.rom",     0xa000)
@@ -92,6 +92,14 @@ module Badline
       @cartridge = cartridge
       cartridge.connect(ram: @ram, open_bus: @open_bus)
       cartridge.on_change { update_overlays! }
+      update_overlays!
+    end
+
+    # An REU takes I/O 2 unless a cartridge claims it, and watches writes
+    # to $FF00 for the one that starts an armed transfer.
+    def attach_reu(reu)
+      @reu = reu
+      reu.connect(bus: self, vic: @vic)
       update_overlays!
     end
 
@@ -166,6 +174,7 @@ module Badline
       @write_pages.fill(@ram)
 
       @ultimax ? map_ultimax_pages : map_banked_pages
+      @write_pages[0xff] = @reu.trigger.wrap(@write_pages[0xff]) if @reu
     end
 
     def map_banked_pages
@@ -239,6 +248,7 @@ module Badline
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
+      @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
       map_cartridge_io if @cartridge
     end
 

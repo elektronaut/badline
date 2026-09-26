@@ -42,6 +42,9 @@ module Badline
       @nmi_asserted = false
       @cartridge_nmi = false
       @restore_pulse = false
+      @reu = nil
+      @reu_irq = false
+      @dma = false
       @freezing = false
       @freeze_writes = 0
       @init_handlers = []
@@ -63,11 +66,11 @@ module Badline
       @sid.cycle!
       @datasette.cycle!
 
-      @cpu.irq = @cia1.interrupted? || @vic.interrupted?
+      @cpu.irq = @cia1.interrupted? || @vic.interrupted? || @reu_irq
 
       drive_nmi
       watch_freeze if @freezing
-      @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+      clock_cpu
 
       @cycles += 1
     end
@@ -84,6 +87,18 @@ module Badline
       address_bus.attach_cartridge(cartridge)
       power_cycle!
     end
+
+    # An REU in the expansion port, which drives the IRQ line and takes the
+    # bus for its transfers. Unlike a cartridge it goes in without a power
+    # cycle, so a booted machine can take one.
+    def attach_reu(reu)
+      @reu = reu
+      reu.on_irq_change { |level| @reu_irq = level }
+      reu.on_dma { @dma = true }
+      address_bus.attach_reu(reu)
+    end
+
+    def reu = address_bus.reu
 
     # A cartridge goes in with the power off, so attaching one switches the
     # machine off and on: the VIC and RAM start from their power-on state,
@@ -103,6 +118,8 @@ module Badline
       @cia2.reset!
       @sid.reset!
       address_bus.cartridge&.reset
+      @reu&.reset!
+      @dma = false
       @drive&.reset!
       @freezing = false
       @nmi_asserted = false
@@ -170,6 +187,23 @@ module Badline
       @restore_pulse = false
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
+    end
+
+    # BA halts the CPU on a read cycle, and so does an REU holding the bus
+    # for a transfer.
+    def clock_cpu
+      return dma_cycle! if @dma
+
+      @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+    end
+
+    def dma_cycle!
+      writing = @cpu.pending_write?
+      @reu.dma_cycle!(@vic.reu_ba_low?, writing)
+      return @cpu.stall! if @reu.holds_bus?
+
+      @dma = @reu.dma?
+      writing || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
     end
 
     # A freezer counts the CPU's write cycles once it pulls NMI and switches

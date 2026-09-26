@@ -63,6 +63,8 @@ REGRESSION_SUITES = {
 # the same id.
 # testbench-vicii-new is the testlist's vicii-new rows on a machine with an
 # 8565 VIC-II, kept apart from testbench for the same reason.
+# testbench-reu is the REU subtree, each row with an REU of the size its
+# options ask for.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -74,6 +76,7 @@ OPT_IN_SUITES = {
   "testbench-carts" => { runner: "bin/testbench", args: %w[--carts] },
   "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
   "testbench-vicii-new" => { runner: "bin/testbench", args: %w[--vicii-new] },
+  "testbench-reu" => { runner: "bin/testbench", scope: "REU/" },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 

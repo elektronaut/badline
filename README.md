@@ -54,8 +54,9 @@ Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
 from it. `--no-autostart` attaches the media and stops at `READY.`, so
 you can type the `LOAD` yourself. `--song N` picks a subtune of a
-`.sid` file, `--sid 8580` fits the newer SID, and `--disable-jit` runs
-without YJIT, which is otherwise switched on at startup.
+`.sid` file, `--sid 8580` fits the newer SID, `--reu 512` plugs in a
+512K RAM Expansion Unit, and `--disable-jit` runs without YJIT, which is
+otherwise switched on at startup.
 `badline-ruby --help` lists the options.
 
 The KERNAL, BASIC and character ROMs come with the gem. To run other
@@ -209,6 +210,11 @@ title shows `[MUTED]` while it's off.
   and the RC network on the board that removes the DC offset from the
   output. The machine has a 6581 unless a `.sid` tune asks for an 8580
   in its header, and `--sid 6581` or `--sid 8580` overrides either.
+- **REU**: the 1700, 1764 and 1750 RAM Expansion Units, and the bigger
+  units up to 16M built on the same REC chip, with DMA timed against the
+  VIC's bad lines and sprites. `--reu SIZE` plugs one in, and
+  `computer.attach_reu(Badline::REU.new(512))` does the same from Ruby. An
+  REU beside a cartridge loses I/O 2 to the cartridge.
 - **Datasette**: `.tap` playback into CIA 1's FLAG line, with the motor
   and sense lines on the 6510 port.
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
@@ -237,7 +243,7 @@ Known gaps:
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.
-- No NTSC machine and no REU.
+- No NTSC machine.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
 

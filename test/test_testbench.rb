@@ -25,7 +25,7 @@ class TestTestbenchTestlist < Minitest::Test
   end
 
   def test_drops_subtrees_for_unmodelled_hardware
-    assert_nil parse("../REU/mirrors/,t.prg,exitcode,1000")
+    assert_nil parse("../GEO-RAM/x/,t.prg,exitcode,1000")
     assert_nil parse("../drive/rpm/,t.prg,exitcode,1000")
   end
 
@@ -83,6 +83,23 @@ class TestTestbenchTestlist < Minitest::Test
 
       assert_equal File.join(dir, "references", "t.prg.png"), test.reference
     end
+  end
+
+  def test_keeps_the_reu_subtree
+    refute_nil parse("../REU/mirrors/,t.prg,exitcode,1000,reu512k")
+  end
+
+  def test_reads_the_reu_size_a_row_asks_for
+    assert_equal 128, parse("../REU/mirrors/,t.prg,exitcode,1000,reu128k").reu_kb
+    assert_equal 16_384, parse("../REU/mirrors/,t.prg,exitcode,1000,reu16m").reu_kb
+  end
+
+  def test_a_row_without_an_reu_gets_none
+    assert_equal 0, parse("../CIA/tod/,t.prg,exitcode,1000").reu_kb
+  end
+
+  def test_drops_rows_that_want_an_reu_beside_a_cartridge
+    assert_nil parse("../C64/carts/,,exitcode,100000,reu512k,mountcrt:rr-reu.crt")
   end
 
   def test_ignores_comments_and_blank_lines
@@ -515,6 +532,7 @@ class TestTestbenchEngine < Minitest::Test
     def dir_abs = "/tests"
     def cia_model = :mos6526
     def vic_model = :mos6569
+    def reu_kb = 0
   end
 
   def setup
@@ -531,7 +549,7 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\t0\n",
                  Testbench::Engine.spec(test)
   end
 

@@ -30,7 +30,8 @@ Recorded output of the headless hardware suites, one file per suite:
   keyed `prg+crt`: it boots from power-on with the cartridge in, then loads
   and runs the program like any other row, with the same boot allowance.
   A row is listed only when badline has a mapper for the cartridge's
-  hardware type. Rows that need an REU drop out too. `C64/carts/rr-freeze`
+  hardware type. Rows that want an REU beside the cartridge drop out too,
+  since badline gives I/O 2 to the cartridge. `C64/carts/rr-freeze`
   is an analyzer that waits for someone to press the freeze button, so it
   isn't runnable either. Its
   screenshot rows compare like the others, except that `expect:error`
@@ -58,6 +59,18 @@ Recorded output of the headless hardware suites, one file per suite:
   `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
   again under `vicii-old`, with the same id. Its FAIL rows are the ones
   [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
+- `testbench-reu.txt` — the same runner over the testlist's `REU/`
+  subtree. Each row runs with an REU of the size its options ask for
+  (`reu128k` to `reu16m`), attached in the child before the program
+  loads. A program that loads at `$0800`, a byte ahead of BASIC's first
+  line, is RUN like one at `$0801`. Some rows can't pass as the harness
+  stands: the `reutiming2` swap rows marked FIXME in its readme have no
+  reference screenshot (`no-ref`), and the screenshot rows that write
+  `$D7FF` on line 0 of a frame are captured up to 10,000 cycles later,
+  when `Testbench::BATCH` next checks for it, after the next frame has
+  started to draw. Where `reutiming2` has a reference taken on a breadbin
+  (`-m2`) and one taken on a later board, the breadbin's is the one
+  badline follows.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner

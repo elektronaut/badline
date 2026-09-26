@@ -314,6 +314,22 @@ describe Badline::Media do
       end
     end
 
+    context "with a BASIC PRG file that loads the zero byte ahead of it" do
+      let(:prg_path) do
+        File.join(dir, "basic.prg").tap do |path|
+          File.binwrite(path, [0x00, 0x08, 0x00, 0x99, 0x00].pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "types RUN after loading" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer).to have_received(:type_text).with("run\r")
+      end
+    end
+
     context "with a P00 file" do
       let(:p00_path) do
         File.join(dir, "game.p00").tap do |path|

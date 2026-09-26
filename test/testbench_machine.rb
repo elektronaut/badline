@@ -58,15 +58,16 @@ module Testbench
   end
 
   # Runs one test on a machine from Testbench.machine: attaches the
-  # cartridge, if any, and the program, if any, from the test's directory
-  # mounted as device 8, then runs until the test writes $D7FF or the
+  # cartridge, if any, an REU of reu_kb K, unless that is 0, and the
+  # program, if any, from the test's directory mounted as device 8, then runs until the test writes $D7FF or the
   # budget runs out. Only a screenshot test reads the display, so the
   # others run with the VIC's colours unpainted.
   class Execution
     attr_reader :exit_code
 
-    def initialize(computer)
+    def initialize(computer, reu_kb = 0)
       @computer = computer
+      @reu_kb = reu_kb
       @exit_code = nil
       computer.install_debug_register { |value| @exit_code = value }
     end
@@ -74,6 +75,7 @@ module Testbench
     def run(render, cartridge, directory, prg, budget)
       @computer.vic.render = render
       Badline::Media.attach(@computer, cartridge) if cartridge
+      @computer.attach_reu(Badline::REU.new(@reu_kb)) if @reu_kb.positive?
       unless prg.empty?
         @computer.mount(Badline::Storage::HostDirectory.new(directory))
         Badline::Media.attach(@computer, File.join(directory, prg))

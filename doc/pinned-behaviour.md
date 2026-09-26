@@ -29,6 +29,7 @@ only catches the rows that happen to move.
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
+- [REU DMA](#reu-dma)
 - [SID oscillator](#sid-oscillator)
 - [SID register writes](#sid-register-writes)
 - [SID data bus](#sid-data-bus)
@@ -1028,6 +1029,33 @@ and each was knocked out: removing it fails the rows named.
     before the KERNAL does.
   - Spec guard: *when powered on* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+
+## REU DMA
+
+The REC's timing against the VIC follows VICE's x64sc for the first three
+rules. The swap rule goes beyond it.
+
+- A requested transfer takes the bus on the CPU's next read cycle with BA
+  high, and moves its first byte there. Starting a cycle later moves every
+  `REU/xfertiming` row and `REU/reutiming/reutiming`.
+- After reading C64 memory the REC waits out every BA-low cycle. After
+  writing it goes on through the first BA-low cycle and waits from the
+  second, and a transfer whose last write it waited out takes one more
+  cycle before handing the bus back (`REU::DMA#follow_access`,
+  `#finish_cycle`). Pinned by `REU/bonzai/spritetiming`, whose 45 bytes
+  a line with eight sprites on is 63 less the 18 cycles this leaves.
+- On the line whose raster matches sprite 0's Y, the REU doesn't see BA
+  fall on the first cycle of sprite 0's window (`VIC#reu_ba_low?`). This is
+  x64sc's `vicii_cycle_reu` exception. Without it `REU/bonzai/spritetiming`
+  reads `$5a,$87` where a real REU gives `$5b,$88`.
+- A swap's read that falls on the first BA-low cycle, after its write, is
+  held open while AEC stays high and takes the byte on the bus two cycles
+  later. If it is the transfer's last byte it is read there instead, its
+  write follows on the next cycle, and the REC hands the bus back
+  (`REU::DMA#swap_read_on_ba`). Pinned by `REU/reutiming2/e5-m2`, `f3-m2`
+  and `f4-m2`, whose patterns were captured on a breadbin. The
+  `reutiming2` references without `-m2` read `$42` or a timer value there
+  instead, and still fail.
 
 ## SID oscillator
 

@@ -198,8 +198,12 @@ each shard's tests to `<results>.engine-N` and starts one build process
 per shard, which reads them one per line, as tab-separated fields:
 
 ```
-KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC    CARTRIDGE or PROGRAM empty if the test has none
+KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION REU    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
 ```
+
+EXPANSION is reserved for the memory expansions other than the REU and
+stays empty for now. REU is the size in K of the REU the test plugs in,
+or 0 for none.
 
 The compiled binary only emulates. For each test it builds a fresh
 machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`), booted to the cycle where a program loads unless the test starts

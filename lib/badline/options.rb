@@ -43,7 +43,7 @@ module Badline
 
     BANNER
 
-    attr_reader :media_path, :audio_out, :song, :seconds, :songlengths, :sid_model, :filter_chunk
+    attr_reader :media_path, :audio_out, :song, :seconds, :songlengths, :sid_model, :filter_chunk, :reu
 
     alias tune_path media_path
 
@@ -155,6 +155,10 @@ module Badline
       end
       opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") do
         window_only("--sound") { @sound = true }
+      end
+      opts.on("--reu SIZE", %w[128 256 512 1024 2048 4096 8192 16384],
+              "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384") do |size|
+        window_only("--reu") { @reu = size.to_i }
       end
     end
 
