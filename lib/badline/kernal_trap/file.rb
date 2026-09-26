@@ -3,8 +3,6 @@
 module Badline
   module KernalTrap
     class File < Routine
-      MISSING_FILENAME = 0x08
-
       private
 
       def active?
@@ -18,11 +16,6 @@ module Badline
           @bus.peek((pointer + i) & 0xffff)
         end
         Storage.strip_drive_prefix(Storage.ascii(bytes))
-      end
-
-      def error(code)
-        @cpu.a = code
-        @cpu.status.carry = true
       end
     end
   end
