@@ -390,7 +390,7 @@ namespace :regression do
   task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 
-desc "Run every headless suite against its tracked baseline"
+desc "Run every suite in the nightly set against its tracked baseline"
 task regression: REGRESSION_SUITES.keys.map { |suite| "regression:#{suite}" }
 
 namespace :spinel do
