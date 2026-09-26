@@ -234,9 +234,9 @@ Known gaps:
 
 ## Contributing
 
-Bug reports and pull requests are welcome on
-[GitHub](https://github.com/elektronaut/badline).
-[CONTRIBUTING.md](CONTRIBUTING.md) covers running the tests and the
+Bug reports, feature requests, and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Report security vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+[CONTRIBUTING.md](CONTRIBUTING.md) also covers running the tests and the
 commit format, and the project has a
 [code of conduct](CODE_OF_CONDUCT.md).
 
