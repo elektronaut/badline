@@ -100,7 +100,7 @@ describe Badline::Storage::HostDirectory do
     end
   end
 
-  describe "#read_file with files the host can't read" do
+  describe "#read_file with files the host can't read", :file_permissions do
     after { File.chmod(0o755, dir) }
 
     it "returns no bytes for an unreadable .prg" do
@@ -129,7 +129,7 @@ describe Badline::Storage::HostDirectory do
   end
 
   describe "#read_error" do
-    it "reports an unreadable .prg as a READ ERROR before its first byte" do
+    it "reports an unreadable .prg as a READ ERROR before its first byte", :file_permissions do
       File.chmod(0o000, File.join(dir, "intro.prg"))
       expect(storage.read_error("INTRO")).to eq({ error: 21, track: 0, sector: 0, offset: 0 })
     end
@@ -174,7 +174,7 @@ describe Badline::Storage::HostDirectory do
   end
 
   describe "#write_file when the host can't write" do
-    it "reports a failure for a read-only directory" do
+    it "reports a failure for a read-only directory", :file_permissions do
       File.chmod(0o555, dir)
       expect(storage.write_file("NEW GAME", [0x01])).to be(false)
     ensure

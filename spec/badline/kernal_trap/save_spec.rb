@@ -76,7 +76,7 @@ describe Badline::KernalTrap::Save do
     specify { expect(ram.read(0xac, 2)).to eq([0x02, 0xc0]) }
   end
 
-  describe "a save the host can't write" do
+  describe "a save the host can't write", :file_permissions do
     before do
       File.chmod(0o555, dir)
       request_save("DATA")
