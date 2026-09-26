@@ -54,12 +54,35 @@ class TestTestbenchTestlist < Minitest::Test
     assert_equal :mos6526, parse("../CIA/tod/,t.prg,exitcode,1000").cia_model
   end
 
-  def test_drops_rows_for_the_newer_vicii
-    assert_nil parse("../VICII/lp-trigger/,t.prg,exitcode,1000,vicii-pal,vicii-new")
+  def test_runs_the_vicii_new_half_of_a_doubled_row_on_the_new_chip
+    assert_equal :mos8565, parse("../VICII/lp-trigger/,t.prg,exitcode,1000,vicii-pal,vicii-new").vic_model
   end
 
-  def test_keeps_the_vicii_old_half_of_a_doubled_row
-    refute_nil parse("../VICII/videomode/,t.prg,screenshot,1000,vicii-pal,vicii-old")
+  def test_runs_the_vicii_old_half_of_a_doubled_row_on_the_old_chip
+    assert_equal :mos6569, parse("../VICII/videomode/,t.prg,screenshot,1000,vicii-pal,vicii-old").vic_model
+  end
+
+  def test_runs_an_untagged_row_on_the_old_vicii
+    assert_equal :mos6569, parse("../VICII/border/,t.prg,exitcode,1000").vic_model
+  end
+
+  def test_compares_an_8565_row_against_the_8565_reference
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "references"))
+      %w[t.prg.png t.prg-8565.png].each { |name| FileUtils.touch(File.join(dir, "references", name)) }
+      new, old = %w[vicii-new vicii-old].map { |option| Testbench::TestCase.new(dir, "t.prg", "screenshot", 1000, [option]) }
+
+      assert_equal File.join(dir, "references", "t.prg-8565.png"), new.reference
+      assert_equal File.join(dir, "references", "t.prg.png"), old.reference
+    end
+  end
+
+  def test_falls_back_to_the_generic_reference_without_an_8565_one
+    Dir.mktmpdir do |dir|
+      test = Testbench::TestCase.new(dir, "t.prg", "screenshot", 1000, ["vicii-new"])
+
+      assert_equal File.join(dir, "references", "t.prg.png"), test.reference
+    end
   end
 
   def test_ignores_comments_and_blank_lines
@@ -435,6 +458,15 @@ class TestTestbenchProgress < Minitest::Test
     assert_equal ["VICII/x/t0.prg", "VICII/x/t0.prg#2"], tests.map(&:key)
   end
 
+  def test_each_vicii_counts_its_own_occurrences
+    old, new = %w[vicii-old vicii-new].map do |option|
+      Testbench::TestCase.new("../VICII/x", "t.prg", "screenshot", 1000, [option])
+    end
+    tests = Testbench::Testlist.numbered([new, old])
+
+    assert_equal ["VICII/x/t.prg", "VICII/x/t.prg"], tests.map(&:key)
+  end
+
   def test_each_cia_counts_its_own_occurrences
     old, new = %w[cia-old cia-new].map do |option|
       Testbench::TestCase.new("../CIA/x", "t.prg", "exitcode", 1000, [option])
@@ -482,6 +514,7 @@ class TestTestbenchEngine < Minitest::Test
     def prg = "#{key}.prg"
     def dir_abs = "/tests"
     def cia_model = :mos6526
+    def vic_model = :mos6569
   end
 
   def setup
@@ -498,7 +531,7 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\n",
                  Testbench::Engine.spec(test)
   end
 

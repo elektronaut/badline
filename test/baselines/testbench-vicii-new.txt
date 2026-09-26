@@ -1,0 +1,32 @@
+VICII/lp-trigger/test2new.prg	PASS
+VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=154px exit=$00
+VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=92px exit=$00
+VICII/vicii_timing/vicii_reg_timing.prg	PASS
+VICII/vicii_timing/vicii_reg_timing-a5.prg	FAIL	diff=7px exit=$00
+VICII/vicii_timing/vicii_reg_timing-ff.prg	FAIL	diff=14px exit=$00
+VICII/videomode/rmwtest.prg	PASS
+VICII/videomode/videomode1.prg	PASS
+VICII/videomode/videomode2.prg	PASS
+VICII/videomode/videomode-v.prg	PASS
+VICII/videomode/videomode-w.prg	PASS
+VICII/videomode/videomode-x.prg	PASS
+VICII/videomode/videomode-y.prg	PASS
+VICII/videomode/videomode-z.prg	PASS
+VICII/spritefetchbug/test-136-2a.prg	PASS
+VICII/spritesplit/ss-exp-unexp-hires.prg	PASS
+VICII/spritesplit/ss-exp-unexp-mc.prg	PASS
+VICII/spritesplit/ss-hires-color.prg	PASS
+VICII/spritesplit/ss-hires-mc-exp.prg	PASS
+VICII/spritesplit/ss-hires-mc.prg	PASS
+VICII/spritesplit/ss-mc-color0.prg	PASS
+VICII/spritesplit/ss-mc-color1.prg	PASS
+VICII/spritesplit/ss-mc-color2.prg	PASS
+VICII/spritesplit/ss-mc-hires-exp.prg	PASS
+VICII/spritesplit/ss-mc-hires.prg	PASS
+VICII/spritesplit/ss-pri-exp.prg	PASS
+VICII/spritesplit/ss-pri-mc-exp.prg	PASS
+VICII/spritesplit/ss-pri-mc.prg	PASS
+VICII/spritesplit/ss-pri.prg	PASS
+VICII/spritesplit/ss-unexp-exp-hires.prg	PASS
+VICII/spritesplit/ss-unexp-exp-mc.prg	PASS
+VICII/spritesplit/ss-xpos.prg	PASS

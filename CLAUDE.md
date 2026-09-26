@@ -175,7 +175,9 @@ the rows your change can't reach tell you nothing about it.
   every suite loads through. Ask before running a full suite for it, and
   don't start one on your own judgement
 
-Pick the filters from the suites your change can move: VIC → `testbench`;
+Pick the filters from the suites your change can move: VIC → `testbench`,
+plus `testbench-vicii-new` (`bin/testbench --vicii-new`, the 8565) for
+anything the VIC model reaches;
 CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
