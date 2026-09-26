@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/elektronaut/badline/compare/v0.3.0...v0.4.0) (2026-09-26)
+
+
+### Features
+
+* model the 6526A CIA ([18a2012](https://github.com/elektronaut/badline/commit/18a201253c4612bb2ae821e544c9e6f3a6e1fb8c))
+* run the Lorenz chain on a Spinel build ([55d1b56](https://github.com/elektronaut/badline/commit/55d1b564ee06be8b6f58d03fa1895e3986be7d81))
+* run the Lorenz chain on a Spinel build with rake spinel:lorenz ([955d722](https://github.com/elektronaut/badline/commit/955d722a06865f6a704f14570d7b246963317551))
+* run the SID testprogs on a Spinel build with rake spinel:sidtests ([4047866](https://github.com/elektronaut/badline/commit/40478665f18ba1d9b23ce4a0a08eb54e3006a2f1))
+* run the SID testprogs on a Spinel build with rake spinel:sidtests ([ecff9ba](https://github.com/elektronaut/badline/commit/ecff9bafa8b3621454e540d92707c0c139c7f7fd))
+* run the testbench suites on a Spinel build ([e40ba78](https://github.com/elektronaut/badline/commit/e40ba78fa92e72aa128228f52c917fb8347c53bf))
+* run the testbench suites on a Spinel build with rake spinel:testbench ([083911a](https://github.com/elektronaut/badline/commit/083911af7194c56992f529f67c4bf101a44fb450))
+
 ## [0.3.0](https://github.com/elektronaut/badline/compare/v0.2.1...v0.3.0) (2026-09-24)
 
 Sound is the headline: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default, because the emulator still runs below real time on CRuby and the sound stutters there. This release also brings the virtual drive closer to a real 1541 (buffer channels in drive RAM, DOS command parsing, the BAM in buffer 4, `LOAD"*"`), cartridge banking fixes, and `Badline::Checkpoint` with `bin/machine_diff` for checking that a change leaves emulation alone.
