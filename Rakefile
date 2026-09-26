@@ -265,6 +265,25 @@ def spinel_lorenz_ranges(recorded, whole)
   end
 end
 
+# The Lorenz chain on the Spinel build, run by the binary or, with ext, by
+# CRuby calling Lorenz.run_chain in an extension.
+def spinel_lorenz(whole, ext:)
+  spinel = ENV.fetch("SPINEL", "spinel")
+  cc = ENV.fetch("SPINEL_CC", nil)
+  if ext
+    SpinelExt.build(spinel, "lorenz", "lorenz_kernel", %w[Lorenz.run_chain], cc:)
+  else
+    SpinelCheck.build(spinel, cc:, harnesses: %w[lorenz])
+  end
+  recorded = read_recorded("lorenz")
+  ranges = spinel_lorenz_ranges(recorded, whole)
+  results = SpinelCheck.run_lorenz(ranges.transform_values { |range| chain_args(range) }, ext:)
+  problems = ranges.filter_map do |name, range|
+    stretch_problem("spinel-#{name}", range, recorded, results.fetch(name))
+  end
+  raise problems.join("\n") if problems.any?
+end
+
 # regression:<suite>-<n> for each stretch of a suite with :cuts.
 def define_stretch_tasks
   ALL_SUITES.select { |_, config| config[:cuts] }.each do |suite, config|
@@ -410,16 +429,9 @@ namespace :spinel do
   end
 
   desc "Run the Lorenz chain on the Spinel build, its stretches side by side (or [whole] in one run), " \
-       "and compare it against #{BASELINE_DIR}/lorenz.txt"
+       "and compare it against #{BASELINE_DIR}/lorenz.txt (EXT=1: as a CRuby extension)"
   task :lorenz, [:whole] => "vendor:VICE-testprogs" do |_task, args|
-    SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[lorenz])
-    recorded = read_recorded("lorenz")
-    ranges = spinel_lorenz_ranges(recorded, args[:whole] == "whole")
-    results = SpinelCheck.run_lorenz(ranges.transform_values { |range| chain_args(range) })
-    problems = ranges.filter_map do |name, range|
-      stretch_problem("spinel-#{name}", range, recorded, results.fetch(name))
-    end
-    raise problems.join("\n") if problems.any?
+    spinel_lorenz(args[:whole] == "whole", ext: ENV["EXT"] == "1")
   end
 end
 

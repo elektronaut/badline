@@ -4,6 +4,7 @@ require "fileutils"
 require "open3"
 require "rbconfig"
 require_relative "../test/lorenz_run"
+require_relative "ext"
 
 # Builds the Spinel harnesses and checks each compiled binary against the
 # same harness on CRuby. Backs the spinel:build, spinel:check and
@@ -47,16 +48,39 @@ module SpinelCheck
   # all side by side, and returns the path of each run's rows in the
   # baseline format. TERM or INT is passed on to every run, and the task
   # fails once they have all stopped.
-  def run_lorenz(runs, image: Lorenz::DEFAULT_IMAGE)
+  # With ext, each run is a CRuby process forked from this one that calls
+  # Lorenz.run_chain in the extension SpinelExt.build compiled, instead of the
+  # binary.
+  def run_lorenz(runs, image: Lorenz::DEFAULT_IMAGE, ext: false)
     pids = runs.to_h do |name, args|
-      command = [binary("lorenz"), image, *args]
-      puts command.join(" ")
-      [Process.spawn(*command, out: "#{OUT}/#{name}.out"), name]
+      out = "#{OUT}/#{name}.out"
+      if ext
+        puts "Lorenz.run_chain(#{image}, #{args.join(' ')}) in #{SpinelExt.path('lorenz')}"
+        [fork_lorenz(image, args, out), name]
+      else
+        command = [binary("lorenz"), image, *args]
+        puts command.join(" ")
+        [Process.spawn(*command, out:), name]
+      end
     end
     failed = wait_all(pids)
     raise "#{failed.join(', ')} failed." if failed.any?
 
     runs.keys.to_h { |name| [name, lorenz_results(name)] }
+  end
+
+  # The extension runs the chain without the GVL, where no Ruby signal
+  # handler gets to run, so the child takes TERM and INT as the binary
+  # would.
+  def fork_lorenz(image, args, out)
+    Process.fork do
+      %w[TERM INT].each { |signal| trap(signal, "SYSTEM_DEFAULT") }
+      require File.expand_path(SpinelExt.path("lorenz"))
+      options = args.each_slice(2).to_h
+      File.binwrite(out, Lorenz.run_chain(image, options.fetch("--resume", ""), options.fetch("--stop-after", ""),
+                                          10_000_000_000))
+      exit!(0)
+    end
   end
 
   # Waits for every run, returning the names of those that failed.

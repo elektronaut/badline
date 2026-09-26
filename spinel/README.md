@@ -17,7 +17,8 @@ CRuby.
   on CRuby only.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
   `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
-  for CRuby to turn into baseline rows. See
+  for CRuby to turn into baseline rows. Its kernel, `Lorenz.run_chain`,
+  lives in `lorenz_kernel.rb`, which also builds as a CRuby extension. See
   [The Lorenz chain](#the-lorenz-chain) below.
 - `sidtests.rb` runs a list of SID testprogs with the same code as
   `bin/sidtests` (`test/sidtests_machine.rb`) and prints a baseline row per
@@ -29,7 +30,7 @@ CRuby.
 - `window.rb` opens an SDL2 window and plays the machine in it. It builds
   with Spinel only; see [A window](#a-window) below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
-- `check.rb` and `sidtests_check.rb` back the rake tasks below.
+- `check.rb`, `ext.rb` and `sidtests_check.rb` back the rake tasks below.
 
 ## Building
 
@@ -113,8 +114,9 @@ transcript LENGTH
 
 `Lorenz::Run` in `test/lorenz_run.rb` turns that into rows on CRuby, where
 the digests and the regexps are, and writes them beside the output as
-`lorenz-N.txt`. `Lorenz.run_chain` does the work between the arguments and
-that text, so it can be compiled as an extension later.
+`lorenz-N.txt`. `Lorenz.run_chain` in `lorenz_kernel.rb` does the work
+between the arguments and that text, and `lorenz.rb` only reads the
+arguments and prints it.
 
 To run a stretch by hand:
 
@@ -122,6 +124,33 @@ To run a stretch by hand:
 spinel -I lib --no-line-map --rbs spinel/sig spinel/lorenz.rb -o tmp/spinel/lorenz
 tmp/spinel/lorenz vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81 --resume rola --stop-after cmpix
 ```
+
+### As a CRuby extension
+
+```sh
+EXT=1 rake spinel:lorenz
+```
+
+`EXT=1` compiles `lorenz_kernel.rb` with `spinel --ext cruby` into
+`tmp/spinel/ext/lorenz.so` instead of building the binary, and runs each
+stretch in a CRuby process forked from the task that calls
+`Lorenz.run_chain` in it. The rows, the checks and TERM and INT work as
+without it. `sig/lorenz.rbs` gives `run_chain` its types, since an
+extension's entries need them and nothing in the kernel calls it.
+
+The extension builds against the Spinel installation's runtime sources,
+beside the compiler in `lib/`, since its `libspinel_rt.a` isn't position
+independent. So it takes about 70 s where the binary takes about 45. It
+uses the C flags a binary gets, `-ffp-contract=off` among them, and links
+with `-Bsymbolic` on Linux: the runtime defines `re_exec`, and without it
+the extension's calls go to glibc's `re_exec` and crash in the first
+regexp. `lorenz.rb` can't guard its driver with `if __FILE__ == $0`, the
+block `spinel --ext` leaves out, because the guard is false in a Spinel
+binary. So the driver lives in its own file.
+
+The extension and the binary run a stretch in the same time, and their
+output is byte for byte the same. Kernels run one call at a time per
+process, so the stretches still need a process each.
 
 ## The SID testprogs
 

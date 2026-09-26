@@ -1,0 +1,3 @@
+module Lorenz
+  def self.run_chain: (String, String, String, Integer) -> String
+end
