@@ -3,7 +3,6 @@
 module Badline
   module GUI
     class Application
-      PAL_CLOCK_HZ = 985_248
       TITLE = "Badline"
       TOGGLE_SYM = SDL::KEY_TAB
       MUTE_SYM = SDL::KEY_F10
@@ -164,8 +163,9 @@ module Badline
 
       def fit_frame
         rate = @window.refresh_rate
-        @cycles_per_frame = PAL_CLOCK_HZ / rate
-        @frame_seconds = @cycles_per_frame.fdiv(PAL_CLOCK_HZ)
+        clock_hz = @computer.region.clock_hz
+        @cycles_per_frame = clock_hz / rate
+        @frame_seconds = @cycles_per_frame.fdiv(clock_hz)
         puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
       end
 

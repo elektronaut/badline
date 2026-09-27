@@ -9,7 +9,7 @@ describe Badline::GUI::Application do
   let(:window) do
     instance_double(
       Badline::GUI::Window,
-      refresh_rate: Badline::GUI::Application::PAL_CLOCK_HZ, draw: nil, "title=": nil, close: nil
+      refresh_rate: Badline::Region::PAL.clock_hz, draw: nil, "title=": nil, close: nil
     )
   end
   let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: [], poll: nil, close: nil) }

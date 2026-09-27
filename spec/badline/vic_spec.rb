@@ -15,6 +15,23 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  describe "the region" do
+    it "is PAL unless given" do
+      expect([vic.region, vic.width, vic.height]).to eq([Badline::Region::PAL, 504, 312])
+    end
+
+    it "sizes the raster to the region's lines and cycles" do
+      ntsc = described_class.new(region: Badline::Region::NTSC)
+      expect([ntsc.width, ntsc.height]).to eq([520, 263])
+    end
+
+    it "steps to the next line after the region's cycles per line" do
+      ntsc = described_class.new(region: Badline::Region::NTSC)
+      65.times { ntsc.cycle! }
+      expect([ntsc.rasterline, ntsc.column]).to eq([1, 0])
+    end
+  end
+
   describe "rasterline" do
     it "starts at rasterline 0" do
       expect(vic.rasterline).to eq(0)
