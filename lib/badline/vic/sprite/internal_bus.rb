@@ -10,8 +10,12 @@ module Badline
       # the CPU reads or writes a VIC register in that cycle, and the middle
       # one is the idle fetch at $3fff (sbsprf24's readme).
       class InternalBus
+        # The columns of a raster line.
+        attr_reader :columns
+
         def initialize(bank, columns)
           @bank = bank
+          @columns = columns
           @lines = 0
           @ghost = 0xff
           @value = Array.new(columns, 0xff)

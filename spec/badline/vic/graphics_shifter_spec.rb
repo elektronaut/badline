@@ -82,4 +82,46 @@ RSpec.describe Badline::VIC::GraphicsShifter do
     group(from: 0, to: 0, data: 0b1000_0001, screencode: 0)
     expect(shifter.fg).to eq([true, false, false, false, false, false, false, true])
   end
+
+  describe "on the 8565" do
+    subject(:shifter) { described_class.new(registers, model: :mos8565) }
+
+    # The group the write lands in and the one after it.
+    def groups(from:, to:, data: 0, screencode: 0x40, color: 1)
+      shifter.prime(0, screencode, color, 0, from)
+      shifter.draw(data, screencode, color, 0, to)
+      first = shifter.colors.dup
+      shifter.draw(data, screencode, color, 0, to)
+      [first, shifter.colors.dup]
+    end
+
+    # Pinned by videomode1, -v, -w, -x, -y, -z and videomode2.
+    it "takes a rising ECM at the next group's pixel 0" do
+      expect(groups(from: 0, to: 4)).to eq([[6] * 8, [5] * 8])
+    end
+
+    it "takes a falling ECM at the next group's pixel 0" do
+      expect(groups(from: 4, to: 0)).to eq([[5] * 8, [6] * 8])
+    end
+
+    # Pinned by videomode1 and videomode-z: the lookup leaves the invalid
+    # mode at pixel 4 and the read turns hi-res at pixel 7, as for any MCM.
+    it "takes an MCM falling out of ECM+MCM on time" do
+      expect(groups(from: 5, to: 4, data: 0b0110_0110, color: 0x0e).first)
+        .to eq([0, 0, 0, 0, 5, 5, 0x0e, 5])
+    end
+
+    # Pinned by videomode-v and videomode2: the %01 pair's first pixel is
+    # still black, its second the new colour.
+    it "keeps a background pixel 0 black out of an invalid mode into multicolour bitmap" do
+      expect(groups(from: 5, to: 3, data: 0b0110_0110, screencode: 0x47, color: 0x0e).last)
+        .to eq([0, 4, 7, 7, 4, 4, 7, 7])
+    end
+
+    # Pinned by videomode-y.
+    it "shows pixel 0 on time out of an invalid mode into multicolour text" do
+      expect(groups(from: 5, to: 1, data: 0b0110_0110, color: 0x0e).last)
+        .to eq([5, 5, 4, 4, 5, 5, 4, 4])
+    end
+  end
 end

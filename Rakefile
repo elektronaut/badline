@@ -61,6 +61,8 @@ REGRESSION_SUITES = {
 # than rows added to testbench-cia and the rest, because those baselines
 # are the 6526's, and many of its programs are listed for both chips under
 # the same id.
+# testbench-vicii-new is the testlist's vicii-new rows on a machine with an
+# 8565 VIC-II, kept apart from testbench for the same reason.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -71,6 +73,7 @@ OPT_IN_SUITES = {
   "testbench-cpu" => { runner: "bin/testbench", scope: "CPU/" },
   "testbench-carts" => { runner: "bin/testbench", args: %w[--carts] },
   "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
+  "testbench-vicii-new" => { runner: "bin/testbench", args: %w[--vicii-new] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 

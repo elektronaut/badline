@@ -49,6 +49,15 @@ Recorded output of the headless hardware suites, one file per suite:
   rows). Kept apart, each id keeps one key, one verdict and one machine
   per baseline, and a change to either chip's rules moves only its own
   suite. All `exitcode` tests.
+- `testbench-vicii-new.txt` — the same runner with `--vicii-new`, over the
+  rows the testlist tags `vicii-new`, each run on a machine whose VIC-II
+  is an 8565. Every other suite's rows run on the 6569. A screenshot row
+  compares against the program's `-8565` reference, as VICE's testbench
+  does, and against its generic one where there is none. It is a suite of
+  its own rather than rows added to `testbench` for the same reason as
+  `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
+  again under `vicii-old`, with the same id. Its FAIL rows are the ones
+  [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -153,9 +162,9 @@ Two subtrees of the testlist are deliberately left out. `CPU/decimalmode`
 is 41 exhaustive ADC/SBC sweeps that `rake test` already covers per-opcode
 against SingleStepTests' bus-level traces, for a worst case near nine
 hours. Rows carrying `cia-new` ask for the 6526A, and run only in
-`testbench-cia-new`, on a 6526A machine. Rows carrying `vicii-new` ask for the 8565 in the same way, and badline
-models only the 6569. All but `VICII/lp-trigger/test2new` repeat a
-`vicii-old` row, so the 31 programs listed twice run once.
+`testbench-cia-new`, on a 6526A machine. Rows carrying `vicii-new` ask for
+the 8565 in the same way, and run only in `testbench-vicii-new`, on an
+8565 machine.
 
 `testbench`, `lorenz` and `sid` are the nightly set. The Regression
 workflow runs them on `main` every night, but skips the night when nothing
@@ -182,9 +191,10 @@ what the suite cost before it was sharded:
 | `testbench-cpu` | 72 | 49 min | 31 min | 11 min |
 | `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
+| `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
 
-The `testbench-cia-new` row was measured on a four-core cloud container,
-not the laptop, and on CRuby with YJIT.
+The `testbench-cia-new` and `testbench-vicii-new` rows were measured on a
+four-core cloud container, not the laptop, and on CRuby with YJIT.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as

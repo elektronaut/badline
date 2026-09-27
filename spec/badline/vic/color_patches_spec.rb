@@ -76,4 +76,30 @@ RSpec.describe Badline::VIC::ColorPatches do
       expect(sequencer.colors[boundary]).to eq(1)
     end
   end
+
+  # Pinned by the spritesplit rows, whose $d021 splits show a grey dot at
+  # every edge, and rmwtest.
+  describe "on the 8565" do
+    let(:sequencer) { Badline::VIC::Sequencer.new(504, registers, bank, model: :mos8565) }
+
+    it "shows a grey dot on the boundary pixel of a background write" do
+      paint(0...20)
+      registers.write(0x21, 9)
+      patches.log(0x21, 6, 9, boundary)
+      paint(20...40)
+      expect(patched[(boundary - 1)..(boundary + 1)]).to eq([6, 0x0f, 9])
+    end
+
+    it "shows a grey dot on the boundary pixel of a border write" do
+      paint(0...40)
+      patches.log(0x20, 2, 3, 8)
+      sequencer.colors[8] = 3
+      expect(patched[7, 3]).to eq([2, 0x0f, 2])
+    end
+
+    def patched
+      sequencer.apply_color_patches
+      sequencer.colors
+    end
+  end
 end

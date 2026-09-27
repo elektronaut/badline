@@ -196,6 +196,9 @@ title shows `[MUTED]` while it's off.
   invalid ones, sprites with multicolour, expansion, priority and
   pixel-level collisions, raster interrupts, bad lines, sprite DMA, the
   border, VIC banks and the light pen.
+  `Badline::Computer.new(vic_model: :mos8565)` fits the C64C's 8565
+  instead, with its grey dots on colour register writes and its own
+  timing for mode splits, sprite multicolour splits and the light pen.
 - **CIA 1 and 2**: timers, time-of-day clocks with alarms, the serial
   shift register, interrupts, the keyboard matrix with its ghost keys,
   the control ports and the paddle multiplexer. The machine has the

@@ -89,6 +89,16 @@ RSpec.describe Badline::VIC::Sprites do
       write(0x1c, 0x00, 0x01)
       expect(colors[214..216]).to eq([5, 5, 2])
     end
+
+    context "with an 8565" do
+      subject(:sprites) { described_class.new(registers, bank, 504, model: :mos8565) }
+
+      # Pinned by ss-hires-mc and ss-mc-hires, and their -exp twins.
+      it "reaches the multicolor flip-flop six pixels on" do
+        write(0x1c, 0x00, 0x01)
+        expect(colors[213..215]).to eq([5, 2, 2])
+      end
+    end
   end
 
   # Pinned by sbsprf24-164: sprite 6 at X $164 shows, on the line of its

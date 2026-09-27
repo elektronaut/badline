@@ -5,6 +5,16 @@ require "spec_helper"
 RSpec.describe Badline::VIC do
   let(:vic) { described_class.new }
 
+  describe "the model" do
+    it "is a 6569 unless given" do
+      expect(vic.model).to eq(:mos6569)
+    end
+
+    it "refuses a model it does not know" do
+      expect { described_class.new(model: :mos6567) }.to raise_error(ArgumentError, /mos6567/)
+    end
+  end
+
   describe "rasterline" do
     it "starts at rasterline 0" do
       expect(vic.rasterline).to eq(0)
@@ -376,6 +386,28 @@ RSpec.describe Badline::VIC do
       bits = vic.vic_bank.peek(0x1000 | 8 | 1)
       expect(group).to eq(Array.new(8) { |i| bits[7 - i] == 1 ? 1 : 6 })
     end
+
+    context "with an 8565" do
+      let(:vic) { described_class.new(model: :mos8565) }
+
+      # Pinned by vicii_reg_timing and the videomode rows: the access
+      # addresses with $d011 as the column before had it, so ECM still
+      # masks the character to $01.
+      it "addresses with the $d011 of the column before" do
+        ram.poke(0x2000 + 8 + 1, 0xff)
+        drop_ecm
+        expect(group).to all(eq(1))
+      end
+
+      # Pinned by rmwtest and vicii_reg_timing: a write that leaves a color
+      # register as it was still shows its grey dot.
+      it "shows a grey dot for a background write of the same color" do
+        run_to(30)
+        vic.poke(0xd021, 6)
+        finish_line
+        expect(vic.display[(line * vic.width) + 239, 3]).to eq([6, 0x0f, 6])
+      end
+    end
   end
 
   describe "sprite rendering through a full raster" do
@@ -422,6 +454,20 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd000, 0)
       run_to(line + 1)
       expect(vic.display[((line + 1) * vic.width) + 104]).to eq(14)
+    end
+
+    # Pinned by ss-hires-color and ss-mc-color0/1/2. The sprite runs from
+    # pixel 204 to 227 and the write lands with the beam at 208.
+    context "with an 8565" do
+      let(:vic) { described_class.new(model: :mos8565) }
+
+      it "shows a grey dot on the pixel before a new sprite color" do
+        3.times { |byte| vic.address_bus.ram.poke(0x2000 + byte, 0xff) }
+        (((line + 1) * 63) + 26).times { vic.cycle! }
+        vic.poke(0xd027, 9)
+        (63 - vic.column).times { vic.cycle! }
+        expect(vic.display[((line + 1) * vic.width) + 207, 3]).to eq([5, 0x0f, 9])
+      end
     end
   end
 
@@ -1035,6 +1081,14 @@ RSpec.describe Badline::VIC do
       ((312 * 63) - 99 - 53).times { vic.cycle! } # line 311, column 10
       vic.lightpen_level(false)
       expect(vic.peek(0xd014)).to eq(1) # the line-1 latch survives
+    end
+
+    # Pinned by lp-trigger/test2new, which measures the trigger delay.
+    it "adds one extra half-pixel on the 8565" do
+      vic = described_class.new(model: :mos8565)
+      99.times { vic.cycle! }
+      vic.lightpen_level(false)
+      expect(vic.peek(0xd013)).to eq(97)
     end
 
     it "retriggers with a fixed X when the line is low across frame start" do

@@ -24,6 +24,7 @@ only catches the rows that happen to move.
 - [VIC graphics pipeline](#vic-graphics-pipeline)
 - [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
+- [VIC-II 8565](#vic-ii-8565)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
@@ -735,11 +736,104 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
   reference, as `makeref` corrects it: the test fixes up the tail bytes of
   pre-R03 dumps before comparing. All five pages match, the raster-read
   pages included (see [VIC raster IRQ phase](#vic-raster-irq-phase)).
-- The 6569's offset is 2 half-pixels and the 8565's is 1, so
-  `lp-trigger/test2new`, which wants the 8565, would fail by design.
-  badline models only the 6569, and `bin/testbench` skips `vicii-new` rows.
+- The 6569's offset is 2 half-pixels and the 8565's is 1 (see
+  [VIC-II 8565](#vic-ii-8565)).
 - Pinned by `lplatency`, `lp-trigger`, and the `fldscroll` tests, which sync
   through the light pen instead of the double IRQ.
+
+## VIC-II 8565
+
+The 8565 (`VIC.new(model: :mos8565)`, `Computer.new(vic_model:
+:mos8565)`), fitted to the C64C, runs every rule above except the ones
+below. They follow VICE x64sc's model checks (`color_latency` clear), and
+each is gated on the model and was knocked out: removing it fails the rows
+named, all in `testbench-vicii-new`, and moves no 6569 row. Pixel counts
+are the row's diff with the rule removed.
+
+- **Grey dots.** Where the 6569 still shows a colour register's old value
+  on the first pixel after a write, the 8565 shows light grey
+  (`VIC::GREY_DOT`, `$f`), for the border, the background registers
+  (`VIC::ColorPatches`) and the sprite colours (`VIC#log_sprite_change`).
+  A write that leaves the value as it was shows its dot too.
+  - The background and border dot is pinned by `rmwtest` (1655 px), every
+    spritesplit row whose `$d021` staircase it crosses (60 px each) and
+    `vicii_reg_timing` (275 px, 282/289 for `-a5`/`-ff`). The sprite dot
+    by `ss-hires-color` and `ss-mc-color0`/`1`/`2` (44 px each) and
+    `vicii_reg_timing` (136 px). The same-value dot by `rmwtest` (775 px)
+    and `vicii_reg_timing` (22 px), whose read-modify-write instructions
+    store each value twice.
+  - Spec guard: the *on the 8565* group in
+    [`color_patches_spec.rb`](../spec/badline/vic/color_patches_spec.rb),
+    *shows a grey dot on the pixel before a new sprite color* in
+    [`sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb) and *shows a
+    grey dot for a background write of the same color* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- **Sprite multicolour.** `$d01c` reaches the sprite sequencers a pixel
+  sooner, 6 pixels on instead of 7, and works on the multicolour
+  flip-flop (VICE `update_sprite_mc_bits_8565`). The X match leaves the
+  flip-flop set in hi-res as well as clear after the first multicolour
+  pixel. A change flips it only when it lands between the two halves of
+  an expanded pixel, where a switch to hi-res sets it instead. A hi-res
+  pixel with the flip-flop clear sets it and loads nothing, so the latch
+  holds its last pixel.
+  - The delay is pinned by `ss-hires-mc`, `ss-mc-hires` and their `-exp`
+    twins (528/88/1452/88 px at 7). The flip-flop after the X match by
+    `ss-hires-mc`, `ss-pri`, `ss-unexp-exp-hires` (168 px each) and
+    `ss-hires-mc-exp`, `ss-pri-exp`, `ss-exp-unexp-hires` (336 px each).
+    The flip on a change by `ss-hires-mc-exp` (1364 px) and
+    `ss-mc-hires-exp` (44 px), and the hi-res hold by `ss-mc-hires` and
+    `ss-mc-hires-exp` (44 px each).
+  - Spec guard: *reaches the multicolor flip-flop six pixels on* in
+    [`sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb) and the *with
+    an 8565* group of *mid-line writes* in
+    [`sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+- **The g-access addresses with the `$d011` of the column before**,
+  whole, instead of the 6569's hold of BMM and, on the character ROM, ECM.
+  - Pinned by `modesplit` (598 px), `vicii_reg_timing` (92, 99/106 px),
+    `fetchsplit` (180 px) and every videomode row but `videomode1` (3 to
+    16 px).
+  - Spec guard: *addresses with the $d011 of the column before* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- **ECM and BMM take hold at the next group's pixel 0**, rising or
+  falling, where the 6569 takes them at pixel 4 as they rise and 5 or 6 as
+  they fall. MCM keeps the 6569's timing, but an MCM that falls out of
+  ECM+MCM does so on time instead of a pixel late.
+  - The pixel 0 is pinned by `modesplit` (916 px), `vicii_reg_timing` (86,
+    100/114 px) and every videomode row (6 to 13 px). The on-time MCM by
+    `videomode1` and `videomode-z` (2 px each).
+  - Spec guard: the *on the 8565* group in
+    [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
+- **Out of an invalid mode into multicolour bitmap, a background pixel 0
+  is still black.** Into multicolour text it shows on time.
+  - Pinned by `videomode-v` and `videomode2` (1 px each) and `modesplit`
+    (92 → 124 px), whose `%00` and `%01` pairs after an ECM+MCM or
+    ECM+BMM+MCM split keep their first pixel black. `videomode-y` shows a
+    `%01` pair on time into multicolour text.
+  - Spec guard: *keeps a background pixel 0 black out of an invalid mode
+    into multicolour bitmap* and *shows pixel 0 on time out of an invalid
+    mode into multicolour text* in
+    [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
+- **The light pen latches one extra half-pixel**, where the 6569 adds two.
+  - Pinned by `lp-trigger/test2new`, which measures the trigger delay and
+    fails with two.
+  - Spec guard: *adds one extra half-pixel on the 8565* in
+    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+
+What the 8565 references don't settle, and so what stays as it is:
+
+- The pixel 0 of a group that leaves ECM or BMM is not consistent across
+  the references. Moving every falling edge to pixel 1 passes `modesplit`
+  but fails every videomode row but `videomode1` and all three
+  `vicii_reg_timing` rows, and the same move out of hi-res bitmap into
+  text is the new mode in `vicii_reg_timing-a5` and the old one in `-ff`.
+  The videomode readme says these delays "may depend on the type of VICII,
+  and the temperature of the chip". So `modesplit` (92 px) and
+  `vicii_reg_timing-a5` and `-ff` (7/14 px) stay FAIL.
+- `fetchsplit` (154 px) stays FAIL: its readme says its 8565 artefacts
+  differ from chip to chip and change as the machine warms up.
+- VICE's idle g-access also reads ECM from the `$d011` of the column
+  before on the 8565. No testprog tells it apart, so the 8565 keeps the
+  6569's idle access.
 
 ## CIA 6526 timer pipeline
 

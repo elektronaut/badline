@@ -47,19 +47,20 @@ require_relative "../test/testbench_machine"
 module Testbench
   HEX_DIGITS = "0123456789abcdef"
 
-  # The CIA model a test line names.
+  # The CIA and VIC-II models a test line names.
   def self.cia_model(name) = name == "mos6526a" ? :mos6526a : :mos6526
+  def self.vic_model(name) = name == "mos8565" ? :mos8565 : :mos6569
 
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
-  # cartridge path, program, directory and CIA model, with an empty
+  # cartridge path, program, directory, CIA model and VIC-II model, with an empty
   # cartridge or program for a test without one. A String in and a String
   # out, so that `spin ext` can export it to CRuby as it stands.
   def self.run_test(test)
     fields = test.chomp.split("\t")
     type = fields[1]
     cartridge = fields[3].empty? ? nil : fields[3]
-    computer = machine(cartridge, cia_model(fields[6]))
+    computer = machine(cartridge, cia_model(fields[6]), vic_model(fields[7]))
     exit_code = Execution.new(computer).run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
     out = "test #{fields[0]}\n"

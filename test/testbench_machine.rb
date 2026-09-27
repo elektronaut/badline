@@ -20,10 +20,10 @@ module Testbench
 
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
-  # program loads (see test/forked_boot.rb), with the CIAs the test asks
-  # for.
-  def self.machine(cartridge, cia_model = :mos6526)
-    computer = Badline::Computer.new(cia_model:)
+  # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
+  # the test asks for.
+  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569)
+    computer = Badline::Computer.new(cia_model:, vic_model:)
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
   end

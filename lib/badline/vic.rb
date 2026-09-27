@@ -11,14 +11,22 @@ module Badline
     include Addressable
     include IntegerHelper
 
+    # The 6569 of the breadbin C64, and the HMOS 8565 of the C64C.
+    MODELS = %i[mos6569 mos8565].freeze
+
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
-                :rasterline, :dirty_lines
+                :rasterline, :dirty_lines, :model
 
     # Returns the byte the CPU's halted read would see, for the c-accesses
     # that run before AEC. Without it they read colour RAM.
     attr_writer :open_bus
 
     LIGHTPEN_IRQ = 0x08 # $D019 latch bit
+    COLOR_REGISTERS = 0x20..0x2e
+
+    # What the 8565 shows on the pixel before a color register write takes
+    # hold, where the 6569 shows the old color: the grey dot.
+    GREY_DOT = 0x0f
 
     # A g-access reaches the pixel output this many columns after it runs.
     GRAPHICS_DELAY = 2
@@ -49,8 +57,14 @@ module Badline
     SPRITE_BA_TAIL = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c < 63 } }.freeze
     SPRITE_BA_HEAD = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - 63 if c >= 63 } }.freeze
 
-    def initialize(address_bus = nil, debug: false)
+    def initialize(address_bus = nil, debug: false, model: :mos6569)
+      raise ArgumentError, "unknown VIC-II model #{model}" unless MODELS.include?(model)
+
       addressable_at(0xd000, length: 2**10)
+      @model = model
+      @lightpen_extra = model == :mos8565 ? 1 : 2
+      @grey_dots = model == :mos8565
+      @delayed_fetch = model == :mos8565
       @address_bus = address_bus || AddressBus.new
       @vic_bank = VIC::Bank.new(@address_bus)
       @debug = debug
@@ -75,9 +89,9 @@ module Badline
       @registers = VIC::Registers.new
       @register_bytes = @registers.bytes
       @display_state = VIC::DisplayState.new(@registers)
-      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank)
+      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @model)
       @sequencer.render = @render
-      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width)
+      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @model)
       @display.fill(0)
       @lines.each { |line| line.fill(0) }
       @dirty_lines.fill(true)
@@ -197,9 +211,10 @@ module Badline
     end
 
     # The first trigger per frame latches the beam position into LPX/LPY and
-    # raises the LP IRQ. The latch happens one cycle after the edge, with the
-    # 6569's two extra half-pixels; a trigger on the last line is consumed
-    # without latching unless it lands on the line's first cycle.
+    # raises the LP IRQ. The latch happens one cycle after the edge, with
+    # the model's extra half-pixels, two on the 6569 and one on the 8565; a
+    # trigger on the last line is consumed without latching unless it lands
+    # on the line's first cycle.
     def trigger_lightpen
       return if @lp_triggered
 
@@ -213,7 +228,7 @@ module Badline
       return if line == @last_line && column.positive?
 
       vic_x = ((column * 8) - Sprite::X_OFFSET) % @width
-      latch_lightpen((vic_x >> 1) + 2, line)
+      latch_lightpen((vic_x >> 1) + @lightpen_extra, line)
     end
 
     # The byte the VIC fetched in the phi1 half of the cycle the CPU is
@@ -265,17 +280,28 @@ module Badline
     # Mid-line writes to the color and sprite registers are logged against
     # the cycle after the write (the CPU runs after the VIC within a machine
     # cycle, so @column already points there); each register adds its own
-    # pixel delay on top.
+    # pixel delay on top. On the 8565 a color register write that leaves
+    # the value as it was still shows its grey dot.
     def log_register_change(reg, value)
       old = @registers[reg]
-      return if old == value
+      return if old == value && !grey_dot?(reg)
 
       if (0x20..0x24).cover?(reg)
         @sequencer.colors_changed! unless reg == 0x20
         @sequencer.color_patches.log(reg, old, value, @column * 8) if @render && !blanking?
       else
-        @sprites.log_change(reg, old, value, @column * 8)
+        log_sprite_change(reg, old, value)
       end
+    end
+
+    def grey_dot?(reg) = @grey_dots && COLOR_REGISTERS.cover?(reg)
+
+    # A sprite color shows its grey dot as a write of light grey on the
+    # pixel before the new color.
+    def log_sprite_change(reg, old, value)
+      beam_x = @column * 8
+      @sprites.log_change(reg, old, GREY_DOT, beam_x - 1) if grey_dot?(reg)
+      @sprites.log_change(reg, old, value, beam_x)
     end
 
     # Bauer cycles 1-10 and 58-63 are sprite p- and s-accesses, 11-15
@@ -403,15 +429,17 @@ module Badline
       @g_color[slot] = @g_kept_color = @color_buffer[vmli] || 1
     end
 
-    # The g-access sees a mode bit that falls a cycle late: it addresses
-    # with $d011 as this column has it, OR-ed with the held bits the column
-    # before had. When BMM changes and the access moves from RAM onto the
-    # character ROM, the low address byte still comes from the old mode
+    # The 6569's g-access sees a mode bit that falls a cycle late: it
+    # addresses with $d011 as this column has it, OR-ed with the held bits
+    # the column before had. When BMM changes and the access moves from RAM
+    # onto the character ROM, the low address byte still comes from the old
+    # mode. The 8565's addresses with $d011 as the column before had it
     # (VICE x64sc `vicii_fetch_graphics`).
     def fetch_graphics(vmli, counter)
       d011 = @register_bytes[0x11]
       last = @fetch_d011
       return vic_bank.peek(graphics_address(d011, vmli, counter)) if d011 == last
+      return vic_bank.peek(graphics_address(last, vmli, counter)) if @delayed_fetch
 
       from = graphics_address(last, vmli, counter)
       from_rom = vic_bank.character_rom?(from)

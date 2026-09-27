@@ -45,7 +45,7 @@ module Badline
       # foreground mask the sprite collisions read.
       attr_writer :render
 
-      def initialize(width, registers, bank)
+      def initialize(width, registers, bank, model: :mos6569)
         @width = width
         @registers = registers
         @bank = bank
@@ -63,8 +63,8 @@ module Badline
         @vertical_border = true
         @vertical_armed = true
         @main_border = true
-        @color_patches = ColorPatches.new(self)
-        @shifter = GraphicsShifter.new(registers)
+        @color_patches = ColorPatches.new(self, grey_dots: model == :mos8565)
+        @shifter = GraphicsShifter.new(registers, model:)
         @xscroll = 0
         @last_shift = 0
         @last_mode = 0

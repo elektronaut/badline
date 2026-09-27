@@ -122,6 +122,9 @@ jobs:
           - suite: testbench-cia-new
             harnesses: testbench
             task: spinel:testbench[testbench-cia-new]
+          - suite: testbench-vicii-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-vicii-new]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]
