@@ -10,11 +10,12 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
-# ruby-sdl2 builds against the SDL2 headers, as in CI.
-if [ ! -f /usr/include/SDL2/SDL.h ]; then
+# The SDL specs open libSDL2 through Fiddle, so only the runtime library is
+# needed, as in CI.
+if ! ldconfig -p | grep 'libSDL2-2\.0\.so\.0' >/dev/null; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq libsdl2-dev >/dev/null
+  apt-get install -y -qq libsdl2-2.0-0 >/dev/null
 fi
 
 # The image ships Ruby 3.3 and an rbenv. Install the newest Ruby 4.0.x, as

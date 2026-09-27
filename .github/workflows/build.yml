@@ -21,7 +21,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.324.0
         with:
           bundler-cache: true
@@ -37,7 +37,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.324.0
         with:
           ruby-version: "4.0"
@@ -55,7 +55,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.324.0
         with:
           ruby-version: "4.0"
@@ -71,7 +71,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.324.0
         with:
           ruby-version: "4.0"
@@ -117,7 +117,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.324.0
         with:
           ruby-version: "4.0"
