@@ -307,6 +307,13 @@ describe Badline::Media do
         expect(computer.ram.read(0x2d, 2)).to eq([0x03, 0x08])
       end
 
+      # Pinned by C64/autostart/basic (basictest, printpoint, printpoint2)
+      it "leaves the end address where the KERNAL's LOAD does" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer.ram.read(0xae, 2)).to eq([0x03, 0x08])
+      end
+
       it "skips RUN when autostart is disabled" do
         allow(computer).to receive(:type_text)
         described_class.attach(computer, prg_path, autostart: false)
