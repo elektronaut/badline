@@ -1,0 +1,18 @@
+C64/raminitpattern/cyberloadtest.prg	FAIL	exit=$ff
+C64/raminitpattern/darkstarbbstest.prg	FAIL	exit=$ff
+C64/raminitpattern/platoontest.prg	FAIL	exit=$ff
+C64/raminitpattern/typicaltest.prg	PASS
+C64/autostart/basic/basictest.prg	PASS
+C64/autostart/basic/printpoint.prg	PASS
+C64/autostart/basic/printpoint2.prg	PASS
+C64/autostart/defaults/test.prg	FAIL	exit=$ff
+C64/bankio/bankio.prg	PASS
+C64/openio/gauntlet.prg	PASS
+general/banking00/banking00.prg	PASS
+general/ram0001/test1.prg	PASS
+general/fuxxortest/ef1-nmi.prg	PASS
+general/fuxxortest/ef2-inst2.prg	PASS
+general/fuxxortest/ef2-inst3.prg	PASS
+general/fuxxortest/ef2-inst4a.prg	PASS
+general/fuxxortest/ef2-inst4b.prg	PASS
+general/fuxxortest/ef2-inst4c.prg	PASS

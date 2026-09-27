@@ -179,7 +179,8 @@ it, `testbench` (`VICII/`) unless given another, and compares the rows
 against the suite's baseline in `test/baselines/` as
 `rake regression:<suite>` does. `[all]` runs `testbench`,
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
-`testbench-cpu`, `testbench-carts`, `testbench-cia-new` and `testbench-vicii-new` in turn, and fails at the end if any
+`testbench-cpu`, `testbench-carts`, `testbench-cia-new`, `testbench-vicii-new` and
+`testbench-general` in turn, and fails at the end if any
 of them changed. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 

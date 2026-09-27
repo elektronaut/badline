@@ -9,7 +9,8 @@
 #                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
-# hardware badline models: VICII, CIA, interrupts and CPU. Each process
+# hardware badline models: VICII, CIA, interrupts and CPU, and the
+# machine-level rows of C64 and general outside the Lorenz suite. Each process
 # boots a machine once, and each test runs in a child forked from it
 # (test/forked_boot.rb) that mounts the test's directory as device 8,
 # injects the .prg and types RUN. A child that crashes or hangs gets a
@@ -43,7 +44,9 @@
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
-# `rake regression:testbench-cia` scopes to CIA/, and so on. Filters are a
+# `rake regression:testbench-cia` scopes to CIA/, and so on. A scope can
+# name several prefixes, separated by commas, as C64/,general/ does for
+# testbench-general. Filters are a
 # union matched inside that scope, so a filtered run stays in one
 # baseline's rows; a filter that matches nothing is an error rather than
 # an empty run.
@@ -81,9 +84,10 @@ module Testbench
   # The testlist subtrees for hardware badline models. CPU/decimalmode is
   # left out of CPU: 41 exhaustive ADC/SBC sweeps that SingleStepTests
   # already covers per-opcode against bus-level reference traces, for a
-  # worst case near nine hours.
-  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU)/}
-  EXCLUDED_DIRS = %r{\A\.\./CPU/decimalmode/}
+  # worst case near nine hours. The Lorenz suite in general/ runs as
+  # bin/lorenz's chain instead.
+  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU|C64|general)/}
+  EXCLUDED_DIRS = %r{\A\.\./(CPU/decimalmode|general/Lorenz-2\.15)/}
 
   # The Lorenz suite's 6526 half runs as bin/lorenz's chain off
   # Lorenz.d81, but nothing chains the 6526A half, so its cia-new rows run
@@ -97,6 +101,16 @@ module Testbench
   SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|
                   reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
+
+  # Rows that can't apply to badline. Both need a true 1541: they upload
+  # code to the drive with M-W, start it with M-E and handshake with it
+  # over the IEC lines, and badline's KERNAL traps stand in for the drive.
+  # test-fuxxored runs ef2-inst1's drive check before it decodes the
+  # program.
+  NOT_APPLICABLE = %w[
+    general/fuxxortest/test-fuxxored.prg
+    general/fuxxortest/ef2-inst1.prg
+  ].freeze
   CIA_NEW_OPTION = "cia-new"
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
@@ -221,10 +235,15 @@ module Testbench
     end
 
     def selected?(test, filters, scope, exclude)
-      return false if scope && !test.id.include?(scope)
+      return false unless in_scope?(test, scope)
       return false if exclude && test.id.include?(exclude)
 
       filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+    end
+
+    # A scope names one prefix, or several separated by commas.
+    def in_scope?(test, scope)
+      scope.nil? || scope.split(",").any? { |prefix| test.id.include?(prefix) }
     end
 
     # Filters that picked up no test at all, which a typo makes silent.
@@ -241,6 +260,8 @@ module Testbench
       return if options.any?(SKIP_OPTIONS)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
+      return if NOT_APPLICABLE.include?(test.id)
+
       test if test.cartridge ? runnable_cartridge?(test) : included?(dir, test.cia_model)
     end
 

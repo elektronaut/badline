@@ -24,6 +24,21 @@ class TestTestbenchTestlist < Minitest::Test
     end
   end
 
+  def test_keeps_the_machine_level_subtrees
+    assert_equal "C64/bankio/bankio.prg", parse("../C64/bankio/,bankio.prg,exitcode,1000").id
+    assert_equal "general/fuxxortest/ef1-nmi.prg", parse("../general/fuxxortest,ef1-nmi.prg,exitcode,1000").id
+  end
+
+  def test_leaves_the_6526_half_of_lorenz_to_bin_lorenz
+    assert_nil parse("../general/Lorenz-2.15/src/,cia1ta.prg,exitcode,1000")
+    refute_nil parse("../general/Lorenz-2.15/src/,cia1tanew.prg,exitcode,1000,cia-new")
+  end
+
+  def test_drops_rows_that_need_a_true_drive
+    assert_nil parse("../general/fuxxortest,ef2-inst1.prg,exitcode,1000")
+    assert_nil parse("../general/fuxxortest,test-fuxxored.prg,exitcode,1000")
+  end
+
   def test_drops_subtrees_for_unmodelled_hardware
     assert_nil parse("../REU/mirrors/,t.prg,exitcode,1000")
     assert_nil parse("../drive/rpm/,t.prg,exitcode,1000")
@@ -193,11 +208,16 @@ class TestTestbenchSelection < Minitest::Test
   end
 
   IDS = ["VICII/border/t.prg", "interrupts/irqdma/test1.prg",
-         "interrupts/irqnoack/test1.prg", "CPU/cpujam/t.prg"].freeze
+         "interrupts/irqnoack/test1.prg", "CPU/cpujam/t.prg",
+         "C64/bankio/t.prg", "general/banking00/t.prg"].freeze
 
   def test_no_filter_runs_the_whole_scope
     assert_equal ["interrupts/irqdma/test1.prg", "interrupts/irqnoack/test1.prg"],
                  selected([], scope: "interrupts/")
+  end
+
+  def test_a_scope_can_name_several_prefixes
+    assert_equal ["C64/bankio/t.prg", "general/banking00/t.prg"], selected([], scope: "C64/,general/")
   end
 
   def test_a_filter_is_matched_inside_the_scope
