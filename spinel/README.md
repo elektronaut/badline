@@ -159,13 +159,6 @@ the booted machine, so the rows come out the same. `SIDTests.run_list`
 does the work between the list and the rows, so it can be compiled as an
 extension later.
 
-`sidtests.rb` requires `debug_register.rb`, which reopens
-`Badline::Computer`, `AddressBus` and `DebugRegister` to hand the debug
-register's handler on as a value. Spinel refuses a block that reads a
-local when it is passed on with an anonymous `&` into a constructor, as
-`Computer#install_debug_register` passes it, and the handler
-`SIDTests.exit_code` installs reads one.
-
 To run a list by hand:
 
 ```sh
