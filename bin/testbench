@@ -4,8 +4,8 @@
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
-#                             [--carts] [--drive] [--cia-new] [--vicii-new]
-#                             [--shards N]
+#                             [--carts] [--drive] [--1541-testsuite]
+#                             [--cia-new] [--vicii-new] [--shards N]
 #                             [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -34,12 +34,18 @@
 # as prg+crt.
 #
 # --drive runs the testlist's drive/ rows instead, and the rows of the
-# subtrees above that mount a .d64. Each runs on a machine booted with a true 1541 on the
-# serial bus, which needs the DOS ROM (dos1541.rom in the ROM path). The
-# row's mountd64 image goes in the drive, and its program loads as the
-# other rows' do, but nothing is mounted as device 8 through the LOAD
-# trap, so every disk access goes through the drive. The Spinel build has
-# no drive, so --drive doesn't take --engine.
+# subtrees above that mount a .d64. Each runs on a machine booted with a
+# true 1541 on the serial bus, which needs the DOS ROM (dos1541.rom in the
+# ROM path). The row's mountd64 image goes in the drive, and its program
+# loads as the other rows' do, but nothing is mounted as device 8 through
+# the LOAD trap, so every disk access goes through the drive. The Spinel
+# build has no drive, so --drive doesn't take --engine. drive/format and
+# drive/rpm/rpm3 write to the disk, which the drive can't do yet, so they
+# stay listed and fail until it can.
+#
+# --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
+# Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
+# --drive leaves them out.
 #
 # --cia-new runs the rows the testlist tags cia-new instead, each on a
 # machine whose CIAs are 6526As. Every other row runs on the 6526.
@@ -99,8 +105,9 @@ module Testbench
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # The true drive's rows, which run only under --drive.
-  DRIVE_DIR = %r{\A\.\./drive/}
+  # The true drive's rows, which run only under --drive, except for
+  # drive/1541-testsuite's, which run only under --1541-testsuite.
+  DRIVE_DIR = %r{\A\.\./drive/(1541-testsuite\z)?}
 
   # G64 and P64 images and memory expansions are not emulated. A mountcrt
   # row runs only under --carts, a drive row or a mountd64 one only under
@@ -122,9 +129,8 @@ module Testbench
     0x6C5EB5, 0x959595
   ].freeze
 
-  # A machine booted to the point where a program loads, as
-  # Testbench.machine boots one, with a true 1541 on the serial bus that
-  # boots alongside it.
+  # A machine booted as Testbench.machine boots one, with a true 1541 on
+  # the serial bus that boots alongside it.
   def self.drive_machine(cia_model, vic_model)
     computer = Badline::Computer.new(cia_model:, vic_model:)
     computer.attach_drive1541(Badline::Drive1541.new)
@@ -164,13 +170,13 @@ module Testbench
       !disk.nil? || dir.match?(DRIVE_DIR)
     end
 
-    # The rows a run lists: :carts under --carts, :drive under --drive and
-    # :plain otherwise.
+    # The rows a run lists: :carts under --carts, :drive under --drive,
+    # :drive_testsuite under --1541-testsuite and :plain otherwise.
     def kind
       return :carts if cartridge
-      return :drive if drive?
+      return :plain unless drive?
 
-      :plain
+      dir.match(DRIVE_DIR)&.[](1) ? :drive_testsuite : :drive
     end
 
     # The CIA the row asks for: the 6526A for cia-new, else the 6526.
@@ -719,7 +725,9 @@ if $PROGRAM_NAME == __FILE__
   exclude = Testbench.take_option(ARGV, "--exclude")
   carts = ARGV.delete("--carts")
   drive = ARGV.delete("--drive")
+  drive_testsuite = ARGV.delete("--1541-testsuite")
   kind = if carts then :carts
+         elsif drive_testsuite then :drive_testsuite
          elsif drive then :drive
          else :plain
          end
@@ -740,11 +748,12 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  if kind == :drive && engine
+  true_drive = %i[drive drive_testsuite].include?(kind)
+  if true_drive && engine
     warn "--drive needs a true drive, which the Spinel build doesn't have: drop --engine."
     exit 1
   end
-  if kind == :drive && !Testbench.dos_rom?
+  if true_drive && !Testbench.dos_rom?
     warn "--drive needs the 1541 DOS ROM: #{File.join(Badline.rom_path, Testbench::DOS_ROM)}."
     exit 1
   end

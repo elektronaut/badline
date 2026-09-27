@@ -60,10 +60,11 @@ module Testbench
   # cartridge, if any, and the program, if any, from the test's directory
   # mounted as device 8, then runs until the test writes $D7FF or the
   # budget runs out. With mount false the program loads without the
-  # directory mounted, which leaves device 8 to a true drive. As VICE's debug cartridge does, the run ends on the
-  # cycle of the write, so a screenshot shows the display as drawn up to
-  # there. Only a screenshot test reads the display, so the others run
-  # with the VIC's colours unpainted.
+  # directory mounted, which leaves device 8 to a true drive. As VICE's
+  # debug cartridge does, the run ends on the cycle of the write, so a
+  # screenshot shows the display as drawn up to there. Only a screenshot
+  # test reads the display, so the others run with the VIC's colours
+  # unpainted.
   class Execution
     attr_reader :exit_code
 

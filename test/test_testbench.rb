@@ -206,6 +206,18 @@ class TestTestbenchDrive < Minitest::Test
     assert_equal(%i[plain drive drive], rows.map { |row| parse(row).kind })
   end
 
+  def test_lists_the_1541_testsuite_only_under_its_own_flag
+    test = parse("../drive/1541-testsuite,1541-testsuite.prg,exitcode,2220000000,mountd64:#{@disk}")
+
+    assert_equal [:drive_testsuite, true], [test.kind, test.drive?]
+  end
+
+  # Writing the disk is #299, so format keeps failing under --drive
+  # rather than dropping out of the suite.
+  def test_keeps_a_row_that_writes_the_disk_under_drive
+    assert_equal :drive, parse("../drive/format/,format.prg,exitcode,88000000,mountd64:#{@disk}").kind
+  end
+
   def test_a_drive_row_gets_twice_the_deadline
     drive, plain = ["../drive/rpm", "../CIA/tod"].map do |dir|
       Testbench::TestCase.new(dir, "t.prg", "exitcode", 10_000_000, [])
