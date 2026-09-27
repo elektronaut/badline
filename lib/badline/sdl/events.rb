@@ -9,7 +9,10 @@ module Badline
     # The events the front end handles. SDL_Event is a 56-byte union, read
     # here at the offsets its keyboard, mouse and controller members use.
     Quit = Data.define
-    KeyDown = Data.define(:sym, :mod)
+    # A held key sends repeats, flagged at byte 13 of the event.
+    KeyDown = Data.define(:sym, :mod, :repeat) do
+      def initialize(sym:, mod:, repeat: false) = super
+    end
     KeyUp = Data.define(:sym, :mod)
     MouseMotion = Data.define(:xrel, :yrel)
     MouseButton = Data.define(:button, :pressed)
@@ -31,7 +34,7 @@ module Badline
     def self.decode(bytes)
       case bytes.unpack1("L")
       when 0x100 then Quit.new
-      when 0x300 then KeyDown.new(*bytes.unpack("lS", offset: 20))
+      when 0x300 then KeyDown.new(*bytes.unpack("lS", offset: 20), bytes.getbyte(13) != 0)
       when 0x301 then KeyUp.new(*bytes.unpack("lS", offset: 20))
       when 0x400 then MouseMotion.new(*bytes.unpack("l2", offset: 28))
       when 0x401, 0x402 then MouseButton.new(bytes.getbyte(16), bytes.getbyte(17) == 1)

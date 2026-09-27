@@ -101,7 +101,8 @@ queues the SID's samples when sound is on, repacks the lines the VIC
 changed into a streaming texture, presents it and waits.
 
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
-  C64 keys `GUI::KeyMap` gives the same keys by name. Esc is RUN/STOP.
+  C64 keys `GUI::KeyMap` gives the same keys by name. Esc is RUN/STOP
+  and Page Up is RESTORE.
 - Tab switches to joystick mode and back. As in the SDL front end's
   joystick mode, the arrow keys and space drive joystick 2 and WASD and
   left shift drive joystick 1. F9 swaps the two, for games that read

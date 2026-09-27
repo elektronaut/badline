@@ -83,4 +83,25 @@ describe Badline::Keyboard do
       expect(keyboard.read_a(0b11111011, 0xff)).to eq(0b11111001)
     end
   end
+
+  describe "combination keys" do
+    # :cursor_v sits at row 0, column 7 and :lshift at row 1, column 7.
+    it "holds shift and cursor down for cursor up" do
+      keyboard.press(:cursor_up)
+      expect(keyboard.read_a(0xff, 0b01111111)).to eq(0b11111100)
+    end
+
+    it "lets go of both keys on release" do
+      keyboard.press(:cursor_up)
+      keyboard.release(:cursor_up)
+      expect(keyboard.read_a(0xff, 0b01111111)).to eq(0xff)
+    end
+
+    it "keeps a shift held on its own down" do
+      keyboard.press(:lshift)
+      keyboard.press(:cursor_left)
+      keyboard.release(:cursor_left)
+      expect(keyboard.read_b(row1, 0xff)).to eq(0b01111111)
+    end
+  end
 end

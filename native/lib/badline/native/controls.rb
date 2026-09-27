@@ -17,8 +17,7 @@ module Badline
         if @joystick_mode && Keys.joystick?(scancode)
           joystick_key(scancode, down)
         else
-          key = Keys.c64_key(scancode)
-          down ? @computer.keyboard.press(key) : @computer.keyboard.release(key)
+          c64_key(Keys.c64_key(scancode), down)
         end
       end
 
@@ -33,6 +32,15 @@ module Badline
       end
 
       private
+
+      # RESTORE isn't in the key matrix, so it goes to the machine instead.
+      def c64_key(key, down)
+        if key == :restore
+          @computer.press_restore if down
+        else
+          down ? @computer.keyboard.press(key) : @computer.keyboard.release(key)
+        end
+      end
 
       def joystick_key(scancode, down)
         direction = Keys.arrows(scancode)

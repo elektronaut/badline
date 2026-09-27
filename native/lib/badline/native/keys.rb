@@ -13,10 +13,10 @@ module Badline
       OTHERS = {
         40 => :return, 41 => :run_stop, 42 => :delete, 44 => :space,
         45 => :-, 46 => :"=", 49 => :"@", 51 => :";", 52 => :":",
-        54 => :",", 55 => :".", 56 => :/,
+        48 => :up, 53 => :left, 54 => :",", 55 => :".", 56 => :/,
         58 => :f1, 60 => :f3, 62 => :f5, 64 => :f7,
-        74 => :clr_home, 77 => :£, 79 => :cursor_h, 80 => :left,
-        81 => :cursor_v, 82 => :up, 85 => :*, 87 => :+,
+        74 => :clr_home, 75 => :restore, 77 => :£, 79 => :cursor_h, 80 => :cursor_left,
+        81 => :cursor_v, 82 => :cursor_up, 85 => :*, 87 => :+,
         224 => :control, 225 => :lshift, 226 => :cbm, 229 => :rshift
       }.freeze
 

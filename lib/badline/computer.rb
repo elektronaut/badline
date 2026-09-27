@@ -41,6 +41,7 @@ module Badline
       @cycles = 0
       @nmi_asserted = false
       @cartridge_nmi = false
+      @restore_pulse = false
       @freezing = false
       @freeze_writes = 0
       @init_handlers = []
@@ -123,6 +124,12 @@ module Badline
       address_bus.cartridge&.release_button
     end
 
+    # RESTORE isn't in the key matrix. It fires a one-shot that pulses the
+    # NMI line however long the key is held, modelled here as one cycle.
+    def press_restore
+      @restore_pulse = true
+    end
+
     # A disk swap keeps the drive's RAM, which only a drive reset clears.
     def mount(storage)
       @drive_memory ||= KernalTrap::Drive::Memory.new
@@ -156,10 +163,11 @@ module Badline
 
     private
 
-    # The NMI line is wired-OR between CIA 2 and the cartridge, and the CPU
-    # takes an interrupt on its falling edge.
+    # The NMI line is wired-OR between CIA 2, the cartridge and the RESTORE
+    # key, and the CPU takes an interrupt on its falling edge.
     def drive_nmi
-      nmi = @cia2.interrupted? || @cartridge_nmi
+      nmi = @cia2.interrupted? || @cartridge_nmi || @restore_pulse
+      @restore_pulse = false
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
     end

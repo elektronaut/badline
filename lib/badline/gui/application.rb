@@ -9,7 +9,7 @@ module Badline
       MUTE_SYM = SDL::KEY_F10
       REVERSE_MOD = SDL::KMOD_SHIFT
 
-      SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
+      SHARED_KEYS = %i[cursor_up cursor_left cursor_h cursor_v space w a s d lshift].freeze
 
       # Tab steps through the input modes and shift-Tab back; the title bar
       # names the live one. The pot devices appear once per control port, since
@@ -94,8 +94,17 @@ module Badline
         if port
           joystick(port).press(dir)
         else
-          @computer.keyboard.press(KeyMap.parse(event))
+          press_key(KeyMap.parse(event), event.repeat)
         end
+      end
+
+      # RESTORE isn't in the key matrix, so it goes to the machine instead,
+      # once per press as the real key's one-shot fires.
+      def press_key(key, repeat)
+        return @computer.press_restore if key == :restore && !repeat
+        return if key == :restore
+
+        @computer.keyboard.press(key)
       end
 
       def handle_key_up(event)
