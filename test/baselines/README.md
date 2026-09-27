@@ -263,8 +263,9 @@ commit message.
 
 ## Rows that stay failing
 
-Four testbench rows fail against references or checks that don't hold for
-every 6569, or that depend on where the program starts. They stay
+These testbench rows fail against references or checks that don't hold
+for every chip of their model, or that depend on where the program
+starts. They stay
 recorded as `FAIL`, and a change that moves them is still a change to
 explain.
 
@@ -303,3 +304,20 @@ explain.
     and 73 passes, with x64sc's cycle count one higher than badline's
     column. The failures are a run from line 58 to line 61 and single
     cycles on lines 56, 61, 62 and 63.
+- `VICII/split-tests/modesplit/modesplit.prg`,
+  `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
+  `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
+  92, 7 and 154 px) fail against their `-8565` references. No emulator in
+  the testbench results passes all three on the 8565: Denise and x64sc
+  fail every one, Hoxs64 passes `modesplit` and z64k `fetchsplit`, each
+  against the `8565early` reference, and none passes `vicii_reg_timing-ff`.
+  - `modesplit` and `vicii_reg_timing-ff` differ only at the pixel 0 of a
+    group that leaves ECM or BMM, where the references disagree with each
+    other and with the videomode rows about the same move. The
+    `vicii_reg_timing` pair is marked `comment:unsafe reference`. See
+    [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565).
+  - `fetchsplit` is marked `comment:unsafe reference`, and its readme says
+    the 8565 artefacts vary from chip to chip. Its 154 px are whole glyph
+    lines in the first character after a `$dd00` bank switch, where the
+    reference shows the other bank's character. The output matches the
+    6569 reference there.

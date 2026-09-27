@@ -123,5 +123,16 @@ RSpec.describe Badline::VIC::GraphicsShifter do
       expect(groups(from: 5, to: 1, data: 0b0110_0110, color: 0x0e).last)
         .to eq([5, 5, 4, 4, 5, 5, 4, 4])
     end
+
+    # Pinned by vicii_reg_timing-a5 and -ff, whose E+B row falls into
+    # hi-res text with a foreground pixel 0.
+    it "keeps pixel 0 black out of an invalid mode into hi-res text" do
+      expect(groups(from: 6, to: 0, data: 0xff).last).to eq([0] + ([1] * 7))
+    end
+
+    # Pinned by videomode-w.
+    it "shows pixel 0 on time out of an invalid mode into ECM text" do
+      expect(groups(from: 6, to: 4, data: 0xff).last).to eq([1] * 8)
+    end
   end
 end

@@ -829,14 +829,27 @@ are the row's diff with the rule removed.
   - Spec guard: the *on the 8565* group in
     [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
 - **Out of an invalid mode into multicolour bitmap, a background pixel 0
-  is still black.** Into multicolour text it shows on time.
-  - Pinned by `videomode-v` and `videomode2` (1 px each) and `modesplit`
-    (92 → 124 px), whose `%00` and `%01` pairs after an ECM+MCM or
-    ECM+BMM+MCM split keep their first pixel black. `videomode-y` shows a
-    `%01` pair on time into multicolour text.
+  is still black, and into hi-res text any pixel 0 is.** Into multicolour
+  text and ECM text it shows on time.
+  - The multicolour bitmap case is pinned by `videomode-v` and `videomode2`
+    (1 px each) and `modesplit` (92 → 124 px), whose `%00` and `%01` pairs
+    after an ECM+MCM or ECM+BMM+MCM split keep their first pixel black.
+    `videomode-y` shows a `%01` pair on time into multicolour text.
+  - The hi-res text case is empirical, pinned by the E+B row of
+    `vicii_reg_timing-a5` and `-ff` (pass and 7 px, 7 and 14 px without
+    it), which drops ECM+BMM back to text. All three `vicii_reg_timing`
+    references keep that pixel 0 black, a foreground pixel in `-a5` and
+    `-ff`. `$d021` is black there, so no reference tells a background
+    pixel 0 apart, and the rule blackens both.
+  - `videomode-w` shows ECM+BMM into ECM text on time (1 px if it goes
+    black), while `modesplit`'s section 1 keeps the same move black (48 of
+    its 92 px). The two references disagree about the same move, and the
+    videomode one is kept.
   - Spec guard: *keeps a background pixel 0 black out of an invalid mode
-    into multicolour bitmap* and *shows pixel 0 on time out of an invalid
-    mode into multicolour text* in
+    into multicolour bitmap*, *keeps pixel 0 black out of an invalid mode
+    into hi-res text*, *shows pixel 0 on time out of an invalid mode into
+    multicolour text* and *shows pixel 0 on time out of an invalid mode into
+    ECM text* in
     [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
 - **The light pen latches one extra half-pixel**, where the 6569 adds two.
   - Pinned by `lp-trigger/test2new`, which measures the trigger delay and
@@ -853,9 +866,15 @@ What the 8565 references don't settle, and so what stays as it is:
   text is the new mode in `vicii_reg_timing-a5` and the old one in `-ff`.
   The videomode readme says these delays "may depend on the type of VICII,
   and the temperature of the chip". So `modesplit` (92 px) and
-  `vicii_reg_timing-a5` and `-ff` (7/14 px) stay FAIL.
+  `vicii_reg_timing-ff` (7 px, the hi-res bitmap into text row) stay FAIL.
+  No emulator in the testbench results passes `vicii_reg_timing-a5` or
+  `-ff` on the 8565, and only Hoxs64 passes `modesplit`, against the
+  `8565early` reference.
 - `fetchsplit` (154 px) stays FAIL: its readme says its 8565 artefacts
-  differ from chip to chip and change as the machine warms up.
+  differ from chip to chip and change as the machine warms up, and its
+  `M1` and `M7` captures differ. The differences sit in the first character
+  after a `$dd00` bank switch on some lines. Delaying every rising, or
+  every falling, bank bit by a cycle on the 8565 makes it 656 or 752 px.
 - VICE's idle g-access also reads ECM from the `$d011` of the column
   before on the 8565. No testprog tells it apart, so the 8565 keeps the
   6569's idle access, without the 6569's `$38ff` read where a DMA delay
