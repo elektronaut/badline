@@ -38,6 +38,14 @@ describe NativeBuild do
     end
   end
 
+  describe ".revision" do
+    it "counts the lightweight release tags" do
+      allow(described_class).to receive(:capture)
+        .with("git", "describe", "--tags", "--always", "--dirty", "--abbrev=8").and_return("v0.3.0-2-gabcdef12")
+      expect(described_class.revision).to eq("v0.3.0-2-gabcdef12")
+    end
+  end
+
   describe ".spinel_version" do
     it "is what the compiler prints" do
       allow(described_class).to receive(:capture).with("spinel", "--version")
