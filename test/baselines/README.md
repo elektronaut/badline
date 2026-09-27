@@ -282,12 +282,21 @@ explain.
     (`modesplit`, `videomode-y`, `videomode-z`, `vicii_reg_timing`). See
     [VIC graphics pipeline](../../doc/pinned-behaviour.md#vic-graphics-pipeline).
 - `interrupts/irq-ackn-bug/irq-ack-vicii.prg` (`testbench-interrupts`,
-  exit `$ff`). One of its 48 samples differs: the first one, `sta` on
-  the raster row, reads `-` where the reference says `*`. That sample
-  runs before the program's double-IRQ sync has settled. The testbench
-  starts the program with the raster latch pending since line `$45`,
-  and `cli` lands on line `$4a`. The second IRQ, set for line `$4b`,
-  then falls on a bad line, and the sample misses its raster IRQ. Every
-  later sample runs from a frame where the sync holds. Started 997 to
-  38,883 cycles later, in 997-cycle steps, the program passed 39 times
-  out of 39.
+  exit `$ff`) fails from where the harness starts it, and x64sc fails from
+  there too. The program enables the raster IRQ for line `$45`, then fills
+  its sprite pattern with interrupts off. The harness reaches that setup
+  (the `sei` at `$0a35`) at the end of raster line 60, so the IRQ latches
+  during the fill and is taken at `cli` on line `$4a`. The double-IRQ
+  sync then sets its second IRQ for line `$4b`, a bad line, and the first
+  of the 48 samples (`sta` on the raster row) reads `-` where the
+  reference says `*`. Every later sample runs from a frame where the sync
+  holds.
+  - x64sc's own autostart adds a random delay, so its start moves from run
+    to run. In the published results x64sc passes 15 times out of 16,
+    x64 fails all 11, and the Ultimate 64 passes 11 out of 12.
+  - Parked in a loop and resumed at `$0a35` from the same raster position,
+    x64sc exits `$ff` too. Over 91 start positions on raster lines 56 to
+    64, badline and x64sc gave the same verdict at every one, 18 failures
+    and 73 passes, with x64sc's cycle count one higher than badline's
+    column. The failures are a run from line 58 to line 61 and single
+    cycles on lines 56, 61, 62 and 63.
