@@ -29,6 +29,9 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
+    # The system clock. PAL only for now.
+    def clock_hz = TimeOfDay::CLOCK_HZ
+
     def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
       @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:)
       @cpu = CPU.new(@address_bus, debug:)
@@ -150,6 +153,7 @@ module Badline
     # Plugs in a Drive1541, which then runs alongside the C64 on its own
     # clock. Nothing wires it to the serial bus yet.
     def attach_drive1541(drive)
+      drive.host_clock_hz = clock_hz
       @drive1541 = drive
     end
 
