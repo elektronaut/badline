@@ -9,7 +9,6 @@ module Testbench
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
   BOOT_ALLOWANCE = 3_000_000
-  BATCH = 10_000
 
   # The VICE PAL viewport crop of the VIC display, matching the 384x272
   # reference screenshots (the GUI ScreenPane crops 4 lines lower).
@@ -60,8 +59,10 @@ module Testbench
   # Runs one test on a machine from Testbench.machine: attaches the
   # cartridge, if any, and the program, if any, from the test's directory
   # mounted as device 8, then runs until the test writes $D7FF or the
-  # budget runs out. Only a screenshot test reads the display, so the
-  # others run with the VIC's colours unpainted.
+  # budget runs out. As VICE's debug cartridge does, the run ends on the
+  # cycle of the write, so a screenshot shows the display as drawn up to
+  # there. Only a screenshot test reads the display, so the others run
+  # with the VIC's colours unpainted.
   class Execution
     attr_reader :exit_code
 
@@ -78,7 +79,7 @@ module Testbench
         @computer.mount(Badline::Storage::HostDirectory.new(directory))
         Badline::Media.attach(@computer, File.join(directory, prg))
       end
-      BATCH.times { @computer.cycle! } until @exit_code || @computer.cycles > budget
+      @computer.cycle! until @exit_code || @computer.cycles > budget
       @exit_code
     end
   end
