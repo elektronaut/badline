@@ -127,10 +127,12 @@ describe Badline::Drive1541::Disk do
   end
 
   context "with an error table" do
-    # Error codes: 2 is error 20, 3 is 21, 4 is 22, 5 is 23, 9 is 27, 11 is 29
+    # Error codes: 2 is error 20, 3 is 21, 4 is 22, 5 is 23, 9 is 27, 11 is
+    # 29, and 6 is 24 and 10 is 28, which the layout can't carry.
     before do
       errors = Array.new(683, 1)
-      { 0 => 2, 1 => 3, 2 => 4, 3 => 5, 4 => 9, 5 => 11 }.each { |sector, code| errors[sector] = code }
+      { 0 => 2, 1 => 3, 2 => 4, 3 => 5, 4 => 9, 5 => 11, 7 => 6, 8 => 10 }
+        .each { |sector, code| errors[sector] = code }
       File.binwrite(path, File.binread(path) + errors.pack("C*"))
     end
 
@@ -170,6 +172,11 @@ describe Badline::Drive1541::Disk do
 
     it "writes the other blocks cleanly" do
       expect([header(6)[0, 2], data(6)[0]]).to eq([[0x08, 6 ^ 1 ^ 0x42 ^ 0x41], 0x07])
+    end
+
+    it "writes the blocks marked 24 or 28 cleanly" do
+      expect([7, 8].map { |sector| [header(sector)[0, 2], data(sector)[0], sector_at(sector)[0]] })
+        .to eq([7, 8].map { |sector| [[0x08, sector ^ 1 ^ 0x42 ^ 0x41], 0x07, 0xff] })
     end
   end
 end

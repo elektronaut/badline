@@ -35,8 +35,10 @@ module Badline
 
       # A disk formatted from a D64 image, each sector laid out as the DOS
       # formats it, with the disk ID from the header block. A block the
-      # image's error table marks bad is written the way the DOS error it
-      # stands for would read.
+      # image's error table marks 20, 21, 22, 23, 27 or 29 is written the
+      # way that DOS error would read. The table's other codes, 24, 25, 26
+      # and 28, describe write or decoding faults the layout can't carry,
+      # so their blocks are written good and read without an error.
       def self.from_d64(image)
         track, sector = image.header_block
         header = image.read_block(track, sector)
@@ -61,6 +63,8 @@ module Badline
         bytes
       end
 
+      # Error 21 leaves the block without SYNC marks, and 29 writes its
+      # header with the wrong first ID byte.
       def self.format_sector(bytes, image, track, sector, id)
         error = image.block_error(track, sector)
         sync = error == 21 ? GAP : 0xff
