@@ -918,6 +918,43 @@ RSpec.describe Badline::VIC do
       run_through_gap
       expect(vic.display[(gap_line * vic.width) + ((16 + cell) * 8), 8]).to eq([0, bg, bg, bg, bg, bg, bg, 0])
     end
+
+    # Idle lines follow the gap up to the trigger line, where a bad line
+    # starts in column 30. Returns the pixels of cell 16 on that line.
+    def trigger_dma_delay(line)
+      vic.address_bus.ram.poke(0x3fff, 0b0001_1000)
+      vic.address_bus.ram.poke(0x38ff, 0b1000_0001)
+      run_through_gap
+      ((gap_line + 1)...line).each do |idle|
+        vic.poke(0xd011, 0x18 | ((idle + 4) & 0b111))
+        63.times { vic.cycle! }
+      end
+      30.times { vic.cycle! }
+      vic.poke(0xd011, 0x18 | (line & 0b111))
+      33.times { vic.cycle! }
+      vic.display[(line * vic.width) + ((16 + 16) * 8), 8]
+    end
+
+    context "when a bad line starts in column 30 of an idle line" do
+      # Pinned by vsp-tester: with YSCROLL nonzero the idle g-access in the
+      # column the DMA delay starts reads $38ff, not $3fff.
+      it "reads the idle byte at $38ff when YSCROLL is nonzero" do
+        expect(trigger_dma_delay(gap_line + 1)).to eq([0, bg, bg, bg, bg, bg, bg, 0])
+      end
+
+      # Pinned by colorfetchbug/main: with YSCROLL 0 it still reads $3fff.
+      it "reads the idle byte at $3fff when YSCROLL is 0" do
+        expect(trigger_dma_delay(gap_line + 8)).to eq([bg, bg, bg, 0, 0, bg, bg, bg])
+      end
+    end
+
+    context "when a bad line starts in column 30 of an idle line on an 8565" do
+      let(:vic) { described_class.new(model: :mos8565) }
+
+      it "reads the idle byte at $3fff when YSCROLL is nonzero" do
+        expect(trigger_dma_delay(gap_line + 1)).to eq([bg, bg, bg, 0, 0, bg, bg, bg])
+      end
+    end
   end
 
   describe "vertical border flip-flop" do

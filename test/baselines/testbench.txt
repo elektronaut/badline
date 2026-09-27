@@ -104,7 +104,7 @@ VICII/videomode/videomode-x.prg	FAIL	diff=10px exit=$00
 VICII/videomode/videomode-y.prg	PASS
 VICII/videomode/videomode-z.prg	PASS
 VICII/vspbug/vsp_bug.prg	PASS
-VICII/vsp-tester/vsp-tester.prg	FAIL	exit=$ff
+VICII/vsp-tester/vsp-tester.prg	PASS
 VICII/sequencer-bug/bug.prg	PASS
 VICII/spritebug/spritebug-104.prg	PASS
 VICII/spritebug/spritebug-105.prg	PASS
