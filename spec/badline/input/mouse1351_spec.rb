@@ -18,33 +18,91 @@ describe Badline::Input::Mouse1351 do
   end
 
   it "presents the X counter shifted up one bit" do
-    mouse.move(3, 0)
+    mouse.move(6, 0)
     expect(mouse.pot_x).to eq(6)
   end
 
   it "counts Y against the host's downward axis" do
-    mouse.move(0, -3)
+    mouse.move(0, -6)
     expect(mouse.pot_y).to eq(6)
   end
 
+  it "takes two host pixels to a count" do
+    mouse.move(1, 0)
+    expect(mouse.pot_x).to eq(0)
+  end
+
+  it "keeps the odd half count for the next move" do
+    mouse.move(1, 0)
+    mouse.pot_x
+    mouse.move(1, 0)
+    expect(mouse.pot_x).to eq(2)
+  end
+
+  it "keeps the odd half count moving backwards" do
+    mouse.move(-1, 0)
+    mouse.pot_x
+    mouse.move(1, 0)
+    expect(mouse.pot_x).to eq(0)
+  end
+
   it "wraps the X counter at six bits" do
-    mouse.move(65, 0)
+    [60, 60, 10].each do |pixels|
+      mouse.move(pixels, 0)
+      mouse.pot_x
+    end
     expect(mouse.pot_x).to eq(2)
   end
 
   it "wraps the X counter below zero" do
-    mouse.move(-1, 0)
+    mouse.move(-2, 0)
     expect(mouse.pot_x).to eq(126)
   end
 
   it "keeps bit 7 clear at the top of the counter" do
-    mouse.move(63, 0)
+    mouse.move(-1, 0)
     expect(mouse.pot_x).to eq(126)
   end
 
   it "presents travel a driver recovers as a signed delta" do
-    mouse.move(-10, 0)
+    mouse.move(-20, 0)
     expect(delta(0x00, mouse.pot_x)).to eq(-10)
+  end
+
+  describe "motion between reads" do
+    it "adds up moves until the driver reads" do
+      3.times { mouse.move(10, 0) }
+      expect(delta(0x00, mouse.pot_x)).to eq(15)
+    end
+
+    it "clamps a fast flick to 31 counts" do
+      mouse.move(500, 0)
+      expect(delta(0x00, mouse.pot_x)).to eq(31)
+    end
+
+    it "clamps a fast flick backwards to 31 counts" do
+      mouse.move(-500, 0)
+      expect(delta(0x00, mouse.pot_x)).to eq(-31)
+    end
+
+    it "keeps a clamped flick's direction from an odd half count" do
+      mouse.move(1, 0)
+      previous = mouse.pot_x
+      mouse.move(500, 0)
+      expect(delta(previous, mouse.pot_x)).to eq(31)
+    end
+
+    it "clamps Y separately" do
+      mouse.move(0, 500)
+      expect(delta(0x00, mouse.pot_y)).to eq(-31)
+    end
+
+    it "starts afresh after a read" do
+      mouse.move(500, 0)
+      mouse.pot_x
+      mouse.move(500, 0)
+      expect(delta(62, mouse.pot_x)).to eq(31)
+    end
   end
 
   describe "buttons" do
