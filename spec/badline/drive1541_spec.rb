@@ -204,20 +204,18 @@ describe Badline::Drive1541 do
     end
   end
 
-  # Needs the real DOS ROM too. The C64 boots with the drive on the bus
+  # Runs the real DOS ROM too. The C64 boots with the drive on the bus
   # and a D64 in it, and no LOAD trap: every byte comes off the disk's GCR
   # through the DOS and over the serial bus.
   describe "reading a disk with the DOS ROM" do
     include BlankDisk
 
     let(:computer) { Badline::Computer.new }
-    let(:rom_file) { File.join(Badline.rom_path, "dos1541.rom") }
     let(:dir) { Dir.mktmpdir }
     let(:program) { [0x00, 0xc0, *Array.new(600) { |i| (i * 7) & 0xff }] }
     let(:output) { computer.capture_output }
 
     before do
-      skip "needs #{rom_file}: the 1541 DOS, 325302-01 and 901229-05 as one 16 KB image" unless File.exist?(rom_file)
       path = blank_d64(File.join(dir, "disk.d64"), name: "GCR TEST")
       give_disk_id(path)
       Badline::Storage::D64Image.new(path).write_file("data", program)
