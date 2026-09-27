@@ -1073,6 +1073,15 @@ and each was knocked out: removing it fails the rows named.
     before the KERNAL does.
   - Spec guard: *when powered on* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+- A write to `$00` or `$01` goes to the port, and the RAM below takes the
+  byte the VIC fetched in the phi1 half of the same cycle, as in VICE's
+  `zero_store`. Only the VIC reads that RAM.
+  - Pinned by `general/ram0001/test1`, which puts the byte in `$3fff` for
+    the idle fetch, and `general/fuxxortest/ef2-inst4a`, which uses two
+    sprite pointer fetches. Both read the RAM back through sprite
+    collisions.
+  - Spec guard: *when a program writes to the port* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
 
 ## SID oscillator
 

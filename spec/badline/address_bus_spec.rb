@@ -60,6 +60,24 @@ describe Badline::AddressBus do
       specify { expect(address_bus[0x01]).to eq(0xb7) }
     end
 
+    # Pinned by general/ram0001/test1 and general/fuxxortest/ef2-inst4a
+    context "when a program writes to the port" do
+      before do
+        address_bus.ram.poke(0x3fff, 0xa5)
+        55.times { address_bus.vic.cycle! } # Bauer cycle 56 idles at $3fff
+        address_bus[0x00] = 0x2f
+        address_bus[0x01] = 0x37
+      end
+
+      it "leaves the VIC's phi1 byte in the RAM below" do
+        expect(address_bus.ram.read(0x00, 2)).to eq([0xa5, 0xa5])
+      end
+
+      it "still sets the port" do
+        expect([address_bus[0x00], address_bus[0x01]]).to eq([0x2f, 0x37])
+      end
+    end
+
     context "when a floating bit was driven low before becoming an input" do
       before do
         address_bus[0x00] = 0xff
