@@ -21,4 +21,8 @@ dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01
 ($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drive1541 loads it.
-Not in the repository yet; the specs that boot it skip until it's here.
+
+Both halves downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1541/
+(1541-c000.325302-01.bin and 1541-e000.901229-05.bin) and concatenated.
+SHA-1 ab16f56989b27d89babe5f89c5a8cb3da71a82f0.

@@ -163,7 +163,7 @@ describe Badline::Drive1541 do
     end
   end
 
-  # Needs the real DOS ROM, which the repository doesn't ship yet.
+  # Runs the real DOS ROM.
   #
   # Booted to idle means both of these, after at most 3M cycles (3 s):
   # - The CPU reaches the DOS's main idle loop at $EBE7-$EC9D, which it
@@ -190,11 +190,6 @@ describe Badline::Drive1541 do
 
     let(:idle_loop) { 0xebe7..0xec9d }
     let(:boot) { self.class.boot }
-    let(:rom_file) { File.join(Badline.rom_path, "dos1541.rom") }
-
-    before do
-      skip "needs #{rom_file}: the 1541 DOS, 325302-01 and 901229-05 as one 16 KB image" unless File.exist?(rom_file)
-    end
 
     it "reaches the idle loop" do
       expect(idle_loop).to cover(boot[:booted_at])
