@@ -35,6 +35,10 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 
+# Required by name: without it the build raises NameError for IO::Buffer
+# at run time.
+require "io/buffer"
+
 require "badline/native/build_info"
 require "badline/native/version"
 require "badline/native/options"

@@ -168,13 +168,14 @@ queue (`SDL_QueueAudio`). Without vsync, the pacing follows
 - Muted, or when the device won't open, the samples are dropped and the
   frames go back to the timer.
 
-Spinel hands the queue an `Array` of Integers as 64-bit words, so each word
-packs four signed 16-bit samples, and a frame's last one to three samples
-wait for the next frame.
+Each frame's samples go onto the queue through an `IO::Buffer` of signed
+16-bit values (`set_value(:s16, ...)`), which Spinel's FFI hands to
+`SDL_QueueAudio` as a `:buffer_in` pointer.
 
 ### The texture
 
 Spinel hands an `Array` of Integers to C as 64-bit words, and a texture
 wants 32-bit pixels, so `Screen` packs two neighbouring pixels into each
 word of an `XRGB8888` texture, where the top byte of each pixel is
-ignored.
+ignored. The frames stay an `Array`: writing them into an `IO::Buffer`
+with `set_value` took about 50% longer than the `Array` stores.

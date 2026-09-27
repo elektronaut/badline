@@ -37,7 +37,7 @@ module Badline
       ffi_func :SDL_OpenAudioDevice, %i[ptr int ptr ptr int], :uint32
       ffi_func :SDL_CloseAudioDevice, [:uint32], :void
       ffi_func :SDL_PauseAudioDevice, %i[uint32 int], :void
-      ffi_func :SDL_QueueAudio, %i[uint32 int_array uint32], :int
+      ffi_func :SDL_QueueAudio, %i[uint32 buffer_in uint32], :int
       ffi_func :SDL_GetQueuedAudioSize, [:uint32], :uint32
       ffi_func :SDL_ClearQueuedAudio, [:uint32], :void
 
