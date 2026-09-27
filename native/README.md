@@ -52,6 +52,8 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
     directions, and `controls.rb` (`Controls`) routes them to the
     keyboard or the joysticks.
   - `options.rb` (`Options`) parses the command line.
+  - `pacer.rb` (`Pacer`) and `frame_rate.rb` (`FrameRate`) decide how many
+    cycles a frame clocks and how long it waits.
   - `version.rb` and `build_info.rb` make the `--version` line.
 
 The files under `native/` stay inside the subset of Ruby Spinel compiles,
@@ -78,19 +80,21 @@ OptionParser. `badline --help` lists them:
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
   plays unless told not to (`--sound` is accepted too).
+- `--no-vsync` paces PAL frames by the timer, or by the sound, instead of
+  the display. See [Pacing](#pacing).
 - `--version` names the build.
 
 Values can also come as `--song=2`, and `--` ends the options. Three more
 options are for testing:
 
 - `--frames N` quits after that many frames.
-- `--unpaced` drops the 50 Hz pacing, so the frame rate shows how much
-  headroom there is (the display refresh still caps it).
+- `--unpaced` drops vsync and the pacing, so the frame rate shows how
+  much headroom there is.
 - `--screenshot FILE` saves the last frame as a BMP, as the renderer drew
   it, read back before it is presented.
 
 It boots the machine, or attaches and autostarts a media file, and runs
-it a PAL frame at a time: it polls SDL events, clocks 19,656 cycles,
+it a frame at a time: it polls SDL events, clocks the frame's cycles,
 queues the SID's samples when sound is on, repacks the lines the VIC
 changed into a streaming texture, presents it and waits.
 
@@ -117,11 +121,38 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 
 There is no gamepad, mouse or paddle support yet.
 
+### Pacing
+
+By default the renderer waits for the display's vertical sync, as
+`exe/badline-ruby` does when it paces, and a frame lasts one refresh: it
+clocks as many cycles as the machine runs in that time, 16,420 at 60 Hz
+and 6,842 at 144 Hz, so the machine runs at its own speed on any display.
+`Pacer` and `FrameRate` hold the rules.
+
+- The display reports its refresh rate as a whole number. From the first
+  report on, the frames are sized to the rate the display actually
+  presents at, measured over the whole run, when that is within 10% of
+  the reported rate.
+- With the sound playing, the display paces the frames and the audio
+  device consumes the samples, and the two clocks drift apart. Each frame
+  is trimmed to steer the audio queue towards 80 ms: by up to 2% in
+  proportion to the queue's error, plus a trim that builds up while the
+  error lasts, up to 5%. A frame that would take the queue past 160 ms waits for it, so no
+  samples are dropped.
+- If presenting doesn't wait, as with vsync off in the display's driver
+  or under SDL's dummy video driver, the frames come faster than 1.5 times
+  the refresh rate. After 10 frames, and at every report, that prints a
+  notice and falls back to a timer, keeping the display-sized frames.
+
+`--no-vsync` runs PAL frames of 19,656 cycles instead, paced by the sound
+as below or, without it, by a 20 ms timer.
+
 ### Sound
 
 The SID records at the rate the audio device opens with, 44.1 kHz unless
 the device prefers another, and each frame's samples go onto SDL's audio
-queue (`SDL_QueueAudio`). The pacing follows `exe/badline-ruby --sound`'s:
+queue (`SDL_QueueAudio`). Without vsync, the pacing follows
+`exe/badline-ruby --sound`'s:
 
 - The device starts once the queue holds 80 ms.
 - Once the device plays, it is the clock. Each frame waits until the queue
@@ -135,7 +166,7 @@ queue (`SDL_QueueAudio`). The pacing follows `exe/badline-ruby --sound`'s:
 - Unpaced, a frame whose samples would take the queue past 250 ms is
   dropped whole.
 - Muted, or when the device won't open, the samples are dropped and the
-  frames go back to the 20 ms timer.
+  frames go back to the timer.
 
 Spinel hands the queue an `Array` of Integers as 64-bit words, so each word
 packs four signed 16-bit samples, and a frame's last one to three samples

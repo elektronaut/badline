@@ -15,8 +15,9 @@ describe Badline::Native::Options do
       expect(options.media).to eq("")
     end
 
-    it "autostarts, paced, with sound, until closed" do
-      expect([options.autostart?, options.paced?, options.sound?, options.frames]).to eq([true, true, true, 0])
+    it "autostarts, paced by vsync, with sound, until closed" do
+      expect([options.autostart?, options.paced?, options.vsync?, options.sound?, options.frames])
+        .to eq([true, true, true, true, 0])
     end
 
     it "leaves the SID model and the song to the media" do
@@ -68,6 +69,10 @@ describe Badline::Native::Options do
     expect(described_class::HELP).to include("(F10 mutes) (default)")
   end
 
+  it "turns vsync off with --no-vsync" do
+    expect(parse("--no-vsync").vsync?).to be(false)
+  end
+
   it "takes the testing knobs" do
     options = parse("--frames=150", "--unpaced", "--screenshot", "ready.bmp")
     expect([options.frames, options.paced?, options.screenshot]).to eq([150, false, "ready.bmp"])
@@ -86,7 +91,8 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --sound --no-sound --help --version --frames --unpaced --screenshot].each do |flag|
+    %w[--song --sid --no-autostart --sound --no-sound --no-vsync --help --version
+       --frames --unpaced --screenshot].each do |flag|
       expect(described_class::HELP).to include(flag)
     end
   end

@@ -30,12 +30,13 @@ module Badline
                 --no-autostart               Boot to READY. instead of running the program
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
+                --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
             -h, --help                       Show this help
                 --version                    Show the version and what built it
 
         Testing options:
                 --frames N                   Quit after N frames
-                --unpaced                    Run as fast as the display allows instead of at 50 Hz
+                --unpaced                    Run as fast as it can, without vsync or pacing
                 --screenshot FILE            Save the last frame as a .bmp
       HELP
 
@@ -51,6 +52,7 @@ module Badline
         @sound = SOUND
         @frames = 0
         @paced = true
+        @vsync = true
         @screenshot = ""
         @help = false
         @version = false
@@ -68,6 +70,8 @@ module Badline
       def sound? = @sound
 
       def paced? = @paced
+
+      def vsync? = @vsync
 
       def help? = @help
 
@@ -110,35 +114,31 @@ module Badline
       end
 
       def valued_option(name, value)
-        if ["--song", "-s"].include?(name)
-          @song = number(name, value)
-        elsif name == "--sid"
-          raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
-
-          @sid_model = SID_MODELS[value]
-        elsif name == "--frames"
-          @frames = number(name, value)
-        else
-          @screenshot = value
+        case name
+        when "--song", "-s" then @song = number(name, value)
+        when "--sid" then @sid_model = sid_model_for(value)
+        when "--frames" then @frames = number(name, value)
+        else @screenshot = value
         end
       end
 
       def switch(name)
-        if name == "--no-autostart"
-          @autostart = false
-        elsif name == "--sound"
-          @sound = true
-        elsif name == "--no-sound"
-          @sound = false
-        elsif name == "--unpaced"
-          @paced = false
-        elsif ["--help", "-h"].include?(name)
-          @help = true
-        elsif name == "--version"
-          @version = true
-        else
-          raise Error, "invalid option: #{name}"
+        case name
+        when "--no-autostart" then @autostart = false
+        when "--sound" then @sound = true
+        when "--no-sound" then @sound = false
+        when "--no-vsync" then @vsync = false
+        when "--unpaced" then @paced = false
+        when "--help", "-h" then @help = true
+        when "--version" then @version = true
+        else raise Error, "invalid option: #{name}"
         end
+      end
+
+      def sid_model_for(value)
+        raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
+
+        SID_MODELS[value]
       end
 
       def number(name, value)

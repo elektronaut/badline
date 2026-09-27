@@ -36,5 +36,4 @@ rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatErro
   warn "badline: #{media}: #{e.message}"
   exit 1
 end
-Badline::Native::App.new(computer, frame_limit: options.frames, paced: options.paced?,
-                                   screenshot: options.screenshot, sound: options.sound?).run
+Badline::Native::App.new(computer, options).run
