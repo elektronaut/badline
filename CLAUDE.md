@@ -23,6 +23,9 @@ live in subdirectories:
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
   traps that stand in for a drive), `media.rb` (attach and autostart),
   `datasette.rb`, and `gui/` and `input/` (SDL front end, controllers)
+- **Native**: `native/` holds the native `badline`, the core compiled with
+  Spinel in an SDL2 window (`rake native:build`, `native/README.md`).
+  `spinel/` holds the Spinel test harnesses
 
 Timing-critical code lives in `cpu`, `interrupts`, `vic`, `cia` and `sid` and
 in the order `Computer#cycle!` clocks them. Changes there move the test

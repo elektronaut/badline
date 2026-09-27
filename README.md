@@ -31,6 +31,10 @@ gem install badline
 
 Or add `gem "badline"` to your Gemfile and run `bundle install`.
 
+A native `badline`, compiled with [Spinel](https://github.com/matz/spinel),
+runs fast enough to play games in real time. `rake native:build` builds
+it from a checkout; see [native/README.md](native/README.md).
+
 ## Usage
 
 Run `badline-ruby` with no arguments to boot to the BASIC prompt, or give it

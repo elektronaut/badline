@@ -6,6 +6,7 @@ require "rake/testtask"
 require_relative "test/regression"
 require_relative "spinel/check"
 require_relative "spinel/sidtests_check"
+require_relative "native/build"
 
 VENDORED_REPOS = {
   "65x02" => {
@@ -447,6 +448,18 @@ task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
   SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[testbench])
   run_spinel_testbench(suites)
 end
+
+namespace :native do
+  desc "Build the native badline into #{NativeBuild::BINARY} with Spinel " \
+       "(SPINEL=compiler, SPINEL_CC=C compiler, SDL2_LDFLAGS=flags that find libSDL2)"
+  task :build do
+    NativeBuild.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil),
+                                                     sdl2_flags: ENV.fetch("SDL2_LDFLAGS", nil))
+  end
+end
+
+desc "Build the native badline (native:build)"
+task native: "native:build"
 
 Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
