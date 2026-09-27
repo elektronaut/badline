@@ -127,7 +127,7 @@ module Badline
       # The g-access runs in the first half of the cycle, ahead of the bad
       # line compare, and the c-access in the second half, after it.
       draw!
-      compare_bad_line
+      dma_delay_idle_access if @display_state.cycle(@rasterline, @column)
 
       fetch_character_data! if dma_active?
 
@@ -438,11 +438,9 @@ module Badline
     # moves the idle g-access of the column that triggers it from $3fff (or
     # $39ff) to DMA_DELAY_IDLE_ADDRESS, unless YSCROLL is 0 (vsp-tester,
     # colorfetchbug/main).
-    def compare_bad_line
-      display_state = @display_state
-      display_state.cycle(@rasterline, @column)
+    def dma_delay_idle_access
       slot = @g_tick
-      return unless @dma_delay_idle && @g_kind[slot] == G_IDLE && display_state.display?
+      return unless @dma_delay_idle && @g_kind[slot] == G_IDLE
       return if @registers.yscroll.zero?
 
       @g_data[slot] = vic_bank.peek(DMA_DELAY_IDLE_ADDRESS)

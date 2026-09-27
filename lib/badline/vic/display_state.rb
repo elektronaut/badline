@@ -75,15 +75,19 @@ module Badline
         @in_window = line.between?(FIRST_LINE, LAST_LINE)
       end
 
+      # Returns true when this compare opened display state.
       def cycle(rasterline, column)
         match = column == WRAP_COLUMN ? wrap_match(rasterline + 1) : line_match
         @matched = match
+        opened = false
         if match
+          opened = !@display
           @display = true
           @ba = column if @ba.nil? && column >= DMA_FIRST && column <= DMA_LAST
         end
         load_counters(match) if column == LOAD_COLUMN
         check_row_counter(match) if column == RC_COLUMN
+        opened
       end
 
       # A g-access in display state consumes one buffer cell and one video
