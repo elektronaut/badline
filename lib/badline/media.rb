@@ -103,8 +103,9 @@ module Badline
 
       def start_prg(computer, data, autostart:)
         load_addr = computer.load_prg(data)
-        # Run only makes sense for programs at BASIC start.
-        return unless autostart && load_addr == BASIC_START
+        # Run only makes sense for programs at BASIC start, or a byte ahead
+        # of it, where BASIC keeps the zero before its first line.
+        return unless autostart && (load_addr == BASIC_START || load_addr == BASIC_START - 1)
 
         # The end of the program, where BASIC's variables start, and where
         # the KERNAL's LOAD leaves its end address.

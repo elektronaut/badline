@@ -140,6 +140,9 @@ jobs:
           - suite: testbench-general
             harnesses: testbench
             task: spinel:testbench[testbench-general]
+          - suite: testbench-expansions
+            harnesses: testbench
+            task: spinel:testbench[testbench-expansions]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]

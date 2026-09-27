@@ -68,6 +68,9 @@ REGRESSION_SUITES = {
 # general/ subtrees that the Lorenz suite leaves over: the power-on RAM
 # pattern, BASIC's pointers after a load, banking, the RAM under the CPU
 # port and emu-fuxxor's checks.
+# testbench-expansions is the testlist's rows that ask for a memory
+# expansion badline emulates, from whichever subtree lists them: the
+# geo512k rows, on a machine with a 512K GEO-RAM.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -80,6 +83,7 @@ OPT_IN_SUITES = {
   "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
   "testbench-vicii-new" => { runner: "bin/testbench", args: %w[--vicii-new] },
   "testbench-general" => { runner: "bin/testbench", scope: "C64/,general/" },
+  "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 

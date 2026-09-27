@@ -321,6 +321,44 @@ describe Badline::Media do
       end
     end
 
+    context "with a BASIC PRG file loaded a byte ahead of BASIC start" do
+      let(:prg_path) do
+        File.join(dir, "early.prg").tap do |path|
+          File.binwrite(path, [0x00, 0x08, 0x00, 0x99, 0x00].pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "types RUN after loading" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer).to have_received(:type_text).with("run\r")
+      end
+    end
+
+    context "with a PRG file that starts itself through a vector" do
+      let(:prg_path) do
+        File.join(dir, "vector.prg").tap do |path|
+          File.binwrite(path, ([0x26, 0x03] + ([0xea] * 0x600)).pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "does not type RUN, though it runs past BASIC start" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer).not_to have_received(:type_text)
+      end
+
+      it "leaves VARTAB alone" do
+        vartab = computer.ram.read(0x2d, 2)
+        described_class.attach(computer, prg_path)
+        expect(computer.ram.read(0x2d, 2)).to eq(vartab)
+      end
+    end
+
     context "with a P00 file" do
       let(:p00_path) do
         File.join(dir, "game.p00").tap do |path|

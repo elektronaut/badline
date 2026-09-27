@@ -235,6 +235,11 @@ title shows `[MUTED]` while it's off.
   `Media.attach(computer, path, cartridge: { flash_jumper: true })`, with
   `bank_jumper: true` to run from the second 64K of a 128K image. The
   GMod2 EEPROM and the Retro Replay clock port aren't there.
+- **GEO-RAM**: 64K to 4M of RAM seen through the `$DE00` page, with the
+  `$DFFE`/`$DFFF` page and block registers. It takes the expansion port,
+  so it can't sit alongside a cartridge:
+  `computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512))`.
+  Its contents are lost when the emulator quits.
 
 Known gaps:
 
