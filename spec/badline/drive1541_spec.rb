@@ -211,6 +211,7 @@ describe Badline::Drive1541 do
     before do
       skip "needs #{rom_file}: the 1541 DOS, 325302-01 and 901229-05 as one 16 KB image" unless File.exist?(rom_file)
       path = blank_d64(File.join(dir, "disk.d64"), name: "GCR TEST")
+      give_disk_id(path)
       Badline::Storage::D64Image.new(path).write_file("data", program)
       drive = described_class.new
       drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
@@ -219,6 +220,14 @@ describe Badline::Drive1541 do
     end
 
     after { FileUtils.remove_entry(dir) }
+
+    # The DOS copies 18/0 $A0-$AA into the directory's header line, and a
+    # $00 there would end that BASIC line early.
+    def give_disk_id(path)
+      bytes = File.binread(path).bytes
+      bytes[d64_offset(18, 0) + 0xa0, 11] = [0xa0, 0xa0, *"ID".bytes, 0xa0, *"2A".bytes, *[0xa0] * 4]
+      File.binwrite(path, bytes.pack("C*"))
+    end
 
     # Runs until BASIC has printed READY. +count+ times, or 30 s have passed.
     def run_until_ready(count)
@@ -229,7 +238,8 @@ describe Badline::Drive1541 do
     it "loads and lists the directory" do
       computer.on_init { computer.type_text("load\"$\",8\rlist\r") }
       run_until_ready(3)
-      expect(output.output.upcase).to include("\"GCR TEST").and include("DATA").and include("BLOCKS FREE")
+      expect(output.output.upcase).to include("\"GCR TEST        \" ID 2A")
+        .and include("\"DATA\"").and include("BLOCKS FREE")
     end
 
     it "loads a program to its own address" do
