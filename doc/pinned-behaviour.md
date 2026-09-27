@@ -751,10 +751,10 @@ named, all in `testbench-vicii-new`, and moves no 6569 row. Pixel counts
 are the row's diff with the rule removed.
 
 - **Grey dots.** Where the 6569 still shows a colour register's old value
-  on the first pixel after a write, the 8565 shows light grey (`$f`), for
-  the border, the background registers (`VIC::ColorPatches`) and the
-  sprite colours (`VIC::Sprites::GREY_DOT`). A write that leaves the value
-  as it was shows its dot too.
+  on the first pixel after a write, the 8565 shows light grey
+  (`VIC::GREY_DOT`, `$f`), for the border, the background registers
+  (`VIC::ColorPatches`) and the sprite colours (`VIC#log_sprite_change`).
+  A write that leaves the value as it was shows its dot too.
   - The background and border dot is pinned by `rmwtest` (1655 px), every
     spritesplit row whose `$d021` staircase it crosses (60 px each) and
     `vicii_reg_timing` (275 px, 282/289 for `-a5`/`-ff`). The sprite dot
@@ -809,6 +809,10 @@ are the row's diff with the rule removed.
     (92 → 124 px), whose `%00` and `%01` pairs after an ECM+MCM or
     ECM+BMM+MCM split keep their first pixel black. `videomode-y` shows a
     `%01` pair on time into multicolour text.
+  - Spec guard: *keeps a background pixel 0 black out of an invalid mode
+    into multicolour bitmap* and *shows pixel 0 on time out of an invalid
+    mode into multicolour text* in
+    [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
 - **The light pen latches one extra half-pixel**, where the 6569 adds two.
   - Pinned by `lp-trigger/test2new`, which measures the trigger delay and
     fails with two.
