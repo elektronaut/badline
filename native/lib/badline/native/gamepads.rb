@@ -46,8 +46,9 @@ module Badline
 
       def open_controller(index)
         controller = SDL.SDL_GameControllerOpen(index)
-        # Spinel's FFI compares a NULL pointer equal to nil (docs/FFI.md).
-        return if controller == nil # rubocop:disable Style/NilComparison
+        # SDL returns NULL when the controller won't open, which Spinel's FFI
+        # reads as nil.
+        return if controller.nil?
 
         puts "Gamepad on joystick #{PORTS[@controllers.size]}: #{SDL.SDL_GameControllerName(controller)}"
         @controllers << controller
