@@ -15,9 +15,8 @@ describe Badline::Native::Options do
       expect(options.media).to eq("")
     end
 
-    it "autostarts, paced, with the default sound, until closed" do
-      expect([options.autostart?, options.paced?, options.sound?, options.frames])
-        .to eq([true, true, described_class::SOUND, 0])
+    it "autostarts, paced, with sound, until closed" do
+      expect([options.autostart?, options.paced?, options.sound?, options.frames]).to eq([true, true, true, 0])
     end
 
     it "leaves the SID model and the song to the media" do
@@ -57,12 +56,16 @@ describe Badline::Native::Options do
     expect(parse("--no-autostart").autostart?).to be(false)
   end
 
-  it "plays sound with --sound" do
-    expect(parse("--sound").sound?).to be(true)
+  it "turns sound off with --no-sound" do
+    expect(parse("--no-sound").sound?).to be(false)
   end
 
-  it "leaves sound off with --no-sound, whichever comes last" do
-    expect(parse("--sound", "--no-sound").sound?).to be(false)
+  it "takes whichever of --sound and --no-sound comes last" do
+    expect(parse("--no-sound", "--sound").sound?).to be(true)
+  end
+
+  it "marks --sound as the default in the help" do
+    expect(described_class::HELP).to include("(F10 mutes) (default)")
   end
 
   it "takes the testing knobs" do

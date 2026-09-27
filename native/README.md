@@ -63,7 +63,7 @@ them.
 
 ```sh
 tmp/native/badline [options] [media]
-tmp/native/badline --sound vendor/OneLoad64-Games-Collection-v5/IK+.crt
+tmp/native/badline vendor/OneLoad64-Games-Collection-v5/IK+.crt
 ```
 
 It takes `exe/badline-ruby`'s window options, parsed by
@@ -74,8 +74,10 @@ OptionParser. `badline --help` lists them:
   `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
   the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
-- `--sound` plays the SID, and F10 mutes and unmutes it. Sound is off
-  unless asked for (`--no-sound`), as in `exe/badline-ruby`.
+- The SID plays through the host's audio device, and F10 mutes and
+  unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
+  runs below real time and plays only with `--sound`, the native build
+  plays unless told not to (`--sound` is accepted too).
 - `--version` names the build.
 
 Values can also come as `--song=2`, and `--` ends the options. Three more
@@ -119,7 +121,7 @@ There is no gamepad, mouse or paddle support yet.
 
 The SID records at the rate the audio device opens with, 44.1 kHz unless
 the device prefers another, and each frame's samples go onto SDL's audio
-queue (`SDL_QueueAudio`). The pacing follows `exe/badline-ruby --sound`:
+queue (`SDL_QueueAudio`). The pacing follows `exe/badline-ruby --sound`'s:
 
 - The device starts once the queue holds 80 ms.
 - Once the device plays, it is the clock. Each frame waits until the queue

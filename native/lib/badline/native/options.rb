@@ -11,7 +11,7 @@ module Badline
       class Error < StandardError; end
 
       # Whether the SID plays unless --sound or --no-sound says otherwise.
-      SOUND = false
+      SOUND = true
 
       SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
