@@ -74,7 +74,7 @@ def format_rate(cycles, elapsed)
 end
 
 computer = Badline::Computer.new
-puts Badline::Media.attach(computer, media_path) if media_path
+puts Badline::Media.attach(computer, media_path, disk: { read_only: true }) if media_path
 
 fast_forward = options[:fast_forward] || (media_path ? 5_000_000 : 3_000_000)
 print "Booting (#{fast_forward} cycles)... "

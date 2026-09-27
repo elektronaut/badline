@@ -127,6 +127,8 @@ OptionParser. `badline --help` lists them:
   `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
   the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
+- `--read-only` mounts a disk image write-protected, leaving its file
+  unchanged.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build

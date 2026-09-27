@@ -83,6 +83,18 @@ describe Badline::Media do
         expect(described_class.attach(computer, d64_path))
           .to include("device 8")
       end
+
+      it "mounts it read-write" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d64_path)
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: false))
+      end
+
+      it "mounts it write-protected with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d64_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
+      end
     end
 
     context "with a D71 image" do
@@ -115,6 +127,12 @@ describe Badline::Media do
           .to have_received(:mount)
           .with(instance_of(Badline::Storage::D81Image))
       end
+
+      it "mounts it write-protected with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d81_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
+      end
     end
 
     context "with a T64 archive" do
@@ -130,6 +148,12 @@ describe Badline::Media do
         expect(computer)
           .to have_received(:mount)
           .with(instance_of(Badline::Storage::T64))
+      end
+
+      it "mounts it with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, t64_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::T64))
       end
 
       it "types the autostart command" do
@@ -205,6 +229,13 @@ describe Badline::Media do
         allow(Badline::Cartridge).to receive(:from_file)
         described_class.attach(computer, crt_path, cartridge: { flash_jumper: true })
         expect(Badline::Cartridge).to have_received(:from_file).with(crt_path, flash_jumper: true)
+      end
+
+      it "leaves the disk options to disk images" do
+        allow(computer).to receive(:attach_cartridge)
+        allow(Badline::Cartridge).to receive(:from_file)
+        described_class.attach(computer, crt_path, disk: { read_only: true })
+        expect(Badline::Cartridge).to have_received(:from_file).with(crt_path)
       end
     end
 
@@ -385,6 +416,11 @@ describe Badline::Media do
     it "mounts a disk image" do
       described_class.insert_disk(computer, d64_path)
       expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::D64Image))
+    end
+
+    it "inserts a disk image write-protected with read_only" do
+      described_class.insert_disk(computer, d64_path, read_only: true)
+      expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
     end
 
     it "mounts a directory" do

@@ -29,7 +29,10 @@ media = options.media
 begin
   sid_model = options.sid_model || Badline::Media.sid_model(media.empty? ? nil : media)
   computer = Badline::Computer.new(sid_model:)
-  puts Badline::Media.attach(computer, media, autostart: options.autostart?, song: options.song) unless media.empty?
+  unless media.empty?
+    puts Badline::Media.attach(computer, media, autostart: options.autostart?, song: options.song,
+                                                disk: { read_only: options.read_only? })
+  end
 rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e
