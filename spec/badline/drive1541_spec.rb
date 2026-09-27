@@ -139,6 +139,7 @@ describe Badline::Drive1541 do
 
     let(:idle_loop) { 0xebe7..0xec9d }
     let(:boot) { self.class.boot }
+
     it "reaches the idle loop" do
       expect(idle_loop).to cover(boot[:booted_at])
     end
