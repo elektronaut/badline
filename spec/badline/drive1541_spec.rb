@@ -44,7 +44,14 @@ describe Badline::Drive1541 do
 
   describe "VIA 1's port B" do
     it "reads the serial bus released and the jumpers for device 8" do
-      expect(drive.via1.peek(0x1800)).to eq(0x1a)
+      drive.via1.poke(0x1802, 0x1a) # DATA OUT, CLK OUT and ATNA driven low
+      expect(drive.via1.peek(0x1800)).to eq(0x00)
+    end
+
+    # Undriven outputs float high into the inverters, which pull CLK and
+    # DATA until the DOS sets the port up.
+    it "pulls CLK and DATA from reset" do
+      expect(drive.via1.peek(0x1800)).to eq(0x1f)
     end
 
     it "reads the jumpers for device 9" do

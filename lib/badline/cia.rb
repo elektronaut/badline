@@ -13,7 +13,11 @@ module Badline
     # C64C, which differs from it only in its interrupt control register.
     MODELS = %i[mos6526 mos6526a].freeze
 
-    attr_reader :start, :control_a, :control_b, :peripheral, :serial, :model
+    attr_reader :start, :control_a, :control_b, :serial, :model
+
+    # What's on the ports outside the chip. It pulls port lines low through
+    # read_a and read_b, and on CIA 1 drives PB4 through port_b4_high?.
+    attr_accessor :peripheral
 
     def interrupt_status = @icr.status
 

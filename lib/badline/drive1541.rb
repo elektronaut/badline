@@ -16,7 +16,7 @@ module Badline
   class Drive1541
     CLOCK_HZ = 1_000_000
 
-    attr_reader :cpu, :bus, :via1, :via2, :cycles
+    attr_reader :cpu, :bus, :via1, :via2, :cycles, :device, :serial_bus
 
     def ram = @bus.ram
 
@@ -24,13 +24,30 @@ module Badline
     # path. +device+ is the number the jumpers on VIA 1's PB5 and PB6 set,
     # 8 to 11.
     def initialize(rom: nil, host_clock_hz: TimeOfDay::CLOCK_HZ, device: 8, debug: false)
-      @via1 = VIA.new(start: 0x1800, peripheral: SerialPort.new(device:))
+      @device = device
+      @serial_port = SerialPort.new(device:)
+      @via1 = VIA.new(start: 0x1800, peripheral: @serial_port)
       @via2 = VIA.new(start: 0x1c00)
       @bus = Bus.new(rom: rom || ROM.load("dos1541.rom", 0xc000), via1: @via1, via2: @via2)
       @cpu = CPU.new(@bus, debug:)
       @host_clock_hz = host_clock_hz
       @phase = 0
       @cycles = 0
+      @serial_bus = nil
+      # CA1 powers up at the level of a released ATN, without an edge.
+      @via1.ca1 = false
+      @via1.reset!
+      connect(IECBus.new)
+    end
+
+    # Plugs the drive into a serial bus, leaving the one it was on. A drive
+    # starts out on a bus of its own, with nothing else on it.
+    def connect(serial_bus)
+      @serial_bus&.detach(self)
+      @serial_bus = serial_bus
+      @serial_port.bus = serial_bus
+      serial_bus.attach(self)
+      @via1.ca1 = serial_bus.atn_low?
     end
 
     # The serial bus's RESET line reaches the CPU and both VIAs. RAM keeps
@@ -54,7 +71,13 @@ module Badline
     # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
     # do, and either one pulls IRQ. Nothing drives NMI on the 1541. The CPU
     # runs whether or not the motor turns, since it answers ATN.
+    #
+    # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
+    # high as the C64 asserts ATN. Only the C64 drives ATN, and it runs
+    # ahead of the drive in each host cycle, so sampling the line here
+    # catches every change on the drive cycle it happens in.
     def cycle!
+      @via1.ca1 = @serial_bus.atn_low?
       @via1.cycle!
       @via2.cycle!
       @cpu.irq = @via1.irq? || @via2.irq?
