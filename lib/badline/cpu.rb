@@ -40,6 +40,7 @@ module Badline
       @brk = false
       @pending_write = false
       @stalled_at = nil
+      @so_high = true
 
       @cycles = 0
       @instructions = 0
@@ -86,6 +87,20 @@ module Badline
     def stall!
       @stalled_at = @cycles
       sample_while_stalled
+    end
+
+    # The 6502's SO (set overflow) pin, which the 6510 leaves out, so the
+    # C64 never drives it. A falling edge sets V and a held level does
+    # nothing more.
+    def so=(high)
+      @status.overflow = true if @so_high && !high
+      @so_high = high
+    end
+
+    # Pulses SO: pulls it low, which sets V, and releases it.
+    def so!
+      @status.overflow = true
+      @so_high = true
     end
 
     def jammed?

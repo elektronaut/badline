@@ -16,3 +16,9 @@ the C128's C64 mode.
 character.rom
 -------------
 The character generator ROM.
+
+dos1541.rom
+-----------
+The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01
+($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drive1541 loads it.
+Not in the repository yet; the specs that boot it skip until it's here.
