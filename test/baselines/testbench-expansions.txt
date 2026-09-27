@@ -1,0 +1,4 @@
+GEO-RAM/georam64.prg	PASS
+GEO-RAM/georamtest-auto.prg	PASS
+GEO-RAM/newtest-auto.prg	PASS
+memory-expansions/c64-georam-emd.prg	PASS
