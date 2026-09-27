@@ -61,7 +61,7 @@ describe Badline::Checkpoint do
     end
 
     it "leaves the VIC's collision registers set" do
-      computer.vic.poke(0xd01e, 0x03)
+      computer.vic.instance_variable_get(:@registers).collide!(0x1e, 0x03)
       described_class.take(computer)
       expect(computer.vic.peek(0xd01e)).to eq(0x03)
     end

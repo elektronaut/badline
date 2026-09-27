@@ -125,8 +125,12 @@ module Badline
       @read_pages[addr >> 8].peek(addr)
     end
 
+    # A write to $00 or $01 goes to the port, but the RAM below is still
+    # write-enabled, and takes whatever is left on the bus: the byte the VIC
+    # fetched in the phi1 half of the cycle.
     def poke(addr, value)
       if addr < 0x02
+        @ram.poke(addr, @vic.phi1_data)
         addr.zero? ? @port_ddr = value : @port_out = value
         update_port!
       else

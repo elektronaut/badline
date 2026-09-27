@@ -106,8 +106,10 @@ module Badline
         # Run only makes sense for programs at BASIC start.
         return unless autostart && load_addr == BASIC_START
 
+        # The end of the program, where BASIC's variables start, and where
+        # the KERNAL's LOAD leaves its end address.
         end_addr = load_addr + data.length - 2
-        computer.ram.write(0x2d, [end_addr & 0xff, end_addr >> 8])
+        [0x2d, 0xae].each { |pointer| computer.ram.write(pointer, [end_addr & 0xff, end_addr >> 8]) }
         computer.type_text("run\r")
       end
     end
