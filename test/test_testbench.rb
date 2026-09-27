@@ -174,8 +174,10 @@ class TestTestbenchExpansions < Minitest::Test
     Testbench::Testlist.parse("#{@dir}/,#{prg},exitcode,100000,#{options}")
   end
 
-  def test_keeps_a_geo512k_row_from_any_subtree
-    assert_equal 512, parse("geo512k").georam
+  def test_keeps_a_row_for_each_emulated_expansion
+    %w[geo512k plus60k plus256k].each do |option|
+      assert_equal option, parse(option).expansion
+    end
   end
 
   def test_drops_a_missing_program
@@ -186,11 +188,11 @@ class TestTestbenchExpansions < Minitest::Test
     assert_nil parse("reu512k")
   end
 
-  def test_a_plain_row_has_no_georam
-    assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").georam
+  def test_a_plain_row_has_no_expansion
+    assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").expansion
   end
 
-  def test_only_an_expansions_run_takes_a_georam_row
+  def test_only_an_expansions_run_takes_an_expansion_row
     test = parse("geo512k")
 
     refute_includes Testbench::Rows.plain, test
@@ -573,7 +575,7 @@ class TestTestbenchEngine < Minitest::Test
     def dir_abs = "/tests"
     def cia_model = :mos6526
     def vic_model = :mos6569
-    def georam = nil
+    def expansion = nil
   end
 
   def setup
@@ -594,10 +596,10 @@ class TestTestbenchEngine < Minitest::Test
                  Testbench::Engine.spec(test)
   end
 
-  def test_a_test_line_ends_with_the_georam_size
-    test = Testbench::TestCase.new("../GEO-RAM", "t.prg", "exitcode", 1000, ["geo512k"])
+  def test_a_test_line_ends_with_the_expansion
+    test = Testbench::TestCase.new("../plus60k", "t.prg", "exitcode", 1000, ["plus60k"])
 
-    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\t512\n")
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices

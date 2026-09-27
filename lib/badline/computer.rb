@@ -5,7 +5,9 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :address_bus, :cpu, :cycles, :region
+    attr_reader :address_bus, :cpu, :cycles
+
+    def region = address_bus.region
 
     def vic = address_bus.vic
 
@@ -29,12 +31,12 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
-    # The region sets the clock, the VIC's raster and the mains frequency
-    # the CIAs' TOD clocks count. Only PAL runs as yet.
-    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569,
-                   region: Region::PAL)
-      @region = region
-      @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:, region:)
+    # The machine options (sid_model:, cia_model:, vic_model:, region: and
+    # ram_expansion:) configure the AddressBus. The region sets the clock,
+    # the VIC's raster and the mains frequency the CIAs' TOD clocks count.
+    # Only PAL runs as yet.
+    def initialize(debug: false, **machine)
+      @address_bus = AddressBus.new(**machine)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
@@ -99,10 +101,10 @@ module Badline
     end
 
     # The RES line reaches the CPU and its port, both CIAs, the SID, the
-    # cartridge port and, through the serial bus's RESET line, the drive.
-    # The VIC has no reset pin.
+    # cartridge port, a RAM expansion and, through the serial bus's RESET
+    # line, the drive. The VIC has no reset pin.
     def reset!
-      address_bus.reset_port!
+      address_bus.reset!
       @cia1.reset!
       @cia2.reset!
       @sid.reset!

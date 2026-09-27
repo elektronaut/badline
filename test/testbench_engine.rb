@@ -20,7 +20,7 @@ module Testbench
     # A test as a line of the list the build reads.
     def self.spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.cia_model, test.vic_model, test.georam]
+       test.cia_model, test.vic_model, test.expansion]
         .join("\t") << "\n"
     end
 

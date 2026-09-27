@@ -42,9 +42,10 @@
 # runs on the 6569.
 #
 # --expansions runs the rows that ask for a memory expansion badline
-# emulates instead, from any subtree: geo512k, a 512K GEO-RAM. Each boots
-# with the expansion plugged in, as VICE starts it, then loads and runs
-# its program like any other row.
+# emulates instead, from any subtree: geo512k, a 512K GEO-RAM, and
+# plus60k and plus256k, the +60K and +256K RAM expansions. Each boots with
+# the expansion fitted, as VICE starts it, then loads and runs its program
+# like any other row.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -99,13 +100,13 @@ module Testbench
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # Disk images and memory expansions other than GEO-RAM are not emulated.
-  # A mountcrt row runs only under --carts, a cia-new row, which asks for
-  # the 6526A, only under --cia-new, a vicii-new row, which asks for the
-  # 8565, only under --vicii-new, and a row that asks for an expansion in
-  # EXPANSIONS only under --expansions.
+  # Disk images and memory expansions other than GEO-RAM, the +60K and the
+  # +256K are not emulated. A mountcrt row runs only under --carts, a
+  # cia-new row, which asks for the 6526A, only under --cia-new, a
+  # vicii-new row, which asks for the 8565, only under --vicii-new, and a
+  # row that asks for an expansion in EXPANSIONS only under --expansions.
   SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|
-                  reu|isepic|dqbb|plus60k|plus256k|ramcart/x
+                  reu|isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
 
   # Rows that can't apply to badline. Both need a true 1541: they upload
@@ -121,9 +122,8 @@ module Testbench
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
 
-  # The memory expansions a row can ask for, by testlist option, and the
-  # GEO-RAM size in kilobytes each one plugs in.
-  EXPANSIONS = { "geo512k" => 512 }.freeze
+  # The memory expansions a row can ask for, by testlist option.
+  EXPANSIONS = %w[geo512k plus60k plus256k].freeze
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -164,10 +164,10 @@ module Testbench
     # The CIA and the VIC-II, the pair a suite's machine is built from.
     def models = [cia_model, vic_model]
 
-    # The size of the GEO-RAM the row asks for, in kilobytes, or nil.
-    def georam
-      options.each { |option| return EXPANSIONS[option] if EXPANSIONS.key?(option) }
-      nil
+    # The testlist option naming the memory expansion the row asks for, or
+    # nil.
+    def expansion
+      options.find { |option| EXPANSIONS.include?(option) }
     end
 
     def name
@@ -236,7 +236,7 @@ module Testbench
     def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false)
 
     def include?(test)
-      test.cartridge.nil? != carts && test.models == models && test.georam.nil? != expansions
+      test.cartridge.nil? != carts && test.models == models && test.expansion.nil? != expansions
     end
   end
 
@@ -291,7 +291,7 @@ module Testbench
 
     def runnable?(test, dir)
       return runnable_cartridge?(test) if test.cartridge
-      return File.exist?(File.join(test.dir_abs, test.prg)) if test.georam
+      return File.exist?(File.join(test.dir_abs, test.prg)) if test.expansion
 
       included?(dir, test.cia_model)
     end
@@ -613,8 +613,8 @@ module Testbench
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      @machines[[cartridge, *test.models, test.georam]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
-        Testbench.machine(cartridge, test.cia_model, test.vic_model, test.georam)
+      @machines[[cartridge, *test.models, test.expansion]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+        Testbench.machine(cartridge, test.cia_model, test.vic_model, test.expansion)
       end
     end
 

@@ -179,9 +179,9 @@ it, `testbench` (`VICII/`) unless given another, and compares the rows
 against the suite's baseline in `test/baselines/` as
 `rake regression:<suite>` does. `[all]` runs `testbench`,
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
-`testbench-cpu`, `testbench-carts`, `testbench-cia-new`, `testbench-vicii-new` and
-`testbench-general` in turn, and fails at the end if any
-of them changed. `SHARDS` and `RESUME=1` work as they do for
+`testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
+`testbench-vicii-new`, `testbench-general` and `testbench-expansions` in
+turn, and fails at the end if any of them changed. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
 The task runs `bin/testbench --engine tmp/spinel/testbench`, so CRuby
@@ -195,10 +195,12 @@ per shard, which reads them one per line, as tab-separated fields:
 KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
 ```
 
-EXPANSION is the size in K of the GEO-RAM the test plugs in.
+EXPANSION is the testlist option naming the memory expansion the test
+fits: `geo512k`, `plus60k` or `plus256k`.
 
 The compiled binary only emulates. For each test it builds a fresh
-machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`), booted to the cycle where a program loads unless the test starts
+machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`) and
+its memory expansion, if any, booted to the cycle where a program loads unless the test starts
 from a cartridge, and runs the test with `Testbench::Execution` from
 `test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
 process. It prints what the test left behind, which `Testbench::Engine`
