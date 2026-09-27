@@ -17,15 +17,46 @@ describe Badline::Drive1541::Bus do
       bus.poke(0x07ff, 0x5a)
       expect(bus.ram.peek(0x07ff)).to eq(0x5a)
     end
+  end
 
-    it "is mirrored every 2 KB below $1800" do
+  # Pinned by VICE-testprogs drive/openbus, which passes on a real 1541.
+  describe "open bus at $0800-$17FF" do
+    it "reads the last byte on the data bus" do
       bus.poke(0x0123, 0x42)
+      bus.peek(0x0123)
       expect([0x0923, 0x1123].map { |a| bus.peek(a) }).to eq([0x42, 0x42])
     end
 
-    it "takes writes through its mirrors" do
+    it "reads back the last byte written" do
+      bus.poke(0x1000, 0x5c)
+      expect(bus.peek(0x0800)).to eq(0x5c)
+    end
+
+    it "doesn't mirror RAM" do
+      bus.poke(0x0456, 0x99)
+      bus.peek(0xc0aa)
+      expect(bus.peek(0x0c56)).to eq(0xaa)
+    end
+
+    it "ignores writes" do
       bus.poke(0x1456, 0x99)
-      expect(bus.peek(0x0456)).to eq(0x99)
+      expect(bus.ram.peek(0x0456)).to eq(0)
+    end
+
+    it "reads the high byte of LDA abs's address" do
+      cpu = Badline::CPU.new(bus)
+      bus.ram.write(0x0300, [0xad, 0x23, 0x0c]) # LDA $0C23
+      cpu.program_counter = 0x0300
+      cpu.step!
+      expect(cpu.a).to eq(0x0c)
+    end
+
+    it "reads what the dummy read of a page-crossing LDA abs,X found" do
+      cpu = Badline::CPU.new(bus)
+      bus.ram.write(0x0700, [0xa2, 0x01, 0xbd, 0xff, 0x07]) # LDX #$01; LDA $07FF,X
+      cpu.program_counter = 0x0700 # the dummy read at $0700 finds LDX's opcode
+      2.times { cpu.step! }
+      expect(cpu.a).to eq(0xa2)
     end
   end
 
@@ -67,9 +98,15 @@ describe Badline::Drive1541::Bus do
   end
 
   describe "the undecoded A13 and A14" do
-    it "repeats RAM at $2000-$7FFF" do
+    it "repeats RAM at $2000, $4000 and $6000" do
       bus.poke(0x0010, 0x11)
-      expect([0x2010, 0x4810, 0x7010].map { |a| bus.peek(a) }).to eq([0x11, 0x11, 0x11])
+      expect([0x2010, 0x4010, 0x6010].map { |a| bus.peek(a) }).to eq([0x11, 0x11, 0x11])
+    end
+
+    it "repeats open bus at $2800, $4800 and $6800" do
+      bus.poke(0x0010, 0x11)
+      bus.peek(0xc0aa)
+      expect([0x2810, 0x4810, 0x7010].map { |a| bus.peek(a) }).to eq([0xaa, 0xaa, 0xaa])
     end
 
     it "repeats the VIAs at $2000-$7FFF" do
