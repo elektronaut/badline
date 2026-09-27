@@ -26,9 +26,11 @@ module Badline
     # Drive1541#byte_ready!).
     #
     # The stepper moves the head a half track each time the phase steps
-    # by one, inwards for +1 and outwards for -1. Tracks run from half
-    # track 2 (track 1), where the head stops against the end of its rail,
-    # to Disk::MAX_HALF_TRACK.
+    # by one, inwards for +1 and outwards for -1. Each half track has a
+    # phase of its own, the low two bits of its number, so the head sits on
+    # a whole track when phase 0 or 2 holds it. Tracks run from half track
+    # 2 (track 1), where the head stops against the end of its rail, to
+    # Disk::MAX_HALF_TRACK.
     class Mechanism
       MOTOR = 0x04
       LED = 0x08
@@ -52,7 +54,6 @@ module Badline
         @drive = drive
         @disk = nil
         @half_track = START_HALF_TRACK
-        @phase = 3
         @motor = false
         @led = false
         @zone = 0
@@ -155,11 +156,13 @@ module Badline
         @index = 0 if @index == @bytes.length
       end
 
-      # The phase can only pull the head to a neighbouring half track. Two
-      # steps at once pull it both ways, and it stays.
+      # The stepper's rotor turns with the head, a phase to each half
+      # track, so the energized phase pulls the head to the neighbouring
+      # half track it belongs to. A phase two away pulls both ways, and the
+      # head stays. Against the stop at track 1 the head can't follow, and
+      # the next phase back in pulls it off again.
       def step(phase)
-        move = (phase - @phase) & 0x03
-        @phase = phase
+        move = (phase - @half_track) & 0x03
         if move == 1
           seek(@half_track + 1)
         elsif move == 3

@@ -21,19 +21,19 @@ describe Badline::Drive1541::Mechanism do
 
   # VIA 2 set up the way the DOS reads: PB0-3 and PB5-6 outputs, CA1 on
   # its falling edge, CA2 (SOE) and CB2 (read mode) high, and port A
-  # latched on CA1.
+  # latched on CA1. Phase 0 holds the head on track 18.
   before do
     drive.ram.write(0x0300, [0x4c, 0x00, 0x03]) # JMP *
     via.poke(0x1c02, 0x6f)
     via.poke(0x1c0c, 0xee)
     via.poke(0x1c0b, 0x01)
-    port_b(0x03)
+    port_b(0x00)
   end
 
   def port_b(value) = via.poke(0x1c00, value)
 
   # Motor on, at the bit rate of the zone, the stepper where it is.
-  def spin(zone) = port_b(0x07 | (zone << 5))
+  def spin(zone) = port_b(0x04 | (zone << 5))
 
   def run(cycles) = cycles.times { drive.cycle! }
 
@@ -59,22 +59,28 @@ describe Badline::Drive1541::Mechanism do
       expect([mechanism.motor_on?, mechanism.led_on?]).to eq([true, true])
     end
 
-    it "has the head on track 18" do
+    # Phase 3 pulls it from track 18 to the half track outside it.
+    it "has the head a half track out from track 18" do
+      expect(mechanism.half_track).to eq(35)
+    end
+
+    it "has it back on track 18 once phase 0 holds it" do
+      mechanism.port_b_written(0x00)
       expect(mechanism.half_track).to eq(36)
     end
   end
 
   describe "port B" do
     it "turns the motor on with PB2" do
-      expect { port_b(0x07) }.to change(mechanism, :motor_on?).from(false).to(true)
+      expect { port_b(0x04) }.to change(mechanism, :motor_on?).from(false).to(true)
     end
 
     it "lights the LED with PB3" do
-      expect { port_b(0x0b) }.to change(mechanism, :led_on?).from(false).to(true)
+      expect { port_b(0x08) }.to change(mechanism, :led_on?).from(false).to(true)
     end
 
     it "selects the bit rate with PB5-6" do
-      port_b(0x43)
+      port_b(0x40)
       expect(mechanism.zone).to eq(2)
     end
 
@@ -84,21 +90,21 @@ describe Badline::Drive1541::Mechanism do
   end
 
   describe "the stepper" do
-    # The phases stepping out from 3, as the DOS's bump does.
-    let(:bump) { Array.new(48) { |n| (2 - n) & 3 } }
+    # The 92 phases stepping out from phase 0, as the DOS's bump does.
+    let(:bump) { Array.new(92) { |n| (-1 - n) & 3 } }
 
     it "moves the head in a half track for each phase step up" do
-      step([0, 1, 2])
+      step([1, 2, 3])
       expect(mechanism.half_track).to eq(39)
     end
 
     it "moves the head out a half track for each phase step down" do
-      step([2, 1, 0, 3])
+      step([3, 2, 1, 0])
       expect(mechanism.half_track).to eq(32)
     end
 
     it "leaves the head where it is for a jump of two phases" do
-      step([1])
+      step([2])
       expect(mechanism.half_track).to eq(36)
     end
 
@@ -107,19 +113,22 @@ describe Badline::Drive1541::Mechanism do
       expect(mechanism.half_track).to eq(2)
     end
 
-    it "steps in from the stop again at once" do
+    # Phase 0 pulls both ways from track 1's phase 2, so the head stays
+    # against the stop until phase 3 comes round.
+    it "steps in from the stop once the phase comes round to it" do
       step(bump)
-      step([(bump.last + 1) & 3, (bump.last + 2) & 3])
-      expect(mechanism.half_track).to eq(4)
+      held = [1, 2].map { |phase| step([phase]) && mechanism.half_track }
+      moved = [3, 0].map { |phase| step([phase]) && mechanism.half_track }
+      expect(held + moved).to eq([2, 2, 3, 4])
     end
 
     it "stops the head at track 42" do
-      step(Array.new(60) { |n| n & 3 })
+      step(Array.new(60) { |n| (n + 1) & 3 })
       expect(mechanism.half_track).to eq(84)
     end
 
     it "steps with the motor off" do
-      port_b(0x00)
+      port_b(0x01)
       expect(mechanism.half_track).to eq(37)
     end
   end
