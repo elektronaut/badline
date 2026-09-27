@@ -155,7 +155,7 @@ jobs:
     env:
       TAG: ${{ needs.release-please.outputs.tag_name }}
       VERSION: ${{ needs.release-please.outputs.version }}
-      HOMEBREW_TAP: elektronaut/homebrew-badline
+      HOMEBREW_TAP: elektronaut/homebrew-tap
     steps:
       - uses: actions/checkout@v6.1.0
         with:

@@ -13,13 +13,13 @@ emulator on CRuby.
 With Homebrew:
 
 ```sh
-brew install elektronaut/badline/badline
+brew install elektronaut/tap/badline
 badline --version
 ```
 
 The formula builds the release's pack (see [Packing](#packing)) with the
 system's C compiler, so it needs no Spinel, and pulls in SDL2. The tap,
-[elektronaut/homebrew-badline](https://github.com/elektronaut/homebrew-badline),
+[elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap),
 isn't published yet.
 
 ## Building
@@ -82,7 +82,7 @@ release, the Build workflow's `homebrew` job packs the tag, builds and
 boots the pack, attaches it to the GitHub release and pushes the formula,
 with the release's url and sha256, to the tap. The job stays off until the
 repository has a `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with
-Contents read and write access to `elektronaut/homebrew-badline`.
+Contents read and write access to `elektronaut/homebrew-tap`.
 
 ## The source
 
