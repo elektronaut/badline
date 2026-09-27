@@ -16,11 +16,11 @@ live sound, which is off by default, stutters. See
 
 ## Requirements
 
-Ruby 4.0 or newer, and SDL2:
+Ruby 4.0 or newer, and the SDL2 library:
 
 ```sh
 brew install sdl2           # macOS
-apt install libsdl2-dev     # Debian/Ubuntu
+apt install libsdl2-2.0-0   # Debian/Ubuntu
 ```
 
 ## Installation
