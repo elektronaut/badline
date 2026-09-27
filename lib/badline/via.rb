@@ -42,6 +42,7 @@ module Badline
       @cb = ControlLines.new(@ifr, c1_flag: InterruptRegister::CB1, c2_flag: InterruptRegister::CB2,
                                    handshake_on_read: false)
       @pb6_high = true
+      @acr = 0x00
       reset!
     end
 
@@ -63,14 +64,8 @@ module Badline
       @ca.cycle! if @ca.pulsing?
       @cb.cycle! if @cb.pulsing?
       @ifr.set(InterruptRegister::TIMER1) if @t1.cycle!(@acr.anybits?(0x40))
-      t2_low = false
-      if @acr.anybits?(0x20)
-        @t2.idle!
-      else
-        @ifr.set(InterruptRegister::TIMER2) if @t2.cycle!(@sr_uses_t2)
-        t2_low = @t2.low_underflowed
-      end
-      @ifr.set(InterruptRegister::SR) if @shift_register.cycle!(t2_low)
+      @ifr.set(InterruptRegister::TIMER2) if @t2.cycle!(@sr_uses_t2)
+      @ifr.set(InterruptRegister::SR) if @shift_register.cycle!(@t2.low_underflowed)
     end
 
     # Port A as driven by ORA and DDRA, input lines floating high.
@@ -116,7 +111,7 @@ module Badline
     def pb6=(high)
       fell = @pb6_high && !high
       @pb6_high = high
-      @ifr.set(InterruptRegister::TIMER2) if fell && @acr.anybits?(0x20) && @t2.pulse!
+      @ifr.set(InterruptRegister::TIMER2) if fell && @t2.pulse!
     end
 
     def ca2_output = @ca.c2_output
@@ -248,9 +243,11 @@ module Badline
     end
 
     # Bits 4-2 pick the shift register's mode. Modes 1, 4 and 5 clock off
-    # timer 2's low byte.
+    # timer 2's low byte. Bit 7 turning on hands PB7 to timer 1 high.
     def write_acr(value)
+      @t1.pb7_enabled! if value.anybits?(0x80) && @acr.nobits?(0x80)
       @acr = value
+      @t2.count_pulses = value.anybits?(0x20)
       mode = (value >> 2) & 0x07
       @shift_register.mode = mode
       @sr_uses_t2 = [1, 4, 5].include?(mode)
