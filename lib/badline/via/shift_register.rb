@@ -35,8 +35,6 @@ module Badline
       OUT_PHI2 = 6
       OUT_EXTERNAL = 7
 
-      BITS = 8
-
       attr_reader :mode, :data
       attr_accessor :cb2_input
 
@@ -62,7 +60,7 @@ module Badline
       # Every read or write of the data register (re)starts the count of
       # eight bits.
       def access!
-        @bits = BITS
+        @bits = 8
       end
 
       # The CB1 level the register drives, or nil when CB1 is an input.
