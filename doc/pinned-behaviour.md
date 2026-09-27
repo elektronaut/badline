@@ -29,6 +29,7 @@ only catches the rows that happen to move.
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
+- [1541 serial port](#1541-serial-port)
 - [SID oscillator](#sid-oscillator)
 - [SID register writes](#sid-register-writes)
 - [SID data bus](#sid-data-bus)
@@ -1073,6 +1074,32 @@ and each was knocked out: removing it fails the rows named.
     before the KERNAL does.
   - Spec guard: *when powered on* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+
+## 1541 serial port
+
+- The drive sees the C64's side of the serial bus a host cycle late. The
+  drive runs after the C64 in each host cycle, so `SerialPort` reads the
+  C64's lines as `latch_host` took them at the end of the previous host
+  cycle, both on VIA 1's port B (DATA IN, CLK IN, ATN IN) and on CA1,
+  which ATN reaches. A CIA 2 write lands for the drive's cycles of the
+  next host cycle, the way the CIA's pins change at the end of the cycle
+  that writes them. The drive's own lines, and what the C64 reads back,
+  stay live.
+- The 2-bit loader that uploads the drive tests' code times its transfer
+  from an ATN edge, and seeing that edge a cycle early loses the first bit
+  pair.
+- Pinned by the `testbench-drive` rows below. Each was checked by having
+  the drive read the live lines (`@bus.atn_low?` and `@bus.low_lines`
+  with no argument) and rerunning the rows:
+  - Fail without the latch (`exit=$ff`): `drive/selftest`,
+    `drive/diskid/diskid1`, `drive/interrupts/timera`, all six
+    `drive/scanner` rows, both `drive/openbus` rows and
+    `drive/viavarious/via1`, `via3a` and `via10`.
+  - Pass either way: `drive/defaults`, `drive/rpm/rpm1` and `rpm2`,
+    `drive/skew/skew1` and `drive/iecdelay/iec-bus-delay-auto`.
+- Spec guard: *sees an assertion from the host cycle after the one it
+  lands in* and *shows the drive the C64's CLK from the host cycle after
+  the write* in [`iec_bus_spec.rb`](../spec/badline/iec_bus_spec.rb).
 
 ## SID oscillator
 
