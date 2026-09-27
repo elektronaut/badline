@@ -235,10 +235,11 @@ describe Badline::IECBus do
     end
   end
 
-  # Needs the real DOS ROM, which the repository doesn't ship yet. The C64
+  # Needs the real DOS ROM, which the repository doesn't ship. The C64
   # boots with the drive on the bus, and BASIC reads the power-on message
   # from the drive's error channel over the real serial bus, since the
-  # serial traps don't answer device 8 with a true drive attached.
+  # serial traps don't answer device 8 with a true drive attached. INPUT#
+  # is illegal in direct mode, so it runs as a program line.
   describe "with the DOS ROM" do
     let(:computer) { Badline::Computer.new }
     let(:rom_file) { File.join(Badline.rom_path, "dos1541.rom") }
@@ -250,9 +251,10 @@ describe Badline::IECBus do
 
     it "reads the power-on message from the drive's error channel" do
       output = computer.capture_output
-      computer.on_init { computer.type_text("open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\r") }
+      computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
       7_000_000.times { computer.cycle! }
-      expect(output.output.upcase).to include(" 73 CBM DOS V2.6 1541 0  0")
+      # PRINT follows each number with a cursor right, which CHROUT capture drops
+      expect(output.output.upcase).to include(" 73CBM DOS V2.6 1541 0 0")
     end
   end
 end
