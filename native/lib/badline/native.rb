@@ -35,6 +35,8 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 
+require "io/buffer"
+
 require "badline/native/build_info"
 require "badline/native/version"
 require "badline/native/options"

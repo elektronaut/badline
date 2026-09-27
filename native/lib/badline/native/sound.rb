@@ -12,9 +12,7 @@ module Badline
     # frame that would take the queue past LIMIT is dropped whole, which
     # only happens unpaced.
     #
-    # Spinel hands an Array of Integers to C as 64-bit words, so each word
-    # carries four samples, the first in the low quarter. A frame's samples
-    # rarely come in fours, and the rest wait for the next frame.
+    # Each frame's samples go to SDL through an IO::Buffer of 16-bit values.
     class Sound
       RATE = 44_100
       AHEAD = 0.08
@@ -31,8 +29,7 @@ module Badline
         @underruns = 0
         @dropped = 0
         @queued = 0
-        @carry = []
-        @words = Array.new(256, 0)
+        @buffer = IO::Buffer.new(4096)
         reset_levels
         open_device if wanted
       end
@@ -114,20 +111,17 @@ module Badline
       end
 
       def queue(samples)
-        carry = @carry + samples
-        count = carry.size / 4
-        @words = Array.new(count, 0) if count > @words.size
-        words = @words
+        count = samples.size
+        bytes = count * 2
+        @buffer.resize(bytes) if bytes > @buffer.size
+        buffer = @buffer
         i = 0
         while i < count
-          at = i * 4
-          words[i] = (carry[at] & 0xffff) | ((carry[at + 1] & 0xffff) << 16) |
-                     ((carry[at + 2] & 0xffff) << 32) | (carry[at + 3] * 0x1_0000_0000_0000)
+          buffer.set_value(:s16, i * 2, samples[i])
           i += 1
         end
-        @carry = carry[count * 4, carry.size - (count * 4)]
-        SDL.SDL_QueueAudio(@device, words, count * 8)
-        @queued += count * 4
+        SDL.SDL_QueueAudio(@device, buffer, bytes)
+        @queued += count
       end
 
       def start
