@@ -39,7 +39,9 @@ module Badline
     # Cycles the data bus holds a value, measured through SID/bitfade.
     BUS_TTL = { mos6581: 0x1d00, mos8580: 0xa2000 }.freeze
 
-    # Scales the filter's 20-bit mix down to a signed 16-bit sample.
+    # Scales the filter's 20-bit mix down to a signed 16-bit sample, as
+    # reSID 0.16 does: three voices at full swing and volume 15 span the
+    # whole range, on either chip.
     SAMPLE_DIVISOR = ((0xfff * 0xff) >> 7) * 3 * 15 * 2 / (2**16)
 
     # Writes the DSP queues between catch-ups. A full queue catches up
