@@ -46,11 +46,13 @@ is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Getting started
 
-Badline needs SDL2, which is available from most package managers.
+Badline needs the SDL2 library, which is available from most package
+managers. Building the native `badline` also needs the SDL2 headers
+(`libsdl2-dev` on Debian/Ubuntu); see [native/README.md](native/README.md).
 
 ```sh
 brew install sdl2           # macOS
-apt install libsdl2-dev     # Debian/Ubuntu
+apt install libsdl2-2.0-0   # Debian/Ubuntu
 ```
 
 Install the dependencies and run the specs:
