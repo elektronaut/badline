@@ -5,12 +5,15 @@ module Badline
     # PC trap on the KERNAL serial SAVE routine ($F5ED, the default ISAVE
     # vector target). Hands device 8 saves to the virtual drive as a PRG
     # (load address followed by the memory range); other devices fall
-    # through to the ROM. The ROM prints SAVING in direct mode and returns
+    # through to the ROM, and so do saves to a disk that doesn't take them
+    # whole. The ROM prints SAVING in direct mode and returns
     # into the trap, which then writes the file and leaves through the
     # ROM's own tail with the registers its UNLISTEN and return leave. A
-    # host write that fails ends the way a 1541 ends a SAVE it can't
+    # write that fails, to a full disk, a name already on it or a host file
+    # that can't be written, ends the way a 1541 ends a SAVE it can't
     # write: the drive stops listening, so ST reads DEVICE NOT PRESENT,
-    # and the ROM returns without an error.
+    # and the ROM returns without an error. A "@" before the drive prefix
+    # writes over a file of the same name.
     class Save < File
       ADDRESS = 0xf5ed
 
@@ -37,6 +40,7 @@ module Badline
       def call
         return unless active?
         return finish if @saving
+        return unless @drive.saves?
 
         @bus.poke(0xb9, SECONDARY)
         return @cpu.program_counter = MISSING_FILE_NAME_EXIT if name.empty?
@@ -54,7 +58,8 @@ module Badline
 
       def finish
         @saving = false
-        @bus.poke(0x90, DEVICE_NOT_PRESENT) unless @drive.save(name, payload)
+        saved = @drive.save(name, payload, replace: full_filename.start_with?("@"))
+        @bus.poke(0x90, DEVICE_NOT_PRESENT) unless saved
         @bus.poke(0xac, @bus.peek(0xae))
         @bus.poke(0xad, @bus.peek(0xaf))
         @cpu.y = 0

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "fileutils"
+require_relative "../support/blank_disk"
 require_relative "../support/cartridge_builder"
 
 RSpec.describe Badline::Computer do
@@ -365,7 +367,8 @@ RSpec.describe Badline::Computer do
       end
 
       it "saves through the backend" do
-        expect(writable).to have_received(:write_file).with("DATA", [0x00, 0xc0, 0xaa, 0xbb])
+        expect(writable).to have_received(:write_file)
+          .with("DATA", [0x00, 0xc0, 0xaa, 0xbb], type: :prg, replace: false)
       end
     end
 
@@ -385,6 +388,58 @@ RSpec.describe Badline::Computer do
 
       it "keeps the drive's RAM, where the last LOAD left its first block" do
         expect(second_disk).to have_received(:read_file_at).with(17, 0)
+      end
+    end
+
+    context "when disk images change mid-session" do
+      include BlankDisk
+
+      let(:dir) { Dir.mktmpdir }
+
+      # The image as its host file holds it
+      def image(name) = Badline::Storage::D64Image.new(File.join(dir, name))
+
+      before do
+        blank_d64(File.join(dir, "first.d64"))
+        blank_d64(File.join(dir, "second.d64"))
+        image("first.d64").write_file("data", [0x00, 0xc0, 0x01])
+        image("second.d64").write_file("other", [0x00, 0xc0, 0x02])
+        computer.mount(image("first.d64"))
+        run_load
+        return_to_caller
+        computer.mount(image("second.d64"))
+      end
+
+      after { FileUtils.remove_entry(dir) }
+
+      it "loads from the disk swapped in" do
+        run_load("OTHER")
+        return_to_caller
+        expect(ram.peek(0xc000)).to eq(0x02)
+      end
+
+      it "saves to the disk swapped in" do
+        run_save
+        return_to_caller
+        expect(image("second.d64").read_file("data")).to eq([0x00, 0xc0, 0xaa, 0xbb])
+      end
+
+      it "leaves the first disk alone" do
+        run_save
+        return_to_caller
+        expect(image("first.d64").read_file("data")).to eq([0x00, 0xc0, 0x01])
+      end
+    end
+
+    context "when a read-only disk replaces one that takes a SAVE" do
+      before do
+        computer.mount(writable)
+        computer.mount(read_only)
+      end
+
+      it "leaves SAVE to the ROM" do
+        run_save
+        expect(computer.cpu.stack_pointer).to eq(0xfd)
       end
     end
 

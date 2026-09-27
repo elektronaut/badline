@@ -329,4 +329,37 @@ describe Badline::Media do
       end
     end
   end
+
+  describe ".insert_disk" do
+    let(:d64_path) do
+      File.join(dir, "disk.d64").tap { |path| File.binwrite(path, "\x00" * 174_848) }
+    end
+
+    before { allow(computer).to receive(:mount) }
+
+    it "mounts a disk image" do
+      described_class.insert_disk(computer, d64_path)
+      expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::D64Image))
+    end
+
+    it "mounts a directory" do
+      described_class.insert_disk(computer, dir)
+      expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::HostDirectory))
+    end
+
+    it "loads nothing" do
+      allow(computer).to receive(:type_text)
+      described_class.insert_disk(computer, d64_path)
+      expect(computer).not_to have_received(:type_text)
+    end
+
+    it "returns a message" do
+      expect(described_class.insert_disk(computer, d64_path)).to eq("Inserted #{d64_path} in device 8")
+    end
+
+    it "refuses anything but a disk" do
+      path = File.join(dir, "tape.t64")
+      expect { described_class.insert_disk(computer, path) }.to raise_error(ArgumentError)
+    end
+  end
 end

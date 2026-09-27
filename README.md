@@ -78,7 +78,7 @@ emulation down.
 | Format | Handling |
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
-| `.d64`, `.d71`, `.d81` | Mounted read-only as device 8, then `LOAD"*",8,1` and `RUN` |
+| `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file, and an image the host can't write acts as a write-protected disk |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
@@ -89,8 +89,15 @@ There is no 1541. Device 8 works by trapping the KERNAL's `LOAD` and
 `SAVE` routines and its serial bus primitives, so files open by name
 through `OPEN` and `CHRIN` as well. The command channel answers `I`,
 `B-P` and `U1` block reads, which covers loaders that read blocks
-directly. Loaders that upload their own code to the drive with `M-W` and
-`M-E`, and copy protection that reads raw GCR, won't work.
+directly. On a disk image it also takes `SAVE` (with `@0:` to replace a
+file), files opened for writing or appending, `S` to scratch, `U2` and
+`B-W` block writes, and `B-A` and `B-F`. Loaders that upload their own
+code to the drive with `M-W` and `M-E`, and copy protection that reads
+raw GCR, won't work.
+
+`Badline::Media.insert_disk(computer, path)` swaps the disk image or
+directory in device 8 while the machine runs, for software that asks for
+another disk.
 
 ## Playing and rendering SID tunes
 
@@ -235,8 +242,8 @@ Known gaps:
   runs below real time. `badline-ruby --headless` plays PSID tunes
   smoothly on their own.
 - No drive emulation, so fast loaders and anything else that runs code
-  on the drive won't work (see [Media](#media)). Disk images are
-  read-only.
+  on the drive won't work (see [Media](#media)). The command channel
+  doesn't rename, copy, format or validate disks.
 - No NTSC machine and no REU.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
