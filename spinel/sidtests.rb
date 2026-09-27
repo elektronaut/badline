@@ -49,7 +49,6 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 require_relative "../test/sidtests_machine"
-require_relative "debug_register"
 
 module SIDTests
   # Runs every test in the list, each on a fresh machine, and returns their
