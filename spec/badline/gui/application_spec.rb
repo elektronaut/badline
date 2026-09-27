@@ -70,6 +70,37 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the host keyboard" do
+    # SDL keycodes for keys KeyMap finds by name.
+    def page_up = 0x4000_004b
+
+    def up = 0x4000_0052
+
+    def press(sym, repeat: false)
+      events = [Badline::SDL::KeyDown.new(sym:, mod: 0, repeat:), Badline::SDL::Quit.new]
+      allow(Badline::SDL).to receive(:poll_event) { events.shift }
+      described_class.new.run
+    end
+
+    it "presses RESTORE with Page Up" do
+      allow(computer).to receive(:press_restore)
+      press(page_up)
+      expect(computer).to have_received(:press_restore)
+    end
+
+    it "ignores Page Up's key repeats" do
+      allow(computer).to receive(:press_restore)
+      press(page_up, repeat: true)
+      expect(computer).not_to have_received(:press_restore)
+    end
+
+    it "types cursor up with Up" do
+      allow(computer).to receive(:cycle!)
+      press(up)
+      expect(computer.keyboard.keys).to eq([:cursor_up])
+    end
+  end
+
   describe "sound" do
     let(:sink) { FakeSink.new(rate: 44_100) }
 

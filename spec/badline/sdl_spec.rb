@@ -14,7 +14,7 @@ describe Badline::SDL do
   end
 
   # state, repeat, two bytes of padding, then the keysym: scancode, sym, mod.
-  def key_event(type, sym, mod) = raw_event(type, [1, 0, 0, 0, 0, sym, mod].pack("C4l2S"))
+  def key_event(type, sym, mod, repeat: 0) = raw_event(type, [1, repeat, 0, 0, 0, sym, mod].pack("C4l2S"))
 
   before { described_class.check(described_class::InitSubSystem.call(described_class::INIT_EVENTS)) }
 
@@ -37,6 +37,11 @@ describe Badline::SDL do
       push(key_event(0x300, described_class::KEY_TAB, described_class::KMOD_SHIFT))
       expect(described_class.poll_event)
         .to eq(described_class::KeyDown.new(sym: described_class::KEY_TAB, mod: described_class::KMOD_SHIFT))
+    end
+
+    it "flags a key repeat" do
+      push(key_event(0x300, described_class::KEY_TAB, 0, repeat: 1))
+      expect(described_class.poll_event.repeat).to be(true)
     end
 
     it "reads a key going up" do

@@ -146,15 +146,15 @@ same-named host key:
 | `RUN/STOP` | `Escape` |
 | `CLR/HOME` | `Home` |
 | `INST/DEL` | `Backspace` |
-| `CRSR ⇔` / `CRSR ⇕` | `Right` / `Down` (add Shift for left and up) |
-| `←` / `↑` | `Left` / `Up` |
+| `CRSR ⇔` / `CRSR ⇕` | `Right` / `Down`, and `Left` / `Up` for the shifted directions |
+| `←` / `↑` | `` ` `` / `]` |
 | `CTRL` | `Left Ctrl` |
 | `C=` | `Left Alt` |
 | `@` | `\` |
 | `:` | `'` |
 | `£` | `End` |
 | `+` / `*` | Keypad `+` / Keypad `*` |
-| `RESTORE` | Not mapped |
+| `RESTORE` | `Page Up` |
 
 `Tab` steps through the input modes and `Shift-Tab` steps back. The
 window title shows the current mode:
@@ -234,7 +234,7 @@ Known gaps:
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.
-- No NTSC machine, no REU, and no `RESTORE` key.
+- No NTSC machine and no REU.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
 

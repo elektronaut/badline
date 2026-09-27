@@ -468,6 +468,37 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "the RESTORE key" do
+    before { 10_000.times { computer.cycle! } }
+
+    # Presses RESTORE on a fresh NMI line and reports whether the CPU saw an
+    # edge.
+    def restore_edge?
+      computer.cpu.nmi = false
+      computer.press_restore
+      computer.cycle!
+      computer.cpu.nmi
+    end
+
+    it "takes an NMI" do
+      expect(restore_edge?).to be(true)
+    end
+
+    it "lets go of the NMI line after the pulse, so a second press takes another" do
+      restore_edge?
+      computer.cycle!
+      expect(restore_edge?).to be(true)
+    end
+
+    it "takes no NMI while CIA 2 holds the line" do
+      { 0xdd0d => 0x81, 0xdd04 => 0x01, 0xdd05 => 0x00, 0xdd0e => 0x19 }.each do |reg, value|
+        computer.cia2.poke(reg, value)
+      end
+      100.times { computer.cycle! }
+      expect(restore_edge?).to be(false)
+    end
+  end
+
   it "ignores the freeze button without a cartridge" do
     expect { computer.press_cartridge_button }.not_to raise_error
   end

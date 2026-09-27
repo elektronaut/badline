@@ -11,6 +11,14 @@ module Badline
   class Keyboard
     include IntegerHelper
 
+    # Keys the C64 types as a combination: cursor up and cursor left are the
+    # shifted cursor keys. Pressing one holds both of its matrix keys, while
+    # a shift key held on its own stays down when it is released.
+    COMBINATIONS = {
+      cursor_up: %i[lshift cursor_v],
+      cursor_left: %i[lshift cursor_h]
+    }.freeze
+
     attr_reader :keys, :matrix
 
     def initialize
@@ -70,13 +78,21 @@ module Badline
 
     # Columns held down per row, as a bit mask of port B lines.
     def row_masks
-      @row_masks ||= matrix.map do |row|
-        row.each_with_index.sum { |key, column| keys.include?(key) ? 1 << column : 0 }
+      @row_masks ||= begin
+        pressed = held
+        matrix.map do |row|
+          row.each_with_index.sum { |key, column| pressed.include?(key) ? 1 << column : 0 }
+        end
       end
     end
 
+    # The matrix keys held down, with each combination expanded.
+    def held
+      keys.flat_map { |key| COMBINATIONS[key] || [key] }
+    end
+
     def valid_key?(key)
-      matrix.flatten.include?(key)
+      COMBINATIONS.key?(key) || matrix.flatten.include?(key)
     end
   end
 end
