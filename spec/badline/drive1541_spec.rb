@@ -131,6 +131,8 @@ describe Badline::Drive1541 do
   end
 
   describe "#host_cycle!" do
+    subject(:drive) { described_class.new(rom: Drive1541ROM.stub, host_clock_hz: 985_248) }
+
     before { load([0x4c, 0x00, 0x03]) } # JMP *
 
     def drive_cycles_per_host_cycle(drive, count)
@@ -148,6 +150,11 @@ describe Badline::Drive1541 do
 
     it "runs one or two drive cycles per PAL host cycle" do
       expect(drive_cycles_per_host_cycle(drive, 1000).tally.keys.sort).to eq([1, 2])
+    end
+
+    it "runs one drive cycle per host cycle until the host sets its clock" do
+      drive = described_class.new(rom: Drive1541ROM.stub)
+      expect(drive_cycles_per_host_cycle(drive, 6)).to eq([1] * 6)
     end
 
     it "runs no drive cycle on some cycles of a faster host" do
@@ -168,31 +175,37 @@ describe Badline::Drive1541 do
   #   1541,00,00", which the reset routine builds in RAM on its way to the
   #   idle loop.
   describe "with the DOS ROM" do
-    subject(:drive) { described_class.new }
+    # One boot, about 1M drive cycles, shared by the examples: where the CPU
+    # was once booted, RAM then, and whether it was in the idle loop on
+    # each of the next 100,000 cycles.
+    def self.boot
+      @boot ||= begin
+        drive = described_class.new
+        in_idle_loop = -> { (0xebe7..0xec9d).cover?(drive.cpu.program_counter) }
+        drive.cycle! until in_idle_loop.call || drive.cycles >= 3_000_000
+        { booted_at: drive.cpu.program_counter, ram: drive.ram.read(0, 0x0800).pack("C*"),
+          in_loop: Array.new(100_000) { drive.cycle! && in_idle_loop.call } }
+      end
+    end
 
     let(:idle_loop) { 0xebe7..0xec9d }
+    let(:boot) { self.class.boot }
     let(:rom_file) { File.join(Badline.rom_path, "dos1541.rom") }
 
     before do
       skip "needs #{rom_file}: the 1541 DOS, 325302-01 and 901229-05 as one 16 KB image" unless File.exist?(rom_file)
-      drive.cycle! until idle_loop.cover?(drive.cpu.program_counter) || drive.cycles >= 3_000_000
     end
 
     it "reaches the idle loop" do
-      expect(idle_loop).to cover(drive.cpu.program_counter)
+      expect(idle_loop).to cover(boot[:booted_at])
     end
 
     it "stays in the idle loop" do
-      in_loop = Array.new(100_000) do
-        drive.cycle!
-        idle_loop.cover?(drive.cpu.program_counter)
-      end
-      expect(in_loop.count(true)).to be > 50_000
+      expect(boot[:in_loop].count(true)).to be > 50_000
     end
 
     it "has the power-on message on the error channel" do
-      ram = drive.ram.read(0, 0x0800).pack("C*")
-      expect(ram).to include("73,CBM DOS V2.6 1541,00,00")
+      expect(boot[:ram]).to include("73,CBM DOS V2.6 1541,00,00")
     end
   end
 

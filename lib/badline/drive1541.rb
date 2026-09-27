@@ -17,7 +17,8 @@ module Badline
   # clock through a fractional accumulator: each host cycle adds 1 MHz
   # worth of phase, and every whole host period in it runs a drive cycle.
   # Against the PAL C64's 985,248 Hz that's one drive cycle per host cycle
-  # and a second one about every 67.
+  # and a second one about every 67. The host sets its clock on attaching
+  # the drive, and until then the drive runs one cycle per host cycle.
   #
   # VIA 2's port B runs the Mechanism, which reads a Disk put in with
   # insert.
@@ -25,13 +26,14 @@ module Badline
     CLOCK_HZ = 1_000_000
 
     attr_reader :cpu, :bus, :via1, :via2, :mechanism, :cycles, :device, :serial_bus
+    attr_writer :host_clock_hz
 
     def ram = @bus.ram
 
     # +rom+ covers $C000-$FFFF, and defaults to the DOS image in the ROM
     # path. +device+ is the number the jumpers on VIA 1's PB5 and PB6 set,
     # 8 to 11.
-    def initialize(rom: nil, host_clock_hz: TimeOfDay::CLOCK_HZ, device: 8, debug: false)
+    def initialize(rom: nil, host_clock_hz: CLOCK_HZ, device: 8, debug: false)
       @device = device
       @serial_port = SerialPort.new(device:)
       @via1 = VIA.new(start: 0x1800, peripheral: @serial_port)

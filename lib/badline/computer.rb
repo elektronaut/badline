@@ -29,6 +29,9 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
+    # The system clock. PAL only for now.
+    def clock_hz = TimeOfDay::CLOCK_HZ
+
     def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
       @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:)
       @cpu = CPU.new(@address_bus, debug:)
@@ -156,6 +159,7 @@ module Badline
     # still serve a mounted image.
     def attach_drive1541(drive)
       @iec_bus.detach(@drive1541) if @iec_bus && @drive1541
+      drive.host_clock_hz = clock_hz
       @drive1541 = drive
       drive.connect(iec_bus)
       @serial_trap&.device = serial_trap_device
