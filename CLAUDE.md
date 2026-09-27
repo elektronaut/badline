@@ -221,6 +221,24 @@ because the suite can stay green while the rule breaks.
 
 Before filing an issue or opening a pull request, read CONTRIBUTING.md and follow it. Use the exact headings from its skeletons. Report only what you observed or verified, and don't include hypotheses about causes. Open an issue before writing non-trivial code; only changes with one obvious fix (typos, broken links, clear-cut fixes) go straight to a pull request.
 
+### Working from issues
+
+Open issues are agreed work. An agent told to pick issues works this way:
+
+- Pick an open issue without the `in-progress` label whose dependencies
+  (named in its body) have merged. Add the label and a comment saying you've
+  taken it before you start
+- Work in a worktree from `origin/main` as described under *Working in
+  parallel*. The issue's text is your brief. If it turns out wrong or
+  blocked, comment on the issue and stop rather than widening the scope
+- Open one pull request per issue with `Closes #N` in its body, and run
+  only the rows your change can reach. Picking an issue is permission to
+  commit, push and open that pull request
+- Never merge, and never enable auto-merge. The planner session reviews
+  every pull request, answers through PR reviews, and merges
+- Fix review findings on the same branch. If you drop an issue, remove
+  the label and say why in a comment
+
 ## Git
 
 - Hunks are staged by hand during review, so a partially staged file is
