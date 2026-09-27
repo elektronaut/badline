@@ -4,8 +4,8 @@
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
-#                             [--carts] [--cia-new] [--vicii-new] [--shards N]
-#                             [--list]
+#                             [--carts] [--cia-new] [--vicii-new]
+#                             [--expansions] [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
@@ -40,6 +40,11 @@
 # machine whose VIC-II is an 8565, and compares a screenshot row against
 # the reference VICE keeps for the 8565 when there is one. Every other row
 # runs on the 6569.
+#
+# --expansions runs the rows that ask for a memory expansion badline
+# emulates instead, from any subtree: geo512k, a 512K GEO-RAM. Each boots
+# with the expansion plugged in, as VICE starts it, then loads and runs
+# its program like any other row.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -94,12 +99,13 @@ module Testbench
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # Disk images and memory expansions are not emulated. A mountcrt row
-  # runs only under --carts, a cia-new row, which asks for the 6526A, only
-  # under --cia-new, and a vicii-new row, which asks for the 8565, only
-  # under --vicii-new.
+  # Disk images and memory expansions other than GEO-RAM are not emulated.
+  # A mountcrt row runs only under --carts, a cia-new row, which asks for
+  # the 6526A, only under --cia-new, a vicii-new row, which asks for the
+  # 8565, only under --vicii-new, and a row that asks for an expansion in
+  # EXPANSIONS only under --expansions.
   SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|
-                  reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
+                  reu|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
 
   # Rows that can't apply to badline. Both need a true 1541: they upload
@@ -114,6 +120,10 @@ module Testbench
   CIA_NEW_OPTION = "cia-new"
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
+
+  # The memory expansions a row can ask for, by testlist option, and the
+  # GEO-RAM size in kilobytes each one plugs in.
+  EXPANSIONS = { "geo512k" => 512 }.freeze
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -153,6 +163,12 @@ module Testbench
 
     # The CIA and the VIC-II, the pair a suite's machine is built from.
     def models = [cia_model, vic_model]
+
+    # The size of the GEO-RAM the row asks for, in kilobytes, or nil.
+    def georam
+      options.each { |option| return EXPANSIONS[option] if EXPANSIONS.key?(option) }
+      nil
+    end
 
     def name
       return cartridge if prg.empty?
@@ -213,17 +229,25 @@ module Testbench
     end
   end
 
+  # Which rows a run takes: the mountcrt rows or the others, the rows that
+  # ask for the models, the CIA and the VIC-II, and the rows that ask for a
+  # memory expansion or the others.
+  Rows = Data.define(:carts, :models, :expansions) do
+    def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false)
+
+    def include?(test)
+      test.cartridge.nil? != carts && test.models == models && test.georam.nil? != expansions
+    end
+  end
+
   module Testlist
     module_function
 
     # Filters are id substrings, matched as a union; no filter runs
-    # everything inside the scope. Only the rows that ask for the models,
-    # the CIA and the VIC-II, are listed.
-    def tests(filters, scope: nil, exclude: nil, carts: false, models: DEFAULT_MODELS)
+    # everything inside the scope.
+    def tests(filters, scope: nil, exclude: nil, rows: Rows.plain)
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
-        .select do |test|
-          test.cartridge.nil? != carts && test.models == models && selected?(test, filters, scope, exclude)
-        end
+        .select { |test| rows.include?(test) && selected?(test, filters, scope, exclude) }
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
@@ -262,7 +286,14 @@ module Testbench
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
       return if NOT_APPLICABLE.include?(test.id)
 
-      test if test.cartridge ? runnable_cartridge?(test) : included?(dir, test.cia_model)
+      test if runnable?(test, dir)
+    end
+
+    def runnable?(test, dir)
+      return runnable_cartridge?(test) if test.cartridge
+      return File.exist?(File.join(test.dir_abs, test.prg)) if test.georam
+
+      included?(dir, test.cia_model)
     end
 
     def included?(dir, cia_model)
@@ -577,12 +608,13 @@ module Testbench
 
     # A cartridge test starts from power-on, so its machine is never booted:
     # one that loads a program boots in the child, with the cartridge in.
-    # Each pair of CIA and VIC-II models gets a machine of its own.
+    # Each pair of CIA and VIC-II models and each expansion gets a machine
+    # of its own.
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      @machines[[cartridge, test.cia_model, test.vic_model]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
-        Testbench.machine(cartridge, test.cia_model, test.vic_model)
+      @machines[[cartridge, *test.models, test.georam]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+        Testbench.machine(cartridge, test.cia_model, test.vic_model, test.georam)
       end
     end
 
@@ -666,11 +698,12 @@ if $PROGRAM_NAME == __FILE__
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
-  carts = !ARGV.delete("--carts").nil?
   models = [ARGV.delete("--cia-new") ? :mos6526a : :mos6526, ARGV.delete("--vicii-new") ? :mos8565 : :mos6569]
+  rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
+                             expansions: !ARGV.delete("--expansions").nil?)
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:, models:)
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?
