@@ -86,7 +86,11 @@ describe Badline::VIA::Timer2 do
   end
 
   describe "counting PB6 pulses" do
-    before { via.poke(0x180b, 0x20) }
+    # ACR bit 5 reaches the counter a cycle after the write.
+    before do
+      via.poke(0x180b, 0x20)
+      via.cycle!
+    end
 
     it "stands still on φ2" do
       start_timer(3)
@@ -106,11 +110,23 @@ describe Badline::VIA::Timer2 do
       expect(pulses(4) { flag? }).to eq([false, false, true, true])
     end
 
-    it "counts down on the first cycle after switching back to φ2" do
+    # Pinned by viavarious via1 (test G) and via2 (tests I and K): the
+    # counter stands still for one more cycle after the ACR write.
+    it "counts down from the second cycle after switching back to φ2" do
       start_timer(5)
       run(3)
       via.poke(0x180b, 0x00)
-      expect(trace(2) { via.timer2 }).to eq([4, 3])
+      expect(trace(3) { via.timer2 }).to eq([5, 4, 3])
+    end
+
+    # Pinned by viavarious via9 (tests A to L), which toggles ACR bit 5
+    # every 24 cycles and sees the counter move 16 and 8 cycles apart.
+    it "counts φ2 for one more cycle after switching to pulses" do
+      via.poke(0x180b, 0x00)
+      start_timer(5)
+      run(2)
+      via.poke(0x180b, 0x20)
+      expect(trace(3) { via.timer2 }).to eq([3, 3, 3])
     end
 
     it "sets the flag only once per load" do
