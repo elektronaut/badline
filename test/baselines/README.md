@@ -58,6 +58,17 @@ Recorded output of the headless hardware suites, one file per suite:
   `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
   again under `vicii-old`, with the same id. Its FAIL rows are the ones
   [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
+- `testbench-drive.txt` — the same runner with `--drive`, over the
+  testlist's `drive/` rows, each run on a machine with a true 1541 on the
+  serial bus and the row's `mountd64` image in it. Nothing is mounted
+  through the LOAD trap, so every disk access goes through the drive's
+  DOS, which needs `dos1541.rom` in the ROM path. Rows of the other
+  included subtrees that mount a `.d64` would run here too, and rows that
+  mount a `.g64` or `.p64` drop out. `drive/1541-testsuite`'s two rows,
+  at about twelve hours each, run only under `--1541-testsuite` and have
+  no baseline. `drive/readtest` has no testlist row, so nothing runs it.
+  The Spinel build has no drive, so `rake spinel:testbench` leaves this
+  suite out. All `exitcode` tests.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -175,6 +186,8 @@ nothing runs on a push or a pull request. Any suite, nightly or opt-in, can
 also be started by name from the Actions tab, and a run started there and
 the nightly run never cancel each other. The `testbench-*` suites and
 `sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
+`testbench-drive` runs only as a rake task, since the workflow doesn't
+list it.
 The separate Spinel workflow runs the Spinel suites on every pull request
 that touches emulation, harness or build paths. Its jobs aren't required
 checks yet, and the CRuby nightly run above goes on as before.
@@ -198,6 +211,10 @@ what the suite cost before it was sharded:
 
 The `testbench-cia-new` and `testbench-vicii-new` rows were measured on a
 four-core cloud container, not the laptop, and on CRuby with YJIT.
+`testbench-drive` was measured there too, without `drive/format`: its
+other 37 rows took 88 minutes serial and 24 at four shards. The 19
+`viavarious` rows are 60 of those minutes, about three each, since a
+second CPU runs alongside the machine.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
@@ -304,6 +321,15 @@ explain.
     and 73 passes, with x64sc's cycle count one higher than badline's
     column. The failures are a run from line 58 to line 61 and single
     cycles on lines 56, 61, 62 and 63.
+- `drive/inertia/drive-emu-check.prg` (`testbench-drive`, exit `$ff`)
+  prints `00,EMU,00,00`, which its readme gives as every emulator's
+  answer; a real 1541 says `OK`. It steps the head four half tracks in
+  about 500 cycles each, which the model follows at once, and then finds
+  the head two tracks away from the header it searches for. A real head
+  can't follow steps that fast. Passing it takes a stepper that moves the
+  head over time.
+- `drive/rpm/rpm3.prg` (`testbench-drive`, exit none) writes to the disk,
+  which the drive can't do yet, and never reports.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
