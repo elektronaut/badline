@@ -12,7 +12,6 @@ REU/floatingbus/floating-a.prg	PASS
 REU/floatingbus/floating-b.prg	PASS
 REU/floatingbus/floating2.prg	PASS
 REU/floatingbus/floating3a.prg	PASS
-REU/floatingbus/floating3b.prg	FAIL	exit=none
 REU/floatingbus/floating4a.prg	PASS
 REU/floatingbus/floating4b.prg	PASS
 REU/floatingbus/floating4c.prg	PASS

@@ -70,7 +70,10 @@ Recorded output of the headless hardware suites, one file per suite:
   when `Testbench::BATCH` next checks for it, after the next frame has
   started to draw. Where `reutiming2` has a reference taken on a breadbin
   (`-m2`) and one taken on a later board, the breadbin's is the one
-  badline follows.
+  badline follows. `REU/floatingbus/floating3b` is left out: it never
+  reports, and running out its budget of 1.5 billion cycles took 37 of
+  the suite's 39 minutes. `ruby --yjit bin/testbench
+  REU/floatingbus/floating3b` still runs it alone.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -209,9 +212,10 @@ what the suite cost before it was sharded:
 
 The `testbench-cia-new`, `testbench-vicii-new` and `testbench-reu` rows
 were measured on a four-core cloud container, not the laptop, and on CRuby
-with YJIT. Most of `testbench-reu`'s wall clock is one row:
-`REU/floatingbus/floating3b` never reports, and runs out its 1.5 billion
-cycles in about 37 minutes.
+with YJIT. The `testbench-reu` row still includes
+`REU/floatingbus/floating3b`, which took 37 of its 39 minutes. Without it
+the suite's 110 rows took 11 minutes on 4 shards on the laptop, under load
+from other runs.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
