@@ -177,7 +177,8 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
-`testbench-carts`; GEO-RAM → `testbench-expansions`; SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K
+or +256K → `testbench-expansions`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz

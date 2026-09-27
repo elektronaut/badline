@@ -62,7 +62,8 @@ REGRESSION_SUITES = {
 # the same id.
 # testbench-expansions is the testlist's rows that ask for a memory
 # expansion badline emulates, from whichever subtree lists them: the
-# geo512k rows, on a machine with a 512K GEO-RAM.
+# geo512k rows on a machine with a 512K GEO-RAM, and the plus60k and
+# plus256k rows on a machine with that RAM expansion fitted.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {

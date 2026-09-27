@@ -29,8 +29,8 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
-    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526)
-      @address_bus = AddressBus.new(sid_model:, cia_model:)
+    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, ram_expansion: nil)
+      @address_bus = AddressBus.new(sid_model:, cia_model:, ram_expansion:)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
@@ -94,10 +94,10 @@ module Badline
     end
 
     # The RES line reaches the CPU and its port, both CIAs, the SID, the
-    # cartridge port and, through the serial bus's RESET line, the drive.
-    # The VIC has no reset pin.
+    # cartridge port, a RAM expansion and, through the serial bus's RESET
+    # line, the drive. The VIC has no reset pin.
     def reset!
-      address_bus.reset_port!
+      address_bus.reset!
       @cia1.reset!
       @cia2.reset!
       @sid.reset!

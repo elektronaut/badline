@@ -188,7 +188,8 @@ it, `testbench` (`VICII/`) unless given another, and compares the rows
 against the suite's baseline in `test/baselines/` as
 `rake regression:<suite>` does. `[all]` runs `testbench`,
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
-`testbench-cpu`, `testbench-carts` and `testbench-cia-new` in turn, and fails at the end if any
+`testbench-cpu`, `testbench-carts`, `testbench-cia-new` and
+`testbench-expansions` in turn, and fails at the end if any
 of them changed. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
@@ -200,11 +201,12 @@ each shard's tests to `<results>.engine-N` and starts one build process
 per shard, which reads them one per line, as tab-separated fields:
 
 ```
-KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA    CARTRIDGE or PROGRAM empty if the test has none
+KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA EXPANSION    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
 ```
 
 The compiled binary only emulates. For each test it builds a fresh
-machine with the CIAs the test asks for (`mos6526` or `mos6526a`), booted to the cycle where a program loads unless the test starts
+machine with the CIAs the test asks for (`mos6526` or `mos6526a`) and
+its memory expansion (`geo512k`, `plus60k` or `plus256k`), if any, booted to the cycle where a program loads unless the test starts
 from a cartridge, and runs the test with `Testbench::Execution` from
 `test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
 process. It prints what the test left behind, which `Testbench::Engine`

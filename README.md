@@ -185,7 +185,9 @@ title shows `[MUTED]` while it's off.
   [65x02 single step tests](https://github.com/SingleStepTests/65x02).
   `JAM` opcodes halt the CPU until reset.
 - **Memory**: banking through the 6510 port, including the cartridge
-  `EXROM`/`GAME` lines and Ultimax mode.
+  `EXROM`/`GAME` lines and Ultimax mode. The +60K and +256K RAM
+  expansions fit with `Badline::Computer.new(ram_expansion: :plus60k)` or
+  `:plus256k`, banked through their register at `$D100`.
 - **VIC-II** (PAL 6569): the five standard graphics modes and the
   invalid ones, sprites with multicolour, expansion, priority and
   pixel-level collisions, raster interrupts, bad lines, sprite DMA, the
