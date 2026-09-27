@@ -32,6 +32,11 @@ describe SpinelSubset do
     let(:root) { File.expand_path("..", __dir__) }
     let(:files) { Dir.glob(File.join(root, "native/{badline.rb,lib/**/*.rb}")) }
 
+    it "leaves out the files outside the subset" do
+      requires = File.read(File.join(root, "native/lib/badline/native.rb")).scan(/^require "(.+)"/).flatten
+      expect(requires.map { |name| "lib/#{name}.rb" }.select { |path| described_class.cruby_only?(path) }).to be_empty
+    end
+
     it "stays inside Spinel's subset" do
       violations = described_class.scan(files, root:).map(&:to_s)
       expect(violations).to be_empty, "Outside Spinel's subset:\n#{violations.join("\n")}"

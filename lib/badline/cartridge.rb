@@ -70,7 +70,10 @@ module Badline
       end
     end
 
+    # Keeps the image it was built from, so a snapshot's machine can build
+    # the same cartridge before the snapshot's state goes into it.
     def initialize(crt)
+      @crt = crt
       @name = crt.name
       @exrom = crt.exrom
       @game = crt.game

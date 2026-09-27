@@ -7,6 +7,9 @@ module Badline
       TITLE = "Badline"
       TOGGLE_SYM = SDL::KEY_TAB
       MUTE_SYM = SDL::KEY_F10
+      SAVE_SYM = SDL::KEY_F11
+      RESTORE_SYM = SDL::KEY_F12
+      HOST_SYMS = [TOGGLE_SYM, MUTE_SYM, SAVE_SYM, RESTORE_SYM].freeze
       REVERSE_MOD = SDL::KMOD_SHIFT
 
       SHARED_KEYS = %i[cursor_up cursor_left cursor_h cursor_v space w a s d lshift].freeze
@@ -30,8 +33,7 @@ module Badline
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
       def initialize(media_path: nil, autostart: true, song: nil, sid_model: nil, sound: false)
-        @computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
-        puts Media.attach(@computer, media_path, autostart:, song:) if media_path
+        @computer = boot(media_path, autostart:, song:, sid_model:)
 
         @mode = :keyboard
         @pot_device = nil
@@ -86,15 +88,37 @@ module Badline
         end
       end
 
+      # A .vsf snapshot restores the machine it holds, built with that
+      # machine's chip models, and F12 goes back to it.
+      def boot(media_path, autostart:, song:, sid_model:)
+        if media_path && File.extname(media_path).casecmp?(".vsf")
+          @snapshot_path = media_path
+          return Snapshot.load(media_path) { |line| puts line }.tap { puts "Restored #{media_path}" }
+        end
+
+        Computer.new(sid_model: sid_model || Media.sid_model(media_path)).tap do |computer|
+          puts Media.attach(computer, media_path, autostart:, song:) if media_path
+        end
+      end
+
       def handle_key_down(event)
-        return cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1) if event.sym == TOGGLE_SYM
-        return toggle_mute if event.sym == MUTE_SYM
+        return host_key(event) if HOST_SYMS.include?(event.sym)
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
           joystick(port).press(dir)
         else
           press_key(KeyMap.parse(event), event.repeat)
+        end
+      end
+
+      # Tab, F10, F11 and F12 drive the front end, not the machine.
+      def host_key(event)
+        case event.sym
+        when TOGGLE_SYM then cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1)
+        when MUTE_SYM then toggle_mute
+        when SAVE_SYM then save_snapshot unless event.repeat
+        else restore_snapshot unless event.repeat
         end
       end
 
@@ -108,7 +132,7 @@ module Badline
       end
 
       def handle_key_up(event)
-        return if [TOGGLE_SYM, MUTE_SYM].include?(event.sym)
+        return if HOST_SYMS.include?(event.sym)
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
@@ -146,6 +170,24 @@ module Badline
 
         @stream.toggle_mute
         update_title
+      end
+
+      # F11 saves the machine to a new snapshot in the working directory.
+      def save_snapshot
+        path = "badline-#{Time.now.strftime('%Y%m%d-%H%M%S')}.vsf"
+        @computer.save_snapshot(path)
+        @snapshot_path = path
+        puts "Saved #{path}, F12 restores it"
+      end
+
+      # F12 restores the snapshot last saved or loaded. The input mode stays
+      # the host's, so a mouse or paddles go back in their port.
+      def restore_snapshot
+        return puts("No snapshot to restore, F11 saves one") unless @snapshot_path
+
+        @computer.restore_snapshot(@snapshot_path) { |line| puts line }
+        attach_pot_device if POT_DEVICES.key?(@mode)
+        puts "Restored #{@snapshot_path}"
       end
 
       def update_title

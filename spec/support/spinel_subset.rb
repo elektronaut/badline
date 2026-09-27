@@ -36,8 +36,17 @@ class SpinelSubset
     ["lib/badline/cpu/stack_operations.rb", "send with a computed name"]
   ].freeze
 
+  # Files that reflect on the machine's objects by design, and stay out of
+  # the native build: snapshots write out and restore every instance
+  # variable. native/lib/badline/native.rb doesn't require them.
+  CRUBY_ONLY = %w[lib/badline/snapshot.rb lib/badline/snapshot/].freeze
+
   def self.allowed?(violation)
-    ALLOWED.include?([violation.path, violation.construct])
+    ALLOWED.include?([violation.path, violation.construct]) || cruby_only?(violation.path)
+  end
+
+  def self.cruby_only?(path)
+    CRUBY_ONLY.any? { |entry| entry.end_with?("/") ? path.start_with?(entry) : path == entry }
   end
 
   def self.scan(paths, root:)

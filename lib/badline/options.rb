@@ -22,8 +22,9 @@ module Badline
              badline-ruby [options] tune.sid --audio-out FILE
 
       Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-      a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
-      a directory to mount as device 8. It opens in the emulator window.
+      a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, a
+      .vsf snapshot, or a directory to mount as device 8. It opens in the
+      emulator window, where F11 saves a snapshot and F12 restores it.
 
       --headless plays a .sid tune on the host's audio device without the
       window, and --audio-out renders it to 16-bit PCM instead. The

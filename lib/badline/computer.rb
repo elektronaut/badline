@@ -79,10 +79,17 @@ module Badline
     end
 
     def attach_cartridge(cartridge)
+      connect_cartridge(cartridge)
+      power_cycle!
+    end
+
+    # Puts the cartridge in the expansion port and wires its clock and NMI
+    # line to the machine, leaving the machine's state as it is. A
+    # restored snapshot's cartridge comes back through here.
+    def connect_cartridge(cartridge)
       cartridge.clock = -> { @cycles }
       cartridge.on_nmi_change { |level| @cartridge_nmi = level }
       address_bus.attach_cartridge(cartridge)
-      power_cycle!
     end
 
     # A cartridge goes in with the power off, so attaching one switches the
