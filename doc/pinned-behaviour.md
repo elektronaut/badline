@@ -402,6 +402,14 @@ only catches the rows that happen to move.
 - Spec guard: *#collide_upto* in
   [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
   four examples each fail on a one-pixel change.
+- $D01E and $D01F are read-only. A write, including the write-back of a
+  read-modify-write such as `LSR $D01E`, changes neither register.
+  - Pinned by `general/fuxxortest/ef2-inst4a`, which shifts each frame's
+    collision out of $D01E with `LSR`. Storing the shifted value back
+    leaves bit 0 set for the next frame, which reads as a collision one
+    pixel to the right of every real one.
+  - Spec guard: *with a collision register* in
+    [`vic/registers_spec.rb`](../spec/badline/vic/registers_spec.rb).
 
 ## VIC border and idle state
 
