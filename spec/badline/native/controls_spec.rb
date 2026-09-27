@@ -126,5 +126,17 @@ describe Badline::Native::Controls do
       controls.key(82, true)
       expect(computer.joystick2.port_bits & 0x1f).to eq(0b11110)
     end
+
+    it "types shifted cursor up with the up arrow in keyboard mode" do
+      controls.key(82, true)
+      expect(computer.keyboard.keys).to eq([:cursor_up])
+    end
+
+    it "presses RESTORE with Page Up in a pot device mode" do
+      cycle_to(:mouse1)
+      allow(computer).to receive(:press_restore)
+      controls.key(75, true)
+      expect(computer).to have_received(:press_restore)
+    end
   end
 end
