@@ -114,10 +114,10 @@ module Badline
         @sync = value.anybits?(0x02)
         test = value.anybits?(0x08)
         if test
+          raise_test unless @test
           @accumulator = 0x000000
           @pulse = 0xfff
           @shift_pipeline = 0
-          @shift_register_reset = @shift_register_reset_delay unless @test
         elsif @test
           release_test(previous)
         end
