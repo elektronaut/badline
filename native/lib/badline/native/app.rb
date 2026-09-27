@@ -23,6 +23,7 @@ module Badline
         @slowest = 0.0
         open_window
         @sound = Sound.new(computer.sid, options.sound?)
+        @gamepads = Gamepads.new(computer)
       end
 
       def run
@@ -32,6 +33,7 @@ module Badline
         @pacer.start(@started)
         @reported_samples = 0
         frame while @running
+        @gamepads.close
         @sound.close
         close_window
       end
@@ -41,6 +43,7 @@ module Badline
       def frame
         stamps = [now]
         handle_events
+        @gamepads.poll
         stamps << now
         emulate
         stamps << now
@@ -103,6 +106,8 @@ module Badline
             @running = false
           elsif [SDL::KEYDOWN, SDL::KEYUP].include?(type) && SDL.event_repeat(SDL.event).zero?
             handle_key(SDL.event_scancode(SDL.event), type == SDL::KEYDOWN)
+          elsif [SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED].include?(type)
+            @gamepads.rescan
           end
         end
       end
