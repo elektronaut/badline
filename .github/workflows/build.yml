@@ -102,6 +102,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -123,3 +125,90 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
       - uses: rubygems/release-gem@v1
+
+  # The Homebrew jobs stay off until the HOMEBREW_TAP_TOKEN secret exists: a
+  # token with contents: write on the tap repository below. Secrets can't
+  # appear in a job's `if`, so this job reports whether it is set.
+  homebrew-gate:
+    name: Homebrew gate
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+    steps:
+      - id: gate
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -n "$HOMEBREW_TAP_TOKEN" ]; then enabled=true; else enabled=false; fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+
+  # Packs the native badline at the release tag, checks that the pack builds
+  # and boots, attaches it to the release and points the tap's formula at it.
+  homebrew:
+    name: Homebrew formula
+    needs: [release-please, homebrew-gate]
+    if: needs.homebrew-gate.outputs.enabled == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      VERSION: ${{ needs.release-please.outputs.version }}
+      HOMEBREW_TAP: elektronaut/homebrew-badline
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1.324.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Install SDL2
+        run: brew install sdl2
+      # The same Spinel commit the Spinel workflow tests with.
+      - name: Build Spinel
+        run: |
+          ref=$(sed -n 's/^  SPINEL_REF: //p' .github/workflows/spinel.yml)
+          git clone --quiet --filter=blob:none https://github.com/matz/spinel "$RUNNER_TEMP/spinel"
+          git -C "$RUNNER_TEMP/spinel" checkout --quiet "$ref"
+          make -C "$RUNNER_TEMP/spinel" deps
+          make -C "$RUNNER_TEMP/spinel" -j"$(sysctl -n hw.ncpu)"
+      - name: Pack the native badline
+        run: |
+          SPINEL="$RUNNER_TEMP/spinel/bin/spinel" bundle exec rake native:pack
+          echo "TARBALL=$(ls tmp/native/badline-"$VERSION"-spinel-*.tar.gz)" >> "$GITHUB_ENV"
+      - name: Build and run the pack
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          mkdir "$RUNNER_TEMP/check"
+          tar -xzf "$TARBALL" -C "$RUNNER_TEMP/check"
+          cd "$RUNNER_TEMP/check/badline-$VERSION"
+          LIBRARY_PATH="$(brew --prefix)/lib" make -j"$(sysctl -n hw.ncpu)"
+          export BADLINE_ROM_PATH="$PWD/roms"
+          ./badline --version
+          ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
+      - name: Attach the pack to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$TARBALL" --clobber
+      - name: Update the tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$(basename "$TARBALL")"
+          sha256=$(shasum -a 256 "$TARBALL" | cut -d' ' -f1)
+          tap="$RUNNER_TEMP/tap"
+          git clone --quiet "https://x-access-token:$HOMEBREW_TAP_TOKEN@github.com/$HOMEBREW_TAP.git" "$tap"
+          mkdir -p "$tap/Formula"
+          sed -E -e "s|^  url \".*\"|  url \"$url\"|" -e "s|^  sha256 \".*\"|  sha256 \"$sha256\"|" \
+            packaging/homebrew/badline.rb > "$tap/Formula/badline.rb"
+          git -C "$tap" config user.name "github-actions[bot]"
+          git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$tap" add Formula/badline.rb
+          git -C "$tap" commit --quiet -m "badline $VERSION"
+          git -C "$tap" push --quiet
