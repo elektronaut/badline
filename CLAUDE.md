@@ -169,7 +169,9 @@ the rows your change can't reach tell you nothing about it.
   nightly run. It also runs from the Actions tab on demand. It never runs
   on push or on pull requests, so one verdict can cover a day's merges.
   The `testbench-*` and `sid-8580` suites run from the Actions tab on
-  demand
+  demand. The Spinel workflow runs the Spinel suites on pull requests
+  that touch emulation, harness or build paths. Its jobs aren't required
+  checks yet, and the CRuby Regression nightly runs as before
 - The one exception is a change whose reach you can't bound to a set of
   filters, such as reordering `Computer#cycle!` or changing the LOAD trap
   every suite loads through. Ask before running a full suite for it, and
