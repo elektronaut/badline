@@ -7,9 +7,25 @@ RSpec.describe Badline::VIC::Registers do
 
   describe "#read" do
     context "with an ordinary register" do
-      before { registers.write(0x18, 0x15) }
+      before { registers.write(0x15, 0xa5) }
 
       it "returns the stored byte unmasked" do
+        expect(registers.read(0x15)).to eq(0xa5)
+      end
+    end
+
+    context "with the horizontal control register ($D016)" do
+      before { registers.write(0x16, 0x08) }
+
+      it "forces the unused bits 7-6 to 1" do
+        expect(registers.read(0x16)).to eq(0xc8)
+      end
+    end
+
+    context "with the memory control register ($D018)" do
+      before { registers.write(0x18, 0x14) }
+
+      it "forces the unused bit 0 to 1" do
         expect(registers.read(0x18)).to eq(0x15)
       end
     end

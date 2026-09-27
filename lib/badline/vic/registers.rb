@@ -91,6 +91,8 @@ module Badline
 
       def read(reg)
         case reg
+        when 0x16 then @bytes[reg] | 0xc0 # bits 7-6 unused, read 1
+        when 0x18 then @bytes[reg] | 0x01 # bit 0 unused, reads 1
         when 0x1a, 0x20..0x2e then @bytes[reg] | 0xf0
         when 0x1e, 0x1f then read_clear(reg) # collision registers clear on read
         when 0x2f..0x3f then 0xff
