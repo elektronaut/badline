@@ -175,6 +175,9 @@ nothing runs on a push or a pull request. Any suite, nightly or opt-in, can
 also be started by name from the Actions tab, and a run started there and
 the nightly run never cancel each other. The `testbench-*` suites and
 `sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
+The separate Spinel workflow runs the Spinel suites on every pull request
+that touches emulation, harness or build paths. Its jobs aren't required
+checks yet, and the CRuby nightly run above goes on as before.
 
 An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
 count is a timeout rather than a runtime — measure, do not assume. Wall

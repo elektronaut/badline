@@ -1,10 +1,22 @@
 name: Spinel
 on:
   workflow_dispatch:
-  # Pull requests start the workflow, but its jobs only run when the
-  # repository variable SPINEL_ON_PULL_REQUEST is "true" (Settings > Secrets
-  # and variables > Actions > Variables). Unset, they skip.
+  # Pull requests that touch emulation, harness or build paths start the
+  # workflow, but its jobs only run when the repository variable
+  # SPINEL_ON_PULL_REQUEST is "true" (Settings > Secrets and variables >
+  # Actions > Variables). Unset, they skip. The jobs aren't required checks.
   pull_request:
+    paths:
+      - "lib/**"
+      - "native/**"
+      - "spinel/**"
+      - "test/**"
+      - "bin/**"
+      - "exe/**"
+      - "Rakefile"
+      - "Gemfile.lock"
+      - "*.gemspec"
+      - ".github/workflows/spinel.yml"
 concurrency:
   group: spinel-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
