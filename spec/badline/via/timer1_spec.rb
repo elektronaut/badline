@@ -26,6 +26,13 @@ describe Badline::VIA::Timer1 do
     via.poke(0x1805, value >> 8)
   end
 
+  # A one-shot load that has timed out, which leaves the timer unarmed.
+  def spend_one_shot
+    via.poke(0x180b, 0x00)
+    start_timer(1)
+    run(4)
+  end
+
   describe "in one-shot mode" do
     it "counts N down to 0 and on to $FFFF, then reloads from the latch" do
       start_timer(3)
@@ -128,6 +135,21 @@ describe Badline::VIA::Timer1 do
       expect(via.port_b_output[7]).to eq(1)
     end
 
+    # Pinned by viavarious via10 to via13 (test D): PB7 reads high from
+    # the ACR write on, then low for good after the timeout.
+    it "drives PB7 high when ACR bit 7 turns on after the load, and inverts it on the timeout" do
+      start_timer(2)
+      via.poke(0x180b, 0x80)
+      expect(trace(6) { via.port_b_output[7] }).to eq([1, 1, 1, 0, 0, 0])
+    end
+
+    it "leaves PB7 alone when ACR is rewritten with bit 7 still set" do
+      via.poke(0x180b, 0x80)
+      start_timer(2)
+      via.poke(0x180b, 0x80)
+      expect(via.port_b_output[7]).to eq(0)
+    end
+
     it "reads PB7 as the timer output, whatever DDRB says" do
       via.poke(0x180b, 0x80)
       start_timer(2)
@@ -155,6 +177,25 @@ describe Badline::VIA::Timer1 do
       start_timer(1)
       via.poke(0x1806, 5)
       expect(trace(4) { via.timer1 }).to eq([1, 0, 0xffff, 5])
+    end
+
+    # Pinned by viavarious via3 (tests B and D) and via3a (tests B, D, F
+    # and H): a timer only ever armed by the one-shot load before it never
+    # sets its flag after switching to free-running, whatever the latch.
+    it "sets no flag until a $5 write arms it, however often it reloads" do
+      spend_one_shot
+      via.poke(0x180b, 0x40)
+      via.poke(0x1806, 2)
+      via.poke(0x1807, 0)
+      expect(trace(12) { flag? }).to all(be(false))
+    end
+
+    # Pinned by viavarious via10 to via13 (test G): PB7 holds high while
+    # the timer runs through its timeouts unarmed.
+    it "leaves PB7 alone on timeouts until a $5 write arms it" do
+      spend_one_shot
+      via.poke(0x180b, 0xc0)
+      expect(trace(9) { via.port_b_output[7] }).to all(eq(1))
     end
 
     it "inverts PB7 on every timeout" do
