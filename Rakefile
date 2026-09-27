@@ -7,6 +7,7 @@ require_relative "test/regression"
 require_relative "spinel/check"
 require_relative "spinel/sidtests_check"
 require_relative "native/build"
+require_relative "native/pack"
 
 VENDORED_REPOS = {
   "65x02" => {
@@ -458,6 +459,12 @@ namespace :native do
   task :build do
     NativeBuild.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil),
                                                      sdl2_flags: ENV.fetch("SDL2_LDFLAGS", nil))
+  end
+
+  desc "Pack the native badline with spin pack into #{NativeBuild::OUT}/badline-VERSION-spinel-COMMIT.tar.gz, " \
+       "which builds with a C compiler and make alone (SPINEL=compiler, SPIN=spin, default: beside SPINEL)"
+  task :pack do
+    NativePack.pack(ENV.fetch("SPINEL", "spinel"), spin: ENV.fetch("SPIN", nil))
   end
 end
 
