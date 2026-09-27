@@ -8,9 +8,10 @@ module Badline
     #
     # Timed, it follows timer 1's one-shot timing: loaded with N it reads N
     # on the cycle after the write, and sets its flag on the cycle it rolls
-    # from 0 to $FFFF. It then rolls on down without further interrupts until
-    # the next load. Counting pulses, the flag sets on the pulse that takes
-    # it past zero, the N + 1st.
+    # from 0 to $FFFF. Where timer 1 would reload, it rolls on down without
+    # further interrupts until the next load. Counting pulses, the flag sets
+    # on the pulse that takes it past zero, the N + 1st: the datasheet's
+    # "reaches zero" is the same underflow it means in timed mode.
     #
     # While the shift register clocks off it, the low byte also counts as
     # an 8-bit timer of its own: on each low byte underflow it reloads from
@@ -43,22 +44,24 @@ module Badline
       # One φ2 cycle in timed mode, with whether the shift register clocks
       # off the low byte. Returns true on the cycle that sets the flag.
       def cycle!(sr_service)
-        if @hold
-          @counter = (@counter & 0xff00) | @latch_low if @low_reload
-          @hold = @low_reload = @low_underflowed = false
-          return false
-        end
+        return idle! if @hold
+
         @low_underflowed = @counter.nobits?(0xff)
         @hold = @low_reload = sr_service && @low_underflowed
         decrement
       end
 
+      # One φ2 cycle while counting pulses, or held after a load or a low
+      # byte underflow: the counter stands still, but the hold still ends,
+      # so none carries over into timed mode.
+      def idle!
+        @counter = (@counter & 0xff00) | @latch_low if @low_reload
+        @hold = @low_reload = @low_underflowed = false
+      end
+
       # A falling edge on PB6 while counting pulses. Returns true when it
       # sets the flag.
-      def pulse!
-        @hold = false
-        decrement
-      end
+      def pulse! = decrement
 
       private
 

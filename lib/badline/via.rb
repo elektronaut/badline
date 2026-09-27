@@ -64,7 +64,9 @@ module Badline
       @cb.cycle! if @cb.pulsing?
       @ifr.set(InterruptRegister::TIMER1) if @t1.cycle!(@acr.anybits?(0x40))
       t2_low = false
-      unless @acr.anybits?(0x20)
+      if @acr.anybits?(0x20)
+        @t2.idle!
+      else
         @ifr.set(InterruptRegister::TIMER2) if @t2.cycle!(@sr_uses_t2)
         t2_low = @t2.low_underflowed
       end

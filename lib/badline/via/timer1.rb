@@ -3,15 +3,15 @@
 module Badline
   class VIA
     # Timer 1: a 16-bit counter that decrements on every φ2 cycle, with a
-    # latch it reloads from in free-running mode and the PB7 output.
+    # latch it reloads from on every timeout and the PB7 output.
     #
     # Writing the high counter byte loads the counter on the cycle after,
     # so a timer loaded with N reads N, N-1, ... 0 and then $FFFF, which is
     # the cycle its interrupt flag sets: N + 1.5 cycles after the write in
-    # the datasheet's terms. Free running, the counter reloads from the
-    # latch on the next cycle, which makes the period N + 2 cycles. In
-    # one-shot mode it rolls on down from $FFFF instead, and only the first
-    # timeout after the load sets the flag.
+    # the datasheet's terms. The counter then reloads from the latch on the
+    # next cycle, which makes the period N + 2 cycles. It does so in one-shot
+    # mode too, unlike timer 2: one shot only means that the first timeout
+    # after the load alone sets the flag and raises PB7.
     class Timer1
       attr_accessor :counter, :latch
 
@@ -57,11 +57,11 @@ module Badline
       private
 
       # Free running, PB7 inverts and the flag sets on every timeout. One
-      # shot, PB7 goes back high and the flag sets once. Returns whether it
-      # sets.
+      # shot, PB7 goes back high and the flag sets once. The counter reloads
+      # either way. Returns whether the flag sets.
       def timeout(free_run)
         interrupt = free_run || @armed
-        @reload = free_run
+        @reload = true
         @armed &&= free_run
         @pb7 = free_run ? !@pb7 : true
         interrupt

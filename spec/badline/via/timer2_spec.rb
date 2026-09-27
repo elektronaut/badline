@@ -106,6 +106,13 @@ describe Badline::VIA::Timer2 do
       expect(pulses(4) { flag? }).to eq([false, false, true, true])
     end
 
+    it "counts down on the first cycle after switching back to φ2" do
+      start_timer(5)
+      run(3)
+      via.poke(0x180b, 0x00)
+      expect(trace(2) { via.timer2 }).to eq([4, 3])
+    end
+
     it "sets the flag only once per load" do
       start_timer(0)
       pulses(1) { via.peek(0x1808) }

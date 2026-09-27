@@ -27,9 +27,22 @@ describe Badline::VIA::Timer1 do
   end
 
   describe "in one-shot mode" do
-    it "counts N down to 0 and on to $FFFF, then rolls on" do
+    it "counts N down to 0 and on to $FFFF, then reloads from the latch" do
       start_timer(3)
-      expect(trace(7) { via.timer1 }).to eq([3, 2, 1, 0, 0xffff, 0xfffe, 0xfffd])
+      expect(trace(7) { via.timer1 }).to eq([3, 2, 1, 0, 0xffff, 3, 2])
+    end
+
+    it "picks up a new latch on the reload after the timeout" do
+      start_timer(1)
+      via.poke(0x1806, 4)
+      expect(trace(5) { via.timer1 }).to eq([1, 0, 0xffff, 4, 3])
+    end
+
+    it "sets the flag only on the first timeout, however often it reloads" do
+      start_timer(1)
+      run(3)
+      via.peek(0x1804)
+      expect(trace(9) { flag? }).to all(be(false))
     end
 
     it "loads the counter at the write, whatever the latch gets after" do
@@ -99,6 +112,12 @@ describe Badline::VIA::Timer1 do
       via.poke(0x180b, 0x80)
       start_timer(2)
       expect(trace(5) { via.port_b_output[7] }).to eq([0, 0, 0, 1, 1])
+    end
+
+    it "holds PB7 high through later timeouts" do
+      via.poke(0x180b, 0x80)
+      start_timer(1)
+      expect(trace(9) { via.port_b_output[7] }).to eq([0, 0, 1, 1, 1, 1, 1, 1, 1])
     end
 
     it "leaves PB7 to ORB when ACR bit 7 is clear" do
