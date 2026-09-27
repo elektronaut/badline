@@ -26,7 +26,7 @@ module Badline
       }.freeze
 
       def self.parse(event)
-        name = SDL2::Key.name_of(event.sym)
+        name = SDL.key_name(event.sym)
         MAP[name] || name.downcase.to_sym
       end
     end

@@ -9,7 +9,7 @@ describe Badline::GUI::Application do
   let(:window) do
     instance_double(
       Badline::GUI::Window,
-      refresh_rate: Badline::GUI::Application::PAL_CLOCK_HZ, draw: nil, "title=": nil
+      refresh_rate: Badline::GUI::Application::PAL_CLOCK_HZ, draw: nil, "title=": nil, close: nil
     )
   end
   let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: [], poll: nil, close: nil) }
@@ -19,23 +19,20 @@ describe Badline::GUI::Application do
     allow(Badline::Computer).to receive(:new).and_return(computer)
     allow(Badline::GUI::Window).to receive(:new).and_return(window)
     allow(Badline::GUI::Gamepads).to receive(:new).and_return(gamepads)
-    allow(SDL2::Mouse).to receive(:relative_mode=)
+    allow(Badline::SDL::SetRelativeMouseMode).to receive(:call)
     allow($stdout).to receive(:puts)
   end
 
   def tab
-    SDL2::Event::KeyDown.new.tap do |event|
-      event.sym = SDL2::Key::TAB
-      event.mod = 0
-    end
+    Badline::SDL::KeyDown.new(sym: Badline::SDL::KEY_TAB, mod: 0)
   end
 
-  def mouse_down(button) = SDL2::Event::MouseButtonDown.new.tap { |event| event.button = button }
+  def mouse_down(button) = Badline::SDL::MouseButton.new(button:, pressed: true)
 
   # Tab steps keyboard, joystick, mouse 1, mouse 2, paddles 1, paddles 2.
   def run_with(tabs:, button:)
-    events = Array.new(tabs) { tab } + [mouse_down(button), SDL2::Event::Quit.new]
-    allow(SDL2::Event).to receive(:poll) { events.shift }
+    events = Array.new(tabs) { tab } + [mouse_down(button), Badline::SDL::Quit.new]
+    allow(Badline::SDL).to receive(:poll_event) { events.shift }
     described_class.new.run
   end
 
@@ -81,12 +78,12 @@ describe Badline::GUI::Application do
       allow(window).to receive(:refresh_rate).and_return(50)
     end
 
-    def key_down(sym) = SDL2::Event::KeyDown.new.tap { |event| event.sym = sym }
+    def key_down(sym) = Badline::SDL::KeyDown.new(sym:, mod: 0)
 
     # One frame per event, and one more for the quit.
     def run_sound(*events, sound: true)
-      events += [SDL2::Event::Quit.new]
-      allow(SDL2::Event).to receive(:poll) { events.shift }
+      events += [Badline::SDL::Quit.new]
+      allow(Badline::SDL).to receive(:poll_event) { events.shift }
       described_class.new(sound:).tap(&:run)
     end
 
@@ -121,12 +118,12 @@ describe Badline::GUI::Application do
     end
 
     it "mutes with F10" do
-      run_sound(key_down(SDL2::Key::F10))
+      run_sound(key_down(Badline::SDL::KEY_F10))
       expect(sink.queued).to eq(0)
     end
 
     it "shows the mute in the title" do
-      run_sound(key_down(SDL2::Key::F10))
+      run_sound(key_down(Badline::SDL::KEY_F10))
       expect(window).to have_received(:title=).with("Badline [MUTED]")
     end
 
@@ -150,6 +147,23 @@ describe Badline::GUI::Application do
         run_sound
         expect(computer.sid.synthesizing?).to be(false)
       end
+    end
+  end
+
+  describe "a mouse button let go in paddle mode" do
+    it "releases paddle A on port 1" do
+      release = Badline::SDL::MouseButton.new(button: 1, pressed: false)
+      events = Array.new(4) { tab } + [mouse_down(1), release, Badline::SDL::Quit.new]
+      allow(Badline::SDL).to receive(:poll_event) { events.shift }
+      described_class.new.run
+      expect(ports.read_b(0xff, 0xff)).to eq(0b11111111)
+    end
+  end
+
+  describe "quitting" do
+    it "closes the window" do
+      run_with(tabs: 0, button: 1)
+      expect(window).to have_received(:close)
     end
   end
 

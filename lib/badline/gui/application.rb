@@ -5,9 +5,9 @@ module Badline
     class Application
       PAL_CLOCK_HZ = 985_248
       TITLE = "Badline"
-      TOGGLE_SYM = SDL2::Key::TAB
-      MUTE_SYM = SDL2::Key::F10
-      REVERSE_MOD = SDL2::Key::Mod::SHIFT
+      TOGGLE_SYM = SDL::KEY_TAB
+      MUTE_SYM = SDL::KEY_F10
+      REVERSE_MOD = SDL::KMOD_SHIFT
 
       SHARED_KEYS = %i[up left cursor_h cursor_v space w a s d lshift].freeze
 
@@ -61,25 +61,26 @@ module Badline
       ensure
         @stream&.close
         @gamepads.close
+        @window.close
         puts @computer.cpu.inspect
       end
 
       private
 
       def handle_events
-        while (event = SDL2::Event.poll)
+        while (event = SDL.poll_event)
           case event
-          when SDL2::Event::Quit
+          when SDL::Quit
             @running = false
-          when SDL2::Event::KeyDown
+          when SDL::KeyDown
             handle_key_down(event)
-          when SDL2::Event::KeyUp
+          when SDL::KeyUp
             handle_key_up(event)
-          when SDL2::Event::MouseMotion
+          when SDL::MouseMotion
             @pot_device&.move(event.xrel, event.yrel)
-          when SDL2::Event::MouseButton
+          when SDL::MouseButton
             handle_mouse_button(event)
-          when SDL2::Event::ControllerDevice
+          when SDL::ControllerDevice
             @gamepads.rescan
           end
         end
@@ -112,9 +113,10 @@ module Badline
         button = MOUSE_BUTTONS[event.button]
         return unless button && @pot_device
 
-        case event
-        when SDL2::Event::MouseButtonDown then @pot_device.press(button)
-        when SDL2::Event::MouseButtonUp then @pot_device.release(button)
+        if event.pressed
+          @pot_device.press(button)
+        else
+          @pot_device.release(button)
         end
       end
 
@@ -164,7 +166,7 @@ module Badline
         ports = @computer.control_ports
         ports.device1 = port == 1 ? @pot_device : nil
         ports.device2 = port == 2 ? @pot_device : nil
-        SDL2::Mouse.relative_mode = !@pot_device.nil?
+        SDL::SetRelativeMouseMode.call(@pot_device ? 1 : 0)
       end
 
       def release_inputs

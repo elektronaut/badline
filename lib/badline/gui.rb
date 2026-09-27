@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "sdl2"
+require "badline/sdl"
 
 require "badline/gui/palette"
 require "badline/gui/key_map"

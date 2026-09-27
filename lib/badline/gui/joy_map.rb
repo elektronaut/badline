@@ -13,7 +13,7 @@ module Badline
       }.freeze
 
       def self.parse(event)
-        name = SDL2::Key.name_of(event.sym)
+        name = SDL.key_name(event.sym)
 
         PORTS.each do |port, map|
           direction = map[name]

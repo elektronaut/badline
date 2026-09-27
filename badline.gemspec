@@ -34,5 +34,4 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "fiddle", "~> 1.1"
-  spec.add_dependency "ruby-sdl2", "~> 0.3"
 end
