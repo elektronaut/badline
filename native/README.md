@@ -177,5 +177,5 @@ Each frame's samples go onto the queue through an `IO::Buffer` of signed
 Spinel hands an `Array` of Integers to C as 64-bit words, and a texture
 wants 32-bit pixels, so `Screen` packs two neighbouring pixels into each
 word of an `XRGB8888` texture, where the top byte of each pixel is
-ignored. The frames stay an `Array`: writing them into an `IO::Buffer`
-with `set_value` took about 50% longer than the `Array` stores.
+ignored. The frames stay an `Array`, because writing them into an
+`IO::Buffer` with `set_value` was slower than the `Array` stores.
