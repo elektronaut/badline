@@ -8,6 +8,20 @@ through Spinel's FFI (`ffi_func`, `ffi_buffer` and the
 with Spinel only and doesn't run on CRuby. `exe/badline-ruby` is the same
 emulator on CRuby.
 
+## Installing
+
+With Homebrew:
+
+```sh
+brew install elektronaut/badline/badline
+badline --version
+```
+
+The formula builds the release's pack (see [Packing](#packing)) with the
+system's C compiler, so it needs no Spinel, and pulls in SDL2. The tap,
+[elektronaut/homebrew-badline](https://github.com/elektronaut/homebrew-badline),
+isn't published yet.
+
 ## Building
 
 Build Spinel from source (`make deps && make`) and install SDL2
@@ -35,6 +49,40 @@ defaults in `native/lib/badline/native/build_info.rb`:
 spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
   -o tmp/native/badline --cc="cc $(pkg-config --libs-only-L sdl2)"
 ```
+
+### Packing
+
+`rake native:pack` writes a tarball that builds the native badline with a
+C compiler and make alone, from Spinel's `spin pack`: the generated C,
+Spinel's runtime sources and a Makefile, plus the ROMs.
+
+```sh
+SPINEL=~/src/spinel/bin/spinel rake native:pack
+```
+
+The task stages a spin project in `tmp/native/pack/project`, whose
+manifest names the load path as path dependencies, and packs it into
+`tmp/native/pack/badline-VERSION`. The tarball is
+`tmp/native/badline-VERSION-spinel-COMMIT.tar.gz`, and its `PACK-INFO`
+names the badline version, the revision and the Spinel build. `SPIN`
+names `spin` if it isn't beside `SPINEL`.
+
+To build a pack by hand, point the linker at SDL2 and the binary at the
+ROMs, which it otherwise looks for where the pack was made:
+
+```sh
+tar -xzf badline-0.4.0-spinel-15f037af.tar.gz && cd badline-0.4.0
+LIBRARY_PATH="$(brew --prefix)/lib" make -j
+BADLINE_ROM_PATH=roms ./badline --version
+```
+
+The Homebrew formula in `packaging/homebrew/badline.rb` does the same,
+installing the ROMs under its share directory. When release-please cuts a
+release, the Build workflow's `homebrew` job packs the tag, builds and
+boots the pack, attaches it to the GitHub release and pushes the formula,
+with the release's url and sha256, to the tap. The job stays off until the
+repository has a `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with
+Contents read and write access to `elektronaut/homebrew-badline`.
 
 ## The source
 
