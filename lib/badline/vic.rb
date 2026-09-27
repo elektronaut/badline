@@ -46,10 +46,6 @@ module Badline
     FETCH_HOLD = 0x20
     FETCH_HOLD_ROM = 0x60
 
-    # The columns carrying a hook, besides the line's last column, which
-    # starts the vertical border for the line after it.
-    HOOKS = [14, 15, 53, 54, 57].freeze
-
     # BA falls three columns ahead of each sprite's pair of s-accesses, and
     # the five-column windows step two columns apart from sprite 0 at column
     # 54. From sprite 3 on they reach past the end of the line, so each is
@@ -389,13 +385,15 @@ module Badline
     end
 
     # Splits the sprite BA windows at the end of the line and marks the hook
-    # columns, for a line of the region's length. The marks let an ordinary
-    # column cost one array read instead of the dispatch.
+    # columns, for a line of the region's length: 14, 15, 53, 54 and 57, and
+    # the line's last column, which starts the vertical border for the line
+    # after it. The marks let an ordinary column cost one array read instead
+    # of the dispatch.
     def layout_columns
       last = @last_column
       @sprite_ba_tail = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c <= last } }.freeze
       @sprite_ba_head = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - last - 1 if c > last } }.freeze
-      @hook_columns = Array.new(@columns_per_line) { |c| c == last || HOOKS.include?(c) }.freeze
+      @hook_columns = Array.new(@columns_per_line) { |c| c == last || [14, 15, 53, 54, 57].include?(c) }.freeze
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY

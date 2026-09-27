@@ -19,8 +19,8 @@ module Badline
     # that builds up by INTEGRAL a frame while the error lasts, up to
     # MAX_TRIM, so the queue settles at the target instead of beside it.
     class FrameRate
-      PAL_CLOCK_HZ = 985_248
-      PAL_FRAME_CYCLES = 312 * 63
+      PAL_CLOCK_HZ = Region::PAL.clock_hz
+      PAL_FRAME_CYCLES = Region::PAL.cycles_per_line * Region::PAL.lines_per_frame
       PAL_FRAME_SECONDS = 0.02
       # A display that reports no refresh rate is taken to run at this.
       DEFAULT_REFRESH = 60
