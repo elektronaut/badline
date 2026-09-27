@@ -17,8 +17,14 @@ module Badline
     # an 8-bit timer of its own: on each low byte underflow it reloads from
     # the latch on the next cycle, which makes the shift clock's half period
     # N + 2 cycles. The borrow still reaches the high byte.
+    #
+    # ACR bit 5 reaches the count input a cycle after the write, so the
+    # counter takes one more step in the mode it leaves.
     class Timer2
       attr_accessor :counter, :latch_low
+
+      # ACR bit 5, which picks PB6 pulses over φ2.
+      attr_writer :count_pulses
 
       # Whether the low byte underflowed on the last cycle.
       attr_reader :low_underflowed
@@ -30,6 +36,7 @@ module Badline
         @low_reload = false
         @armed = false
         @low_underflowed = false
+        @count_pulses = @counting_pulses = false
       end
 
       # The high counter byte write: load the counter with it and the low
@@ -41,29 +48,30 @@ module Badline
         @armed = true
       end
 
-      # One φ2 cycle in timed mode, with whether the shift register clocks
-      # off the low byte. Returns true on the cycle that sets the flag.
+      # One φ2 cycle, with whether the shift register clocks off the low
+      # byte. Returns true on the cycle that sets the flag.
       def cycle!(sr_service)
-        return idle! if @hold
+        pulses = @counting_pulses
+        @counting_pulses = @count_pulses
+        return idle! if pulses || @hold
 
         @low_underflowed = @counter.nobits?(0xff)
         @hold = @low_reload = sr_service && @low_underflowed
         decrement
       end
 
-      # One φ2 cycle while counting pulses, or held after a load or a low
-      # byte underflow: the counter stands still, but the hold still ends,
-      # so none carries over into timed mode.
+      # A falling edge on PB6. Returns true when it sets the flag.
+      def pulse! = @counting_pulses && decrement
+
+      private
+
+      # A cycle while counting pulses, or held after a load or a low byte
+      # underflow: the counter stands still, but the hold still ends, so
+      # none carries over into timed mode.
       def idle!
         @counter = (@counter & 0xff00) | @latch_low if @low_reload
         @hold = @low_reload = @low_underflowed = false
       end
-
-      # A falling edge on PB6 while counting pulses. Returns true when it
-      # sets the flag.
-      def pulse! = decrement
-
-      private
 
       def decrement
         @counter = (@counter - 1) & 0xffff

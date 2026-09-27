@@ -10,13 +10,25 @@ module Badline
     # the cycle its interrupt flag sets: N + 1.5 cycles after the write in
     # the datasheet's terms. The counter then reloads from the latch on the
     # next cycle, which makes the period N + 2 cycles. It does so in one-shot
-    # mode too, unlike timer 2: one shot only means that the first timeout
-    # after the load alone sets the flag and raises PB7.
+    # mode too, unlike timer 2.
+    #
+    # Only a write of the high counter byte arms the timer. An armed timeout
+    # sets the flag and inverts PB7, and in one-shot mode disarms it, so the
+    # first timeout after the load alone does. Free-running keeps it armed,
+    # but switching to free-running doesn't arm it: an unarmed timer counts
+    # and reloads without touching the flag or PB7. The load pulls PB7 low,
+    # and ACR bit 7 turning on drives it high, so a timer loaded before its
+    # PB7 output is enabled reads high until the timeout pulls it low.
     class Timer1
       attr_accessor :counter, :latch
 
       # The level the timer drives on PB7 when ACR bit 7 hands it the pin.
       attr_reader :pb7
+
+      # ACR bit 7 turning on hands PB7 to the timer high.
+      def pb7_enabled!
+        @pb7 = true
+      end
 
       def initialize
         @counter = @latch = 0xffff
@@ -56,14 +68,13 @@ module Badline
 
       private
 
-      # Free running, PB7 inverts and the flag sets on every timeout. One
-      # shot, PB7 goes back high and the flag sets once. The counter reloads
-      # either way. Returns whether the flag sets.
+      # The counter reloads either way. Armed, PB7 inverts and the flag
+      # sets, and one-shot mode disarms. Returns whether the flag sets.
       def timeout(free_run)
-        interrupt = free_run || @armed
+        interrupt = @armed
         @reload = true
+        @pb7 = !@pb7 if @armed
         @armed &&= free_run
-        @pb7 = free_run ? !@pb7 : true
         interrupt
       end
     end
