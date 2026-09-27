@@ -56,7 +56,7 @@ module Badline
       @serial_bus = serial_bus
       @serial_port.bus = serial_bus
       serial_bus.attach(self)
-      @via1.ca1 = serial_bus.atn_low?
+      @via1.ca1 = @serial_port.atn_low?
     end
 
     # Puts a Disk in the drive (Disk.from_d64 makes one from an image).
@@ -76,6 +76,8 @@ module Badline
     end
 
     # Runs the drive cycles that fall in one host cycle: none, one or two.
+    # The host has run this cycle already, and the drive sees what it did
+    # from the next one on (see SerialPort).
     def host_cycle!
       phase = @phase + CLOCK_HZ
       while phase >= @host_clock_hz
@@ -83,6 +85,7 @@ module Badline
         phase -= @host_clock_hz
       end
       @phase = phase
+      @serial_port.latch_host
     end
 
     # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
@@ -93,12 +96,11 @@ module Badline
     # SO pin ahead of the CPU's cycle.
     #
     # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
-    # high as the C64 asserts ATN. Only the C64 drives ATN, and it runs
-    # ahead of the drive in each host cycle, so sampling the line here
-    # catches every change on the drive cycle it happens in.
+    # high as the C64 asserts ATN, as the serial port sees it: from the
+    # host cycle after the one that asserts it.
     def cycle!
       @mechanism.cycle!
-      @via1.ca1 = @serial_bus.atn_low?
+      @via1.ca1 = @serial_port.atn_low?
       @via1.cycle!
       @via2.cycle!
       @cpu.irq = @via1.irq? || @via2.irq?

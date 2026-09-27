@@ -150,6 +150,7 @@ describe Badline::IECBus do
 
       it "shows the drive DATA IN low too" do
         c64_drive(0x0f)
+        drive.host_cycle!
         expect(drive.via1.peek(0x1800) & 0x01).to eq(0x01)
       end
     end
@@ -184,10 +185,14 @@ describe Badline::IECBus do
         expect(drive.ram.peek(0x10)).to eq(2)
       end
 
-      it "sees an assertion on the drive cycle it lands in" do
+      # The C64's CIA changes the line at the end of its cycle, after the
+      # drive has sampled it for the cycles that run alongside.
+      it "sees an assertion from the host cycle after the one it lands in" do
         c64_drive(0x0f)
-        drive.cycle!
-        expect(drive.via1.interrupt_flags & 0x02).to eq(0x02)
+        drive.host_cycle!
+        flags = [drive.via1.interrupt_flags & 0x02]
+        drive.host_cycle!
+        expect(flags << (drive.via1.interrupt_flags & 0x02)).to eq([0x00, 0x02])
       end
     end
 

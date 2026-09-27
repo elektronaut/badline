@@ -50,9 +50,9 @@ module Badline
     end
 
     # One pass over everything on the bus, for a reader that wants more
-    # than one line.
-    def low_lines
-      host = host_lines
+    # than one line. +host+ is the C64's port A lines as the reader sees
+    # them, which a drive takes a cycle late (see Drive1541::SerialPort).
+    def low_lines(host = host_lines)
       atn = host.anybits?(HOST_ATN_OUT)
       low = atn ? ATN : 0
       low |= CLK if host.anybits?(HOST_CLK_OUT)
@@ -67,7 +67,7 @@ module Badline
       low
     end
 
-    def atn_low? = host_lines.anybits?(HOST_ATN_OUT)
+    def atn_low?(host = host_lines) = host.anybits?(HOST_ATN_OUT)
 
     def clk_low? = low_lines.anybits?(CLK)
 
@@ -85,8 +85,6 @@ module Badline
 
     # Port B goes to the user port, not the serial bus.
     def read_b(_port_a, _port_b) = 0xff
-
-    private
 
     # What the C64 pulls, as port A bits: its output bits, with input bits
     # floating high as the 7406 inputs see them.
