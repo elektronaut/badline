@@ -28,7 +28,10 @@ module Badline
     # The stepper moves the head a half track each time the phase steps
     # by one, inwards for +1 and outwards for -1. Each half track has a
     # phase of its own, the low two bits of its number, so the head sits on
-    # a whole track when phase 0 or 2 holds it. Tracks run from half track
+    # a whole track when phase 0 or 2 holds it. The stepper's coils are
+    # powered only while PB2 runs the motor, as VICE reads the 1541's
+    # schematic, so a phase set with the motor off moves nothing until the
+    # motor comes on and it pulls the head. Tracks run from half track
     # 2 (track 1), where the head stops against the end of its rail, to
     # Disk::MAX_HALF_TRACK.
     class Mechanism
@@ -91,7 +94,7 @@ module Badline
           @zone = zone
           @bit_ticks = bit_ticks(zone)
         end
-        step(lines & 0x03)
+        step(lines & 0x03) if @motor
       end
 
       # Port A is the read shift register.

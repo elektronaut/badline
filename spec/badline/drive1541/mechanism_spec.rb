@@ -21,12 +21,14 @@ describe Badline::Drive1541::Mechanism do
 
   # VIA 2 set up the way the DOS reads: PB0-3 and PB5-6 outputs, CA1 on
   # its falling edge, CA2 (SOE) and CB2 (read mode) high, and port A
-  # latched on CA1. Phase 0 holds the head on track 18.
+  # latched on CA1. Phase 0 holds the head on track 18 while the motor
+  # runs, and the motor stops.
   before do
     drive.ram.write(0x0300, [0x4c, 0x00, 0x03]) # JMP *
     via.poke(0x1c02, 0x6f)
     via.poke(0x1c0c, 0xee)
     via.poke(0x1c0b, 0x01)
+    port_b(0x04)
     port_b(0x00)
   end
 
@@ -47,8 +49,9 @@ describe Badline::Drive1541::Mechanism do
     nil
   end
 
+  # Steps through the phases with the motor on, which powers the stepper.
   def step(phases)
-    phases.each { |phase| port_b(phase) }
+    phases.each { |phase| port_b(0x04 | phase) }
   end
 
   describe "at power-on" do
@@ -64,9 +67,14 @@ describe Badline::Drive1541::Mechanism do
       expect(mechanism.half_track).to eq(35)
     end
 
-    it "has it back on track 18 once phase 0 holds it" do
-      mechanism.port_b_written(0x00)
+    it "has it back on track 18 once phase 0 holds it with the motor on" do
+      mechanism.port_b_written(0x04)
       expect(mechanism.half_track).to eq(36)
+    end
+
+    it "leaves it there while the motor is off" do
+      mechanism.port_b_written(0x00)
+      expect(mechanism.half_track).to eq(35)
     end
   end
 
@@ -127,8 +135,15 @@ describe Badline::Drive1541::Mechanism do
       expect(mechanism.half_track).to eq(84)
     end
 
-    it "steps with the motor off" do
+    # The motor's line powers the stepper's coils too.
+    it "doesn't step with the motor off" do
       port_b(0x01)
+      expect(mechanism.half_track).to eq(36)
+    end
+
+    it "pulls the head to the phase set with the motor off once the motor comes on" do
+      port_b(0x01)
+      port_b(0x05)
       expect(mechanism.half_track).to eq(37)
     end
   end
