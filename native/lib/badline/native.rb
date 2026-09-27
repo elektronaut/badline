@@ -5,6 +5,7 @@
 # lib/badline.rb, which also loads the CRuby-only front end.
 require "badline/version"
 require "badline/integer_helper"
+require "badline/region"
 require "badline/addressable"
 require "badline/memory"
 require "badline/color_memory"

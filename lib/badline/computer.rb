@@ -5,7 +5,7 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :address_bus, :cpu, :cycles
+    attr_reader :address_bus, :cpu, :cycles, :region
 
     def vic = address_bus.vic
 
@@ -29,8 +29,12 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
-    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
-      @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:)
+    # The region sets the clock, the VIC's raster and the mains frequency
+    # the CIAs' TOD clocks count. Only PAL runs as yet.
+    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569,
+                   region: Region::PAL)
+      @region = region
+      @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:, region:)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
