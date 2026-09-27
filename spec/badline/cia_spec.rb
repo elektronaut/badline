@@ -175,6 +175,13 @@ describe Badline::CIA do
         102_273.times { cia.cycle! }
         expect(cia[0xdc08]).to eq(0x01)
       end
+
+      it "hasn't advanced a cycle earlier" do
+        cia.poke(0xdc0e, 0x00)
+        start_clock
+        102_272.times { cia.cycle! }
+        expect(cia[0xdc08]).to eq(0x00)
+      end
     end
 
     context "with the alarm armed" do
