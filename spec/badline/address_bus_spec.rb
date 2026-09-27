@@ -146,7 +146,7 @@ describe Badline::AddressBus do
 
     before do
       address_bus.control_ports.device1 = paddles
-      paddles.move(-0x30, 0)
+      paddles.move(-0x60, 0)
       address_bus[0xdc02] = 0xff
     end
 

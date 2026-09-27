@@ -72,6 +72,7 @@ module Badline
         abort "SDL_Init: #{SDL.SDL_GetError}" unless SDL.SDL_Init(SDL::INIT_VIDEO | SDL::INIT_EVENTS).zero?
 
         SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0")
+        SDL.SDL_SetHint("SDL_MOUSE_RELATIVE_SCALING", "0")
         @window = SDL.SDL_CreateWindow(
           TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
           Screen::WIDTH * SCALE, Screen::HEIGHT * SCALE, SDL::WINDOW_RESIZABLE

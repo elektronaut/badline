@@ -8,17 +8,18 @@ module Badline
     # on POTY with its button on the right line. Positions are the 0-255 counts
     # SID reads back, and the knobs stop at either end.
     #
+    # #move takes host pixel deltas, two to a count, and the knobs keep the odd
+    # half count so slow turns add up.
+    #
     # Buttons are named after the host mouse buttons, as on the 1351: the left
     # one fires paddle A, the right one paddle B.
     class Paddles
       BUTTONS = { left: :left, right: :right }.freeze
 
-      attr_reader :pot_x, :pot_y
-
       def initialize
         @lines = Joystick.new
-        @pot_x = 0x80
-        @pot_y = 0x80
+        @half_x = 0x100
+        @half_y = 0x100
       end
 
       def press(button) = @lines.press(BUTTONS[button])
@@ -28,9 +29,13 @@ module Badline
       def port_bits = @lines.port_bits
 
       def move(turn_a, turn_b)
-        @pot_x = (@pot_x + turn_a).clamp(0, 0xff)
-        @pot_y = (@pot_y + turn_b).clamp(0, 0xff)
+        @half_x = (@half_x + turn_a).clamp(0, 0x1ff)
+        @half_y = (@half_y + turn_b).clamp(0, 0x1ff)
       end
+
+      def pot_x = @half_x >> 1
+
+      def pot_y = @half_y >> 1
     end
   end
 end

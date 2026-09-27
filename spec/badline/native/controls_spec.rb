@@ -74,13 +74,13 @@ describe Badline::Native::Controls do
   describe "#mouse_motion" do
     it "moves the 1351's counters" do
       cycle_to(:mouse2)
-      controls.mouse_motion(3, 2)
+      controls.mouse_motion(6, 4)
       expect([ports.device2.pot_x, ports.device2.pot_y]).to eq([6, 0x7c])
     end
 
     it "turns the paddles" do
       cycle_to(:paddles1)
-      controls.mouse_motion(10, -5)
+      controls.mouse_motion(20, -10)
       expect([ports.device1.pot_x, ports.device1.pot_y]).to eq([0x8a, 0x7b])
     end
 
