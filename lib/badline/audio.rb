@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/audio/options"
 require "badline/audio/pcm_writer"
 require "badline/audio/wav"
 require "badline/audio/aiff"

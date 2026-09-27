@@ -13,7 +13,7 @@ describe Badline::Audio::CLI do
   let(:dir) { Dir.mktmpdir }
   let(:out) { StringIO.new }
   let(:arguments) { ["--seconds", "0.05", "--rate", "8000"] }
-  let(:options) { Badline::Audio::Options.parse(arguments + [tune_path, "-o", output]) }
+  let(:options) { Badline::Options.parse(arguments + [tune_path, "--audio-out", output]) }
 
   before { File.binwrite(tune_path, TinySID.bytes) }
   after { FileUtils.remove_entry(dir) }
@@ -142,7 +142,7 @@ describe Badline::Audio::CLI do
     subject(:cli) { described_class.new(options, out:, sink:) }
 
     let(:arguments) { ["--seconds", "0.05"] }
-    let(:options) { Badline::Audio::Options.parse(arguments + [tune_path]) }
+    let(:options) { Badline::Options.parse(["--headless", *arguments, tune_path]) }
     let(:sink) { ->(rate:, exact_rate:) { device.tap { device.requested = [rate, exact_rate] } } }
 
     def device = @device ||= FakeSink.new(rate: 8000, instant: true)
@@ -197,7 +197,7 @@ describe Badline::Audio::CLI do
   describe "#interactive?" do
     subject(:cli) { described_class.new(options, out:, input:) }
 
-    let(:options) { Badline::Audio::Options.parse(arguments + [tune_path]) }
+    let(:options) { Badline::Options.parse(["--headless", *arguments, tune_path]) }
     let(:out) { StringIO.new.tap { |io| def io.tty? = true } }
 
     def input = StringIO.new.tap { |io| def io.tty? = true }

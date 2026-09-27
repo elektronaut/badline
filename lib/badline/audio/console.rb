@@ -5,9 +5,9 @@ require "io/wait"
 
 module Badline
   module Audio
-    # The terminal face of `badline-sid`: the tune's header, a status line
-    # redrawn in place, and single keypresses read without waiting for
-    # Return. Ctrl-C still interrupts.
+    # The terminal face of `badline-ruby --headless`: the tune's header, a
+    # status line redrawn in place, and single keypresses read without
+    # waiting for Return. Ctrl-C still interrupts.
     class Console
       KEYS = {
         "n" => :next, "\e[C" => :next,

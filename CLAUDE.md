@@ -18,7 +18,7 @@ live in subdirectories:
   modes, border and register timing
 - **CIA**: `cia.rb` and `cia/` (timers, serial), plus `time_of_day.rb`
 - **SID**: `sid.rb` and `sid/`. `audio/` plays and renders tunes for
-  `exe/badline-sid`
+  `badline-ruby --headless` and `--audio-out`
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
   traps that stand in for a drive), `media.rb` (attach and autostart),

@@ -90,31 +90,33 @@ directly. Loaders that upload their own code to the drive with `M-W` and
 
 ## Playing and rendering SID tunes
 
-`badline-sid` plays a `.sid` tune on the host's audio device, or with
-`--output` (or `-o`) renders it to a 16-bit PCM file instead. The
-output extension picks the format, `.wav` or `.aiff`.
+`badline-ruby --headless` plays a `.sid` tune on the host's audio
+device without opening the window, and `--audio-out` renders it to a
+16-bit PCM file instead. The file's extension picks the format, `.wav`
+or `.aiff`.
 
 ```sh
-badline-sid tune.sid                           # play, length from HVSC
-badline-sid -s 3 tune.sid                      # play the third subtune
-badline-sid --seconds 180 tune.sid -o out.aiff
-badline-sid -s 3 --rate 48000 tune.sid -o out.wav
-badline-sid --sid 8580 tune.sid
-badline-sid --filter-chunk 1 tune.sid -o out.wav   # exact filter, slower
+badline-ruby --headless tune.sid                             # play, length from HVSC
+badline-ruby --headless -s 3 tune.sid                        # play the third subtune
+badline-ruby --seconds 180 tune.sid --audio-out out.aiff
+badline-ruby -s 3 --rate 48000 tune.sid --audio-out out.wav
+badline-ruby --headless --sid 8580 tune.sid
+badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slower
 ```
 
-Both modes take the same options. `--song` (or `-s`) picks the subtune,
-counting from 1 as HVSC does, and defaults to the tune's own start
-song. Playback asks the device for 44.1 kHz and takes whatever rate it
+Both modes take the same options. The window's own, `--no-autostart`
+and `--sound`, don't apply to them. `--song` (or `-s`) picks the
+subtune, counting from 1 as HVSC does, and defaults to the tune's own
+start song. Playback asks the device for 44.1 kHz and takes whatever rate it
 offers, unless `--rate` says otherwise. Ctrl-C stops it.
 
-Played on a terminal, `badline-sid` shows the tune's name, author and
+Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
 length. `n` or → skips to the next song, `p` or ← goes back one, space
 pauses and `q` quits. `--no-tui`, or output that isn't a terminal,
 gives plain progress output instead.
 
-A `.sid` file doesn't store its length, so `badline-sid` looks the
+A `.sid` file doesn't store its length, so `badline-ruby` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
 through `--songlengths`, in a `DOCUMENTS` directory in any of the
 tune's parent directories (the layout of an HVSC collection), or under
@@ -124,10 +126,10 @@ tune's parent directories (the layout of an HVSC collection), or under
 PSID tunes run on a CPU and RAM with only the SID clocked, at about
 twice real time, so they play smoothly. RSID tunes set up their own
 interrupts, so they boot a full C64 first and run at about half real
-time. They render fine but stutter when played, and `badline-sid` says
+time. They render fine but stutter when played, and `badline-ruby` says
 so when it falls behind. The filter steps four cycles at a time;
 `--filter-chunk 1` steps it every cycle, which is exact and takes about
-twice as long. `badline-sid --help` lists the options.
+twice as long. `badline-ruby --help` lists the options.
 
 ## Input
 
@@ -223,8 +225,8 @@ title shows `[MUTED]` while it's off.
 Known gaps:
 
 - Live audio in the emulator window stutters, because the whole machine
-  runs below real time. `badline-sid` plays PSID tunes smoothly on
-  their own.
+  runs below real time. `badline-ruby --headless` plays PSID tunes
+  smoothly on their own.
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). Disk images are
   read-only.

@@ -4,74 +4,48 @@
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
-require "optparse"
-
-options = { autostart: true, jit: true, sound: false }
-
-parser = OptionParser.new do |opts|
-  opts.banner = <<~BANNER
-    Usage: badline-ruby [options] [media]
-
-    Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-    a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
-    a directory to mount as device 8.
-
-    Options:
-  BANNER
-
-  opts.on("--no-autostart", "Boot to READY. instead of running the program") do
-    options[:autostart] = false
-  end
-
-  opts.on("--song N", Integer, "Subtune of a .sid to play (default: the tune's own)") do |n|
-    options[:song] = n
-  end
-
-  opts.on("--sid MODEL", { "6581" => :mos6581, "8580" => :mos8580 },
-          "SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)") do |model|
-    options[:sid_model] = model
-  end
-
-  opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") { options[:sound] = true }
-
-  opts.on("--disable-jit", "Run without enabling YJIT") do
-    options[:jit] = false
-  end
-
-  opts.on("-h", "--help", "Show this help") do
-    puts opts
-    exit
-  end
-end
+require "badline/options"
 
 begin
-  parser.parse!
-rescue OptionParser::ParseError => e
+  options = Badline::Options.parse(ARGV)
+rescue Badline::Options::Error => e
   warn "badline-ruby: #{e.message}"
   warn "Try 'badline-ruby --help' for more information."
   exit 1
 end
 
-media_path = ARGV[0]
-if media_path && !File.exist?(media_path)
-  warn "badline-ruby: no such file or directory: #{media_path}"
-  exit 1
+if options.help?
+  puts options.help
+  exit
 end
 
 jit_available = defined?(RubyVM::YJIT) && !RubyVM::YJIT.enabled?
-RubyVM::YJIT.enable if options[:jit] && jit_available
+RubyVM::YJIT.enable if options.jit? && jit_available
 
 require "badline"
+
+if options.headless?
+  begin
+    Badline::Audio::CLI.new(options).run
+  rescue Badline::Audio::CLI::Error => e
+    warn "badline-ruby: #{e.message}"
+    exit 1
+  rescue Interrupt
+    exit 130
+  end
+  exit
+end
+
 require "badline/gui"
 
 begin
-  application = Badline::GUI::Application.new(media_path:, autostart: options[:autostart],
-                                              song: options[:song], sid_model: options[:sid_model],
-                                              sound: options[:sound])
+  application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
+                                              song: options.song, sid_model: options.sid_model,
+                                              sound: options.sound?)
 rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e
-  warn "badline-ruby: #{media_path}: #{e.message}"
+  warn "badline-ruby: #{options.media_path}: #{e.message}"
   exit 1
 end
 
