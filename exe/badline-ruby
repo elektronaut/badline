@@ -36,7 +36,13 @@ if options.headless?
   exit
 end
 
-require "badline/gui"
+begin
+  require "badline/gui"
+rescue Badline::SDL::Error => e
+  warn "badline-ruby: can't open the window: #{e.message}. " \
+       "Install SDL2 with 'brew install sdl2' or 'apt install libsdl2-dev'."
+  exit 1
+end
 
 begin
   application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
