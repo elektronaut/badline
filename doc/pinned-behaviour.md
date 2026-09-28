@@ -1134,6 +1134,49 @@ and each was knocked out: removing it fails the rows named.
   - Spec guard: *gives a half track a blank track 7142 bytes around,
     written in zone 2* in
     [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
+- A turn over a half track without data takes 200 ms at whatever bit
+  rate the drive selects, as a turn over a track does: the blank the head
+  reads there is a turn long at that rate, and it's measured again when
+  the rate changes. The head keeps the disk's angle across the half
+  tracks it steps over only that way.
+  - Pinned by `drive/skew/skew2`, on a `.g64` whose tracks all start
+    sector 0 at the same angle. With a blank of zone 0's 6250 bytes in
+    every zone, a step from one zone 1 track to the next over the half
+    track between them moved the head about 630 timer units round
+    (`25-26: 02: 634`), and the test found the tracks not aligned
+    (`exit=$ff`). Zone 0 pairs measured 1 to 4.
+  - A `.d64` starts sector 0 of every track at the same angle, so with
+    this rule `drive/skew/skew1`, which expects a `.d64` to read with
+    the skew a DOS format leaves, finds its tracks aligned and fails. It
+    passed only while the head drifted round over each half track.
+    Turning each track by the skew `N:` leaves here (0.6869 of a turn a
+    track in zone 3, 0.8884 in zone 2, 0.0925 in zone 1, 0.2963 in zone
+    0) passes it, but makes the three `drive/scanner` error-map rows
+    read track 4 as error 27 instead of 22: after error 21 on track 3
+    the DOS takes the first block it finds on track 4 for a header, and
+    an error-22 data block, whose ID `$00` starts with the header's GCR
+    byte, comes first at that skew. Zone 3 skews of 0.60, 0.68, 0.70 and
+    0.80 pass `scanner35e`.
+  - Spec guard: *turns once in 200 ms at every bit rate, as a track
+    does* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+- The CPU sees BYTE READY on SO a cycle late: BYTE READY sets V for the
+  next cycle's instruction step, not the one in the cycle it falls in.
+  - Pinned by `drive/hls-protection`. Its drive code counts the bytes
+    from one SYNC mark to the next, reading `$1C00` for SYNC once per
+    byte, 20 to 22 cycles after each BYTE READY with the delay (19 to 21
+    without). The SYNC marks it has to find follow an `$AF`, whose four
+    trailing 1 bits make SYNC six bits, 19 cycles in zone 3, after its
+    BYTE READY; the ones it has to miss follow a `$2B`, eight bits on.
+    With V set in the same cycle, the read sometimes came a cycle
+    before SYNC, depending on the bit phase: on track 1 two of the 16
+    counts read `$02C8`, two sectors' worth, and the testbench row failed
+    (`exit=$ff`) on track 17. With the delay, tracks 1, 5, 10, 12 and 17
+    (the 4-cycle loop) and 18, 20 and 24 (the 6-cycle loop) all read as
+    the test expects.
+  - Spec guard: *sets V through SO while CA2 is high, a cycle after BYTE
+    READY* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
 
 ## SID oscillator
 
