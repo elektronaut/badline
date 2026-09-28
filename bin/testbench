@@ -4,12 +4,13 @@
 # Headless runner for the VICE testbench (vendor/VICE-testprogs).
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
-#                             [--carts] [--cia-new] [--vicii-new] [--shards N]
-#                             [--list]
+#                             [--carts] [--cia-new] [--vicii-new]
+#                             [--expansions] [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
-# hardware badline models: VICII, CIA, interrupts and CPU. Each process
+# hardware badline models: VICII, CIA, interrupts and CPU, and the
+# machine-level rows of C64 and general outside the Lorenz suite. Each process
 # boots a machine once, and each test runs in a child forked from it
 # (test/forked_boot.rb) that mounts the test's directory as device 8,
 # injects the .prg and types RUN. A child that crashes or hangs gets a
@@ -40,10 +41,18 @@
 # the reference VICE keeps for the 8565 when there is one. Every other row
 # runs on the 6569.
 #
+# --expansions runs the rows that ask for a memory expansion badline
+# emulates instead, from any subtree: geo512k, a 512K GEO-RAM, and
+# plus60k and plus256k, the +60K and +256K RAM expansions. Each boots with
+# the expansion fitted, as VICE starts it, then loads and runs its program
+# like any other row.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
-# `rake regression:testbench-cia` scopes to CIA/, and so on. Filters are a
+# `rake regression:testbench-cia` scopes to CIA/, and so on. A scope can
+# name several prefixes, separated by commas, as C64/,general/ does for
+# testbench-general. Filters are a
 # union matched inside that scope, so a filtered run stays in one
 # baseline's rows; a filter that matches nothing is an error rather than
 # an empty run.
@@ -81,25 +90,40 @@ module Testbench
   # The testlist subtrees for hardware badline models. CPU/decimalmode is
   # left out of CPU: 41 exhaustive ADC/SBC sweeps that SingleStepTests
   # already covers per-opcode against bus-level reference traces, for a
-  # worst case near nine hours.
-  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU)/}
-  EXCLUDED_DIRS = %r{\A\.\./CPU/decimalmode/}
+  # worst case near nine hours. The Lorenz suite in general/ runs as
+  # bin/lorenz's chain instead.
+  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU|C64|general)/}
+  EXCLUDED_DIRS = %r{\A\.\./(CPU/decimalmode|general/Lorenz-2\.15)/}
 
   # The Lorenz suite's 6526 half runs as bin/lorenz's chain off
   # Lorenz.d81, but nothing chains the 6526A half, so its cia-new rows run
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # Disk images and memory expansions are not emulated. A mountcrt row
-  # runs only under --carts, a cia-new row, which asks for the 6526A, only
-  # under --cia-new, and a vicii-new row, which asks for the 8565, only
-  # under --vicii-new.
+  # Disk images and memory expansions other than GEO-RAM, the +60K and the
+  # +256K are not emulated. A mountcrt row runs only under --carts, a
+  # cia-new row, which asks for the 6526A, only under --cia-new, a
+  # vicii-new row, which asks for the 8565, only under --vicii-new, and a
+  # row that asks for an expansion in EXPANSIONS only under --expansions.
   SKIP_OPTIONS = /ntsc|drean|mountd64|mountg64|mountp64|
-                  reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
+                  reu|isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
+
+  # Rows that can't apply to badline. Both need a true 1541: they upload
+  # code to the drive with M-W, start it with M-E and handshake with it
+  # over the IEC lines, and badline's KERNAL traps stand in for the drive.
+  # test-fuxxored runs ef2-inst1's drive check before it decodes the
+  # program.
+  NOT_APPLICABLE = %w[
+    general/fuxxortest/test-fuxxored.prg
+    general/fuxxortest/ef2-inst1.prg
+  ].freeze
   CIA_NEW_OPTION = "cia-new"
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
+
+  # The memory expansions a row can ask for, by testlist option.
+  EXPANSIONS = %w[geo512k plus60k plus256k].freeze
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -139,6 +163,12 @@ module Testbench
 
     # The CIA and the VIC-II, the pair a suite's machine is built from.
     def models = [cia_model, vic_model]
+
+    # The testlist option naming the memory expansion the row asks for, or
+    # nil.
+    def expansion
+      options.find { |option| EXPANSIONS.include?(option) }
+    end
 
     def name
       return cartridge if prg.empty?
@@ -199,17 +229,25 @@ module Testbench
     end
   end
 
+  # Which rows a run takes: the mountcrt rows or the others, the rows that
+  # ask for the models, the CIA and the VIC-II, and the rows that ask for a
+  # memory expansion or the others.
+  Rows = Data.define(:carts, :models, :expansions) do
+    def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false)
+
+    def include?(test)
+      test.cartridge.nil? != carts && test.models == models && test.expansion.nil? != expansions
+    end
+  end
+
   module Testlist
     module_function
 
     # Filters are id substrings, matched as a union; no filter runs
-    # everything inside the scope. Only the rows that ask for the models,
-    # the CIA and the VIC-II, are listed.
-    def tests(filters, scope: nil, exclude: nil, carts: false, models: DEFAULT_MODELS)
+    # everything inside the scope.
+    def tests(filters, scope: nil, exclude: nil, rows: Rows.plain)
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
-        .select do |test|
-          test.cartridge.nil? != carts && test.models == models && selected?(test, filters, scope, exclude)
-        end
+        .select { |test| rows.include?(test) && selected?(test, filters, scope, exclude) }
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
@@ -221,10 +259,15 @@ module Testbench
     end
 
     def selected?(test, filters, scope, exclude)
-      return false if scope && !test.id.include?(scope)
+      return false unless in_scope?(test, scope)
       return false if exclude && test.id.include?(exclude)
 
       filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+    end
+
+    # A scope names one prefix, or several separated by commas.
+    def in_scope?(test, scope)
+      scope.nil? || scope.split(",").any? { |prefix| test.id.include?(prefix) }
     end
 
     # Filters that picked up no test at all, which a typo makes silent.
@@ -241,7 +284,16 @@ module Testbench
       return if options.any?(SKIP_OPTIONS)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
-      test if test.cartridge ? runnable_cartridge?(test) : included?(dir, test.cia_model)
+      return if NOT_APPLICABLE.include?(test.id)
+
+      test if runnable?(test, dir)
+    end
+
+    def runnable?(test, dir)
+      return runnable_cartridge?(test) if test.cartridge
+      return File.exist?(File.join(test.dir_abs, test.prg)) if test.expansion
+
+      included?(dir, test.cia_model)
     end
 
     def included?(dir, cia_model)
@@ -556,12 +608,13 @@ module Testbench
 
     # A cartridge test starts from power-on, so its machine is never booted:
     # one that loads a program boots in the child, with the cartridge in.
-    # Each pair of CIA and VIC-II models gets a machine of its own.
+    # Each pair of CIA and VIC-II models and each expansion gets a machine
+    # of its own.
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      @machines[[cartridge, test.cia_model, test.vic_model]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
-        Testbench.machine(cartridge, test.cia_model, test.vic_model)
+      @machines[[cartridge, *test.models, test.expansion]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+        Testbench.machine(cartridge, test.cia_model, test.vic_model, test.expansion)
       end
     end
 
@@ -645,11 +698,12 @@ if $PROGRAM_NAME == __FILE__
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
-  carts = !ARGV.delete("--carts").nil?
   models = [ARGV.delete("--cia-new") ? :mos6526a : :mos6526, ARGV.delete("--vicii-new") ? :mos8565 : :mos6569]
+  rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
+                             expansions: !ARGV.delete("--expansions").nil?)
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, carts:, models:)
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?

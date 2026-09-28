@@ -138,7 +138,7 @@ module MachineDiff
       File.binwrite(File.join(dir, "demo.prg"), DEMO_PRG)
       Badline::Media.attach(computer, dir)
       computer.type_text(Badline::Media::AUTOSTART)
-    else Badline::Media.attach(computer, scenario)
+    else Badline::Media.attach(computer, scenario, **options.fetch(:media, {}))
     end
     computer
   end
@@ -264,5 +264,10 @@ Badline.__send__(:remove_const, :Checkpoint) if defined?(Badline::Checkpoint) &&
 require checkpoint
 
 MachineDiff.backport_readers
+# A disk image mounts write-protected, so neither run writes to the file the
+# other one reads. A revision from before `read_only` mounts it as it is.
+if Badline::Storage::DiskImage.instance_method(:initialize).parameters.include?(%i[key read_only])
+  options[:media] = { disk: { read_only: true } }
+end
 
 options[:against] ? MachineDiff.compare(scenario, options) : MachineDiff.print_run(scenario, options)

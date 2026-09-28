@@ -25,7 +25,7 @@ permissions:
 env:
   # The Spinel commit the harnesses build with. Bumping it rebuilds the
   # cached compiler.
-  SPINEL_REF: 6a57ee41821f73a4b5a926a7ef579170bd106ea7
+  SPINEL_REF: d318210276174fd0ddafa7bfdd1e1db4f622f0b0
 jobs:
   # Builds the compiler once, so the suites below restore it instead of
   # each building it on a cold cache.
@@ -137,6 +137,12 @@ jobs:
           - suite: testbench-vicii-new
             harnesses: testbench
             task: spinel:testbench[testbench-vicii-new]
+          - suite: testbench-general
+            harnesses: testbench
+            task: spinel:testbench[testbench-general]
+          - suite: testbench-expansions
+            harnesses: testbench
+            task: spinel:testbench[testbench-expansions]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]

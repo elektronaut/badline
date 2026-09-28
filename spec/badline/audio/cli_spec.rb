@@ -7,6 +7,17 @@ require "stringio"
 require_relative "../../support/tiny_sid"
 require_relative "../../support/fake_sink"
 
+# A console no one presses keys on.
+class QuietConsole
+  attr_accessor :built_with
+  attr_reader :headers
+
+  def session = yield
+  def header(lines) = (@headers ||= []) << lines
+  def wait(_seconds) = []
+  def status(**) = nil
+end
+
 describe Badline::Audio::CLI do
   subject(:cli) { described_class.new(options, out:) }
 
@@ -191,6 +202,30 @@ describe Badline::Audio::CLI do
       it "raises" do
         expect { cli.run }.to raise_error(described_class::Error, /audio device: no driver/)
       end
+    end
+  end
+
+  describe "#run on a terminal" do
+    subject(:cli) do
+      factory = ->(input:, output:) { console.tap { console.built_with = [input, output] } }
+      described_class.new(options, out:, input:, sink: ->(**) { device }, console: factory)
+    end
+
+    let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", tune_path]) }
+    let(:out) { StringIO.new.tap { |io| def io.tty? = true } }
+
+    def input = @input ||= StringIO.new.tap { |io| def io.tty? = true }
+    def device = @device ||= FakeSink.new(rate: 8000, instant: true)
+    def console = @console ||= QuietConsole.new
+
+    it "builds the console on the input and output" do
+      cli.run
+      expect(console.built_with).to eq([input, out])
+    end
+
+    it "plays on it" do
+      cli.run
+      expect([console.headers.size, device.played]).to eq([1, 400])
     end
   end
 

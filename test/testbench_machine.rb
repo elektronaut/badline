@@ -20,11 +20,21 @@ module Testbench
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
-  # the test asks for.
-  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
+  # the test asks for. expansion is the testlist option naming a memory
+  # expansion fitted before power-on, or nil for none.
+  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil)
+    computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion))
+    computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
+  end
+
+  # The RAM expansion an expansion option fits, if it names one.
+  def self.ram_expansion(expansion)
+    case expansion
+    when "plus60k" then :plus60k
+    when "plus256k" then :plus256k
+    end
   end
 
   # The display cropped to the reference screenshots, as rows of palette

@@ -2,8 +2,10 @@
 
 module Badline
   class TimeOfDay
-    CLOCK_HZ = 985_248 # PAL only for now.
-    MAINS_HZ = 50      # The TOD pin is fed from the AC supply.
+    # The TOD pin is fed from the AC supply. A CIA passes its region's
+    # clock and mains frequency, and these are PAL's.
+    CLOCK_HZ = Region::PAL.clock_hz
+    MAINS_HZ = Region::PAL.mains_hz
 
     def initialize(clock_hz: CLOCK_HZ, mains_hz: MAINS_HZ)
       # The accumulator advances mains_hz per cycle, so a TOD pin pulse has

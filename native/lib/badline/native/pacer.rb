@@ -23,8 +23,9 @@ module Badline
 
       attr_reader :rate
 
-      def initialize(paced:, vsync:)
+      def initialize(paced:, vsync:, verbose:)
         @paced = paced
+        @verbose = verbose
         @vsync = paced && vsync
         @rate = FrameRate.pal
         @deadline = 0.0
@@ -38,7 +39,7 @@ module Badline
       # been opened with vsync.
       def fit(refresh)
         @rate = FrameRate.display(refresh)
-        puts "Display #{@rate.refresh} Hz, vsync: #{@rate.base_cycles} cycles a frame"
+        puts "Display #{@rate.refresh} Hz, vsync: #{@rate.base_cycles} cycles a frame" if @verbose
       end
 
       def start(at)
@@ -76,7 +77,7 @@ module Badline
       def check(frames, elapsed, at)
         return if !@vsync || @rate.vsync_holds?(frames, elapsed)
 
-        puts "Vsync doesn't hold the display's #{@rate.refresh} Hz, so a timer paces the frames instead."
+        puts "Vsync doesn't hold the display's #{@rate.refresh} Hz, so a timer paces the frames instead." if @verbose
         @vsync = false
         @deadline = at
       end
