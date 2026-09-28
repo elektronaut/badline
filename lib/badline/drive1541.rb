@@ -70,6 +70,12 @@ module Badline
 
     def disk = @mechanism.disk
 
+    # Stores what the head wrote since the motor last stopped in the
+    # disk's image, as the motor stopping does.
+    def flush
+      @mechanism.flush
+    end
+
     # The serial bus's RESET line reaches the CPU and both VIAs. RAM keeps
     # its contents.
     def reset!
