@@ -41,7 +41,7 @@ describe Badline::Drive1541::Idle do
   def self.state(drive)
     cpu = drive.cpu
     vias = [drive.via1, drive.via2].flat_map { |via| [*via.idle_state, via.timer1, via.timer2, via.port_b_output] }
-    [drive.cycles, cpu.cycles, cpu.instructions, *cpu.idle_state, *vias, drive.mechanism.half_track,
+    [drive.cycles, cpu.cycles, cpu.instructions, *cpu.idle_state, *vias, *drive.mechanism.idle_state,
      drive.ram.read(0, 0x0800)]
   end
 
@@ -120,6 +120,15 @@ describe Badline::Drive1541::Idle do
   it "leaves the drive as running every cycle does" do
     drives = [drive_running(pure_loop), drive_running(pure_loop, idle_skip: false)]
     expect(states(drives, [1, 7, 100, 1000, 0x2345])).to all(satisfy { |skipping, stepping| skipping == stepping })
+  end
+
+  it "leaves the head where running every cycle does, through zone changes over a blank track" do
+    # Init: LDA #$04; STA $1C00; LDX #$00; DEX; BNE *-1; LDA #$00; STA $1C00, the motor turning a
+    # while. Loop: LDA #$60; STA $1C00; LDA #$00; STA $1C00; JMP $EBFF, zone 3 and back.
+    init = [0xa9, 0x04, 0x8d, 0x00, 0x1c, 0xa2, 0x00, 0xca, 0xd0, 0xfd, 0xa9, 0x00, 0x8d, 0x00, 0x1c]
+    loop = [0xa9, 0x60, 0x8d, 0x00, 0x1c, 0xa9, 0x00, 0x8d, 0x00, 0x1c, 0x4c, 0xff, 0xeb]
+    drives = [drive_running(loop, init:), drive_running(loop, init:, idle_skip: false)]
+    expect(states(drives, [3000, 100, 1000])).to all(satisfy { |skipping, stepping| skipping == stepping })
   end
 
   # Runs the real DOS ROM. Two drives boot side by side, one skipping its

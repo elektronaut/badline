@@ -15,8 +15,9 @@ module Badline
     # follows. At the next $EBFF it checks that the pass
     #
     # - left the CPU, both VIAs but for their counters, the bus's last
-    #   byte, the mechanism and what the ports read from it, and every
-    #   byte of RAM it read or wrote as it found them (Bus#watch!)
+    #   byte, the SO pin, the mechanism (Mechanism#idle_state) and what
+    #   the ports read from it, and every byte of RAM it read or wrote as
+    #   it found them (Bus#watch!)
     # - read nothing that changes from pass to pass: no counter, no shift
     #   register, and not VIA 1's port B, which reads the serial bus
     # - wrote nothing that reaches outside the drive: not VIA 1, whose port
@@ -56,12 +57,6 @@ module Badline
       # Whether the drive is skipping its idle loop right now.
       def asleep? = @asleep
 
-      # A host cycle asleep.
-      def doze
-        @slept += 1
-        settle! if @slept == @wake_at || @serial_port.atn_moved?
-      end
-
       # Brings the drive up to the present, cycle for cycle, and drops the
       # pass it was recording, since whoever called may change it. Every
       # reader of the drive's parts calls this.
@@ -74,6 +69,12 @@ module Badline
       end
 
       private
+
+      # A host cycle asleep.
+      def doze
+        @slept += 1
+        settle! if @slept == @wake_at || @serial_port.atn_moved?
+      end
 
       def init_idle(debug)
         @idle_skip = !debug
@@ -175,9 +176,8 @@ module Badline
 
       def idle_state
         mechanism = @mechanism
-        [*@cpu.idle_state, *@via1.idle_state, *@via2.idle_state, @bus.data,
-         mechanism.motor_on?, mechanism.led_on?, mechanism.zone, mechanism.half_track, mechanism.disk,
-         mechanism.read_a(0xff), mechanism.read_b(0xff)]
+        [*@cpu.idle_state, *@via1.idle_state, *@via2.idle_state, @bus.data, @so_pending,
+         *mechanism.idle_state, mechanism.read_a(0xff), mechanism.read_b(0xff)]
       end
     end
   end
