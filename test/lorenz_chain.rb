@@ -15,11 +15,13 @@ module Lorenz
   COMPLETION = "test suite 2.15+ completed - ok"
   NEXT_DISK = "Disk4.d64"
 
+  # The suite's images open write-protected, so the chain never writes to
+  # the vendored files.
   def self.open_image(path)
     case File.extname(path).downcase
-    when ".d64" then Badline::Storage::D64Image.new(path)
-    when ".d71" then Badline::Storage::D71Image.new(path)
-    when ".d81" then Badline::Storage::D81Image.new(path)
+    when ".d64" then Badline::Storage::D64Image.new(path, read_only: true)
+    when ".d71" then Badline::Storage::D71Image.new(path, read_only: true)
+    when ".d81" then Badline::Storage::D81Image.new(path, read_only: true)
     else raise "#{path} is not a mountable disk image"
     end
   end

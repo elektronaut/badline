@@ -12,12 +12,13 @@ module Badline
     class Gamepads
       PORTS = [2, 1].freeze
 
-      def initialize(computer)
+      def initialize(computer, verbose)
+        @verbose = verbose
         @controllers = []
         @ports = [PadPort.new(computer.joystick2), PadPort.new(computer.joystick1)]
         @buttons = Array.new(PadPort::BUTTON_COUNT, 0)
         @available = SDL.SDL_InitSubSystem(SDL::INIT_GAMECONTROLLER).zero?
-        puts "No game controllers: #{SDL.SDL_GetError}" unless @available
+        puts "No game controllers: #{SDL.SDL_GetError}" if @verbose && !@available
       end
 
       def rescan
@@ -50,7 +51,7 @@ module Badline
         # reads as nil.
         return if controller.nil?
 
-        puts "Gamepad on joystick #{PORTS[@controllers.size]}: #{SDL.SDL_GameControllerName(controller)}"
+        puts "Gamepad on joystick #{PORTS[@controllers.size]}: #{SDL.SDL_GameControllerName(controller)}" if @verbose
         @controllers << controller
       end
 

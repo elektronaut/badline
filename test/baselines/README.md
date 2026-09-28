@@ -58,6 +58,25 @@ Recorded output of the headless hardware suites, one file per suite:
   `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
   again under `vicii-old`, with the same id. Its FAIL rows are the ones
   [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
+- `testbench-general.txt` — the same runner scoped to `C64/` and
+  `general/`, over the testlist's machine-level rows outside the Lorenz
+  suite: the power-on RAM pattern (`C64/raminitpattern`), BASIC's pointers
+  after a load (`C64/autostart/basic`), the machine state after a load
+  (`C64/autostart/defaults`), banking and open I/O (`C64/bankio`,
+  `C64/openio`, `general/banking00`), the RAM under the CPU port
+  (`general/ram0001`) and emu-fuxxor's checks (`general/fuxxortest`). All
+  `exitcode` tests. `general/Lorenz-2.15` is left to `lorenz`, apart from
+  its `cia-new` rows in `testbench-cia-new`. Two `fuxxortest` rows,
+  `ef2-inst1` and `test-fuxxored`, upload code to the drive and run it
+  there, which needs a true 1541, so `bin/testbench` doesn't list them.
+- `testbench-expansions.txt` — the same runner with `--expansions`, over
+  the rows that ask for a memory expansion badline emulates, from
+  whichever subtree lists them: the `geo512k` rows of `GEO-RAM` and
+  `memory-expansions`, and the `plus60k` and `plus256k` rows. Each boots
+  with its expansion fitted, a 512K GEO-RAM or the +60K or +256K RAM
+  expansion, then loads and runs its program like any other row. Rows
+  that ask for an REU, Isepic, DQBB or RamCart drop out. All `exitcode`
+  tests.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -195,9 +214,16 @@ what the suite cost before it was sharded:
 | `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
 | `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
+| `testbench-general` | 18 | 4 min | 0.2 min | 0.1 min |
+| `testbench-expansions` | 7 | 22 min | 11 min | 10 min |
 
-The `testbench-cia-new` and `testbench-vicii-new` rows were measured on a
-four-core cloud container, not the laptop, and on CRuby with YJIT.
+The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general` and
+`testbench-expansions` rows were measured on a four-core cloud container,
+not the laptop, and on CRuby with YJIT, `testbench-general` over two
+shards.
+`memory-expansions/c64-georam-emd.prg` is nearly all of
+`testbench-expansions`, which no sharding shortens. Its worst case is
+the rows' budgets at the throughput of that run, not a timed run.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
@@ -321,3 +347,15 @@ explain.
     lines in the first character after a `$dd00` bank switch, where the
     reference shows the other bank's character. The output matches the
     6569 reference there.
+- `C64/raminitpattern/cyberloadtest.prg`, `darkstarbbstest.prg` and
+  `platoontest.prg` (`testbench-general`, exit `$ff`) check the pattern
+  RAM powers on with, and badline powers RAM on at `$00`. All three pass
+  on VICE's default pattern (`$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted
+  every `$4000` bytes). That pattern is a change to the power-on state of
+  every suite's machine, so it is left to a change of its own.
+- `C64/autostart/defaults/test.prg` (`testbench-general`, exit `$ff`)
+  compares the machine against a dump taken after `LOAD"TEST",8` and `RUN`
+  on a real C64 with a real drive, down to zero page, CIA 1's timer B and
+  CIA 2's port A. The harness injects the program instead of loading it.
+  Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
+  exits `$ff` as well.
