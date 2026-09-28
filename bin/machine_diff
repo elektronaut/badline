@@ -3,8 +3,9 @@
 
 # Runs a scenario and prints a Badline::Checkpoint every K cycles: one
 # digest each for the CPU, RAM, colour RAM, the framebuffer, and the VIC,
-# CIA and SID registers. Two runs that print the same lines left the
-# machine in the same state at every checkpoint.
+# CIA and SID registers, and with --true-drive one for the drive. Two runs
+# that print the same lines left the machine in the same state at every
+# checkpoint.
 #
 #   ruby --yjit bin/machine_diff [scenario|media] [--cycles N] [--every K]
 #   ruby --yjit bin/machine_diff [scenario|media] --save FILE
@@ -21,6 +22,18 @@
 # Anything else is a path handed to Badline::Media.attach: a PRG, a disk
 # or tape image, a CRT or a directory.
 #
+# --true-drive plugs a Drive1541 into the serial bus before the machine
+# boots, and adds its digest to each checkpoint as drive=. A D64 then
+# goes into the drive instead of Media.attach, and the machine types
+# LOAD"$",8 and LIST (or --text) once booted, so the directory comes off
+# the disk through the DOS. --no-idle-skip makes the drive run every
+# cycle of its idle loop (see Drive1541::Idle), so running the same tree
+# with and without it checks that skipping leaves the drive and the
+# machine alone:
+#
+#   ruby --yjit bin/machine_diff disk.d64 --true-drive --save skip.txt
+#   ruby --yjit bin/machine_diff disk.d64 --true-drive --no-idle-skip --against skip.txt
+#
 # --against REV extracts REV's lib/ into tmp/machine_diff/<sha>/, runs the
 # same scenario on it alongside this run and stops at the first
 # checkpoint that differs, naming the components that differ. --against
@@ -35,6 +48,7 @@ require "optparse"
 require "rbconfig"
 require "tmpdir"
 require_relative "../test/jit"
+require_relative "../test/true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
 DEMO_PRG = [
@@ -127,7 +141,7 @@ module MachineDiff
   end
 
   def machine(scenario, options, dir)
-    computer = Badline::Computer.new
+    computer = TrueDrive.computer(options)
     case scenario
     when "boot" then nil
     when "type" then computer.on_init { computer.type_text(options[:text]) }
@@ -138,7 +152,7 @@ module MachineDiff
       File.binwrite(File.join(dir, "demo.prg"), DEMO_PRG)
       Badline::Media.attach(computer, dir)
       computer.type_text(Badline::Media::AUTOSTART)
-    else Badline::Media.attach(computer, scenario)
+    else TrueDrive.insert(computer, scenario, options) || Badline::Media.attach(computer, scenario)
     end
     computer
   end
@@ -150,17 +164,17 @@ module MachineDiff
       every = options[:every]
       (options[:cycles] / every).times do
         every.times { computer.cycle! }
-        yield Badline::Checkpoint.take(computer)
+        yield Badline::Checkpoint.take(computer), TrueDrive.digest(computer)
       end
     end
   end
 
   def print_run(scenario, options)
     out = options[:save] ? File.open(options[:save], "w") : nil
-    run(scenario, options) do |checkpoint|
-      puts checkpoint
+    run(scenario, options) do |checkpoint, drive|
+      puts TrueDrive.line(checkpoint, drive)
       $stdout.flush
-      out&.puts(checkpoint)
+      out&.puts(TrueDrive.line(checkpoint, drive))
     end
   ensure
     out&.close
@@ -178,7 +192,7 @@ module MachineDiff
   end
 
   def child_command(scenario, options, lib)
-    [RbConfig.ruby, *Jit.flags, __FILE__, scenario, "--lib", lib,
+    [RbConfig.ruby, *Jit.flags, __FILE__, scenario, "--lib", lib, *TrueDrive.flags(options),
      "--cycles", options[:cycles].to_s, "--every", options[:every].to_s, "--text", options[:text]]
   end
 
@@ -206,13 +220,13 @@ module MachineDiff
 
   def compare_with(scenario, options, io)
     count = 0
-    run(scenario, options) do |ours|
+    run(scenario, options) do |ours, drive|
       line = io.gets
       abort "machine_diff: the other run ended before cycle #{ours.cycle}" unless line
 
       theirs = Badline::Checkpoint.parse(line)
       report_difference(ours, theirs) unless ours == theirs
-      puts ours
+      puts TrueDrive.compare(ours, drive, line)
       count += 1
     end
     puts "#{count} checkpoints match"
@@ -226,15 +240,18 @@ module MachineDiff
   end
 end
 
-options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib") }
+options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib"),
+            true_drive: false, idle_skip: true }
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/machine_diff [#{MachineDiff::SCENARIOS.join('|')}|media] [options]"
   opts.on("--cycles N", Integer, "Cycles to run (default: 10000000)") { |n| options[:cycles] = n }
   opts.on("--every K", Integer, "Cycles between checkpoints (default: 1000000)") { |n| options[:every] = n }
-  opts.on("--text TEXT", "What the type scenario types (default: print 6*7 and RETURN)") do |text|
+  opts.on("--text TEXT", "What the type scenario, or a D64 with --true-drive, types") do |text|
     options[:text] = text
   end
+  opts.on("--true-drive", "Plug a true 1541 in, and put a D64 in it") { options[:true_drive] = true }
+  opts.on("--no-idle-skip", "Run every cycle of the true 1541's idle loop") { options[:idle_skip] = false }
   opts.on("--save FILE", "Also write the checkpoints to FILE") { |path| options[:save] = path }
   opts.on("--against REV_OR_FILE", "Compare with REV's lib/ or with a file from --save") do |against|
     options[:against] = against
