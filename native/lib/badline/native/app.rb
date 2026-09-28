@@ -10,20 +10,21 @@ module Badline
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      # Takes the frame limit, the pacing, the screenshot path and the sound
-      # from Options.
+      # Takes the frame limit, the pacing, the screenshot path, the sound and
+      # the verbosity from Options.
       def initialize(computer, options)
         @computer = computer
         @frame_limit = options.frames
-        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?)
+        @verbose = options.verbose?
+        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose)
         @screenshot = options.screenshot
         @screen = Screen.new(computer.vic)
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         open_window
-        @sound = Sound.new(computer.sid, options.sound?)
-        @gamepads = Gamepads.new(computer)
+        @sound = Sound.new(computer.sid, options.sound?, @verbose)
+        @gamepads = Gamepads.new(computer, @verbose)
       end
 
       def run
@@ -176,13 +177,19 @@ module Badline
       def report(at)
         @pacer.check(50, at - @reported, at)
         @pacer.measure(50, at - @reported)
-        fps = 50 / (at - @reported)
-        stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
-        puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
-        report_sound(at) if @sound.on?
+        if @verbose
+          report_frames(at)
+          report_sound(at) if @sound.on?
+        end
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         @reported = at
+      end
+
+      def report_frames(at)
+        fps = 50 / (at - @reported)
+        stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
+        puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
       end
 
       def report_sound(at)

@@ -48,6 +48,25 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the setup report" do
+    let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: ["Pad"], poll: nil, close: nil) }
+
+    it "stays quiet by default" do
+      described_class.new
+      expect($stdout).not_to have_received(:puts)
+    end
+
+    it "names the display rate with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with(/\ADisplay \d+ Hz/)
+    end
+
+    it "names the gamepads with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with("Gamepad: Pad")
+    end
+  end
+
   describe "a mouse button in paddle mode" do
     it "fires paddle A on port 1 with the left button" do
       run_with(tabs: 4, button: 1)

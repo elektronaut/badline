@@ -85,6 +85,10 @@ mutes and unmutes it. `--no-sound` turns it off. The window is paced by
 the display's vsync; `--no-vsync` paces it by a timer, or by the sound
 while it plays.
 
+`--verbose` prints the display's refresh rate, the sound's sample rate
+and the game controllers found as the window opens. In `badline` it also
+prints the frame rate and the time each frame takes, once a second.
+
 In `badline-ruby` sound is off by default, and `--sound` turns it on.
 The machine runs below real time there, so the sound stutters: it plays
 in bursts with silent gaps between them, at the right pitch, and never
@@ -134,8 +138,8 @@ badline-ruby --headless --sid 8580 tune.sid
 badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slower
 ```
 
-Both modes take the same options. The window's own, `--no-autostart`
-and `--sound`, don't apply to them. `--song` (or `-s`) picks the
+Both modes take the same options. The window's own, `--no-autostart`,
+`--sound` and `--verbose`, don't apply to them. `--song` (or `-s`) picks the
 subtune, counting from 1 as HVSC does, and defaults to the tune's own
 start song. Playback asks the device for 44.1 kHz and takes whatever rate it
 offers, unless `--rate` says otherwise. Ctrl-C stops it.

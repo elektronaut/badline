@@ -146,6 +146,8 @@ render a `.sid` tune without it, as described under
   plays unless told not to (`--sound` is accepted too).
 - `--no-vsync` paces PAL frames by the timer, or by the sound, instead of
   the display. See [Pacing](#pacing).
+- `--verbose` prints the display, sound and game controller setup as the
+  window opens, and the frame report below.
 - `--version` names the build.
 
 Values can also come as `--song=2`, and `--` ends the options. Three more
@@ -180,7 +182,7 @@ changed into a streaming texture, presents it and waits.
   D-pad and the left stick steer, and every face and shoulder button
   fires. Controllers are picked up when they are plugged in or out.
 
-Every 50 frames it prints the frame rate, the time per frame spent on
+With `--verbose`, every 50 frames it prints the frame rate, the time per frame spent on
 events, emulation, audio, the texture upload, presenting and waiting, and
 the slowest frame's work. With sound on it adds the samples queued per
 second, the queue's range, and the underruns and dropped samples so far.
@@ -202,8 +204,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
-The window's options, `--no-sound`, `--no-vsync` and the testing ones
-included, are refused with them.
+The window's options, `--no-sound`, `--no-vsync`, `--verbose` and the
+testing ones included, are refused with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the
@@ -241,8 +243,9 @@ and 6,842 at 144 Hz, so the machine runs at its own speed on any display.
   samples are dropped.
 - If presenting doesn't wait, as with vsync off in the display's driver
   or under SDL's dummy video driver, the frames come faster than 1.5 times
-  the refresh rate. After 10 frames, and at every report, that prints a
-  notice and falls back to a timer, keeping the display-sized frames.
+  the refresh rate. After 10 frames, and at every report, that falls
+  back to a timer, keeping the display-sized frames, and `--verbose`
+  prints a notice.
 
 `--no-vsync` runs PAL frames of 19,656 cycles instead, paced by the sound
 as below or, without it, by a 20 ms timer.
