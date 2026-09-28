@@ -131,6 +131,13 @@ describe Badline::Drive1541::Idle do
     expect(states(drives, [3000, 100, 1000])).to all(satisfy { |skipping, stepping| skipping == stepping })
   end
 
+  it "reads the LED without waking" do
+    drive = drive_running(pure_loop)
+    asleep_for(drive, 100)
+    drive.led_on?
+    expect(drive.asleep?).to be(true)
+  end
+
   # Runs the real DOS ROM. Two drives boot side by side, one skipping its
   # idle loop and one not, while the C64's lines move.
   describe "with the DOS ROM" do

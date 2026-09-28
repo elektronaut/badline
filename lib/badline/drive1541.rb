@@ -115,6 +115,10 @@ module Badline
 
     def disk = mechanism.disk
 
+    # Whether the LED is lit. Reading it leaves the drive asleep: the LED
+    # is the same at the end of every pass the drive sleeps through.
+    def led_on? = @mechanism.led_on?
+
     # VIA 1's port B as it drives the serial bus. It holds still while the
     # drive sleeps, so reading it leaves the drive asleep.
     def serial_output = @via1.port_b_output
