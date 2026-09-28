@@ -7,6 +7,7 @@ require "badline/drive1541/track"
 require "badline/drive1541/disk"
 require "badline/drive1541/mechanism"
 require "badline/drive1541/disk_via"
+require "badline/drive1541/idle"
 
 module Badline
   # The 1541 disk drive as a machine of its own: a 6502 running the DOS
@@ -22,13 +23,54 @@ module Badline
   #
   # VIA 2's port B runs the Mechanism, which reads a Disk put in with
   # insert.
+  #
+  # While the DOS idles, host_cycle! skips the drive's cycles and catches
+  # up on them later, exactly (see Idle). The readers of the drive's parts
+  # catch up first, so they find the drive as running every cycle would
+  # have left it.
   class Drive1541
+    include Idle
+
     CLOCK_HZ = 1_000_000
 
-    attr_reader :cpu, :bus, :via1, :via2, :mechanism, :cycles, :device, :serial_bus
-    attr_writer :host_clock_hz
+    attr_reader :device, :serial_bus
 
-    def ram = @bus.ram
+    def cpu
+      settle!
+      @cpu
+    end
+
+    def bus
+      settle!
+      @bus
+    end
+
+    def via1
+      settle!
+      @via1
+    end
+
+    def via2
+      settle!
+      @via2
+    end
+
+    def mechanism
+      settle!
+      @mechanism
+    end
+
+    def cycles
+      settle!
+      @cycles
+    end
+
+    def ram = bus.ram
+
+    def host_clock_hz=(clock_hz)
+      settle!
+      @host_clock_hz = clock_hz
+    end
 
     # +rom+ covers $C000-$FFFF, and defaults to the DOS image in the ROM
     # path. +device+ is the number the jumpers on VIA 1's PB5 and PB6 set,
@@ -45,6 +87,7 @@ module Badline
       @phase = 0
       @cycles = 0
       @serial_bus = nil
+      init_idle
       # CA1 powers up at the level of a released ATN, without an edge.
       @via1.ca1 = false
       @via1.reset!
@@ -54,6 +97,7 @@ module Badline
     # Plugs the drive into a serial bus, leaving the one it was on. A drive
     # starts out on a bus of its own, with nothing else on it.
     def connect(serial_bus)
+      settle!
       @serial_bus&.detach(self)
       @serial_bus = serial_bus
       @serial_port.bus = serial_bus
@@ -64,14 +108,20 @@ module Badline
     # Puts a Disk in the drive (Disk.from_d64 makes one from an image).
     # Nil takes the disk out.
     def insert(disk)
+      settle!
       @mechanism.insert(disk)
     end
 
-    def disk = @mechanism.disk
+    def disk = mechanism.disk
+
+    # VIA 1's port B as it drives the serial bus. It holds still while the
+    # drive sleeps, so reading it leaves the drive asleep.
+    def serial_output = @via1.port_b_output
 
     # The serial bus's RESET line reaches the CPU and both VIAs. RAM keeps
     # its contents.
     def reset!
+      settle!
       @via1.reset!
       @via2.reset!
       @cpu.reset!
@@ -79,15 +129,20 @@ module Badline
 
     # Runs the drive cycles that fall in one host cycle: none, one or two.
     # The host has run this cycle already, and the drive sees what it did
-    # from the next one on (see SerialPort).
+    # from the next one on (see SerialPort). Asleep, the drive owes the
+    # cycles instead, until ATN moves or its counters are due (see Idle).
     def host_cycle!
+      return doze if @asleep
+
       phase = @phase + CLOCK_HZ
       while phase >= @host_clock_hz
-        cycle!
+        @asleep ? @owed += 1 : run_cycle
         phase -= @host_clock_hz
       end
       @phase = phase
+      settle! if @serial_port.atn_moved?
       @serial_port.latch_host
+      plan_wake if @asleep
     end
 
     # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
@@ -101,13 +156,12 @@ module Badline
     # high as the C64 asserts ATN, as the serial port sees it: from the
     # host cycle after the one that asserts it.
     def cycle!
-      @mechanism.cycle!
-      @via1.ca1 = @serial_port.atn_low?
-      @via1.cycle!
-      @via2.cycle!
-      @cpu.irq = @via1.irq? || @via2.irq?
-      @cpu.cycle!
-      @cycles += 1
+      settle!
+      step
+    end
+
+    def inspect
+      "#<#{self.class.name} cycles=#{cycles} cpu=(#{cpu.inspect})>"
     end
 
     # The read electronics signal a whole GCR byte. BYTE READY pulls VIA 2's
@@ -124,8 +178,22 @@ module Badline
       @via2.ca1 = true
     end
 
-    def inspect
-      "#<#{self.class.name} cycles=#{@cycles} cpu=(#{@cpu.inspect})>"
+    private
+
+    # A drive cycle from host_cycle!, which may find the idle loop.
+    def run_cycle
+      step
+      idle_loop_reached if @cpu.program_counter == IDLE_LOOP && @idle_skip
+    end
+
+    def step
+      @mechanism.cycle!
+      @via1.ca1 = @serial_port.atn_low?
+      @via1.cycle!
+      @via2.cycle!
+      @cpu.irq = @via1.irq? || @via2.irq?
+      @cpu.cycle!
+      @cycles += 1
     end
   end
 end
