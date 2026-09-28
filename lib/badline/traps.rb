@@ -6,6 +6,10 @@ module Badline
       (@traps ||= {})[addr] = handler
     end
 
+    def remove_trap(addr)
+      @traps&.delete(addr)
+    end
+
     private
 
     def run_traps

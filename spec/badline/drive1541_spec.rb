@@ -130,6 +130,26 @@ describe Badline::Drive1541 do
     end
   end
 
+  describe "#flush" do
+    let(:disk) { Badline::Drive1541::Disk.new }
+
+    before do
+      allow(disk).to receive(:flush)
+      drive.insert(disk)
+    end
+
+    it "stores what the head wrote in the disk's image" do
+      disk.written(36)
+      drive.flush
+      expect(disk).to have_received(:flush)
+    end
+
+    it "leaves a disk nothing was written to alone" do
+      drive.flush
+      expect(disk).not_to have_received(:flush)
+    end
+  end
+
   describe "#host_cycle!" do
     subject(:drive) { described_class.new(rom: Drive1541ROM.stub, host_clock_hz: 985_248) }
 

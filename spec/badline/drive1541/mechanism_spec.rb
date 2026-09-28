@@ -172,6 +172,38 @@ describe Badline::Drive1541::Mechanism do
     end
   end
 
+  # Pinned by drive/skew/skew2: a .g64 whose tracks all start at the same
+  # angle reads that way only when the head keeps the disk's angle across
+  # the half tracks it steps over.
+  describe "over a half track without data" do
+    # Track 18 in zone 1, a SYNC mark at its start and gap bytes after it.
+    let(:disk) do
+      Badline::Drive1541::Disk.new.tap do |disk|
+        disk.write(36, Badline::Drive1541::Track.new(([0xff] * 5) + ([0x55] * 6661), 1))
+      end
+    end
+
+    def cycles_to_sync
+      (1..300_000).find do
+        drive.cycle!
+        mechanism.sync?
+      end
+    end
+
+    before do
+      drive.insert(disk)
+      spin(1)
+      run(1000)
+    end
+
+    it "turns once in 200 ms at every bit rate, as a track does" do
+      port_b(0x25) # a half track in, where the disk has no data
+      run(100_000)
+      port_b(0x24) # and back to track 18
+      expect(cycles_to_sync).to be_within(60).of((6666 * 30) - 101_000 + 38)
+    end
+  end
+
   describe "the write electronics" do
     let(:disk) { Badline::Drive1541::Disk.new }
     let(:gcr) { Badline::Drive1541::GCR }
@@ -388,16 +420,21 @@ describe Badline::Drive1541::Mechanism do
         expect(via.peek(0x1c01)).to eq(latched)
       end
 
-      it "sets V through SO while CA2 is high" do
+      # Pinned by drive/hls-protection: the CPU samples SO a cycle after
+      # BYTE READY, so V is set for the next cycle's instruction step.
+      it "sets V through SO while CA2 is high, a cycle after BYTE READY" do
         drive.cpu.status.overflow = false
         next_byte
-        expect(drive.cpu.status.overflow?).to be(true)
+        set = drive.cpu.status.overflow?
+        run(1)
+        expect([set, drive.cpu.status.overflow?]).to eq([false, true])
       end
 
       it "leaves V alone while CA2 is low" do
         via.poke(0x1c0c, 0xec)
         drive.cpu.status.overflow = false
         next_byte
+        run(1)
         expect(drive.cpu.status.overflow?).to be(false)
       end
     end
