@@ -66,6 +66,36 @@ module Badline
         @counter == 0xffff && timeout(free_run)
       end
 
+      # How many cycles the timer can run without setting its flag: until
+      # an armed timer's timeout, and forever for an unarmed one, whose
+      # timeouts only reload the counter. None while an armed timer loads
+      # or reloads.
+      def quiet_cycles
+        return FastForward::QUIET unless @armed
+        return 0 if @hold || @reload
+
+        @counter
+      end
+
+      # Runs +cycles+ cycles at once, as many as quiet_cycles allows. An
+      # unarmed timer goes round its period of latch + 2 cycles: the
+      # timeout at $FFFF, the reload, and latch down to 0.
+      def fast_forward(cycles)
+        if @hold || @reload
+          cycle!(false)
+          cycles -= 1
+        end
+        return @counter -= cycles if cycles <= @counter
+
+        phase = (cycles - @counter - 1) % (@latch + 2)
+        @reload = phase.zero?
+        @counter = @reload ? 0xffff : @latch - phase + 1
+      end
+
+      # What the counter and PB7 don't hold, for comparing the timer at two
+      # points.
+      def state = [@latch, @armed]
+
       private
 
       # The counter reloads either way. Armed, PB7 inverts and the flag

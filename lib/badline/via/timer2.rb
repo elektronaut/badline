@@ -63,6 +63,32 @@ module Badline
       # A falling edge on PB6. Returns true when it sets the flag.
       def pulse! = @counting_pulses && decrement
 
+      # How many cycles the timer can run without setting its flag, taken
+      # without the shift register clocking off it: until an armed timer
+      # underflows, and forever for one counting pulses or unarmed, which
+      # only rolls on. None while a load or a switch of mode is under way.
+      def quiet_cycles
+        return 0 if @hold || @counting_pulses != @count_pulses
+        return FastForward::QUIET if @counting_pulses || !@armed
+
+        @counter
+      end
+
+      # Runs +cycles+ cycles at once, as many as quiet_cycles allows.
+      def fast_forward(cycles)
+        @low_underflowed = false
+        return if @counting_pulses
+
+        @counter = (@counter - cycles) & 0xffff
+        # The low byte underflowed on the last cycle if it went from $00.
+        @low_underflowed = @counter.allbits?(0xff)
+      end
+
+      # What the counter doesn't hold, for comparing the timer at two
+      # points. The low byte's underflow is left out: only the shift
+      # register reads it.
+      def state = [@latch_low, @armed, @hold, @low_reload, @count_pulses, @counting_pulses]
+
       private
 
       # A cycle while counting pulses, or held after a load or a low byte

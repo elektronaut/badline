@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/via/control_lines"
+require "badline/via/fast_forward"
 require "badline/via/interrupt_register"
 require "badline/via/shift_register"
 require "badline/via/timer1"
@@ -16,6 +17,7 @@ module Badline
   # feed the counter.
   class VIA
     include Addressable
+    include FastForward
 
     attr_reader :start, :peripheral, :shift_register, :acr, :pcr
 
