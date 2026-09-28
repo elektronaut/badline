@@ -4,6 +4,7 @@ require "spec_helper"
 require "fileutils"
 require_relative "../support/blank_disk"
 require_relative "../support/cartridge_builder"
+require_relative "../support/drive1541_rom"
 
 RSpec.describe Badline::Computer do
   let(:computer) { described_class.new }
@@ -566,5 +567,29 @@ RSpec.describe Badline::Computer do
 
   it "ignores the freeze button without a cartridge" do
     expect { computer.press_cartridge_button }.not_to raise_error
+  end
+
+  describe "#attach_drive1541" do
+    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+
+    before { drive.ram.write(0x0300, [0x4c, 0x00, 0x03]) } # JMP *
+
+    it "runs no drive until one is attached" do
+      100.times { computer.cycle! }
+      expect(computer.drive1541).to be_nil
+    end
+
+    it "clocks the drive at 1 MHz against the C64's clock" do
+      computer.attach_drive1541(drive)
+      30_789.times { computer.cycle! } # 1/32 of a second
+      expect(drive.cycles).to eq(31_250)
+    end
+
+    it "resets the drive with the C64" do
+      computer.attach_drive1541(drive)
+      drive.cpu.program_counter = 0x0500
+      computer.reset!
+      expect(drive.cpu.program_counter).to eq(0x0300)
+    end
   end
 end

@@ -5,7 +5,7 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :address_bus, :cpu, :cycles
+    attr_reader :address_bus, :cpu, :cycles, :drive1541
 
     def region = address_bus.region
 
@@ -53,6 +53,7 @@ module Badline
       @init_handlers = []
       @pending_keys = nil
       @drive = nil
+      @drive1541 = nil
     end
 
     INIT_THRESHOLD = 2_500_000
@@ -74,6 +75,7 @@ module Badline
       drive_nmi
       watch_freeze if @freezing
       @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+      @drive1541&.host_cycle!
 
       @cycles += 1
     end
@@ -110,6 +112,7 @@ module Badline
       @sid.reset!
       address_bus.cartridge&.reset
       @drive&.reset!
+      @drive1541&.reset!
       @freezing = false
       @nmi_asserted = false
       cpu.reset!
@@ -148,6 +151,13 @@ module Badline
       KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive).install
       save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
+    end
+
+    # Plugs in a Drive1541, which then runs alongside the C64 on its own
+    # clock. Nothing wires it to the serial bus yet.
+    def attach_drive1541(drive)
+      drive.host_clock_hz = region.clock_hz
+      @drive1541 = drive
     end
 
     def capture_output
