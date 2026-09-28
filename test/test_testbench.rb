@@ -229,8 +229,6 @@ class TestTestbenchDrive < Minitest::Test
     assert_equal [:testsuite, true], [test.drive_kind, test.drive?]
   end
 
-  # Writing the disk is #299, so format keeps failing under --drive
-  # rather than dropping out of the suite.
   def test_keeps_a_row_that_writes_the_disk_under_drive
     assert_equal :drive, parse("../drive/format/,format.prg,exitcode,88000000,mountd64:#{@disk}").drive_kind
   end
