@@ -113,6 +113,13 @@ module Badline
 
       def writing? = @writing
 
+      # What port B and CB2 can change with the motor off: the motor, the
+      # LED, the zone, the stepper, write mode, and where in the turn the
+      # head is, which a zone change moves over a blank track. The rest
+      # moves only while the motor turns, or as a disk goes in (see
+      # Drive1541::Idle).
+      def idle_state = [@motor, @led, @zone, @half_track, @slip, @disk, @index, @writing, @sync]
+
       # Puts a Disk in, or takes it out with nil, flushing the disk that
       # was in. The head goes on from the same point in the turn.
       def insert(disk)

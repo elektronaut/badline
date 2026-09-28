@@ -63,6 +63,13 @@ module Badline
         @bits = 8
       end
 
+      # Whether the register is counting bits off its own clock, which
+      # changes it from cycle to cycle.
+      def clocking? = @bits.nonzero? && internal_clock?
+
+      # Everything the register holds, for comparing it at two points.
+      def state = [@mode, @data, @bits, @clock, @cb2, @cb2_input]
+
       # The CB1 level the register drives, or nil when CB1 is an input.
       def cb1_output
         internal_clock? ? @clock : nil

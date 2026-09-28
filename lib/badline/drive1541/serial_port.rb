@@ -44,6 +44,12 @@ module Badline
         @host = @bus ? @bus.host_lines : 0
       end
 
+      # Whether the C64 has moved ATN since the last latch_host.
+      def atn_moved?
+        lines = @bus ? @bus.host_lines : 0
+        (lines ^ @host).anybits?(IECBus::HOST_ATN_OUT)
+      end
+
       def atn_low? = @bus.atn_low?(@host)
 
       def read_a(_lines) = 0xff
