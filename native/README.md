@@ -18,9 +18,9 @@ badline --version
 ```
 
 The formula builds the release's pack (see [Packing](#packing)) with the
-system's C compiler, so it needs no Spinel, and pulls in SDL2. The tap,
-[elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap),
-isn't published yet.
+system's C compiler, so it needs no Spinel, and pulls in SDL2. It comes
+from the [elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap)
+tap, which each release updates.
 
 ## Building
 
