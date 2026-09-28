@@ -57,6 +57,22 @@ module Badline
           update_image { put_sector(track, sector, data) } if block?(track, sector)
         end
 
+        # Stores blocks as a true drive read them back off its disk, in one
+        # write to the host file. Each is [track, sector, data, error]: nil
+        # data leaves the block's bytes as they were, and the error, the
+        # DOS error a read of it raises or nil, goes into the error table
+        # when the image has one.
+        def store_blocks(blocks)
+          update_image do
+            blocks.each do |track, sector, data, error|
+              next unless block?(track, sector)
+
+              put_sector(track, sector, data) if data
+              @errors[track_offset(track) + sector] = error ? DOS_ERRORS.key(error) : 1 if @errors
+            end
+          end
+        end
+
         # Marks a block in use, as B-A does.
         def allocate_block(track, sector) = update_image { mark(track, sector, false) }
 

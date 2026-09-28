@@ -227,6 +227,40 @@ describe Badline::Storage::DiskImage::Writing do
     end
   end
 
+  describe "#store_blocks" do
+    it "stores each block's data" do
+      image.store_blocks([[1, 0, Array.new(256, 0x5a), nil], [2, 3, Array.new(256, 0xa5), nil]])
+      expect([reread.read_block(1, 0), reread.read_block(2, 3)]).to eq([Array.new(256, 0x5a), Array.new(256, 0xa5)])
+    end
+
+    it "keeps the data of a block read without any" do
+      image.store_blocks([[1, 0, nil, 20]])
+      expect(reread.read_block(1, 0)).to eq(Array.new(256, 0))
+    end
+
+    it "skips a block outside the image's geometry" do
+      expect { image.store_blocks([[1, 21, Array.new(256, 1), nil]]) }.not_to(change { File.binread(path) })
+    end
+
+    it "keeps a disk without an error table without one" do
+      image.store_blocks([[1, 0, Array.new(256, 1), 23]])
+      expect(File.size(path)).to eq(174_848)
+    end
+
+    context "with an error table" do
+      before do
+        bytes = File.binread(path).bytes + Array.new(683, 1)
+        bytes[-683] = 5 # 23, READ ERROR at 1/0
+        File.binwrite(path, bytes.pack("C*"))
+      end
+
+      it "sets each block's error" do
+        image.store_blocks([[1, 0, Array.new(256, 1), nil], [1, 1, nil, 22], [1, 2, Array.new(256, 1), 29]])
+        expect((0..2).map { |sector| reread.block_error(1, sector) }).to eq([nil, 22, 29])
+      end
+    end
+  end
+
   describe "BAM changes" do
     it "allocates a block" do
       image.allocate_block(5, 3)
