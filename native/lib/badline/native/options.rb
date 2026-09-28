@@ -212,6 +212,7 @@ module Badline
         validate_mode
         validate_numbers
         validate_paths
+        validate_media
       end
 
       def validate_mode
@@ -238,6 +239,11 @@ module Badline
       def validate_paths
         raise Error, "no such file or directory: #{@media}" unless @media.empty? || File.exist?(@media)
         raise Error, "no such file or directory: #{@songlengths}" unless @songlengths.nil? || File.exist?(@songlengths)
+      end
+
+      # A .g64 image needs the true drive, which only badline-ruby has.
+      def validate_media
+        raise Error, ".g64 images need badline-ruby: #{@media}" if File.extname(@media).casecmp?(".g64")
       end
     end
   end
