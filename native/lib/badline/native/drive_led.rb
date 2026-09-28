@@ -34,6 +34,7 @@ module Badline
       # Fills the LED's rectangle in its colour, then puts back the black
       # that RenderClear clears with.
       def draw(renderer)
+        DriveLed.place
         rgb = color
         SDL.SDL_SetRenderDrawColor(renderer, rgb[0], rgb[1], rgb[2], 255)
         SDL.SDL_RenderFillRect(renderer, SDL.led_rect)

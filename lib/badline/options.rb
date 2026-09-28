@@ -54,8 +54,10 @@ module Badline
 
     def initialize
       @autostart = true
-      @true_drive = false
+      @read_only = false
       @sound = false
+      @verbose = false
+      @true_drive = false
       @headless = false
       @jit = true
       @quiet = false
@@ -84,6 +86,9 @@ module Badline
 
     def rate = @rate || DEFAULT_RATE
 
+    # How long to play a tune whose length nothing gives.
+    def fallback_seconds = FALLBACK_SECONDS
+
     def rate_given? = !@rate.nil?
 
     def help = parser.help
@@ -92,7 +97,11 @@ module Badline
 
     def autostart? = @autostart
 
+    def read_only? = @read_only
+
     def sound? = @sound
+
+    def verbose? = @verbose
 
     def true_drive? = @true_drive
 
@@ -159,11 +168,17 @@ module Badline
       opts.on("--no-autostart", "Boot to READY. instead of running the program") do
         window_only("--no-autostart") { @autostart = false }
       end
+      opts.on("--read-only", "Mount a disk image write-protected, leaving its file unchanged") do
+        window_only("--read-only") { @read_only = true }
+      end
       opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") do
         window_only("--sound") { @sound = true }
       end
       opts.on("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps") do
         window_only("--true-drive") { @true_drive = true }
+      end
+      opts.on("--verbose", "Print the display, sound and gamepad setup and the frame timing") do
+        window_only("--verbose") { @verbose = true }
       end
     end
 

@@ -136,7 +136,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
-`testbench-cpu` and 2 for `testbench-carts`. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-cpu`, 2 for `testbench-carts` and 10 for `testbench-expansions`. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -184,8 +184,9 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
-`testbench-carts`; the 1541 drive, VIA or IEC bus → `testbench-drive`
-(`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K
+or +256K → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
+`testbench-drive` (`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz

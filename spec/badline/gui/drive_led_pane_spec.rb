@@ -5,9 +5,10 @@ require "badline/gui"
 require_relative "../../support/drive1541_rom"
 
 describe Badline::GUI::DriveLedPane do
-  subject(:pane) { described_class.new(drive) }
+  subject(:pane) { described_class.new(drive, screen) }
 
   let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+  let(:screen) { Badline::GUI::Pane.new(width: 384, height: 272, left: 0, top: 0) }
   let(:sdl) { Badline::SDL }
   let(:renderer) { Fiddle::Pointer.new(0x2000) }
 
@@ -24,7 +25,7 @@ describe Badline::GUI::DriveLedPane do
 
   it "sits in the bottom right corner of the border" do
     expect([pane.left + pane.width, pane.top + pane.height])
-      .to eq([Badline::GUI::ScreenPane::WIDTH - 8, Badline::GUI::ScreenPane::HEIGHT - 6])
+      .to eq([384 - 8, 272 - 6])
   end
 
   it "is bright while the drive lights the LED" do

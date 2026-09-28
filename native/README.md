@@ -18,9 +18,9 @@ badline --version
 ```
 
 The formula builds the release's pack (see [Packing](#packing)) with the
-system's C compiler, so it needs no Spinel, and pulls in SDL2. The tap,
-[elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap),
-isn't published yet.
+system's C compiler, so it needs no Spinel, and pulls in SDL2. It comes
+from the [elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap)
+tap, which each release updates.
 
 ## Building
 
@@ -90,9 +90,11 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   the machine and runs the window.
 - `native/lib/badline/native.rb` requires the emulator core from `lib/`
   file by file, since `lib/badline.rb` also loads the CRuby front end,
-  then the members in `native/lib/badline/native/`:
+  and badline-ruby's player from `lib/badline/audio` but for its SDL
+  sink and its io/console terminal, then the members in
+  `native/lib/badline/native/`:
   - `sdl.rb` declares the SDL2 functions, structs and constants the
-    others call, and `LibC`'s `malloc` and `free`.
+    others call, and `LibC`'s `malloc`, `free` and `poll`.
   - `app.rb` (`App`) opens the window and runs the frame loop.
   - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
     and `drive_led.rb` (`DriveLed`) places and colours the true drive's
@@ -104,7 +106,13 @@ Contents read and write access to `elektronaut/homebrew-tap`.
     device.
   - `gamepads.rb` (`Gamepads`) opens and polls the game controllers, and
     `pad_port.rb` (`PadPort`) maps each one onto a joystick.
-  - `options.rb` (`Options`) parses the command line.
+  - `options.rb` (`Options`) parses the command line, and `help.rb`
+    holds its `--help`.
+  - `headless.rb` (`Headless`) runs `--headless` and `--audio-out` with
+    badline-ruby's `Audio::CLI`, handing it `audio_sink.rb`
+    (`AudioSink`), SDL's audio queue for playback, and `console.rb`
+    (`Console`), the terminal in raw mode through `stty`, waiting for
+    keys with `poll(2)`.
   - `pacer.rb` (`Pacer`) and `frame_rate.rb` (`FrameRate`) decide how many
     cycles a frame clocks and how long it waits.
   - `version.rb` and `build_info.rb` make the `--version` line.
@@ -121,14 +129,19 @@ tmp/native/badline [options] [media]
 tmp/native/badline vendor/OneLoad64-Games-Collection-v5/IK+.crt
 ```
 
-It takes `exe/badline-ruby`'s window options, parsed by
+It takes `exe/badline-ruby`'s options, parsed by
 `Badline::Native::Options` inside Spinel's subset rather than with
-OptionParser. `badline --help` lists them:
+OptionParser, with the same checks and messages. `badline --help` lists
+them. The window's are below, and `--headless` and `--audio-out` play or
+render a `.sid` tune without it, as described under
+[Without the window](#without-the-window).
 
 - `-s`, `--song N` picks a subtune of a `.sid` file, and `--sid 6581` or
   `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
   the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
+- `--read-only` mounts a disk image write-protected, leaving its file
+  unchanged.
 - `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
   traps, as in `exe/badline-ruby`: a `.d64` goes into it and autostarts
   through its DOS, and its LED lights in the bottom right corner of the
@@ -139,6 +152,8 @@ OptionParser. `badline --help` lists them:
   plays unless told not to (`--sound` is accepted too).
 - `--no-vsync` paces PAL frames by the timer, or by the sound, instead of
   the display. See [Pacing](#pacing).
+- `--verbose` prints the display, sound and game controller setup as the
+  window opens, and the frame report below.
 - `--version` names the build.
 
 Values can also come as `--song=2`, and `--` ends the options. Three more
@@ -173,7 +188,7 @@ changed into a streaming texture, presents it and waits.
   D-pad and the left stick steer, and every face and shoulder button
   fires. Controllers are picked up when they are plugged in or out.
 
-Every 50 frames it prints the frame rate, the time per frame spent on
+With `--verbose`, every 50 frames it prints the frame rate, the time per frame spent on
 events, emulation, audio, the texture upload, presenting and waiting, and
 the slowest frame's work. With sound on it adds the samples queued per
 second, the queue's range, and the underruns and dropped samples so far.
@@ -185,6 +200,33 @@ for a screenshot:
 ```sh
 SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
   tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
+```
+
+### Without the window
+
+`--headless` plays a `.sid` tune on the host's audio device, and
+`--audio-out FILE` renders it to a `.wav` or `.aiff` file, as
+`badline-ruby --headless` and `--audio-out` do (see
+[Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
+They take the same options: `--song`, `--sid`, `--seconds`,
+`--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
+The window's options, `--no-sound`, `--no-vsync`, `--verbose` and the
+testing ones included, are refused with them.
+
+It runs badline-ruby's own player from `lib/badline/audio`: the tune
+runs on the bare rig or the whole machine as there, and a render is the
+same file byte for byte. Two parts differ. The audio device is
+`AudioSink`, which queues the samples through Spinel's FFI as
+`Audio::SDLSink` does through ruby-sdl2, and without a display SDL's
+dummy or disk audio drivers work (`SDL_AUDIODRIVER=dummy`). On a
+terminal, `Console` puts it in raw mode with `stty raw -echo isig` and
+restores it with `stty` afterwards, and waits for keys with `poll(2)`,
+where badline-ruby uses io/console and io/wait. A signal handler turns
+Ctrl-C into `Interrupt`, which stops the tune as in badline-ruby.
+
+```sh
+tmp/native/badline --headless tune.sid
+tmp/native/badline --seconds 180 tune.sid --audio-out out.wav
 ```
 
 ### Pacing
@@ -207,8 +249,9 @@ and 6,842 at 144 Hz, so the machine runs at its own speed on any display.
   samples are dropped.
 - If presenting doesn't wait, as with vsync off in the display's driver
   or under SDL's dummy video driver, the frames come faster than 1.5 times
-  the refresh rate. After 10 frames, and at every report, that prints a
-  notice and falls back to a timer, keeping the display-sized frames.
+  the refresh rate. After 10 frames, and at every report, that falls
+  back to a timer, keeping the display-sized frames, and `--verbose`
+  prints a notice.
 
 `--no-vsync` runs PAL frames of 19,656 cycles instead, paced by the sound
 as below or, without it, by a 20 ms timer.

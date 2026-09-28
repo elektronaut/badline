@@ -36,6 +36,14 @@ describe Badline::Options do
       expect(options.sound?).to be(false)
     end
 
+    it "keeps the setup and timing to itself" do
+      expect(options.verbose?).to be(false)
+    end
+
+    it "mounts disk images read-write" do
+      expect(options.read_only?).to be(false)
+    end
+
     it "leaves the song to the tune" do
       expect(options.song).to be_nil
     end
@@ -111,6 +119,22 @@ describe Badline::Options do
 
       it "leaves device 8 to the KERNAL traps" do
         expect(options.true_drive?).to be(false)
+      end
+    end
+
+    context "with --read-only" do
+      let(:argv) { ["--read-only", program_path] }
+
+      it "mounts disk images write-protected" do
+        expect(options.read_only?).to be(true)
+      end
+    end
+
+    context "with --verbose" do
+      let(:argv) { ["--verbose", program_path] }
+
+      it "prints the setup and timing" do
+        expect(options.verbose?).to be(true)
       end
     end
 
@@ -253,7 +277,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound --true-drive].each do |arg|
+    %w[--no-autostart --sound --read-only --verbose --true-drive].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 
@@ -272,8 +296,8 @@ describe Badline::Options do
     end
 
     it "describes the options" do
-      expect(options.help)
-        .to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound", "--true-drive")
+      expect(options.help).to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound",
+                                      "--verbose", "--true-drive")
     end
   end
 end

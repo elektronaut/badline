@@ -18,9 +18,10 @@ describe Badline::Native::DriveLed do
 
   it "sits where the window's LED pane does" do
     require "badline/gui"
-    pane = Badline::GUI::DriveLedPane
+    screen = Badline::GUI::Pane.new(width: Badline::Native::Screen::WIDTH, height: Badline::Native::Screen::HEIGHT)
+    pane = Badline::GUI::DriveLedPane.new(drive, screen)
     expect([described_class::LEFT, described_class::TOP, described_class::WIDTH, described_class::HEIGHT])
-      .to eq([pane::LEFT, pane::TOP, pane::WIDTH, pane::HEIGHT])
+      .to eq([pane.left, pane.top, pane.width, pane.height])
   end
 
   it "is bright while the drive lights the LED" do

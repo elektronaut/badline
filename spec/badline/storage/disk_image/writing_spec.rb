@@ -265,6 +265,42 @@ describe Badline::Storage::DiskImage::Writing do
     end
   end
 
+  describe "a read-only image" do
+    subject(:image) { Badline::Storage::D64Image.new(path, read_only: true) }
+
+    let!(:original) { File.binread(path) }
+
+    it "says so" do
+      expect([image.read_only?, reread.read_only?]).to eq([true, false])
+    end
+
+    it "isn't writable" do
+      expect(image.writable?).to be(false)
+    end
+
+    it "fails a file write as WRITE PROTECT ON" do
+      expect(dos_error { image.write_file("hello", program) }).to eq(26)
+    end
+
+    it "fails a block write as WRITE PROTECT ON" do
+      expect(dos_error { image.write_block(1, 0, [0xaa] * 256) }).to eq(26)
+    end
+
+    it "fails a BAM change as WRITE PROTECT ON" do
+      expect(dos_error { image.allocate_block(1, 0) }).to eq(26)
+    end
+
+    it "leaves the host file as it was" do
+      dos_error { image.write_file("hello", program) }
+      expect(File.binread(path)).to eq(original)
+    end
+
+    it "reads as it did" do
+      dos_error { image.write_file("hello", program) }
+      expect(image.read_file("hello")).to be_nil
+    end
+  end
+
   describe "a D81 image" do
     subject(:image) { Badline::Storage::D81Image.new(path) }
 

@@ -26,7 +26,8 @@ require "badline"
 
 if options.headless?
   begin
-    Badline::Audio::CLI.new(options).run
+    Badline::Audio::CLI.new(options, sink: Badline::Audio::SDLSink.method(:new),
+                                     console: Badline::Audio::Console.method(:new)).run
   rescue Badline::Audio::CLI::Error => e
     warn "badline-ruby: #{e.message}"
     exit 1
@@ -46,8 +47,10 @@ end
 
 begin
   application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
-                                              song: options.song, sid_model: options.sid_model,
-                                              sound: options.sound?, true_drive: options.true_drive?)
+                                              song: options.song, sound: options.sound?, verbose: options.verbose?,
+                                              machine: { sid_model: options.sid_model,
+                                                         true_drive: options.true_drive? },
+                                              disk: { read_only: options.read_only? })
 rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e

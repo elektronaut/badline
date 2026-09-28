@@ -84,6 +84,18 @@ describe Badline::Media do
         expect(described_class.attach(computer, d64_path))
           .to include("device 8")
       end
+
+      it "mounts it read-write" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d64_path)
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: false))
+      end
+
+      it "mounts it write-protected with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d64_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
+      end
     end
 
     context "with a D71 image" do
@@ -116,6 +128,12 @@ describe Badline::Media do
           .to have_received(:mount)
           .with(instance_of(Badline::Storage::D81Image))
       end
+
+      it "mounts it write-protected with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, d81_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
+      end
     end
 
     context "with a T64 archive" do
@@ -131,6 +149,12 @@ describe Badline::Media do
         expect(computer)
           .to have_received(:mount)
           .with(instance_of(Badline::Storage::T64))
+      end
+
+      it "mounts it with disk: { read_only: true }" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, t64_path, disk: { read_only: true })
+        expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::T64))
       end
 
       it "types the autostart command" do
@@ -206,6 +230,13 @@ describe Badline::Media do
         allow(Badline::Cartridge).to receive(:from_file)
         described_class.attach(computer, crt_path, cartridge: { flash_jumper: true })
         expect(Badline::Cartridge).to have_received(:from_file).with(crt_path, flash_jumper: true)
+      end
+
+      it "leaves the disk options to disk images" do
+        allow(computer).to receive(:attach_cartridge)
+        allow(Badline::Cartridge).to receive(:from_file)
+        described_class.attach(computer, crt_path, disk: { read_only: true })
+        expect(Badline::Cartridge).to have_received(:from_file).with(crt_path)
       end
     end
 
@@ -308,10 +339,55 @@ describe Badline::Media do
         expect(computer.ram.read(0x2d, 2)).to eq([0x03, 0x08])
       end
 
+      # Pinned by C64/autostart/basic (basictest, printpoint, printpoint2)
+      it "leaves the end address where the KERNAL's LOAD does" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer.ram.read(0xae, 2)).to eq([0x03, 0x08])
+      end
+
       it "skips RUN when autostart is disabled" do
         allow(computer).to receive(:type_text)
         described_class.attach(computer, prg_path, autostart: false)
         expect(computer).not_to have_received(:type_text)
+      end
+    end
+
+    context "with a BASIC PRG file loaded a byte ahead of BASIC start" do
+      let(:prg_path) do
+        File.join(dir, "early.prg").tap do |path|
+          File.binwrite(path, [0x00, 0x08, 0x00, 0x99, 0x00].pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "types RUN after loading" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer).to have_received(:type_text).with("run\r")
+      end
+    end
+
+    context "with a PRG file that starts itself through a vector" do
+      let(:prg_path) do
+        File.join(dir, "vector.prg").tap do |path|
+          File.binwrite(path, ([0x26, 0x03] + ([0xea] * 0x600)).pack("C*"))
+        end
+      end
+
+      before { allow(computer).to receive(:on_init).and_yield }
+
+      it "does not type RUN, though it runs past BASIC start" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, prg_path)
+        expect(computer).not_to have_received(:type_text)
+      end
+
+      it "leaves VARTAB alone" do
+        vartab = computer.ram.read(0x2d, 2)
+        described_class.attach(computer, prg_path)
+        expect(computer.ram.read(0x2d, 2)).to eq(vartab)
       end
     end
 
@@ -468,6 +544,11 @@ describe Badline::Media do
     it "mounts a disk image" do
       described_class.insert_disk(computer, d64_path)
       expect(computer).to have_received(:mount).with(instance_of(Badline::Storage::D64Image))
+    end
+
+    it "inserts a disk image write-protected with read_only" do
+      described_class.insert_disk(computer, d64_path, read_only: true)
+      expect(computer).to have_received(:mount).with(having_attributes(read_only?: true))
     end
 
     it "mounts a directory" do

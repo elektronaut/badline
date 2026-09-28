@@ -3,7 +3,6 @@
 module Badline
   module GUI
     class Application
-      PAL_CLOCK_HZ = 985_248
       TITLE = "Badline"
       TOGGLE_SYM = SDL::KEY_TAB
       MUTE_SYM = SDL::KEY_F10
@@ -29,17 +28,19 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      # +attach+ holds Media.attach's options for the media: autostart and
-      # the song. +true_drive+ puts a true 1541 on device 8.
-      def initialize(media_path: nil, sid_model: nil, sound: false, true_drive: false, **attach)
-        @computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
-        Media::TrueDrive.plug(@computer) if true_drive
-        puts Media.attach(@computer, media_path, **attach) if media_path
+      # The machine options (sid_model:, true_drive:) build the machine, and
+      # true_drive puts a true 1541 on device 8. The media options
+      # (autostart:, song:, disk:) go to Media.attach.
+      def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
+        @verbose = verbose
+        @computer = Computer.new(sid_model: machine[:sid_model] || Media.sid_model(media_path))
+        Media::TrueDrive.plug(@computer) if machine[:true_drive]
+        puts Media.attach(@computer, media_path, **media) if media_path
 
         @mode = :keyboard
         @pot_device = nil
         @panes = [ScreenPane.new(@computer)]
-        @panes << DriveLedPane.new(@computer.drive1541) if @computer.drive1541
+        @panes << DriveLedPane.new(@computer.drive1541, @panes.first) if @computer.drive1541
         @stream = open_stream if sound
         @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
@@ -48,7 +49,7 @@ module Badline
           vsync: @paced && !@stream
         )
         @gamepads = Gamepads.new(@computer)
-        @gamepads.names.each { |name| puts "Gamepad: #{name}" }
+        @gamepads.names.each { |name| report "Gamepad: #{name}" }
         fit_frame
       end
 
@@ -66,7 +67,7 @@ module Badline
         @stream&.close
         @gamepads.close
         @window.close
-        puts @computer.cpu.inspect
+        report @computer.cpu.inspect
       end
 
       private
@@ -159,7 +160,7 @@ module Badline
 
       def open_stream
         sink = Audio::SDLSink.new(rate: Audio::Renderer::DEFAULT_RATE)
-        puts "Sound at #{sink.rate} Hz, F10 mutes"
+        report "Sound at #{sink.rate} Hz, F10 mutes"
         Audio::Stream.new(sink, @computer.sid,
                           on_underrun: -> { puts "Running below real time, so the sound will stutter." })
       rescue Audio::SDLSink::Error => e
@@ -168,9 +169,14 @@ module Badline
 
       def fit_frame
         rate = @window.refresh_rate
-        @cycles_per_frame = PAL_CLOCK_HZ / rate
-        @frame_seconds = @cycles_per_frame.fdiv(PAL_CLOCK_HZ)
-        puts "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
+        clock_hz = @computer.region.clock_hz
+        @cycles_per_frame = clock_hz / rate
+        @frame_seconds = @cycles_per_frame.fdiv(clock_hz)
+        report "Display #{rate} Hz -> #{@cycles_per_frame} cycles/frame"
+      end
+
+      def report(line)
+        puts line if @verbose
       end
 
       def attach_pot_device
