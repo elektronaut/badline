@@ -60,6 +60,16 @@ describe Badline::Storage::G64Image do
       expect(image.track(84)).to be_nil
     end
 
+    it "reads each byte's zone from a speed map, the first byte's in the top bits" do
+      File.binwrite(path, g64({ 0 => [pattern(8, 1), 0] }, maps: { 0 => [0b11100100, 0b00011011] }))
+      expect(image.speeds(0)).to eq([3, 2, 1, 0, 0, 1, 2, 3])
+    end
+
+    it "has no speeds for a track in one zone" do
+      File.binwrite(path, g64({ 0 => [pattern(8, 1), 0] }, maps: { 0 => [0b10101010, 0b10101010] }))
+      expect([image.speeds(0), image.speeds(1), image.speeds(2)]).to eq([nil, nil, nil])
+    end
+
     it "takes the zone most of a speed-mapped track's bytes were written in" do
       map = ([0b10101010] * 1500) + ([0b11111111] * 423)
       File.binwrite(path, g64({ 0 => [pattern(7692, 1), 0] }, maps: { 0 => map }))
@@ -174,11 +184,12 @@ describe Badline::Storage::G64Image do
       expect([described_class.new(path).max_track_size, image.max_track_size]).to eq([8000, 8000])
     end
 
-    it "keeps a track's speed map when it keeps its block" do
-      map = [0b01010101] * 1923
+    it "gives a speed-mapped track the zone it was written in" do
+      map = ([0b01010101] * 1000) + ([0b11111111] * 923)
       File.binwrite(path, g64({ 0 => [pattern(7692, 1), 0] }, maps: { 0 => map }))
-      image.store_tracks(0 => [pattern(7692, 8), 1])
-      expect(File.binread(path).byteslice(-1923, 1923).bytes).to eq(map)
+      image.store_tracks(0 => [pattern(7692, 8), 2])
+      reread = described_class.new(path)
+      expect([reread.track(0).last, reread.speeds(0)]).to eq([2, nil])
     end
 
     context "when the image was opened read-only" do

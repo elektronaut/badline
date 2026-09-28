@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/drive1541/rotation"
+
 module Badline
   class Drive1541
     # The disk mechanism behind VIA 2: the spindle motor, the head on its
@@ -16,25 +18,27 @@ module Badline
     # latches on BYTE READY. In write mode it drives the write shift
     # register, and the read shift register takes the bits written.
     #
-    # The head reads the track under it, bit after bit, while the motor
-    # turns, at the rate PB5-6 select: a bit every 4 * (16 - zone) ticks of
-    # the drive's 16 MHz crystal, so a byte every 32, 30, 28 or 26 drive
-    # cycles in zones 0 to 3. A disk turns once in a track's length of
-    # bytes, 200 ms at the rate its zone was written at. Ten 1 bits in a
-    # row are a SYNC mark while CB2 selects reading: PB7 reads it, and it
-    # holds the bit counter at zero, so the first 0 bit after it starts a
-    # byte. Every eighth bit after that is BYTE READY, which pulls VIA 2's
-    # CA1 low until the next bit and reaches the CPU's SO pin (see
-    # Drive1541#byte_ready!).
+    # The disk turns at 300 rpm under the head, and a read clock at the
+    # bit rate PB5-6 select clocks the bits off it (see Rotation).
     #
-    # CB2 low selects write mode, where SYNC detection is off. At each
-    # BYTE READY the write shift register loads what the VIA drives on
-    # port A, and the next eight bits the head passes over are that
-    # byte's, most significant first, in place of what the track held.
-    # While reading, the load takes the byte just read, so a switch to
-    # writing mid-byte writes the rest of it. A write to a half track
-    # without data gives it a blank track, a turn long at the bit rate
-    # it's written at.
+    # Ten 1 bits in a row are a SYNC mark while CB2 selects reading: PB7
+    # reads it, and it holds the bit counter at zero, so the first 0 bit
+    # after it starts a byte. Every eighth bit after that is BYTE READY,
+    # which pulls VIA 2's CA1 low until the next bit and reaches the CPU's
+    # SO pin (see Drive1541#byte_ready!).
+    #
+    # CB2 low selects write mode, where SYNC detection and the flux are
+    # off and the clock runs on at the selected rate. At each BYTE READY
+    # the write shift register loads what the VIA drives on port A, and
+    # the next eight clocks put that byte's bits on the track, most
+    # significant first, in place of what it held. While reading, the load
+    # takes the byte just read, so a switch to writing mid-byte writes the
+    # rest of it. A write lays its bits one to a cell from the cell under
+    # the head, so on a track written at the selected rate each bit fills
+    # the cell it passes over. A write to a half track without data gives
+    # it a blank track first, a turn long at the selected rate, and a
+    # write to a track written at another rate lays the whole track out
+    # again as a turn at the selected rate first (Track#relaid).
     #
     # PB4 reads the write-protect sensor: high with no disk in, or with
     # the notch of a writable one open. With the disk write-protected the
@@ -60,6 +64,8 @@ module Badline
     # line with the phase it ends on, and its first step in reaches the
     # half track after it.
     class Mechanism
+      include Rotation
+
       MOTOR = 0x04
       LED = 0x08
       WRITE_PROTECT = 0x10
@@ -69,15 +75,7 @@ module Badline
       # Where the head sits at power-on: track 18, the directory.
       START_HALF_TRACK = 36
 
-      TICKS_PER_CYCLE = 16
       SYNC_BITS = 10
-
-      # What the head reads with no disk in, or off the tracks a disk has:
-      # no flux, so only 0 bits and no SYNC, for a turn at the bit rate of
-      # each zone. Without flux there's nothing to set the length of a
-      # turn but the rate the bits are clocked at, so a turn over blank
-      # disk takes 200 ms, as it does over a track, whatever the zone.
-      BLANKS = Disk::TRACK_LENGTHS.map { |length| Array.new(length, 0).freeze }.freeze
 
       attr_reader :disk, :half_track, :zone
 
@@ -89,20 +87,20 @@ module Badline
         @motor = false
         @led = false
         @zone = 0
-        @bit_ticks = bit_ticks(0)
-        @ticks = @bit_ticks
+        @clock = Track.cell(0)
+        @time = 0
+        @clock_at = @clock / 2
+        @clocks = 0
         @shift = 0
         @ones = 0
         @bits = 0
         @sync = false
         @byte_ready = false
-        @bytes = BLANKS[0]
-        @index = 0
-        @mask = 0x80
         @writing = false
         @write_shift = 0
         @write_gate = false
         @protected = false
+        load_track
       end
 
       def motor_on? = @motor
@@ -114,11 +112,14 @@ module Badline
       def writing? = @writing
 
       # What port B and CB2 can change with the motor off: the motor, the
-      # LED, the zone, the stepper, write mode, and where in the turn the
-      # head is, which a zone change moves over a blank track. The rest
-      # moves only while the motor turns, or as a disk goes in (see
+      # LED, the zone and the clock's rate, the stepper, write mode and
+      # where a write starts, and the track and cell under the head. The
+      # rest moves only while the motor turns, or as a disk goes in (see
       # Drive1541::Idle).
-      def idle_state = [@motor, @led, @zone, @half_track, @slip, @disk, @index, @writing, @sync]
+      def idle_state
+        [@motor, @led, @zone, @clock, @half_track, @slip, @disk, @track, @index, @mask, @cell_end, @time,
+         @writing, @write_index, @sync]
+      end
 
       # Puts a Disk in, or takes it out with nil, flushing the disk that
       # was in. The head goes on from the same point in the turn.
@@ -140,6 +141,7 @@ module Badline
       # VIA 2 drives CB2 to +high+: low selects write mode, which stops
       # SYNC detection at once.
       def cb2_written(high)
+        @write_index = nil if high || !@writing
         @writing = !high
         @sync = !@writing && @ones >= SYNC_BITS
       end
@@ -153,8 +155,8 @@ module Badline
         zone = (lines >> 5) & 0x03
         if zone != @zone
           @zone = zone
-          @bit_ticks = bit_ticks(zone)
-          load_track if @bytes.frozen?
+          @clock = Track.cell(zone)
+          @track_written = false
         end
         step(lines & 0x03) if @motor
       end
@@ -169,29 +171,13 @@ module Badline
         @protected ? lines & ~WRITE_PROTECT : lines
       end
 
-      # One drive cycle: nothing with the motor off, and otherwise a bit
-      # whenever one has passed under the head.
-      def cycle!
-        return unless @motor
-
-        @ticks -= TICKS_PER_CYCLE
-        return if @ticks.positive?
-
-        @ticks += @bit_ticks
-        @writing ? write_bit : read_bit
-      end
-
       private
 
-      def bit_ticks(zone) = 4 * (16 - zone)
-
-      def read_bit
+      def read_bit(one)
         if @byte_ready
           @byte_ready = false
           @drive.byte_ready_ended!
         end
-        one = @bytes[@index].anybits?(@mask)
-        advance
         @shift = ((@shift << 1) & 0x3fe) | (one ? 1 : 0)
         if one
           @ones += 1
@@ -206,37 +192,42 @@ module Badline
       # The write shift register's top bit goes onto the track through the
       # write gate, and into the read shift register, as the head's own
       # signal.
-      def write_bit
+      def write_bit(at)
         if @byte_ready
           @byte_ready = false
           @drive.byte_ready_ended!
         end
         one = @write_shift.anybits?(0x80)
         @write_shift = (@write_shift << 1) & 0xff
-        store_bit(one) if @write_gate
-        advance
+        store_bit(one, at) if @write_gate
         @shift = ((@shift << 1) & 0x3fe) | (one ? 1 : 0)
         @ones = one ? @ones + 1 : 0
         count_bit
       end
 
-      def store_bit(one)
-        track_written if @bytes.frozen? || !@track_written
+      # Each bit written goes in the cell after the last one's, from the
+      # cell under the head when the write started.
+      def store_bit(one, at)
+        track_written(at) unless @track_written
+        @write_index ||= (@index * 8) + 8 - @mask.bit_length
+        index = @write_index >> 3
+        mask = 0x80 >> (@write_index & 7)
         if one
-          @bytes[@index] |= @mask
+          @bytes[index] |= mask
         else
-          @bytes[@index] &= ~@mask
+          @bytes[index] &= ~mask
         end
+        @write_index += 1
+        @write_index = 0 if @write_index == @length * 8
       end
 
-      # The first write to the track since the head came to it: a half
-      # track without data gets a blank one to write on, a turn long at
-      # the bit rate it's written at.
-      def track_written
-        if @bytes.frozen?
-          @disk.writable_track(@half_track, @zone)
-          load_track
-        end
+      # The first write to the track since the head came to it or the rate
+      # changed: a half track without data gets a blank track, and a track
+      # written at another rate is laid out again at this one.
+      def track_written(at)
+        track = @disk.writable_track(@half_track, @zone)
+        @disk.write(@half_track, track.relaid(@zone)) unless track.written_at?(@zone)
+        load_track(at)
         @disk.written(@half_track)
         @track_written = true
       end
@@ -256,15 +247,6 @@ module Badline
         @write_shift = @writing ? @drive.via2.port_a_output : @shift & 0xff
         @byte_ready = true
         @drive.byte_ready!
-      end
-
-      def advance
-        @mask >>= 1
-        return unless @mask.zero?
-
-        @mask = 0x80
-        @index += 1
-        @index = 0 if @index == @bytes.length
       end
 
       # The stepper's rotor turns with the head, a phase to each half
@@ -289,16 +271,6 @@ module Badline
 
         @half_track = half_track
         load_track
-      end
-
-      # The new track's bytes, from the same angle as the head left the
-      # last one, since tracks differ in length.
-      def load_track
-        track = @disk&.track(@half_track)
-        bytes = track ? track.bytes : BLANKS[@zone]
-        @index = @index * bytes.length / @bytes.length
-        @bytes = bytes
-        @track_written = false
       end
     end
   end

@@ -89,7 +89,11 @@ Recorded output of the headless hardware suites, one file per suite:
   would run here too, and rows that mount a `.p64` drop out. The
   `rpm` and `scanner` programs run once on a `.d64` and once on a
   `.g64` under the same id, so the `.g64` row's key is the id with
-  `#2`. `drive/1541-testsuite`'s two rows,
+  `#2`. `drive/skew/skew1` passes since the disk turns at 300 rpm and a
+  `.d64` starts each track's sector 0 where `N:` would ([1541 disk
+  mechanism](../../doc/pinned-behaviour.md#1541-disk-mechanism)), with
+  the `scanner` error-map rows still passing.
+  `drive/1541-testsuite`'s two rows,
   at about twelve hours each, run only under `--1541-testsuite` and have
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   The Spinel build has no drive, so `rake spinel:testbench` leaves this
@@ -360,16 +364,6 @@ explain.
   the head two tracks away from the header it searches for. A real head
   can't follow steps that fast. Passing it takes a stepper that moves the
   head over time.
-- `drive/skew/skew1.prg` (`testbench-drive`, exit `$ff`) prints
-  `kernal format, tracks are aligned`. It expects a `.d64` to read with
-  the track-to-track skew a DOS format leaves, and the `.d64` layout
-  starts sector 0 of every track at the same angle. It passed while the
-  head drifted round over the blank half tracks it stepped across, which
-  also kept `skew2` from reading its `.g64` as aligned. Turning each
-  track by the skew `N:` leaves passes it, but costs the three scanner
-  error-map rows; [1541 disk
-  mechanism](../../doc/pinned-behaviour.md#1541-disk-mechanism) has the
-  numbers.
 - `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
   the testlist's second row for the program, the one that mounts
   `test.d64`. It runs with the true drive and `test.d64` in it, but the

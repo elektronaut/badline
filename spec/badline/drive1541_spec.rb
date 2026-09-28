@@ -95,10 +95,13 @@ describe Badline::Drive1541 do
   describe "reading a disk" do
     include BlankDisk
 
+    # Track 18 as the DOS formats it, with sector 0 at the index angle,
+    # where the head starts.
     let(:disk) do
       Dir.mktmpdir do |dir|
         image = Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64")))
-        Badline::Drive1541::Disk.from_d64(image)
+        track = Badline::Drive1541::Track.new(Badline::Drive1541::Disk.format_track(image, 18, [0x41, 0x42]), 2)
+        Badline::Drive1541::Disk.new.tap { |disk| disk.write(36, track) }
       end
     end
     let(:read) { drive.ram.read(0x0500, 10) }

@@ -254,6 +254,28 @@ describe Badline::Drive1541::Mechanism do
       expect([disk.track(36).length, disk.written?]).to eq([7142, true])
     end
 
+    # Pinned by drive/rpm/rpm3, which writes a turn and a bit of SYNC and
+    # times a turn by reading it back.
+    it "lays a track written in another zone out again as a turn at the zone written" do
+      disk.write(36, Badline::Drive1541::Track.new([0x55] * 7692, 3))
+      drive.insert(disk)
+      write_bytes([0x5a])
+      expect([disk.track(36).length, disk.track(36).zone]).to eq([7142, 2])
+    end
+
+    it "keeps the flux of a track laid out again at its angle" do
+      disk.write(36, Badline::Drive1541::Track.new(([0xff] * 3846) + ([0x00] * 3846), 3))
+      drive.insert(disk)
+      write_bytes([0x5a])
+      expect(disk.track(36).bytes.values_at(100, 3470, 3670, 7000)).to eq([0xff, 0xff, 0x00, 0x00])
+    end
+
+    it "writes a turn of SYNC that reads back without a break" do
+      write_bytes([0xff] * 7200)
+      read_mode
+      expect(next_byte(250_000)).to be_nil
+    end
+
     it "still signals BYTE READY for each byte" do
       next_byte
       expect(Array.new(10) { next_byte }).to all(eq(28))
@@ -329,8 +351,8 @@ describe Badline::Drive1541::Mechanism do
   describe "the read electronics" do
     before { drive.insert(disk) }
 
-    # With no disk in, the head reads only 0 bits, so no SYNC mark
-    # breaks the framing.
+    # With no disk in there's no flux, and no SYNC mark breaks the
+    # framing.
     { 3 => 26, 2 => 28, 1 => 30, 0 => 32 }.each do |zone, cycles|
       it "has a byte ready every #{cycles} cycles in zone #{zone}" do
         drive.insert(nil)
@@ -344,18 +366,13 @@ describe Badline::Drive1541::Mechanism do
       expect(next_byte(1000)).to be_nil
     end
 
-    it "reads 0 bits with no disk in" do
+    # The read clock's counter runs round without a flux transition to
+    # clear it.
+    it "reads a 1 bit in every four with no disk in" do
       drive.insert(nil)
       spin(3)
       next_byte
-      expect(via.peek(0x1c01)).to eq(0x00)
-    end
-
-    it "keeps the bit rate PB5-6 select, whatever the track" do
-      spin(0)
-      drive.insert(nil)
-      next_byte
-      expect(next_byte).to eq(32)
+      expect(via.peek(0x1c01)).to eq(0x88).or eq(0x44).or eq(0x22).or eq(0x11)
     end
 
     # The cycles at which PB7 goes low, one for each SYNC mark.
@@ -371,10 +388,86 @@ describe Badline::Drive1541::Mechanism do
       starts
     end
 
-    it "turns once in a track's length of bytes at its zone's rate, 200 ms" do
+    it "turns once in 200 ms" do
       spin(2)
       starts = sync_starts(250_000)
-      expect(starts[39] - starts[1]).to eq(7142 * 28)
+      expect(starts[39] - starts[1]).to eq(200_000)
+    end
+
+    # Pinned by drive/rpm, drive/skew and drive/scanner: the disk turns
+    # at 300 rpm whatever the bit rate, and each track passes at the rate
+    # it was written at. See "1541 disk mechanism" in
+    # doc/pinned-behaviour.md.
+    describe "at 300 rpm" do
+      # Half track 36 holds +bytes+ written in +zone+, a SYNC mark at the
+      # start and gap bytes after them to +length+.
+      def track_of(bytes, zone, length: Badline::Drive1541::Disk::TRACK_LENGTHS[zone], speeds: nil)
+        bytes = ([0xff] * 5) + bytes
+        bytes += [0x55] * (length - bytes.length)
+        disk = Badline::Drive1541::Disk.new
+        disk.write(36, Badline::Drive1541::Track.new(bytes, zone, speeds))
+        drive.insert(disk)
+      end
+
+      def turn(zone)
+        spin(zone)
+        starts = sync_starts(450_000)
+        starts[2] - starts[1]
+      end
+
+      # The bytes after the SYNC mark, read at the rate of +zone+.
+      def read_after_sync(zone, count)
+        spin(zone)
+        drive.cycle! until mechanism.sync?
+        drive.cycle! while mechanism.sync?
+        Array.new(count) { next_byte && via.peek(0x1c01) }
+      end
+
+      let(:data) { Badline::Drive1541::GCR.encode(Array.new(40) { |i| (i * 37) & 0xff }) }
+
+      Badline::Drive1541::Disk::TRACK_LENGTHS.each_index do |zone|
+        it "turns a track written in zone #{zone} once in 200 ms" do
+          track_of([], zone)
+          expect(turn(zone)).to eq(200_000)
+        end
+      end
+
+      it "turns once in 200 ms at any bit rate" do
+        track_of([], 3)
+        expect(turn(0)).to eq(200_000)
+      end
+
+      it "turns a .g64 track longer than a turn at its zone's rate once in 200 ms" do
+        track_of([], 3, length: 7821)
+        expect(turn(3)).to eq(200_000)
+      end
+
+      it "turns a .g64 track shorter than a turn at its zone's rate once in 200 ms" do
+        track_of([], 2, length: 6974)
+        expect(turn(2)).to eq(200_000)
+      end
+
+      it "turns a track whose speed map changes along it once in 200 ms" do
+        track_of([], 3, length: 7000, speeds: Array.new(7000) { |i| i < 3500 ? 3 : 1 })
+        expect(turn(3)).to eq(200_000)
+      end
+
+      it "reads a track cleanly at the rate it was written at" do
+        track_of(data, 1)
+        expect(read_after_sync(1, data.length)).to eq(data)
+      end
+
+      it "reads a longer .g64 track cleanly at its zone's rate" do
+        track_of(data, 3, length: 7821)
+        expect(read_after_sync(3, data.length)).to eq(data)
+      end
+
+      [[3, 0], [0, 3]].each do |written, read|
+        it "garbles a track written in zone #{written} read in zone #{read}" do
+          track_of(data, written)
+          expect(read_after_sync(read, data.length)).not_to eq(data)
+        end
+      end
     end
 
     describe "SYNC" do
