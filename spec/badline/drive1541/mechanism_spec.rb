@@ -172,6 +172,35 @@ describe Badline::Drive1541::Mechanism do
     end
   end
 
+  # Pinned by drive/skew/skew2: a .g64 whose tracks all start at the same
+  # angle reads that way only when the head keeps the disk's angle across
+  # the half tracks it steps over.
+  describe "over a half track without data" do
+    # Track 18 in zone 1, a SYNC mark at its start and gap bytes after it.
+    let(:disk) do
+      Badline::Drive1541::Disk.new.tap do |disk|
+        disk.write(36, Badline::Drive1541::Track.new(([0xff] * 5) + ([0x55] * 6661), 1))
+      end
+    end
+
+    def cycles_to_sync
+      (1..300_000).find do
+        drive.cycle!
+        mechanism.sync?
+      end
+    end
+
+    it "turns once in 200 ms at every bit rate, as a track does" do
+      drive.insert(disk)
+      spin(1)
+      run(1000)
+      port_b(0x25) # a half track in, where the disk has no data
+      run(100_000)
+      port_b(0x24) # and back to track 18
+      expect(cycles_to_sync).to be_within(60).of((6666 * 30) - 101_000 + 38)
+    end
+  end
+
   describe "the write electronics" do
     let(:disk) { Badline::Drive1541::Disk.new }
     let(:gcr) { Badline::Drive1541::GCR }
