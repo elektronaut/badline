@@ -81,9 +81,12 @@ Recorded output of the headless hardware suites, one file per suite:
   testlist's `drive/` rows, each run on a machine with a true 1541 on the
   serial bus and the row's `mountd64` image in it. Nothing is mounted
   through the LOAD trap, so every disk access goes through the drive's
-  DOS, which needs `dos1541.rom` in the ROM path. Rows of the other
-  included subtrees that mount a `.d64` would run here too, and rows that
-  mount a `.g64` or `.p64` drop out. `drive/1541-testsuite`'s two rows,
+  DOS, which needs `dos1541.rom` in the ROM path. The drive writes back
+  to the image, so each row gets a scratch copy of it, and
+  `drive/format` formats its copy rather than the testprogs' own.
+  `drive/writeprotect` is an `interactive` row, which the runner
+  doesn't run. Rows of the other included subtrees that mount a `.d64`
+  would run here too, and rows that mount a `.g64` or `.p64` drop out. `drive/1541-testsuite`'s two rows,
   at about twelve hours each, run only under `--1541-testsuite` and have
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   The Spinel build has no drive, so `rake spinel:testbench` leaves this
@@ -354,8 +357,15 @@ explain.
   the head two tracks away from the header it searches for. A real head
   can't follow steps that fast. Passing it takes a stepper that moves the
   head over time.
-- `drive/rpm/rpm3.prg` (`testbench-drive`, exit none) writes to the disk,
-  which the drive can't do yet, and never reports.
+- `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
+  the testlist's second row for the program, the one that mounts
+  `test.d64`. It runs with the true drive and `test.d64` in it, but the
+  harness injects the program as it does for the plain row, so nothing
+  loads from the disk. It fails as its twin in `testbench-general` does
+  (below), with the same dump apart from CIA 2's port A, which reads `$97`
+  where the twin reads `$d7`. The test masks those two bits off. In both
+  rows the four bytes at `$9ff4` that the reference wants to hold the
+  loaded file's name, `TEST`, read `$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,

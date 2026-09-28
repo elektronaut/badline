@@ -40,9 +40,7 @@
 # ROM path). The row's mountd64 image goes in the drive, and its program
 # loads as the other rows' do, but nothing is mounted as device 8 through
 # the LOAD trap, so every disk access goes through the drive. The Spinel
-# build has no drive, so --drive doesn't take --engine. drive/format and
-# drive/rpm/rpm3 write to the disk, which the drive can't do yet, so they
-# stay listed and fail until it can.
+# build has no drive, so --drive doesn't take --engine.
 #
 # --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
 # Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
@@ -91,6 +89,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "chunky_png"
 require "etc"
+require "tmpdir"
 require_relative "../test/forked_boot"
 require_relative "../test/testbench_machine"
 require_relative "../test/testbench_drive"
@@ -659,12 +658,21 @@ module Testbench
     end
 
     def run_test(test, computer)
-      exitcode = test.type == "exitcode"
-      cartridge = test.cartridge_path if test.cartridge
-      Testbench.insert_disk(computer, test.disk_path) if test.disk
-      execution = Execution.new(computer, mount: !test.drive?)
-      exit_code = execution.run(!exitcode, cartridge, test.dir_abs, test.prg, test.budget)
-      score(test, exit_code, exitcode ? Testbench.screen_text(computer.ram) : Testbench.screenshot(computer.vic))
+      Dir.mktmpdir("testbench-disk") do |scratch|
+        exitcode = test.type == "exitcode"
+        cartridge = test.cartridge_path if test.cartridge
+        Testbench.insert_disk(computer, scratch_disk(test, scratch)) if test.disk
+        execution = Execution.new(computer, mount: !test.drive?)
+        exit_code = execution.run(!exitcode, cartridge, test.dir_abs, test.prg, test.budget)
+        score(test, exit_code, exitcode ? Testbench.screen_text(computer.ram) : Testbench.screenshot(computer.vic))
+      end
+    end
+
+    # The drive writes back to the disk image, so a test gets a copy of its
+    # own in +scratch+, and the testprogs' image is never written.
+    def scratch_disk(test, scratch)
+      FileUtils.cp(test.disk_path, scratch)
+      File.join(scratch, File.basename(test.disk_path))
     end
 
     # screen is the text screen for an exitcode test, and the display's
