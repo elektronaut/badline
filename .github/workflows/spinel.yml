@@ -25,7 +25,7 @@ permissions:
 env:
   # The Spinel commit the harnesses build with. Bumping it rebuilds the
   # cached compiler.
-  SPINEL_REF: 347b1062471f5b2250b0b12057caf74f32aca5e4
+  SPINEL_REF: d318210276174fd0ddafa7bfdd1e1db4f622f0b0
 jobs:
   # Builds the compiler once, so the suites below restore it instead of
   # each building it on a cold cache.
