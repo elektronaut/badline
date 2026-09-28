@@ -5,7 +5,7 @@ module Badline
     # The host's audio device, fed through SDL's queue: mono signed 16-bit
     # samples go in at the device's rate and SDL plays them out behind us.
     class SDLSink
-      class Error < StandardError; end
+      class Error < Playback::DeviceError; end
 
       # int freq; Uint16 format; Uint8 channels, silence; Uint16 samples,
       # padding; Uint32 size; then the callback and userdata pointers.

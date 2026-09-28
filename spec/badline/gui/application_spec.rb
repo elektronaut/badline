@@ -9,7 +9,7 @@ describe Badline::GUI::Application do
   let(:window) do
     instance_double(
       Badline::GUI::Window,
-      refresh_rate: Badline::GUI::Application::PAL_CLOCK_HZ, draw: nil, "title=": nil, close: nil
+      refresh_rate: Badline::Region::PAL.clock_hz, draw: nil, "title=": nil, close: nil
     )
   end
   let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: [], poll: nil, close: nil) }
@@ -45,6 +45,25 @@ describe Badline::GUI::Application do
     it "fits a 6581 by default" do
       described_class.new
       expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581)
+    end
+  end
+
+  describe "the setup report" do
+    let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: ["Pad"], poll: nil, close: nil) }
+
+    it "stays quiet by default" do
+      described_class.new
+      expect($stdout).not_to have_received(:puts)
+    end
+
+    it "names the display rate with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with(/\ADisplay \d+ Hz/)
+    end
+
+    it "names the gamepads with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with("Gamepad: Pad")
     end
   end
 

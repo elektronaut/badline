@@ -166,6 +166,17 @@ describe Badline::CIA do
       expect(cia[0xdc08]).to eq(0x00)
     end
 
+    context "with the NTSC region's clock and mains" do
+      let(:cia) { described_class.new(start: 0xdc00, region: Badline::Region::NTSC) }
+
+      it "advances a tenth after clock_hz/10 cycles when CRA selects 60 Hz" do
+        cia.poke(0xdc0e, 0x00)
+        start_clock
+        102_273.times { cia.cycle! }
+        expect(cia[0xdc08]).to eq(0x01)
+      end
+    end
+
     context "with the alarm armed" do
       before do
         cia.interrupt_control.alarm = true

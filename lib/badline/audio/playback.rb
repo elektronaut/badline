@@ -12,6 +12,9 @@ module Badline
     # real time lets the queue run dry and the audio stutters; `on_underrun`
     # hears about the first time.
     class Playback
+      # What a sink raises when the audio device won't open.
+      class DeviceError < StandardError; end
+
       AHEAD = 0.15
 
       def initialize(sink, ahead: AHEAD, sleeper: ->(seconds) { sleep(seconds) }, on_underrun: nil)

@@ -14,21 +14,6 @@ module Badline
     class Sequencer
       include Output
 
-      DISPLAY_X_BOUNDS = [
-        [135, 438].freeze,
-        [128, 447].freeze
-      ].freeze
-
-      # The graphics window always spans the full 40 columns, ignoring CSEL.
-      GFX_X_START = DISPLAY_X_BOUNDS[1][0]
-      GFX_X_END = DISPLAY_X_BOUNDS[1][1] + 1
-
-      # [left compare, right compare] for the border flip-flop per CSEL state.
-      WINDOW_COMPARES = [
-        [DISPLAY_X_BOUNDS[0][0], DISPLAY_X_BOUNDS[0][1] + 1].freeze,
-        [GFX_X_START, GFX_X_END].freeze
-      ].freeze
-
       BORDER_Y_BOUNDS = [
         [55, 247].freeze,
         [51, 251].freeze
@@ -45,8 +30,9 @@ module Badline
       # foreground mask the sprite collisions read.
       attr_writer :render
 
-      def initialize(width, registers, bank, model: :mos6569)
+      def initialize(width, registers, bank, model: :mos6569, region: Region::PAL)
         @width = width
+        window_bounds(region.display_x_bounds)
         @registers = registers
         @bank = bank
         @colors = Array.new(width, 0)
@@ -178,6 +164,20 @@ module Badline
       end
 
       private
+
+      # The display window's edges per CSEL state, as the region gives them.
+      # The graphics window always spans the full 40 columns, ignoring CSEL,
+      # and the border flip-flop takes [left compare, right compare] per
+      # CSEL state.
+      def window_bounds(bounds)
+        narrow, wide = bounds
+        @gfx_x_start = wide[0]
+        @gfx_x_end = wide[1] + 1
+        @window_compares = [
+          [narrow[0], narrow[1] + 1].freeze,
+          [@gfx_x_start, @gfx_x_end].freeze
+        ].freeze
+      end
 
       # After a mode, XSCROLL or colour change: groups paint whole bytes
       # again once the change has settled, and run pixel by pixel until then.

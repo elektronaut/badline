@@ -1,5 +1,80 @@
 # Changelog
 
+## [0.4.2](https://github.com/elektronaut/badline/compare/v0.4.1...v0.4.2) (2026-09-28)
+
+### Features
+
+* print setup details, frame reports and badline-ruby's closing CPU state only with --verbose ([0e3f940](https://github.com/elektronaut/badline/commit/0e3f940996d38c9b597d68f81c64e775a09b98e8)), closes [#336](https://github.com/elektronaut/badline/issues/336)
+
+### Bug Fixes
+
+* read HVSC song lengths in the native badline ([cef76f2](https://github.com/elektronaut/badline/commit/cef76f22f8fdd435776d07464e656732bb3aab94))
+
+## [0.4.1](https://github.com/elektronaut/badline/compare/v0.4.0...v0.4.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* build the Homebrew pack with Spinel d3182102 ([42b42d5](https://github.com/elektronaut/badline/commit/42b42d506270f16cfb033c7d538e75131f7c74c2))
+
+## [0.4.0](https://github.com/elektronaut/badline/compare/v0.3.0...v0.4.0) (2026-09-28)
+
+### Upgrading
+
+* The gem's executable is now `badline-ruby`. The name `badline` now belongs to the native build, which installs with `brew install elektronaut/tap/badline` on macOS.
+* `badline-sid` is gone. Play a tune with `badline-ruby --headless tune.sid` (or `badline --headless tune.sid`), and render one with `--audio-out out.wav`.
+
+### ⚠ BREAKING CHANGES
+
+* the `badline-sid` executable is gone. Use `badline-ruby --headless tune.sid` to play a tune and `badline-ruby tune.sid --audio-out out.wav` to render one. badline-sid's `-o`/`--output` option and positional output file became `--audio-out`, which has no short form. Badline::Audio::Options is now Badline::Options.
+* the gem's `badline` executable is now `badline-ruby`. There is no `badline` shim.
+
+### Features
+
+* add a Homebrew formula for the native badline ([33c2e98](https://github.com/elektronaut/badline/commit/33c2e983a12275195383e33230137d461b1a9fd0))
+* add mouse and paddle input to the native window ([f468c21](https://github.com/elektronaut/badline/commit/f468c2189b3b213561516a39ec0ffcedcb8c5b89))
+* emulate GEO-RAM and run the testbench geo512k rows ([9a5395f](https://github.com/elektronaut/badline/commit/9a5395fd34ad42d21e08a3b498038850d790f253)), closes [#239](https://github.com/elektronaut/badline/issues/239)
+* emulate the +60K and +256K RAM expansions ([9d60488](https://github.com/elektronaut/badline/commit/9d60488d01bd33c9d090f75f4765931f21911247)), closes [#240](https://github.com/elektronaut/badline/issues/240)
+* fold badline-sid into badline-ruby ([443d155](https://github.com/elektronaut/badline/commit/443d1559bb5253d58f5378e7e212beda5b734bda))
+* give the native badline badline-ruby's command-line options ([bd2ec0d](https://github.com/elektronaut/badline/commit/bd2ec0da269a95eccb37198dd3e03faf84651396))
+* headless .sid options for the native badline ([4354e80](https://github.com/elektronaut/badline/commit/4354e80e5b61da9148a2077d1e0557ea23a833df))
+* make the Spinel window the native badline executable ([54e8e71](https://github.com/elektronaut/badline/commit/54e8e7151e5ced11e536da6baaf779af7f4eae16))
+* model the 6526A CIA ([18a2012](https://github.com/elektronaut/badline/commit/18a201253c4612bb2ae821e544c9e6f3a6e1fb8c))
+* model the 8565 VIC-II ([e81b7fb](https://github.com/elektronaut/badline/commit/e81b7fb7053c8cca1b94dda66cda3357d2984aa1))
+* mount disk images read-only ([c35b808](https://github.com/elektronaut/badline/commit/c35b80852da7ebcf92cbf7de9478d62ba9197602))
+* pace the native window by vsync ([1fa4661](https://github.com/elektronaut/badline/commit/1fa4661b480cba2a79772096ee32327098719f1b))
+* pack the native badline with spin pack (rake native:pack) ([1d2288b](https://github.com/elektronaut/badline/commit/1d2288bd4f9c6589a35a0f99f8f1b0baeaa8e69a))
+* read SDL game controllers in the native window ([a80403c](https://github.com/elektronaut/badline/commit/a80403cefa5b75f4edbf9157631ff5eac9c234f9))
+* rename the executable to badline-ruby ([6050d9d](https://github.com/elektronaut/badline/commit/6050d9db2376ada76af5068b1e9703162adb90b3))
+* replace ruby-sdl2 with a Fiddle binding to libSDL2 ([f3a4b84](https://github.com/elektronaut/badline/commit/f3a4b8429330efaf2abfe2592e1df2fd0791a9ee)), closes [#253](https://github.com/elektronaut/badline/issues/253)
+* run the C64/ and general/ testbench rows as testbench-general ([53316c0](https://github.com/elektronaut/badline/commit/53316c03cd87e9e72d92ff8a6a9e13b6d0eae807))
+* run the Lorenz chain on a Spinel build with rake spinel:lorenz ([955d722](https://github.com/elektronaut/badline/commit/955d722a06865f6a704f14570d7b246963317551))
+* run the SID testprogs on a Spinel build with rake spinel:sidtests ([ecff9ba](https://github.com/elektronaut/badline/commit/ecff9bafa8b3621454e540d92707c0c139c7f7fd))
+* run the testbench suites on a Spinel build with rake spinel:testbench ([083911a](https://github.com/elektronaut/badline/commit/083911af7194c56992f529f67c4bf101a44fb450))
+* turn sound on by default in the native badline ([c4f65cf](https://github.com/elektronaut/badline/commit/c4f65cfa73fcad49399226f238b8b5b46799ed30))
+* type RESTORE, ↑, ← and cursor up/left from the host keyboard ([74623e3](https://github.com/elektronaut/badline/commit/74623e346d4ccad26f779d3f0c9f0c11426b96c3)), closes [#234](https://github.com/elektronaut/badline/issues/234)
+* write to disk images and swap them at runtime ([a6eebf5](https://github.com/elektronaut/badline/commit/a6eebf5e304186c8512e5cda4f6514a92ac64395)), closes [#233](https://github.com/elektronaut/badline/issues/233)
+
+### Bug Fixes
+
+* end a testbench run on the cycle the test writes its exit code ([58aa8c5](https://github.com/elektronaut/badline/commit/58aa8c52e639945a78cac40330e15a686081d8ec))
+* keep pixel 0 black out of an invalid mode into hi-res text on the 8565 ([5a6ff96](https://github.com/elektronaut/badline/commit/5a6ff96192455b9f3ca9fd8904aa9bb4760e99cc))
+* leave a PRG's end address in $AE/$AF on autostart ([d76ed18](https://github.com/elektronaut/badline/commit/d76ed1840850045ac7a1c1d3dc5c6d5d99685fdd))
+* leave the VIC's phi1 byte in the RAM under the CPU port ([55fc2f5](https://github.com/elektronaut/badline/commit/55fc2f52cd0d0a0edeb56cde140e67fb1ab50077))
+* make the mouse speed independent of the window size ([5cbabbf](https://github.com/elektronaut/badline/commit/5cbabbfade4e53c8aae265f2493466419ef67958)), closes [#280](https://github.com/elektronaut/badline/issues/280)
+* make the VIC's collision registers read-only ([141526c](https://github.com/elektronaut/badline/commit/141526ce755bf47582a25e2c209cdc950ff81f0b))
+* name the release tag in the native --version ([5654433](https://github.com/elektronaut/badline/commit/56544334b43ed992d0d54215a99a7be50fa74240))
+* read unused bits of $D016 and $D018 as 1 ([00a816b](https://github.com/elektronaut/badline/commit/00a816b9bdbe88c7f838f941b2ef2dc5cd7db075)), closes [#237](https://github.com/elektronaut/badline/issues/237)
+* say SDL2 is missing instead of raising from badline-ruby ([0f5ec9c](https://github.com/elektronaut/badline/commit/0f5ec9c7fabfa922ecb4c87339ba3ccc0f09bca0))
+* SID test bit writeback for noiselfsrinit, F-&gt;8 and the 8580's C-&gt;F ([bdb063f](https://github.com/elektronaut/badline/commit/bdb063f1aba3f1714e26bc3e8301adf9bc33fb3e)), closes [#238](https://github.com/elektronaut/badline/issues/238)
+* suggest the SDL2 runtime package when badline-ruby can't find it ([44a3375](https://github.com/elektronaut/badline/commit/44a3375973aafc0ec7aba672609517dd6571f85c))
+* **vic:** read the idle byte at $38ff where a DMA delay starts ([f3892aa](https://github.com/elektronaut/badline/commit/f3892aa0ac45fbc493bccd0f5980dfe7fc659848)), closes [#235](https://github.com/elektronaut/badline/issues/235)
+
+### Performance Improvements
+
+* **vic:** check the DMA-delay idle byte only when display state opens ([8d9b777](https://github.com/elektronaut/badline/commit/8d9b777b3554ed4d6bef67ac41c0a344c3b0a35b))
+
+
 ## [0.3.0](https://github.com/elektronaut/badline/compare/v0.2.1...v0.3.0) (2026-09-24)
 
 Sound is the headline: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default, because the emulator still runs below real time on CRuby and the sound stutters there. This release also brings the virtual drive closer to a real 1541 (buffer channels in drive RAM, DOS command parsing, the BAM in buffer 4, `LOAD"*"`), cartridge banking fixes, and `Badline::Checkpoint` with `bin/machine_diff` for checking that a change leaves emulation alone.
