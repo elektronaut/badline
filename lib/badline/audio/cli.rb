@@ -9,13 +9,17 @@ module Badline
     class CLI
       class Error < StandardError; end
 
-      # `sink` builds the audio device for playback, given the rate to ask
-      # for and whether it has to be exact.
-      def initialize(options, out: $stdout, input: $stdin, sink: SDLSink.method(:new))
+      # Playing needs `sink`, which builds the audio device given the rate
+      # to ask for and whether it has to be exact, and, on a terminal,
+      # `console`, which builds the terminal to play on given the input and
+      # output. The front end hands them in, so the native badline can hand
+      # in its own: badline-ruby's are SDLSink and Console.
+      def initialize(options, sink: nil, console: nil, out: $stdout, input: $stdin)
         @options = options
         @out = out
         @input = input
         @sink = sink
+        @console = console
         @lengths = {}
       end
 
@@ -40,7 +44,7 @@ module Badline
       def seconds = length(song)
 
       def length(song)
-        @lengths[song] ||= @options.seconds || songlength(song) || Badline::Options::FALLBACK_SECONDS
+        @lengths[song] ||= @options.seconds || songlength(song) || @options.fallback_seconds
       end
 
       def sid_model = @options.sid_model || tune.sid_model
@@ -82,7 +86,7 @@ module Badline
       end
 
       def play_interactively(sink)
-        console = Console.new(input: @input, output: @out)
+        console = @console.call(input: @input, output: @out)
         jukebox = Jukebox.new(sink, console, songs: tune.songs, renderer: method(:renderer), length: method(:length))
         console.session do
           console.header([tune.name, tune.author, tune.released].reject(&:empty?) +
@@ -93,7 +97,7 @@ module Badline
 
       def open_sink
         @sink.call(rate: @options.rate, exact_rate: @options.rate_given?)
-      rescue SDLSink::Error => e
+      rescue Playback::DeviceError => e
         raise Error, "can't open the audio device: #{e.message}"
       end
 

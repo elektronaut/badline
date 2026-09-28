@@ -81,6 +81,9 @@ module Badline
 
     def rate = @rate || DEFAULT_RATE
 
+    # How long to play a tune whose length nothing gives.
+    def fallback_seconds = FALLBACK_SECONDS
+
     def rate_given? = !@rate.nil?
 
     def help = parser.help

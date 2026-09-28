@@ -161,6 +161,11 @@ so when it falls behind. The filter steps four cycles at a time;
 `--filter-chunk 1` steps it every cycle, which is exact and takes about
 twice as long. `badline-ruby --help` lists the options.
 
+The native `badline` takes the same options and runs the same code, so
+it renders the same file sample for sample, several times faster. It
+runs RSID tunes faster than real time too. See
+[native/README.md](native/README.md#without-the-window).
+
 ## Input
 
 Keys map by their unshifted symbol, and Shift gives the C64's shifted

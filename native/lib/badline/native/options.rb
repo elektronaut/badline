@@ -2,46 +2,39 @@
 
 module Badline
   module Native
-    # The command line of the native badline: badline-ruby's window options
-    # (--sound, --sid, --song, --no-autostart, --read-only, --help) plus
-    # --version and the testing knobs --frames, --unpaced and --screenshot.
-    # Spinel has no OptionParser, so it parses by hand. Values come as
-    # `--song 2` or `--song=2`, and `--` ends the options.
+    # The command line of the native badline: badline-ruby's options, window
+    # and headless (--headless, --audio-out and the rest), plus --no-sound,
+    # --no-vsync, --version and the testing knobs --frames, --unpaced and
+    # --screenshot. Spinel has no OptionParser, so it parses by hand. Values
+    # come as `--song 2` or `--song=2`, and `--` ends the options.
     class Options
       class Error < StandardError; end
 
-      # Whether the SID plays unless --sound or --no-sound says otherwise.
+      # Whether the SID plays in the window unless --sound or --no-sound
+      # says otherwise.
       SOUND = true
+
+      FALLBACK_SECONDS = 60.0
+
+      DEFAULT_RATE = 44_100
 
       SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
-      VALUED = %w[--song -s --sid --frames --screenshot].freeze
+      # A Float as OptionParser takes one: digits with an optional sign,
+      # fraction and exponent.
+      DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
-      HELP = <<~HELP.freeze
-        Usage: badline [options] [media]
+      VALUED = %w[--song -s --sid --frames --screenshot --audio-out --seconds --songlengths --rate
+                  --filter-chunk].freeze
 
-        Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-        a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
-        a directory to mount as device 8.
+      # The switches and valued options only the window or only the
+      # headless player takes.
+      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --frames --unpaced --screenshot].freeze
 
-        Options:
-            -s, --song N                     Subtune of a .sid, from 1 (default: the tune's own)
-                --sid MODEL                  SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)
-                --no-autostart               Boot to READY. instead of running the program
-                --read-only                  Mount a disk image write-protected, leaving its file unchanged
-                --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
-                --no-sound                   Don't play the SID#{' (default)' unless SOUND}
-                --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
-            -h, --help                       Show this help
-                --version                    Show the version and what built it
+      HEADLESS_ONLY = %w[--seconds --songlengths --rate --filter-chunk --quiet --no-tui].freeze
 
-        Testing options:
-                --frames N                   Quit after N frames
-                --unpaced                    Run as fast as it can, without vsync or pacing
-                --screenshot FILE            Save the last frame as a .bmp
-      HELP
-
-      attr_reader :media, :song, :sid_model, :frames, :screenshot
+      attr_reader :media, :song, :sid_model, :frames, :screenshot, :audio_out, :seconds, :songlengths,
+                  :filter_chunk
 
       def self.parse(argv) = new.parse(argv)
 
@@ -58,6 +51,16 @@ module Badline
         @screenshot = ""
         @help = false
         @version = false
+        @headless = false
+        @audio_out = nil
+        @seconds = nil
+        @songlengths = nil
+        @rate = nil
+        @filter_chunk = nil
+        @quiet = false
+        @tui = true
+        @window_only = []
+        @headless_only = []
       end
 
       def parse(argv)
@@ -66,6 +69,27 @@ module Badline
         validate unless help? || version?
         self
       end
+
+      # Plays or renders a .sid tune without the window.
+      def headless? = @headless || render?
+
+      def window? = !headless?
+
+      def render? = !@audio_out.nil?
+
+      # The tune --headless and --audio-out play, for Audio::CLI.
+      def tune_path = @media
+
+      # How long to play a tune whose length nothing gives.
+      def fallback_seconds = FALLBACK_SECONDS
+
+      def rate = @rate.nil? ? DEFAULT_RATE : @rate
+
+      def rate_given? = !@rate.nil?
+
+      def quiet? = @quiet
+
+      def tui? = @tui
 
       def autostart? = @autostart
 
@@ -101,6 +125,7 @@ module Badline
           name = arg[0, at]
           value = arg[at + 1, arg.size - at - 1]
         end
+        restrict(name)
         if VALUED.include?(name)
           value = take_value(name, args) if value.nil?
           valued_option(name, value)
@@ -109,6 +134,12 @@ module Badline
         else
           raise Error, "needless argument: #{arg}"
         end
+      end
+
+      # Notes an option only the window or only the headless player takes.
+      def restrict(name)
+        @window_only << name if WINDOW_ONLY.include?(name)
+        @headless_only << name if HEADLESS_ONLY.include?(name)
       end
 
       def take_value(name, args)
@@ -122,7 +153,12 @@ module Badline
         when "--song", "-s" then @song = number(name, value)
         when "--sid" then @sid_model = sid_model_for(value)
         when "--frames" then @frames = number(name, value)
-        else @screenshot = value
+        when "--screenshot" then @screenshot = value
+        when "--audio-out" then @audio_out = value
+        when "--seconds" then @seconds = decimal(name, value)
+        when "--songlengths" then @songlengths = value
+        when "--rate" then @rate = number(name, value)
+        else @filter_chunk = number(name, value)
         end
       end
 
@@ -136,6 +172,9 @@ module Badline
         when "--unpaced" then @paced = false
         when "--help", "-h" then @help = true
         when "--version" then @version = true
+        when "--headless" then @headless = true
+        when "--quiet" then @quiet = true
+        when "--no-tui" then @tui = false
         else raise Error, "invalid option: #{name}"
         end
       end
@@ -152,6 +191,12 @@ module Badline
         value.to_i
       end
 
+      def decimal(name, value)
+        raise Error, "invalid argument: #{name} #{value}" unless value.match?(DECIMAL)
+
+        value.to_f
+      end
+
       def media_argument(arg)
         raise Error, "unexpected argument: #{arg}" unless @media.empty?
 
@@ -159,8 +204,35 @@ module Badline
       end
 
       def validate
-        raise Error, "invalid argument: --song #{@song}" if !@song.nil? && @song < 1
+        validate_mode
+        validate_numbers
+        validate_paths
+      end
+
+      def validate_mode
+        if headless?
+          raise Error, "#{@window_only.first} needs the window" unless @window_only.empty?
+          raise Error, "no tune given" if @media.empty?
+          raise Error, "not a .sid tune: #{@media}" unless File.extname(@media).casecmp?(".sid")
+        elsif !@headless_only.empty?
+          raise Error, "#{@headless_only.first} needs --headless or --audio-out"
+        end
+      end
+
+      def validate_numbers
+        positive("--song", @song)
+        positive("--seconds", @seconds)
+        positive("--rate", @rate)
+        positive("--filter-chunk", @filter_chunk)
+      end
+
+      def positive(name, value)
+        raise Error, "invalid argument: #{name} #{value}" if !value.nil? && value <= 0
+      end
+
+      def validate_paths
         raise Error, "no such file or directory: #{@media}" unless @media.empty? || File.exist?(@media)
+        raise Error, "no such file or directory: #{@songlengths}" unless @songlengths.nil? || File.exist?(@songlengths)
       end
     end
   end

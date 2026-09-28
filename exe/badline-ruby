@@ -26,7 +26,8 @@ require "badline"
 
 if options.headless?
   begin
-    Badline::Audio::CLI.new(options).run
+    Badline::Audio::CLI.new(options, sink: Badline::Audio::SDLSink.method(:new),
+                                     console: Badline::Audio::Console.method(:new)).run
   rescue Badline::Audio::CLI::Error => e
     warn "badline-ruby: #{e.message}"
     exit 1
