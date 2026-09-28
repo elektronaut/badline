@@ -303,6 +303,49 @@ describe Badline::KernalTrap::Drive::Writes do
     end
   end
 
+  describe "a disk image mounted read-only" do
+    subject(:drive) { Badline::KernalTrap::Drive.new(Badline::Storage::D64Image.new(path, read_only: true)) }
+
+    let(:path) do
+      blank_d64(File.join(dir, "blank.d64")).tap do |blank|
+        Badline::Storage::D64Image.new(blank).write_file("game", [0x01, 0x08, 0x60])
+      end
+    end
+    let!(:original) { File.binread(path) }
+
+    before { drive.open(3, "#") }
+
+    {
+      "an open for writing" => [-> { drive.open(2, "log,s,w") }, "26,WRITE PROTECT ON,18,00"],
+      "a SAVE's channel" => [-> { drive.open(1, "new") }, "26,WRITE PROTECT ON,18,01"],
+      "an append" => [-> { drive.open(2, "game,p,a") }, "26,WRITE PROTECT ON,17,00"],
+      "a SAVE handed over whole" => [-> { drive.save("new", [0x01, 0x08]) }, "26,WRITE PROTECT ON,00,00"],
+      "a replacing SAVE" => [-> { drive.save("game", [0x01, 0x08], replace: true) }, "26,WRITE PROTECT ON,00,00"],
+      "a scratch" => [-> { command("s:game") }, "26,WRITE PROTECT ON,00,00"],
+      "a U2 block write" => [-> { command("u2 3 0 1 0") }, "26,WRITE PROTECT ON,01,00"],
+      "a B-W block write" => [-> { command("b-w 3 0 1 0") }, "26,WRITE PROTECT ON,01,00"],
+      "a B-A" => [-> { command("b-a 0 1 0") }, "26,WRITE PROTECT ON,00,00"],
+      "a B-F" => [-> { command("b-f 0 1 0") }, "26,WRITE PROTECT ON,00,00"]
+    }.each do |write, (action, message)|
+      context "with #{write}" do
+        before { instance_exec(&action) }
+
+        it "fails as WRITE PROTECT ON" do
+          expect(status).to eq(message)
+        end
+
+        it "leaves the image file as it was" do
+          expect(File.binread(path)).to eq(original)
+        end
+      end
+    end
+
+    it "still reads files" do
+      drive.open(0, "game")
+      expect(drive.read(0)).to eq([0x01, false])
+    end
+  end
+
   describe "a disk change" do
     let(:other) { blank_d64(File.join(dir, "other.d64")) }
 

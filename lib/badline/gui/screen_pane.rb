@@ -2,19 +2,15 @@
 
 module Badline
   module GUI
+    # The part of the VIC's raster the machine's region crops out.
     class ScreenPane < Pane
-      WIDTH = 384
-      HEIGHT = 272
-      COL_OFFSET = 96
-      ROW_OFFSET = 20
-
-      ROW_BYTES = WIDTH * 4
-
       def initialize(computer, left: 0, top: 0, palette: Palette.new)
-        super(width: WIDTH, height: HEIGHT, left:, top:)
+        @col_offset, @row_offset, crop_width, crop_height = computer.region.crop
+        super(width: crop_width, height: crop_height, left:, top:)
         @computer = computer
+        @row_bytes = width * 4
         @palette = palette.dwords
-        @buffer = ("\x00" * (HEIGHT * ROW_BYTES)).b
+        @buffer = ("\x00" * (height * @row_bytes)).b
       end
 
       def render(renderer)
@@ -30,10 +26,10 @@ module Badline
         vic_width = vic.width
         dirty = vic.dirty_lines
 
-        HEIGHT.times do |row|
-          next unless dirty[row + ROW_OFFSET]
+        height.times do |row|
+          next unless dirty[row + @row_offset]
 
-          @buffer[row * ROW_BYTES, ROW_BYTES] =
+          @buffer[row * @row_bytes, @row_bytes] =
             pack_row(display, vic_width, row)
         end
         vic.clear_dirty_lines!
@@ -41,7 +37,7 @@ module Badline
       end
 
       def pack_row(display, vic_width, row)
-        line = display[((row + ROW_OFFSET) * vic_width) + COL_OFFSET, WIDTH]
+        line = display[((row + @row_offset) * vic_width) + @col_offset, width]
         line.map! { |c| @palette[c] }
         line.pack("V*")
       end

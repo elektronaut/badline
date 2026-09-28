@@ -152,7 +152,7 @@ module MachineDiff
       File.binwrite(File.join(dir, "demo.prg"), DEMO_PRG)
       Badline::Media.attach(computer, dir)
       computer.type_text(Badline::Media::AUTOSTART)
-    else TrueDrive.insert(computer, scenario, options) || Badline::Media.attach(computer, scenario)
+    else TrueDrive.insert(computer, scenario, options) || Badline::Media.attach(computer, scenario, **options[:media])
     end
     computer
   end
@@ -241,7 +241,7 @@ module MachineDiff
 end
 
 options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib"),
-            true_drive: false, idle_skip: true }
+            true_drive: false, idle_skip: true, media: {} }
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/machine_diff [#{MachineDiff::SCENARIOS.join('|')}|media] [options]"
@@ -281,5 +281,10 @@ Badline.__send__(:remove_const, :Checkpoint) if defined?(Badline::Checkpoint) &&
 require checkpoint
 
 MachineDiff.backport_readers
+# A disk image mounts write-protected, so neither run writes to the file the
+# other one reads. A revision from before `read_only` mounts it as it is.
+if Badline::Storage::DiskImage.instance_method(:initialize).parameters.include?(%i[key read_only])
+  options[:media] = { disk: { read_only: true } }
+end
 
 options[:against] ? MachineDiff.compare(scenario, options) : MachineDiff.print_run(scenario, options)

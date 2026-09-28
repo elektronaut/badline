@@ -403,6 +403,14 @@ only catches the rows that happen to move.
 - Spec guard: *#collide_upto* in
   [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
   four examples each fail on a one-pixel change.
+- $D01E and $D01F are read-only. A write, including the write-back of a
+  read-modify-write such as `LSR $D01E`, changes neither register.
+  - Pinned by `general/fuxxortest/ef2-inst4a`, which shifts each frame's
+    collision out of $D01E with `LSR`. Storing the shifted value back
+    leaves bit 0 set for the next frame, which reads as a collision one
+    pixel to the right of every real one.
+  - Spec guard: *with a collision register* in
+    [`vic/registers_spec.rb`](../spec/badline/vic/registers_spec.rb).
 
 ## VIC border and idle state
 
@@ -1073,6 +1081,15 @@ and each was knocked out: removing it fails the rows named.
   - Pinned by `CPU/cpuport/initvalue.crt`, which runs from a cartridge
     before the KERNAL does.
   - Spec guard: *when powered on* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+- A write to `$00` or `$01` goes to the port, and the RAM below takes the
+  byte the VIC fetched in the phi1 half of the same cycle, as in VICE's
+  `zero_store`. Only the VIC reads that RAM.
+  - Pinned by `general/ram0001/test1`, which puts the byte in `$3fff` for
+    the idle fetch, and `general/fuxxortest/ef2-inst4a`, which uses two
+    sprite pointer fetches. Both read the RAM back through sprite
+    collisions.
+  - Spec guard: *when a program writes to the port* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
 
 ## 1541 serial port
