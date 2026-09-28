@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/elektronaut/badline/compare/v0.4.0...v0.4.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* build the Homebrew pack with Spinel d3182102 ([42b42d5](https://github.com/elektronaut/badline/commit/42b42d506270f16cfb033c7d538e75131f7c74c2))
+
 ## [0.4.0](https://github.com/elektronaut/badline/compare/v0.3.0...v0.4.0) (2026-09-28)
 
 ### Upgrading
