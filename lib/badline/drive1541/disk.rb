@@ -53,19 +53,33 @@ module Badline
         disk
       end
 
+      # How far round each track's sector 0 starts from the last track's,
+      # in turns, by the zone of the track: where formatting the disk with
+      # N: through the DOS ROM leaves it. The DOS formats the tracks of a
+      # zone the same time apart, and the disk turns on meanwhile, so the
+      # skew holds from track to track within a zone. The first track of
+      # a zone has one of its own.
+      TRACK_SKEW = [0.2963, 0.0925, 0.8884, 0.6869].freeze
+      ZONE_SKEW = { 18 => 0.7930, 25 => 0.2304, 31 => 0.8777 }.freeze
+
       # A disk formatted from a D64 image, each sector laid out as the DOS
-      # formats it, with the disk ID from the header block. A block the
-      # image's error table marks 20, 21, 22, 23, 27 or 29 is written the
-      # way that DOS error would read. The table's other codes, 24, 25, 26
-      # and 28, describe write or decoding faults the layout can't carry,
-      # so their blocks are written good and read without an error.
+      # formats it, with the disk ID from the header block, and each track
+      # turned against the last by its skew, from track 1 at the angle the
+      # head starts at. A block the image's error table marks 20, 21, 22, 23, 27 or
+      # 29 is written the way that DOS error would read. The table's other
+      # codes, 24, 25, 26 and 28, describe write or decoding faults the
+      # layout can't carry, so their blocks are written good and read
+      # without an error.
       def self.from_d64(image)
         track, sector = image.header_block
         header = image.read_block(track, sector)
         id = [header[0xa2], header[0xa3]]
         disk = new(image)
+        angle = 0.0
         (1..image.track_count).each do |track|
-          disk.write(track * 2, Track.new(format_track(image, track, id), zone(track)))
+          angle = (angle + ZONE_SKEW.fetch(track) { TRACK_SKEW[zone(track)] }) % 1 if track > 1
+          bytes = format_track(image, track, id)
+          disk.write(track * 2, Track.new(bytes.rotate(-(angle * bytes.length).round), zone(track)))
         end
         disk
       end
