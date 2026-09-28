@@ -123,7 +123,7 @@ as the test harnesses under `bin/` do.
 `badline-ruby --headless` plays a `.sid` tune on the host's audio
 device without opening the window, and `--audio-out` renders it to a
 16-bit PCM file instead. The file's extension picks the format, `.wav`
-or `.aiff`. The native `badline` doesn't have these modes yet.
+or `.aiff`. The native `badline` has both modes too.
 
 ```sh
 badline-ruby --headless tune.sid                             # play, length from HVSC
@@ -160,6 +160,11 @@ time. They render fine but stutter when played, and `badline-ruby` says
 so when it falls behind. The filter steps four cycles at a time;
 `--filter-chunk 1` steps it every cycle, which is exact and takes about
 twice as long. `badline-ruby --help` lists the options.
+
+The native `badline` takes the same options and runs the same code, so
+it renders the same file sample for sample, and it plays RSID tunes
+without stuttering. See
+[native/README.md](native/README.md#without-the-window).
 
 ## Input
 

@@ -25,11 +25,16 @@ module Badline
       end
 
       # Sign bit, 15-bit biased exponent, then a 64-bit mantissa that keeps
-      # its leading one rather than hiding it.
+      # its leading one rather than hiding it, packed as two 32-bit halves.
       def extended(value)
         exponent = EXPONENT_BIAS + value.bit_length - 1
-        mantissa = value << (64 - value.bit_length)
-        [exponent, mantissa >> 32, mantissa & 0xffff_ffff].pack("nNN")
+        [exponent, *mantissa(value, 64 - value.bit_length)].pack("nNN")
+      end
+
+      def mantissa(value, shift)
+        return [value << (shift - 32), 0] if shift >= 32
+
+        [value >> (32 - shift), (value & ((1 << (32 - shift)) - 1)) << shift]
       end
     end
   end

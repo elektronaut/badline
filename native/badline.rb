@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 # The native badline: boots the machine (or attaches the media given) and
-# plays it in an SDL2 window. It builds with Spinel only;
+# plays it in an SDL2 window, or with --headless or --audio-out plays or
+# renders a .sid tune without one. It builds with Spinel only;
 # `rake native:build` builds it into tmp/native/badline. See
 # native/README.md, and `badline --help` for the options.
 
@@ -24,6 +25,8 @@ if options.version?
   puts Badline::Native.version
   exit
 end
+
+exit Badline::Native::Headless.run(options) if options.headless?
 
 media = options.media
 begin

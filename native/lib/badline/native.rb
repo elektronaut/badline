@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 # The native badline: the emulator core compiled with Spinel, playing in an
-# SDL2 window. It requires the core file by file rather than through
-# lib/badline.rb, which also loads the CRuby-only front end.
+# SDL2 window, or playing or rendering a .sid tune without one. It requires
+# the core file by file rather than through lib/badline.rb, which also
+# loads the CRuby-only front end, and badline-ruby's headless player from
+# lib/badline/audio but for its SDL sink and its io/console terminal.
 require "badline/version"
 require "badline/integer_helper"
 require "badline/region"
@@ -36,12 +38,23 @@ require "badline/cartridge"
 require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
+require "badline/audio/pcm_writer"
+require "badline/audio/wav"
+require "badline/audio/aiff"
+require "badline/audio/bare_player"
+require "badline/audio/machine_player"
+require "badline/audio/renderer"
+require "badline/audio/playback"
+require "badline/audio/terminal"
+require "badline/audio/jukebox"
+require "badline/audio/cli"
 
 require "io/buffer"
 
 require "badline/native/build_info"
 require "badline/native/version"
 require "badline/native/options"
+require "badline/native/help"
 require "badline/native/sdl"
 require "badline/native/frame_rate"
 require "badline/native/screen"
@@ -52,3 +65,6 @@ require "badline/native/controls"
 require "badline/native/pad_port"
 require "badline/native/gamepads"
 require "badline/native/app"
+require "badline/native/audio_sink"
+require "badline/native/console"
+require "badline/native/headless"
