@@ -36,12 +36,10 @@
 # --drive runs the testlist's drive/ rows instead, and the rows of the
 # subtrees above that mount a .d64. Each runs on a machine booted with a
 # true 1541 on the serial bus, which needs the DOS ROM (dos1541.rom in the
-# ROM path). The row's mountd64 image goes in the drive, and its program
-# loads as the other rows' do, but nothing is mounted as device 8 through
-# the LOAD trap, so every disk access goes through the drive. The Spinel
-# build has no drive, so --drive doesn't take --engine. drive/format and
-# drive/rpm/rpm3 write to the disk, which the drive can't do yet, so they
-# stay listed and fail until it can.
+# ROM path). The row's mountd64 or mountg64 image goes in the drive, and
+# its program loads as the other rows' do, but nothing is mounted as
+# device 8 through the LOAD trap, so every disk access goes through the
+# drive. The Spinel build has no drive, so --drive doesn't take --engine.
 #
 # --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
 # Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
@@ -110,14 +108,15 @@ module Testbench
   # drive/1541-testsuite's, which run only under --1541-testsuite.
   DRIVE_DIR = %r{\A\.\./drive/(1541-testsuite\z)?}
 
-  # G64 and P64 images and memory expansions are not emulated. A mountcrt
-  # row runs only under --carts, a drive row or a mountd64 one only under
-  # --drive, a cia-new row, which asks for the 6526A, only under --cia-new,
-  # and a vicii-new row, which asks for the 8565, only under --vicii-new.
-  SKIP_OPTIONS = /ntsc|drean|mountg64|mountp64|
+  # P64 images and memory expansions are not emulated. A mountcrt row
+  # runs only under --carts, a drive row or one that mounts a .d64 or a
+  # .g64 only under --drive, a cia-new row, which asks for the 6526A, only
+  # under --cia-new, and a vicii-new row, which asks for the 8565, only
+  # under --vicii-new.
+  SKIP_OPTIONS = /ntsc|drean|mountp64|
                   reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
-  DISK_OPTION = "mountd64:"
+  DISK_OPTION = /\Amount[dg]64:/
   DOS_ROM = "dos1541.rom"
   CIA_NEW_OPTION = "cia-new"
   VICII_NEW_OPTION = "vicii-new"
@@ -139,10 +138,15 @@ module Testbench
     computer
   end
 
-  # Puts a .d64 in the true drive, formatted as the DOS would have. The
-  # drive writes back to the image at +path+.
+  # Puts a .d64 in the true drive, formatted as the DOS would have, or a
+  # .g64 as its tracks are. The drive writes back to the image at +path+.
   def self.insert_disk(computer, path)
-    computer.drive1541.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+    disk = if File.extname(path).casecmp?(".g64")
+             Badline::Drive1541::Disk.from_g64(Badline::Storage::G64Image.new(path))
+           else
+             Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path))
+           end
+    computer.drive1541.insert(disk)
   end
 
   def self.dos_rom? = File.exist?(File.join(Badline.rom_path, DOS_ROM))
@@ -324,7 +328,7 @@ module Testbench
     end
 
     def disk(options)
-      options.find { |option| option.start_with?(DISK_OPTION) }&.delete_prefix(DISK_OPTION)
+      options.find { |option| option.match?(DISK_OPTION) }&.sub(DISK_OPTION, "")
     end
 
     def runnable_cartridge?(test)

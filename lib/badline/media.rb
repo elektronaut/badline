@@ -26,6 +26,8 @@ module Badline
           attach_sid(computer, path, autostart:, song:)
         elsif File.extname(path).downcase == ".tap"
           attach_tape(computer, path, autostart:)
+        elsif g64?(path)
+          attach_g64(computer, path, autostart:)
         elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
           attach_storage(computer, storage.new(path), path, autostart:)
         else
@@ -37,6 +39,8 @@ module Badline
       # while the machine runs, without loading anything. The drive keeps
       # its RAM and its status.
       def insert_disk(computer, path)
+        return insert_g64(computer, path) if g64?(path)
+
         storage = disk_storage(path)
         raise ArgumentError, "#{path} is not a disk image or a directory" unless storage
 
@@ -53,6 +57,23 @@ module Badline
       end
 
       private
+
+      def g64?(path) = File.extname(path).downcase == ".g64"
+
+      # A .g64 holds the disk's raw GCR, which only a true drive reads, so
+      # attaching one plugs a 1541 in as device 8 when there's none yet.
+      def attach_g64(computer, path, autostart:)
+        message = insert_g64(computer, path)
+        computer.type_text(AUTOSTART) if autostart
+        message
+      end
+
+      def insert_g64(computer, path)
+        disk = Drive1541::Disk.from_g64(Storage::G64Image.new(path))
+        computer.attach_drive1541(Drive1541.new) unless computer.drive1541
+        computer.drive1541.insert(disk)
+        "Inserted #{path} in the 1541 as device 8"
+      end
 
       def disk_storage(path)
         return Storage::HostDirectory.new(path) if File.directory?(path)
