@@ -53,6 +53,7 @@ module Badline
       @autostart = true
       @read_only = false
       @sound = false
+      @verbose = false
       @headless = false
       @jit = true
       @quiet = false
@@ -95,6 +96,8 @@ module Badline
     def read_only? = @read_only
 
     def sound? = @sound
+
+    def verbose? = @verbose
 
     def quiet? = @quiet
 
@@ -164,6 +167,9 @@ module Badline
       end
       opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") do
         window_only("--sound") { @sound = true }
+      end
+      opts.on("--verbose", "Print the display, sound and gamepad setup and the frame timing") do
+        window_only("--verbose") { @verbose = true }
       end
     end
 

@@ -24,6 +24,10 @@ describe Badline::Native::Options do
       expect(options.media).to eq("")
     end
 
+    it "keeps the setup and timing to itself" do
+      expect(options.verbose?).to be(false)
+    end
+
     it "autostarts, paced by vsync, with sound, until closed" do
       expect([options.autostart?, options.paced?, options.vsync?, options.sound?, options.frames])
         .to eq([true, true, true, true, 0])
@@ -86,6 +90,10 @@ describe Badline::Native::Options do
     expect(parse("--no-vsync").vsync?).to be(false)
   end
 
+  it "prints the setup and timing with --verbose" do
+    expect(parse("--verbose").verbose?).to be(true)
+  end
+
   it "takes the testing knobs" do
     options = parse("--frames=150", "--unpaced", "--screenshot", "ready.bmp")
     expect([options.frames, options.paced?, options.screenshot]).to eq([150, false, "ready.bmp"])
@@ -104,7 +112,7 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --sound --no-sound --no-vsync --help --version
+    %w[--song --sid --no-autostart --sound --no-sound --no-vsync --verbose --help --version
        --frames --unpaced --screenshot --headless --audio-out --seconds --songlengths
        --rate --filter-chunk --quiet --no-tui].each do |flag|
       expect(described_class::HELP).to include(flag)
@@ -186,6 +194,7 @@ describe Badline::Native::Options do
       %w[--headless --no-autostart] => "--no-autostart needs the window",
       %w[--headless --read-only] => "--read-only needs the window",
       %w[--headless --no-sound] => "--no-sound needs the window",
+      %w[--headless --verbose] => "--verbose needs the window",
       %w[--headless --frames 3] => "--frames needs the window",
       %w[--seconds=10] => "--seconds needs --headless or --audio-out",
       %w[--songlengths x] => "--songlengths needs --headless or --audio-out",

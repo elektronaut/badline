@@ -41,6 +41,7 @@ module Badline
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
                 --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
+                --verbose                    Print the display, sound and gamepad setup and the frame timing
 
         Options without the window:
                 --headless                   Play a .sid tune in the terminal instead of the window

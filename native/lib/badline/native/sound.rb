@@ -20,8 +20,9 @@ module Badline
 
       attr_reader :rate, :underruns, :dropped, :queued, :low, :high
 
-      def initialize(sid, wanted)
+      def initialize(sid, wanted, verbose)
         @sid = sid
+        @verbose = verbose
         @device = 0
         @rate = RATE
         @started = false
@@ -96,7 +97,7 @@ module Badline
 
         @rate = SDL.read_i32(SDL.obtained)
         @sid.record(rate: @rate)
-        puts "Sound at #{@rate} Hz"
+        puts "Sound at #{@rate} Hz" if @verbose
       end
 
       def queued_seconds = SDL.SDL_GetQueuedAudioSize(@device) / (2.0 * @rate)
