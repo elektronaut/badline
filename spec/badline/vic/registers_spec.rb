@@ -60,6 +60,19 @@ RSpec.describe Badline::VIC::Registers do
   end
 
   describe "#write" do
+    # Pinned by general/fuxxortest/ef2-inst4a, which shifts $D01E with LSR
+    context "with a collision register ($D01E/$D01F)" do
+      before do
+        registers.collide!(0x1e, 0x03)
+        registers.write(0x1e, 0x01)
+        registers.write(0x1f, 0x01)
+      end
+
+      it "ignores the write" do
+        expect([registers[0x1e], registers[0x1f]]).to eq([0x03, 0x00])
+      end
+    end
+
     context "with an ordinary register" do
       before { registers.write(0x18, 0xab) }
 

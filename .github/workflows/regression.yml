@@ -24,6 +24,8 @@ on:
           - testbench-carts
           - testbench-cia-new
           - testbench-vicii-new
+          - testbench-general
+          - testbench-expansions
           - sid-8580
 # No concurrency group: nothing here cancels anything, so a nightly run and
 # a dispatched one never touch each other.

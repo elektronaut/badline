@@ -320,6 +320,27 @@ describe Badline::KernalTrap::Save do
     end
   end
 
+  describe "saving to a disk image mounted read-only" do
+    include BlankDisk
+
+    let(:backend) { Badline::Storage::D64Image.new(blank_d64(path), read_only: true) }
+
+    def path = File.join(dir, "disk.d64")
+
+    before do
+      request_save("DATA")
+      run_trap
+    end
+
+    it "reports DEVICE NOT PRESENT" do
+      expect(ram.peek(0x90)).to eq(0x80)
+    end
+
+    it "leaves the image file as it was" do
+      expect(File.binread(path)).to eq(File.binread(blank_d64(File.join(dir, "blank.d64"))))
+    end
+  end
+
   describe "a read-only storage backend" do
     let(:backend) { Class.new { def read_file(_name) = nil }.new }
 

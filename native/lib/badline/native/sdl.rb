@@ -35,6 +35,7 @@ module Badline
       ffi_func :SDL_RWFromFile, %i[str str], :ptr
       ffi_func :SDL_SaveBMP_RW, %i[ptr ptr int], :int
       ffi_func :SDL_InitSubSystem, [:uint32], :int
+      ffi_func :SDL_QuitSubSystem, [:uint32], :void
       ffi_func :SDL_OpenAudioDevice, %i[ptr int ptr ptr int], :uint32
       ffi_func :SDL_CloseAudioDevice, [:uint32], :void
       ffi_func :SDL_PauseAudioDevice, %i[uint32 int], :void
@@ -107,6 +108,14 @@ module Badline
     module LibC
       ffi_func :malloc, [:size_t], :ptr
       ffi_func :free, [:ptr], :void
+      ffi_func :poll, %i[ptr size_t int], :int
+
+      ffi_const :POLLIN, 0x01
+
+      # struct pollfd: int fd; short events, revents.
+      ffi_buffer :pollfd, 8
+      ffi_write_i32 :pollfd_fd, 0
+      ffi_write_i16 :pollfd_events, 4
     end
   end
 end

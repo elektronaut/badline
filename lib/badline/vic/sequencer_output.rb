@@ -16,9 +16,9 @@ module Badline
         def output(col, shift)
           x_pos = (col + 16) * 8
           csel = @registers.csel?
-          first = WINDOW_COMPARES[@first_csel ? 1 : 0]
+          first = @window_compares[@first_csel ? 1 : 0]
           @first_csel = csel
-          compares = WINDOW_COMPARES[csel ? 1 : 0]
+          compares = @window_compares[csel ? 1 : 0]
           win_lo, right_compare = compares
 
           if !first.equal?(compares) || boundary_group?(x_pos, win_lo, right_compare)
@@ -45,7 +45,7 @@ module Badline
         end
 
         def output_window(x_pos, shift)
-          in_gfx = x_pos >= GFX_X_START && x_pos < GFX_X_END
+          in_gfx = x_pos >= @gfx_x_start && x_pos < @gfx_x_end
           @border_groups[x_pos >> 3] = BorderMask::NONE
 
           if shift.zero?
@@ -105,7 +105,7 @@ module Badline
             shown = pixel_shown?(x, win_lo, right_compare)
             @colors[x] = shown ? pixel : border
             @border[x] = !shown
-            @fg[x] = x >= GFX_X_START && x < GFX_X_END ? mask : false
+            @fg[x] = x >= @gfx_x_start && x < @gfx_x_end ? mask : false
             win_lo, right_compare = compares if i.zero?
             i += 1
           end

@@ -6,11 +6,12 @@ module Badline
       # Writes to the image: files with their chains, directory entries and
       # BAM, raw blocks, and BAM changes. Each write goes back to the host
       # file at once. A write the disk refuses raises WriteError and leaves
-      # the image as it was, and so does one the host can't store, which
-      # fails as a write-protected disk does.
+      # the image as it was, and so does one to a read-only image or one
+      # the host can't store, which fail as a write-protected disk does.
       module Writing
-        # Whether the host file takes writes.
-        def writable? = ::File.writable?(@path)
+        # Whether the disk takes writes: the image wasn't opened read-only
+        # and the host file takes them.
+        def writable? = !read_only? && ::File.writable?(@path)
 
         # Writes a new file, or with `replace` writes over the one of the
         # same name in its directory entry. A name already on the disk
