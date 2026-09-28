@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
+require_relative "../support/blank_disk"
 
 describe Badline::Media do
   let(:computer) { Badline::Computer.new }
@@ -327,6 +328,133 @@ describe Badline::Media do
         described_class.attach(computer, p00_path)
         expect(computer.ram.read(0x1000, 1)).to eq([0x42])
       end
+    end
+  end
+
+  describe ".attach with a true drive" do
+    include BlankDisk
+
+    let(:d64_path) { blank_d64(File.join(dir, "disk.d64")) }
+    let!(:drive) { described_class::TrueDrive.plug(computer) }
+
+    it "puts a .d64 in the drive" do
+      described_class.attach(computer, d64_path)
+      expect(drive.disk).to be_a(Badline::Drive1541::Disk)
+    end
+
+    it "leaves the KERNAL traps unmounted, so device 8 is the drive's alone" do
+      allow(computer).to receive(:mount)
+      described_class.attach(computer, d64_path)
+      expect(computer).not_to have_received(:mount)
+    end
+
+    it "types the autostart command" do
+      allow(computer).to receive(:type_text)
+      described_class.attach(computer, d64_path)
+      expect(computer).to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
+    end
+
+    it "skips autostart when disabled" do
+      allow(computer).to receive(:type_text)
+      described_class.attach(computer, d64_path, autostart: false)
+      expect(computer).not_to have_received(:type_text)
+    end
+
+    it "returns a message" do
+      expect(described_class.attach(computer, d64_path)).to eq("Inserted #{d64_path} in the true drive")
+    end
+
+    {
+      "disk.d71" => 349_696, "disk.d81" => 819_200, "tape.t64" => 0x40
+    }.each do |name, size|
+      it "refuses a #{File.extname(name)}, which the 1541 can't read" do
+        path = File.join(dir, name).tap { |p| File.binwrite(p, "\x00" * size) }
+        expect { described_class.attach(computer, path) }
+          .to raise_error(described_class::TrueDrive::Error, /only \.d64/)
+      end
+    end
+
+    it "refuses a directory" do
+      expect { described_class.attach(computer, dir) }.to raise_error(described_class::TrueDrive::Error)
+    end
+
+    it "loads a program as without one" do
+      prg = File.join(dir, "game.prg").tap { |path| File.binwrite(path, [0x00, 0x10, 0x42].pack("C*")) }
+      allow(computer).to receive(:on_init).and_yield
+      described_class.attach(computer, prg)
+      expect(computer.ram.read(0x1000, 1)).to eq([0x42])
+    end
+  end
+
+  describe "the true drive" do
+    it "plugs a 1541 in as device 8" do
+      expect(described_class::TrueDrive.plug(computer).device).to eq(8)
+    end
+
+    it "keeps a 1541 already on device 8" do
+      drive = described_class::TrueDrive.plug(computer)
+      expect(described_class::TrueDrive.plug(computer)).to be(drive)
+    end
+
+    it "plugs in another in place of a 1541 on device 9" do
+      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      expect(described_class::TrueDrive.plug(computer).device).to eq(8)
+    end
+
+    it "leaves a 1541 on device 9 out of device 8's media" do
+      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      allow(computer).to receive(:mount)
+      described_class.attach(computer, dir)
+      expect(computer).to have_received(:mount)
+    end
+  end
+
+  # Runs the real DOS ROM: the autostart's LOAD"*",8,1 reads the program
+  # off the disk's GCR through the DOS and over the serial bus, with no
+  # KERNAL trap anywhere, and RUN runs it.
+  describe ".attach with a true drive and the DOS ROM" do
+    include BlankDisk
+
+    # 10 PRINT"TRUE DRIVE"
+    let(:program) { [0x01, 0x08, 0x13, 0x08, 0x0a, 0x00, 0x99, 0x22, *"TRUE DRIVE".bytes, 0x22, 0x00, 0x00, 0x00] }
+    let(:output) { computer.capture_output }
+
+    def printed?(text) = output.output.upcase.include?(text)
+
+    before do
+      path = blank_d64(File.join(dir, "disk.d64"))
+      Badline::Storage::D64Image.new(path).write_file("hello", program)
+      output
+      described_class::TrueDrive.plug(computer)
+      described_class.attach(computer, path)
+    end
+
+    it "autostarts the first program on the disk" do
+      100_000.times { computer.cycle! } until printed?("TRUE DRIVE\n") || computer.cycles > 30_000_000
+      expect(output.output.upcase).to include("LOADING").and include("TRUE DRIVE\n")
+    end
+  end
+
+  describe ".insert_disk with a true drive" do
+    include BlankDisk
+
+    let(:d64_path) { blank_d64(File.join(dir, "disk.d64")) }
+
+    before { described_class::TrueDrive.plug(computer) }
+
+    it "puts a .d64 in the drive" do
+      described_class.insert_disk(computer, d64_path)
+      expect(computer.drive1541.disk).to be_a(Badline::Drive1541::Disk)
+    end
+
+    it "leaves the traps unmounted" do
+      allow(computer).to receive(:mount)
+      described_class.insert_disk(computer, d64_path)
+      expect(computer).not_to have_received(:mount)
+    end
+
+    it "returns a message" do
+      expect(described_class.insert_disk(computer, d64_path)).to eq("Inserted #{d64_path} in the true drive")
     end
   end
 

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/media/true_drive"
+
 module Badline
   module Media
     AUTOSTART = %(lO"*",8,1\rrun\r)
@@ -16,8 +18,13 @@ module Badline
     class << self
       # `cartridge` sets the jumpers of a .crt cartridge that has them, such
       # as `{ flash_jumper: true }` for the Retro Replay's flash mode.
+      #
+      # With a true drive on device 8 (TrueDrive.plug), a .d64 goes into it
+      # instead of the KERNAL traps, and the autostart loads through it.
       def attach(computer, path, autostart: true, song: nil, cartridge: {})
-        if File.directory?(path)
+        if TrueDrive.takes?(computer, path)
+          attach_true_drive(computer, path, autostart:)
+        elsif File.directory?(path)
           computer.mount(Storage::HostDirectory.new(path))
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
@@ -35,8 +42,11 @@ module Badline
 
       # Swaps the disk in device 8 for a disk image or a host directory,
       # while the machine runs, without loading anything. The drive keeps
-      # its RAM and its status.
+      # its RAM and its status. With a true drive on device 8, the disk goes
+      # into that.
       def insert_disk(computer, path)
+        return TrueDrive.insert(computer, path) if TrueDrive.drive(computer)
+
         storage = disk_storage(path)
         raise ArgumentError, "#{path} is not a disk image or a directory" unless storage
 
@@ -86,6 +96,12 @@ module Badline
         computer.datasette.play!
         computer.type_text(TAPE_AUTOSTART) if autostart
         "Inserted #{path} in the datasette"
+      end
+
+      def attach_true_drive(computer, path, autostart:)
+        message = TrueDrive.insert(computer, path)
+        computer.type_text(AUTOSTART) if autostart
+        message
       end
 
       def attach_storage(computer, storage, path, autostart:)
