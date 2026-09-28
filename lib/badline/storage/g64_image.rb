@@ -25,7 +25,12 @@ module Badline
     # otherwise appends a block to the file for it, as for a half track
     # that had no data. A track longer than the header's longest raises
     # it, so the header stays true of every block. A half track beyond
-    # the tables stays on the disk alone.
+    # the tables stays on the disk alone. One opened with `read_only` is a
+    # write-protected disk, and the host file is never written.
+    #
+    # Opening an image checks that its header and tables are whole, and
+    # that every block and speed map lies past the tables and inside the
+    # file, and raises FormatError where one doesn't.
     class G64Image
       class FormatError < StandardError; end
 
@@ -59,14 +64,18 @@ module Badline
 
       attr_reader :half_tracks, :max_track_size
 
-      def initialize(path)
+      def initialize(path, read_only: false)
         @path = path
+        @read_only = read_only
         @data = File.binread(path)
         parse
       end
 
+      # Whether the image was opened write-protected.
+      def read_only? = @read_only
+
       # Whether the host file takes writes.
-      def writable? = File.writable?(@path)
+      def writable? = !read_only? && File.writable?(@path)
 
       # The track at table entry +entry+ (0 for track 1) as [bytes, zone],
       # or nil where it has no data.
@@ -74,12 +83,10 @@ module Badline
         offset = @offsets[entry].to_i
         return if offset.zero?
 
-        length = @data.byteslice(offset, 2).unpack1("v")
-        bytes = @data.byteslice(offset + 2, length).bytes
-        raise FormatError, "Track entry #{entry} runs past the end of the image" if bytes.length < length
+        length = block_length(offset)
         return if length.zero?
 
-        [bytes, zone(entry, length)]
+        [@data.byteslice(offset + 2, length).bytes, zone(entry, length)]
       end
 
       # Stores tracks the drive wrote, {entry => [bytes, zone]}, in one
@@ -106,6 +113,7 @@ module Badline
 
       def parse
         raise FormatError, "Missing G64 signature" unless @data.start_with?(SIGNATURE)
+        raise FormatError, "G64 header is cut short" if @data.bytesize < HEADER_SIZE
 
         version, @half_tracks, @max_track_size = @data.byteslice(8, 4).unpack("CCv")
         raise FormatError, "Unsupported G64 version #{version}" unless version.zero?
@@ -115,6 +123,37 @@ module Badline
 
         @offsets = tables.byteslice(0, @half_tracks * 4).unpack("V*")
         @speeds = tables.byteslice(@half_tracks * 4, @half_tracks * 4).unpack("V*")
+        @half_tracks.times { |entry| check_block(entry) }
+      end
+
+      def tables_end = HEADER_SIZE + (@half_tracks * 8)
+
+      def block_length(offset) = @data.byteslice(offset, 2).unpack1("v")
+
+      def check_block(entry)
+        offset = @offsets[entry]
+        return if offset.zero?
+
+        problem = misplaced(offset, 2) || misplaced(offset, 2 + block_length(offset))
+        raise FormatError, "G64 track entry #{entry} #{problem}" if problem
+
+        check_speed_map(entry, block_length(offset))
+      end
+
+      def check_speed_map(entry, length)
+        speed = @speeds[entry]
+        return if speed <= 3
+
+        problem = misplaced(speed, (length + 3) / 4)
+        raise FormatError, "G64 speed map of track entry #{entry} #{problem}" if problem
+      end
+
+      # What's wrong with +size+ bytes at +offset+, or nil where they lie
+      # past the tables and inside the file.
+      def misplaced(offset, size)
+        if offset < tables_end then "points into the header or its tables"
+        elsif offset + size > @data.bytesize then "runs past the end of the image"
+        end
       end
 
       # The zone of the track: its speed entry, or the zone most of its

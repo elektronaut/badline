@@ -81,6 +81,61 @@ describe Badline::Storage::G64Image do
     expect { image }.to raise_error(described_class::FormatError, /version/)
   end
 
+  describe "a malformed image" do
+    # The image with table entry +entry+ of the offsets (or of the speeds
+    # with +table+ 1) set to +value+.
+    def patched(value, entry: 0, table: 0)
+      data = g64(tracks)
+      data[12 + (((table * 84) + entry) * 4), 4] = [value].pack("V")
+      data
+    end
+
+    def format_error(data)
+      File.binwrite(path, data)
+      described_class.new(path)
+    rescue described_class::FormatError => e
+      e.message
+    end
+
+    it "refuses a header cut short" do
+      expect(format_error("GCR-1541\x00\x54".b)).to include("header is cut short")
+    end
+
+    it "refuses tables cut short" do
+      expect(format_error(g64(tracks).byteslice(0, 300))).to include("tables are cut short")
+    end
+
+    it "refuses a track offset past the end of the file" do
+      expect(format_error(patched(g64(tracks).bytesize + 10))).to include("entry 0 runs past the end")
+    end
+
+    it "refuses a track that runs past the end of the file" do
+      expect(format_error(g64(tracks).byteslice(0, g64(tracks).bytesize - 1))).to include("entry 68 runs past the end")
+    end
+
+    it "refuses a track offset into the tables" do
+      expect(format_error(patched(40, entry: 34))).to include("entry 34 points into the header or its tables")
+    end
+
+    it "refuses a speed map past the end of the file" do
+      expect(format_error(patched(g64(tracks).bytesize, table: 1))).to include("speed map of track entry 0 runs past")
+    end
+
+    it "refuses a speed map in the tables" do
+      expect(format_error(patched(100, table: 1))).to include("speed map of track entry 0 points into")
+    end
+  end
+
+  describe "#writable?" do
+    it "is true of a writable host file" do
+      expect(image).to be_writable
+    end
+
+    it "is false of an image opened read-only" do
+      expect(described_class.new(path, read_only: true)).not_to be_writable
+    end
+  end
+
   describe "#store_tracks" do
     it "writes an unchanged track back byte for byte" do
       before = File.binread(path)
@@ -124,6 +179,26 @@ describe Badline::Storage::G64Image do
       File.binwrite(path, g64({ 0 => [pattern(7692, 1), 0] }, maps: { 0 => map }))
       image.store_tracks(0 => [pattern(7692, 8), 1])
       expect(File.binread(path).byteslice(-1923, 1923).bytes).to eq(map)
+    end
+
+    context "when the image was opened read-only" do
+      subject(:image) { described_class.new(path, read_only: true) }
+
+      def failed_write
+        image.store_tracks(5 => [pattern(7692, 8), 3])
+      rescue Badline::Storage::WriteError => e
+        e.code
+      end
+
+      it "fails as a write-protected disk" do
+        expect(failed_write).to eq(26)
+      end
+
+      it "leaves the host file alone" do
+        before = File.binread(path)
+        failed_write
+        expect(File.binread(path)).to eq(before)
+      end
     end
 
     context "when the host file won't take writes" do
