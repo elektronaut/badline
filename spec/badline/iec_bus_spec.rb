@@ -255,7 +255,7 @@ describe Badline::IECBus do
   # the real serial bus, since the serial traps don't answer device 8 with
   # a true drive attached. INPUT# is illegal in direct mode, so it runs as
   # a program line.
-  describe "with the DOS ROM" do
+  describe "with the DOS ROM", :slow do
     let(:computer) { Badline::Computer.new }
 
     before { computer.attach_drive1541(Badline::Drive1541.new) }
