@@ -9,6 +9,10 @@ describe Badline::Storage::G64Image do
 
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "disk.g64") }
+  let(:tracks) do
+    { 0 => [pattern(7692, 1), 3], 1 => [pattern(7700, 2), 3], 34 => [pattern(7142, 3), 2],
+      68 => [pattern(6250, 4), 0] }
+  end
 
   # Each track a different pattern, so a track read from the wrong place
   # shows.
@@ -35,11 +39,6 @@ describe Badline::Storage::G64Image do
     "GCR-1541\x00".b + [half_tracks, max].pack("Cv") + offsets.pack("V*") + speeds.pack("V*") + body
   end
 
-  let(:tracks) do
-    { 0 => [pattern(7692, 1), 3], 1 => [pattern(7700, 2), 3], 34 => [pattern(7142, 3), 2],
-      68 => [pattern(6250, 4), 0] }
-  end
-
   before { File.binwrite(path, g64(tracks)) }
 
   after { FileUtils.remove_entry(dir) }
@@ -62,7 +61,7 @@ describe Badline::Storage::G64Image do
     end
 
     it "takes the zone most of a speed-mapped track's bytes were written in" do
-      map = [0b10101010] * 1500 + [0b11111111] * 423
+      map = ([0b10101010] * 1500) + ([0b11111111] * 423)
       File.binwrite(path, g64({ 0 => [pattern(7692, 1), 0] }, maps: { 0 => map }))
       expect(image.track(0).last).to eq(2)
     end
@@ -127,20 +126,23 @@ describe Badline::Storage::G64Image do
       expect(File.binread(path).byteslice(-1923, 1923).bytes).to eq(map)
     end
 
-    it "fails as a write-protected disk when the host file won't take writes" do
-      allow(File).to receive(:binwrite).and_raise(Errno::EACCES)
-      expect { image.store_tracks(0 => [pattern(7692, 8), 3]) }
-        .to raise_error(Badline::Storage::WriteError) { |e| expect(e.code).to eq(26) }
-    end
+    context "when the host file won't take writes" do
+      before { allow(File).to receive(:binwrite).and_raise(Errno::EACCES) }
 
-    it "keeps reading the image as it was after a failed write" do
-      allow(File).to receive(:binwrite).and_raise(Errno::EACCES)
-      begin
+      def failed_write
         image.store_tracks(5 => [pattern(7692, 8), 3])
-      rescue Badline::Storage::WriteError
-        nil
+      rescue Badline::Storage::WriteError => e
+        e.code
       end
-      expect(image.track(5)).to be_nil
+
+      it "fails as a write-protected disk" do
+        expect(failed_write).to eq(26)
+      end
+
+      it "keeps reading the image as it was" do
+        failed_write
+        expect(image.track(5)).to be_nil
+      end
     end
   end
 

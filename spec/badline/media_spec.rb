@@ -85,6 +85,42 @@ describe Badline::Media do
       end
     end
 
+    context "with a G64 image" do
+      let(:g64_path) do
+        File.join(dir, "disk.g64").tap do |path|
+          Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
+        end
+      end
+
+      it "plugs in a true drive as device 8 and puts the disk in it" do
+        described_class.attach(computer, g64_path)
+        expect([computer.drive1541.device, computer.drive1541.disk.track(36).length]).to eq([8, 7142])
+      end
+
+      it "mounts nothing through the traps" do
+        allow(computer).to receive(:mount)
+        described_class.attach(computer, g64_path)
+        expect(computer).not_to have_received(:mount)
+      end
+
+      it "keeps a true drive already plugged in" do
+        drive = Badline::Drive1541.new
+        computer.attach_drive1541(drive)
+        described_class.attach(computer, g64_path)
+        expect([computer.drive1541.equal?(drive), drive.disk.nil?]).to eq([true, false])
+      end
+
+      it "types the autostart command" do
+        allow(computer).to receive(:type_text)
+        described_class.attach(computer, g64_path)
+        expect(computer).to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
+      end
+
+      it "returns a message naming the drive" do
+        expect(described_class.attach(computer, g64_path, autostart: false)).to include("1541", "device 8")
+      end
+    end
+
     context "with a D71 image" do
       let(:d71_path) do
         File.join(dir, "disk.d71").tap do |path|
@@ -355,6 +391,13 @@ describe Badline::Media do
 
     it "returns a message" do
       expect(described_class.insert_disk(computer, d64_path)).to eq("Inserted #{d64_path} in device 8")
+    end
+
+    it "puts a G64 image in the true drive, plugging one in" do
+      path = File.join(dir, "disk.g64")
+      Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
+      described_class.insert_disk(computer, path)
+      expect([computer.drive1541.disk.track(36).length, computer.drive1541.device]).to eq([7142, 8])
     end
 
     it "refuses anything but a disk" do

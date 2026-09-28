@@ -191,7 +191,7 @@ module Badline
           [half - Mechanism::MIN_HALF_TRACK, [@tracks[half].bytes, @tracks[half].zone]]
         end
         @written.clear
-        @image.store_tracks(tracks)
+        @image.store_tracks(tracks) unless tracks.empty?
       end
 
       # The disk ID the headers must carry, from the header block's $A2 and

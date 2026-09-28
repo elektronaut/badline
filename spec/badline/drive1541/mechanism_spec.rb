@@ -190,10 +190,13 @@ describe Badline::Drive1541::Mechanism do
       end
     end
 
-    it "turns once in 200 ms at every bit rate, as a track does" do
+    before do
       drive.insert(disk)
       spin(1)
       run(1000)
+    end
+
+    it "turns once in 200 ms at every bit rate, as a track does" do
       port_b(0x25) # a half track in, where the disk has no data
       run(100_000)
       port_b(0x24) # and back to track 18
