@@ -327,29 +327,44 @@ describe Badline::Drive1541 do
       end
     end
 
+    # The trap path has no directory listing to LOAD, so it reads back the
+    # program saved after the format, and the image the header and BAM.
     describe "formatting a disk with the DOS ROM" do
       def self.result
         @result ||= begin
           path = scratch_path("format.d64")
           File.binwrite(path, "\0".b * 174_848)
-          text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\rrun\rload\"$\",8\rlist\r"
-          machine = run_machine(path, text, 4)
-          machine.merge(image: Badline::Storage::D64Image.new(path), trap: trap_listing(path, "$"))
+          text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\r" \
+                 "run\rsave\"prog\",8\rload\"$\",8\rlist\r"
+          machine = run_machine(path, text, 5)
+          machine.merge(image: Badline::Storage::D64Image.new(path), trap: trap_listing(path, "prog"))
         end
       end
 
       let(:result) { self.class.result }
 
       it "reports no error" do
-        expect(result[:output]).to include(" 0 OK")
+        expect(result[:output]).to match(/ 0[^A-Z]*OK/)
       end
 
       it "lists the new disk through the drive" do
-        expect(result[:output]).to include("\"NEW DISK        \" XY 2A").and include("664 BLOCKS FREE")
+        expect(result[:output]).to include("\"NEW DISK        \" XY 2A").and include("\"PROG\"")
+          .and include("663 BLOCKS FREE")
       end
 
-      it "lists it through the traps" do
-        expect(result[:trap]).to include("\"NEW DISK        \" XY 2A").and include("664 BLOCKS FREE")
+      it "leaves the disk's name and ID in the image" do
+        expect(result[:image].read_block(18, 0)[0x90, 27].pack("C*"))
+          .to eq("NEW DISK#{"\xa0" * 10}XY\xa02A#{"\xa0" * 4}".b)
+      end
+
+      it "leaves every block free in the image's BAM but the directory's and the program's" do
+        image = result[:image]
+        free = (1..35).sum { |track| (0...image.sectors_in(track)).count { |sector| image.block_free?(track, sector) } }
+        expect(free).to eq(663 + 17)
+      end
+
+      it "leaves the program readable through the traps" do
+        expect(result[:trap]).to include("10 OPEN1,8,15,\"N:NEW DISK,XY\"")
       end
     end
   end
