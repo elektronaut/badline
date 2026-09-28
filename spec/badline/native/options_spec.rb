@@ -57,6 +57,10 @@ describe Badline::Native::Options do
     expect(parse("--no-autostart").autostart?).to be(false)
   end
 
+  it "mounts disks read-write unless --read-only asks otherwise" do
+    expect([parse.read_only?, parse("--read-only").read_only?]).to eq([false, true])
+  end
+
   it "turns sound off with --no-sound" do
     expect(parse("--no-sound").sound?).to be(false)
   end

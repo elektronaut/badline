@@ -3,10 +3,10 @@
 module Badline
   module Native
     # The command line of the native badline: badline-ruby's window options
-    # (--sound, --sid, --song, --no-autostart, --help) plus --version and
-    # the testing knobs --frames, --unpaced and --screenshot. Spinel has no
-    # OptionParser, so it parses by hand. Values come as `--song 2` or
-    # `--song=2`, and `--` ends the options.
+    # (--sound, --sid, --song, --no-autostart, --read-only, --help) plus
+    # --version and the testing knobs --frames, --unpaced and --screenshot.
+    # Spinel has no OptionParser, so it parses by hand. Values come as
+    # `--song 2` or `--song=2`, and `--` ends the options.
     class Options
       class Error < StandardError; end
 
@@ -28,6 +28,7 @@ module Badline
             -s, --song N                     Subtune of a .sid, from 1 (default: the tune's own)
                 --sid MODEL                  SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)
                 --no-autostart               Boot to READY. instead of running the program
+                --read-only                  Mount a disk image write-protected, leaving its file unchanged
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
                 --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
@@ -49,6 +50,7 @@ module Badline
         @song = nil
         @sid_model = nil
         @autostart = true
+        @read_only = false
         @sound = SOUND
         @frames = 0
         @paced = true
@@ -66,6 +68,8 @@ module Badline
       end
 
       def autostart? = @autostart
+
+      def read_only? = @read_only
 
       def sound? = @sound
 
@@ -125,6 +129,7 @@ module Badline
       def switch(name)
         case name
         when "--no-autostart" then @autostart = false
+        when "--read-only" then @read_only = true
         when "--sound" then @sound = true
         when "--no-sound" then @sound = false
         when "--no-vsync" then @vsync = false

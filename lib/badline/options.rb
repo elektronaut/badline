@@ -51,6 +51,7 @@ module Badline
 
     def initialize
       @autostart = true
+      @read_only = false
       @sound = false
       @headless = false
       @jit = true
@@ -87,6 +88,8 @@ module Badline
     def help? = @help
 
     def autostart? = @autostart
+
+    def read_only? = @read_only
 
     def sound? = @sound
 
@@ -152,6 +155,9 @@ module Badline
     def define_window_options(opts)
       opts.on("--no-autostart", "Boot to READY. instead of running the program") do
         window_only("--no-autostart") { @autostart = false }
+      end
+      opts.on("--read-only", "Mount a disk image write-protected, leaving its file unchanged") do
+        window_only("--read-only") { @read_only = true }
       end
       opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") do
         window_only("--sound") { @sound = true }

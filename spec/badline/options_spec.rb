@@ -36,6 +36,10 @@ describe Badline::Options do
       expect(options.sound?).to be(false)
     end
 
+    it "mounts disk images read-write" do
+      expect(options.read_only?).to be(false)
+    end
+
     it "leaves the song to the tune" do
       expect(options.song).to be_nil
     end
@@ -95,6 +99,14 @@ describe Badline::Options do
 
       it "parses each of them" do
         expect([options.autostart?, options.sound?]).to eq([false, true])
+      end
+    end
+
+    context "with --read-only" do
+      let(:argv) { ["--read-only", program_path] }
+
+      it "mounts disk images write-protected" do
+        expect(options.read_only?).to be(true)
       end
     end
 
@@ -237,7 +249,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound].each do |arg|
+    %w[--no-autostart --sound --read-only].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 

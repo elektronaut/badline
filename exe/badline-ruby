@@ -47,7 +47,7 @@ end
 begin
   application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
                                               song: options.song, sid_model: options.sid_model,
-                                              sound: options.sound?)
+                                              sound: options.sound?, disk: { read_only: options.read_only? })
 rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e

@@ -53,7 +53,9 @@ badline-ruby ~/c64          # Mount a directory as device 8
 Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
 from it. `--no-autostart` attaches the media and stops at `READY.`, so
-you can type the `LOAD` yourself. `--song N` picks a subtune of a
+you can type the `LOAD` yourself. `--read-only` mounts a disk image
+write-protected, so the drive reports `26,WRITE PROTECT ON` for any
+write and the image file stays as it was. `--song N` picks a subtune of a
 `.sid` file, `--sid 8580` fits the newer SID, and `--disable-jit` runs
 without YJIT, which is otherwise switched on at startup.
 `badline-ruby --help` lists the options.
@@ -78,7 +80,7 @@ emulation down.
 | Format | Handling |
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
-| `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file, and an image the host can't write acts as a write-protected disk |
+| `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file. With `--read-only`, or an image the host can't write, it acts as a write-protected disk |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
@@ -97,7 +99,9 @@ raw GCR, won't work.
 
 `Badline::Media.insert_disk(computer, path)` swaps the disk image or
 directory in device 8 while the machine runs, for software that asks for
-another disk.
+another disk. It takes `read_only: true`, and `Badline::Media.attach`
+takes `disk: { read_only: true }`, to mount a disk image write-protected,
+as the test harnesses under `bin/` do.
 
 ## Playing and rendering SID tunes
 
