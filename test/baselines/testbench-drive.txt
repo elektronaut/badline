@@ -5,7 +5,8 @@ drive/inertia/drive-emu-check.prg	FAIL	exit=$ff
 drive/interrupts/timera.prg	PASS
 drive/rpm/rpm1.prg	PASS
 drive/rpm/rpm2.prg	PASS
-drive/rpm/rpm3.prg	FAIL	exit=none
+drive/format/format.prg	PASS
+drive/rpm/rpm3.prg	PASS
 drive/scanner/scanner35.prg	PASS
 drive/scanner/scanner35e.prg	PASS
 drive/scanner/scanner40.prg	PASS
