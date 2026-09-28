@@ -27,7 +27,7 @@ module Badline
         @drive = drive
       end
 
-      def lit? = @drive.mechanism.led_on?
+      def lit? = @drive.led_on?
 
       def color = lit? ? LIT : DARK
 

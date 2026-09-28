@@ -18,7 +18,7 @@ module Badline
         @drive = drive
       end
 
-      def color = @drive.mechanism.led_on? ? LIT : DARK
+      def color = @drive.led_on? ? LIT : DARK
 
       def render(renderer)
         SDL::SetRenderDrawColor.call(renderer, *color, 0xff)
