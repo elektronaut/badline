@@ -388,16 +388,21 @@ describe Badline::Drive1541::Mechanism do
         expect(via.peek(0x1c01)).to eq(latched)
       end
 
-      it "sets V through SO while CA2 is high" do
+      # Pinned by drive/hls-protection: the CPU samples SO a cycle after
+      # BYTE READY, so V is set for the next cycle's instruction step.
+      it "sets V through SO while CA2 is high, a cycle after BYTE READY" do
         drive.cpu.status.overflow = false
         next_byte
-        expect(drive.cpu.status.overflow?).to be(true)
+        set = drive.cpu.status.overflow?
+        run(1)
+        expect([set, drive.cpu.status.overflow?]).to eq([false, true])
       end
 
       it "leaves V alone while CA2 is low" do
         via.poke(0x1c0c, 0xec)
         drive.cpu.status.overflow = false
         next_byte
+        run(1)
         expect(drive.cpu.status.overflow?).to be(false)
       end
     end

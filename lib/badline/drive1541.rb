@@ -44,6 +44,7 @@ module Badline
       @host_clock_hz = host_clock_hz
       @phase = 0
       @cycles = 0
+      @so_pending = false
       @serial_bus = nil
       # CA1 powers up at the level of a released ATN, without an edge.
       @via1.ca1 = false
@@ -94,18 +95,22 @@ module Badline
     # do, and either one pulls IRQ. Nothing drives NMI on the 1541. The CPU
     # runs whether or not the motor turns, since it answers ATN.
     #
-    # The disk mechanism runs first, so BYTE READY lands on the VIA and the
-    # SO pin ahead of the CPU's cycle.
+    # The disk mechanism runs first, so BYTE READY lands on the VIA ahead
+    # of the CPU's cycle. The CPU samples SO a cycle late: BYTE READY sets
+    # V for the next cycle's instruction step.
     #
     # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
     # high as the C64 asserts ATN, as the serial port sees it: from the
     # host cycle after the one that asserts it.
     def cycle!
+      so = @so_pending
+      @so_pending = false
       @mechanism.cycle!
       @via1.ca1 = @serial_port.atn_low?
       @via1.cycle!
       @via2.cycle!
       @cpu.irq = @via1.irq? || @via2.irq?
+      @cpu.so! if so
       @cpu.cycle!
       @cycles += 1
     end
@@ -113,10 +118,11 @@ module Badline
     # The read electronics signal a whole GCR byte. BYTE READY pulls VIA 2's
     # CA1 low, a falling edge that sets its flag and, with latching on,
     # latches port A. It reaches the CPU's SO pin while VIA 2's CA2 (SOE)
-    # is high, which lets the DOS spin on BVC for each byte.
+    # is high, which lets the DOS spin on BVC for each byte. The CPU
+    # samples SO on the next cycle (see cycle!).
     def byte_ready!
       @via2.ca1 = false
-      @cpu.so! if @via2.ca2_output
+      @so_pending = true if @via2.ca2_output
     end
 
     # BYTE READY lets go of CA1 with the next bit.
