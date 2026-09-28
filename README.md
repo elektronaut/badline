@@ -79,21 +79,23 @@ emulation down.
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
 | `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file, and an image the host can't write acts as a write-protected disk |
+| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. Tracks the drive writes go back to the image file, and an image the host can't write acts as a write-protected disk |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
 | A directory | Mounted read-write as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
-There is no 1541. Device 8 works by trapping the KERNAL's `LOAD` and
-`SAVE` routines and its serial bus primitives, so files open by name
-through `OPEN` and `CHRIN` as well. The command channel answers `I`,
-`B-P` and `U1` block reads, which covers loaders that read blocks
-directly. On a disk image it also takes `SAVE` (with `@0:` to replace a
-file), files opened for writing or appending, `S` to scratch, `U2` and
-`B-W` block writes, and `B-A` and `B-F`. Loaders that upload their own
-code to the drive with `M-W` and `M-E`, and copy protection that reads
-raw GCR, won't work.
+Apart from a `.g64`, which only a true drive can read, there is no 1541.
+Device 8 works by trapping the KERNAL's `LOAD` and `SAVE` routines and
+its serial bus primitives, so files open by name through `OPEN` and
+`CHRIN` as well. The command channel answers `I`, `B-P` and `U1` block
+reads, which covers loaders that read blocks directly. On a disk image
+it also takes `SAVE` (with `@0:` to replace a file), files opened for
+writing or appending, `S` to scratch, `U2` and `B-W` block writes, and
+`B-A` and `B-F`. Loaders that upload their own code to the drive with
+`M-W` and `M-E`, and copy protection that reads raw GCR, won't work
+there, but do from a `.g64`.
 
 `Badline::Media.insert_disk(computer, path)` swaps the disk image or
 directory in device 8 while the machine runs, for software that asks for
