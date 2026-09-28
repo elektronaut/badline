@@ -95,12 +95,7 @@ module Badline
       def store_tracks(tracks)
         raise WriteError, WriteError::WRITE_PROTECT_ON unless writable?
 
-        data = @data.dup
-        tracks.each do |entry, (bytes, zone)|
-          next unless entry < @half_tracks
-
-          store_track(data, entry, bytes, zone)
-        end
+        data = with_tracks(tracks)
         File.binwrite(@path, data)
         @data = data
         parse
@@ -110,6 +105,17 @@ module Badline
       end
 
       private
+
+      # A copy of the image's bytes with the tracks stored in it.
+      def with_tracks(tracks)
+        data = @data.dup
+        tracks.each do |entry, (bytes, zone)|
+          next unless entry < @half_tracks
+
+          store_track(data, entry, bytes, zone)
+        end
+        data
+      end
 
       def parse
         raise FormatError, "Missing G64 signature" unless @data.start_with?(SIGNATURE)
