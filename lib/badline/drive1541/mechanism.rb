@@ -3,7 +3,8 @@
 module Badline
   class Drive1541
     # The disk mechanism behind VIA 2: the spindle motor, the head on its
-    # stepper, the LED and the read electronics.
+    # stepper, the LED, the read and write electronics and the
+    # write-protect sensor.
     #
     # Port B drives it and reads it back:
     #
@@ -12,7 +13,8 @@ module Badline
     #   PB3    LED on (out)           PB7    SYNC (in, 0 while in a SYNC mark)
     #
     # Port A reads the read shift register's low eight bits, which CA1
-    # latches on BYTE READY.
+    # latches on BYTE READY. In write mode it drives the write shift
+    # register, and the read shift register takes the bits written.
     #
     # The head reads the track under it, bit after bit, while the motor
     # turns, at the rate PB5-6 select: a bit every 4 * (16 - zone) ticks of
@@ -24,6 +26,25 @@ module Badline
     # byte. Every eighth bit after that is BYTE READY, which pulls VIA 2's
     # CA1 low until the next bit and reaches the CPU's SO pin (see
     # Drive1541#byte_ready!).
+    #
+    # CB2 low selects write mode, where SYNC detection is off. At each
+    # BYTE READY the write shift register loads what the VIA drives on
+    # port A, and the next eight bits the head passes over are that
+    # byte's, most significant first, in place of what the track held.
+    # While reading, the load takes the byte just read, so a switch to
+    # writing mid-byte writes the rest of it. A write to a half track
+    # without data gives it a blank track, a turn long at the bit rate
+    # it's written at.
+    #
+    # PB4 reads the write-protect sensor: high with no disk in, or with
+    # the notch of a writable one open. With the disk write-protected the
+    # write gate stays shut: the bits and BYTE READY go on, and nothing
+    # reaches the disk. The DOS reads PB4 first and refuses to write, so
+    # only a program that writes without asking finds that out.
+    #
+    # The motor stopping flushes what was written to the disk's image
+    # (see Disk#flush), which is when the DOS is done with a job, and so
+    # does taking the disk out.
     #
     # The stepper moves the head a half track each time the phase steps
     # by one, inwards for +1 and outwards for -1. Each half track has a
@@ -75,6 +96,10 @@ module Badline
         @bytes = BLANK
         @index = 0
         @mask = 0x80
+        @writing = false
+        @write_shift = 0
+        @write_gate = false
+        @protected = false
       end
 
       def motor_on? = @motor
@@ -83,16 +108,37 @@ module Badline
 
       def sync? = @sync
 
-      # Puts a Disk in, or takes it out with nil. The head goes on from the
-      # same point in the turn.
+      def writing? = @writing
+
+      # Puts a Disk in, or takes it out with nil, flushing the disk that
+      # was in. The head goes on from the same point in the turn.
       def insert(disk)
+        flush
         @disk = disk
+        @protected = disk&.write_protected? || false
+        @write_gate = !disk.nil? && !@protected
         load_track
+      end
+
+      # Stores what the head wrote in the disk's image.
+      def flush
+        @disk.flush if @disk&.written?
+      rescue Storage::WriteError => e
+        warn "1541: couldn't write the disk back: #{e.message}"
+      end
+
+      # VIA 2 drives CB2 to +high+: low selects write mode, which stops
+      # SYNC detection at once.
+      def cb2_written(high)
+        @writing = !high
+        @sync = !@writing && @ones >= SYNC_BITS
       end
 
       # VIA 2 drives port B's lines to +lines+.
       def port_b_written(lines)
+        motor = @motor
         @motor = lines.anybits?(MOTOR)
+        flush if motor && !@motor
         @led = lines.anybits?(LED)
         zone = (lines >> 5) & 0x03
         if zone != @zone
@@ -105,8 +151,12 @@ module Badline
       # Port A is the read shift register.
       def read_a(_lines) = @shift & 0xff
 
-      # SYNC low in a SYNC mark, and the disk writable.
-      def read_b(_lines) = @sync ? 0xff & ~SYNC : 0xff
+      # SYNC low in a SYNC mark, and write protect low for a protected
+      # disk.
+      def read_b(_lines)
+        lines = @sync ? 0xff & ~SYNC : 0xff
+        @protected ? lines & ~WRITE_PROTECT : lines
+      end
 
       # One drive cycle: nothing with the motor off, and otherwise a bit
       # whenever one has passed under the head.
@@ -117,7 +167,7 @@ module Badline
         return if @ticks.positive?
 
         @ticks += @bit_ticks
-        read_bit
+        @writing ? write_bit : read_bit
       end
 
       private
@@ -134,7 +184,7 @@ module Badline
         @shift = ((@shift << 1) & 0x3fe) | (one ? 1 : 0)
         if one
           @ones += 1
-          @sync = true if @ones >= SYNC_BITS && @drive.via2.cb2_output
+          @sync = true if @ones >= SYNC_BITS
         else
           @ones = 0
           @sync = false
@@ -142,6 +192,47 @@ module Badline
         count_bit
       end
 
+      # The write shift register's top bit goes onto the track through the
+      # write gate, and into the read shift register, as the head's own
+      # signal.
+      def write_bit
+        if @byte_ready
+          @byte_ready = false
+          @drive.byte_ready_ended!
+        end
+        one = @write_shift.anybits?(0x80)
+        @write_shift = (@write_shift << 1) & 0xff
+        store_bit(one) if @write_gate
+        advance
+        @shift = ((@shift << 1) & 0x3fe) | (one ? 1 : 0)
+        @ones = one ? @ones + 1 : 0
+        count_bit
+      end
+
+      def store_bit(one)
+        track_written if @bytes.frozen? || !@track_written
+        if one
+          @bytes[@index] |= @mask
+        else
+          @bytes[@index] &= ~@mask
+        end
+      end
+
+      # The first write to the track since the head came to it: a half
+      # track without data gets a blank one to write on, a turn long at
+      # the bit rate it's written at.
+      def track_written
+        if @bytes.frozen?
+          @disk.writable_track(@half_track, @zone)
+          load_track
+        end
+        @disk.written(@half_track)
+        @track_written = true
+      end
+
+      # Every eighth bit outside a SYNC mark is BYTE READY, which loads the
+      # write shift register: from what the VIA drives on port A in write
+      # mode, and with the byte just read otherwise.
       def count_bit
         if @sync
           @bits = 0
@@ -151,6 +242,7 @@ module Badline
         return unless @bits == 8
 
         @bits = 0
+        @write_shift = @writing ? @drive.via2.port_a_output : @shift & 0xff
         @byte_ready = true
         @drive.byte_ready!
       end
@@ -195,6 +287,7 @@ module Badline
         bytes = track ? track.bytes : BLANK
         @index = @index * bytes.length / @bytes.length
         @bytes = bytes
+        @track_written = false
       end
     end
   end

@@ -30,6 +30,7 @@ only catches the rows that happen to move.
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
 - [1541 serial port](#1541-serial-port)
+- [1541 disk mechanism](#1541-disk-mechanism)
 - [SID oscillator](#sid-oscillator)
 - [SID register writes](#sid-register-writes)
 - [SID data bus](#sid-data-bus)
@@ -1100,6 +1101,39 @@ and each was knocked out: removing it fails the rows named.
 - Spec guard: *sees an assertion from the host cycle after the one it
   lands in* and *shows the drive the C64's CLK from the host cycle after
   the write* in [`iec_bus_spec.rb`](../spec/badline/iec_bus_spec.rb).
+
+## 1541 disk mechanism
+
+- A step out against the stop at track 1 slips the stepper's phases: the
+  head stays on half track 2, and the phase that pulled it outwards
+  becomes that half track's. The DOS's bump steps out 92 half tracks, a
+  whole number of phase turns, and then takes the phase it ends on as
+  track 1's: `N:` formats track 1 there and steps in two phases a track.
+  With each half track holding its own phase from power-on instead, the
+  bump ended two half tracks off track 1's phase, the first step in
+  pulled the head against the stop, and the DOS wrote track 2 over track
+  1 and every later track one track out, at half track 2n - 2.
+  - The DOS reads its own format back either way, since each header
+    carries the track the DOS thought it was on: `drive/format` passes
+    without the slip, and so doesn't pin it. Reading the disk back into a
+    D64 does, since each header has to name the track the image holds it
+    on.
+  - Spec guard: *steps in from the stop with the first phase after the
+    bump* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    and *lists it through the traps* (`:slow`) in
+    [`drive1541_spec.rb`](../spec/badline/drive1541_spec.rb).
+- A write to a half track without data gives it a blank track as long as
+  a turn at the bit rate the drive writes at, not at the rate of the
+  track's own zone. `drive/rpm/rpm3` writes track 36, past a 35-track
+  D64, at the zone 2 rate the DOS leaves selected there, and times a
+  turn by reading it back.
+  - Pinned by `drive/rpm/rpm3`: with the zone 0 length of 6250 bytes, a
+    turn took 175,001 cycles (342.86 rpm, `exit=$ff`); with 7142 bytes
+    it takes 199,976 (300.04 rpm).
+  - Spec guard: *gives a half track a blank track 7142 bytes around,
+    written in zone 2* in
+    [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
 
 ## SID oscillator
 

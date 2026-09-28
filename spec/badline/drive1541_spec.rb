@@ -254,4 +254,103 @@ describe Badline::Drive1541 do
       expect(computer.ram.read(0xc000, 600)).to eq(program[2..])
     end
   end
+
+  # Writes through the real DOS ROM: the drive's own write loop drives the
+  # head, and the disk goes back to the image when the motor stops. Each run
+  # takes tens of millions of cycles with two CPUs, so they're slow, and each
+  # describe shares one run between its examples.
+  describe "writing through the DOS ROM", :slow do
+    extend BlankDisk
+
+    # A C64 with the true drive on its bus and the D64 at +path+ in it,
+    # typing +text+ once booted. Runs until BASIC has printed READY.
+    # +readies+ times, and then until the drive's motor stops.
+    def self.run_machine(path, text, readies)
+      computer = Badline::Computer.new
+      drive = described_class.new
+      drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+      computer.attach_drive1541(drive)
+      output = computer.capture_output
+      computer.on_init { computer.type_text(text) }
+      run_until(computer) { output.output.upcase.scan("READY.").length >= readies }
+      run_until(computer) { !drive.mechanism.motor_on? }
+      { output: output.output.upcase, computer: }
+    end
+
+    def self.run_until(computer)
+      100_000.times { computer.cycle! } until yield || computer.cycles > 150_000_000
+    end
+
+    # The same image through the traps, without a drive: what a LOAD of
+    # +name+ and a LIST print.
+    def self.trap_listing(path, name)
+      computer = Badline::Computer.new
+      computer.mount(Badline::Storage::D64Image.new(path))
+      output = computer.capture_output
+      computer.on_init { computer.type_text("load\"#{name}\",8\rlist\r") }
+      run_until(computer) { output.output.upcase.scan("READY.").length >= 3 }
+      output.output.upcase
+    end
+
+    def self.scratch_path(name)
+      File.join(Dir.mktmpdir.tap { |dir| at_exit { FileUtils.remove_entry(dir) } }, name)
+    end
+
+    describe "saving a program with the DOS ROM" do
+      def self.result
+        @result ||= begin
+          path = scratch_path("save.d64")
+          blank_d64(path, name: "SAVE TEST")
+          machine = run_machine(path, "10 print\"hello\"\rsave\"test\",8\rnew\rload\"test\",8\rlist\r", 5)
+          machine.merge(path:, image: Badline::Storage::D64Image.new(path), trap: trap_listing(path, "test"))
+        end
+      end
+
+      let(:result) { self.class.result }
+
+      it "saves without an error" do
+        expect([result[:output]].grep(/ERROR/)).to be_empty
+      end
+
+      it "loads the program back through the drive" do
+        expect(result[:output]).to include("LOADING").and include("10 PRINT\"HELLO\"")
+      end
+
+      it "leaves the file in the image" do
+        expect(result[:image].read_file("test")).to eq(
+          [0x01, 0x08, 0x0e, 0x08, 0x0a, 0x00, 0x99, 0x22, *"HELLO".bytes, 0x22, 0x00, 0x00, 0x00]
+        )
+      end
+
+      it "leaves the image readable through the traps" do
+        expect(result[:trap]).to include("10 PRINT\"HELLO\"")
+      end
+    end
+
+    describe "formatting a disk with the DOS ROM" do
+      def self.result
+        @result ||= begin
+          path = scratch_path("format.d64")
+          File.binwrite(path, "\0".b * 174_848)
+          text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\rrun\rload\"$\",8\rlist\r"
+          machine = run_machine(path, text, 4)
+          machine.merge(image: Badline::Storage::D64Image.new(path), trap: trap_listing(path, "$"))
+        end
+      end
+
+      let(:result) { self.class.result }
+
+      it "reports no error" do
+        expect(result[:output]).to include(" 0 OK")
+      end
+
+      it "lists the new disk through the drive" do
+        expect(result[:output]).to include("\"NEW DISK        \" XY 2A").and include("664 BLOCKS FREE")
+      end
+
+      it "lists it through the traps" do
+        expect(result[:trap]).to include("\"NEW DISK        \" XY 2A").and include("664 BLOCKS FREE")
+      end
+    end
+  end
 end

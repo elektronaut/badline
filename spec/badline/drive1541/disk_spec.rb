@@ -126,6 +126,84 @@ describe Badline::Drive1541::Disk do
     end
   end
 
+  describe "#flush" do
+    def written_all
+      (1..35).each { |track| disk.written(track * 2) }
+    end
+
+    it "reads a freshly formatted disk back into the image byte for byte" do
+      before = File.binread(path)
+      written_all
+      disk.flush
+      expect(File.binread(path)).to eq(before)
+    end
+
+    it "stores a block the head rewrote in the image and its file" do
+      new_data = Array.new(256) { |i| i ^ 0x5a }
+      disk.track(2).bytes[(3 * 366) + 29, 325] = gcr.encode(described_class.data_block(new_data, nil))
+      disk.written(2)
+      disk.flush
+      expect([image.read_block(1, 3), Badline::Storage::D64Image.new(path).read_block(1, 3)]).to eq([new_data] * 2)
+    end
+
+    it "leaves the image alone when nothing was written" do
+      allow(image).to receive(:store_blocks)
+      disk.flush
+      expect(image).not_to have_received(:store_blocks)
+    end
+
+    it "reads each track once" do
+      disk.written(2)
+      disk.flush
+      allow(image).to receive(:store_blocks)
+      disk.flush
+      expect(image).not_to have_received(:store_blocks)
+    end
+
+    it "keeps a half track or a track past the image's last on the disk alone" do
+      allow(image).to receive(:store_blocks)
+      [3, 72].each { |half_track| disk.writable_track(half_track, 0) && disk.written(half_track) }
+      disk.flush
+      expect(image).not_to have_received(:store_blocks)
+    end
+
+    it "keeps a block whose header can't be found as it was" do
+      disk.track(2).bytes[(4 * 366), described_class::SECTOR_LENGTH] = [0x55] * described_class::SECTOR_LENGTH
+      before = image.read_block(1, 4)
+      disk.written(2)
+      disk.flush
+      expect(image.read_block(1, 4)).to eq(before)
+    end
+
+    it "is write-protected when the image won't take writes" do
+      allow(image).to receive(:writable?).and_return(false)
+      expect(disk.write_protected?).to be(true)
+    end
+
+    it "isn't write-protected when it will" do
+      expect(disk.write_protected?).to be(false)
+    end
+
+    it "takes writes without an image" do
+      expect(described_class.new.write_protected?).to be(false)
+    end
+  end
+
+  describe "#writable_track" do
+    # Track 36 is in zone 0, but a turn at zone 2's bit rate holds 7142
+    # bytes. Pinned by drive/rpm/rpm3, which writes track 36 at that rate.
+    { 0 => 6250, 2 => 7142, 3 => 7692 }.each do |zone, length|
+      it "gives a half track a blank track #{length} bytes around, written in zone #{zone}" do
+        track = described_class.new.writable_track(72, zone)
+        expect([track.zone, track.length, track.bytes.uniq]).to eq([zone, length, [0]])
+      end
+    end
+
+    it "keeps a track that has data" do
+      expect(disk.writable_track(2, 0)).to be(disk.track(2))
+    end
+  end
+
   context "with an error table" do
     # Error codes: 2 is error 20, 3 is 21, 4 is 22, 5 is 23, 9 is 27, 11 is
     # 29, and 6 is 24 and 10 is 28, which the layout can't carry.
@@ -172,6 +250,22 @@ describe Badline::Drive1541::Disk do
 
     it "writes the other blocks cleanly" do
       expect([header(6)[0, 2], data(6)[0]]).to eq([[0x08, 6 ^ 1 ^ 0x42 ^ 0x41], 0x07])
+    end
+
+    # 24 and 28 read back clean, since the layout can't carry them.
+    it "reads the disk back into the image with the errors it can carry" do
+      before = File.binread(path).bytes
+      (1..35).each { |track| disk.written(track * 2) }
+      disk.flush
+      changed = File.binread(path).bytes.each_with_index.reject { |byte, i| byte == before[i] }
+      expect(changed.map { |byte, i| [i - 174_848, before[i], byte] }).to eq([[7, 6, 1], [8, 10, 1]])
+    end
+
+    it "reads a missing header as error 20" do
+      disk.track(2).bytes[6 * 366, described_class::SECTOR_LENGTH] = [0x55] * described_class::SECTOR_LENGTH
+      disk.written(2)
+      disk.flush
+      expect(image.block_error(1, 6)).to eq(20)
     end
 
     it "writes the blocks marked 24 or 28 cleanly" do

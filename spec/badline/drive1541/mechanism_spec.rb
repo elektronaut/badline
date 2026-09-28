@@ -13,11 +13,12 @@ describe Badline::Drive1541::Mechanism do
 
   let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
   let(:via) { drive.via2 }
+  let(:dir) { Dir.mktmpdir }
   let(:disk) do
-    Dir.mktmpdir do |dir|
-      Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
-    end
+    Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
   end
+
+  after { FileUtils.remove_entry(dir) }
 
   # VIA 2 set up the way the DOS reads: PB0-3 and PB5-6 outputs, CA1 on
   # its falling edge, CA2 (SOE) and CB2 (read mode) high, and port A
@@ -92,8 +93,19 @@ describe Badline::Drive1541::Mechanism do
       expect(mechanism.zone).to eq(2)
     end
 
-    it "reads the disk as writable on PB4" do
+    it "reads the sensor open on PB4 with no disk in" do
       expect(via.peek(0x1c00) & 0x10).to eq(0x10)
+    end
+
+    it "reads a writable disk on PB4" do
+      drive.insert(disk)
+      expect(via.peek(0x1c00) & 0x10).to eq(0x10)
+    end
+
+    it "reads a write-protected disk low on PB4" do
+      allow(disk).to receive(:write_protected?).and_return(true)
+      drive.insert(disk)
+      expect(via.peek(0x1c00) & 0x10).to eq(0)
     end
   end
 
@@ -123,7 +135,8 @@ describe Badline::Drive1541::Mechanism do
 
     # Each step out against the stop slips the phases round, so the bump
     # leaves phase 0 holding track 1. The DOS then formats track 1 and
-    # steps in by two phases for each track after it.
+    # steps in by two phases for each track after it. See "1541 disk
+    # mechanism" in doc/pinned-behaviour.md.
     it "steps in from the stop with the first phase after the bump" do
       step(bump)
       expect([1, 2, 3, 0].map { |phase| step([phase]) && mechanism.half_track }).to eq([3, 4, 5, 6])
@@ -156,6 +169,128 @@ describe Badline::Drive1541::Mechanism do
       port_b(0x01)
       port_b(0x05)
       expect(mechanism.half_track).to eq(37)
+    end
+  end
+
+  describe "the write electronics" do
+    let(:disk) { Badline::Drive1541::Disk.new }
+    let(:gcr) { Badline::Drive1541::GCR }
+
+    # Write mode as the DOS sets it: port A all outputs, CB2 low.
+    def write_mode
+      via.poke(0x1c03, 0xff)
+      via.poke(0x1c0c, 0xce)
+    end
+
+    def read_mode
+      via.poke(0x1c0c, 0xee)
+      via.poke(0x1c03, 0x00)
+    end
+
+    # Each byte goes to port A after a BYTE READY, as the DOS's write loop
+    # does, and loads at the next one. One more byte time writes the last.
+    def write_bytes(bytes)
+      bytes.each do |byte|
+        via.poke(0x1c01, byte)
+        next_byte
+      end
+      next_byte
+    end
+
+    def bits(track) = track.bytes.pack("C*").unpack1("B*")
+
+    # A sector as the DOS writes it: SYNC, header, gap, SYNC and data.
+    def sector(track, sector, data)
+      disk_class = Badline::Drive1541::Disk
+      ([0xff] * 5) + gcr.encode(disk_class.header(track, sector, [0x41, 0x42], nil)) + ([0x55] * 9) +
+        ([0xff] * 5) + gcr.encode(disk_class.data_block(data, nil))
+    end
+
+    before do
+      drive.insert(disk)
+      spin(2)
+      write_mode
+    end
+
+    it "writes each byte, most significant bit first, onto the track" do
+      write_bytes([0x12, 0x34, 0x56, 0x78])
+      expect(bits(disk.track(36))).to include("00010010001101000101011001111000")
+    end
+
+    it "gives a half track without data a blank track to write on" do
+      write_bytes([0x5a])
+      expect([disk.track(36).length, disk.written?]).to eq([7142, true])
+    end
+
+    it "still signals BYTE READY for each byte" do
+      next_byte
+      expect(Array.new(10) { next_byte }).to all(eq(28))
+    end
+
+    # The head starts writing wherever it is, so the sector lands at a bit
+    # offset the stored bytes don't line up with.
+    it "writes a sector that reads back at whatever bit it started on" do
+      data = Array.new(256) { |i| (i * 13) & 0xff }
+      run(37)
+      write_bytes(sector(18, 5, data))
+      found = Badline::Drive1541::SectorReader.read(disk.track(36).bytes, 18)[5]
+      expect(found.data[1, 256]).to eq(data)
+    end
+
+    it "reads back what it wrote once in read mode" do
+      write_bytes(([0xff] * 5) + [0x52, 0x94, 0xa5, 0x29, 0x4a])
+      read_mode
+      drive.cycle! until mechanism.sync?
+      drive.cycle! while mechanism.sync?
+      expect(Array.new(5) { next_byte && via.peek(0x1c01) }).to eq([0x52, 0x94, 0xa5, 0x29, 0x4a])
+    end
+
+    context "with the disk write-protected" do
+      let(:disk) do
+        Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
+      end
+
+      before do
+        allow(disk).to receive(:write_protected?).and_return(true)
+        drive.insert(disk)
+      end
+
+      # The writeprotect testprog writes to track 18 without asking the
+      # DOS, and expects the disk to stay as it was.
+      it "keeps the write gate shut" do
+        before = disk.track(36).bytes.dup
+        write_bytes([0x00] * 100)
+        expect([disk.track(36).bytes == before, disk.written?]).to eq([true, false])
+      end
+    end
+
+    describe "writing back" do
+      before { allow(disk).to receive(:flush) }
+
+      it "flushes the disk when the motor stops" do
+        write_bytes([0x5a])
+        port_b(0x00)
+        expect(disk).to have_received(:flush)
+      end
+
+      it "flushes the disk when it comes out" do
+        write_bytes([0x5a])
+        drive.insert(nil)
+        expect(disk).to have_received(:flush)
+      end
+
+      it "warns and carries on when the image won't take the write" do
+        allow(disk).to receive(:flush).and_raise(Badline::Storage::WriteError, "WRITE PROTECT ON")
+        write_bytes([0x5a])
+        expect { port_b(0x00) }.to output(/couldn't write the disk back/).to_stderr
+      end
+
+      it "leaves a disk nothing was written to alone" do
+        read_mode
+        run(1000)
+        drive.insert(nil)
+        expect(disk).not_to have_received(:flush)
+      end
     end
   end
 
