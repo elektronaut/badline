@@ -87,7 +87,7 @@ module Badline
       @phase = 0
       @cycles = 0
       @serial_bus = nil
-      init_idle
+      init_idle(debug)
       # CA1 powers up at the level of a released ATN, without an edge.
       @via1.ca1 = false
       @via1.reset!

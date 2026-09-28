@@ -67,6 +67,16 @@ describe Badline::Drive1541::Idle do
     expect(asleep_for(drive_running(pure_loop, idle_skip: false), 2_000)).to eq(0)
   end
 
+  it "stays awake while the CPU has a trap to run" do
+    drive = drive_running(pure_loop)
+    drive.cpu.install_trap(0xec00) { nil }
+    expect(asleep_for(drive, 2_000)).to eq(0)
+  end
+
+  it "runs every cycle for a CPU that logs each instruction" do
+    expect(Badline::Drive1541.new(debug: true).idle_skip).to be(false)
+  end
+
   it "wakes when ATN moves" do
     drive = drive_running(pure_loop)
     asleep_for(drive, 100)

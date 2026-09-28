@@ -22,7 +22,7 @@ module Badline
     # - wrote nothing that reaches outside the drive: not VIA 1, whose port
     #   B drives the serial bus, and not the motor on
     # - ran while no counter could set a flag (VIA#quiet_cycles), with the
-    #   motor off and no interrupt pulled.
+    #   motor off, no interrupt pulled and no trap on the CPU.
     #
     # Such a pass runs the same way again from where it ended, for as
     # long as ATN holds still and no counter sets a flag, so the drive
@@ -44,7 +44,8 @@ module Badline
       # Where the DOS 2.6 idle loop starts over.
       IDLE_LOOP = 0xebff
 
-      # Whether the drive may sleep through its idle loop. On by default.
+      # Whether the drive may sleep through its idle loop. On by default,
+      # but for a drive whose CPU logs each instruction.
       attr_reader :idle_skip
 
       def idle_skip=(on)
@@ -74,8 +75,8 @@ module Badline
 
       private
 
-      def init_idle
-        @idle_skip = true
+      def init_idle(debug)
+        @idle_skip = !debug
         @asleep = false
         @recording = false
         @owed = 0
@@ -99,7 +100,7 @@ module Badline
       end
 
       def start_recording
-        return if @mechanism.motor_on? || @via1.irq? || @via2.irq?
+        return if @mechanism.motor_on? || @via1.irq? || @via2.irq? || @cpu.trapped?
 
         @recording = true
         @record_state = idle_state

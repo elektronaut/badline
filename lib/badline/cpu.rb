@@ -117,6 +117,8 @@ module Badline
     # Whether the next cycle fetches an opcode.
     def boundary? = @index.zero? && @plan.equal?(FETCH_PLAN)
 
+    def trapped? = !@traps.nil?
+
     # Everything the CPU holds but its cycle and instruction counts: the
     # registers, the interrupt lines and pipeline, and what the last
     # instruction left in its working registers. Drive1541::Idle compares
