@@ -373,6 +373,21 @@ RSpec.describe Badline::Computer do
       end
     end
 
+    context "with a true drive on device 8" do
+      let(:disk) { instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0]) }
+
+      before do
+        computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub))
+        computer.mount(disk)
+        run_load
+        return_to_caller
+      end
+
+      it "still loads through the LOAD trap" do
+        expect(ram.peek(0xc000)).to eq(0x01)
+      end
+    end
+
     context "when the disk changes" do
       let(:second_disk) do
         instance_double(Badline::Storage::D64Image, first_block: nil, read_file_at: [0x00, 0xc0, 0x02])
@@ -583,6 +598,15 @@ RSpec.describe Badline::Computer do
       computer.attach_drive1541(drive)
       30_789.times { computer.cycle! } # 1/32 of a second
       expect(drive.cycles).to eq(31_250)
+    end
+
+    it "leaves CIA 2's port A off the serial bus until a drive is attached" do
+      expect(computer.cia2.peripheral).to be_nil
+    end
+
+    it "puts the drive on the serial bus behind CIA 2's port A" do
+      computer.attach_drive1541(drive)
+      expect([drive.serial_bus, computer.cia2.peripheral]).to eq([computer.iec_bus, computer.iec_bus])
     end
 
     it "resets the drive with the C64" do

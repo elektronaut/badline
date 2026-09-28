@@ -53,7 +53,9 @@ module Badline
       @init_handlers = []
       @pending_keys = nil
       @drive = nil
+      @serial_trap = nil
       @drive1541 = nil
+      @iec_bus = nil
     end
 
     INIT_THRESHOLD = 2_500_000
@@ -148,16 +150,29 @@ module Badline
       @drive = KernalTrap::Drive.new(storage)
       load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-      KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive).install
+      @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
       save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end
 
     # Plugs in a Drive1541, which then runs alongside the C64 on its own
-    # clock. Nothing wires it to the serial bus yet.
+    # clock and talks to it over the serial bus. The serial traps stop
+    # answering the drive's device number, so the KERNAL's TALK, LISTEN and
+    # byte transfers reach the drive. The LOAD and SAVE traps stay, and
+    # still serve a mounted image.
     def attach_drive1541(drive)
+      @iec_bus.detach(@drive1541) if @iec_bus && @drive1541
       drive.host_clock_hz = region.clock_hz
       @drive1541 = drive
+      drive.connect(iec_bus)
+      @serial_trap&.device = serial_trap_device
+    end
+
+    # The serial bus. CIA 2's port A joins it the first time it's asked
+    # for, which plugging in a drive does. Until then port A's serial
+    # inputs float high.
+    def iec_bus
+      @iec_bus ||= IECBus.new(host: @cia2).tap { |bus| @cia2.peripheral = bus }
     end
 
     def capture_output
@@ -179,6 +194,12 @@ module Badline
     end
 
     private
+
+    # The device number the serial traps answer: device 8, unless a true
+    # drive is on the bus as device 8.
+    def serial_trap_device
+      @drive1541&.device == KernalTrap::Routine::DEVICE ? nil : KernalTrap::Routine::DEVICE
+    end
 
     # The NMI line is wired-OR between CIA 2, the cartridge and the RESTORE
     # key, and the CPU takes an interrupt on its falling edge.
