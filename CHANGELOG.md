@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.2](https://github.com/elektronaut/badline/compare/v0.4.1...v0.4.2) (2026-09-28)
+
+### Features
+
+* print setup details, frame reports and badline-ruby's closing CPU state only with --verbose ([0e3f940](https://github.com/elektronaut/badline/commit/0e3f940996d38c9b597d68f81c64e775a09b98e8)), closes [#336](https://github.com/elektronaut/badline/issues/336)
+
+### Bug Fixes
+
+* read HVSC song lengths in the native badline ([cef76f2](https://github.com/elektronaut/badline/commit/cef76f22f8fdd435776d07464e656732bb3aab94))
+
 ## [0.4.1](https://github.com/elektronaut/badline/compare/v0.4.0...v0.4.1) (2026-09-28)
 
 
