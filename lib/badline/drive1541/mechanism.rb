@@ -27,13 +27,17 @@ module Badline
     #
     # The stepper moves the head a half track each time the phase steps
     # by one, inwards for +1 and outwards for -1. Each half track has a
-    # phase of its own, the low two bits of its number, so the head sits on
-    # a whole track when phase 0 or 2 holds it. The stepper's coils are
-    # powered only while PB2 runs the motor, as VICE reads the 1541's
-    # schematic, so a phase set with the motor off moves nothing until the
-    # motor comes on and it pulls the head. Tracks run from half track
-    # 2 (track 1), where the head stops against the end of its rail, to
-    # Disk::MAX_HALF_TRACK.
+    # phase of its own, from power-on the low two bits of its number, so
+    # the head sits on a whole track when phase 0 or 2 holds it. The
+    # stepper's coils are powered only while PB2 runs the motor, as VICE
+    # reads the 1541's schematic, so a phase set with the motor off moves
+    # nothing until the motor comes on and it pulls the head. Tracks run
+    # from half track 2 (track 1), where the head stops against the end of
+    # its rail, to Disk::MAX_HALF_TRACK. A step out against the stop slips:
+    # the head stays on track 1 and the phase that tried to pull it out
+    # becomes track 1's, so the DOS's bump leaves the head on track 1 in
+    # line with the phase it ends on, and its first step in reaches the
+    # half track after it.
     class Mechanism
       MOTOR = 0x04
       LED = 0x08
@@ -57,6 +61,7 @@ module Badline
         @drive = drive
         @disk = nil
         @half_track = START_HALF_TRACK
+        @slip = 0
         @motor = false
         @led = false
         @zone = 0
@@ -163,11 +168,13 @@ module Badline
       # track, so the energized phase pulls the head to the neighbouring
       # half track it belongs to. A phase two away pulls both ways, and the
       # head stays. Against the stop at track 1 the head can't follow, and
-      # the next phase back in pulls it off again.
+      # the phases slip round to where the head is.
       def step(phase)
-        move = (phase - @half_track) & 0x03
+        move = (phase - @half_track - @slip) & 0x03
         if move == 1
           seek(@half_track + 1)
+        elsif move == 3 && @half_track == MIN_HALF_TRACK
+          @slip = (phase - MIN_HALF_TRACK) & 0x03
         elsif move == 3
           seek(@half_track - 1)
         end

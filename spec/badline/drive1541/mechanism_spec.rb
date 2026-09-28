@@ -121,13 +121,24 @@ describe Badline::Drive1541::Mechanism do
       expect(mechanism.half_track).to eq(2)
     end
 
-    # Phase 0 pulls both ways from track 1's phase 2, so the head stays
-    # against the stop until phase 3 comes round.
-    it "steps in from the stop once the phase comes round to it" do
+    # Each step out against the stop slips the phases round, so the bump
+    # leaves phase 0 holding track 1. The DOS then formats track 1 and
+    # steps in by two phases for each track after it.
+    it "steps in from the stop with the first phase after the bump" do
       step(bump)
-      held = [1, 2].map { |phase| step([phase]) && mechanism.half_track }
-      moved = [3, 0].map { |phase| step([phase]) && mechanism.half_track }
-      expect(held + moved).to eq([2, 2, 3, 4])
+      expect([1, 2, 3, 0].map { |phase| step([phase]) && mechanism.half_track }).to eq([3, 4, 5, 6])
+    end
+
+    it "holds the head against the stop through the bump" do
+      step(bump.first(40))
+      expect(bump.drop(40).map { |phase| step([phase]) && mechanism.half_track }.uniq).to eq([2])
+    end
+
+    # Phase 2 holds track 18 after the bump, so phase 1 is a step out.
+    it "keeps the slipped phases once off the stop" do
+      step(bump)
+      step(Array.new(34) { |n| (n + 1) & 3 })
+      expect([mechanism.half_track, step([1]) && mechanism.half_track]).to eq([36, 35])
     end
 
     it "stops the head at track 42" do
