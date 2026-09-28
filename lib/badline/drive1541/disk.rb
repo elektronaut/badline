@@ -7,7 +7,7 @@ module Badline
     # A disk as the head sees it: a Track for each half track that holds
     # data, numbered from 2 (track 1) to MAX_HALF_TRACK (track 42), and
     # nothing between them. A .d64 image fills the whole tracks; a .g64
-    # can fill any of them.
+    # can fill any of them, with tracks of any length.
     #
     # The head writes into the tracks' bytes, and a write to a half track
     # without data gives it a blank Track first. A disk made from an image
@@ -41,6 +41,26 @@ module Badline
       # A sector: SYNC, the 10-byte GCR header, the header gap, SYNC and
       # the 325-byte GCR data block. The gap after it takes up the rest.
       SECTOR_LENGTH = SYNC_LENGTH + 10 + HEADER_GAP + SYNC_LENGTH + 325
+
+      # A disk from the image at +path+: a .g64 as its tracks are, and
+      # anything else as a .d64, formatted. `read_only` opens the image
+      # write-protected.
+      def self.open(path, read_only: false)
+        return from_g64(Storage::G64Image.new(path, read_only:)) if File.extname(path).casecmp?(".g64")
+
+        from_d64(Storage::D64Image.new(path, read_only:))
+      end
+
+      # A disk from a G64 image, each half track as the image stores it.
+      # Flushing it writes the tracks back as they are.
+      def self.from_g64(image)
+        disk = new(image)
+        (Mechanism::MIN_HALF_TRACK..MAX_HALF_TRACK).each do |half_track|
+          track = image.track(half_track - Mechanism::MIN_HALF_TRACK)
+          disk.write(half_track, Track.new(*track)) if track
+        end
+        disk
+      end
 
       # A disk formatted from a D64 image, each sector laid out as the DOS
       # formats it, with the disk ID from the header block. A block the
@@ -140,23 +160,52 @@ module Badline
       # Whether any track was written since the last flush.
       def written? = !@written.empty?
 
-      # Reads the sectors of each track written since the last flush back
-      # into the image, all in one write to its host file. The image keeps
-      # its whole tracks only, so a half track, or a track past its last,
-      # stays on the disk alone.
+      # Stores each track written since the last flush in the image, all
+      # in one write to its host file. A G64 image takes the tracks as they
+      # are. A D64 image takes the sectors read back off them, and keeps
+      # whole tracks only, so a half track, or a track past its last, stays
+      # on the disk alone. A sector that no longer reads back keeps its old
+      # data, and the flush warns once, naming the tracks that lost one.
       def flush
+        return flush_tracks if @image.respond_to?(:store_tracks)
+
         tracks = @written.keys.select { |half| half.even? && (1..@image&.track_count.to_i).cover?(half / 2) }
         @written.clear
         return if tracks.empty?
 
         sectors = tracks.to_h { |half| [half / 2, SectorReader.read(@tracks[half].bytes, half / 2)] }
         id = disk_id(sectors)
+        warn_lost(sectors)
         @image.store_blocks(sectors.flat_map do |track, found|
           Array.new(@image.sectors_in(track)) { |sector| stored_block(track, sector, found[sector], id) }
         end)
       end
 
       private
+
+      def flush_tracks
+        tracks = @written.keys.sort.to_h do |half|
+          [half - Mechanism::MIN_HALF_TRACK, [@tracks[half].bytes, @tracks[half].zone]]
+        end
+        @written.clear
+        @image.store_tracks(tracks) unless tracks.empty?
+      end
+
+      def warn_lost(sectors)
+        lost = sectors.keys.select do |track|
+          Array.new(@image.sectors_in(track)) { |sector| lost?(track, sector, sectors[track][sector]) }.any?
+        end
+        return if lost.empty?
+
+        warn "1541: tracks written that no longer read back whole: #{lost.join(', ')}. The .d64 keeps the old " \
+             "data of the sectors lost, and a .g64 image keeps tracks as the drive writes them."
+      end
+
+      # A sector the head no longer finds, which the image doesn't already
+      # hold as unreadable.
+      def lost?(track, sector, found)
+        found.nil? && ![20, 21].include?(@image.block_error(track, sector))
+      end
 
       # The disk ID the headers must carry, from the header block's $A2 and
       # $A3 as Disk.from_d64 takes it: as just read back, or as the image

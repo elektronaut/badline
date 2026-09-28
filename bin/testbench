@@ -37,10 +37,10 @@
 # --drive runs the testlist's drive/ rows instead, and the rows of the
 # subtrees above that mount a .d64. Each runs on a machine booted with a
 # true 1541 on the serial bus, which needs the DOS ROM (dos1541.rom in the
-# ROM path). The row's mountd64 image goes in the drive, and its program
-# loads as the other rows' do, but nothing is mounted as device 8 through
-# the LOAD trap, so every disk access goes through the drive. The Spinel
-# build has no drive, so --drive doesn't take --engine.
+# ROM path). The row's mountd64 or mountg64 image goes in the drive, and
+# its program loads as the other rows' do, but nothing is mounted as
+# device 8 through the LOAD trap, so every disk access goes through the
+# drive. The Spinel build has no drive, so --drive doesn't take --engine.
 #
 # --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
 # Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
@@ -115,16 +115,16 @@ module Testbench
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # G64 and P64 images and memory expansions other than GEO-RAM, the +60K
-  # and the +256K are not emulated. A mountcrt row runs only under --carts,
-  # a drive row or a mountd64 one only under --drive, a cia-new row, which
-  # asks for the 6526A, only under --cia-new, a vicii-new row, which asks
-  # for the 8565, only under --vicii-new, and a row that asks for an
-  # expansion in EXPANSIONS only under --expansions.
-  SKIP_OPTIONS = /ntsc|drean|mountg64|mountp64|
+  # P64 images and memory expansions other than GEO-RAM, the +60K and the
+  # +256K are not emulated. A mountcrt row runs only under --carts, a drive
+  # row or one that mounts a .d64 or a .g64 only under --drive, a cia-new
+  # row, which asks for the 6526A, only under --cia-new, a vicii-new row,
+  # which asks for the 8565, only under --vicii-new, and a row that asks
+  # for an expansion in EXPANSIONS only under --expansions.
+  SKIP_OPTIONS = /ntsc|drean|mountp64|
                   reu|isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
-  DISK_OPTION = "mountd64:"
+  DISK_OPTION = /\Amount[dg]64:/
 
   # Rows that can't apply to badline. Both need a true 1541: they upload
   # code to the drive with M-W, start it with M-E and handshake with it
@@ -329,7 +329,7 @@ module Testbench
     end
 
     def disk(options)
-      options.find { |option| option.start_with?(DISK_OPTION) }&.delete_prefix(DISK_OPTION)
+      options.find { |option| option.match?(DISK_OPTION) }&.sub(DISK_OPTION, "")
     end
 
     def cartridge(options)

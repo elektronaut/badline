@@ -73,8 +73,11 @@ module Badline
       SYNC_BITS = 10
 
       # What the head reads with no disk in, or off the tracks a disk has:
-      # no flux, so only 0 bits and no SYNC.
-      BLANK = Array.new(Disk::TRACK_LENGTHS[0], 0).freeze
+      # no flux, so only 0 bits and no SYNC, for a turn at the bit rate of
+      # each zone. Without flux there's nothing to set the length of a
+      # turn but the rate the bits are clocked at, so a turn over blank
+      # disk takes 200 ms, as it does over a track, whatever the zone.
+      BLANKS = Disk::TRACK_LENGTHS.map { |length| Array.new(length, 0).freeze }.freeze
 
       attr_reader :disk, :half_track, :zone
 
@@ -93,7 +96,7 @@ module Badline
         @bits = 0
         @sync = false
         @byte_ready = false
-        @bytes = BLANK
+        @bytes = BLANKS[0]
         @index = 0
         @mask = 0x80
         @writing = false
@@ -109,6 +112,13 @@ module Badline
       def sync? = @sync
 
       def writing? = @writing
+
+      # What port B and CB2 can change with the motor off: the motor, the
+      # LED, the zone, the stepper, write mode, and where in the turn the
+      # head is, which a zone change moves over a blank track. The rest
+      # moves only while the motor turns, or as a disk goes in (see
+      # Drive1541::Idle).
+      def idle_state = [@motor, @led, @zone, @half_track, @slip, @disk, @index, @writing, @sync]
 
       # Puts a Disk in, or takes it out with nil, flushing the disk that
       # was in. The head goes on from the same point in the turn.
@@ -144,6 +154,7 @@ module Badline
         if zone != @zone
           @zone = zone
           @bit_ticks = bit_ticks(zone)
+          load_track if @bytes.frozen?
         end
         step(lines & 0x03) if @motor
       end
@@ -284,7 +295,7 @@ module Badline
       # last one, since tracks differ in length.
       def load_track
         track = @disk&.track(@half_track)
-        bytes = track ? track.bytes : BLANK
+        bytes = track ? track.bytes : BLANKS[@zone]
         @index = @index * bytes.length / @bytes.length
         @bytes = bytes
         @track_written = false

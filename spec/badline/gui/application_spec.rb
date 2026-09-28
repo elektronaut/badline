@@ -235,6 +235,13 @@ describe Badline::GUI::Application do
       run_with(tabs: 0, button: 1)
       expect(window).to have_received(:close)
     end
+
+    it "stores what the 1541 wrote in its disk's image" do
+      drive = instance_double(Badline::Drive1541, flush: nil)
+      allow(computer).to receive(:drive1541).and_return(drive)
+      run_with(tabs: 0, button: 1)
+      expect(drive).to have_received(:flush)
+    end
   end
 
   describe "a mouse button in 1351 mode" do

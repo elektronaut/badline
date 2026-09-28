@@ -64,6 +64,7 @@ module Badline
           @stream.pace(@frame_seconds) if @stream && @paced
         end
       ensure
+        @computer.drive1541&.flush
         @stream&.close
         @gamepads.close
         @window.close

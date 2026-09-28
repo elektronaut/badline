@@ -22,11 +22,12 @@ module Badline
       # a disk image write-protected, so nothing the program does writes to
       # its file. Media they don't apply to ignore them.
       #
-      # With a true drive on device 8 (TrueDrive.plug), a .d64 goes into it
-      # instead of the KERNAL traps, and the autostart loads through it.
+      # A .g64 plugs in a true drive as device 8 (TrueDrive), and with one
+      # there, a .d64 goes into it instead of the KERNAL traps too. The
+      # autostart then loads through it.
       def attach(computer, path, autostart: true, song: nil, **options)
         if TrueDrive.takes?(computer, path)
-          attach_true_drive(computer, path, autostart:)
+          attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
         elsif File.directory?(path)
           computer.mount(Storage::HostDirectory.new(path))
           "Mounted #{path} as device 8"
@@ -46,10 +47,14 @@ module Badline
       # Swaps the disk in device 8 for a disk image or a host directory,
       # while the machine runs, without loading anything. The drive keeps
       # its RAM and its status. `read_only` inserts a disk image
-      # write-protected. With a true drive on device 8, the disk goes into
-      # that.
+      # write-protected.
+      #
+      # A .g64 goes in a true 1541, which is plugged in as device 8 when
+      # there's none yet (TrueDrive). Once a true 1541 is device 8, a .d64
+      # goes in its drive as well, and other disks, which a 1541 can't
+      # read, raise TrueDrive::Error, an ArgumentError.
       def insert_disk(computer, path, read_only: false)
-        return TrueDrive.insert(computer, path) if TrueDrive.drive(computer)
+        return TrueDrive.insert(computer, path, read_only:) if TrueDrive.takes?(computer, path)
 
         raise ArgumentError, "#{path} is not a disk image or a directory" unless disk?(path)
 
@@ -108,8 +113,8 @@ module Badline
         "Inserted #{path} in the datasette"
       end
 
-      def attach_true_drive(computer, path, autostart:)
-        message = TrueDrive.insert(computer, path)
+      def attach_true_drive(computer, path, disk, autostart:)
+        message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
         computer.type_text(AUTOSTART) if autostart
         message
       end

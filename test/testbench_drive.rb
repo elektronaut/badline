@@ -18,10 +18,10 @@ module Testbench
     computer
   end
 
-  # Puts a .d64 in the true drive, formatted as the DOS would have. The
-  # drive writes back to the image at +path+.
+  # Puts a .d64 in the true drive, formatted as the DOS would have, or a
+  # .g64 as its tracks are. The drive writes back to the image at +path+.
   def self.insert_disk(computer, path)
-    computer.drive1541.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+    computer.drive1541.insert(Badline::Drive1541::Disk.open(path))
   end
 
   def self.dos_rom? = File.exist?(File.join(Badline.rom_path, DOS_ROM))

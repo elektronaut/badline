@@ -207,8 +207,15 @@ class TestTestbenchDrive < Minitest::Test
     assert_nil parse("../SID/foo/,t.prg,exitcode,1000,mountd64:#{@disk}")
   end
 
+  def test_keeps_the_g64_a_row_mounts
+    g64 = File.join(@dir, "skew.g64")
+    FileUtils.touch(g64)
+    test = parse("../drive/skew/,t.prg,exitcode,1000,mountg64:#{g64}")
+
+    assert_equal [:drive, g64], [test.drive_kind, test.disk_path]
+  end
+
   def test_drops_the_image_formats_the_drive_cannot_read
-    assert_nil parse("../drive/skew/,t.prg,exitcode,1000,mountg64:skew.g64")
     assert_nil parse("../drive/skew/,t.prg,exitcode,1000,mountp64:skew.p64")
   end
 

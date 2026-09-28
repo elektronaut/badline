@@ -59,7 +59,7 @@ module Badline
       low |= DATA if host.anybits?(HOST_DATA_OUT)
       i = 0
       while i < @drives.length
-        drive = @drives[i].via1.port_b_output
+        drive = @drives[i].serial_output
         low |= CLK if drive.anybits?(DRIVE_CLK_OUT)
         low |= DATA if drive.anybits?(DRIVE_DATA_OUT) || atn != drive.anybits?(DRIVE_ATNA)
         i += 1

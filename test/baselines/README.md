@@ -79,14 +79,17 @@ Recorded output of the headless hardware suites, one file per suite:
   tests.
 - `testbench-drive.txt` — the same runner with `--drive`, over the
   testlist's `drive/` rows, each run on a machine with a true 1541 on the
-  serial bus and the row's `mountd64` image in it. Nothing is mounted
-  through the LOAD trap, so every disk access goes through the drive's
-  DOS, which needs `dos1541.rom` in the ROM path. The drive writes back
-  to the image, so each row gets a scratch copy of it, and
+  serial bus and the row's `mountd64` or `mountg64` image in it. Nothing
+  is mounted through the LOAD trap, so every disk access goes through
+  the drive's DOS, which needs `dos1541.rom` in the ROM path. The drive
+  writes back to the image, so each row gets a scratch copy of it, and
   `drive/format` formats its copy rather than the testprogs' own.
   `drive/writeprotect` is an `interactive` row, which the runner
   doesn't run. Rows of the other included subtrees that mount a `.d64`
-  would run here too, and rows that mount a `.g64` or `.p64` drop out. `drive/1541-testsuite`'s two rows,
+  would run here too, and rows that mount a `.p64` drop out. The
+  `rpm` and `scanner` programs run once on a `.d64` and once on a
+  `.g64` under the same id, so the `.g64` row's key is the id with
+  `#2`. `drive/1541-testsuite`'s two rows,
   at about twelve hours each, run only under `--1541-testsuite` and have
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   The Spinel build has no drive, so `rake spinel:testbench` leaves this
@@ -357,6 +360,16 @@ explain.
   the head two tracks away from the header it searches for. A real head
   can't follow steps that fast. Passing it takes a stepper that moves the
   head over time.
+- `drive/skew/skew1.prg` (`testbench-drive`, exit `$ff`) prints
+  `kernal format, tracks are aligned`. It expects a `.d64` to read with
+  the track-to-track skew a DOS format leaves, and the `.d64` layout
+  starts sector 0 of every track at the same angle. It passed while the
+  head drifted round over the blank half tracks it stepped across, which
+  also kept `skew2` from reading its `.g64` as aligned. Turning each
+  track by the skew `N:` leaves passes it, but costs the three scanner
+  error-map rows; [1541 disk
+  mechanism](../../doc/pinned-behaviour.md#1541-disk-mechanism) has the
+  numbers.
 - `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
   the testlist's second row for the program, the one that mounts
   `test.d64`. It runs with the true drive and `test.d64` in it, but the

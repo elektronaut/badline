@@ -143,9 +143,9 @@ render a `.sid` tune without it, as described under
 - `--read-only` mounts a disk image write-protected, leaving its file
   unchanged.
 - `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
-  traps, as in `exe/badline-ruby`: a `.d64` goes into it and autostarts
-  through its DOS, and its LED lights in the bottom right corner of the
-  border.
+  traps, as in `exe/badline-ruby`: a `.d64` or `.g64` goes into it and
+  autostarts through its DOS, and its LED lights in the bottom right
+  corner of the border. A `.g64` plugs one in without it.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
@@ -210,8 +210,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
-The window's options, `--no-sound`, `--no-vsync`, `--verbose` and the
-testing ones included, are refused with them.
+The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
+`--verbose` and the testing ones included, are refused with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the
