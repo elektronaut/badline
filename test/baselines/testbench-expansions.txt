@@ -1,4 +1,7 @@
 GEO-RAM/georam64.prg	PASS
 GEO-RAM/georamtest-auto.prg	PASS
 GEO-RAM/newtest-auto.prg	PASS
+plus60k/test.prg	PASS
+plus60k/checkregister.prg	PASS
+plus256k/test.prg	PASS
 memory-expansions/c64-georam-emd.prg	PASS
