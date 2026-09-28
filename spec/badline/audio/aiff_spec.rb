@@ -42,6 +42,14 @@ describe Badline::Audio::AIFF do
     end
   end
 
+  context "with a rate past 32 bits" do
+    let(:rate) { (2**33) + 1 }
+
+    it "keeps the mantissa's low bits" do
+      expect(bytes[28, 10].unpack1("H*")).to eq("40208000000040000000")
+    end
+  end
+
   it "patches the FORM size once the stream ends" do
     expect(bytes[4, 4].unpack1("N")).to eq(52)
   end

@@ -5,12 +5,13 @@
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
-#                             [--cia-new] [--vicii-new] [--shards N]
-#                             [--list]
+#                             [--cia-new] [--vicii-new] [--expansions]
+#                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
 # Runs the non-interactive PAL tests from c64-testlist.in that cover
-# hardware badline models: VICII, CIA, interrupts and CPU. Each process
+# hardware badline models: VICII, CIA, interrupts and CPU, and the
+# machine-level rows of C64 and general outside the Lorenz suite. Each process
 # boots a machine once, and each test runs in a child forked from it
 # (test/forked_boot.rb) that mounts the test's directory as device 8,
 # injects the .prg and types RUN. A child that crashes or hangs gets a
@@ -53,10 +54,18 @@
 # the reference VICE keeps for the 8565 when there is one. Every other row
 # runs on the 6569.
 #
+# --expansions runs the rows that ask for a memory expansion badline
+# emulates instead, from any subtree: geo512k, a 512K GEO-RAM, and
+# plus60k and plus256k, the +60K and +256K RAM expansions. Each boots with
+# the expansion fitted, as VICE starts it, then loads and runs its program
+# like any other row.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
-# `rake regression:testbench-cia` scopes to CIA/, and so on. Filters are a
+# `rake regression:testbench-cia` scopes to CIA/, and so on. A scope can
+# name several prefixes, separated by commas, as C64/,general/ does for
+# testbench-general. Filters are a
 # union matched inside that scope, so a filtered run stays in one
 # baseline's rows; a filter that matches nothing is an error rather than
 # an empty run.
@@ -83,6 +92,7 @@ require "etc"
 require "tmpdir"
 require_relative "../test/forked_boot"
 require_relative "../test/testbench_machine"
+require_relative "../test/testbench_drive"
 require_relative "../test/testbench_engine"
 
 module Testbench
@@ -95,32 +105,42 @@ module Testbench
   # The testlist subtrees for hardware badline models. CPU/decimalmode is
   # left out of CPU: 41 exhaustive ADC/SBC sweeps that SingleStepTests
   # already covers per-opcode against bus-level reference traces, for a
-  # worst case near nine hours.
-  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU)/}
-  EXCLUDED_DIRS = %r{\A\.\./CPU/decimalmode/}
+  # worst case near nine hours. The Lorenz suite in general/ runs as
+  # bin/lorenz's chain instead.
+  INCLUDED_DIRS = %r{\A\.\./(VICII|CIA|interrupts|CPU|C64|general)/}
+  EXCLUDED_DIRS = %r{\A\.\./(CPU/decimalmode|general/Lorenz-2\.15)/}
 
   # The Lorenz suite's 6526 half runs as bin/lorenz's chain off
   # Lorenz.d81, but nothing chains the 6526A half, so its cia-new rows run
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # The true drive's rows, which run only under --drive, except for
-  # drive/1541-testsuite's, which run only under --1541-testsuite.
-  DRIVE_DIR = %r{\A\.\./drive/(1541-testsuite\z)?}
-
-  # P64 images and memory expansions are not emulated. A mountcrt row
-  # runs only under --carts, a drive row or one that mounts a .d64 or a
-  # .g64 only under --drive, a cia-new row, which asks for the 6526A, only
-  # under --cia-new, and a vicii-new row, which asks for the 8565, only
-  # under --vicii-new.
+  # P64 images and memory expansions other than GEO-RAM, the +60K and the
+  # +256K are not emulated. A mountcrt row runs only under --carts, a drive
+  # row or one that mounts a .d64 or a .g64 only under --drive, a cia-new
+  # row, which asks for the 6526A, only under --cia-new, a vicii-new row,
+  # which asks for the 8565, only under --vicii-new, and a row that asks
+  # for an expansion in EXPANSIONS only under --expansions.
   SKIP_OPTIONS = /ntsc|drean|mountp64|
-                  reu|geo512k|isepic|dqbb|plus60k|plus256k|ramcart/x
+                  reu|isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
   DISK_OPTION = /\Amount[dg]64:/
-  DOS_ROM = "dos1541.rom"
+
+  # Rows that can't apply to badline. Both need a true 1541: they upload
+  # code to the drive with M-W, start it with M-E and handshake with it
+  # over the IEC lines, and badline's KERNAL traps stand in for the drive.
+  # test-fuxxored runs ef2-inst1's drive check before it decodes the
+  # program.
+  NOT_APPLICABLE = %w[
+    general/fuxxortest/test-fuxxored.prg
+    general/fuxxortest/ef2-inst1.prg
+  ].freeze
   CIA_NEW_OPTION = "cia-new"
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
+
+  # The memory expansions a row can ask for, by testlist option.
+  EXPANSIONS = %w[geo512k plus60k plus256k].freeze
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -128,23 +148,6 @@ module Testbench
     0xB8C76F, 0x6F4F25, 0x433900, 0x9A6759, 0x444444, 0x6C6C6C, 0x9AD284,
     0x6C5EB5, 0x959595
   ].freeze
-
-  # A machine booted as Testbench.machine boots one, with a true 1541 on
-  # the serial bus that boots alongside it.
-  def self.drive_machine(cia_model, vic_model)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
-    computer.attach_drive1541(Badline::Drive1541.new)
-    Badline::Computer::INIT_THRESHOLD.times { computer.cycle! }
-    computer
-  end
-
-  # Puts a .d64 in the true drive, formatted as the DOS would have, or a
-  # .g64 as its tracks are. The drive writes back to the image at +path+.
-  def self.insert_disk(computer, path)
-    computer.drive1541.insert(Badline::Drive1541::Disk.open(path))
-  end
-
-  def self.dos_rom? = File.exist?(File.join(Badline.rom_path, DOS_ROM))
 
   # Removes "--name value" or "--name=value" from argv, returning the value.
   def self.take_option(argv, name)
@@ -165,21 +168,6 @@ module Testbench
       "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
     end
 
-    # Whether the row runs with a true drive: a drive/ row, or one that
-    # mounts a disk image.
-    def drive?
-      !disk.nil? || dir.match?(DRIVE_DIR)
-    end
-
-    # The rows a run lists: :carts under --carts, :drive under --drive,
-    # :drive_testsuite under --1541-testsuite and :plain otherwise.
-    def kind
-      return :carts if cartridge
-      return :plain unless drive?
-
-      dir.match(DRIVE_DIR)&.[](1) ? :drive_testsuite : :drive
-    end
-
     # The CIA the row asks for: the 6526A for cia-new, else the 6526.
     def cia_model
       options.include?(CIA_NEW_OPTION) ? :mos6526a : :mos6526
@@ -192,6 +180,14 @@ module Testbench
 
     # The CIA and the VIC-II, the pair a suite's machine is built from.
     def models = [cia_model, vic_model]
+
+    # The testlist option naming the memory expansion the row asks for, or
+    # nil.
+    def expansion
+      options.find { |option| EXPANSIONS.include?(option) }
+    end
+
+    include DriveRow
 
     def name
       return cartridge if prg.empty?
@@ -239,10 +235,6 @@ module Testbench
       File.join(dir_abs, cartridge)
     end
 
-    def disk_path
-      File.expand_path(disk, dir_abs)
-    end
-
     # The testlist budget, plus the boot for a test that loads a program.
     def budget
       prg.empty? ? timeout : timeout + BOOT_ALLOWANCE
@@ -257,17 +249,27 @@ module Testbench
     end
   end
 
+  # Which rows a run takes: the mountcrt rows or the others, the rows that
+  # ask for the models, the CIA and the VIC-II, the rows that ask for a
+  # memory expansion or the others, and the rows that ask for the true
+  # drive (see TestCase#drive_kind) or the others.
+  Rows = Data.define(:carts, :models, :expansions, :drive) do
+    def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false, drive: nil)
+
+    def include?(test)
+      test.cartridge.nil? != carts && test.models == models && test.expansion.nil? != expansions &&
+        test.drive_kind == drive
+    end
+  end
+
   module Testlist
     module_function
 
     # Filters are id substrings, matched as a union; no filter runs
-    # everything inside the scope. Only the rows that ask for the models,
-    # the CIA and the VIC-II, are listed.
-    def tests(filters, scope: nil, exclude: nil, kind: :plain, models: DEFAULT_MODELS)
+    # everything inside the scope.
+    def tests(filters, scope: nil, exclude: nil, rows: Rows.plain)
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
-        .select do |test|
-          test.kind == kind && test.models == models && selected?(test, filters, scope, exclude)
-        end
+        .select { |test| rows.include?(test) && selected?(test, filters, scope, exclude) }
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
@@ -279,10 +281,15 @@ module Testbench
     end
 
     def selected?(test, filters, scope, exclude)
-      return false if scope && !test.id.include?(scope)
+      return false unless in_scope?(test, scope)
       return false if exclude && test.id.include?(exclude)
 
       filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+    end
+
+    # A scope names one prefix, or several separated by commas.
+    def in_scope?(test, scope)
+      scope.nil? || scope.split(",").any? { |prefix| test.id.include?(prefix) }
     end
 
     # Filters that picked up no test at all, which a typo makes silent.
@@ -299,6 +306,8 @@ module Testbench
       return if options.any?(SKIP_OPTIONS)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, cartridge(options))
+      return if NOT_APPLICABLE.include?(test.id)
+
       test.disk = disk(options)
       test if runnable?(test, dir)
     end
@@ -307,6 +316,7 @@ module Testbench
     # ones, while its disk image is there.
     def runnable?(test, dir)
       return runnable_cartridge?(test) && test.disk.nil? if test.cartridge
+      return File.exist?(File.join(test.dir_abs, test.prg)) if test.expansion
       return false unless dir.match?(DRIVE_DIR) || included?(dir, test.cia_model)
 
       test.disk.nil? || File.exist?(test.disk_path)
@@ -318,12 +328,12 @@ module Testbench
       dir.match?(INCLUDED_DIRS) && !dir.match?(EXCLUDED_DIRS)
     end
 
-    def cartridge(options)
-      options.find { |option| option.start_with?(CARTRIDGE_OPTION) }&.delete_prefix(CARTRIDGE_OPTION)
-    end
-
     def disk(options)
       options.find { |option| option.match?(DISK_OPTION) }&.sub(DISK_OPTION, "")
+    end
+
+    def cartridge(options)
+      options.find { |option| option.start_with?(CARTRIDGE_OPTION) }&.delete_prefix(CARTRIDGE_OPTION)
     end
 
     def runnable_cartridge?(test)
@@ -629,15 +639,15 @@ module Testbench
     # A cartridge test starts from power-on, so its machine is never booted:
     # one that loads a program boots in the child, with the cartridge in.
     # A drive test's machine boots with the drive. Each pair of CIA and
-    # VIC-II models gets a machine of its own.
+    # VIC-II models and each expansion gets a machine of its own.
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      @machines[[cartridge, test.drive?, test.cia_model, test.vic_model]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+      @machines[[cartridge, test.drive?, *test.models, test.expansion]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
         if test.drive?
           Testbench.drive_machine(test.cia_model, test.vic_model)
         else
-          Testbench.machine(cartridge, test.cia_model, test.vic_model)
+          Testbench.machine(cartridge, test.cia_model, test.vic_model, test.expansion)
         end
       end
     end
@@ -733,18 +743,15 @@ if $PROGRAM_NAME == __FILE__
                  File.join(Testbench::ARTIFACT_DIR, "results.txt")
   scope = Testbench.take_option(ARGV, "--scope")
   exclude = Testbench.take_option(ARGV, "--exclude")
-  carts = ARGV.delete("--carts")
-  drive = ARGV.delete("--drive")
-  drive_testsuite = ARGV.delete("--1541-testsuite")
-  kind = if carts then :carts
-         elsif drive_testsuite then :drive_testsuite
-         elsif drive then :drive
-         else :plain
-         end
   models = [ARGV.delete("--cia-new") ? :mos6526a : :mos6526, ARGV.delete("--vicii-new") ? :mos8565 : :mos6569]
+  drive = if ARGV.delete("--1541-testsuite") then :testsuite
+          elsif ARGV.delete("--drive") then :drive
+          end
+  rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
+                             expansions: !ARGV.delete("--expansions").nil?, drive:)
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, kind:, models:)
+  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?
@@ -758,12 +765,11 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  true_drive = %i[drive drive_testsuite].include?(kind)
-  if true_drive && engine
+  if drive && engine
     warn "--drive needs a true drive, which the Spinel build doesn't have: drop --engine."
     exit 1
   end
-  if true_drive && !Testbench.dos_rom?
+  if drive && !Testbench.dos_rom?
     warn "--drive needs the 1541 DOS ROM: #{File.join(Badline.rom_path, Testbench::DOS_ROM)}."
     exit 1
   end
