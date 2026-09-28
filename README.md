@@ -10,45 +10,58 @@ are modelled at the cycle level.
 
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
-paddles and a 1351 mouse. Emulation runs slower than a real C64, so
-live sound, which is off by default, stutters. See
-[What's emulated](#whats-emulated) for the details.
+paddles and a 1351 mouse. See [What's emulated](#whats-emulated) for the
+details.
 
-## Requirements
+It comes in two builds of the same emulator:
 
-Ruby 4.0 or newer, and the SDL2 library:
+- **`badline`**, compiled ahead of time with
+  [Spinel](https://github.com/matz/spinel). It runs in real time with
+  sound, so it's the one to play games with.
+- **`badline-ruby`**, which comes with the Ruby gem and runs on CRuby. It
+  runs slower than a real C64, so its sound is off by default. The gem is
+  also a library, which runs a `Badline::Computer` from Ruby without a
+  window.
+
+## Installation
+
+The native `badline`, with Homebrew:
+
+```sh
+brew install elektronaut/tap/badline
+```
+
+The formula builds it from the release's generated C, so it needs no
+Spinel or Ruby. To build it from a checkout instead, see
+[native/README.md](native/README.md).
+
+The gem needs Ruby 4.0 or newer and the SDL2 library:
 
 ```sh
 brew install sdl2           # macOS
 apt install libsdl2-2.0-0   # Debian/Ubuntu
-```
-
-## Installation
-
-```sh
 gem install badline
 ```
 
 Or add `gem "badline"` to your Gemfile and run `bundle install`.
 
-A native `badline`, compiled with [Spinel](https://github.com/matz/spinel),
-runs fast enough to play games in real time. `rake native:build` builds
-it from a checkout; see [native/README.md](native/README.md).
-
 ## Usage
 
-Run `badline-ruby` with no arguments to boot to the BASIC prompt, or give it
+Run `badline` with no arguments to boot to the BASIC prompt, or give it
 something to load:
 
 ```sh
-badline-ruby                # READY.
-badline-ruby game.prg       # Load and run a program
-badline-ruby game.d64       # Mount a disk image as device 8 and load it
-badline-ruby game.tap       # Insert a tape and load it
-badline-ruby game.crt       # Attach a cartridge
-badline-ruby tune.sid       # Play a SID tune
-badline-ruby ~/c64          # Mount a directory as device 8
+badline                # READY.
+badline game.prg       # Load and run a program
+badline game.d64       # Mount a disk image as device 8 and load it
+badline game.tap       # Insert a tape and load it
+badline game.crt       # Attach a cartridge
+badline tune.sid       # Play a SID tune
+badline ~/c64          # Mount a directory as device 8
 ```
+
+`badline-ruby` takes the same media and the same options, with the
+differences noted below.
 
 Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
@@ -56,9 +69,9 @@ from it. `--no-autostart` attaches the media and stops at `READY.`, so
 you can type the `LOAD` yourself. `--read-only` mounts a disk image
 write-protected, so the drive reports `26,WRITE PROTECT ON` for any
 write and the image file stays as it was. `--song N` picks a subtune of a
-`.sid` file, `--sid 8580` fits the newer SID, and `--disable-jit` runs
-without YJIT, which is otherwise switched on at startup.
-`badline-ruby --help` lists the options.
+`.sid` file and `--sid 8580` fits the newer SID. `badline-ruby` also
+takes `--disable-jit`, which runs without YJIT, otherwise switched on at
+startup. `--help` lists the options.
 
 The KERNAL, BASIC and character ROMs come with the gem. To run other
 images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
@@ -67,13 +80,15 @@ plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
 Ruby, `Badline.rom_path = dir` does the same before a
 `Badline::Computer` is built, and `nil` restores the bundled set.
 
-`--sound` plays the SID through the host's audio device, and `F10`
-mutes and unmutes it. Sound is off by default. While it plays, the
-audio device sets the pace instead of the display, so the machine never
-runs ahead of the sound or drifts behind it. The whole machine runs
-below real time, though, so the sound stutters: it plays in bursts with
-silent gaps between them, at the right pitch, and never slows the
-emulation down.
+`badline` plays the SID through the host's audio device, and `F10`
+mutes and unmutes it. `--no-sound` turns it off. The window is paced by
+the display's vsync; `--no-vsync` paces it by a timer, or by the sound
+while it plays.
+
+In `badline-ruby` sound is off by default, and `--sound` turns it on.
+The machine runs below real time there, so the sound stutters: it plays
+in bursts with silent gaps between them, at the right pitch, and never
+slows the emulation down.
 
 ## Media
 
@@ -108,7 +123,7 @@ as the test harnesses under `bin/` do.
 `badline-ruby --headless` plays a `.sid` tune on the host's audio
 device without opening the window, and `--audio-out` renders it to a
 16-bit PCM file instead. The file's extension picks the format, `.wav`
-or `.aiff`.
+or `.aiff`. The native `badline` doesn't have these modes yet.
 
 ```sh
 badline-ruby --headless tune.sid                             # play, length from HVSC
@@ -192,8 +207,8 @@ Control port 1's fire line is also the VIC-II's light pen input, so
 joystick 1's fire button and the 1351's left button in port 1 latch the
 light pen registers.
 
-With `--sound`, `F10` mutes and unmutes the sound, and the window
-title shows `[MUTED]` while it's off.
+`F10` mutes and unmutes the sound, and the window title shows `[MUTED]`
+while it's off.
 
 ## What's emulated
 
@@ -249,12 +264,13 @@ title shows `[MUTED]` while it's off.
 
 Known gaps:
 
-- Live audio in the emulator window stutters, because the whole machine
-  runs below real time. `badline-ruby --headless` plays PSID tunes
-  smoothly on their own.
+- `badline-ruby` runs below real time, so its live audio stutters.
+  `badline` plays smoothly, and so do PSID tunes under
+  `badline-ruby --headless`.
 - No drive emulation, so fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). The command channel
-  doesn't rename, copy, format or validate disks.
+  doesn't rename, copy, format or validate disks, and `LOAD"$",8`
+  doesn't list a disk's directory yet.
 - No NTSC machine and no REU.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
