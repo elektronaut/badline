@@ -111,8 +111,9 @@ module Badline
       def songlength(song) = songlengths&.at(song - 1)
 
       def songlengths
-        return @songlengths if defined?(@songlengths)
+        return @songlengths if @songlengths_read
 
+        @songlengths_read = true
         path = @options.songlengths || Storage::SongLengths.locate(@options.tune_path)
         @songlengths = path && Storage::SongLengths.new(path).lengths(tune.md5)
       end
