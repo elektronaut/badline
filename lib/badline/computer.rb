@@ -155,6 +155,19 @@ module Badline
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end
 
+    # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
+    # serial traps, so the KERNAL's routines go out over the serial bus.
+    # Mounting again starts a new drive, with its RAM cleared.
+    def unmount
+      return unless @drive
+
+      cpu.remove_trap(KernalTrap::Load::ADDRESS)
+      cpu.remove_trap(KernalTrap::Save::ADDRESS)
+      @serial_trap.device = nil
+      @serial_trap = nil
+      @drive = nil
+    end
+
     # Plugs in a Drive1541, which then runs alongside the C64 on its own
     # clock and talks to it over the serial bus. The serial traps stop
     # answering the drive's device number, so the KERNAL's TALK, LISTEN and

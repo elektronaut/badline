@@ -140,6 +140,8 @@ render a `.sid` tune without it, as described under
 - `--no-autostart` attaches the media and stops at `READY.`.
 - `--read-only` mounts a disk image write-protected, leaving its file
   unchanged.
+- A `.g64` image needs the true 1541, which only `exe/badline-ruby` has
+  for now, and `badline` refuses one.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build

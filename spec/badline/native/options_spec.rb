@@ -214,6 +214,11 @@ describe Badline::Native::Options do
     end
   end
 
+  it "refuses a .g64 image, which needs badline-ruby" do
+    g64 = File.join(dir, "disk.G64").tap { |path| File.write(path, "") }
+    expect { parse(g64) }.to raise_error(described_class::Error, ".g64 images need badline-ruby: #{g64}")
+  end
+
   {
     %w[--turbo] => "invalid option: --turbo",
     %w[--sid 6582] => "invalid argument: --sid 6582",

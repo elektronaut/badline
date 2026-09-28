@@ -373,6 +373,37 @@ RSpec.describe Badline::Computer do
       end
     end
 
+    context "when unmounted" do
+      let(:disk) do
+        instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0],
+                                                    read_error: nil, write_file: nil)
+      end
+
+      before do
+        computer.mount(disk)
+        computer.unmount
+      end
+
+      it "leaves LOAD to the KERNAL" do
+        run_load
+        return_to_caller
+        expect(disk).not_to have_received(:read_file)
+      end
+
+      it "leaves SAVE to the KERNAL" do
+        run_save
+        return_to_caller
+        expect(disk).not_to have_received(:write_file)
+      end
+
+      it "loads through the LOAD trap once mounted again" do
+        computer.mount(disk)
+        run_load
+        return_to_caller
+        expect(ram.peek(0xc000)).to eq(0x01)
+      end
+    end
+
     context "with a true drive on device 8" do
       let(:disk) { instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0]) }
 

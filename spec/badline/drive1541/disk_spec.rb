@@ -126,6 +126,12 @@ describe Badline::Drive1541::Disk do
     end
   end
 
+  # Blanks the sector on the half track, which the head then wrote.
+  def lose_sector(half_track, sector)
+    disk.track(half_track).bytes[sector * 366, described_class::SECTOR_LENGTH] = [0x55] * described_class::SECTOR_LENGTH
+    disk.written(half_track)
+  end
+
   describe "#flush" do
     def written_all
       (1..35).each { |track| disk.written(track * 2) }
@@ -168,11 +174,28 @@ describe Badline::Drive1541::Disk do
     end
 
     it "keeps a block whose header can't be found as it was" do
-      disk.track(2).bytes[(4 * 366), described_class::SECTOR_LENGTH] = [0x55] * described_class::SECTOR_LENGTH
+      allow(Warning).to receive(:warn)
       before = image.read_block(1, 4)
-      disk.written(2)
+      lose_sector(2, 4)
       disk.flush
       expect(image.read_block(1, 4)).to eq(before)
+    end
+
+    it "warns once, naming the tracks, when a written sector no longer reads back" do
+      [2, 4].each { |half_track| lose_sector(half_track, 4) }
+      expect { disk.flush }.to output(/\A1541: tracks written that no longer read back whole: 1, 2\. .*\.g64.*\n\z/)
+        .to_stderr
+    end
+
+    it "doesn't warn of sectors the image already holds as unreadable" do
+      File.binwrite(path, File.binread(path) + ([2] + ([1] * 682)).pack("C*"))
+      lose_sector(2, 0)
+      expect { disk.flush }.not_to output.to_stderr
+    end
+
+    it "doesn't warn when every written sector reads back" do
+      written_all
+      expect { disk.flush }.not_to output.to_stderr
     end
 
     it "is write-protected when the image won't take writes" do
@@ -262,8 +285,8 @@ describe Badline::Drive1541::Disk do
     end
 
     it "reads a missing header as error 20" do
-      disk.track(2).bytes[6 * 366, described_class::SECTOR_LENGTH] = [0x55] * described_class::SECTOR_LENGTH
-      disk.written(2)
+      allow(Warning).to receive(:warn)
+      lose_sector(2, 6)
       disk.flush
       expect(image.block_error(1, 6)).to eq(20)
     end
