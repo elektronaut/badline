@@ -2,6 +2,11 @@
 
 require "badline/drive1541/bus"
 require "badline/drive1541/serial_port"
+require "badline/drive1541/gcr"
+require "badline/drive1541/track"
+require "badline/drive1541/disk"
+require "badline/drive1541/mechanism"
+require "badline/drive1541/disk_via"
 
 module Badline
   # The 1541 disk drive as a machine of its own: a 6502 running the DOS
@@ -14,10 +19,13 @@ module Badline
   # Against the PAL C64's 985,248 Hz that's one drive cycle per host cycle
   # and a second one about every 67. The host sets its clock on attaching
   # the drive, and until then the drive runs one cycle per host cycle.
+  #
+  # VIA 2's port B runs the Mechanism, which reads a Disk put in with
+  # insert.
   class Drive1541
     CLOCK_HZ = 1_000_000
 
-    attr_reader :cpu, :bus, :via1, :via2, :cycles, :device, :serial_bus
+    attr_reader :cpu, :bus, :via1, :via2, :mechanism, :cycles, :device, :serial_bus
     attr_writer :host_clock_hz
 
     def ram = @bus.ram
@@ -29,7 +37,8 @@ module Badline
       @device = device
       @serial_port = SerialPort.new(device:)
       @via1 = VIA.new(start: 0x1800, peripheral: @serial_port)
-      @via2 = VIA.new(start: 0x1c00)
+      @mechanism = Mechanism.new(self)
+      @via2 = DiskVIA.new(start: 0x1c00, mechanism: @mechanism)
       @bus = Bus.new(rom: rom || ROM.load("dos1541.rom", 0xc000), via1: @via1, via2: @via2)
       @cpu = CPU.new(@bus, debug:)
       @host_clock_hz = host_clock_hz
@@ -49,8 +58,16 @@ module Badline
       @serial_bus = serial_bus
       @serial_port.bus = serial_bus
       serial_bus.attach(self)
-      @via1.ca1 = serial_bus.atn_low?
+      @via1.ca1 = @serial_port.atn_low?
     end
+
+    # Puts a Disk in the drive (Disk.from_d64 makes one from an image).
+    # Nil takes the disk out.
+    def insert(disk)
+      @mechanism.insert(disk)
+    end
+
+    def disk = @mechanism.disk
 
     # The serial bus's RESET line reaches the CPU and both VIAs. RAM keeps
     # its contents.
@@ -61,6 +78,8 @@ module Badline
     end
 
     # Runs the drive cycles that fall in one host cycle: none, one or two.
+    # The host has run this cycle already, and the drive sees what it did
+    # from the next one on (see SerialPort).
     def host_cycle!
       phase = @phase + CLOCK_HZ
       while phase >= @host_clock_hz
@@ -68,18 +87,22 @@ module Badline
         phase -= @host_clock_hz
       end
       @phase = phase
+      @serial_port.latch_host
     end
 
     # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
     # do, and either one pulls IRQ. Nothing drives NMI on the 1541. The CPU
     # runs whether or not the motor turns, since it answers ATN.
     #
+    # The disk mechanism runs first, so BYTE READY lands on the VIA and the
+    # SO pin ahead of the CPU's cycle.
+    #
     # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
-    # high as the C64 asserts ATN. Only the C64 drives ATN, and it runs
-    # ahead of the drive in each host cycle, so sampling the line here
-    # catches every change on the drive cycle it happens in.
+    # high as the C64 asserts ATN, as the serial port sees it: from the
+    # host cycle after the one that asserts it.
     def cycle!
-      @via1.ca1 = @serial_bus.atn_low?
+      @mechanism.cycle!
+      @via1.ca1 = @serial_port.atn_low?
       @via1.cycle!
       @via2.cycle!
       @cpu.irq = @via1.irq? || @via2.irq?
@@ -87,11 +110,18 @@ module Badline
       @cycles += 1
     end
 
-    # The read electronics signal a whole GCR byte. BYTE READY reaches the
-    # CPU's SO pin while VIA 2's CA2 (SOE) is high, which lets the DOS spin
-    # on BVC for each byte.
+    # The read electronics signal a whole GCR byte. BYTE READY pulls VIA 2's
+    # CA1 low, a falling edge that sets its flag and, with latching on,
+    # latches port A. It reaches the CPU's SO pin while VIA 2's CA2 (SOE)
+    # is high, which lets the DOS spin on BVC for each byte.
     def byte_ready!
+      @via2.ca1 = false
       @cpu.so! if @via2.ca2_output
+    end
+
+    # BYTE READY lets go of CA1 with the next bit.
+    def byte_ready_ended!
+      @via2.ca1 = true
     end
 
     def inspect

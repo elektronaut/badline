@@ -150,7 +150,16 @@ describe Badline::IECBus do
 
       it "shows the drive DATA IN low too" do
         c64_drive(0x0f)
+        drive.host_cycle!
         expect(drive.via1.peek(0x1800) & 0x01).to eq(0x01)
+      end
+
+      # Pinned by the same rows as ATN on CA1 below.
+      it "shows the drive the C64's CLK from the host cycle after the write" do
+        c64_drive(0x17)
+        flags = [drive.via1.peek(0x1800) & 0x04]
+        drive.host_cycle!
+        expect(flags << (drive.via1.peek(0x1800) & 0x04)).to eq([0x00, 0x04])
       end
     end
 
@@ -184,10 +193,16 @@ describe Badline::IECBus do
         expect(drive.ram.peek(0x10)).to eq(2)
       end
 
-      it "sees an assertion on the drive cycle it lands in" do
+      # The C64's CIA changes the line at the end of its cycle, after the
+      # drive has sampled it for the cycles that run alongside. Pinned by
+      # VICE-testprogs drive/selftest, drive/scanner and drive/viavarious
+      # (see doc/pinned-behaviour.md, 1541 serial port).
+      it "sees an assertion from the host cycle after the one it lands in" do
         c64_drive(0x0f)
-        drive.cycle!
-        expect(drive.via1.interrupt_flags & 0x02).to eq(0x02)
+        drive.host_cycle!
+        flags = [drive.via1.interrupt_flags & 0x02]
+        drive.host_cycle!
+        expect(flags << (drive.via1.interrupt_flags & 0x02)).to eq([0x00, 0x02])
       end
     end
 

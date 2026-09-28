@@ -43,7 +43,7 @@ requires only the namespace file.
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, and cartridges with `--carts` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, and the true 1541 drive with `--drive` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
@@ -185,7 +185,8 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
 `testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K
-or +256K → `testbench-expansions`; SID → `sid`, plus `sid-8580` for anything the 8580
+or +256K → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
+`testbench-drive` (`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
