@@ -20,6 +20,10 @@ describe Badline::Native::Options do
         .to eq([true, true, true, true, 0])
     end
 
+    it "leaves device 8 to the KERNAL traps" do
+      expect(options.true_drive?).to be(false)
+    end
+
     it "leaves the SID model and the song to the media" do
       expect([options.sid_model, options.song]).to eq([nil, nil])
     end
@@ -57,6 +61,10 @@ describe Badline::Native::Options do
     expect(parse("--no-autostart").autostart?).to be(false)
   end
 
+  it "puts a true drive on device 8 with --true-drive" do
+    expect(parse("--true-drive").true_drive?).to be(true)
+  end
+
   it "turns sound off with --no-sound" do
     expect(parse("--no-sound").sound?).to be(false)
   end
@@ -91,10 +99,20 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --sound --no-sound --no-vsync --help --version
+    %w[--song --sid --no-autostart --true-drive --sound --no-sound --no-vsync --help --version
        --frames --unpaced --screenshot].each do |flag|
       expect(described_class::HELP).to include(flag)
     end
+  end
+
+  # badline-ruby's window options, read from its help: the lines between
+  # "Window options:" and the next blank line, and the media options above.
+  it "takes every option badline-ruby takes with the window" do
+    require "badline/options"
+    help = Badline::Options.new.help
+    window = help[/^Options:\n(.*?)\n\n/m, 1] + help[/^Window options:\n(.*?)\n\n/m, 1]
+    flags = window.scan(/--[a-z-]+/).uniq - %w[--disable-jit]
+    expect(flags.reject { |flag| described_class::HELP.include?(flag) }).to be_empty
   end
 
   {
@@ -105,6 +123,7 @@ describe Badline::Native::Options do
     %w[--frames -1] => "invalid argument: --frames -1",
     %w[--song] => "missing argument: --song",
     %w[--sound=yes] => "needless argument: --sound=yes",
+    %w[--true-drive=yes] => "needless argument: --true-drive=yes",
     %w[missing.prg] => "no such file or directory: missing.prg",
     %w[a.prg b.prg] => "unexpected argument: b.prg"
   }.each do |argv, message|

@@ -94,7 +94,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   - `sdl.rb` declares the SDL2 functions, structs and constants the
     others call, and `LibC`'s `malloc` and `free`.
   - `app.rb` (`App`) opens the window and runs the frame loop.
-  - `screen.rb` (`Screen`) repacks the VIC's display for the texture.
+  - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
+    and `drive_led.rb` (`DriveLed`) places and colours the true drive's
+    LED over it.
   - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue.
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
     directions, and `controls.rb` (`Controls`) holds the input mode and
@@ -127,6 +129,10 @@ OptionParser. `badline --help` lists them:
   `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
   the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
+- `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
+  traps, as in `exe/badline-ruby`: a `.d64` goes into it and autostarts
+  through its DOS, and its LED lights in the bottom right corner of the
+  border.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build

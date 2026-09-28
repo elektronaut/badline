@@ -18,6 +18,8 @@ module Badline
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?)
         @screenshot = options.screenshot
         @screen = Screen.new(computer.vic)
+        drive = computer.drive1541
+        @led = drive.nil? ? nil : DriveLed.new(drive)
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
@@ -91,6 +93,7 @@ module Badline
         )
         SDL.rect_w(SDL.rect, Screen::WIDTH)
         SDL.rect_h(SDL.rect, Screen::HEIGHT)
+        DriveLed.place
       end
 
       def close_window
@@ -169,6 +172,7 @@ module Badline
       def draw
         SDL.SDL_RenderClear(@renderer)
         SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
+        @led&.draw(@renderer)
         write_screenshot if @screenshot != "" && @frames + 1 == @frame_limit
         SDL.SDL_RenderPresent(@renderer)
       end

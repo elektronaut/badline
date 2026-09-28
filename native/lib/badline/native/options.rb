@@ -3,9 +3,9 @@
 module Badline
   module Native
     # The command line of the native badline: badline-ruby's window options
-    # (--sound, --sid, --song, --no-autostart, --help) plus --version and
-    # the testing knobs --frames, --unpaced and --screenshot. Spinel has no
-    # OptionParser, so it parses by hand. Values come as `--song 2` or
+    # (--sound, --sid, --song, --no-autostart, --true-drive, --help) plus
+    # --version and the testing knobs --frames, --unpaced and --screenshot.
+    # Spinel has no OptionParser, so it parses by hand. Values come as `--song 2` or
     # `--song=2`, and `--` ends the options.
     class Options
       class Error < StandardError; end
@@ -22,7 +22,9 @@ module Badline
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
         a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
-        a directory to mount as device 8.
+        a directory to mount as device 8. Device 8 answers through traps on
+        the KERNAL's disk routines, unless --true-drive puts an emulated 1541
+        there, which runs its own DOS and reads .d64 images only.
 
         Options:
             -s, --song N                     Subtune of a .sid, from 1 (default: the tune's own)
@@ -30,6 +32,7 @@ module Badline
                 --no-autostart               Boot to READY. instead of running the program
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
+                --true-drive                 Put a true 1541 on device 8 instead of the KERNAL traps
                 --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
             -h, --help                       Show this help
                 --version                    Show the version and what built it
@@ -49,6 +52,7 @@ module Badline
         @song = nil
         @sid_model = nil
         @autostart = true
+        @true_drive = false
         @sound = SOUND
         @frames = 0
         @paced = true
@@ -68,6 +72,8 @@ module Badline
       def autostart? = @autostart
 
       def sound? = @sound
+
+      def true_drive? = @true_drive
 
       def paced? = @paced
 
@@ -125,6 +131,7 @@ module Badline
       def switch(name)
         case name
         when "--no-autostart" then @autostart = false
+        when "--true-drive" then @true_drive = true
         when "--sound" then @sound = true
         when "--no-sound" then @sound = false
         when "--no-vsync" then @vsync = false
