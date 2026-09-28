@@ -42,6 +42,14 @@ module Badline
       # the 325-byte GCR data block. The gap after it takes up the rest.
       SECTOR_LENGTH = SYNC_LENGTH + 10 + HEADER_GAP + SYNC_LENGTH + 325
 
+      # A disk from the image at +path+: a .g64 as its tracks are, and
+      # anything else as a .d64, formatted.
+      def self.open(path)
+        return from_g64(Storage::G64Image.new(path)) if File.extname(path).casecmp?(".g64")
+
+        from_d64(Storage::D64Image.new(path))
+      end
+
       # A disk from a G64 image, each half track as the image stores it.
       # Flushing it writes the tracks back as they are.
       def self.from_g64(image)

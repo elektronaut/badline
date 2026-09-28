@@ -24,6 +24,10 @@ describe Badline::Drive1541::Disk, ".from_g64" do
     expect([2, 3, 36, 84].map { |half| [disk.track(half).bytes, disk.track(half).zone] }).to eq(tracks.values)
   end
 
+  it "is what .open makes of a .g64" do
+    expect(described_class.open(path).track(2).bytes).to eq(tracks[0].first)
+  end
+
   it "has nothing where the image has no data" do
     expect((2..84).count { |half| disk.track(half) }).to eq(4)
   end
