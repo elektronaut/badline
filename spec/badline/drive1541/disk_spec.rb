@@ -33,23 +33,9 @@ describe Badline::Drive1541::Disk do
 
   after { FileUtils.remove_entry(dir) }
 
-  # A track's bytes from sector 0's SYNC mark on, which each track after
-  # the first starts at an angle of its own.
-  def from_sector0(track_bytes) = track_bytes.rotate(sector0_at(track_bytes))
-
-  def sector0_at(track_bytes)
-    (0...track_bytes.length).find do |i|
-      bytes = track_bytes.rotate(i)
-      track_bytes[i - 1] != 0xff && bytes.first(5) == [0xff] * 5 &&
-        gcr.decode(bytes[5, 5])&.values_at(0, 2) == [0x08, 0]
-    end
-  end
-
-  # Each block on a track, in the order the head meets them from sector
-  # 0: the bytes after each SYNC mark, decoded, sized by the ID they start
-  # with.
+  # Each block on a track, in the order the head meets them: the bytes
+  # after each SYNC mark, decoded, sized by the ID they start with.
   def blocks(track_bytes)
-    track_bytes = from_sector0(track_bytes)
     found = []
     i = 0
     while i < track_bytes.length
@@ -114,17 +100,8 @@ describe Badline::Drive1541::Disk do
       .to eq([[0xff] * 5, [0x55] * 9, [0xff] * 5, 0x07])
   end
 
-  # Pinned by drive/skew/skew1, which expects a .d64's tracks to start
-  # at angles of their own, as a format through the DOS leaves them.
-  it "turns each track's sector 0 round from the last track's by the skew N: leaves" do
-    angle = ->(track) { sector0_at(disk.track(track * 2).bytes).fdiv(disk.track(track * 2).length) }
-    skews = [2, 17, 18, 19, 25, 26, 31, 32].map { |track| (angle[track] - angle[track - 1]) % 1 }
-    expect([angle[1], *skews]).to match([0, *[0.6869, 0.6869, 0.7930, 0.8884, 0.2304, 0.0925, 0.8777, 0.2963]
-      .map { |skew| a_value_within(0.001).of(skew) }])
-  end
-
   it "fills the rest of the track with gap bytes" do
-    bytes = from_sector0(disk.track(70).bytes)
+    bytes = disk.track(70).bytes
     expect(bytes.last(10)).to eq([0x55] * 10)
   end
 
