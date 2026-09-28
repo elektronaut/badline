@@ -63,7 +63,7 @@ module Badline
         @stream&.close
         @gamepads.close
         @window.close
-        puts @computer.cpu.inspect
+        report @computer.cpu.inspect
       end
 
       private
