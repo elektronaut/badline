@@ -100,7 +100,7 @@ slows the emulation down.
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
 | `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file. With `--read-only`, or an image the host can't write, it acts as a write-protected disk |
-| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. Tracks the drive writes go back to the image file, and an image the host can't write acts as a write-protected disk |
+| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. Tracks the drive writes go back to the image file. With `--read-only`, or an image the host can't write, it acts as a write-protected disk. `badline-ruby` only for now |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
@@ -122,7 +122,10 @@ there, but do from a `.g64`.
 directory in device 8 while the machine runs, for software that asks for
 another disk. It takes `read_only: true`, and `Badline::Media.attach`
 takes `disk: { read_only: true }`, to mount a disk image write-protected,
-as the test harnesses under `bin/` do.
+as the test harnesses under `bin/` do. A `.g64` goes in the true 1541,
+and takes out a disk mounted through the traps, so `LOAD` and `SAVE`
+reach the 1541 too. With the 1541 in device 8, a `.d64` goes in its
+drive as well.
 
 ## Playing and rendering SID tunes
 

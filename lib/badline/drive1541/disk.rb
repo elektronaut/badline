@@ -43,11 +43,12 @@ module Badline
       SECTOR_LENGTH = SYNC_LENGTH + 10 + HEADER_GAP + SYNC_LENGTH + 325
 
       # A disk from the image at +path+: a .g64 as its tracks are, and
-      # anything else as a .d64, formatted.
-      def self.open(path)
-        return from_g64(Storage::G64Image.new(path)) if File.extname(path).casecmp?(".g64")
+      # anything else as a .d64, formatted. `read_only` opens the image
+      # write-protected.
+      def self.open(path, read_only: false)
+        return from_g64(Storage::G64Image.new(path, read_only:)) if File.extname(path).casecmp?(".g64")
 
-        from_d64(Storage::D64Image.new(path))
+        from_d64(Storage::D64Image.new(path, read_only:))
       end
 
       # A disk from a G64 image, each half track as the image stores it.

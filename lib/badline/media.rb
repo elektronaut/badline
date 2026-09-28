@@ -29,9 +29,7 @@ module Badline
           attach_sid(computer, path, autostart:, song:)
         elsif File.extname(path).downcase == ".tap"
           attach_tape(computer, path, autostart:)
-        elsif g64?(path)
-          attach_g64(computer, path, autostart:)
-        elsif MOUNT_TYPES.key?(File.extname(path).downcase)
+        elsif g64?(path) || MOUNT_TYPES.key?(File.extname(path).downcase)
           attach_storage(computer, path, options.fetch(:disk, {}), autostart:)
         else
           attach_prg(computer, path, autostart:)
@@ -42,8 +40,14 @@ module Badline
       # while the machine runs, without loading anything. The drive keeps
       # its RAM and its status. `read_only` inserts a disk image
       # write-protected.
+      #
+      # A .g64 goes in a true 1541, which is plugged in as device 8 when
+      # there's none yet, and takes out what was mounted through the LOAD
+      # trap, so LOAD and SAVE reach the 1541 too. Once a true 1541 is
+      # device 8, a .d64 goes in its drive as well, and other disks, which
+      # a 1541 can't read, raise ArgumentError.
       def insert_disk(computer, path, read_only: false)
-        return insert_g64(computer, path) if g64?(path)
+        return insert_drive1541(computer, path, read_only:) if g64?(path) || drive1541?(computer)
 
         raise ArgumentError, "#{path} is not a disk image or a directory" unless disk?(path)
 
@@ -63,16 +67,15 @@ module Badline
 
       def g64?(path) = File.extname(path).downcase == ".g64"
 
-      # A .g64 holds the disk's raw GCR, which only a true drive reads, so
-      # attaching one plugs a 1541 in as device 8 when there's none yet.
-      def attach_g64(computer, path, autostart:)
-        message = insert_g64(computer, path)
-        computer.type_text(AUTOSTART) if autostart
-        message
-      end
+      def drive1541?(computer) = computer.drive1541&.device == KernalTrap::Routine::DEVICE
 
-      def insert_g64(computer, path)
-        disk = Drive1541::Disk.from_g64(Storage::G64Image.new(path))
+      def insert_drive1541(computer, path, read_only:)
+        unless %w[.d64 .g64].include?(File.extname(path).downcase)
+          raise ArgumentError, "#{path} is not a .d64 or .g64 image, which the 1541 reads"
+        end
+
+        disk = Drive1541::Disk.open(path, read_only:)
+        computer.unmount
         computer.attach_drive1541(Drive1541.new) unless computer.drive1541
         computer.drive1541.insert(disk)
         "Inserted #{path} in the 1541 as device 8"
@@ -119,10 +122,17 @@ module Badline
         "Inserted #{path} in the datasette"
       end
 
+      # A .g64 holds the disk's raw GCR, which only a true drive reads, so
+      # attaching one plugs a 1541 in as device 8 when there's none yet.
       def attach_storage(computer, path, disk, autostart:)
-        computer.mount(open_storage(path, disk))
+        if g64?(path)
+          message = insert_drive1541(computer, path, read_only: disk.fetch(:read_only, false))
+        else
+          computer.mount(open_storage(path, disk))
+          message = "Mounted #{path} as device 8"
+        end
         computer.type_text(AUTOSTART) if autostart
-        "Mounted #{path} as device 8"
+        message
       end
 
       def attach_prg(computer, path, autostart:)

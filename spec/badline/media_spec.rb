@@ -131,6 +131,16 @@ describe Badline::Media do
       it "returns a message naming the drive" do
         expect(described_class.attach(computer, g64_path, autostart: false)).to include("1541", "device 8")
       end
+
+      it "puts the disk in writable" do
+        described_class.attach(computer, g64_path)
+        expect(computer.drive1541.disk.write_protected?).to be(false)
+      end
+
+      it "puts the disk in write-protected with disk: { read_only: true }" do
+        described_class.attach(computer, g64_path, disk: { read_only: true })
+        expect(computer.drive1541.disk.write_protected?).to be(true)
+      end
     end
 
     context "with a D71 image" do
@@ -474,16 +484,60 @@ describe Badline::Media do
       expect(described_class.insert_disk(computer, d64_path)).to eq("Inserted #{d64_path} in device 8")
     end
 
-    it "puts a G64 image in the true drive, plugging one in" do
-      path = File.join(dir, "disk.g64")
-      Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
-      described_class.insert_disk(computer, path)
-      expect([computer.drive1541.disk.track(36).length, computer.drive1541.device]).to eq([7142, 8])
-    end
-
     it "refuses anything but a disk" do
       path = File.join(dir, "tape.t64")
       expect { described_class.insert_disk(computer, path) }.to raise_error(ArgumentError)
+    end
+
+    context "with a G64 image" do
+      let(:g64_path) do
+        File.join(dir, "disk.g64").tap do |path|
+          Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
+        end
+      end
+
+      before { allow(computer).to receive(:unmount) }
+
+      it "puts it in the true drive, plugging one in" do
+        described_class.insert_disk(computer, g64_path)
+        expect([computer.drive1541.disk.track(36).length, computer.drive1541.device]).to eq([7142, 8])
+      end
+
+      it "takes out what was mounted through the traps" do
+        described_class.insert_disk(computer, g64_path)
+        expect(computer).to have_received(:unmount)
+      end
+
+      it "inserts it write-protected with read_only" do
+        described_class.insert_disk(computer, g64_path, read_only: true)
+        expect(computer.drive1541.disk.write_protected?).to be(true)
+      end
+    end
+
+    context "with a true drive in device 8" do
+      before do
+        computer.attach_drive1541(Badline::Drive1541.new)
+        allow(computer).to receive(:unmount)
+      end
+
+      it "puts a D64 image in the drive" do
+        described_class.insert_disk(computer, d64_path)
+        expect(computer.drive1541.disk.image).to be_a(Badline::Storage::D64Image)
+      end
+
+      it "mounts nothing through the traps" do
+        described_class.insert_disk(computer, d64_path)
+        expect(computer).not_to have_received(:mount)
+      end
+
+      it "inserts a D64 image write-protected with read_only" do
+        described_class.insert_disk(computer, d64_path, read_only: true)
+        expect(computer.drive1541.disk.write_protected?).to be(true)
+      end
+
+      it "refuses a disk the 1541 can't read" do
+        expect { described_class.insert_disk(computer, dir) }.to raise_error(ArgumentError, /\.d64 or \.g64/)
+      end
     end
   end
 end
