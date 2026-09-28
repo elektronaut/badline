@@ -35,6 +35,7 @@ module Badline
         @pacer.start(@started)
         @reported_samples = 0
         frame while @running
+        @computer.drive1541&.flush
         @gamepads.close
         @sound.close
         close_window
