@@ -98,6 +98,22 @@ describe Badline::Options do
       end
     end
 
+    context "with --true-drive" do
+      let(:argv) { ["--true-drive", program_path] }
+
+      it "puts a true drive on device 8" do
+        expect(options.true_drive?).to be(true)
+      end
+    end
+
+    context "without --true-drive" do
+      let(:argv) { [program_path] }
+
+      it "leaves device 8 to the KERNAL traps" do
+        expect(options.true_drive?).to be(false)
+      end
+    end
+
     context "with the SID to fit" do
       let(:argv) { ["--sid", "8580", program_path] }
 
@@ -237,7 +253,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound].each do |arg|
+    %w[--no-autostart --sound --true-drive].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 
@@ -256,7 +272,8 @@ describe Badline::Options do
     end
 
     it "describes the options" do
-      expect(options.help).to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound")
+      expect(options.help)
+        .to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound", "--true-drive")
     end
   end
 end

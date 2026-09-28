@@ -85,7 +85,7 @@ emulation down.
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
 | A directory | Mounted read-write as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
-There is no 1541. Device 8 works by trapping the KERNAL's `LOAD` and
+By default there is no 1541. Device 8 works by trapping the KERNAL's `LOAD` and
 `SAVE` routines and its serial bus primitives, so files open by name
 through `OPEN` and `CHRIN` as well. The command channel answers `I`,
 `B-P` and `U1` block reads, which covers loaders that read blocks
@@ -94,6 +94,14 @@ file), files opened for writing or appending, `S` to scratch, `U2` and
 `B-W` block writes, and `B-A` and `B-F`. Loaders that upload their own
 code to the drive with `M-W` and `M-E`, and copy protection that reads
 raw GCR, won't work.
+
+`--true-drive` puts an emulated 1541 on device 8 instead, running its
+own DOS ROM on its own 6502 and talking to the machine over the serial
+bus. It reads `.d64` images, which it autostarts with the same
+`LOAD"*",8,1` and `RUN`, rather than `.d71`, `.d81` or `.t64` images or
+directories. Loading runs at the speed of a real 1541, and the drive's
+red LED lights in the bottom right corner of the border. Both
+executables take it.
 
 `Badline::Media.insert_disk(computer, path)` swaps the disk image or
 directory in device 8 while the machine runs, for software that asks for
@@ -241,7 +249,7 @@ Known gaps:
 - Live audio in the emulator window stutters, because the whole machine
   runs below real time. `badline-ruby --headless` plays PSID tunes
   smoothly on their own.
-- No drive emulation, so fast loaders and anything else that runs code
+- Without `--true-drive`, fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). The command channel
   doesn't rename, copy, format or validate disks.
 - No NTSC machine and no REU.

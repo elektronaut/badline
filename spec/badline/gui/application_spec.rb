@@ -48,6 +48,26 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the true drive" do
+    it "plugs a 1541 in as device 8" do
+      described_class.new(true_drive: true)
+      expect(computer.drive1541.device).to eq(8)
+    end
+
+    it "draws its LED over the screen" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new(true_drive: true).run
+      expect(window).to have_received(:draw)
+        .with([instance_of(Badline::GUI::ScreenPane), instance_of(Badline::GUI::DriveLedPane)])
+    end
+
+    it "draws no LED without one" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new.run
+      expect(window).to have_received(:draw).with([instance_of(Badline::GUI::ScreenPane)])
+    end
+  end
+
   describe "a mouse button in paddle mode" do
     it "fires paddle A on port 1 with the left button" do
       run_with(tabs: 4, button: 1)

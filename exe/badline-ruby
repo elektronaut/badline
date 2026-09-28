@@ -47,8 +47,8 @@ end
 begin
   application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
                                               song: options.song, sid_model: options.sid_model,
-                                              sound: options.sound?)
-rescue Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
+                                              sound: options.sound?, true_drive: options.true_drive?)
+rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
        Badline::Cartridge::UnsupportedTypeError => e
   warn "badline-ruby: #{options.media_path}: #{e.message}"

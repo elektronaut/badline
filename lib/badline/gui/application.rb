@@ -29,13 +29,17 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      def initialize(media_path: nil, autostart: true, song: nil, sid_model: nil, sound: false)
+      # +attach+ holds Media.attach's options for the media: autostart and
+      # the song. +true_drive+ puts a true 1541 on device 8.
+      def initialize(media_path: nil, sid_model: nil, sound: false, true_drive: false, **attach)
         @computer = Computer.new(sid_model: sid_model || Media.sid_model(media_path))
-        puts Media.attach(@computer, media_path, autostart:, song:) if media_path
+        Media::TrueDrive.plug(@computer) if true_drive
+        puts Media.attach(@computer, media_path, **attach) if media_path
 
         @mode = :keyboard
         @pot_device = nil
         @panes = [ScreenPane.new(@computer)]
+        @panes << DriveLedPane.new(@computer.drive1541) if @computer.drive1541
         @stream = open_stream if sound
         @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
