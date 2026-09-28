@@ -19,11 +19,13 @@ module TrueDrive
   end
 
   # Puts a D64 in the true drive, and types the directory load. Returns
-  # nil for other media, or without a true drive.
+  # nil for other media, or without a true drive. The image opens with
+  # the options in options[:media][:disk].
   def insert(computer, path, options)
     return unless options[:true_drive] && path.downcase.end_with?(".d64")
 
-    computer.drive1541.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+    image = Badline::Storage::D64Image.new(path, **options[:media].fetch(:disk, {}))
+    computer.drive1541.insert(Badline::Drive1541::Disk.from_d64(image))
     text = options[:text] == "print 6*7\r" ? DIRECTORY : options[:text]
     computer.on_init { computer.type_text(text) }
     true

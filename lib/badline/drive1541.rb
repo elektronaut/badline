@@ -157,17 +157,8 @@ module Badline
       plan_wake if @asleep
     end
 
-    # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
-    # do, and either one pulls IRQ. Nothing drives NMI on the 1541. The CPU
-    # runs whether or not the motor turns, since it answers ATN.
-    #
-    # The disk mechanism runs first, so BYTE READY lands on the VIA ahead
-    # of the CPU's cycle. The CPU samples SO a cycle late: BYTE READY sets
-    # V for the next cycle's instruction step.
-    #
-    # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
-    # high as the C64 asserts ATN, as the serial port sees it: from the
-    # host cycle after the one that asserts it.
+    # Runs one drive cycle, catching up first on any the drive owes (see
+    # step).
     def cycle!
       settle!
       step
@@ -181,7 +172,7 @@ module Badline
     # CA1 low, a falling edge that sets its flag and, with latching on,
     # latches port A. It reaches the CPU's SO pin while VIA 2's CA2 (SOE)
     # is high, which lets the DOS spin on BVC for each byte. The CPU
-    # samples SO on the next cycle (see cycle!).
+    # samples SO on the next cycle (see step).
     def byte_ready!
       @via2.ca1 = false
       @so_pending = true if @via2.ca2_output
@@ -200,6 +191,17 @@ module Badline
       idle_loop_reached if @cpu.program_counter == IDLE_LOOP && @idle_skip
     end
 
+    # One drive cycle. The VIAs clock ahead of the CPU, as the C64's chips
+    # do, and either one pulls IRQ. Nothing drives NMI on the 1541. The CPU
+    # runs whether or not the motor turns, since it answers ATN.
+    #
+    # The disk mechanism runs first, so BYTE READY lands on the VIA ahead
+    # of the CPU's cycle. The CPU samples SO a cycle late: BYTE READY sets
+    # V for the next cycle's instruction step.
+    #
+    # ATN reaches VIA 1's CA1 through the same inverter as PB7, so CA1 goes
+    # high as the C64 asserts ATN, as the serial port sees it: from the
+    # host cycle after the one that asserts it.
     def step
       so = @so_pending
       @so_pending = false

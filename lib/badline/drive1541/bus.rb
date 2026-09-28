@@ -23,12 +23,10 @@ module Badline
     class Bus
       include Addressable
 
-      # VIA registers, as bits by offset, whose access makes a pass through
-      # the idle loop one that can't be repeated in bulk: the counters and
-      # the shift register, which change from pass to pass, on either VIA,
-      # and VIA 1's port B, which reads the serial bus. VIA 2's timers, shift
-      # register and ACR take no writes, and VIA 1 none at all, since its
-      # port B drives the serial bus.
+      # VIA registers, as bits by offset, whose access makes a watched
+      # stretch volatile: reads of either VIA's counters and shift register
+      # and of VIA 1's port B, and writes to VIA 2's timers, shift register
+      # and ACR. Any write to VIA 1 does too (watch_write).
       VOLATILE_VIA1_READS = 0x0731
       VOLATILE_VIA2_READS = 0x0730
       VOLATILE_VIA2_WRITES = 0x0ff0
@@ -112,8 +110,8 @@ module Badline
         end
       end
 
-      # A write to VIA 1 reaches the serial bus, and one that turns the
-      # motor on starts the disk moving under the head.
+      # Any write to VIA 1 makes the stretch volatile, and so does a write
+      # to VIA 2 that leaves the motor on.
       def watch_write(addr)
         if addr >= 0x1c00
           watch(VOLATILE_VIA2_WRITES, addr)

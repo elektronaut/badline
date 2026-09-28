@@ -140,7 +140,7 @@ describe Badline::Drive1541::Idle do
 
   # Runs the real DOS ROM. Two drives boot side by side, one skipping its
   # idle loop and one not, while the C64's lines move.
-  describe "with the DOS ROM" do
+  describe "with the DOS ROM", :slow do
     # The host cycles to change the C64's lines on: CLK, then DATA, then
     # ATN, while the drive idles. The DOS answers ATN and waits for a byte
     # that never comes until ATN goes.
@@ -151,8 +151,9 @@ describe Badline::Drive1541::Idle do
 
     def self.checkpoints = [1_000_000, 1_250_000, 1_300_100, 1_301_000, 1_450_000, 1_500_000]
 
-    # Both drives' states at each checkpoint, and how many host cycles
-    # the skipping one slept.
+    # One run, about 1.5M host cycles, shared by the examples: both drives'
+    # states at each checkpoint, and how many host cycles the skipping one
+    # slept.
     def self.runs
       @runs ||= begin
         host = Struct.new(:port_a_lines).new(0x07)

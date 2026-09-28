@@ -74,19 +74,18 @@ module Badline
         @counter
       end
 
-      # Runs +cycles+ cycles at once, as many as quiet_cycles allows.
+      # Runs +cycles+ cycles at once, as many as quiet_cycles allows. The
+      # low byte's underflow is set when the last cycle took it from $00.
       def fast_forward(cycles)
         @low_underflowed = false
         return if @counting_pulses
 
         @counter = (@counter - cycles) & 0xffff
-        # The low byte underflowed on the last cycle if it went from $00.
         @low_underflowed = @counter.allbits?(0xff)
       end
 
-      # What the counter doesn't hold, for comparing the timer at two
-      # points. The low byte's underflow is left out: only the shift
-      # register reads it.
+      # What the counter and the low byte's underflow don't hold, for
+      # comparing the timer at two points.
       def state = [@latch_low, @armed, @hold, @low_reload, @count_pulses, @counting_pulses]
 
       private
