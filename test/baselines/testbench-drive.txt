@@ -35,3 +35,5 @@ drive/viavarious/via11-2.prg	PASS
 drive/viavarious/via12-2.prg	PASS
 drive/viavarious/via13-2.prg	PASS
 drive/viavarious/via14-2.prg	PASS
+C64/autostart/defaults/test.prg	FAIL	exit=$ff
+drive/format/format.prg	FAIL	exit=none

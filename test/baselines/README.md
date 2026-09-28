@@ -356,6 +356,19 @@ explain.
   head over time.
 - `drive/rpm/rpm3.prg` (`testbench-drive`, exit none) writes to the disk,
   which the drive can't do yet, and never reports.
+- `drive/format/format.prg` (`testbench-drive`, exit none) formats the
+  disk with `N:TEST,01` and saves itself to it. That needs disk writes,
+  which #341 adds. The drive never answers the `N:` command, so the
+  program stays at `formatting disk...` and never reports.
+- `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
+  the testlist's second row for the program, the one that mounts
+  `test.d64`. It runs with the true drive and `test.d64` in it, but the
+  harness injects the program as it does for the plain row, so nothing
+  loads from the disk. It fails as its twin in `testbench-general` does
+  (below), with the same dump apart from CIA 2's port A, which reads `$97`
+  where the twin reads `$d7`. The test masks those two bits off. In both
+  rows the four bytes at `$9ff4` that the reference wants to hold the
+  loaded file's name, `TEST`, read `$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
