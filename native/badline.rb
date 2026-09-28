@@ -39,7 +39,7 @@ begin
   end
 rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
-       Badline::Cartridge::UnsupportedTypeError => e
+       Badline::Storage::G64Image::FormatError, Badline::Cartridge::UnsupportedTypeError => e
   warn "badline: #{media}: #{e.message}"
   exit 1
 end
