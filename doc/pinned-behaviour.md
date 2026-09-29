@@ -1140,43 +1140,68 @@ and each was knocked out: removing it fails the rows named.
     [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
     and *lists it through the traps* (`:slow`) in
     [`drive1541_spec.rb`](../spec/badline/drive1541_spec.rb).
-- A write to a half track without data gives it a blank track as long as
-  a turn at the bit rate the drive writes at, not at the rate of the
-  track's own zone. `drive/rpm/rpm3` writes track 36, past a 35-track
-  D64, at the zone 2 rate the DOS leaves selected there, and times a
-  turn by reading it back.
-  - Pinned by `drive/rpm/rpm3`: with the zone 0 length of 6250 bytes, a
-    turn took 175,001 cycles (342.86 rpm, `exit=$ff`); with 7142 bytes
-    it takes 199,976 (300.04 rpm).
+- The disk turns at 300 rpm whatever bit rate VIA 2's PB5-6 select: a
+  turn is 200,000 drive cycles over every track and over a half track
+  without data. Each track's bits pass under the head at the rate they
+  were written at: spread evenly over the turn, so a track as long as a
+  turn holds at its zone's rate passes at that rate and a `.g64` track
+  longer or shorter than that passes faster or slower, and a `.g64`
+  speed map widens each byte's cells by its zone. The read clock runs at
+  the selected rate and each flux transition brings it back into step,
+  so a track read in its own zone reads clean and one read far enough
+  off garbles (zone 0 against zone 3). With the rate selected turning
+  the disk instead, a zone 3 track read in zone 0 read clean and took
+  246 ms a turn, and a `.g64` track turned in its length of bytes.
+  - Pinned by `drive/rpm` (`rpm1`, `rpm2` and `rpm3`, on the `.d64` and
+    the `.g64`): each times a turn and passes within 297 to 303 rpm.
+  - Pinned by `drive/skew/skew2`, on a `.g64` whose tracks all start
+    sector 0 at the same angle: the head keeps the disk's angle across
+    the tracks and half tracks it steps over only while every track
+    turns in the same time.
+  - Pinned by `drive/scanner` (all six programs, on the `.d64` and the
+    `.g64`), which reads every track and each track's error map.
+  - Spec guard: the *at 300 rpm* examples and *turns once in 200 ms* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    and *#cell_at* in
+    [`track_spec.rb`](../spec/badline/drive1541/track_spec.rb).
+- A write lays its bits one to a cell from the cell under the head. A
+  half track without data gets a blank track first, as long as a turn at
+  the rate the drive writes at, not at the rate of the track's own zone,
+  and a track written in another zone is laid out again as a turn at the
+  rate written, its flux kept at its angle to within a cell. A track
+  written in the selected zone keeps its length, so a `.g64` track
+  longer or shorter than a turn keeps the sectors around the one written.
+  - Pinned by `drive/rpm/rpm3`, which writes track 36, past a 35-track
+    D64, at the zone 2 rate the DOS leaves selected there: a turn and a
+    half of SYNC and five bytes, and times a turn by reading it back.
+    With a zone 0 track of 6250 bytes a turn took 175,001 cycles
+    (342.86 rpm, `exit=$ff`). With the last byte's leftover part of a
+    cell widening the track's last cell, instead of the cells spread
+    evenly over the turn, the SYNC broke there and the turn read as
+    194,728 cycles (`exit=$ff`).
   - Spec guard: *gives a half track a blank track 7142 bytes around,
     written in zone 2* in
-    [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
-- A turn over a half track without data takes 200 ms at whatever bit
-  rate the drive selects, as a turn over a track does: the blank the head
-  reads there is a turn long at that rate, and it's measured again when
-  the rate changes. The head keeps the disk's angle across the half
-  tracks it steps over only that way.
-  - Pinned by `drive/skew/skew2`, on a `.g64` whose tracks all start
-    sector 0 at the same angle. With a blank of zone 0's 6250 bytes in
-    every zone, a step from one zone 1 track to the next over the half
-    track between them moved the head about 630 timer units round
-    (`25-26: 02: 634`), and the test found the tracks not aligned
-    (`exit=$ff`). Zone 0 pairs measured 1 to 4.
-  - A `.d64` starts sector 0 of every track at the same angle, so with
-    this rule `drive/skew/skew1`, which expects a `.d64` to read with
-    the skew a DOS format leaves, finds its tracks aligned and fails. It
-    passed only while the head drifted round over each half track.
-    Turning each track by the skew `N:` leaves here (0.6869 of a turn a
-    track in zone 3, 0.8884 in zone 2, 0.0925 in zone 1, 0.2963 in zone
-    0) passes it, but makes the three `drive/scanner` error-map rows
-    read track 4 as error 27 instead of 22: after error 21 on track 3
-    the DOS takes the first block it finds on track 4 for a header, and
-    an error-22 data block, whose ID `$00` starts with the header's GCR
-    byte, comes first at that skew. Zone 3 skews of 0.60, 0.68, 0.70 and
-    0.80 pass `scanner35e`.
-  - Spec guard: *turns once in 200 ms at every bit rate, as a track
-    does* in
-    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+    [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb), and *lays
+    a track written in another zone out again as a turn at the zone
+    written* and *writes a turn of SYNC that reads back without a break*
+    in [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+- A disk made from a `.d64` starts sector 0 of each track where the DOS's
+  `N:` leaves it: track 1 at the index angle, and each track after it
+  round from the last by the skew `N:` leaves in its zone, 0.6869 of a
+  turn in zone 3, 0.8915 in zone 2, 0.0897 in zone 1 and 0.2916 in zone
+  0. Those are measured off a disk formatted here with `N:`.
+  - Pinned by `drive/skew/skew1`, which expects a `.d64` to read with
+    the skew a DOS format leaves. With every track starting sector 0 at
+    the same angle it read `kernal format, tracks are aligned`
+    (`exit=$ff`).
+  - The skew moves which block the DOS meets first on each track, and
+    `drive/scanner`'s three error-map rows (`scanner35e`, `40e`, `42e`)
+    read track 4's error 22 only when the header comes first. They pass
+    with this skew at 300 rpm. With the rate selected turning the disk,
+    the same skew made them read track 4 as error 27, which is why
+    `skew1` failed before.
+  - Spec guard: *starts sector 0 of track N where the DOS's N: leaves
+    it* in [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
 - The CPU sees BYTE READY on SO a cycle late: BYTE READY sets V for the
   next cycle's instruction step, not the one in the cycle it falls in.
   - Pinned by `drive/hls-protection`. Its drive code counts the bytes

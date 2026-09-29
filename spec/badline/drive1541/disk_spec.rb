@@ -33,9 +33,22 @@ describe Badline::Drive1541::Disk do
 
   after { FileUtils.remove_entry(dir) }
 
-  # Each block on a track, in the order the head meets them: the bytes
-  # after each SYNC mark, decoded, sized by the ID they start with.
+  # Where sector 0's SYNC mark starts on a track.
+  def sector_zero(track_bytes)
+    doubled = track_bytes + track_bytes
+    (0...track_bytes.length).find do |i|
+      header = doubled[i - 1] != 0xff && doubled[i, 5] == [0xff] * 5 && gcr.decode(doubled[i + 5, 5])
+      header && header[0] == 0x08 && header[2].zero?
+    end
+  end
+
+  # A track's bytes from sector 0 on.
+  def from_sector_zero(track_bytes) = track_bytes.rotate(sector_zero(track_bytes))
+
+  # Each block on a track, from sector 0 on: the bytes after each SYNC
+  # mark, decoded, sized by the ID they start with.
   def blocks(track_bytes)
+    track_bytes = from_sector_zero(track_bytes)
     found = []
     i = 0
     while i < track_bytes.length
@@ -101,8 +114,20 @@ describe Badline::Drive1541::Disk do
   end
 
   it "fills the rest of the track with gap bytes" do
-    bytes = disk.track(70).bytes
+    bytes = from_sector_zero(disk.track(70).bytes)
     expect(bytes.last(10)).to eq([0x55] * 10)
+  end
+
+  # Pinned by drive/skew/skew1, which expects a .d64 to read with the
+  # skew a DOS format leaves. See "1541 disk mechanism" in
+  # doc/pinned-behaviour.md.
+  {
+    2 => 7692 * 6869 / 10_000, 3 => 7692 * 3738 / 10_000,
+    19 => 7142 * 7734 / 10_000, 26 => 6666 * 4103 / 10_000, 32 => 6250 * 3523 / 10_000
+  }.each do |track, start|
+    it "starts sector 0 of track #{track} where the DOS's N: leaves it" do
+      expect(sector_zero(disk.track(track * 2).bytes)).to eq(start)
+    end
   end
 
   it "puts every sector of a track in, once" do

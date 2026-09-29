@@ -32,6 +32,12 @@ module Badline
         end
       end
 
+      # How far round the DOS's N: starts each track from the one before,
+      # in each zone, in 1/10000 of a turn: it steps in and starts writing
+      # the next track that long after it started the last.
+      SKEWS = [2916, 897, 8915, 6869].freeze
+      SKEW_TURN = 10_000
+
       SYNC_LENGTH = 5
       HEADER_GAP = 9
       GAP = 0x55
@@ -51,13 +57,14 @@ module Badline
         from_d64(Storage::D64Image.new(path, read_only:))
       end
 
-      # A disk from a G64 image, each half track as the image stores it.
-      # Flushing it writes the tracks back as they are.
+      # A disk from a G64 image, each half track as the image stores it,
+      # with its speed map. Flushing it writes the tracks back as they are.
       def self.from_g64(image)
         disk = new(image)
         (Mechanism::MIN_HALF_TRACK..MAX_HALF_TRACK).each do |half_track|
-          track = image.track(half_track - Mechanism::MIN_HALF_TRACK)
-          disk.write(half_track, Track.new(*track)) if track
+          entry = half_track - Mechanism::MIN_HALF_TRACK
+          track = image.track(entry)
+          disk.write(half_track, Track.new(*track, image.speeds(entry))) if track
         end
         disk
       end
@@ -68,13 +75,20 @@ module Badline
       # way that DOS error would read. The table's other codes, 24, 25, 26
       # and 28, describe write or decoding faults the layout can't carry,
       # so their blocks are written good and read without an error.
+      #
+      # Each track starts sector 0 at the angle the DOS's N: leaves it: track
+      # 1 at the index angle, and each track after it SKEWS[zone] of a turn
+      # round from the last.
       def self.from_d64(image)
         track, sector = image.header_block
         header = image.read_block(track, sector)
         id = [header[0xa2], header[0xa3]]
         disk = new(image)
+        angle = 0
         (1..image.track_count).each do |track|
-          disk.write(track * 2, Track.new(format_track(image, track, id), zone(track)))
+          angle = (angle + SKEWS[zone(track)]) % SKEW_TURN if track > 1
+          bytes = format_track(image, track, id)
+          disk.write(track * 2, Track.new(bytes.rotate(-(bytes.length * angle / SKEW_TURN)), zone(track)))
         end
         disk
       end

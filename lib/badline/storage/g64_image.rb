@@ -17,13 +17,14 @@ module Badline
     #
     # A speed entry of 0 to 3 is the zone the whole track was written in.
     # A larger one is the offset of a speed map, two bits a byte, four
-    # track bytes to a map byte, for a track whose zone changes along it.
-    # The drive's bit rate is whatever the DOS selects, so a track keeps
-    # only the zone most of its bytes were written in.
+    # track bytes to a map byte, the first byte's in the top two bits, for
+    # a track whose zone changes along it. The drive passes each byte
+    # under the head at its own zone's rate (Drive1541::Track).
     #
-    # Writing a track back puts it in its own block, where it fits, and
-    # otherwise appends a block to the file for it, as for a half track
-    # that had no data. A track longer than the header's longest raises
+    # The drive writes a track at one zone, so a track written back takes
+    # that zone as its speed entry. Writing it puts it in its own block,
+    # where it fits, and otherwise appends a block to the file for it, as
+    # for a half track that had no data. A track longer than the header's longest raises
     # it, so the header stays true of every block. A half track beyond
     # the tables stays on the disk alone. One opened with `read_only` is a
     # write-protected disk, and the host file is never written.
@@ -78,7 +79,8 @@ module Badline
       def writable? = !read_only? && File.writable?(@path)
 
       # The track at table entry +entry+ (0 for track 1) as [bytes, zone],
-      # or nil where it has no data.
+      # or nil where it has no data. A speed-mapped track's zone is the one
+      # most of its bytes were written in.
       def track(entry)
         offset = @offsets[entry].to_i
         return if offset.zero?
@@ -86,12 +88,22 @@ module Badline
         length = block_length(offset)
         return if length.zero?
 
-        [@data.byteslice(offset + 2, length).bytes, zone(entry, length)]
+        speeds = mapped_speeds(entry, length)
+        [@data.byteslice(offset + 2, length).bytes, speeds ? majority(speeds) : @speeds[entry]]
+      end
+
+      # Each byte's zone of the track at table entry +entry+, where its
+      # speed map changes along it, and nil otherwise.
+      def speeds(entry)
+        offset = @offsets[entry].to_i
+        return if offset.zero?
+
+        speeds = mapped_speeds(entry, block_length(offset))
+        speeds unless speeds.nil? || speeds.uniq.one?
       end
 
       # Stores tracks the drive wrote, {entry => [bytes, zone]}, in one
-      # write to the host file. A track keeps its speed entry when it
-      # keeps its block, and a new block takes the track's zone.
+      # write to the host file. Each takes its zone as its speed entry.
       def store_tracks(tracks)
         raise WriteError, WriteError::WRITE_PROTECT_ON unless writable?
 
@@ -156,15 +168,20 @@ module Badline
         end
       end
 
-      # The zone of the track: its speed entry, or the zone most of its
-      # bytes were written in when that's a map.
-      def zone(entry, length)
+      # Each byte's zone from the track's speed map, or nil where its speed
+      # entry is a zone.
+      def mapped_speeds(entry, length)
         speed = @speeds[entry]
-        return speed if speed <= 3
+        return if speed <= 3
 
         map = @data.byteslice(speed, (length + 3) / 4).to_s.bytes
+        Array.new(length) { |index| (map[index >> 2] >> (6 - ((index & 3) * 2))) & 3 }
+      end
+
+      # The zone most of the bytes were written in.
+      def majority(speeds)
         counts = [0, 0, 0, 0]
-        map.each { |byte| 4.times { |i| counts[(byte >> (i * 2)) & 3] += 1 } }
+        speeds.each { |zone| counts[zone] += 1 }
         counts.index(counts.max)
       end
 
@@ -174,10 +191,10 @@ module Badline
           offset = data.bytesize
           grow(data, bytes.length)
           data << self.class.block(bytes, @max_track_size)
-          set_entry(data, entry, offset, zone)
         else
           data[offset, bytes.length + 2] = [bytes.length].pack("v") + bytes.pack("C*")
         end
+        set_entry(data, entry, offset, zone)
       end
 
       # The most bytes the block at +offset+ holds without running into

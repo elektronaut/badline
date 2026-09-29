@@ -20,7 +20,7 @@ drive/scanner/scanner42e.prg	PASS
 drive/scanner/scanner35.prg	PASS
 drive/scanner/scanner40.prg	PASS
 drive/scanner/scanner42.prg	PASS
-drive/skew/skew1.prg	FAIL	exit=$ff
+drive/skew/skew1.prg	PASS
 drive/skew/skew2.prg	PASS
 drive/selftest/selftest.prg	PASS
 drive/openbus/openbus.prg	PASS
