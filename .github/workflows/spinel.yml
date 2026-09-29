@@ -112,6 +112,42 @@ jobs:
             theirs = Badline::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             puts "restored and ran on to cycle #{again.cycles} as CRuby does"'
+      # Saved 200 frames in, the true drive is loading the program the
+      # machine autostarts, with its motor running.
+      - name: Save and restore a snapshot with the true drive
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          bundle exec ruby -Ilib -e '
+            require "badline"
+            require "./spec/support/blank_disk"
+            require "./spec/support/snapshot_scenarios"
+            include BlankDisk
+            blank_d64("tmp/native/demo.d64")
+            program = SnapshotScenarios::DEMO_PRG + Array.new(6000) { |i| i & 0xff }
+            Badline::Storage::D64Image.new("tmp/native/demo.d64").write_file("DEMO", program)'
+          tmp/native/badline tmp/native/demo.d64 --true-drive --frames 200 --unpaced \
+            --save-snapshot tmp/native/drive.vsf 2> tmp/native/drive-save.err
+          tmp/native/badline tmp/native/drive.vsf --frames 100 --unpaced \
+            --save-snapshot tmp/native/drive-again.vsf 2> tmp/native/drive-restore.err
+          cat tmp/native/drive-save.err tmp/native/drive-restore.err
+          test ! -s tmp/native/drive-save.err && test ! -s tmp/native/drive-restore.err
+          bundle exec ruby --yjit -Ilib -e '
+            require "badline"
+            saved = Badline::Snapshot.load("tmp/native/drive.vsf")
+            again = Badline::Snapshot.load("tmp/native/drive-again.vsf")
+            abort "the snapshot has no true drive" unless saved.drive1541 && again.drive1541
+            abort "the drive was not loading when saved" unless saved.drive1541.mechanism.motor_on?
+            (again.cycles - saved.cycles).times { saved.cycle! }
+            ours = Badline::Checkpoint.take(saved)
+            theirs = Badline::Checkpoint.take(again)
+            abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
+            drive = ->(machine) { [machine.drive1541.cpu.program_counter, machine.drive1541.cycles,
+                                   machine.drive1541.bus.ram.read(0, 0x800)] }
+            abort "the restored native drive ran on differently" unless drive.call(saved) == drive.call(again)
+            puts "restored mid-load and ran on to cycle #{again.cycles} with the drive as CRuby does"'
       - name: Upload the screenshot
         uses: actions/upload-artifact@v4
         with:
