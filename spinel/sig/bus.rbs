@@ -53,4 +53,14 @@ module Badline
     def peek: (Integer) -> Integer
     def poke: (Integer, Integer) -> void
   end
+
+  class REU
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+
+    class Trigger
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+  end
 end

@@ -45,6 +45,7 @@ module Badline
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
                 --true-drive                 Put a true 1541 on device 8 instead of the KERNAL traps
+                --reu SIZE                   Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384
                 --ntsc                       Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one
                 --no-vsync                   Pace frames by the timer or the sound instead of the display
                 --verbose                    Print the display, sound and gamepad setup and the frame timing

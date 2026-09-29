@@ -55,6 +55,13 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the REU" do
+    it "fits the machine with one of the size asked for" do
+      described_class.new(machine: { reu: 256 })
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581, reu: 256)
+    end
+  end
+
   describe "the true drive" do
     it "plugs a 1541 in as device 8" do
       described_class.new(machine: { true_drive: true })

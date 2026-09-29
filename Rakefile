@@ -70,8 +70,11 @@ REGRESSION_SUITES = {
 # port and emu-fuxxor's checks.
 # testbench-expansions is the testlist's rows that ask for a memory
 # expansion badline emulates, from whichever subtree lists them: the
-# geo512k rows on a machine with a 512K GEO-RAM, and the plus60k and
-# plus256k rows on a machine with that RAM expansion fitted.
+# geo512k rows on a machine with a 512K GEO-RAM, the plus60k and plus256k
+# rows on a machine with that RAM expansion fitted, and the REU rows on a
+# machine with an REU of the size each asks for. REU/floatingbus/floating3b
+# is left out: it never reports, and would spend most of the suite's time
+# running out its 1.5 billion cycles.
 # testbench-drive is the testlist's drive/ rows, and the included subtrees'
 # mountd64 ones, on a machine with a true 1541, which needs the DOS ROM.
 # drive/1541-testsuite, about twelve hours a row, is left out of it.
@@ -92,7 +95,8 @@ OPT_IN_SUITES = {
   "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
   "testbench-vicii-new" => { runner: "bin/testbench", args: %w[--vicii-new] },
   "testbench-general" => { runner: "bin/testbench", scope: "C64/,general/" },
-  "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions] },
+  "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions],
+                              exclude: "REU/floatingbus/floating3b" },
   "testbench-drive" => { runner: "bin/testbench", args: %w[--drive], spinel: false },
   "testbench-ntsc" => { runner: "bin/testbench", args: %w[--ntsc] },
   "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },

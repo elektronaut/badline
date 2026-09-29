@@ -161,6 +161,14 @@ describe Badline::Options do
         expect(options.sid_model).to eq(:mos8580)
       end
     end
+
+    context "with an REU" do
+      let(:argv) { ["--reu", "512", program_path] }
+
+      it "takes its size in K" do
+        expect(options.reu).to eq(512)
+      end
+    end
   end
 
   describe "the song" do
@@ -248,6 +256,7 @@ describe Badline::Options do
       "a missing tune" => [%w[--headless missing.sid], /no such file or directory: missing\.sid/],
       "no tune without the window" => [%w[--headless], /no tune/],
       "an unknown SID" => [%w[--sid 6582], /6582/],
+      "an unknown REU size" => [%w[--reu 100], /100/],
       "an unknown option" => [%w[--loud], /--loud/]
     }.each do |name, (args, message)|
       context "with #{name}" do
@@ -293,12 +302,12 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound --read-only --verbose --true-drive].each do |arg|
+    %w[--no-autostart --sound --read-only --verbose --true-drive --reu=512].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 
         it "raises" do
-          expect { options }.to raise_error(described_class::Error, /#{arg} needs the window/)
+          expect { options }.to raise_error(described_class::Error, /#{arg.split('=').first} needs the window/)
         end
       end
     end

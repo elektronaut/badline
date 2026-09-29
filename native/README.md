@@ -146,6 +146,8 @@ render a `.sid` tune without it, as described under
   traps, as in `exe/badline-ruby`: a `.d64` or `.g64` goes into it and
   autostarts through its DOS, and its LED lights in the bottom right
   corner of the border. A `.g64` plugs one in without it.
+- `--reu SIZE` plugs in a RAM Expansion Unit of SIZE K, from 128 up to
+  16384, as in `exe/badline-ruby`.
 - `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II, instead of a PAL
   one. Its 235 lines sit in the middle of the window, which keeps PAL's
   272, between black bands.
@@ -213,8 +215,9 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
-The window's options, `--no-sound`, `--no-vsync`, `--true-drive`, `--ntsc`,
-`--verbose` and the testing ones included, are refused with them.
+The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
+`--reu`, `--ntsc`, `--verbose` and the testing ones included, are refused
+with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the

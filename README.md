@@ -69,8 +69,9 @@ from it. `--no-autostart` attaches the media and stops at `READY.`, so
 you can type the `LOAD` yourself. `--read-only` mounts a disk image
 write-protected, so the drive reports `26,WRITE PROTECT ON` for any
 write and the image file stays as it was. `--song N` picks a subtune of a
-`.sid` file and `--sid 8580` fits the newer SID. `--ntsc` runs an NTSC
-C64, with the 6567R8 VIC-II, instead of a PAL one. `badline-ruby` also
+`.sid` file, `--sid 8580` fits the newer SID and `--reu 512` plugs in a
+512K RAM Expansion Unit. `--ntsc` runs an NTSC C64, with the 6567R8
+VIC-II, instead of a PAL one. `badline-ruby` also
 takes `--disable-jit`, which runs without YJIT, otherwise switched on at
 startup. `--help` lists the options.
 
@@ -155,8 +156,8 @@ badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slo
 ```
 
 Both modes take the same options. The window's own, `--no-autostart`,
-`--read-only`, `--sound`, `--true-drive`, `--ntsc` and `--verbose`, don't apply
-to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
+`--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
+`--verbose`, don't apply to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
 does, and defaults to the tune's own start song. Playback asks the
 device for 44.1 kHz and takes whatever rate it offers, unless `--rate`
 says otherwise. Ctrl-C stops it.
@@ -270,6 +271,11 @@ while it's off.
   and the RC network on the board that removes the DC offset from the
   output. The machine has a 6581 unless a `.sid` tune asks for an 8580
   in its header, and `--sid 6581` or `--sid 8580` overrides either.
+- **REU**: the 1700, 1764 and 1750 RAM Expansion Units, and the bigger
+  units up to 16M built on the same REC chip, with DMA timed against the
+  VIC's bad lines and sprites. `--reu SIZE` plugs one in, and
+  `Badline::Computer.new(reu: 512)` does the same from Ruby. An
+  REU beside a cartridge loses I/O 2 to the cartridge.
 - **Datasette**: `.tap` playback into CIA 1's FLAG line, with the motor
   and sense lines on the 6510 port.
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
@@ -303,7 +309,7 @@ Known gaps:
 - Without `--true-drive`, fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). The command channel
   doesn't rename, copy, format or validate disks.
-- No REU, and no PAL-N (Drean) machine.
+- No PAL-N (Drean) machine.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
 

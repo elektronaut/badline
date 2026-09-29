@@ -26,11 +26,12 @@ module Testbench
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
   # the test asks for. expansion is the testlist option naming a memory
-  # expansion fitted before power-on, or nil for none, and region names
-  # the video standard, :pal, :ntsc or :ntscold.
+  # expansion fitted before power-on, a GEO-RAM, a RAM expansion or an
+  # REU, or nil for none, and region names the video standard, :pal,
+  # :ntsc or :ntscold.
   def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil, region: :pal)
     computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
-                                     region: region_profile(region))
+                                     reu: reu_size(expansion), region: region_profile(region))
     computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
@@ -42,6 +43,15 @@ module Testbench
     when "plus60k" then :plus60k
     when "plus256k" then :plus256k
     end
+  end
+
+  # The size in K of the REU an expansion option plugs in, reu128k to
+  # reu16m, if it names one.
+  def self.reu_size(expansion)
+    return unless expansion&.start_with?("reu")
+
+    size = expansion[3, expansion.length - 4].to_i
+    expansion.end_with?("m") ? size * 1024 : size
   end
 
   # The region profile a video standard names.

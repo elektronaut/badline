@@ -227,6 +227,16 @@ module Badline
         @column > DisplayState::DMA_FIRST && @column <= DisplayState::DMA_LAST + 1
     end
 
+    # BA as an REU's DMA sees it. On the line whose raster matches sprite
+    # 0's Y, where the sprite's DMA starts, the REU doesn't see BA fall on
+    # the first cycle of the sprite's window. Pinned by
+    # REU/bonzai/spritetiming.
+    def reu_ba_low?
+      return false if @column == SPRITE_BA_FIRST + @sprite_shift && sprite_zero_starting?
+
+      ba_low?
+    end
+
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.
     def lightpen_level(high)
       @lp_low = !high
@@ -391,6 +401,10 @@ module Badline
       @registers.write(0x13, lpx & 0xff)
       @registers.write(0x14, line & 0xff)
       @registers.latch_irq!(LIGHTPEN_IRQ)
+    end
+
+    def sprite_zero_starting?
+      @registers[0x15].anybits?(0x01) && @registers[0x01] == (@rasterline & 0xff)
     end
 
     def rebuild_sprite_ba

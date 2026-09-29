@@ -28,10 +28,10 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      # The machine options (sid_model:, true_drive:, ntsc:) build the
-      # machine: true_drive puts a true 1541 on device 8, and ntsc makes it
-      # an NTSC C64. The media options (autostart:, song:, disk:) go to
-      # Media.attach.
+      # The machine options (sid_model:, reu:, true_drive:, ntsc:) build
+      # the machine: reu plugs in an REU of that many K, true_drive puts a
+      # true 1541 on device 8, and ntsc makes it an NTSC C64. The media
+      # options (autostart:, song:, disk:) go to Media.attach.
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
         @computer = Computer.new(**machine_options(machine, media_path))
@@ -170,7 +170,7 @@ module Badline
       end
 
       def machine_options(machine, media_path)
-        options = { sid_model: machine[:sid_model] || Media.sid_model(media_path) }
+        options = { sid_model: machine[:sid_model] || Media.sid_model(media_path), **machine.slice(:reu) }
         options[:region] = Region::NTSC if machine[:ntsc]
         options
       end

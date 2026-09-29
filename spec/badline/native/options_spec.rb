@@ -40,6 +40,10 @@ describe Badline::Native::Options do
     it "leaves the SID model and the song to the media" do
       expect([options.sid_model, options.song]).to eq([nil, nil])
     end
+
+    it "plugs in no REU" do
+      expect(options.reu).to be_nil
+    end
   end
 
   it "takes the media" do
@@ -60,6 +64,10 @@ describe Badline::Native::Options do
 
   it "picks the 6581 with --sid=6581" do
     expect(parse("--sid=6581").sid_model).to eq(:mos6581)
+  end
+
+  it "plugs in an REU of the size asked for" do
+    expect(parse("--reu", "512").reu).to eq(512)
   end
 
   it "takes a song" do
@@ -124,7 +132,7 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --true-drive --ntsc --sound --no-sound --no-vsync --verbose --help --version
+    %w[--song --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help --version
        --frames --unpaced --screenshot --headless --audio-out --seconds --songlengths
        --rate --filter-chunk --quiet --no-tui].each do |flag|
       expect(described_class::HELP).to include(flag)
@@ -205,6 +213,7 @@ describe Badline::Native::Options do
       %w[--headless --sound] => "--sound needs the window",
       %w[--headless --no-autostart] => "--no-autostart needs the window",
       %w[--headless --read-only] => "--read-only needs the window",
+      %w[--headless --reu 512] => "--reu needs the window",
       %w[--headless --no-sound] => "--no-sound needs the window",
       %w[--headless --verbose] => "--verbose needs the window",
       %w[--headless --true-drive] => "--true-drive needs the window",
@@ -230,6 +239,7 @@ describe Badline::Native::Options do
   {
     %w[--turbo] => "invalid option: --turbo",
     %w[--sid 6582] => "invalid argument: --sid 6582",
+    %w[--reu 100] => "invalid argument: --reu 100",
     %w[--song two] => "invalid argument: --song two",
     %w[--song 0] => "invalid argument: --song 0",
     %w[--frames -1] => "invalid argument: --frames -1",

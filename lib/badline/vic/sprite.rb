@@ -158,9 +158,10 @@ module Badline
       # MCBASE, and returns true. Display is enabled separately in cycle 58,
       # so the rows render from the following line on.
       #
-      # On the VIC's side, BA falls at the sprite's own column — 55 for
-      # sprite 0, two later for each sprite after it, a column behind the
-      # window the CPU sees in VIC::SPRITE_BA_WINDOWS — or two columns after
+      # On the VIC's side, BA falls at the sprite's own column
+      # (Timing#ba_column) — 55 for sprite 0 on the 6569, two later for each
+      # sprite after it, a column behind the window the CPU sees
+      # (VIC#layout_columns) — or two columns after
       # this compare, whichever is later. AEC follows three columns on, and
       # the first of the three s-accesses runs in the column it arrives in:
       # a DMA starting on the second compare therefore loses that access for
