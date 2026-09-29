@@ -98,6 +98,23 @@ describe Badline::Storage::T64 do
     end
   end
 
+  describe "#directory" do
+    before do
+      bytes[0x28, 24] = "MY TAPE".bytes + ([0x20] * 17)
+      File.binwrite(path, bytes.pack("C*"))
+    end
+
+    it "lists the tape's name" do
+      expect(archive.directory.name).to eq("MY TAPE".bytes + ([0xa0] * 9))
+    end
+
+    it "lists each file as a PRG of the blocks it takes with its load address" do
+      expect(archive.directory.entries.map(&:to_h)).to eq(
+        [{ name: "DATA".bytes + ([0xa0] * 12), type: 2, blocks: 2, closed: true, locked: false }]
+      )
+    end
+  end
+
   describe ".new" do
     it "rejects a file without the signature" do
       File.binwrite(path, "NOTAT64" * 16)
