@@ -182,7 +182,10 @@ jobs:
 
   # Every regression suite on the Spinel build, each compared against its
   # baseline in test/baselines/. The shards are balanced by recent run
-  # times. testbench-irqdma is split by filter and lorenz by stretch.
+  # times to about 10 minutes each. testbench-irqdma is split by filter
+  # and lorenz by stretch. A runner has 2 cores with 2 threads each, so a
+  # Lorenz stretch runs nearly twice as fast beside one other as beside
+  # three.
   suites:
     name: "Suites (${{ matrix.shard }})"
     needs: compiler
@@ -192,45 +195,45 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: lorenz-1
+          - shard: lorenz-1-2
             harnesses: lorenz
-            tasks: spinel:lorenz[1]
-          - shard: lorenz-2-3
+            tasks: spinel:lorenz[1,2]
+          - shard: lorenz-3-4
             harnesses: lorenz
-            tasks: spinel:lorenz[2,3]
-          - shard: lorenz-4
-            harnesses: lorenz
-            tasks: spinel:lorenz[4]
-          - shard: irqdma-b
+            tasks: spinel:lorenz[3,4]
+          - shard: irqdma-1
             harnesses: testbench
             tasks: spinel:testbench[testbench-irqdma,b.prg]
-          - shard: irqdma
+          - shard: irqdma-2
             harnesses: testbench
             tasks: >-
               spinel:testbench[testbench-irqdma,test1.prg,test2.prg,test3.prg,test4.prg,test5.prg,test6.prg,test7.prg]
-          - shard: cia-new
-            harnesses: testbench
-            tasks: spinel:testbench[testbench-cia-new]
           - shard: cia
             harnesses: testbench
             tasks: spinel:testbench[testbench-cia]
+          - shard: cia-new
+            harnesses: testbench
+            tasks: spinel:testbench[testbench-cia-new]
           - shard: expansions
             harnesses: testbench
-            tasks: spinel:testbench[testbench-expansions] spinel:testbench[testbench]
-          - shard: cpu
-            harnesses: testbench
             tasks: >-
-              spinel:testbench[testbench-cpu]
-              spinel:testbench[testbench-ntsc]
-              spinel:testbench[testbench-ntsc-vicii-new]
-              spinel:testbench[testbench-ntsc-cia-new]
-              spinel:testbench[testbench-carts]
+              spinel:testbench[testbench-expansions]
               spinel:testbench[testbench-vicii-new]
               spinel:testbench[testbench-general]
               spinel:testbench[testbench-interrupts]
-          - shard: sid
-            harnesses: sidtests boot cpu_tests
-            tasks: spinel:sidtests[6581] spinel:sidtests[8580] spinel:check
+              spinel:testbench[testbench-ntsc-cia-new]
+          - shard: vicii-cpu
+            harnesses: testbench
+            tasks: spinel:testbench[testbench] spinel:testbench[testbench-cpu]
+          - shard: sid-ntsc
+            harnesses: testbench sidtests boot cpu_tests
+            tasks: >-
+              spinel:sidtests[6581]
+              spinel:sidtests[8580]
+              spinel:check
+              spinel:testbench[testbench-ntsc]
+              spinel:testbench[testbench-ntsc-vicii-new]
+              spinel:testbench[testbench-carts]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -245,7 +248,6 @@ jobs:
         run: |
           echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
           echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
-          lscpu | grep -E '^(Model name|Thread|Core|Socket|CPU\(s\))'
           printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
       - name: Restore Spinel
         uses: actions/cache/restore@v4
