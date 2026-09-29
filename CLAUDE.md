@@ -48,6 +48,7 @@ requires only the namespace file.
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, and the true 1541 drive with `--drive` |
 | VICE SID testprogs | `bin/sidtests` | SID |
+| Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
 The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
@@ -190,7 +191,7 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
 `testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K,
 +256K, the REU or the VIC's BA line the REU follows → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
-`testbench-drive` (`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-drive` (`bin/testbench --drive`) and `drive-scenarios` (`bin/drive_scenarios <filter>`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
