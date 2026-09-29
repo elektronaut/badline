@@ -556,58 +556,6 @@ describe Badline::Media do
     end
   end
 
-  # SAVE goes through the DOS to a disk put in write-protected, which
-  # answers 26,WRITE PROTECT ON and leaves the file alone.
-  describe ".attach with a true drive and --read-only", :slow do
-    include BlankDisk
-
-    let(:path) { blank_d64(File.join(dir, "disk.d64")) }
-    let(:output) { computer.capture_output }
-
-    def saved?
-      computer.on_init { computer.type_text(%(10 print\rsave"x",8\r)) }
-      100_000.times { computer.cycle! } until done_saving?
-      computer.drive1541.flush
-      output.output.upcase.include?("SAVING")
-    end
-
-    def done_saving? = output.output.upcase.scan("READY.").size >= 2 || computer.cycles > 40_000_000
-
-    before do
-      output
-      described_class::TrueDrive.plug(computer)
-      described_class.attach(computer, path, autostart: false, disk: { read_only: true })
-    end
-
-    it "leaves the image file unchanged after a SAVE" do
-      before = File.binread(path)
-      expect([saved?, File.binread(path) == before]).to eq([true, true])
-    end
-  end
-
-  describe ".attach with a true drive and the DOS ROM", :slow do
-    include BlankDisk
-
-    # 10 PRINT"TRUE DRIVE"
-    let(:program) { [0x01, 0x08, 0x13, 0x08, 0x0a, 0x00, 0x99, 0x22, *"TRUE DRIVE".bytes, 0x22, 0x00, 0x00, 0x00] }
-    let(:output) { computer.capture_output }
-
-    def printed?(text) = output.output.upcase.include?(text)
-
-    before do
-      path = blank_d64(File.join(dir, "disk.d64"))
-      Badline::Storage::D64Image.new(path).write_file("hello", program)
-      output
-      described_class::TrueDrive.plug(computer)
-      described_class.attach(computer, path)
-    end
-
-    it "autostarts the first program on the disk" do
-      100_000.times { computer.cycle! } until printed?("TRUE DRIVE\n") || computer.cycles > 30_000_000
-      expect(output.output.upcase).to include("LOADING").and include("TRUE DRIVE\n")
-    end
-  end
-
   describe ".insert_disk with a true drive" do
     include BlankDisk
 

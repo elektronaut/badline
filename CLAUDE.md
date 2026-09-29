@@ -173,8 +173,9 @@ the rows your change can't reach tell you nothing about it.
 - For a change whose reach you can't bound to a set of filters, such as
   reordering `Computer#cycle!` or changing the LOAD trap every suite loads
   through, push and let CI run the suites
-- `testbench-drive` needs the true drive, which the Spinel build doesn't
-  have, so CI leaves it out. Run the rows your change can reach locally
+- `testbench-drive` needs the true drive, which the Spinel testbench
+  harness doesn't have, so CI leaves it out. Run the rows your change can
+  reach locally
 - The Regression workflow runs the suites on CRuby, started by hand from
   the Actions tab, for a person checking that CRuby and Spinel agree.
   Agents don't start it

@@ -234,6 +234,13 @@ jobs:
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
               spinel:testbench[testbench-carts]
+          # Five rows fail at this SPINEL_REF, from Spinel bugs in the .d64
+          # write path. Drop allow-failure once SPINEL_REF has the fixes.
+          - shard: drive-scenarios
+            harnesses: drive_scenarios
+            tasks: spinel:drive_scenarios
+            allow-failure: true
+    continue-on-error: ${{ matrix.allow-failure == true }}
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -280,8 +287,8 @@ jobs:
           start=$SECONDS
           bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: ENV["HARNESSES"].split)'
           echo "| Build $HARNESSES | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
-      # The testbench and SID tasks run SHARDS processes, set to the core
-      # count, and spinel:lorenz runs its stretches side by side. A task
+      # The testbench, SID and drive scenario tasks run SHARDS processes, set
+      # to the core count, and spinel:lorenz runs its stretches side by side. A task
       # that fails leaves the next to run, and the step fails at the end.
       - name: Run the suites
         env:

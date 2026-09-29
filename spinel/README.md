@@ -26,6 +26,10 @@ CRuby.
   `bin/testbench` (`test/testbench_machine.rb`) and prints what each test
   left behind, for `bin/testbench` to score. See
   [The testbench](#the-testbench) below.
+- `drive_scenarios.rb` runs the true-drive scenarios with the same code
+  as `bin/drive_scenarios` (`test/drive_scenarios.rb`) and prints a
+  baseline row per check. See [The drive scenarios](#the-drive-scenarios)
+  below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
 - `check.rb` and `sidtests_check.rb` back the rake tasks below.
 
@@ -234,6 +238,42 @@ record, so it can be compiled as an extension later.
 ```sh
 spinel -I lib --no-line-map --rbs spinel/sig spinel/testbench.rb -o tmp/spinel/testbench
 ruby --yjit bin/testbench --engine tmp/spinel/testbench VICII/spritegap/spritegap3.prg
+```
+
+## The drive scenarios
+
+```sh
+rake spinel:drive_scenarios
+```
+
+`spinel:drive_scenarios` builds `drive_scenarios` and runs the true-drive
+scenarios on it, compared against `test/baselines/drive-scenarios.txt` as
+`rake regression:drive-scenarios` compares `bin/drive_scenarios`' rows. The
+scenarios are a C64 and a true 1541 running the DOS ROM: saving a program
+and loading it back, formatting a disk, reading the power-on message from
+the error channel, two drives idling side by side, a SAVE to a
+write-protected disk, and an autostart. Each takes tens of millions of
+cycles with two CPUs.
+
+The task runs `bin/drive_scenarios --engine tmp/spinel/drive_scenarios`,
+which starts one build process per scenario, up to `SHARDS` (4) at once,
+each with a scratch directory for the disk images it writes:
+
+```
+drive_scenarios DIR SCENARIO...
+```
+
+The compiled binary runs each scenario with `DriveScenarios.run` from
+`test/drive_scenarios.rb`, the code `bin/drive_scenarios` runs on CRuby, and
+prints its rows in the baseline format, one per check. `bin/drive_scenarios`
+puts them in scenario order and gives a scenario whose process fails a
+`crashed` row for each check it didn't report.
+
+To run scenarios by hand:
+
+```sh
+spinel -I lib --no-line-map --rbs spinel/sig spinel/drive_scenarios.rb -o tmp/spinel/drive_scenarios
+ruby --yjit bin/drive_scenarios --engine tmp/spinel/drive_scenarios save idle
 ```
 
 ## The native badline

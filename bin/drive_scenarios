@@ -1,0 +1,180 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Headless runner for the true-drive scenarios in test/drive_scenarios.rb:
+# the C64 and a true 1541 running the real DOS ROM through a save, a
+# format, the error channel, the idle loop, a write-protected disk and an
+# autostart.
+#
+#   ruby --yjit bin/drive_scenarios [filter...] [--list] [--results PATH]
+#                                   [--shards N] [--engine BINARY]
+#
+# Each scenario runs in a process of its own, spinel/drive_scenarios.rb on
+# CRuby, with up to --shards of them side by side (SHARDS in the
+# environment, 4 by default, capped by the core count). --engine runs a
+# Spinel build of spinel/drive_scenarios.rb in their place, so the rows
+# come from the same code either way. Each process gets a scratch
+# directory for the disk images it writes.
+#
+# A scenario prints one tab-separated "scenario/check STATUS [detail]"
+# record per check, the baseline format `rake regression:drive-scenarios`
+# diffs against test/baselines/drive-scenarios.txt. With --results, the
+# records are written to PATH in scenario order. A scenario whose process
+# fails gets a FAIL row for each check it didn't report. Filters are
+# scenario name substrings matched as a union; one that matches nothing is
+# an error rather than an empty run.
+
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "etc"
+require "fileutils"
+require "tmpdir"
+require_relative "../test/drive_scenarios"
+
+module DriveScenarios
+  HARNESS = File.expand_path("../spinel/drive_scenarios.rb", __dir__)
+  DEFAULT_SHARDS = 4
+
+  module_function
+
+  # Removes "--name value" or "--name=value" from argv, returning the value.
+  def take_option(argv, name)
+    index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
+    return unless index
+
+    arg = argv.delete_at(index)
+    arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
+  end
+
+  def shard_count(requested)
+    count = (requested || ENV.fetch("SHARDS", nil)).to_i
+    count = DEFAULT_SHARDS unless count.positive?
+    [count, Etc.nprocessors].min
+  end
+
+  def selected(filters)
+    return CHECKS.keys if filters.empty?
+
+    CHECKS.keys.select { |name| filters.any? { |filter| name.include?(filter) } }
+  end
+
+  def unmatched(filters)
+    filters.reject { |filter| CHECKS.keys.any? { |name| name.include?(filter) } }
+  end
+
+  def command(engine, dir, name)
+    return [engine, dir, name] if engine
+
+    [RbConfig.ruby, "--yjit", "-I", File.expand_path("../lib", __dir__), HARNESS, dir, name]
+  end
+
+  # Runs the scenarios, up to shards at once, and returns their rows keyed
+  # by scenario. TERM or INT is passed on to every running scenario, and
+  # the run stops once they have.
+  def run(names, shards, engine)
+    Dir.mktmpdir("drive-scenarios") { |root| Pool.new(root, engine).run(names, shards) }
+  end
+
+  # The scenario processes running side by side.
+  class Pool
+    def initialize(root, engine)
+      @root = root
+      @engine = engine
+      @running = {}
+      @rows = {}
+      @interrupted = nil
+    end
+
+    def run(names, shards)
+      queue = names.dup
+      forwarding_signals do
+        until (queue.empty? || @interrupted) && @running.empty?
+          start(queue.shift) while @running.length < shards && !queue.empty? && !@interrupted
+          reap
+        end
+      end
+      raise Interrupt, "drive_scenarios interrupted by SIG#{@interrupted}. No results written." if @interrupted
+
+      @rows
+    end
+
+    private
+
+    def forwarding_signals
+      previous = %w[TERM INT].to_h { |signal| [signal, trap(signal) { interrupt(signal) }] }
+      yield
+    ensure
+      previous&.each { |signal, handler| trap(signal, handler) }
+    end
+
+    def start(name)
+      dir = File.join(@root, name)
+      FileUtils.mkdir_p(dir)
+      @running[Process.spawn(*DriveScenarios.command(@engine, dir, name), out: out(name))] = name
+    end
+
+    def reap
+      pid, status = Process.wait2
+      name = @running.delete(pid)
+      @rows[name] = DriveScenarios.finish(name, File.read(out(name)), status) if name
+    end
+
+    def out(name) = File.join(@root, "#{name}.out")
+
+    def interrupt(signal)
+      @interrupted ||= signal
+      @running.each_key do |pid|
+        Process.kill(signal, pid)
+      rescue Errno::ESRCH
+        nil
+      end
+    end
+  end
+
+  # The scenario's rows, with a FAIL row for each check its process didn't
+  # report.
+  def finish(name, output, status)
+    reported = output.lines.to_h { |line| [line.split("\t", 2).first, line] }
+    lines = CHECKS.fetch(name).map do |check|
+      id = "#{name}/#{check}"
+      reported.fetch(id) { "#{id}\tFAIL\tcrashed: #{status}\n" }
+    end
+    lines.each { |line| print line.tr("\t", " ") }
+    $stdout.flush
+    lines
+  end
+
+  def main(argv)
+    list_only = argv.delete("--list")
+    results_path = take_option(argv, "--results")
+    shards = shard_count(take_option(argv, "--shards"))
+    engine = take_option(argv, "--engine")
+    unmatched = unmatched(argv)
+    unless unmatched.empty?
+      warn "No scenario matches #{unmatched.join(', ')}."
+      return 2
+    end
+
+    names = selected(argv)
+    if list_only
+      puts names
+      return 0
+    end
+
+    rows = run(names, shards, engine)
+    summarize(names.flat_map { |name| rows.fetch(name) }, results_path)
+  end
+
+  # Prints the pass count and writes the results, returning the exit status.
+  def summarize(lines, results_path)
+    failed = lines.count { |line| line.split("\t")[1].chomp != "PASS" }
+    puts "#{lines.length - failed}/#{lines.length} passed"
+    if results_path
+      FileUtils.mkdir_p(File.dirname(results_path))
+      File.write(results_path, lines.join)
+    end
+    failed.zero? ? 0 : 1
+  end
+end
+
+exit DriveScenarios.main(ARGV) if $PROGRAM_NAME == __FILE__
