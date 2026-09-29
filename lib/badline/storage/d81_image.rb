@@ -11,6 +11,7 @@ module Badline
 
       def error_tables = ERROR_TABLES
 
+      def header_name = 0x04
       def directory_track = 40
       def directory_sector = 3
       def directory_interleave = 1

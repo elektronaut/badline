@@ -143,6 +143,37 @@ describe Badline::KernalTrap::Drive do
     end
   end
 
+  describe "the directory" do
+    let(:listing) do
+      Badline::Storage::Listing.new(name: Badline::Storage::Listing.encode("DISK"), id: "01 2A".bytes,
+                                    entries: [Badline::Storage::Listing.program("game", 10),
+                                              Badline::Storage::Listing.program("intro", 10)],
+                                    blocks_free: 5)
+    end
+
+    before { allow(storage).to receive(:directory).and_return(listing) }
+
+    it "reads as a BASIC listing on the LOAD channel" do
+      drive.open(0, "$")
+      expect(read_channel(0)).to eq(listing.bytes)
+    end
+
+    it "narrows to the files a pattern names" do
+      drive.open(0, "$0:i*")
+      expect(read_channel(0)).to eq(listing.bytes("$0:i*"))
+    end
+
+    it "reports OK" do
+      drive.open(0, "$")
+      expect(status).to eq("00, OK,00,00")
+    end
+
+    it "is a file named $ on another channel" do
+      drive.open(2, "$")
+      expect(storage).to have_received(:read_file).with("$", type: nil)
+    end
+  end
+
   describe "a missing file" do
     before do
       allow(storage).to receive(:read_file).and_return(nil)
