@@ -164,9 +164,11 @@ says otherwise. Ctrl-C stops it.
 
 Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
-length. `n` or → skips to the next song, `p` or ← goes back one, space
-pauses and `q` quits. `--no-tui`, or output that isn't a terminal,
-gives plain progress output instead.
+length. When a song reaches its length it goes on to the next, and it
+stops after the last. `n` or → skips to the next song, `p` or ← goes
+back one, space pauses and `q` quits. `--no-tui`, or output that isn't a
+terminal, gives plain progress output instead and plays just the one
+song, as `--audio-out` renders just the one.
 
 A `.sid` file doesn't store its length, so `badline-ruby` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database

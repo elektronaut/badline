@@ -223,9 +223,18 @@ describe Badline::Audio::CLI do
       expect(console.built_with).to eq([input, out])
     end
 
-    it "plays on it" do
+    it "plays each song on it from the start song on" do
       cli.run
-      expect([console.headers.size, device.played]).to eq([1, 400])
+      expect([console.headers.size, device.played]).to eq([1, 800])
+    end
+
+    context "with --song on the last song" do
+      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--song", "2", tune_path]) }
+
+      it "plays just that song" do
+        cli.run
+        expect(device.played).to eq(400)
+      end
     end
   end
 

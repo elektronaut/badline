@@ -3,8 +3,9 @@
 module Badline
   module Audio
     # Plays a tune's songs interactively: the console's keys step between
-    # songs, pause and quit, and the status line follows along. It stops
-    # when a song ends, on q, or on Ctrl-C.
+    # songs, pause and quit, and the status line follows along. A song that
+    # plays to its end moves on to the next one. It stops after the last
+    # song, on q, or on Ctrl-C.
     #
     # `renderer` builds the renderer for a song at the sink's rate, and
     # `length` gives a song's length in seconds.
@@ -23,7 +24,7 @@ module Badline
         loop do
           @action = nil
           result = play(song)
-          song = following(song)
+          song = following(song, result)
           return result unless song
         end
       end
@@ -43,10 +44,11 @@ module Badline
         end
       end
 
-      def following(song)
+      def following(song, result)
         case @action
         when :next then song + 1
         when :previous then song - 1
+        else song + 1 if result == :finished && song < @songs
         end
       end
 
