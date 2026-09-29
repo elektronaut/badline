@@ -142,30 +142,52 @@ drive as well.
 
 In the window, `F11` saves the whole machine to a new
 `badline-<date>-<time>.vsf` in the working directory, and `F12` goes
-back to the snapshot last saved or opened. From Ruby,
+back to the snapshot last saved or opened. Both executables do this,
+and both open a `.vsf` given as the media. From Ruby,
 `computer.save_snapshot(path)` saves, `computer.restore_snapshot(path)`
 takes a machine back to a snapshot, and `Badline::Snapshot.load(path)`
-builds a new machine with the snapshot's chip models and restores it.
+builds a new machine as the saved one was built and restores it.
+`computer.snapshot` and `computer.restore(state)` do the same in memory,
+without a file.
+
+A snapshot holds the machine as it was on the cycle it was saved: the
+chips down to the instruction step and the pixel pipeline, the RAM and
+any +60K or +256K expansion, the cartridge with its RAM and flash, a
+GEO-RAM, a true 1541 with its RAM, its VIAs and the disk under the head,
+a disk or directory mounted through the traps with its open channels,
+and the tape with its place on it. A restored machine runs on exactly
+as the saved one would have. A directory, a tape and a true drive's
+disk image open again from their paths, the disk with its tracks as the
+drive last saw them. A disk image mounted through the traps comes back
+with its contents from the snapshot. What the host holds stays the host's: the keyboard, the
+joysticks, the mouse and paddles, sound, and blocks given to `on_init`
+that hadn't run yet, which a restore reports. A snapshot only restores
+in the badline version that wrote it, into a machine with the same
+chip models and RAM expansion.
 
 Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
 the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, plus the
 ones x64sc needs to open the file, with nothing attached to the
-cartridge, tape or user ports. It adds a `BADLINE` module holding
-everything else, down to the pixel pipeline, the SID's pending cycles,
-a mounted drive or directory, the cartridge and the tape. VICE skips it.
-badline restores its own snapshots from that module, so a restored
-machine runs on exactly as the saved one would have. A snapshot only
-restores in the badline version that wrote it.
+cartridge, tape or user ports and no true drive. A `BADLINE` module,
+which VICE skips, holds the whole machine, and badline restores its own
+snapshots from it.
 
-x64sc 3.7 opens badline's snapshots, taken at the end of the instruction
-the CPU was in, as long as its VIC-II model matches (`-model c64` for
-the default machine). Snapshots x64sc saves open in badline through the
-same modules: the CPU at its instruction boundary, RAM, the CPU port,
-the CIAs' registers, timers and clocks, the SID's registers and reSID
-voice state, and the VIC-II's registers, beam position, counters and
-colour RAM. The VIC-II's pixel pipeline starts empty. badline reports
-the modules it leaves out, such as the 1541 drives, the cartridge,
-the datasette and the keyboard, and carries on without them.
+x64sc 3.10 opens badline's snapshots, taken at the end of the
+instruction the CPU was in, as long as its VIC-II model matches
+(`-model c64` for the default machine). It keeps its own drives and
+leaves out the cartridge, the expansions and the tape. Snapshots x64sc
+saves open in badline through the same modules: the CPU at its
+instruction boundary, RAM, the CPU port, the CIAs' registers, timers and
+clocks, the SID's registers and reSID voice state, and the VIC-II's
+registers, beam position, counters and colour RAM. The VIC-II's pixel
+pipeline starts empty. badline reads the modules x64sc 3.7 to 3.10
+write, and VICE's development versions' `MAINC64CPU`. A module version
+it doesn't know is left out, or fails the restore for the CPU and RAM.
+It reports the modules it leaves out, such as the 1541 drives, the
+cartridge, the datasette and the keyboard, and carries on without them.
+An NTSC snapshot fails, as badline runs PAL only. Restored into a
+running machine, a VICE snapshot first takes the cartridge out and
+switches the machine off and on.
 
 ## Playing and rendering SID tunes
 
