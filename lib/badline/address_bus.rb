@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/address_bus/saved_state"
 require "badline/address_bus/ultimax_pages"
 
 module Badline

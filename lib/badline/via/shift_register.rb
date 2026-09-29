@@ -67,6 +67,19 @@ module Badline
       # changes it from cycle to cycle.
       def clocking? = @bits.nonzero? && internal_clock?
 
+      def save_state(out)
+        out.int(@mode).int(@data).int(@bits).boolean(@clock).boolean(@cb2).boolean(@cb2_input)
+      end
+
+      def load_state(input)
+        @mode = input.int
+        @data = input.int
+        @bits = input.int
+        @clock = input.boolean?
+        @cb2 = input.boolean?
+        @cb2_input = input.boolean?
+      end
+
       # Everything the register holds, for comparing it at two points.
       def state = [@mode, @data, @bits, @clock, @cb2, @cb2_input]
 

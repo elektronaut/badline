@@ -5,6 +5,7 @@ require "badline/vic/color_patches"
 require "badline/vic/graphics_mode"
 require "badline/vic/graphics_shifter"
 require "badline/vic/sequencer_output"
+require "badline/vic/sequencer_state"
 
 module Badline
   class VIC < Cycleable
@@ -13,6 +14,7 @@ module Badline
     # Turns fetched graphics data into output pixels.
     class Sequencer
       include Output
+      include SavedState
 
       BORDER_Y_BOUNDS = [
         [55, 247].freeze,
@@ -148,6 +150,16 @@ module Badline
       # indexes: the byte read, the screen byte and the colour nibble. The
       # slot before is the byte the previous group loaded.
       attr_reader :ring_data, :ring_char, :ring_color
+
+      # The border flip-flops: vertical, the vertical one armed to set, and
+      # the main one.
+      def borders = [@vertical_border, @vertical_armed, @main_border]
+
+      def restore_borders(vertical, armed, main)
+        @vertical_border = vertical
+        @vertical_armed = armed
+        @main_border = main
+      end
 
       # Paints the byte in the slot through the current mode. An idle access
       # latches 0/0 and one that made no access passes on zero data with the

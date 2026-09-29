@@ -55,6 +55,21 @@ module Badline
 
       def active_c1_edge?(high) = high == @control.anybits?(0x01)
 
+      # The lines' levels and mode. Which flags they set, and whether reads
+      # handshake, are the port's wiring.
+      def save_state(out)
+        out.int(@control).boolean(@c1_high).boolean(@c2_high).boolean(@handshake_low).int(@pulse).boolean(@c2_output)
+      end
+
+      def load_state(input)
+        @control = input.int
+        @c1_high = input.boolean?
+        @c2_high = input.boolean?
+        @handshake_low = input.boolean?
+        @pulse = input.int
+        @c2_output = input.boolean?
+      end
+
       # Everything the lines hold, for comparing them at two points.
       def state = [@control, @c1_high, @c2_high, @handshake_low, @pulse, @c2_output]
 

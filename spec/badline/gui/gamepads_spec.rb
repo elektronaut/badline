@@ -71,4 +71,12 @@ describe Badline::GUI::Gamepads do
     allow(sdl::IsGameController).to receive(:call).and_return(0)
     expect(gamepads.names).to be_empty
   end
+
+  it "steers another machine's joystick once wired to it" do
+    other = Badline::Computer.new
+    gamepads.computer = other
+    buttons << sdl::CONTROLLER_BUTTON_A
+    gamepads.poll
+    expect(other.control_ports.read_a(0xff, 0xff) & 0x1f).to eq(0b01111)
+  end
 end

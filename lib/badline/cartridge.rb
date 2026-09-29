@@ -69,9 +69,28 @@ module Badline
         end
         mapper.new(crt, **)
       end
+
+      # A cartridge built afresh from what save_setup wrote, before
+      # load_state puts its state in.
+      def from_setup(input)
+        return GeoRAM.new(size: input.int) if input.int == GEO_RAM_SETUP
+
+        crt = Storage::CRTFile.new(bytes: input.string)
+        return RetroReplay.new(crt, flash_jumper: input.boolean?, bank_jumper: input.boolean?) if input.boolean?
+
+        from_crt(crt)
+      end
     end
 
+    # What save_setup writes first: a cartridge from a CRT image, or a
+    # GEO-RAM.
+    CRT_SETUP = 0
+    GEO_RAM_SETUP = 1
+
+    # Keeps the image it was built from, so a snapshot's machine can build
+    # the same cartridge before the snapshot's state goes into it.
     def initialize(crt)
+      @crt = crt
       @name = crt.name
       @exrom = crt.exrom
       @game = crt.game
@@ -86,6 +105,31 @@ module Badline
 
     def on_change(&block)
       @on_change = block
+    end
+
+    # What builds the same cartridge afresh (Cartridge.from_setup): the CRT
+    # image it was built from, and the jumpers of a mapper that has them.
+    def save_setup(out)
+      out.int(CRT_SETUP).string(Storage::CRTFile.encode(@crt))
+      save_jumpers(out)
+    end
+
+    # The lines, the pull on NMI, the button and the mapper's own state.
+    # Loading sets them without calling back into the machine, which maps
+    # the cartridge again afterwards.
+    def save_state(out)
+      out.marker("CARTRIDGE")
+      out.int(@exrom).int(@game).boolean(@nmi).boolean(@button == true)
+      save_mapper(out)
+    end
+
+    def load_state(input)
+      input.marker("CARTRIDGE")
+      @exrom = input.int
+      @game = input.int
+      @nmi = input.boolean?
+      @button = input.boolean?
+      load_mapper(input)
     end
 
     # Called with the level of the cartridge's pull on the NMI line when it
@@ -141,6 +185,34 @@ module Badline
     def release_button; end
 
     private
+
+    def save_jumpers(out)
+      out.boolean(false)
+    end
+
+    def save_mapper(_out); end
+
+    def load_mapper(_input); end
+
+    # Where the ROML and ROMH windows point, as their places in `windows`,
+    # the banks and views the mapper picks them from, or -1 for none.
+    def save_windows(out, windows)
+      out.int(window_index(@roml, windows)).int(window_index(@romh, windows))
+    end
+
+    def load_windows(input, windows)
+      @roml = window_at(input.int, windows)
+      @romh = window_at(input.int, windows)
+    end
+
+    def window_index(window, windows)
+      return -1 if window.nil?
+
+      windows.index { |candidate| candidate.equal?(window) } ||
+        raise(ArgumentError, "#{self.class.name}: a window that isn't among its banks")
+    end
+
+    def window_at(index, windows) = index.negative? ? nil : windows.fetch(index)
 
     def nmi=(level)
       return if @nmi == level

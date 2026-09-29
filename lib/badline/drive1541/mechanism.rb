@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drive1541/rotation"
+require "badline/drive1541/mechanism_state"
 
 module Badline
   class Drive1541
@@ -65,6 +66,7 @@ module Badline
     # half track after it.
     class Mechanism
       include Rotation
+      include MechanismState
 
       MOTOR = 0x04
       LED = 0x08

@@ -22,6 +22,8 @@ module Badline
 
       F9 = 66
       F10 = 67
+      F11 = 68
+      F12 = 69
 
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze

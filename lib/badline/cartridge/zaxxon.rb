@@ -31,6 +31,14 @@ module Badline
         def peek(addr)
           @bank.peek(addr)
         end
+
+        def save_state(out)
+          out.int([*@banks, EMPTY_BANK].index { |bank| bank.equal?(@bank) })
+        end
+
+        def load_state(input)
+          @bank = [*@banks, EMPTY_BANK].fetch(input.int)
+        end
       end
 
       def reset
@@ -38,6 +46,14 @@ module Badline
       end
 
       private
+
+      def save_mapper(out)
+        @romh.save_state(out)
+      end
+
+      def load_mapper(input)
+        @romh.load_state(input)
+      end
 
       def install_chips(chips)
         roml, romh = banks_from(chips)

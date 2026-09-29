@@ -12,7 +12,13 @@ module Badline
         @on_change = nil
       end
 
+      def type = nil
+
       def map_io(_read_pages, _write_pages); end
+
+      def save_state(_out); end
+
+      def load_state(_input); end
 
       def reset!; end
 

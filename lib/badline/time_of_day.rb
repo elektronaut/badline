@@ -7,6 +7,8 @@ module Badline
     CLOCK_HZ = Region::PAL.clock_hz
     MAINS_HZ = Region::PAL.mains_hz
 
+    FIELDS = %i[tenths seconds minutes hours].freeze
+
     def initialize(clock_hz: CLOCK_HZ, mains_hz: MAINS_HZ)
       # The accumulator advances mains_hz per cycle, so a TOD pin pulse has
       # arrived when it reaches clock_hz. Integer math keeps it exact.
@@ -26,6 +28,28 @@ module Badline
     # match the pin frequency to keep time, so PAL software selects 50 Hz.
     def fifty_hz=(enabled)
       @match = enabled ? 4 : 5
+    end
+
+    # The clock and the alarm, field by field in FIELDS order, the latch,
+    # and the divider's phase.
+    def save_state(out)
+      out.int(@accumulator).int(@pulses).int(@match).boolean(@stopped).boolean(@alarm_pending)
+      FIELDS.each { |field| out.int(@clock[field]).int(@alarm[field]) }
+      out.boolean(!@latch.nil?)
+      FIELDS.each { |field| out.int(@latch[field]) } if @latch
+    end
+
+    def load_state(input)
+      @accumulator = input.int
+      @pulses = input.int
+      @match = input.int
+      @stopped = input.boolean?
+      @alarm_pending = input.boolean?
+      FIELDS.each do |field|
+        @clock[field] = input.int
+        @alarm[field] = input.int
+      end
+      @latch = input.boolean? ? FIELDS.to_h { |field| [field, input.int] } : nil
     end
 
     def cycle!
@@ -49,6 +73,38 @@ module Badline
     def hours
       @latch ||= @clock.dup
       @latch[:hours]
+    end
+
+    attr_reader :pulses
+
+    # The clock as a read of the tenths would see it: the latch while the
+    # clock is latched. In FIELDS order.
+    def latched_fields = FIELDS.map { |field| (@latch || @clock)[field] }
+
+    # The cycles until the clock next steps a tenth, as VICE counts them.
+    def cycles_to_tenth
+      to_pulse = (@cycles_per_pulse - @accumulator + @mains_hz - 1) / @mains_hz
+      to_pulse + ([@match - @pulses, 0].max * @cycles_per_pulse / @mains_hz)
+    end
+
+    # Sets the clock, the alarm and the latch from VICE's fields, in FIELDS
+    # order, the latch nil while unlatched.
+    def restore_fields(clock, alarm, latch)
+      FIELDS.each_with_index do |field, i|
+        @clock[field] = clock[i]
+        @alarm[field] = alarm[i]
+      end
+      @latch = latch && FIELDS.each_with_index.to_h { |field, i| [field, latch[i]] }
+    end
+
+    # Sets whether the clock is stopped, the pulses counted towards the
+    # next tenth and the cycles until it, placing the divider so the tenth
+    # lands then.
+    def restore_divider(stopped, pulses, cycles_to_tenth)
+      @stopped = stopped
+      @pulses = pulses
+      to_pulse = cycles_to_tenth - ([@match - pulses, 0].max * @cycles_per_pulse / @mains_hz)
+      @accumulator = (@cycles_per_pulse - (to_pulse * @mains_hz)).clamp(0, @cycles_per_pulse - 1)
     end
 
     # The clock and alarm as stored, read without latching the clock.

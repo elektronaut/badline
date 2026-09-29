@@ -14,6 +14,12 @@ module Badline
       LIT = [0xff, 0x20, 0x20].freeze
       DARK = [0x40, 0x00, 0x00].freeze
 
+      # The LED of the machine's true drive, or nil without one.
+      def self.for(computer)
+        drive = computer.drive1541
+        drive ? new(drive) : nil
+      end
+
       # Sets SDL.led_rect to where the LED goes.
       def self.place
         rect = SDL.led_rect

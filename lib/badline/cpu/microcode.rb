@@ -165,5 +165,13 @@ module Badline
     INTERRUPT_WRITES = Microcode.write_mask(INTERRUPT_PLAN)
     JAMMED_WRITES = Microcode.write_mask(JAMMED_PLAN)
     MICROCODE = Microcode.table
+
+    # The instruction methods, in a fixed order a snapshot names them by.
+    OPERATIONS = MICROCODE.map(&:operation).uniq.freeze
+
+    # The plans a snapshot names that aren't an opcode's.
+    FETCH = -1
+    INTERRUPT = -2
+    JAMMED = -3
   end
 end

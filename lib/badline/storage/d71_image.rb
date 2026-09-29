@@ -5,6 +5,8 @@ module Badline
     class D71Image < D64Image
       ERROR_TABLES = { 351_062 => 1366 }.freeze
 
+      def storage_kind = D71
+
       private
 
       def error_tables = ERROR_TABLES

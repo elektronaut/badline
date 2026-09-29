@@ -6,6 +6,9 @@ module Badline
       TITLE = "Badline"
       TOGGLE_SYM = SDL::KEY_TAB
       MUTE_SYM = SDL::KEY_F10
+      SAVE_SYM = SDL::KEY_F11
+      RESTORE_SYM = SDL::KEY_F12
+      HOST_SYMS = [TOGGLE_SYM, MUTE_SYM, SAVE_SYM, RESTORE_SYM].freeze
       REVERSE_MOD = SDL::KMOD_SHIFT
 
       SHARED_KEYS = %i[cursor_up cursor_left cursor_h cursor_v space w a s d lshift].freeze
@@ -34,14 +37,12 @@ module Badline
       # options (autostart:, song:, disk:) go to Media.attach.
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
-        @computer = Computer.new(**machine_options(machine, media_path))
-        Media::TrueDrive.plug(@computer) if machine[:true_drive]
-        puts Media.attach(@computer, media_path, **media) if media_path
+        @snapshots = Snapshots.new
+        @computer = @snapshots.boot(media_path, machine, media)
 
         @mode = :keyboard
         @pot_device = nil
-        @panes = [ScreenPane.new(@computer)]
-        @panes << DriveLedPane.new(@computer.drive1541, @panes.first) if @computer.drive1541
+        @panes = panes
         @stream = open_stream if sound
         @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
@@ -94,14 +95,23 @@ module Badline
       end
 
       def handle_key_down(event)
-        return cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1) if event.sym == TOGGLE_SYM
-        return toggle_mute if event.sym == MUTE_SYM
+        return host_key(event) if HOST_SYMS.include?(event.sym)
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
           joystick(port).press(dir)
         else
           press_key(KeyMap.parse(event), event.repeat)
+        end
+      end
+
+      # Tab, F10, F11 and F12 drive the front end, not the machine.
+      def host_key(event)
+        case event.sym
+        when TOGGLE_SYM then cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1)
+        when MUTE_SYM then toggle_mute
+        when SAVE_SYM then @snapshots.save(@computer) unless event.repeat
+        else restore_snapshot unless event.repeat
         end
       end
 
@@ -115,7 +125,7 @@ module Badline
       end
 
       def handle_key_up(event)
-        return if [TOGGLE_SYM, MUTE_SYM].include?(event.sym)
+        return if HOST_SYMS.include?(event.sym)
 
         port, dir = JoyMap.parse(event) if @mode == :joystick
         if port
@@ -155,6 +165,29 @@ module Badline
         update_title
       end
 
+      # Runs the restored machine in place of the one before: the screen,
+      # the drive LED, the gamepads and the sound go over to it. The input
+      # mode stays the host's, so a mouse or paddles go back in their port.
+      def restore_snapshot
+        computer = @snapshots.restore
+        return unless computer
+
+        release_inputs
+        @computer = computer
+        @panes = panes
+        @gamepads.computer = computer
+        @stream&.sid = computer.sid
+        attach_pot_device if POT_DEVICES.key?(@mode)
+      end
+
+      # The screen, and the drive LED in its border when a true drive is
+      # plugged in.
+      def panes
+        screen = ScreenPane.new(@computer)
+        drive = @computer.drive1541
+        drive ? [screen, DriveLedPane.new(drive, screen)] : [screen]
+      end
+
       def update_title
         tags = [MODES[@mode], @stream&.muted? && "MUTED"].select(&:itself)
         @window.title = [TITLE, *tags.map { |tag| "[#{tag}]" }].join(" ")
@@ -167,12 +200,6 @@ module Badline
                           on_underrun: -> { puts "Running below real time, so the sound will stutter." })
       rescue Audio::SDLSink::Error => e
         warn "badline: no sound, can't open the audio device: #{e.message}"
-      end
-
-      def machine_options(machine, media_path)
-        options = { sid_model: machine[:sid_model] || Media.sid_model(media_path), **machine.slice(:reu) }
-        options[:region] = Region::NTSC if machine[:ntsc]
-        options
       end
 
       def fit_frame
