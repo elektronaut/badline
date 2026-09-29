@@ -6,51 +6,24 @@
 ### Features
 
 * add a --true-drive option ([3df4183](https://github.com/elektronaut/badline/commit/3df4183dec298ff6b386a6b6a1c12fb04ce3cca0))
-* emulate the REU and run the testbench REU rows ([3d5d69e](https://github.com/elektronaut/badline/commit/3d5d69e7570b9961bfd823adf00c2924c65d45e9)), closes [#232](https://github.com/elektronaut/badline/issues/232)
-* go on to the next subtune when one ends in the SID player ([0b2f2a2](https://github.com/elektronaut/badline/commit/0b2f2a209f3cb47d8117126f80217e4cc9030342))
-* go on to the next subtune when one ends in the SID player ([822990e](https://github.com/elektronaut/badline/commit/822990e7c2936a4c175b67f2571c2ca14a8504a0))
-* join the C64 and the 1541 over the IEC serial bus ([7671045](https://github.com/elektronaut/badline/commit/7671045bd47fdf363eb9a57faae3c463835c7544))
-* list a mounted disk with LOAD"$",8 through the KERNAL traps ([1d161db](https://github.com/elektronaut/badline/commit/1d161dbec638f7ec9ee60a20e043e37f120b1746))
-* list a mounted disk with LOAD"$",8 through the KERNAL traps ([c634e18](https://github.com/elektronaut/badline/commit/c634e18e3aa8e1b5ba3096d9b6b4ec9d41afa77b)), closes [#324](https://github.com/elektronaut/badline/issues/324)
-* power RAM on in a $00/$ff pattern ([59822c3](https://github.com/elektronaut/badline/commit/59822c3dc2956cd871a6e218cac213cfb38f6bad))
-* power RAM on in VICE's $00/$ff pattern ([cedd3e3](https://github.com/elektronaut/badline/commit/cedd3e38267575b4cb7ed7807c66958150299c1a))
-* read and write .g64 disk images ([884ac19](https://github.com/elektronaut/badline/commit/884ac19baeb83468444e0631c2fd5840bdffc327))
-* read and write back .g64 images on the true drive ([b4344f0](https://github.com/elektronaut/badline/commit/b4344f07277ea2e9cc53a6c1708052506f4219f3))
-* read D64 disks through the 1541's GCR mechanism ([4c812fa](https://github.com/elektronaut/badline/commit/4c812fa25bad92c5c18219fc22c7a0ed804fe159))
-* read the 1541's LED without waking the drive ([8337b53](https://github.com/elektronaut/badline/commit/8337b534db3af6e5bcfa73ed623eeec471bad974))
-* run NTSC machines and the testbench's NTSC rows ([e33b57c](https://github.com/elektronaut/badline/commit/e33b57c031efc055d3b488181929c8e90864ee1b))
-* run NTSC machines and the testbench's NTSC rows ([e01ebf1](https://github.com/elektronaut/badline/commit/e01ebf17a03d606ff4a71afdb89506af962300e6)), closes [#306](https://github.com/elektronaut/badline/issues/306)
 * run the 1541 as its own machine ([9a4bafa](https://github.com/elektronaut/badline/commit/9a4bafab4c53fc7dc479a8c78527e8711d96c8cf))
-* skip the 1541's cycles while it idles ([d8502cd](https://github.com/elektronaut/badline/commit/d8502cd589aed3ab7590cf2467b9ea57a76330fc))
-* take .g64 images in the native badline ([8d9ab92](https://github.com/elektronaut/badline/commit/8d9ab9285555eaa0681a3113290af872a79d9f0b))
-* turn each track of a .d64 by the skew a DOS format leaves ([38160bc](https://github.com/elektronaut/badline/commit/38160bc39d04db7f488793a1260f05cbf848b767))
-* turn the true drive's disk at 300 rpm whatever density is selected ([39fc455](https://github.com/elektronaut/badline/commit/39fc45575d777fdb9e87ce1cf121d2a518458d1e))
-* turn the true drive's disk at 300 rpm whatever density is selected ([f3c2453](https://github.com/elektronaut/badline/commit/f3c2453caf527fd8b087826e80f386cf8f183fed))
+* join the C64 and the 1541 over the IEC serial bus ([7671045](https://github.com/elektronaut/badline/commit/7671045bd47fdf363eb9a57faae3c463835c7544))
+* read D64 disks through the 1541's GCR mechanism ([4c812fa](https://github.com/elektronaut/badline/commit/4c812fa25bad92c5c18219fc22c7a0ed804fe159))
 * write and format disks through the 1541 ([22a2a8b](https://github.com/elektronaut/badline/commit/22a2a8be6b9f84b9fc4d7e214603165462c7ddef))
+* read and write .g64 disk images ([884ac19](https://github.com/elektronaut/badline/commit/884ac19baeb83468444e0631c2fd5840bdffc327))
+* take .g64 images in the native badline ([8d9ab92](https://github.com/elektronaut/badline/commit/8d9ab9285555eaa0681a3113290af872a79d9f0b))
+* skip the 1541's cycles while it idles ([d8502cd](https://github.com/elektronaut/badline/commit/d8502cd589aed3ab7590cf2467b9ea57a76330fc))
+* list a mounted disk with LOAD"$",8 through the KERNAL traps ([c634e18](https://github.com/elektronaut/badline/commit/c634e18e3aa8e1b5ba3096d9b6b4ec9d41afa77b)), closes [#324](https://github.com/elektronaut/badline/issues/324)
+* emulate the REU and run the testbench REU rows ([3d5d69e](https://github.com/elektronaut/badline/commit/3d5d69e7570b9961bfd823adf00c2924c65d45e9)), closes [#232](https://github.com/elektronaut/badline/issues/232)
+* run NTSC machines and the testbench's NTSC rows ([e01ebf1](https://github.com/elektronaut/badline/commit/e01ebf17a03d606ff4a71afdb89506af962300e6)), closes [#306](https://github.com/elektronaut/badline/issues/306)
+* power RAM on in a $00/$ff pattern ([59822c3](https://github.com/elektronaut/badline/commit/59822c3dc2956cd871a6e218cac213cfb38f6bad)), closes [#319](https://github.com/elektronaut/badline/issues/319)
+* go on to the next subtune when one ends in the SID player ([0b2f2a2](https://github.com/elektronaut/badline/commit/0b2f2a209f3cb47d8117126f80217e4cc9030342)), closes [#359](https://github.com/elektronaut/badline/issues/359)
 
 
 ### Bug Fixes
 
-* drop the record's end line from a Spinel screenshot ([81b1aee](https://github.com/elektronaut/badline/commit/81b1aee2c222e5c2f17f0fa7cb96da25291557aa))
-* keep a pending SO and the head's place in the turn in the idle pass ([5acc5aa](https://github.com/elektronaut/badline/commit/5acc5aaa93d3a4c22ad67d6749682eb91ff868da))
 * keep the KCS Power Cartridge's RAM apart from the C64's ([c538b43](https://github.com/elektronaut/badline/commit/c538b43e6794cbeedcc4056fb71b38598525bfa9))
-* keep the KCS Power Cartridge's RAM apart from the C64's ([88d5309](https://github.com/elektronaut/badline/commit/88d53091ed8a0cd375d4aed3cc9529b69161f1b3))
-* let the 1541's CPU see BYTE READY on SO a cycle late ([bb69ad2](https://github.com/elektronaut/badline/commit/bb69ad2852725ddda2634c90042532fe8fb22dc1))
-* put a .g64 in with --read-only, and give device 8 to one drive ([427f698](https://github.com/elektronaut/badline/commit/427f6982fb54cee10bbedd439cfaef303504e182))
-* read the drive LED without waking the idle 1541 ([42769c2](https://github.com/elektronaut/badline/commit/42769c21505d316b1bad9f390bc063cc11bb3751))
-* refuse .g64 images in the native badline ([60c5865](https://github.com/elektronaut/badline/commit/60c586581cbf1e8f845223d87a5e0572eaacf8fe))
-* refuse malformed .g64 images with G64Image::FormatError ([7b168c6](https://github.com/elektronaut/badline/commit/7b168c6caf4ae4487043f51cb469b4746b75b65d))
-* store .g64 tracks through a helper the native build compiles ([a256f6f](https://github.com/elektronaut/badline/commit/a256f6fff514d3636f8c59b7ccd2a73c3f187f62))
-* store the 1541's writes when badline-ruby's window closes ([b0a1585](https://github.com/elektronaut/badline/commit/b0a1585f4c74e686075354f79ca8685b3213bff2))
-* store the 1541's writes when the native window closes ([03e4e43](https://github.com/elektronaut/badline/commit/03e4e43919a0dbd63183b4b0951959584045f334))
-* warn when a written track loses sectors a .d64 can't store ([63c183d](https://github.com/elektronaut/badline/commit/63c183d425722c3b07b256a3f793e2b524e6ed3a))
-* write stdout as it goes, so errors appear in order ([42ccb02](https://github.com/elektronaut/badline/commit/42ccb026d6fe92c1ec5b67ab6f561084c5b154b2))
-* write stdout as it goes, so errors appear in order ([b3ed762](https://github.com/elektronaut/badline/commit/b3ed762857e01bb058c06965a0050b9f79068586))
-
-
-### Reverts
-
-* lay out every .d64 track from sector 0 again ([ac15da6](https://github.com/elektronaut/badline/commit/ac15da67061160aa647e0d536d5c96ec580f41d4))
+* write stdout as it goes, so errors appear in order ([42ccb02](https://github.com/elektronaut/badline/commit/42ccb026d6fe92c1ec5b67ab6f561084c5b154b2)), closes [#369](https://github.com/elektronaut/badline/issues/369)
 
 ## [0.4.2](https://github.com/elektronaut/badline/compare/v0.4.1...v0.4.2) (2026-09-28)
 
