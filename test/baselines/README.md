@@ -30,7 +30,8 @@ Recorded output of the headless hardware suites, one file per suite:
   keyed `prg+crt`: it boots from power-on with the cartridge in, then loads
   and runs the program like any other row, with the same boot allowance.
   A row is listed only when badline has a mapper for the cartridge's
-  hardware type. Rows that need an REU drop out too. `C64/carts/rr-freeze`
+  hardware type. Rows that want an REU beside the cartridge drop out too,
+  since badline gives I/O 2 to the cartridge. `C64/carts/rr-freeze`
   is an analyzer that waits for someone to press the freeze button, so it
   isn't runnable either. Its
   screenshot rows compare like the others, except that `expect:error`
@@ -72,11 +73,33 @@ Recorded output of the headless hardware suites, one file per suite:
 - `testbench-expansions.txt` — the same runner with `--expansions`, over
   the rows that ask for a memory expansion badline emulates, from
   whichever subtree lists them: the `geo512k` rows of `GEO-RAM` and
-  `memory-expansions`, and the `plus60k` and `plus256k` rows. Each boots
-  with its expansion fitted, a 512K GEO-RAM or the +60K or +256K RAM
-  expansion, then loads and runs its program like any other row. Rows
-  that ask for an REU, Isepic, DQBB or RamCart drop out. All `exitcode`
-  tests.
+  `memory-expansions`, the `plus60k` and `plus256k` rows, and the
+  `reu128k` to `reu16m` rows of `REU` and `memory-expansions`. Each boots
+  with its expansion fitted, a 512K GEO-RAM, the +60K or +256K RAM
+  expansion or an REU of the size the row asks for, then loads and runs
+  its program like any other row. Rows that ask for Isepic, DQBB or
+  RamCart drop out, and so does `C64/carts/rr-reu`, which wants an REU
+  beside a cartridge. `REU/floatingbus/floating3b` is left out of the
+  suite: it never reports, and running out its budget of 1.5 billion
+  cycles took 37 minutes. `ruby --yjit bin/testbench --expansions
+  REU/floatingbus/floating3b` still runs it alone. The FAIL rows, all
+  `REU`:
+  - `reutiming2/a3`, `a4`, `b4`, `b5`, `b6`, `c3`, `c4`, `d3` and `d4`
+    have no reference screenshot (`no-ref`); the readme marks them FIXME.
+  - `reutiming2/c`, `d` and `d2` (a transfer ending at the start of a bad
+    line, and the same with sprite 7 on) differ from their references by
+    6,403, 674 and 337 px. Their readme notes that x64sc fails them too.
+  - `reutiming2/e`, `e3` to `e6`, `f3`, `f4`, `g3` and `g4`, the swaps
+    without `-m2`, report `$ff`. Where their references differ from the
+    `-m2` ones, captured on a breadbin, they read `$42` or a timer value
+    where the `-m2` capture has another; badline follows the breadbin's
+    (see [REU DMA](../../doc/pinned-behaviour.md#reu-dma)).
+  - `reutiming2/g3-m2` and `g4-m2`, swaps with sprite 7 active, report
+    `$ff`, and so do `e4-m2` and `e6-m2`, whose first difference from
+    their reference is on a sprite line.
+  - `badoublewrite` differs by 58,880 px.
+  - `rmw-trigger/rmwtrigger-rom` and `rmwtrigger-ram` report `$ff`. The
+    testlist marks both `warn:vicefail`.
 - `testbench-drive.txt` — the same runner with `--drive`, over the
   testlist's `drive/` rows, each run on a machine with a true 1541 on the
   serial bus and the row's `mountd64` or `mountg64` image in it. Nothing
@@ -238,15 +261,21 @@ what the suite cost before it was sharded:
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
 | `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
 | `testbench-general` | 18 | 4 min | 0.2 min | 0.1 min |
-| `testbench-expansions` | 7 | 22 min | 11 min | 10 min |
+| `testbench-expansions` | 118 | — | 42 min | 25 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general` and
 `testbench-expansions` rows were measured on a four-core cloud container,
 not the laptop, and on CRuby with YJIT, `testbench-general` over two
 shards.
-`memory-expansions/c64-georam-emd.prg` is nearly all of
-`testbench-expansions`, which no sharding shortens. Its worst case is
-the rows' budgets at the throughput of that run, not a timed run.
+Its GEO-RAM, +60K and +256K rows were measured there too, at 11 minutes
+serial and 10 at four shards, `memory-expansions/c64-georam-emd.prg`
+nearly all of it. Its REU rows were measured on the laptop, under load
+from other runs: the 110 `REU` rows took 13 minutes serial and 4 at four
+shards on a quieter run, and `memory-expansions/c64-reu-emd.prg` alone
+took 18 minutes. The two `-emd` rows are what no sharding shortens, so
+the suite takes about as long as the slower of them. The table's serial
+and four-shard figures add the two runs, and the worst case wasn't
+worked out.
 `testbench-drive` was measured on that container too, without
 `drive/format`: its other 37 rows took 88 minutes serial and 24 at four
 shards. The 19 `viavarious` rows are 60 of those minutes, about three
@@ -372,7 +401,8 @@ explain.
   (below), with the same dump apart from CIA 2's port A, which reads `$97`
   where the twin reads `$d7`. The test masks those two bits off. In both
   rows the four bytes at `$9ff4` that the reference wants to hold the
-  loaded file's name, `TEST`, read `$00`.
+  loaded file's name, `TEST`, hold the power-on pattern,
+  `$ff,$ff,$00,$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
@@ -390,12 +420,6 @@ explain.
     lines in the first character after a `$dd00` bank switch, where the
     reference shows the other bank's character. The output matches the
     6569 reference there.
-- `C64/raminitpattern/cyberloadtest.prg`, `darkstarbbstest.prg` and
-  `platoontest.prg` (`testbench-general`, exit `$ff`) check the pattern
-  RAM powers on with, and badline powers RAM on at `$00`. All three pass
-  on VICE's default pattern (`$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted
-  every `$4000` bytes). That pattern is a change to the power-on state of
-  every suite's machine, so it is left to a change of its own.
 - `C64/autostart/defaults/test.prg` (`testbench-general`, exit `$ff`)
   compares the machine against a dump taken after `LOAD"TEST",8` and `RUN`
   on a real C64 with a real drive, down to zero page, CIA 1's timer B and

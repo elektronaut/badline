@@ -29,8 +29,10 @@ only catches the rows that happen to move.
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
+- [RAM power-on pattern](#ram-power-on-pattern)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
+- [REU DMA](#reu-dma)
 - [SID oscillator](#sid-oscillator)
 - [SID register writes](#sid-register-writes)
 - [SID data bus](#sid-data-bus)
@@ -1093,6 +1095,28 @@ and each was knocked out: removing it fails the rows named.
   - Spec guard: *when a program writes to the port* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
 
+## RAM power-on pattern
+
+- RAM powers on in runs of `$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted in
+  `$4000-$7fff` and `$c000-$ffff`, on every power cycle. The RAM under
+  `$00`/`$01` follows the pattern like the rest. It is the pattern of a
+  C64C (ASSY 250469 R4) in `C64/raminitpattern/readme.txt`
+  (`-raminitstartvalue 0 -raminitvalueinvert 4 -raminitvalueoffset 2
+  -raminitpatterninvert 16384 -raminitpatterninvertvalue 255`), without
+  that machine's occasional random bytes. `AddressBus::RAM_POWER_ON`
+  holds it.
+  - Pinned by `C64/raminitpattern`: `cyberloadtest` fails when
+    `$f379-$f478` holds one value, `darkstarbbstest` when the first ten
+    bytes of one of the pages `$4000`, `$5000` … `$9000` do, `platoontest`
+    when `$1000-$10ff` holds five equal bytes in a row and 140 or more
+    bytes of one value, and `typicaltest`
+    checks `$3fff` against a table of values the Typical demo survives.
+    All-`$00` fails the first three, and each other pattern the readme
+    lists fails at least one of the four.
+  - Spec guard: *RAM at power-on* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+- The RAM expansions' extra banks still power on at `$00`.
+
 ## 1541 serial port
 
 - The drive sees the C64's side of the serial bus a host cycle late. The
@@ -1219,6 +1243,33 @@ and each was knocked out: removing it fails the rows named.
   - Spec guard: *sets V through SO while CA2 is high, a cycle after BYTE
     READY* in
     [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+
+## REU DMA
+
+The REC's timing against the VIC, each rule derived from the REU
+testprogs named.
+
+- A requested transfer takes the bus on the CPU's next read cycle with BA
+  high, and moves its first byte there. Starting a cycle later moves every
+  `REU/xfertiming` row and `REU/reutiming/reutiming`.
+- After reading C64 memory the REC waits out every BA-low cycle. After
+  writing it goes on through the first BA-low cycle and waits from the
+  second, and a fetch or swap whose last write it waited out takes one
+  more cycle before handing the bus back (`REU::DMA#note_ba`,
+  `#wind_down`). Pinned by `REU/bonzai/spritetiming`, whose 45 bytes a
+  line with eight sprites on is 63 less the 18 cycles this leaves.
+- On the line whose raster matches sprite 0's Y, the REU doesn't see BA
+  fall on the first cycle of sprite 0's window (`VIC#reu_ba_low?`).
+  Without it `REU/bonzai/spritetiming` reads `$5a,$87` where a real REU
+  gives `$5b,$88`.
+- A swap's read that falls on the first BA-low cycle, after its write, is
+  held open while AEC stays high and takes the byte on the bus two cycles
+  later. If it is the transfer's last byte it is read there instead, its
+  write follows on the next cycle, and the REC hands the bus back
+  (`REU::DMA#swap_read_on_ba`). Pinned by `REU/reutiming2/e5-m2`, `f3-m2`
+  and `f4-m2`, whose patterns were captured on a breadbin. The
+  `reutiming2` references without `-m2` read `$42` or a timer value there
+  instead, and still fail.
 
 ## SID oscillator
 

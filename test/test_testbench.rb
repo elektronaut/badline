@@ -281,8 +281,14 @@ class TestTestbenchExpansions < Minitest::Test
     assert_nil parse("geo512k", prg: "missing.prg")
   end
 
+  def test_keeps_a_row_for_each_reu_size
+    %w[reu128k reu512k reu16m].each do |option|
+      assert_equal option, parse(option).expansion
+    end
+  end
+
   def test_drops_rows_for_expansions_badline_does_not_emulate
-    assert_nil parse("reu512k")
+    assert_nil parse("isepic")
   end
 
   def test_a_plain_row_has_no_expansion
@@ -296,6 +302,18 @@ class TestTestbenchExpansions < Minitest::Test
 
     refute_includes Testbench::Rows.plain, test
     assert_includes rows, test
+  end
+end
+
+class TestTestbenchMachine < Minitest::Test
+  def test_sizes_an_reu_in_k
+    assert_equal 128, Testbench.reu_size("reu128k")
+    assert_equal 16_384, Testbench.reu_size("reu16m")
+  end
+
+  def test_fits_no_reu_for_other_expansions
+    assert_nil Testbench.reu_size("geo512k")
+    assert_nil Testbench.reu_size(nil)
   end
 end
 

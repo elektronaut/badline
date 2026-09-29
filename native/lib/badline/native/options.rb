@@ -24,17 +24,17 @@ module Badline
       # fraction and exponent.
       DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
-      VALUED = %w[--song -s --sid --frames --screenshot --save-snapshot --audio-out --seconds --songlengths
+      VALUED = %w[--song -s --sid --reu --frames --screenshot --save-snapshot --audio-out --seconds --songlengths
                   --rate --filter-chunk].freeze
 
       # The switches and valued options only the window or only the
       # headless player takes.
-      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --frames
-                       --unpaced --screenshot --save-snapshot].freeze
+      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --reu
+                       --frames --unpaced --screenshot --save-snapshot].freeze
 
       HEADLESS_ONLY = %w[--seconds --songlengths --rate --filter-chunk --quiet --no-tui].freeze
 
-      attr_reader :media, :song, :sid_model, :frames, :screenshot, :save_snapshot, :audio_out, :seconds,
+      attr_reader :media, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot, :audio_out, :seconds,
                   :songlengths, :filter_chunk
 
       def self.parse(argv) = new.parse(argv)
@@ -43,6 +43,7 @@ module Badline
         @media = ""
         @song = nil
         @sid_model = nil
+        @reu = nil
         @autostart = true
         @read_only = false
         @sound = SOUND
@@ -163,6 +164,7 @@ module Badline
         case name
         when "--song", "-s" then @song = number(name, value)
         when "--sid" then @sid_model = sid_model_for(value)
+        when "--reu" then @reu = reu_size(value)
         when "--frames" then @frames = number(name, value)
         when "--screenshot" then @screenshot = value
         when "--save-snapshot" then @save_snapshot = value
@@ -197,6 +199,12 @@ module Badline
         raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
 
         SID_MODELS[value]
+      end
+
+      def reu_size(value)
+        raise Error, "invalid argument: --reu #{value}" unless %w[128 256 512 1024 2048 4096 8192 16384].include?(value)
+
+        value.to_i
       end
 
       def number(name, value)

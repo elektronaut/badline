@@ -38,7 +38,7 @@ begin
   end
 
   sid_model = options.sid_model || Badline::Media.sid_model(media.empty? ? nil : media)
-  computer = Badline::Computer.new(sid_model:)
+  computer = Badline::Computer.new(sid_model:, reu: options.reu)
   Badline::Media::TrueDrive.plug(computer) if options.true_drive?
   unless media.empty?
     puts Badline::Media.attach(computer, media, autostart: options.autostart?, song: options.song,

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/address_bus/saved_state"
+require "badline/address_bus/ultimax_pages"
 
 module Badline
   # Memory layout:
@@ -30,6 +31,7 @@ module Badline
   # 0xE000-0xFFFF - KERNAL ROM / Cartridge ROM (high) - 8kb
   class AddressBus
     include Addressable
+    include UltimaxPages
 
     # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
     # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
@@ -47,11 +49,15 @@ module Badline
     PORT_FLOATING = 0b1100_1000
     TAPE_SENSE    = 0b0001_0000
 
-    RAM_POWER_ON = [0xff, 0x07].freeze
+    # RAM powers on in runs of $00 $00 $FF $FF $FF $FF $00 $00, inverted in
+    # the second and fourth 16K: a C64C (ASSY 250469 R4) from
+    # C64/raminitpattern/readme.txt, without its occasional random bytes.
+    # See doc/pinned-behaviour.md.
+    RAM_POWER_ON = Array.new(2**16) { |addr| (((addr + 2) / 4) ^ (addr / 0x4000)).odd? ? 0xff : 0x00 }.freeze
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region, :video_ram
+                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region, :video_ram, :reu
 
     # ram_expansion fits a +60K (:plus60k) or +256K (:plus256k).
     def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569, region: Region::PAL,
@@ -59,7 +65,7 @@ module Badline
       @region = region
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
       @ram_expansion = RAMExpansion.build(ram_expansion, @ram) { update_overlays! }
-      @cartridge = nil
+      @cartridge = @reu = nil
       @debug_register = nil
 
       @basic_rom     = ROM.load("basic.rom",     0xa000)
@@ -98,6 +104,13 @@ module Badline
       @cartridge = cartridge
       cartridge.connect(ram: @ram, open_bus: @open_bus)
       cartridge.on_change { update_overlays! }
+      update_overlays!
+    end
+
+    # An REU takes I/O 2 unless a cartridge claims it, and watches writes
+    # to $FF00 for the one that starts an armed transfer.
+    def attach_reu(reu)
+      @reu = reu
       update_overlays!
     end
 
@@ -179,6 +192,7 @@ module Badline
       @video_ram = @ram_expansion.video_ram
 
       @ultimax ? map_ultimax_pages : map_banked_pages
+      @write_pages[0xff] = @reu.trigger.wrap(@write_pages[0xff]) if @reu
     end
 
     def map_banked_pages
@@ -218,32 +232,6 @@ module Badline
       @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
     end
 
-    # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
-    # I/O always visible and open address space everywhere else. The ROML
-    # and ROMH selects fire on writes as well, so cartridge RAM or flash in
-    # either window takes the writes there.
-    def map_ultimax_pages
-      @read_pages.fill(@open_bus, 0x10, 0xf0)
-      @write_pages.fill(@open_bus, 0x10, 0xf0)
-      @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
-      map_ultimax_writes(@cartridge.roml, 0x80)
-      @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
-      map_ultimax_writes(@cartridge.romh, 0xe0)
-      map_ultimax_a000
-      map_io_pages
-    end
-
-    def map_ultimax_writes(bank, first_page)
-      @write_pages.fill(bank, first_page, 0x20) if bank.respond_to?(:poke)
-    end
-
-    def map_ultimax_a000
-      return unless (window = @cartridge.ultimax_a000)
-
-      @read_pages.fill(window, 0xa0, 0x20)
-      @write_pages.fill(window, 0xa0, 0x20)
-    end
-
     def map_io_pages
       {
         vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
@@ -253,6 +241,7 @@ module Badline
       end
       @ram_expansion.map_io(@read_pages, @write_pages)
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
+      @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
       map_cartridge_io if @cartridge
     end
 

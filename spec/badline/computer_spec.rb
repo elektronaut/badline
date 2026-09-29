@@ -156,8 +156,8 @@ RSpec.describe Badline::Computer do
       expect(computer.vic.interrupted?).to be(false)
     end
 
-    it "clears RAM" do
-      expect(computer.ram.read(0xc000, program.length)).to all(eq(0))
+    it "takes RAM back to its power-on pattern" do
+      expect(computer.ram.read(0xc000, program.length)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc000, program.length])
     end
 
     it "clears the CPU port's direction register" do
@@ -323,9 +323,12 @@ RSpec.describe Badline::Computer do
     let(:writable) { instance_double(Badline::Storage::HostDirectory, write_file: nil) }
     let(:read_only) { instance_double(Badline::Storage::T64) }
 
-    # Filename at $0340, device 8, return address $1234 on the stack
+    # Filename at $0340, device 8, return address $1234 on the stack, in
+    # program mode ($9D) and loading rather than verifying ($93)
     def request(name = "DATA")
       ram.write(0x0340, name.bytes)
+      ram.poke(0x9d, 0x00)
+      ram.poke(0x93, 0x00)
       ram.write(0xbb, [0x40, 0x03])
       ram.poke(0xb7, name.length)
       ram.poke(0xba, 8)
