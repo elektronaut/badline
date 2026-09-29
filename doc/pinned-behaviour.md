@@ -1203,8 +1203,10 @@ and each was knocked out: removing it fails the rows named.
   - Spec guard: *steps in from the stop with the first phase after the
     bump* in
     [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
-    and *lists it through the traps* (`:slow`) in
-    [`drive1541_spec.rb`](../spec/badline/drive1541_spec.rb).
+    and the `format/name-and-id`, `format/bam-free` and
+    `format/trap-readable` rows of the `drive-scenarios` suite
+    ([`drive_scenarios.rb`](../test/drive_scenarios.rb)), which read the
+    formatted disk back from its image.
 - The disk turns at 300 rpm whatever bit rate VIA 2's PB5-6 select: a
   turn is 200,000 drive cycles over every track and over a half track
   without data. Each track's bits pass under the head at the rate they

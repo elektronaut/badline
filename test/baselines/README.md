@@ -144,6 +144,34 @@ Recorded output of the headless hardware suites, one file per suite:
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   The Spinel build has no drive, so `rake spinel:testbench` leaves this
   suite out. All `exitcode` tests.
+- `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
+  `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
+  each run from power-on on fresh machines with the disk images in a
+  scratch directory. A row per check, keyed `scenario/check`, `PASS` or
+  `FAIL` with what the check found:
+  - `save` SAVEs a program to a blank disk through the DOS, then NEWs,
+    LOADs and LISTs it: no `ERROR` printed (`no-error`), the listing
+    (`loads-back`), the file in the image byte for byte
+    (`file-in-image`), and the image LOADed and LISTed through the traps
+    (`trap-readable`).
+  - `format` sends `N:` to an image of zeros, SAVEs a program and LOADs
+    the directory: the error channel's `0, OK` (`no-error`), the listing
+    with the new name and ID, the program and 663 blocks free
+    (`lists-new-disk`), the name and ID in 18/0 (`name-and-id`), 680
+    free blocks in the image's BAM (`bam-free`), and the program through
+    the traps (`trap-readable`).
+  - `read-only` SAVEs to a disk put in write-protected: the SAVE runs
+    (`saves`) and the image file is unchanged (`image-unchanged`).
+  - `autostart` attaches a disk with a true drive and autostarts its
+    program (`loads-and-runs`).
+  - `error-channel` reads the power-on message over the serial bus
+    (`power-on-message`).
+  - `idle` boots two drives side by side, one skipping its idle loop and
+    one not, while the C64's lines move: the first sleeps through most of
+    the loop (`sleeps`), and both hold the same state at each checkpoint
+    (`matches-stepping`).
+  Each scenario runs in a process of its own, up to four at once. The
+  runner needs `dos1541.rom` in the ROM path.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -264,7 +292,8 @@ also be started by name from the Actions tab, and a run started there and
 the nightly run never cancel each other. The `testbench-*` suites and
 `sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
 `testbench-drive` runs only as a rake task, since the workflow doesn't
-list it.
+list it. Nor does it list `drive-scenarios`, which runs as
+`rake regression:drive-scenarios` on CRuby and in the Spinel workflow.
 The separate Spinel workflow runs the Spinel suites on every pull request
 that touches emulation, harness or build paths. Its jobs aren't required
 checks yet, and the CRuby nightly run above goes on as before.
