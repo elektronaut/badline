@@ -765,6 +765,12 @@ class TestTestbenchEngine < Minitest::Test
     assert_equal [0, 14], outcome.screen.first.first(2)
   end
 
+  def test_a_screenshot_keeps_only_its_own_rows
+    outcome = Testbench::Engine.parse(record("screen", "0e" * 192), Test.new("t", "screenshot"))
+
+    assert_equal 272, outcome.screen.length
+  end
+
   def test_a_test_that_never_reported_has_no_exit_code
     assert_nil Testbench::Engine.parse(record("text", "ready."), Test.new("t", "exitcode")).exit_code
   end

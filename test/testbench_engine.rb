@@ -26,7 +26,7 @@ module Testbench
 
     # Reads one test's record from the build's output.
     def self.parse(record, test)
-      header, exit_line, _cycles, kind, *body = record.lines(chomp: true)
+      header, exit_line, _cycles, kind, *body, _done = record.lines(chomp: true)
       raise ArgumentError, "Expected #{test.key}, the build reported #{header}" unless header == "test #{test.key}"
 
       code = exit_line.delete_prefix("exit ")

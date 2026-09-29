@@ -180,7 +180,8 @@ against the suite's baseline in `test/baselines/` as
 `rake regression:<suite>` does. `[all]` runs `testbench`,
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
 `testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
-`testbench-vicii-new`, `testbench-general` and `testbench-expansions` in
+`testbench-vicii-new`, `testbench-general`, `testbench-expansions`,
+`testbench-ntsc`, `testbench-ntsc-vicii-new` and `testbench-ntsc-cia-new` in
 turn, and fails at the end if any of them changed. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
@@ -192,14 +193,15 @@ each shard's tests to `<results>.engine-N` and starts one build process
 per shard, which reads them one per line, as tab-separated fields:
 
 ```
-KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
+KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION REGION    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
 ```
 
 EXPANSION is the testlist option naming the memory expansion the test
-fits: `geo512k`, `plus60k` or `plus256k`.
+fits: `geo512k`, `plus60k` or `plus256k`. REGION is the video standard,
+`pal`, `ntsc` (the 6567R8) or `ntscold` (the 6567R56A).
 
 The compiled binary only emulates. For each test it builds a fresh
-machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`) and
+machine with the CIAs, the VIC-II and the video standard the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`) and
 its memory expansion, if any, booted to the cycle where a program loads unless the test starts
 from a cartridge, and runs the test with `Testbench::Execution` from
 `test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
@@ -211,7 +213,7 @@ test KEY
 exit CODE|none
 cycles CYCLES
 text            then the 25 lines of the text screen, for an exitcode test
-screen          or 272 lines of 384 hex palette indices, for a screenshot test
+screen          or 272 lines (247 on NTSC) of 384 hex palette indices, for a screenshot test
 done
 ```
 
