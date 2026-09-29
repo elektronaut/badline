@@ -94,6 +94,20 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0xb9)).to eq(0x60) }
   end
 
+  describe "a load of the directory" do
+    let(:listing) { Badline::Storage::HostDirectory.new(dir).directory.bytes }
+
+    before do
+      request_load("$")
+      run_trap
+    end
+
+    specify { expect(ram.read(0x0401, listing.length - 2)).to eq(listing[2..]) }
+    specify { expect(ram.read(0x0405, 8).pack("C*")).to eq("\x12\"#{File.basename(dir).upcase[0, 6]}") }
+    specify { expect(ram.read(0xae, 2)).to eq([0x0401 + listing.length - 2].pack("v").bytes) }
+    specify { expect(computer.cpu.status.carry?).to be(false) }
+  end
+
   describe "a second load without a SETLFS after a relocated one" do
     before do
       ram.write(0xc3, [0x00, 0x60])

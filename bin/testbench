@@ -55,10 +55,12 @@
 # runs on the 6569.
 #
 # --expansions runs the rows that ask for a memory expansion badline
-# emulates instead, from any subtree: geo512k, a 512K GEO-RAM, and
-# plus60k and plus256k, the +60K and +256K RAM expansions. Each boots with
-# the expansion fitted, as VICE starts it, then loads and runs its program
-# like any other row.
+# emulates instead, from any subtree: geo512k, a 512K GEO-RAM, plus60k
+# and plus256k, the +60K and +256K RAM expansions, and reu128k to reu16m,
+# an REU of that size. Each boots with the expansion fitted, as VICE
+# starts it, then loads and runs its program like any other row. An REU
+# row that also mounts a cartridge is left out, since badline doesn't
+# share I/O 2 between the two.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -115,14 +117,14 @@ module Testbench
   # here.
   LORENZ_DIR = %r{\A\.\./general/Lorenz-2\.15/}
 
-  # P64 images and memory expansions other than GEO-RAM, the +60K and the
-  # +256K are not emulated. A mountcrt row runs only under --carts, a drive
+  # P64 images and memory expansions other than GEO-RAM, the +60K, the
+  # +256K and the REU are not emulated. A mountcrt row runs only under --carts, a drive
   # row or one that mounts a .d64 or a .g64 only under --drive, a cia-new
   # row, which asks for the 6526A, only under --cia-new, a vicii-new row,
   # which asks for the 8565, only under --vicii-new, and a row that asks
   # for an expansion in EXPANSIONS only under --expansions.
   SKIP_OPTIONS = /ntsc|drean|mountp64|
-                  reu|isepic|dqbb|ramcart/x
+                  isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
   DISK_OPTION = /\Amount[dg]64:/
 
@@ -139,8 +141,10 @@ module Testbench
   VICII_NEW_OPTION = "vicii-new"
   DEFAULT_MODELS = %i[mos6526 mos6569].freeze
 
-  # The memory expansions a row can ask for, by testlist option.
+  # The memory expansions a row can ask for, by testlist option, and the
+  # REU sizes, reu128k to reu16m.
   EXPANSIONS = %w[geo512k plus60k plus256k].freeze
+  REU_OPTION = /\Areu\d+[km]\z/
 
   # Pepto PAL palette (pepto-pal.vpl), which the references are rendered in.
   PALETTE = [
@@ -184,7 +188,7 @@ module Testbench
     # The testlist option naming the memory expansion the row asks for, or
     # nil.
     def expansion
-      options.find { |option| EXPANSIONS.include?(option) }
+      options.find { |option| EXPANSIONS.include?(option) || option.match?(REU_OPTION) }
     end
 
     include DriveRow
@@ -313,9 +317,10 @@ module Testbench
     end
 
     # A drive row runs from the drive/ subtree or one of the included
-    # ones, while its disk image is there.
+    # ones, while its disk image is there. A cartridge row that asks for a
+    # memory expansion as well doesn't run.
     def runnable?(test, dir)
-      return runnable_cartridge?(test) && test.disk.nil? if test.cartridge
+      return runnable_cartridge?(test) && test.disk.nil? && test.expansion.nil? if test.cartridge
       return File.exist?(File.join(test.dir_abs, test.prg)) if test.expansion
       return false unless dir.match?(DRIVE_DIR) || included?(dir, test.cia_model)
 

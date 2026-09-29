@@ -34,8 +34,10 @@ module Badline
     # The machine options (sid_model:, cia_model:, vic_model:, region: and
     # ram_expansion:) configure the AddressBus. The region sets the clock,
     # the VIC's raster and the mains frequency the CIAs' TOD clocks count.
-    # Only PAL runs as yet.
-    def initialize(debug: false, **machine)
+    # Only PAL runs as yet. reu plugs an REU of that many K into the
+    # expansion port, where it drives the IRQ line and takes the bus for
+    # its transfers.
+    def initialize(debug: false, reu: nil, **machine)
       @address_bus = AddressBus.new(**machine)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
@@ -48,6 +50,8 @@ module Badline
       @nmi_asserted = false
       @cartridge_nmi = false
       @restore_pulse = false
+      @reu_irq = false
+      @dma = false
       @freezing = false
       @freeze_writes = 0
       @init_handlers = []
@@ -56,6 +60,7 @@ module Badline
       @serial_trap = nil
       @drive1541 = nil
       @iec_bus = nil
+      @reu = reu ? plug_reu(reu) : nil
     end
 
     INIT_THRESHOLD = 2_500_000
@@ -72,11 +77,11 @@ module Badline
       @sid.cycle!
       @datasette.cycle!
 
-      @cpu.irq = @cia1.interrupted? || @vic.interrupted?
+      @cpu.irq = @cia1.interrupted? || @vic.interrupted? || @reu_irq
 
       drive_nmi
       watch_freeze if @freezing
-      @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+      clock_cpu
       @drive1541&.host_cycle!
 
       @cycles += 1
@@ -94,6 +99,8 @@ module Badline
       address_bus.attach_cartridge(cartridge)
       power_cycle!
     end
+
+    def reu = address_bus.reu
 
     # A cartridge goes in with the power off, so attaching one switches the
     # machine off and on: the VIC and RAM start from their power-on state,
@@ -113,6 +120,8 @@ module Badline
       @cia2.reset!
       @sid.reset!
       address_bus.cartridge&.reset
+      @reu&.reset!
+      @dma = false
       @drive&.reset!
       @drive1541&.reset!
       @freezing = false
@@ -221,6 +230,31 @@ module Badline
       @restore_pulse = false
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
+    end
+
+    def plug_reu(size_kb)
+      reu = REU.new(size_kb, bus: @address_bus, vic: @vic)
+      reu.on_irq_change { |level| @reu_irq = level }
+      reu.on_dma { @dma = true }
+      @address_bus.attach_reu(reu)
+      reu
+    end
+
+    # BA halts the CPU on a read cycle, and so does an REU holding the bus
+    # for a transfer.
+    def clock_cpu
+      return dma_cycle! if @dma
+
+      @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+    end
+
+    def dma_cycle!
+      writing = @cpu.pending_write?
+      @reu.dma_cycle!(@vic.reu_ba_low?, writing)
+      return @cpu.stall! if @reu.holds_bus?
+
+      @dma = @reu.dma?
+      writing || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
     end
 
     # A freezer counts the CPU's write cycles once it pulls NMI and switches

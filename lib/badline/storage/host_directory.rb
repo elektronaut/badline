@@ -8,6 +8,7 @@ module Badline
     # can't be read is left out, and a failed write reports false.
     class HostDirectory
       NO_SYNC = 21
+      ID = "DIR".bytes.freeze
 
       def initialize(path)
         @path = path
@@ -39,7 +40,26 @@ module Badline
         false
       end
 
+      # The directory as LOAD"$" lists it, under its host name: every file
+      # as a PRG, of the blocks it would take on a disk. A host directory
+      # counts no free blocks.
+      def directory
+        Listing.new(name: Listing.encode(File.basename(@path)), id: ID,
+                    entries: entries.map { |entry| listing_entry(entry) }, blocks_free: 0)
+      end
+
       private
+
+      def listing_entry(entry)
+        entry[:listed] || Listing.program(entry[:name], file_length(entry[:file]))
+      end
+
+      def file_length(file)
+        size = File.size(File.join(@path, file))
+        File.extname(file).casecmp?(".p00") ? size - P00::HEADER_SIZE : size
+      rescue SystemCallError
+        0
+      end
 
       def find(name)
         pattern = Storage.matcher(name)
@@ -72,7 +92,7 @@ module Badline
 
       def t64_entries(file)
         archive = T64.new(File.join(@path, file))
-        archive.names.map { |name| { name:, archive: } }
+        archive.names.zip(archive.listing_entries).map { |name, listed| { name:, archive:, listed: } }
       rescue T64::FormatError, SystemCallError
         nil
       end

@@ -46,10 +46,6 @@ module Badline
     FETCH_HOLD = 0x20
     FETCH_HOLD_ROM = 0x60
 
-    # The columns carrying a hook, besides the line's last column, which
-    # starts the vertical border for the line after it.
-    HOOKS = [14, 15, 53, 54, 57].freeze
-
     # BA falls three columns ahead of each sprite's pair of s-accesses, and
     # the five-column windows step two columns apart from sprite 0 at column
     # 54. From sprite 3 on they reach past the end of the line, so each is
@@ -208,6 +204,16 @@ module Badline
 
       @display_state.bad_line_condition? &&
         @column > DisplayState::DMA_FIRST && @column <= DisplayState::DMA_LAST + 1
+    end
+
+    # BA as an REU's DMA sees it. On the line whose raster matches sprite
+    # 0's Y, where the sprite's DMA starts, the REU doesn't see BA fall on
+    # the first cycle of the sprite's window. Pinned by
+    # REU/bonzai/spritetiming.
+    def reu_ba_low?
+      return false if @column == SPRITE_BA_WINDOWS[0].first && sprite_zero_starting?
+
+      ba_low?
     end
 
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.
@@ -378,6 +384,10 @@ module Badline
       @registers.latch_irq!(LIGHTPEN_IRQ)
     end
 
+    def sprite_zero_starting?
+      @registers[0x15].anybits?(0x01) && @registers[0x01] == (@rasterline & 0xff)
+    end
+
     def rebuild_sprite_ba
       @sprite_ba.fill(false)
       8.times do |n|
@@ -389,13 +399,15 @@ module Badline
     end
 
     # Splits the sprite BA windows at the end of the line and marks the hook
-    # columns, for a line of the region's length. The marks let an ordinary
-    # column cost one array read instead of the dispatch.
+    # columns, for a line of the region's length: 14, 15, 53, 54 and 57, and
+    # the line's last column, which starts the vertical border for the line
+    # after it. The marks let an ordinary column cost one array read instead
+    # of the dispatch.
     def layout_columns
       last = @last_column
       @sprite_ba_tail = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c <= last } }.freeze
       @sprite_ba_head = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - last - 1 if c > last } }.freeze
-      @hook_columns = Array.new(@columns_per_line) { |c| c == last || HOOKS.include?(c) }.freeze
+      @hook_columns = Array.new(@columns_per_line) { |c| c == last || [14, 15, 53, 54, 57].include?(c) }.freeze
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY

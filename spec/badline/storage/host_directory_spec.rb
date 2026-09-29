@@ -128,6 +128,28 @@ describe Badline::Storage::HostDirectory do
     end
   end
 
+  describe "#directory" do
+    def listed = storage.directory.entries.map { |entry| [entry.name.pack("C*").delete("\xa0".b), entry.blocks] }
+
+    it "lists every file it serves, in order, by the blocks it takes" do
+      File.binwrite(File.join(dir, "big.prg"), ([0] * 600).pack("C*"))
+      expect(listed).to eq([["HELLO", 1], ["BIG", 3], ["INTRO", 1], ["LONG NAME", 1], ["MUSIC", 1], ["LOADER", 1]])
+    end
+
+    it "lists every file as a closed PRG" do
+      expect(storage.directory.entries.map { |entry| [entry.type, entry.closed] }.uniq).to eq([[2, true]])
+    end
+
+    it "counts a .p00 without its header" do
+      File.binwrite(File.join(dir, "zz-game.p00"), "C64File\x00LONG NAME#{"\x00" * 9}".b + ([0] * 255).pack("C*"))
+      expect(listed.assoc("LONG NAME")).to eq(["LONG NAME", 2])
+    end
+
+    it "lists the directory's own name" do
+      expect(storage.directory.name.pack("C*").delete("\xa0".b)).to eq(File.basename(dir).upcase[0, 16])
+    end
+  end
+
   describe "#read_error" do
     it "reports an unreadable .prg as a READ ERROR before its first byte", :file_permissions do
       File.chmod(0o000, File.join(dir, "intro.prg"))

@@ -53,8 +53,12 @@ module Badline
       # a LOAD (secondary address 0) opens at $7E and $026F of its memory,
       # and a LOAD of a name starting with "*" reopens that file rather than
       # the first one on the disk. Loaders write the block there with M-W
-      # to load a file the directory doesn't list.
+      # to load a file the directory doesn't list. A LOAD of "$" reads the
+      # directory as a BASIC program, which a pattern after a colon narrows
+      # to the files it names.
       def self.for_name(storage, memory, secondary, name, type)
+        return new(storage.directory.bytes(name)) if listing?(storage, secondary, name)
+
         file = Storage.parse_name(name).first
         return for_file(storage, file, type) unless secondary.zero? && storage.respond_to?(:first_block)
 
@@ -64,6 +68,10 @@ module Badline
         block = storage.first_block(file, type:)
         memory.last_program = block if block
         for_file(storage, file, type)
+      end
+
+      def self.listing?(storage, secondary, name)
+        secondary.zero? && name.start_with?("$") && storage.respond_to?(:directory)
       end
 
       # The file whose chain starts at the block.
