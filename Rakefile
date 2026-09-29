@@ -32,8 +32,8 @@ VENDORED_REPOS = {
 # instead.
 #
 # :cuts splits a chain into stretches, regression:<suite>-1, -2 and so on,
-# that can run side by side, locally or dispatched from the Actions tab
-# (the nightly run is still the whole chain). Each ends at its cut, and
+# that can run side by side, and spinel:lorenz runs them on Spinel the
+# same way. Each ends at its cut, and
 # the next resumes there on a fresh machine. Lorenz's cuts fall at quarters of its
 # runtime, inside the CPU instruction tests. Keep every cut before trap1
 # (row 221 of lorenz.txt): from there on the trap, MMU, interrupt and CIA
@@ -48,9 +48,9 @@ REGRESSION_SUITES = {
 }.freeze
 
 # The rest of the testbench, split by the subsystem each subtree exercises.
-# These get a rake task and a baseline but stay out of `rake regression`
-# and the nightly CI set: their runtime is mostly emulated cycles
-# rather than timeouts, so they are run on demand instead.
+# These get a rake task and a baseline but stay out of `rake regression`:
+# their runtime is mostly emulated cycles rather than timeouts, so they
+# are run by name instead.
 # interrupts/irqdma is a suite of its own rather than part of interrupts —
 # 16 programs measuring DMA against interrupts over ~450M cycles each,
 # which is nearly all of that subtree's runtime and leaves the remaining
@@ -428,11 +428,11 @@ namespace :regression do
     end
   end
 
-  desc "Re-record every baseline in the nightly set"
+  desc "Re-record every baseline in the main set"
   task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 
-desc "Run every suite in the nightly set against its tracked baseline"
+desc "Run every suite in the main set against its tracked baseline"
 task regression: REGRESSION_SUITES.keys.map { |suite| "regression:#{suite}" }
 
 namespace :spinel do

@@ -83,6 +83,7 @@ benchmark, so use `bin/benchmark` and `bin/profile` for CRuby speed.
 
 ```sh
 rake spinel:lorenz
+rake "spinel:lorenz[1,2]"
 rake "spinel:lorenz[whole]"
 ```
 
@@ -90,7 +91,8 @@ rake "spinel:lorenz[whole]"
 row against `test/baselines/lorenz.txt` as `rake regression:lorenz` checks
 `bin/lorenz`. By default it runs the chain's four stretches, the ones
 `rake regression:lorenz-1` to `lorenz-4` run, side by side, one process
-each. `[whole]` runs the whole chain in one process instead. It fails on
+each. Numbers pick some of the stretches, and `[whole]` runs the whole
+chain in one process instead. It fails on
 any row that differs from the baseline, and on a stretch that ends short
 or reports a different set of rows.
 
@@ -171,6 +173,7 @@ tmp/spinel/sidtests tmp/spinel/spinel-sid-1.list
 ```sh
 rake spinel:testbench
 rake "spinel:testbench[testbench-cia]"
+rake "spinel:testbench[testbench-irqdma,b.prg]"
 rake "spinel:testbench[all]"
 ```
 
@@ -182,7 +185,9 @@ against the suite's baseline in `test/baselines/` as
 `testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
 `testbench-vicii-new`, `testbench-general`, `testbench-expansions`,
 `testbench-ntsc`, `testbench-ntsc-vicii-new` and `testbench-ntsc-cia-new` in
-turn, and fails at the end if any of them changed. `SHARDS` and `RESUME=1` work as they do for
+turn, and fails at the end if any of them changed. Filters after a
+suite's name run only the rows they match, as `bin/testbench`'s filters
+do, and compare only those rows. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
 The task runs `bin/testbench --engine tmp/spinel/testbench`, so CRuby
