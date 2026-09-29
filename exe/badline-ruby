@@ -6,6 +6,8 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require "badline/options"
 
+$stdout.sync = true
+
 begin
   options = Badline::Options.parse(ARGV)
 rescue Badline::Options::Error => e
