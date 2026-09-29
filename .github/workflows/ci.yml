@@ -1,0 +1,348 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+# A new push to a pull request cancels its run in progress. Each push to
+# main runs on its own, so release.yml sees every one.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+env:
+  # The Spinel commit the suites and the native badline build with. Bumping
+  # it rebuilds the cached compiler. release.yml reads it from here.
+  SPINEL_REF: 7acd87b58918ee7956781868015a4ca0807c236b
+jobs:
+  rubocop:
+    name: Rubocop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Check code
+        run: bundle exec rubocop
+      - name: Check the Spinel subset
+        run: bundle exec rspec spec/spinel_subset_spec.rb
+
+  rspec:
+    name: RSpec
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Run tests
+        run: bundle exec rspec
+
+  # The :slow examples are left out of a plain `rspec` to keep the local
+  # loop fast. Here they run beside the main job.
+  rspec-slow:
+    name: RSpec (slow)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Run slow tests
+        run: bundle exec rspec --tag slow
+
+  minitest:
+    name: Minitest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Cache 65x02 test fixtures
+        uses: actions/cache@v4
+        with:
+          path: vendor/65x02
+          key: 65x02-fixtures-6502-v1
+      - name: Run tests
+        run: bundle exec rake test
+
+  # Builds the compiler once, so the jobs below restore it instead of each
+  # building it on a cold cache.
+  compiler:
+    name: Spinel compiler
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Locate Spinel
+        run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+      - name: Cache Spinel
+        id: spinel-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+      - name: Build Spinel
+        if: steps.spinel-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/matz/spinel "$SPINEL_DIR"
+          git -C "$SPINEL_DIR" checkout --quiet "$SPINEL_REF"
+          make -C "$SPINEL_DIR" deps
+          make -C "$SPINEL_DIR" -j"$(nproc)"
+      - name: Print the Spinel version
+        run: '"$SPINEL_DIR/bin/spinel" --version'
+
+  # Builds the native badline and runs it headless for a few frames, then
+  # does the same with the spin pack tarball release.yml ships to Homebrew.
+  native:
+    name: Native badline
+    needs: compiler
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Locate Spinel
+        run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+      - name: Restore Spinel
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+          fail-on-cache-miss: true
+      - name: Build the native badline
+        run: SPINEL="$SPINEL_DIR/bin/spinel" bundle exec rake native:build
+      - name: Run it headless
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          tmp/native/badline --version
+          tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
+      - name: Upload the screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-badline
+          path: tmp/native/ready.bmp
+          if-no-files-found: ignore
+      - name: Pack the native badline
+        run: |
+          SPINEL="$SPINEL_DIR/bin/spinel" bundle exec rake native:pack
+          echo "VERSION=$(ruby -r ./lib/badline/version -e 'print Badline::VERSION')" >> "$GITHUB_ENV"
+          echo "TARBALL=$(ls tmp/native/badline-*-spinel-*.tar.gz)" >> "$GITHUB_ENV"
+      - name: Build and run the pack
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          mkdir "$RUNNER_TEMP/check"
+          tar -xzf "$TARBALL" -C "$RUNNER_TEMP/check"
+          cd "$RUNNER_TEMP/check/badline-$VERSION"
+          make -j"$(nproc)"
+          export BADLINE_ROM_PATH="$PWD/roms"
+          ./badline --version
+          ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
+
+  # Every regression suite on the Spinel build, each compared against its
+  # baseline in test/baselines/. The shards are balanced by recent run
+  # times to about 10 minutes each. testbench-irqdma is split by filter
+  # and lorenz by stretch. A runner has 2 cores with 2 threads each, so a
+  # Lorenz stretch runs nearly twice as fast beside one other as beside
+  # three.
+  suites:
+    name: "Suites (${{ matrix.shard }})"
+    needs: compiler
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: lorenz-1-2
+            harnesses: lorenz
+            tasks: spinel:lorenz[1,2]
+          - shard: lorenz-3-4
+            harnesses: lorenz
+            tasks: spinel:lorenz[3,4]
+          - shard: irqdma-1
+            harnesses: testbench
+            tasks: spinel:testbench[testbench-irqdma,b.prg]
+          - shard: irqdma-2
+            harnesses: testbench
+            tasks: >-
+              spinel:testbench[testbench-irqdma,test1.prg,test2.prg,test3.prg,test4.prg,test5.prg,test6.prg,test7.prg]
+          - shard: cia
+            harnesses: testbench
+            tasks: spinel:testbench[testbench-cia]
+          - shard: cia-new
+            harnesses: testbench
+            tasks: spinel:testbench[testbench-cia-new]
+          - shard: expansions
+            harnesses: testbench
+            tasks: >-
+              spinel:testbench[testbench-expansions]
+              spinel:testbench[testbench-vicii-new]
+              spinel:testbench[testbench-general]
+              spinel:testbench[testbench-interrupts]
+              spinel:testbench[testbench-ntsc-cia-new]
+          - shard: vicii-cpu
+            harnesses: testbench
+            tasks: spinel:testbench[testbench] spinel:testbench[testbench-cpu]
+          - shard: sid-ntsc
+            harnesses: testbench sidtests boot cpu_tests
+            tasks: >-
+              spinel:sidtests[6581]
+              spinel:sidtests[8580]
+              spinel:check
+              spinel:testbench[testbench-ntsc]
+              spinel:testbench[testbench-ntsc-vicii-new]
+              spinel:testbench[testbench-carts]
+          # Five rows fail at this SPINEL_REF, from Spinel bugs in the .d64
+          # write path. Drop allow-failure once SPINEL_REF has the fixes.
+          - shard: drive-scenarios
+            harnesses: drive_scenarios
+            tasks: spinel:drive_scenarios
+            allow-failure: true
+    continue-on-error: ${{ matrix.allow-failure == true }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Locate Spinel
+        run: |
+          echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+          echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
+          printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Restore Spinel
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+          fail-on-cache-miss: true
+      - name: Put Spinel on PATH
+        run: echo "$SPINEL_DIR/bin" >> "$GITHUB_PATH"
+      - name: Cache 65x02 test fixtures
+        if: contains(matrix.harnesses, 'cpu_tests')
+        uses: actions/cache@v4
+        with:
+          path: vendor/65x02
+          key: 65x02-fixtures-6502-v1
+      - name: Cache VICE-testprogs
+        uses: actions/cache@v4
+        with:
+          path: vendor/VICE-testprogs
+          key: vice-testprogs-v1
+      - name: Check out the vendored suites
+        run: bundle exec rake vendor:VICE-testprogs
+      # The rake tasks build their own harnesses. Building them here once
+      # for the shard, SPINEL=true below makes each task's build a no-op
+      # that leaves these binaries in place.
+      - name: Build the harnesses
+        env:
+          HARNESSES: ${{ matrix.harnesses }}
+        run: |
+          start=$SECONDS
+          bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: ENV["HARNESSES"].split)'
+          echo "| Build $HARNESSES | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
+      # The testbench, SID and drive scenario tasks run SHARDS processes, set
+      # to the core count, and spinel:lorenz runs its stretches side by side. A task
+      # that fails leaves the next to run, and the step fails at the end.
+      - name: Run the suites
+        env:
+          SPINEL: "true"
+          TASKS: ${{ matrix.tasks }}
+        run: |
+          set -f
+          status=0
+          for task in $TASKS; do
+            start=$SECONDS
+            bundle exec rake "$task" || status=1
+            echo "| $task | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit "$status"
+      - name: Upload run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suites-${{ matrix.shard }}
+          path: |
+            tmp/spinel/*.out
+            tmp/spinel/*.txt
+            tmp/regression
+            tmp/testbench
+          if-no-files-found: ignore
+
+  # One check that passes only when every job above did, so the required
+  # checks don't have to follow the shards as they are rebalanced.
+  ci:
+    name: CI
+    needs: [rubocop, rspec, rspec-slow, minitest, compiler, native, suites]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done
+
+  automerge:
+    name: Auto-merge Dependabot
+    needs: ci
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

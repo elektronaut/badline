@@ -32,8 +32,8 @@ VENDORED_REPOS = {
 # instead.
 #
 # :cuts splits a chain into stretches, regression:<suite>-1, -2 and so on,
-# that can run side by side, locally or dispatched from the Actions tab
-# (the nightly run is still the whole chain). Each ends at its cut, and
+# that can run side by side, and spinel:lorenz runs them on Spinel the
+# same way. Each ends at its cut, and
 # the next resumes there on a fresh machine. Lorenz's cuts fall at quarters of its
 # runtime, inside the CPU instruction tests. Keep every cut before trap1
 # (row 221 of lorenz.txt): from there on the trap, MMU, interrupt and CIA
@@ -48,9 +48,9 @@ REGRESSION_SUITES = {
 }.freeze
 
 # The rest of the testbench, split by the subsystem each subtree exercises.
-# These get a rake task and a baseline but stay out of `rake regression`
-# and the nightly CI set: their runtime is mostly emulated cycles
-# rather than timeouts, so they are run on demand instead.
+# These get a rake task and a baseline but stay out of `rake regression`:
+# their runtime is mostly emulated cycles rather than timeouts, so they
+# are run by name instead.
 # interrupts/irqdma is a suite of its own rather than part of interrupts —
 # 16 programs measuring DMA against interrupts over ~450M cycles each,
 # which is nearly all of that subtree's runtime and leaves the remaining
@@ -288,15 +288,20 @@ def stretch_problem(name, range, recorded, results)
   "#{name} reported #{rows.length} rows where the baseline has #{expected.length}."
 end
 
-# The Lorenz chain on the Spinel build: each stretch of `rake regression:lorenz-N`,
-# or the whole chain in one run.
-def spinel_lorenz_ranges(recorded, whole)
-  if whole
+# The Lorenz chain on the Spinel build: the stretches of `rake regression:lorenz-N`
+# numbered in picked, all of them when it is empty, or the whole chain in one
+# run when it is ["whole"].
+def spinel_lorenz_ranges(recorded, picked)
+  if picked == ["whole"]
     first = (recorded.keys - [Regression::ChainRange::OUTCOME]).first
     return { "lorenz" => Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME) }
   end
 
-  (1..(ALL_SUITES.fetch("lorenz").fetch(:cuts).length + 1)).to_h do |number|
+  numbers = (1..(ALL_SUITES.fetch("lorenz").fetch(:cuts).length + 1)).to_a
+  unknown = picked - numbers.map(&:to_s)
+  raise "No Lorenz stretch #{unknown.join(', ')}. Pick from #{numbers.join(', ')}, or whole." if unknown.any?
+
+  numbers.select { |number| picked.empty? || picked.include?(number.to_s) }.to_h do |number|
     ["lorenz-#{number}", stretch_range("lorenz", recorded, number)]
   end
 end
@@ -333,16 +338,18 @@ def splice_recorded(suite, recorded, fresh)
   puts "Recorded #{baseline}: #{splice.summary}."
 end
 
-def compare_baseline(suite, results, name: suite)
+# With filters, only the baseline rows they match are expected, as
+# bin/testbench matches them: id substrings, as a union.
+def compare_baseline(suite, results, name: suite, filters: [])
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
     raise "No baseline at #{baseline}. Record one with " \
           "`rake regression:record:#{suite}`."
   end
 
-  comparison = Regression::Comparison.new(
-    name, Regression.read(baseline), Regression.read(results)
-  )
+  expected = Regression.read(baseline)
+  expected = expected.select { |_, row| filters.any? { |filter| row.id.include?(filter) } } if filters.any?
+  comparison = Regression::Comparison.new(name, expected, Regression.read(results))
   comparison.report($stdout)
   comparison.publish
   raise "#{name} changed against #{baseline}." if comparison.changed?
@@ -365,13 +372,14 @@ def spinel_testbench_suites(suite)
 end
 
 # Runs each suite and compares it against its baseline, going on to the
-# next when one changed, and fails once they have all run.
-def run_spinel_testbench(suites)
+# next when one changed, and fails once they have all run. Filters bound a
+# single suite's run to the rows they match.
+def run_spinel_testbench(suites, filters = [])
   engine = SpinelCheck.binary("testbench")
   problems = suites.filter_map do |suite|
     results = File.join(SpinelCheck::OUT, "#{suite}.txt")
-    run_suite(suite, results, ["--engine", engine])
-    compare_baseline(suite, results, name: "spinel-#{suite}")
+    run_suite(suite, results, [*filters, "--engine", engine])
+    compare_baseline(suite, results, name: "spinel-#{suite}", filters:)
     nil
   rescue RuntimeError => e
     e.message
@@ -425,11 +433,11 @@ namespace :regression do
     end
   end
 
-  desc "Re-record every baseline in the nightly set"
+  desc "Re-record every baseline in the main set"
   task record: REGRESSION_SUITES.keys.map { |suite| "regression:record:#{suite}" }
 end
 
-desc "Run every suite in the nightly set against its tracked baseline"
+desc "Run every suite in the main set against its tracked baseline"
 task regression: REGRESSION_SUITES.keys.map { |suite| "regression:#{suite}" }
 
 namespace :spinel do
@@ -448,12 +456,12 @@ namespace :spinel do
     SpinelCheck.check_cpu_tests
   end
 
-  desc "Run the Lorenz chain on the Spinel build, its stretches side by side (or [whole] in one run), " \
-       "and compare it against #{BASELINE_DIR}/lorenz.txt"
-  task :lorenz, [:whole] => "vendor:VICE-testprogs" do |_task, args|
+  desc "Run the Lorenz chain on the Spinel build, its stretches side by side ([1,2] picks some, " \
+       "[whole] runs it in one), and compare it against #{BASELINE_DIR}/lorenz.txt"
+  task :lorenz, [:stretch] => "vendor:VICE-testprogs" do |_task, args|
     SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[lorenz])
     recorded = read_recorded("lorenz")
-    ranges = spinel_lorenz_ranges(recorded, args[:whole] == "whole")
+    ranges = spinel_lorenz_ranges(recorded, args.to_a.compact.reject(&:empty?))
     results = SpinelCheck.run_lorenz(ranges.transform_values { |range| chain_args(range) })
     problems = ranges.filter_map do |name, range|
       stretch_problem("spinel-#{name}", range, recorded, results.fetch(name))
@@ -488,12 +496,15 @@ task "spinel:drive_scenarios" do
   compare_baseline("drive-scenarios", results, name: "spinel-drive-scenarios")
 end
 
-desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build " \
-     "and compare it against its baseline in #{BASELINE_DIR}"
+desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build, " \
+     "or [suite,filter,...] of it, and compare it against its baseline in #{BASELINE_DIR}"
 task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
   suites = spinel_testbench_suites(args[:suite] || "testbench")
+  filters = args.extras.compact.reject(&:empty?)
+  raise "Filters take one suite, not all of them." if filters.any? && suites.length > 1
+
   SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[testbench])
-  run_spinel_testbench(suites)
+  run_spinel_testbench(suites, filters)
 end
 
 namespace :native do
