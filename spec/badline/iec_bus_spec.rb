@@ -42,6 +42,13 @@ describe Badline::IECBus do
       computer.attach_drive1541(drive)
     end
 
+    it "tells the drive when the C64 writes CIA 2's port A" do
+      allow(drive).to receive(:host_written!)
+      computer.cia2.poke(0xdd02, 0x3f)
+      c64_drive(0x0f)
+      expect(drive).to have_received(:host_written!).twice
+    end
+
     describe "from the C64 to the drive" do
       before do
         # LDA #$1A; STA DDRB; LDA #$00; STA ORB; loop: LDA ORB; STA $10; JMP loop

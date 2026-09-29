@@ -39,7 +39,23 @@ module Badline
     def initialize(host: nil)
       @host = host
       @drives = []
+      @notifies = false
     end
+
+    # Stands in as the host's peripheral, CIA 2's, and has it say when it
+    # writes port A (see notifies?).
+    def plug_in!
+      @host.peripheral = self
+      @host.on_port_a_write { host_written }
+      @notifies = true
+    end
+
+    # Whether the host says when it may have moved a line (see plug_in!).
+    # Without, a drive asleep checks ATN every cycle.
+    def notifies? = @notifies
+
+    # CIA 2 wrote its port A, which may have moved a line.
+    def host_written = @drives.each(&:host_written!)
 
     def attach(drive)
       @drives << drive unless @drives.include?(drive)
