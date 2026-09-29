@@ -14,12 +14,13 @@ describe Badline::Drive1541::Idle do
 
   # A drive whose ROM holds +loop+ at $EBFF, and +init+ at $E000, where
   # the reset vector points, after turning the motor off and followed by a
-  # jump to $EBFF.
-  def drive_running(loop, init: [], idle_skip: true)
+  # jump to $EBFF. The IRQ vector points to +irq+ at $F000.
+  def drive_running(loop, init: [], irq: [0x40], idle_skip: true)
     bytes = Array.new(0x4000, 0xea)
     bytes[0x2000, motor_off.length + init.length + 3] = [*motor_off, *init, 0x4c, 0xff, 0xeb]
     bytes[0x2bff, loop.length] = loop
-    bytes[0x3ffc, 2] = [0x00, 0xe0]
+    bytes[0x3000, irq.length] = irq
+    bytes[0x3ffc, 4] = [0x00, 0xe0, 0x00, 0xf0]
     rom = Badline::ROM.new(bytes, length: 0x4000, start: 0xc000)
     Badline::Drive1541.new(rom:).tap do |drive|
       drive.idle_skip = idle_skip
@@ -136,6 +137,69 @@ describe Badline::Drive1541::Idle do
     asleep_for(drive, 100)
     drive.led_on?
     expect(drive.asleep?).to be(true)
+  end
+
+  # VIA 2's timer 1 interrupts the loop every $0402 cycles, running free,
+  # and lands 12 cycles further into the loop's 13 each time, so the
+  # interrupts come round after 13.
+  describe "with a timer interrupting" do
+    # LDA #$C0; STA $1C0E; LDA #$40; STA $1C0B; LDA #$00; STA $1C04;
+    # LDA #$04; STA $1C05; CLI
+    let(:timer) do
+      [0xa9, 0xc0, 0x8d, 0x0e, 0x1c, 0xa9, 0x40, 0x8d, 0x0b, 0x1c, 0xa9, 0x00, 0x8d, 0x04, 0x1c,
+       0xa9, 0x04, 0x8d, 0x05, 0x1c, 0x58]
+    end
+
+    # PHA; LDA $1C04; PLA; RTI, with +extra+ ahead of the PLA.
+    def handler(*extra) = [0x48, 0xad, 0x04, 0x1c, *extra, 0x68, 0x40]
+
+    def interrupted(irq = handler, idle_skip: true) = drive_running(pure_loop, init: timer, irq:, idle_skip:)
+
+    it "sleeps on through the interrupts once they come round" do
+      drive = interrupted
+      asleep_for(drive, 30_000)
+      expect(asleep_for(drive, 50_000)).to eq(50_000)
+    end
+
+    it "leaves the drive as running every cycle does" do
+      drives = [interrupted, interrupted(idle_skip: false)]
+      expect(states(drives, [1, 20_000, 7, 30_001, 12_345, 50_000]))
+        .to all(satisfy { |skipping, stepping| skipping == stepping })
+    end
+
+    it "wakes when ATN moves" do
+      drive = interrupted
+      asleep_for(drive, 40_000)
+      host.port_a_lines = 0x0f
+      drive.host_cycle!
+      expect(drive.asleep?).to be(false)
+    end
+
+    it "leaves the drive as running every cycle does, as ATN moves" do
+      drives = [interrupted, interrupted(idle_skip: false)]
+      states(drives, [40_000])
+      host.port_a_lines = 0x0f
+      expect(states(drives, [1, 3, 5_000])).to all(satisfy { |skipping, stepping| skipping == stepping })
+    end
+
+    {
+      "reads the serial bus" => [0xad, 0x00, 0x18], # LDA $1800
+      "writes VIA 1" => [0x8d, 0x01, 0x18], # STA $1801
+      "reads a counter that runs free" => [0xad, 0x08, 0x1c], # LDA $1C08
+      # LDA #$08; STA $1C00; LDA #$00; STA $1C00
+      "lights the LED" => [0xa9, 0x08, 0x8d, 0x00, 0x1c, 0xa9, 0x00, 0x8d, 0x00, 0x1c]
+    }.each do |what, extra|
+      it "wakes for each interrupt whose handler #{what}" do
+        drive = interrupted(handler(*extra))
+        asleep_for(drive, 30_000)
+        expect(asleep_for(drive, 50_000)).to be_between(40_000, 49_900)
+      end
+
+      it "leaves the drive as running every cycle does, with a handler that #{what}" do
+        drives = [interrupted(handler(*extra)), interrupted(handler(*extra), idle_skip: false)]
+        expect(states(drives, [30_000, 7, 12_345])).to all(satisfy { |skipping, stepping| skipping == stepping })
+      end
+    end
   end
 
   # Runs the real DOS ROM. Two drives boot side by side, one skipping its

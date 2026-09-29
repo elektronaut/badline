@@ -27,7 +27,8 @@ module Badline
     #
     # Such a pass runs the same way again from where it ended, for as
     # long as ATN holds still and no counter sets a flag, so the drive
-    # sleeps: host_cycle! only counts the host cycles that go by. It wakes
+    # sleeps: host_cycle! only counts the host cycles that go by (see
+    # Sleep). It wakes
     # when ATN moves, when a counter is due to set a flag, or when something
     # outside reads or changes the drive (the readers in Drive1541 call
     # settle!). Waking counts off the whole passes it owes in bulk,
@@ -41,6 +42,9 @@ module Badline
     # A pass starts at $EBFF, where the CPU always comes from the loop's
     # last instruction, a JMP, so what that leaves in the CPU's working
     # registers is the same each time round.
+    #
+    # The timer's interrupts come round too, and once they do, the drive
+    # sleeps on through them (see Orbit).
     module Idle
       # Where the DOS 2.6 idle loop starts over.
       IDLE_LOOP = 0xebff
@@ -54,38 +58,15 @@ module Badline
         @idle_skip = on
       end
 
-      # Whether the drive is skipping its idle loop right now.
-      def asleep? = @asleep
-
-      # Brings the drive up to the present, cycle for cycle, and drops the
-      # pass it was recording, since whoever called may change it. Every
-      # reader of the drive's parts calls this.
-      def settle!
-        if @asleep
-          wake!
-          @serial_port.latch_host
-        end
-        stop_recording if @recording
-      end
-
       private
-
-      # A host cycle asleep.
-      def doze
-        @slept += 1
-        settle! if @slept == @wake_at || @serial_port.atn_moved?
-      end
 
       def init_idle(debug)
         @idle_skip = !debug
-        @asleep = false
         @recording = false
-        @owed = 0
-        @budget = 0
-        @slept = 0
-        @wake_at = 0
         @pass_cycles = 0
         @pass_instructions = 0
+        init_sleep
+        init_orbits
       end
 
       # The CPU is at $EBFF. At an instruction boundary, the drive sleeps if
@@ -130,39 +111,10 @@ module Badline
         @pass_cycles = @cycles - @record_cycles
         @pass_instructions = @cpu.instructions - @record_instructions
         @asleep = true
+        @host_still = false
         @owed = 0
         @budget = quiet_cycles
-      end
-
-      # Asleep, host_cycle! counts host cycles, and leaves it to wake! to
-      # turn them into drive cycles through the phase accumulator. This sets
-      # the host cycle that brings the drive cycles owed up to the budget.
-      def plan_wake
-        @slept = 0
-        needed = ((@budget - @owed) * @host_clock_hz) - @phase
-        @wake_at = needed.positive? ? (needed + CLOCK_HZ - 1) / CLOCK_HZ : 1
-      end
-
-      # Runs the cycles owed: whole passes in bulk, up to the budget, and
-      # the rest one by one.
-      def wake!
-        @asleep = false
-        phase = @phase + (@slept * CLOCK_HZ)
-        @phase = phase % @host_clock_hz
-        owed = @owed + (phase / @host_clock_hz)
-        @owed = 0
-        @slept = 0
-        span = [owed, @budget].min
-        passes = span / @pass_cycles
-        if passes.positive?
-          cycles = passes * @pass_cycles
-          @cpu.fast_forward(cycles, passes * @pass_instructions)
-          @via1.fast_forward(cycles)
-          @via2.fast_forward(cycles)
-          @cycles += cycles
-          owed -= cycles
-        end
-        owed.times { step }
+        anchor
       end
 
       def quiet_cycles

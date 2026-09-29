@@ -19,7 +19,8 @@ module Badline
     # both on a real 1541.
     #
     # While Idle records a pass of the DOS's idle loop, the bus watches it
-    # (see watch!).
+    # (see watch!). While Idle looks for an orbit, the bus guards the drive
+    # (see guard!).
     class Bus
       include Addressable
 
@@ -31,6 +32,10 @@ module Badline
       VOLATILE_VIA2_READS = 0x0730
       VOLATILE_VIA2_WRITES = 0x0ff0
 
+      # The timer each VIA register reaches, by offset, as bits: 1 for
+      # timer 1 and 2 for timer 2.
+      TIMER_REGISTERS = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 0].freeze
+
       attr_reader :ram, :rom, :via1, :via2, :data
 
       # Whether a watched stretch did something that makes it unrepeatable.
@@ -40,6 +45,14 @@ module Badline
       # from before the first access.
       attr_reader :touched
 
+      # Whether the drive did something since guard! that reached outside
+      # it, or took something in from outside.
+      attr_reader :tainted
+
+      # The timers the drive read or wrote since guard!, as bits: VIA 1's
+      # timer 1 and timer 2 in bits 0 and 1, and VIA 2's in bits 2 and 3.
+      attr_reader :touched_timers
+
       def initialize(rom:, via1:, via2:)
         addressable_at(0, length: 2**16)
         @ram = Memory.new([], length: 0x0800, start: 0)
@@ -47,21 +60,38 @@ module Badline
         @via1 = via1
         @via2 = via2
         @data = 0
-        @watching = false
-        @volatile = false
+        @recording = @guarding = @watching = false
+        @volatile = @tainted = false
         @touched = {}
+        @touched_timers = 0
+        @led = 0
       end
 
       # Starts watching: see volatile and touched. The bus stops watching
       # once the stretch turns volatile.
       def watch!
-        @watching = true
+        @recording = true
         @volatile = false
         @touched = {}
+        watching!
       end
 
       def unwatch!
-        @watching = false
+        @recording = false
+        watching!
+      end
+
+      # Starts guarding: see tainted and touched_timers. Reading VIA 1's
+      # port B, which reads the serial bus, taints the drive, and so do
+      # any write to VIA 1, whose port B drives the serial bus, a write to
+      # VIA 2's shift register or ACR, and VIA 2 turning the motor on or
+      # changing the LED. The bus stops guarding once the drive is tainted.
+      def guard!
+        @guarding = true
+        @tainted = false
+        @touched_timers = 0
+        @led = @via2.port_b_output & Mechanism::LED
+        watching!
       end
 
       def peek(addr)
@@ -86,7 +116,7 @@ module Badline
 
         addr &= 0x1fff
         if addr < 0x0800
-          touch(addr) if @watching
+          touch(addr) if @recording
           @ram.poke(addr, value)
         elsif addr >= 0x1c00
           @via2.poke(addr, value)
@@ -98,27 +128,39 @@ module Badline
 
       private
 
+      def watching!
+        @watching = @recording || @guarding
+      end
+
       def touch(addr)
         @touched[addr] = @ram.peek(addr) unless @touched.key?(addr)
       end
 
       def watch_read(addr)
         if addr < 0x0800
-          touch(addr)
+          touch(addr) if @recording
         elsif addr >= 0x1800
-          watch(addr < 0x1c00 ? VOLATILE_VIA1_READS : VOLATILE_VIA2_READS, addr)
+          via1 = addr < 0x1c00
+          watch(via1 ? VOLATILE_VIA1_READS : VOLATILE_VIA2_READS, addr) if @recording
+          guard_read(via1, addr & 0x0f) if @guarding
         end
       end
 
-      # Any write to VIA 1 makes the stretch volatile, and so does a write
-      # to VIA 2 that leaves the motor on.
       def watch_write(addr)
         if addr >= 0x1c00
-          watch(VOLATILE_VIA2_WRITES, addr)
-          volatile! if @watching && @via2.port_b_output.anybits?(Mechanism::MOTOR)
+          watch_via2_write(addr) if @recording
+          guard_via2_write(addr & 0x0f) if @guarding
         elsif addr >= 0x1800
-          volatile!
+          volatile! if @recording
+          taint! if @guarding
         end
+      end
+
+      # Any write to VIA 1 makes the stretch volatile (watch_write), and so
+      # does a write to VIA 2 that leaves the motor on.
+      def watch_via2_write(addr)
+        watch(VOLATILE_VIA2_WRITES, addr)
+        volatile! if @recording && @via2.port_b_output.anybits?(Mechanism::MOTOR)
       end
 
       def watch(volatile, addr)
@@ -127,7 +169,28 @@ module Badline
 
       def volatile!
         @volatile = true
-        @watching = false
+        @recording = false
+        watching!
+      end
+
+      def guard_read(via1, offset)
+        return taint! if via1 && offset.zero?
+
+        @touched_timers |= via1 ? TIMER_REGISTERS[offset] : TIMER_REGISTERS[offset] << 2
+      end
+
+      def guard_via2_write(offset)
+        return taint! if offset.between?(0x0a, 0x0b)
+
+        @touched_timers |= TIMER_REGISTERS[offset] << 2
+        lines = @via2.port_b_output
+        taint! if lines.anybits?(Mechanism::MOTOR) || (lines & Mechanism::LED) != @led
+      end
+
+      def taint!
+        @tainted = true
+        @guarding = false
+        watching!
       end
     end
   end

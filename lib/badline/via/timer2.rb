@@ -88,6 +88,12 @@ module Badline
       # comparing the timer at two points.
       def state = [@latch_low, @armed, @hold, @low_reload, @count_pulses, @counting_pulses]
 
+      # Whether the next underflow sets the flag.
+      def armed? = @armed
+
+      # The count, for comparing the timer at two points where it matters.
+      def count_state = [@counter, @low_underflowed]
+
       private
 
       # A cycle while counting pulses, or held after a load or a low byte

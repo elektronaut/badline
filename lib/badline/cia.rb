@@ -62,6 +62,7 @@ module Badline
 
       @peripheral = peripheral
       @port_b4_handler = nil
+      @port_a_handler = nil
       @port_b4_high = true
       reset!
     end
@@ -87,12 +88,20 @@ module Badline
       @ta = Timer.new(@control_a)
       @tb = Timer.new(@control_b)
       @serial = Serial.new(@control_a)
+      @port_a_handler&.call
     end
 
     # Register a change handler on the PB4 line. On CIA 1, this feeds the
     # light pen input.
     def on_port_b4_change(&handler)
       @port_b4_handler = handler
+    end
+
+    # Register a handler for writes that can move port A's lines: to the
+    # data register or DDR, and the reset. On CIA 2, this tells the drives
+    # on the serial bus that the C64 may have moved a line.
+    def on_port_a_write(&handler)
+      @port_a_handler = handler
     end
 
     # A falling edge on the FLAG pin. On CIA 1 the datasette's tape read
@@ -153,9 +162,9 @@ module Badline
 
     def poke(addr, value)
       case offset_of(addr) & 0x0f
-      when 0x00 then @data_port_a = value
+      when 0x00 then update_port_a { @data_port_a = value }
       when 0x01 then update_port_b { @data_port_b = value }
-      when 0x02 then @data_dir_a = value
+      when 0x02 then update_port_a { @data_dir_a = value }
       when 0x03 then update_port_b { @data_dir_b = value }
       when 0x04 then @ta.write_latch_low(value)
       when 0x05 then @ta.write_latch_high(value)
@@ -173,6 +182,11 @@ module Badline
     end
 
     private
+
+    def update_port_a
+      yield
+      @port_a_handler&.call
+    end
 
     def update_port_b
       yield

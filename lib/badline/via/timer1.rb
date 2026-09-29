@@ -96,6 +96,12 @@ module Badline
       # points.
       def state = [@latch, @armed]
 
+      # Whether a timeout sets the flag.
+      def armed? = @armed
+
+      # The count, for comparing the timer at two points where it matters.
+      def count_state = [@counter, @hold, @reload]
+
       private
 
       # The counter reloads either way. Armed, PB7 inverts and the flag

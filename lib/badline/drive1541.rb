@@ -7,7 +7,9 @@ require "badline/drive1541/track"
 require "badline/drive1541/disk"
 require "badline/drive1541/mechanism"
 require "badline/drive1541/disk_via"
+require "badline/drive1541/sleep"
 require "badline/drive1541/idle"
+require "badline/drive1541/orbit"
 
 module Badline
   # The 1541 disk drive as a machine of its own: a 6502 running the DOS
@@ -27,9 +29,12 @@ module Badline
   # While the DOS idles, host_cycle! skips the drive's cycles and catches
   # up on them later, exactly (see Idle). The readers of the drive's parts
   # catch up first, so they find the drive as running every cycle would
-  # have left it.
+  # have left it. Once the DOS's timer interrupts come round, the drive
+  # sleeps through them too (see Orbit).
   class Drive1541
+    include Sleep
     include Idle
+    include Orbit
 
     CLOCK_HZ = 1_000_000
 
@@ -143,8 +148,14 @@ module Badline
     # The host has run this cycle already, and the drive sees what it did
     # from the next one on (see SerialPort). Asleep, the drive owes the
     # cycles instead, until ATN moves or its counters are due (see Idle).
+    # It looks at ATN only after the C64 wrote CIA 2's port A, on a bus
+    # that says so (see host_written!).
     def host_cycle!
-      return doze if @asleep
+      if @asleep
+        return if (@slept += 1) != @wake_at && @host_still
+
+        return doze
+      end
 
       phase = @phase + CLOCK_HZ
       while phase >= @host_clock_hz
@@ -155,6 +166,11 @@ module Badline
       settle! if @serial_port.atn_moved?
       @serial_port.latch_host
       plan_wake if @asleep
+    end
+
+    # The C64 wrote CIA 2's port A, so ATN may have moved.
+    def host_written!
+      @host_still = false
     end
 
     # Runs one drive cycle, catching up first on any the drive owes (see

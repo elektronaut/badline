@@ -22,6 +22,9 @@ module Badline
       (addr...(addr + length)).to_a.map { |a| peek(a) }
     end
 
+    # Every byte, as a copy.
+    def snapshot = @storage.dup
+
     def write(addr, bytes)
       Array(bytes).each_with_index { |b, i| poke(addr + i, b) }
     end
