@@ -1,6 +1,6 @@
-C64/raminitpattern/cyberloadtest.prg	FAIL	exit=$ff
-C64/raminitpattern/darkstarbbstest.prg	FAIL	exit=$ff
-C64/raminitpattern/platoontest.prg	FAIL	exit=$ff
+C64/raminitpattern/cyberloadtest.prg	PASS
+C64/raminitpattern/darkstarbbstest.prg	PASS
+C64/raminitpattern/platoontest.prg	PASS
 C64/raminitpattern/typicaltest.prg	PASS
 C64/autostart/basic/basictest.prg	PASS
 C64/autostart/basic/printpoint.prg	PASS
