@@ -48,6 +48,7 @@ requires only the namespace file.
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, and the true 1541 drive with `--drive` |
 | VICE SID testprogs | `bin/sidtests` | SID |
+| Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
 The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
@@ -156,29 +157,29 @@ the rows your change can't reach tell you nothing about it.
   `ruby --yjit bin/lorenz [image] [start_test] [max_cycles]` (resumes the
   chain at a named test, and `--stop-after NAME` ends it once that test is
   done). These take seconds to minutes
-- When your change moves rows, re-record only those rows, in the same
-  change: `rake "regression:record:<suite>[filter,...]"` (quote it, because
-  zsh globs the brackets). It runs only the matching tests and splices
-  their rows into the baseline, and every other row keeps its verdict.
+- A pull request's CI is the verdict. It runs every suite but
+  `testbench-drive` on the Spinel build, compared row by row against
+  `test/baselines/`, and every job is a required check. A row that moved
+  fails it. Re-record only those rows, in the same change:
+  `rake "regression:record:<suite>[filter,...]"` (quote it, because zsh
+  globs the brackets). It runs only the matching tests on CRuby and
+  splices their rows into the baseline, and every other row keeps its
+  verdict. CI runs the same rows on Spinel, so the two have to agree.
   `lorenz` chains itself, so it takes a stretch of the chain instead:
   `rake "regression:record:lorenz[first,last]"` resumes just ahead of
   `first`, stops after `last` and leaves the `(suite)` row alone.
   `[first,(suite)]` runs on to the end of the chain and records the
-  `(suite)` row too. Cover every test your change can reach, and explain
-  every moved row. Never re-record just to make a diff go away
-- CI's nightly run owns the whole-suite verdict. The Regression workflow
-  runs `testbench`, `lorenz` and `sid` against `main` each night, and skips
-  the night when nothing relevant has changed since the last successful
-  nightly run. It also runs from the Actions tab on demand. It never runs
-  on push or on pull requests, so one verdict can cover a day's merges.
-  The `testbench-*` and `sid-8580` suites run from the Actions tab on
-  demand. The Spinel workflow runs the Spinel suites on pull requests
-  that touch emulation, harness or build paths. Its jobs aren't required
-  checks yet, and the CRuby Regression nightly runs as before
-- The one exception is a change whose reach you can't bound to a set of
-  filters, such as reordering `Computer#cycle!` or changing the LOAD trap
-  every suite loads through. Ask before running a full suite for it, and
-  don't start one on your own judgement
+  `(suite)` row too. Explain every moved row in the pull request. Never
+  re-record just to make a diff go away
+- For a change whose reach you can't bound to a set of filters, such as
+  reordering `Computer#cycle!` or changing the LOAD trap every suite loads
+  through, push and let CI run the suites
+- `testbench-drive` needs the true drive, which the Spinel testbench
+  harness doesn't have, so CI leaves it out. Run the rows your change can
+  reach locally
+- The Regression workflow runs the suites on CRuby, started by hand from
+  the Actions tab, for a person checking that CRuby and Spinel agree.
+  Agents don't start it
 
 Pick the filters from the suites your change can move: VIC → `testbench`,
 plus `testbench-vicii-new` (`bin/testbench --vicii-new`, the 8565) for
@@ -190,10 +191,9 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
 `testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K,
 +256K, the REU or the VIC's BA line the REU follows → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
-`testbench-drive` (`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
-model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
-its full chain runs nightly, and the planner assigns any row it moves. The
-exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
+`testbench-drive` (`bin/testbench --drive`) and `drive-scenarios` (`bin/drive_scenarios <filter>`); SID → `sid`, plus `sid-8580` for anything the 8580
+model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
+unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
 tests that rule names, one at a time, with
 `ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. A stretch

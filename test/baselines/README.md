@@ -144,6 +144,34 @@ Recorded output of the headless hardware suites, one file per suite:
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   The Spinel build has no drive, so `rake spinel:testbench` leaves this
   suite out. All `exitcode` tests.
+- `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
+  `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
+  each run from power-on on fresh machines with the disk images in a
+  scratch directory. A row per check, keyed `scenario/check`, `PASS` or
+  `FAIL` with what the check found:
+  - `save` SAVEs a program to a blank disk through the DOS, then NEWs,
+    LOADs and LISTs it: no `ERROR` printed (`no-error`), the listing
+    (`loads-back`), the file in the image byte for byte
+    (`file-in-image`), and the image LOADed and LISTed through the traps
+    (`trap-readable`).
+  - `format` sends `N:` to an image of zeros, SAVEs a program and LOADs
+    the directory: the error channel's `0, OK` (`no-error`), the listing
+    with the new name and ID, the program and 663 blocks free
+    (`lists-new-disk`), the name and ID in 18/0 (`name-and-id`), 680
+    free blocks in the image's BAM (`bam-free`), and the program through
+    the traps (`trap-readable`).
+  - `read-only` SAVEs to a disk put in write-protected: the SAVE runs
+    (`saves`) and the image file is unchanged (`image-unchanged`).
+  - `autostart` attaches a disk with a true drive and autostarts its
+    program (`loads-and-runs`).
+  - `error-channel` reads the power-on message over the serial bus
+    (`power-on-message`).
+  - `idle` boots two drives side by side, one skipping its idle loop and
+    one not, while the C64's lines move: the first sleeps through most of
+    the loop (`sleeps`), and both hold the same state at each checkpoint
+    (`matches-stepping`).
+  Each scenario runs in a process of its own, up to four at once. The
+  runner needs `dos1541.rom` in the ROM path.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -174,11 +202,11 @@ Recorded output of the headless hardware suites, one file per suite:
 Some suites still fail tests. The baselines record those failures as they
 stand, so the guard is the comparison, not the pass count.
 
-    rake regression                     # run the nightly set, diff against these files
+    rake regression                     # run the main set, diff against these files
     rake regression:testbench           # one suite
     rake regression:testbench-cia       # an opt-in suite
     rake regression:record:testbench    # accept a reviewed diff
-    rake regression:record              # re-record the nightly set
+    rake regression:record              # re-record the main set
 
     rake "regression:record:testbench[spriteenable]"      # only the rows a filter matched
     rake "regression:record:testbench[sprite0,gfxfetch]"  # several filters, matched as a union
@@ -254,20 +282,14 @@ the 8565 in the same way, and run only in `testbench-vicii-new`, on an
 the `testbench-ntsc` suites, and rows carrying `vicii-drean`, the PAL-N
 machine, don't run.
 
-`testbench`, `lorenz` and `sid` are the nightly set. The Regression
-workflow runs them on `main` every night, but skips the night when nothing
-they run has changed since the last successful nightly run: `lib/`, the
-runners, the baselines, `test/regression.rb`, the Rakefile or the workflow
-itself. So a nightly verdict covers every merge since the one before, and
-nothing runs on a push or a pull request. Any suite, nightly or opt-in, can
-also be started by name from the Actions tab, and a run started there and
-the nightly run never cancel each other. The `testbench-*` suites and
-`sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
-`testbench-drive` runs only as a rake task, since the workflow doesn't
-list it.
-The separate Spinel workflow runs the Spinel suites on every pull request
-that touches emulation, harness or build paths. Its jobs aren't required
-checks yet, and the CRuby nightly run above goes on as before.
+`testbench`, `lorenz` and `sid` are the main set, which `rake regression`
+runs. The `testbench-*` suites, `sid-8580` and `drive-scenarios` are
+opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs every
+suite on the Spinel build on every pull request and every push to `main`,
+and fails on any changed row. `testbench-drive` is the exception: the
+Spinel testbench harness has no true drive, so it runs only as a rake
+task. The Regression workflow runs any other suite on CRuby, started by
+hand from the Actions tab, to check that CRuby and Spinel agree.
 
 An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
 count is a timeout rather than a runtime — measure, do not assume. Wall
@@ -314,7 +336,7 @@ each, since a second CPU runs alongside the machine.
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
 four stretches side by side, `rake regression:lorenz-1` to `lorenz-4`, each
-about a quarter of that, and each can be picked from the Actions tab too.
+about a quarter of that.
 The Rakefile's `cuts` for `lorenz` end each stretch. A stretch resumes at
 the previous cut on a fresh machine, stops after its own, and compares only
 its rows, and the last one runs to the end of the chain and carries the
@@ -330,7 +352,7 @@ programs take about eleven and a half minutes here, four and a half of
 them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
 runs 88 programs, 48 of them the `wb_testsuite` writeback checks, and takes
 about 29 minutes here (23 of CPU, on a loaded machine), which keeps it out
-of the nightly set. The 25 programs it shares with the 6581 list add two
+of the main set. The 25 programs it shares with the 6581 list add two
 and a half of those minutes.
 
 `interrupts/irqdma` is 16 programs that measure DMA against interrupts over
