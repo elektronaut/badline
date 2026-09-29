@@ -1,0 +1,205 @@
+name: Release
+# Runs after CI passes on a push to main, or by hand for a tag. A
+# workflow_run workflow runs from the default branch's copy of this file,
+# with the repository's secrets.
+#
+# Publishing doesn't depend on whether this run's release-please created
+# the release. Each run reads the version on main, and once its tag exists,
+# publishes the gem unless RubyGems has that version, and updates the
+# Homebrew formula unless the tap already points at that tag. A run that
+# finds both done does nothing, so any later run finishes a release an
+# earlier one missed.
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, such as v0.5.0"
+        required: true
+        type: string
+# Runs queue rather than overlap, so two can't push the same gem version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  release-please:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  # Works out the tag to publish and what it still lacks. The Homebrew steps
+  # stay off until the HOMEBREW_TAP_TOKEN secret exists: a token with
+  # contents: write on the tap repository. Secrets can't appear in a job's
+  # `if`, so this job reports whether it is set.
+  check:
+    name: Check what to publish
+    needs: release-please
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' || needs.release-please.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
+      gem: ${{ steps.check.outputs.gem }}
+      homebrew: ${{ steps.check.outputs.homebrew }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ inputs.tag || github.event.workflow_run.head_sha }}
+      - id: check
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          version=$(sed -n 's/^  VERSION = "\(.*\)"$/\1/p' lib/badline/version.rb)
+          tag="v$version"
+          if [ -n "$INPUT_TAG" ] && [ "$INPUT_TAG" != "$tag" ]; then
+            echo "::error::$INPUT_TAG holds version $version, not ${INPUT_TAG#v}."
+            exit 1
+          fi
+          gem=false
+          homebrew=false
+          if [ -z "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            echo "$tag isn't tagged yet. Nothing to publish."
+          else
+            status=$(curl -s -o /dev/null -w '%{http_code}' \
+              "https://rubygems.org/api/v2/rubygems/badline/versions/$version.json")
+            case "$status" in
+              200) echo "RubyGems has badline $version." ;;
+              404) gem=true ;;
+              *) echo "::error::RubyGems answered $status for badline $version."; exit 1 ;;
+            esac
+            if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+              echo "No HOMEBREW_TAP_TOKEN. Leaving the tap alone."
+            elif gh api repos/elektronaut/homebrew-tap/contents/Formula/badline.rb --jq .content |
+              base64 -d | grep -q "/releases/download/$tag/"; then
+              echo "The tap's formula is at $tag."
+            else
+              homebrew=true
+            fi
+          fi
+          echo "$tag: publish gem $gem, update Homebrew $homebrew" | tee -a "$GITHUB_STEP_SUMMARY"
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "gem=$gem"
+            echo "homebrew=$homebrew"
+          } >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish the gem
+    needs: check
+    if: needs.check.outputs.gem == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ needs.check.outputs.tag }}
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - uses: rubygems/release-gem@v1
+
+  # Packs the native badline at the release tag, checks that the pack builds
+  # and boots, attaches it to the release and points the tap's formula at it.
+  homebrew:
+    name: Homebrew formula
+    needs: check
+    if: needs.check.outputs.homebrew == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+      VERSION: ${{ needs.check.outputs.version }}
+      HOMEBREW_TAP: elektronaut/homebrew-tap
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ needs.check.outputs.tag }}
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Install SDL2
+        run: brew install sdl2
+      # The same Spinel commit CI tests with.
+      - name: Build Spinel
+        run: |
+          ref=$(sed -n 's/^  SPINEL_REF: //p' .github/workflows/ci.yml)
+          git clone --quiet --filter=blob:none https://github.com/matz/spinel "$RUNNER_TEMP/spinel"
+          git -C "$RUNNER_TEMP/spinel" checkout --quiet "$ref"
+          make -C "$RUNNER_TEMP/spinel" deps
+          make -C "$RUNNER_TEMP/spinel" -j"$(sysctl -n hw.ncpu)"
+      - name: Pack the native badline
+        run: |
+          SPINEL="$RUNNER_TEMP/spinel/bin/spinel" bundle exec rake native:pack
+          echo "TARBALL=$(ls tmp/native/badline-"$VERSION"-spinel-*.tar.gz)" >> "$GITHUB_ENV"
+      - name: Build and run the pack
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          mkdir "$RUNNER_TEMP/check"
+          tar -xzf "$TARBALL" -C "$RUNNER_TEMP/check"
+          cd "$RUNNER_TEMP/check/badline-$VERSION"
+          LIBRARY_PATH="$(brew --prefix)/lib" make -j"$(sysctl -n hw.ncpu)"
+          export BADLINE_ROM_PATH="$PWD/roms"
+          ./badline --version
+          ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
+      - name: Attach the pack to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$TARBALL" --clobber
+      - name: Update the tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$(basename "$TARBALL")"
+          sha256=$(shasum -a 256 "$TARBALL" | cut -d' ' -f1)
+          tap="$RUNNER_TEMP/tap"
+          git clone --quiet "https://x-access-token:$HOMEBREW_TAP_TOKEN@github.com/$HOMEBREW_TAP.git" "$tap"
+          mkdir -p "$tap/Formula"
+          sed -E -e "s|^  url \".*\"|  url \"$url\"|" -e "s|^  sha256 \".*\"|  sha256 \"$sha256\"|" \
+            packaging/homebrew/badline.rb > "$tap/Formula/badline.rb"
+          git -C "$tap" config user.name "github-actions[bot]"
+          git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$tap" add Formula/badline.rb
+          if git -C "$tap" diff --cached --quiet; then
+            echo "The tap's formula already matches."
+          else
+            git -C "$tap" commit --quiet -m "badline $VERSION"
+            git -C "$tap" push --quiet
+          fi

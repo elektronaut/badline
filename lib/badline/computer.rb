@@ -172,7 +172,7 @@ module Badline
     # for, which plugging in a drive does. Until then port A's serial
     # inputs float high.
     def iec_bus
-      @iec_bus ||= IECBus.new(host: @cia2).tap { |bus| @cia2.peripheral = bus }
+      @iec_bus ||= IECBus.new(host: @cia2).tap(&:plug_in!)
     end
 
     def capture_output

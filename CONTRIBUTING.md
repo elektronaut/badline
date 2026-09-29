@@ -85,6 +85,11 @@ bundle exec rubocop
 ## Tests and commits
 
 - Add tests for any behavior you change.
+- CI runs rubocop, the specs and every regression suite on each pull
+  request, and fails on any suite row that differs from its baseline in
+  `test/baselines/`. When a change moves rows on purpose, re-record just
+  those rows as [test/baselines/README.md](test/baselines/README.md)
+  describes, and say why in the pull request.
 - Write commit messages using
   [Conventional Commits](https://www.conventionalcommits.org). The
   changelog and releases are generated from them, so the `feat:` and

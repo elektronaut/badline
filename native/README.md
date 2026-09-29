@@ -78,7 +78,7 @@ BADLINE_ROM_PATH=roms ./badline --version
 
 The Homebrew formula in `packaging/homebrew/badline.rb` does the same,
 installing the ROMs under its share directory. When release-please cuts a
-release, the Build workflow's `homebrew` job packs the tag, builds and
+release, the Release workflow's `homebrew` job packs the tag, builds and
 boots the pack, attaches it to the GitHub release and pushes the formula,
 with the release's url and sha256, to the tap. The job stays off until the
 repository has a `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with

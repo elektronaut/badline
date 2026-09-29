@@ -83,6 +83,23 @@ describe Badline::VIA::FastForward do
     expect(vias.first.quiet_cycles).to eq(0)
   end
 
+  it "leaves out the counters of unarmed timers nothing touched" do
+    expect(vias.first.counter_state(0)).to eq([nil, nil])
+  end
+
+  it "keeps the counters of armed timers and of touched ones" do
+    start_timer1(0x1234)
+    vias.each(&:cycle!)
+    expect(vias.first.counter_state(2).map { |state| state&.first }).to eq([0x1234, 0xfffe])
+  end
+
+  it "moves only the counters an orbit leaves out" do
+    start_timer1(0x1234)
+    stepped, forwarded = vias
+    forwarded.skip_orbits(0x100, 0)
+    expect([forwarded.timer1, forwarded.timer2]).to eq([stepped.timer1, stepped.timer2 - 0x100])
+  end
+
   it "has no quiet cycles while CA2 pulses" do
     poke(0x180c, 0x0a) # CA2 pulse output
     poke(0x1801, 0x00)

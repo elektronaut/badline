@@ -1,0 +1,15 @@
+format/no-error	PASS
+format/lists-new-disk	PASS
+format/name-and-id	PASS
+format/bam-free	PASS
+format/trap-readable	PASS
+save/no-error	PASS
+save/loads-back	PASS
+save/file-in-image	PASS
+save/trap-readable	PASS
+read-only/saves	PASS
+read-only/image-unchanged	PASS
+autostart/loads-and-runs	PASS
+error-channel/power-on-message	PASS
+idle/sleeps	PASS
+idle/matches-stepping	PASS

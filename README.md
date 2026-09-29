@@ -1,5 +1,5 @@
 [![Version](https://img.shields.io/gem/v/badline.svg?style=flat)](https://rubygems.org/gems/badline)
-[![Build](https://github.com/elektronaut/badline/actions/workflows/build.yml/badge.svg)](https://github.com/elektronaut/badline/actions/workflows/build.yml)
+[![CI](https://github.com/elektronaut/badline/actions/workflows/ci.yml/badge.svg)](https://github.com/elektronaut/badline/actions/workflows/ci.yml)
 
 # Badline
 

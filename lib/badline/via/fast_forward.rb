@@ -26,6 +26,21 @@ module Badline
         @t2.fast_forward(cycles)
       end
 
+      # The counters an orbit (see Drive1541::Idle) has to bring back: those
+      # of the armed timers, and of the timers +touched+ names (bit 0 for
+      # timer 1, bit 1 for timer 2). The others only count.
+      def counter_state(touched)
+        [(@t1.count_state if @t1.armed? || touched.anybits?(1)),
+         (@t2.count_state if @t2.armed? || touched.anybits?(2))]
+      end
+
+      # Runs +cycles+ cycles of whole orbits at once: the counters
+      # counter_state leaves out move on, and the rest come back round.
+      def skip_orbits(cycles, touched)
+        @t1.fast_forward(cycles) unless @t1.armed? || touched.anybits?(1)
+        @t2.fast_forward(cycles) unless @t2.armed? || touched.anybits?(2)
+      end
+
       # Everything the VIA holds but its counters, for comparing it at two
       # points. Timer 1's PB7 level counts only while ACR bit 7 puts it on
       # the pin: nothing reads it otherwise.
