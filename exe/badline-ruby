@@ -48,7 +48,7 @@ end
 begin
   application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
                                               song: options.song, sound: options.sound?, verbose: options.verbose?,
-                                              machine: { sid_model: options.sid_model,
+                                              machine: { sid_model: options.sid_model, reu: options.reu,
                                                          true_drive: options.true_drive? },
                                               disk: { read_only: options.read_only? })
 rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,

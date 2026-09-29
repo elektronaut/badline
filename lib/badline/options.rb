@@ -47,7 +47,7 @@ module Badline
 
     BANNER
 
-    attr_reader :media_path, :audio_out, :song, :seconds, :songlengths, :sid_model, :filter_chunk
+    attr_reader :media_path, :audio_out, :song, :seconds, :songlengths, :sid_model, :filter_chunk, :reu
 
     alias tune_path media_path
 
@@ -177,6 +177,10 @@ module Badline
       end
       opts.on("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps") do
         window_only("--true-drive") { @true_drive = true }
+      end
+      opts.on("--reu SIZE", %w[128 256 512 1024 2048 4096 8192 16384],
+              "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384") do |size|
+        window_only("--reu") { @reu = size.to_i }
       end
       opts.on("--verbose", "Print the display, sound and gamepad setup and the frame timing") do
         window_only("--verbose") { @verbose = true }
