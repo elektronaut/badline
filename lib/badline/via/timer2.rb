@@ -84,6 +84,24 @@ module Badline
         @low_underflowed = @counter.allbits?(0xff)
       end
 
+      def save_state(out)
+        out.int(@counter).int(@latch_low)
+        [@hold, @low_reload, @armed, @low_underflowed, @count_pulses, @counting_pulses].each do |flag|
+          out.boolean(flag)
+        end
+      end
+
+      def load_state(input)
+        @counter = input.int
+        @latch_low = input.int
+        @hold = input.boolean?
+        @low_reload = input.boolean?
+        @armed = input.boolean?
+        @low_underflowed = input.boolean?
+        @count_pulses = input.boolean?
+        @counting_pulses = input.boolean?
+      end
+
       # What the counter and the low byte's underflow don't hold, for
       # comparing the timer at two points.
       def state = [@latch_low, @armed, @hold, @low_reload, @count_pulses, @counting_pulses]

@@ -22,7 +22,7 @@ module Badline
             position(vic)
             load_counters(vic)
             load_sprites(vic)
-            vic.send(:rebuild_sprite_ba)
+            vic.rebuild_sprite_ba
           end
 
           private
@@ -59,74 +59,70 @@ module Badline
             @display_bits = f.dword
             @dma_bits = f.byte
             f.skip(4)
-            @borders = [f.flag?, f.flag?, f.flag?]
+            @vertical_border = f.flag?
+            @vertical_armed = f.flag?
+            @main_border = f.flag?
             f.skip(1)
             @color_ram = f.bytes(0x400)
           end
 
+          # Each sprite's MC and MCBASE, and its expansion flip-flop as a bit.
           def read_sprites
-            @sprites = Array.new(8) do
-              f = @fields
+            f = @fields
+            @sprite_mc = Array.new(8, 0)
+            @sprite_mcbase = Array.new(8, 0)
+            @sprite_exp_ff = 0
+            8.times do |n|
               f.skip(4)
-              counters = { mc: f.byte, mcbase: f.byte }
+              @sprite_mc[n] = f.byte
+              @sprite_mcbase[n] = f.byte
               f.skip(1)
-              counters.merge(exp_ff: f.flag?).tap { f.skip(4) }
+              @sprite_exp_ff |= 1 << n if f.flag?
+              f.skip(4)
             end
           end
 
           def load_registers(vic)
-            registers = vic.instance_variable_get(:@registers)
+            registers = vic.registers
             bytes = registers.bytes
             0x2f.times { |reg| bytes[reg] = @registers[reg] }
             bytes[0x19] = @irq_status & 0x0f
             bytes[0x1a] &= 0x0f
             bytes[0x1e], bytes[0x1f] = @collisions
-            registers.send(:update_irq_line)
+            registers.update_irq_line
           end
 
           # Clocks the VIC alone from the start of the line to the cycle,
           # so the line's fetches and sprite checks have run.
           def position(vic)
-            vic.instance_variable_set(:@rasterline, @line)
-            vic.instance_variable_set(:@column, 0)
+            vic.restore_line(@line)
             load_display_state(vic)
             @cycle.times { vic.cycle! }
-            vic.instance_variable_get(:@registers).tap do |registers|
-              registers.bytes[0x19] = @irq_status & 0x0f
-              registers.bytes[0x1e], registers.bytes[0x1f] = @collisions
-              registers.send(:update_irq_line)
-            end
+            registers = vic.registers
+            registers.bytes[0x19] = @irq_status & 0x0f
+            registers.bytes[0x1e], registers.bytes[0x1f] = @collisions
+            registers.update_irq_line
           end
 
           def load_display_state(vic)
-            state = vic.instance_variable_get(:@display_state)
-            { vc_base: @vc_base, vc: @vc, rc: @rc, vmli: @vmli, display: @display,
-              bad_lines_enabled: @bad_lines_enabled }.each do |name, value|
-              state.instance_variable_set(:"@#{name}", value)
-            end
+            vic.display_state.restore_counters([@vc_base, @vc, @rc, @vmli], @display, @bad_lines_enabled)
           end
 
           def load_counters(vic)
             load_display_state(vic)
-            vic.instance_variable_get(:@character_buffer).replace(@character_buffer)
-            vic.instance_variable_get(:@color_buffer).replace(@color_buffer)
-            { raster_match: @raster_match, lp_low: @lp_low, lp_triggered: @lp_triggered,
-              fetch_d011: @fetch_d011 }.each { |name, value| vic.instance_variable_set(:"@#{name}", value) }
-            sequencer = vic.instance_variable_get(:@sequencer)
-            %i[@vertical_border @vertical_armed @main_border].zip(@borders).each do |flop, value|
-              sequencer.instance_variable_set(flop, value)
-            end
+            vic.character_buffer.replace(@character_buffer)
+            vic.color_buffer.replace(@color_buffer)
+            vic.restore_latches((@raster_match ? 1 : 0) | (@lp_low ? 2 : 0) | (@lp_triggered ? 4 : 0), @fetch_d011)
+            vic.sequencer.restore_borders(@vertical_border, @vertical_armed, @main_border)
           end
 
           def load_sprites(vic)
-            sprites = vic.instance_variable_get(:@sprites)
-            sprites.instance_variable_set(:@any_dma, @dma_bits.positive?)
-            @sprites.each_with_index do |counters, n|
-              sprite = sprites[n]
-              counters.each { |name, value| sprite.instance_variable_set(:"@#{name}", value) }
-              sprite.instance_variable_set(:@dma, @dma_bits.anybits?(1 << n))
-              sprite.instance_variable_set(:@display_on, @display_bits.anybits?(1 << n))
+            8.times do |n|
+              bit = 1 << n
+              vic.sprites[n].restore_counters(@sprite_mc[n], @sprite_mcbase[n], @sprite_exp_ff.anybits?(bit),
+                                              @dma_bits.anybits?(bit), @display_bits.anybits?(bit))
             end
+            vic.sprites.update_any_dma
           end
         end
       end

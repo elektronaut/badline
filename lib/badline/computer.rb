@@ -1,9 +1,12 @@
 # frozen_string_literal: true
 
+require "badline/computer/saved_state"
+
 module Badline
   class Computer
     include IntegerHelper
     include KeyboardBuffer
+    include SavedState
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 
@@ -54,6 +57,7 @@ module Badline
       @pending_keys = nil
       @drive = nil
       @serial_trap = nil
+      @save_trap = nil
       @drive1541 = nil
       @iec_bus = nil
     end
@@ -158,9 +162,12 @@ module Badline
       load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
       @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
-      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
+      save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
     end
+
+    # Whether device 8 serves a disk or directory through the traps.
+    def mounted? = !@drive.nil?
 
     # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
     # serial traps, so the KERNAL's routines go out over the serial bus.
@@ -172,6 +179,7 @@ module Badline
       cpu.remove_trap(KernalTrap::Save::ADDRESS)
       @serial_trap.device = nil
       @serial_trap = nil
+      @save_trap = nil
       @drive = nil
     end
 
@@ -188,6 +196,15 @@ module Badline
       @serial_trap&.device = serial_trap_device
     end
 
+    # Unplugs the Drive1541, leaving the serial bus with nothing on it.
+    def detach_drive1541
+      return unless @drive1541
+
+      @iec_bus&.detach(@drive1541)
+      @drive1541 = nil
+      @serial_trap&.device = serial_trap_device
+    end
+
     # The serial bus. CIA 2's port A joins it the first time it's asked
     # for, which plugging in a drive does. Until then port A's serial
     # inputs float high.
@@ -199,6 +216,14 @@ module Badline
       @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus).tap do |trap|
         cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
       end
+    end
+
+    # The keyword arguments Computer.new takes to build the machine a
+    # State from #snapshot was taken of.
+    def self.setup(state)
+      input = Snapshot::StateReader.new(state)
+      input.marker("COMPUTER")
+      Snapshot::Setup.read(input)
     end
 
     def inspect

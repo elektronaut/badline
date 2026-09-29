@@ -27,6 +27,9 @@ module Badline
           fields.section(NAME, MAJOR, MINOR)
         end
 
+        # 1.4 added the registers as last written, which badline reads.
+        def reads?(section) = section.major == MAJOR && section.minor >= 4
+
         def engine(section) = FieldReader.new(section).skip(2).byte
 
         def model(section)
@@ -34,8 +37,6 @@ module Badline
         end
 
         def import(section, computer)
-          raise FormatError, "SID #{section.version} is older than badline reads" if section.minor < 4
-
           registers = FieldReader.new(section).skip(4).bytes(0x20)
           registers.first(0x19).each_with_index { |value, reg| computer.sid.poke(0xd400 + reg, value) }
         end

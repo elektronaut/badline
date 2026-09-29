@@ -91,11 +91,33 @@ jobs:
         run: |
           tmp/native/badline --version
           tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
+      - name: Save and restore a snapshot
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          tmp/native/badline --frames 150 --unpaced --save-snapshot tmp/native/ready.vsf 2> tmp/native/save.err
+          tmp/native/badline tmp/native/ready.vsf --frames 50 --unpaced --save-snapshot tmp/native/again.vsf \
+            --screenshot tmp/native/restored.bmp 2> tmp/native/restore.err
+          cat tmp/native/save.err tmp/native/restore.err
+          test ! -s tmp/native/save.err && test ! -s tmp/native/restore.err
+          bundle exec ruby --yjit -Ilib -e '
+            require "badline"
+            saved = Badline::Snapshot.load("tmp/native/ready.vsf")
+            again = Badline::Snapshot.load("tmp/native/again.vsf")
+            (again.cycles - saved.cycles).times { saved.cycle! }
+            ours = Badline::Checkpoint.take(saved)
+            theirs = Badline::Checkpoint.take(again)
+            abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
+            puts "restored and ran on to cycle #{again.cycles} as CRuby does"'
       - name: Upload the screenshot
         uses: actions/upload-artifact@v4
         with:
           name: native-badline
-          path: tmp/native/ready.bmp
+          path: |
+            tmp/native/ready.bmp
+            tmp/native/restored.bmp
           if-no-files-found: ignore
 
   suite:

@@ -30,6 +30,13 @@ exit Badline::Native::Headless.run(options) if options.headless?
 
 media = options.media
 begin
+  if options.snapshot?
+    computer = Badline::Snapshot.load(media) { |line| puts line }
+    puts "Restored #{media}"
+    Badline::Native::App.new(computer, options).run
+    exit
+  end
+
   sid_model = options.sid_model || Badline::Media.sid_model(media.empty? ? nil : media)
   computer = Badline::Computer.new(sid_model:)
   Badline::Media::TrueDrive.plug(computer) if options.true_drive?
@@ -39,7 +46,8 @@ begin
   end
 rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
        Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
-       Badline::Storage::G64Image::FormatError, Badline::Cartridge::UnsupportedTypeError => e
+       Badline::Storage::G64Image::FormatError, Badline::Cartridge::UnsupportedTypeError,
+       Badline::Snapshot::FormatError => e
   warn "badline: #{media}: #{e.message}"
   exit 1
 end

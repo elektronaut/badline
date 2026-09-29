@@ -24,6 +24,15 @@ module Badline
         @enable = 0x00
       end
 
+      def save_state(out)
+        out.int(@flags).int(@enable)
+      end
+
+      def load_state(input)
+        @flags = input.int
+        @enable = input.int
+      end
+
       def set(bits)
         @flags |= bits
       end

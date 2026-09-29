@@ -36,6 +36,7 @@ module Badline
       # (autostart:, song:, disk:) go to Media.attach.
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
+        @snapshots = Snapshots.new
         @computer = boot(media_path, machine, media)
 
         @mode = :keyboard
@@ -96,10 +97,7 @@ module Badline
       # A .vsf snapshot restores the machine it holds, built with that
       # machine's chip models, and F12 goes back to it.
       def boot(media_path, machine, media)
-        if media_path && File.extname(media_path).casecmp?(".vsf")
-          @snapshot_path = media_path
-          return Snapshot.load(media_path) { |line| puts line }.tap { puts "Restored #{media_path}" }
-        end
+        return @snapshots.load(media_path) if Snapshots.snapshot?(media_path)
 
         Computer.new(sid_model: machine[:sid_model] || Media.sid_model(media_path)).tap do |computer|
           Media::TrueDrive.plug(computer) if machine[:true_drive]
@@ -123,7 +121,7 @@ module Badline
         case event.sym
         when TOGGLE_SYM then cycle_mode(event.mod.anybits?(REVERSE_MOD) ? -1 : 1)
         when MUTE_SYM then toggle_mute
-        when SAVE_SYM then save_snapshot unless event.repeat
+        when SAVE_SYM then @snapshots.save(@computer) unless event.repeat
         else restore_snapshot unless event.repeat
         end
       end
@@ -178,22 +176,10 @@ module Badline
         update_title
       end
 
-      # F11 saves the machine to a new snapshot in the working directory.
-      def save_snapshot
-        path = "badline-#{Time.now.strftime('%Y%m%d-%H%M%S')}.vsf"
-        @computer.save_snapshot(path)
-        @snapshot_path = path
-        puts "Saved #{path}, F12 restores it"
-      end
-
-      # F12 restores the snapshot last saved or loaded. The input mode stays
-      # the host's, so a mouse or paddles go back in their port.
+      # The input mode stays the host's, so a mouse or paddles go back in
+      # their port.
       def restore_snapshot
-        return puts("No snapshot to restore, F11 saves one") unless @snapshot_path
-
-        @computer.restore_snapshot(@snapshot_path) { |line| puts line }
-        attach_pot_device if POT_DEVICES.key?(@mode)
-        puts "Restored #{@snapshot_path}"
+        attach_pot_device if @snapshots.restore(@computer) && POT_DEVICES.key?(@mode)
       end
 
       def update_title

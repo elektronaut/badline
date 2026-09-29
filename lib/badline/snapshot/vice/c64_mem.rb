@@ -19,11 +19,11 @@ module Badline
 
         module_function
 
+        def reads?(section) = section.major == MAJOR && section.minor == MINOR
+
         def export(computer)
           bus = computer.address_bus
-          ddr = bus.peek(0)
-          port_out = bus.instance_variable_get(:@port_out)
-          floating = bus.instance_variable_get(:@port_floating)
+          ddr, port_out, floating = bus.port_state
           fields = FieldWriter.new.byte(port_out).byte(ddr).byte(0).byte(0)
           fields.bytes(Array.new(0x10000) { |addr| computer.ram.peek(addr) })
           fields.byte((port_out & ddr) | (floating & ~ddr)).byte(bus.peek(1)).byte(ddr)
@@ -34,6 +34,8 @@ module Badline
           fields.section(NAME, MAJOR, MINOR)
         end
 
+        # The port is set without a bus write, which would leave the VIC's
+        # phi1 byte in the RAM under $00 and $01.
         def import(section, computer)
           fields = FieldReader.new(section)
           data = fields.byte
@@ -42,15 +44,8 @@ module Badline
           computer.ram.write(0, fields.bytes(0x10000))
           fields.skip(3 + 8)
           charge = FLOATING.sum { |bit| fields.flag? ? bit : 0 }
-          port(computer.address_bus, data, ddr, charge)
-        end
-
-        def port(bus, data, ddr, charge)
-          bus.poke(0, ddr)
-          bus.poke(1, data)
-          floating = bus.instance_variable_get(:@port_floating)
-          bus.instance_variable_set(:@port_floating, (floating & ddr) | (charge & ~ddr & 0xff))
-          bus.send(:update_port!)
+          driven = ddr & AddressBus::PORT_FLOATING
+          computer.address_bus.restore_port(ddr, data, (data & driven) | (charge & ~driven & 0xff))
         end
       end
     end

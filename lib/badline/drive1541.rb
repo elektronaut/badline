@@ -164,6 +164,38 @@ module Badline
       step
     end
 
+    # The drive's whole state: its clock phase, the CPU, RAM, both VIAs,
+    # the serial port's latch of the C64's lines and the mechanism with its
+    # disk. The drive settles first, so it is awake and not recording a
+    # pass, and a restored drive starts the same way: Idle's bookkeeping
+    # isn't stored. The device number, the host's clock rate and whether
+    # the drive may sleep are the machine's wiring.
+    def save_state(out)
+      settle!
+      out.marker("DRIVE1541")
+      out.int(@phase).int(@cycles).boolean(@so_pending)
+      @serial_port.save_state(out)
+      @via1.save_state(out)
+      @via2.save_state(out)
+      @bus.save_state(out)
+      @cpu.save_state(out)
+      @mechanism.save_state(out)
+    end
+
+    def load_state(input)
+      settle!
+      input.marker("DRIVE1541")
+      @phase = input.int
+      @cycles = input.int
+      @so_pending = input.boolean?
+      @serial_port.load_state(input)
+      @via1.load_state(input)
+      @via2.load_state(input)
+      @bus.load_state(input)
+      @cpu.load_state(input)
+      @mechanism.load_state(input)
+    end
+
     def inspect
       "#<#{self.class.name} cycles=#{cycles} cpu=(#{cpu.inspect})>"
     end

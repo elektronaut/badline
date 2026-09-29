@@ -4,13 +4,12 @@ require "zlib"
 
 module Badline
   module Snapshot
-    # A file that isn't a VICE snapshot, or is cut short.
-    class FormatError < StandardError; end
-
     # One module of a snapshot: its name, its version and its payload,
     # without the 22-byte module header.
     Section = Data.define(:name, :major, :minor, :data) do
       def version = "#{major}.#{minor}"
+
+      def to_s = "#{name} #{version}"
     end
 
     # The .vsf container as the VICE manual describes it: a magic string,

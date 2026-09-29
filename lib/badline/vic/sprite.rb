@@ -2,6 +2,7 @@
 
 require "badline/vic/sprite/internal_bus"
 require "badline/vic/sprite/shifter"
+require "badline/vic/sprite/saved_state"
 
 module Badline
   class VIC < Cycleable
@@ -52,6 +53,7 @@ module Badline
       DISPLAY_OFF_X = 460
 
       include Shifter
+      include SavedState
 
       attr_reader :index, :leftmost, :span, :codes,
                   :reload_leftmost, :reload_span, :reload_codes

@@ -2,92 +2,74 @@
 
 module Badline
   module Snapshot
-    # The BADLINE module: badline's whole machine, for a restore that
-    # carries on exactly where the save left off. It starts with the VIC,
-    # CIA and SID models the machine was built with, one byte each, then
-    # the deflated StateWriter encoding of the Computer. It is only good
-    # for the badline version that wrote it, and a restore checks every
-    # table and class it names still exists.
+    # The BADLINE module: a State from Computer#snapshot, which restores the
+    # machine exactly where it was saved. VICE skips a module it doesn't
+    # know.
+    #
+    # The payload is deflated. Inside, a little-endian 32-bit length leads
+    # a run of BER-compressed integers (Ruby's pack "w"): the number of
+    # values and of strings, each string's length, then the values, each
+    # folded to a natural number (0, -1, 1, -2 ... as 0, 1, 2, 3 ...). The
+    # strings follow, one after another.
+    #
+    # A State only restores in the badline version that wrote it, since
+    # each chip writes its fields as it holds them.
     module MachineState
       NAME = "BADLINE"
-      MAJOR = 1
+      MAJOR = 2
       MINOR = 0
-      MODELS = [VIC::MODELS, CIA::MODELS, %i[mos6581 mos8580]].freeze
-      # Whether the SID's output is recorded, and where to, is the host's
-      # business, as the window's sound is: the target keeps its own.
-      RECORDING = %i[@synthesizing @decimator @samples @filter_chunk].freeze
 
       module_function
 
-      def section(computer)
-        models = [computer.vic.model, computer.cia1.model, computer.sid.model]
-        header = models.each_with_index.map { |model, i| MODELS[i].index(model) }.pack("C3")
-        Section.new(name: NAME, major: MAJOR, minor: MINOR,
-                    data: header + Zlib.deflate(StateWriter.encode(computer)))
+      def section(state)
+        Section.new(name: NAME, major: MAJOR, minor: MINOR, data: Zlib.deflate(encode(state)))
       end
 
-      # The keyword arguments Computer.new takes to build the machine the
-      # section was saved from.
-      def models(section)
-        vic, cia, sid = section.data.unpack("C3").each_with_index.map do |index, i|
-          MODELS[i].fetch(index) { raise FormatError, "unknown chip model #{index} in #{NAME}" }
+      def state(section)
+        unless section.major == MAJOR
+          raise FormatError, "#{NAME} #{section.version} was written by another badline version, " \
+                             "and this one reads #{MAJOR}.#{MINOR}"
         end
-        { vic_model: vic, cia_model: cia, sid_model: sid }
-      end
 
-      def restore(section, computer)
-        raise FormatError, "#{NAME} #{section.version} is newer than this badline reads" if section.major != MAJOR
-
-        records = StateReader.decode(Zlib.inflate(section.data.byteslice(3..)))
-        mount_drive(records, computer)
-        insert_cartridge(records, computer)
-        keep_recording(computer.sid) { StateRestorer.new(records).restore(computer) }
+        decode(Zlib.inflate(section.data))
       rescue Zlib::Error => e
         raise FormatError, "#{NAME} is damaged: #{e.message}"
       end
 
-      # The blocks that wire a drive or a cartridge into the machine can't
-      # be written to a file. The target gets the same drive and cartridge
-      # first, built the ordinary way, and the restore then puts their
-      # state into them.
-      def mount_drive(records, computer)
-        return unless ivar(records, records.first, :@drive).is_a?(Value::Ref)
-        return if computer.instance_variable_get(:@drive)
-
-        computer.mount(Storage::HostDirectory.new(Dir.pwd))
+      def encode(state)
+        values = state.values
+        strings = state.strings
+        numbers = [values.length, strings.length]
+        strings.each { |string| numbers << string.bytesize }
+        values.each { |value| numbers << (value.negative? ? (-2 * value) - 1 : 2 * value) }
+        index = numbers.pack("w*")
+        [index.bytesize].pack("V") + index + strings.join
       end
 
-      # A cartridge is built again from the CRT image it keeps. One built
-      # from an image the machine can't carry comes back without the
-      # blocks that wire its parts together.
-      def insert_cartridge(records, computer)
-        cartridge = ivar(records, records.first, :@address_bus, :@cartridge)
-        return unless cartridge.is_a?(Value::Ref)
+      def decode(bytes)
+        raise FormatError, "#{NAME} ends early" if bytes.bytesize < 4
 
-        record = records[cartridge.id]
-        current = computer.address_bus.cartridge
-        return if current.instance_of?(Value.machine_class(record.class_name))
+        length = bytes.byteslice(0, 4).unpack1("V").to_i
+        numbers = bytes.byteslice(4, length).to_s.unpack("w*").map(&:to_i)
+        value_count = numbers.fetch(0, 0)
+        string_count = numbers.fetch(1, 0)
+        raise FormatError, "#{NAME} ends early" if numbers.length != 2 + string_count + value_count
 
-        crt = ivar(records, record, :@crt)
-        return unless crt.is_a?(Value::Ref)
-
-        computer.connect_cartridge(Cartridge.from_crt(StateRestorer.new(records).build_value(crt)))
+        State.new(values(numbers, 2 + string_count), strings(bytes, 4 + length, numbers.slice(2, string_count)))
       end
 
-      def keep_recording(sid)
-        kept = RECORDING.to_h { |name| [name, sid.instance_variable_get(name)] }
-        yield
-        kept.each { |name, value| sid.instance_variable_set(name, value) }
-        sid.send(:update_span_rules)
+      def values(numbers, from)
+        Array.new(numbers.length - from) do |i|
+          folded = numbers[from + i]
+          folded.odd? ? -((folded + 1) / 2) : folded / 2
+        end
       end
 
-      # Follows instance variables from `record` through the records.
-      def ivar(records, record, *names)
-        names.reduce(record) do |current, name|
-          current = records[current.id] if current.is_a?(Value::Ref)
-          return nil unless current.respond_to?(:ivars)
+      def strings(bytes, pos, lengths)
+        lengths.map do |length|
+          raise FormatError, "#{NAME} ends early" if pos + length > bytes.bytesize
 
-          current.ivars.find { |ivar, _| ivar == name }&.last
+          bytes.byteslice(pos, length).to_s.tap { pos += length }
         end
       end
     end

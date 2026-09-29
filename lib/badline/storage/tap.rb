@@ -13,9 +13,12 @@ module Badline
       HEADER_SIZE = 0x14
       OVERFLOW = 0x100 * 8
 
-      attr_reader :version
+      # The file it was read from, expanded, and the offset of the next
+      # pulse byte.
+      attr_reader :version, :path
 
       def initialize(path)
+        @path = File.expand_path(path)
         @bytes = File.binread(path).bytes
         raise FormatError, "Missing TAP signature" unless @bytes[0, SIGNATURE.length] == SIGNATURE
 
@@ -28,6 +31,12 @@ module Badline
 
       def rewind
         @pos = HEADER_SIZE
+      end
+
+      def position = @pos
+
+      def position=(offset)
+        @pos = offset
       end
 
       def end? = @pos >= @end

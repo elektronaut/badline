@@ -6,7 +6,7 @@ require_relative "../../support/snapshot_scenarios"
 describe Badline::Snapshot::Vice do
   include SnapshotScenarios
 
-  let(:state) { Badline::Snapshot::MachineState.section(run(demo_machine, 30_001)) }
+  let(:state) { SnapshotScenarios.demo_state }
   # The machine the VICE modules describe: the saved one, run on to the
   # end of its instruction.
   let(:settled) { described_class.settled(state) }
@@ -21,15 +21,18 @@ describe Badline::Snapshot::Vice do
 
   def cia_registers(cia)
     [cia.timer_a, cia.timer_b, cia.timer_a_latch, cia.timer_b_latch, cia.control_a.value, cia.control_b.value,
-     cia.interrupt_control.value, cia.interrupt_status.value, cia.time_of_day.registers,
-     *Badline::Snapshot::Vice::CIAs::PORTS.map { |port| cia.instance_variable_get(port) }]
+     cia.interrupt_control.value, cia.interrupt_status.value, cia.time_of_day.registers, cia.port_registers]
   end
 
   def voices(machine)
-    machine.sid.instance_variable_get(:@voices).map do |voice|
-      [voice.waveform.instance_variable_get(:@accumulator), voice.waveform.instance_variable_get(:@shift_register),
-       voice.envelope.output, voice.envelope.instance_variable_get(:@state)]
-    end
+    machine.sid.voices.map { |voice| voice.waveform.resid_fields + voice.envelope.resid_fields }
+  end
+
+  def without_log_levels(data) = data.byteslice(0, 19) + data.byteslice(31..)
+
+  def with_section(name)
+    sections = described_class.export(state).map { |section| section.name == name ? yield(section) : section }
+    Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(sections))
   end
 
   describe ".export" do
@@ -39,14 +42,14 @@ describe Badline::Snapshot::Vice do
                   JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1 USERPORT])
     end
 
-    it "writes each module at the size x64sc 3.7 reads" do
-      sizes = container.sections.to_h { |section| [section.name, section.data.bytesize] }
-      expect(sizes.values_at("MAINCPU", "C64MEM", "CIA1", "SID", "SIDEXTENDED", "VIC-II"))
-        .to eq([91, 65_555, 52, 36, 133, 123_415])
+    it "writes each module at the version and size x64sc 3.10 reads" do
+      sizes = container.sections.to_h { |section| [section.to_s, section.data.bytesize] }
+      expect(sizes.values_at("MAINCPU 1.4", "C64MEM 0.1", "CIA1 2.3", "SID 1.5", "SIDEXTENDED 1.4", "VIC-II 1.3"))
+        .to eq([103, 65_555, 52, 36, 133, 123_415])
     end
 
     it "describes the machine at an instruction boundary" do
-      expect(settled.cpu.instance_variable_get(:@plan)).to equal(Badline::CPU::FETCH_PLAN)
+      expect(settled.cpu).to be_boundary
     end
   end
 
@@ -56,8 +59,8 @@ describe Badline::Snapshot::Vice do
     end
 
     it "has the RAM and the CPU port" do
-      expect([imported.ram.read(0, 0x10000), imported.address_bus.peek(0), imported.address_bus.peek(1)])
-        .to eq([settled.ram.read(0, 0x10000), settled.address_bus.peek(0), settled.address_bus.peek(1)])
+      expect([imported.ram.read(0, 0x10000), imported.address_bus.port_state])
+        .to eq([settled.ram.read(0, 0x10000), settled.address_bus.port_state])
     end
 
     it "has both CIAs' registers, timers and clocks" do
@@ -75,7 +78,7 @@ describe Badline::Snapshot::Vice do
       expect(vic.call(imported)).to eq(vic.call(settled))
     end
 
-    it "runs on as the saved machine does, all but the CPU's own cycle count" do
+    it "runs on as the saved machine does, all but the CPU's own cycle count, once a frame is drawn" do
       run(settled, 20_000)
       run(imported, 20_000)
       expect(Badline::Checkpoint.take(imported).differences(Badline::Checkpoint.take(settled))).to eq(["cpu"])
@@ -87,11 +90,65 @@ describe Badline::Snapshot::Vice do
     end
   end
 
-  describe ".models" do
+  describe "restored into a running machine" do
+    # Mid-instruction at an odd cycle, with a cartridge in.
+    subject(:target) do
+      Badline::Computer.new.tap do |machine|
+        machine.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 64))
+        run(machine, 3_017)
+      end
+    end
+
+    before { image.restore(target) { nil } }
+
+    it "runs on as a new machine restored from it does" do
+      run(target, 10_000)
+      run(imported, 10_000)
+      expect(Badline::Checkpoint.take(target)).to eq(Badline::Checkpoint.take(imported))
+    end
+
+    it "takes the cartridge out, as VICE saw the port empty" do
+      expect(target.address_bus.cartridge).to be_nil
+    end
+  end
+
+  describe ".setup" do
     it "takes the C64C's chips from an 8565" do
-      state = Badline::Snapshot::MachineState.section(Badline::Computer.new(vic_model: :mos8565, sid_model: :mos8580))
-      models = described_class.models(Badline::Snapshot::Container.new(described_class.export(state)))
-      expect(models).to eq(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580)
+      machine = Badline::Computer.new(vic_model: :mos8565, sid_model: :mos8580)
+      setup = described_class.setup(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
+      expect([setup.vic_model, setup.cia_model, setup.sid_model]).to eq(%i[mos8565 mos6526a mos8580])
+    end
+
+    it "refuses an NTSC VIC-II" do
+      ntsc = with_section("VIC-II") { |section| section.with(data: "\x03".b + section.data.byteslice(1..)) }
+      expect { ntsc.to_computer }.to raise_error(Badline::Snapshot::FormatError, /NTSC/)
+    end
+  end
+
+  describe "module versions" do
+    # 1.2 lacks the ANE and LXA log levels and the jammed flag.
+    it "reads MAINCPU 1.2, as VICE 3.7 writes it" do
+      old = with_section("MAINCPU") { |section| section.with(minor: 2, data: without_log_levels(section.data)) }
+      restored = old.to_computer.tap { |machine| old.restore(machine) { nil } }
+      expect(cpu_registers(restored)).to eq(cpu_registers(settled))
+    end
+
+    it "reads MAINC64CPU 1.5, as VICE's development versions name it" do
+      trunk = with_section("MAINCPU") { |section| section.with(name: "MAINC64CPU", minor: 5) }
+      restored = trunk.to_computer.tap { |machine| trunk.restore(machine) { nil } }
+      expect(cpu_registers(restored)).to eq(cpu_registers(settled))
+    end
+
+    it "fails on a MAINCPU version it doesn't know" do
+      newer = with_section("MAINCPU") { |section| section.with(minor: 9) }
+      expect { newer.restore(Badline::Computer.new) }
+        .to raise_error(Badline::Snapshot::FormatError, /MAINCPU 1\.9: badline doesn't read this version/)
+    end
+
+    it "leaves out and reports another module's version it doesn't know" do
+      lines = []
+      with_section("VIC-II") { |section| section.with(minor: 9) }.restore(Badline::Computer.new) { |line| lines << line }
+      expect(lines).to include("VIC-II 1.9: badline doesn't read this version, left out")
     end
   end
 
@@ -112,16 +169,9 @@ describe Badline::Snapshot::Vice do
     end
   end
 
-  describe "a module cut short" do
-    let(:container) do
-      short = described_class.export(state).map do |section|
-        section.name == "CIA1" ? section.with(data: section.data.byteslice(0, 10)) : section
-      end
-      Badline::Snapshot::Container.new(short)
-    end
-
-    it "fails naming the module" do
-      expect { imported }.to raise_error(Badline::Snapshot::FormatError, /CIA1 2\.3 ends early/)
-    end
+  it "fails naming a module cut short" do
+    short = with_section("CIA1") { |section| section.with(data: section.data.byteslice(0, 10)) }
+    expect { short.restore(Badline::Computer.new) }
+      .to raise_error(Badline::Snapshot::FormatError, /CIA1 2\.3 ends early/)
   end
 end

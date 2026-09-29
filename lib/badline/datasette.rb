@@ -54,6 +54,30 @@ module Badline
 
     def running? = @playing && @motor && !@tape.nil?
 
+    # The keys, the motor, the countdown to the next pulse and the tape: its
+    # path and how far it has played.
+    def save_state(out)
+      out.marker("DATASETTE")
+      out.boolean(@playing).boolean(@motor).int(@countdown).boolean(!@tape.nil?)
+      return unless @tape
+
+      out.string(@tape.path).int(@tape.position)
+    end
+
+    # A tape from another file goes in from its path. The sense and flag
+    # handlers don't fire.
+    def load_state(input)
+      input.marker("DATASETTE")
+      @playing = input.boolean?
+      @motor = input.boolean?
+      @countdown = input.int
+      return @tape = nil unless input.boolean?
+
+      path = input.string
+      @tape = Storage::TAP.new(path) unless @tape&.path&.b == path
+      @tape.position = input.int
+    end
+
     def cycle!
       return unless running?
 

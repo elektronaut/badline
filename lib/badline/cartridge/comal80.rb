@@ -33,6 +33,14 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        save_windows(out, [*@roml_banks, *@romh_banks, EMPTY_BANK])
+      end
+
+      def load_mapper(input)
+        load_windows(input, [*@roml_banks, *@romh_banks, EMPTY_BANK])
+      end
+
       def select(number, mode)
         @roml = bank(@roml_banks, number)
         @romh = bank(@romh_banks, number)

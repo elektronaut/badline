@@ -32,7 +32,28 @@ module Badline
       end
     end
 
+    # The storage a snapshot's device 8 serves, by the number save_setup
+    # writes first.
+    HOST_DIRECTORY = 0
+    D64 = 1
+    D71 = 2
+    D81 = 3
+    T64_ARCHIVE = 4
+
     class << self
+      # Opens the storage a save_setup wrote: the same directory or archive
+      # by its path, or a disk image with the bytes it held, writes and
+      # all.
+      def reopen(input)
+        kind = input.int
+        path = input.string
+        case kind
+        when HOST_DIRECTORY then HostDirectory.new(path)
+        when T64_ARCHIVE then T64.new(path)
+        else reopen_image(kind, path, input)
+        end
+      end
+
       # Folds shifted PETSCII letters to their ASCII equivalents.
       def ascii(bytes)
         bytes.map { |b| b.between?(0xc1, 0xda) ? b - 0x80 : b }.pack("C*")
@@ -49,6 +70,17 @@ module Badline
       def parse_name(name)
         base, type = strip_drive_prefix(name).split(",", 3)
         [base.to_s, FILE_TYPES[type.to_s.strip[0]&.upcase]]
+      end
+
+      def reopen_image(kind, path, input)
+        read_only = input.boolean?
+        bytes = input.blob
+        case kind
+        when D64 then D64Image.new(path, read_only:, bytes:)
+        when D71 then D71Image.new(path, read_only:, bytes:)
+        when D81 then D81Image.new(path, read_only:, bytes:)
+        else raise Snapshot::FormatError, "unknown storage #{kind} in the state"
+        end
       end
 
       # CBM-style filename pattern: "*" and "?" wildcards, case-insensitive.

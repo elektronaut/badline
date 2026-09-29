@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/address_bus/saved_state"
+
 module Badline
   # Memory layout:
   #

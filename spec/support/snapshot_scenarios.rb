@@ -82,6 +82,29 @@ module SnapshotScenarios
     end
   end
 
+  # Cycles the demo runs before a snapshot: mid-frame, past its first
+  # raster IRQ, and mid-instruction.
+  DEMO_CYCLES = 10_001
+
+  # The demo run to DEMO_CYCLES and its State there, taken once for every
+  # spec that restores it. Restoring is exact, which the Computer#snapshot
+  # specs check against a machine run the whole way.
+  def self.demo_state
+    @demo_state ||= begin
+      computer = Badline::Computer.new
+      computer.load_prg(DEMO_PRG)
+      computer.cpu.program_counter = DEMO_START
+      DEMO_CYCLES.times { computer.cycle! }
+      computer.snapshot
+    end
+  end
+
+  # A new demo machine at DEMO_CYCLES, restored from the shared State.
+  def saved_demo
+    state = SnapshotScenarios.demo_state
+    Badline::Computer.setup(state).build.restore(state)
+  end
+
   def run(computer, cycles)
     cycles.times { computer.cycle! }
     computer
@@ -91,32 +114,66 @@ module SnapshotScenarios
     @snapshot_path ||= File.join(Dir.mktmpdir, "machine.vsf")
   end
 
-  # Where the state of two machines differs, from their roots. A
-  # variable one machine hasn't set and the other holds nil reads the same.
-  def state_differences(ours, theirs)
-    StateDiff.new(ours, theirs).differences
+  # Where the state of two machines differs, from their roots: every
+  # object reachable through instance variables, compared field by field.
+  # What the host holds, and what a machine works out again, is left out
+  # (StateDiff::HOST). nil and false read the same, as a restored flag
+  # that was never set comes back false.
+  # `host` adds instance variables to leave out, by class name.
+  def state_differences(ours, theirs, host: {})
+    StateDiff.new(ours, theirs, host:).differences
   end
 
-  # Walks two machines' state records side by side.
-  class StateDiff
-    Records = Badline::Snapshot::StateReader
-    Ref = Badline::Snapshot::Value::Ref
+  # A copy of `object` made through its save_state and load_state, into
+  # `target`, a fresh object of the same kind.
+  def round_trip(object, target)
+    out = Badline::Snapshot::StateWriter.new
+    object.save_state(out)
+    input = Badline::Snapshot::StateReader.new(out.state)
+    target.load_state(input)
+    raise "load_state left part of the state unread" unless input.finished?
 
-    def initialize(first, second)
-      @first = Records.decode(Badline::Snapshot::StateWriter.encode(first))
-      @second = Records.decode(Badline::Snapshot::StateWriter.encode(second))
-      @seen = {}
+    target
+  end
+
+  # Walks two machines side by side.
+  class StateDiff
+    # Instance variables that belong to the host, not the machine, by
+    # class name, and classes that belong to the host whole. The drive's
+    # idle-skip bookkeeping is empty once it has settled, as saving it
+    # does, and a disk image's directory is read again when it's next
+    # needed.
+    HOST = {
+      "Badline::Computer" => %i[@init_handlers @capture_output @init_handlers_lost],
+      "Badline::CPU" => %i[@traps @debug],
+      "Badline::AddressBus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
+      "Badline::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
+      "Badline::VIC::Sequencer" => %i[@render],
+      "Badline::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
+      "Badline::CIA" => %i[@peripheral],
+      "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                 @record_cycles @record_instructions @record_quiet @asleep @recording],
+      "Badline::Drive1541::Bus" => %i[@touched @volatile @watching],
+      "Badline::Storage::D64Image" => %i[@entries], "Badline::Storage::D71Image" => %i[@entries],
+      "Badline::Storage::D81Image" => %i[@entries], "Badline::Storage::T64" => %i[@entries]
+    }.freeze
+    HOST_CLASSES = %w[Badline::Keyboard Badline::Joystick Badline::ControlPorts Badline::ChroutTrap
+                      Badline::DebugRegister Badline::Input::Mouse1351 Badline::Input::Paddles].freeze
+    LIMIT = 20
+
+    def initialize(first, second, host: {})
+      @host = HOST.merge(host) { |_name, ours, theirs| ours + theirs }
+      @first = first
+      @second = second
+      @seen = {}.compare_by_identity
       @out = []
     end
 
     def differences
-      stack = [[0, 0, "computer"]]
-      until stack.empty? || @out.length > 10
+      stack = [[@first, @second, "computer"]]
+      until stack.empty? || @out.length >= LIMIT
         ours, theirs, path = stack.pop
-        next if @seen[[ours, theirs]]
-
-        @seen[[ours, theirs]] = true
-        compare(@first[ours], @second[theirs], path) { |refs, child| stack << [*refs.map(&:id), child] }
+        compare(ours, theirs, path) { |pair| stack << pair }
       end
       @out
     end
@@ -124,39 +181,83 @@ module SnapshotScenarios
     private
 
     def compare(ours, theirs, path, &)
-      return @out << "#{path}: #{ours.class} against #{theirs.class}" unless ours.instance_of?(theirs.class)
-      return if plain?(ours) && ours == theirs
+      return if same_plain?(ours, theirs)
 
-      mine = entries(ours)
-      other = entries(theirs)
-      return @out << "#{path}: #{mine.keys - other.keys} against #{other.keys - mine.keys}" if mine.keys != other.keys
+      mismatch = mismatch(ours, theirs, path)
+      return @out << mismatch if mismatch
+      return if skipped?(ours) || visited?(ours, theirs)
+      return children(ours, theirs, path, &) unless table?(ours)
 
-      mine.each { |name, value| value(value, other[name], "#{path}#{name}", &) }
+      @out << "#{path}: tables differ" unless ours == theirs
     end
 
-    # An array of plain values, such as memory, compares as a whole.
-    def plain?(record) = record.is_a?(Records::ArrayRecord) && record.items.none?(Ref)
+    def mismatch(ours, theirs, path)
+      return "#{path}: #{brief(ours)} against #{brief(theirs)}" if plain?(ours) || plain?(theirs)
 
-    # An object's variables in name order, leaving out those that are nil.
-    def entries(record)
-      case record
-      when Records::ArrayRecord then record.items.each_with_index.to_h { |item, i| ["[#{i}]", item] }
-      when Records::HashRecord then record.pairs.to_h { |key, item| ["{#{key.inspect}}", item] }
-      when Records::ProcRecord then { ".receiver" => record.receiver }.merge(named(record.locals))
-      when Records::StringRecord then { "" => record.bytes }
-      when Records::MethodRecord then { ".receiver" => record.receiver }
-      else named(record.respond_to?(:ivars) ? record.ivars : record.fields)
+      "#{path}: #{ours.class} against #{theirs.class}" unless ours.instance_of?(theirs.class)
+    end
+
+    def children(ours, theirs, path, &)
+      case ours
+      when Array then array(ours, theirs, path, &)
+      when Hash then hash(ours, theirs, path, &)
+      when String, Data then @out << "#{path}: #{ours.class} differs" unless ours == theirs
+      else
+        (ivars(ours) | ivars(theirs)).sort.each do |name|
+          yield [ours.instance_variable_get(name), theirs.instance_variable_get(name), "#{path}.#{name}"]
+        end
       end
     end
 
-    def named(pairs) = pairs.to_h.compact.sort_by(&:first).to_h { |name, value| [".#{name}", value] }
+    def array(ours, theirs, path)
+      return @out << "#{path}: #{ours.length} items against #{theirs.length}" unless ours.length == theirs.length
+      return if ours == theirs
+      return @out << "#{path}: #{first_difference(ours, theirs)}" if ours.all? { |item| plain?(item) } &&
+                                                                     ours != theirs
 
-    def value(ours, theirs, path)
-      if ours.is_a?(Ref) && theirs.is_a?(Ref)
-        yield [ours, theirs], path
-      elsif ours != theirs
-        @out << "#{path}: #{ours.inspect[0, 60]} against #{theirs.inspect[0, 60]}"
-      end
+      ours.each_index { |i| yield [ours[i], theirs[i], "#{path}[#{i}]"] }
     end
+
+    def hash(ours, theirs, path)
+      return @out << "#{path}: keys #{ours.keys.inspect[0, 60]} against #{theirs.keys.inspect[0, 60]}" \
+        unless ours.keys == theirs.keys
+
+      ours.each_key { |key| yield [ours[key], theirs[key], "#{path}{#{key.inspect}}"] }
+    end
+
+    def first_difference(ours, theirs)
+      i = ours.each_index.find { |index| ours[index] != theirs[index] }
+      "differs from [#{i}]: #{ours[i].inspect} against #{theirs[i].inspect}"
+    end
+
+    # A frozen table, compared as a whole.
+    def table?(object) = object.frozen? && (object.is_a?(Array) || object.is_a?(Hash))
+
+    def ivars(object) = object.instance_variables - @host.fetch(object.class.name, [])
+
+    def skipped?(object)
+      object.is_a?(Proc) || object.is_a?(Method) || object.is_a?(Fiber) || object.is_a?(Module) ||
+        HOST_CLASSES.include?(object.class.name)
+    end
+
+    def visited?(ours, theirs)
+      return true if @seen[ours].equal?(theirs)
+
+      @seen[ours] = theirs
+      false
+    end
+
+    def plain?(value)
+      value.nil? || value == true || value == false || value.is_a?(Numeric) || value.is_a?(Symbol) ||
+        value.is_a?(Range)
+    end
+
+    def same_plain?(ours, theirs)
+      return true if (ours.nil? || ours == false) && (theirs.nil? || theirs == false)
+
+      plain?(ours) && plain?(theirs) && ours == theirs && ours.instance_of?(theirs.class)
+    end
+
+    def brief(value) = value.inspect[0, 60]
   end
 end

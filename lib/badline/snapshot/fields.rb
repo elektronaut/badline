@@ -32,12 +32,12 @@ module Badline
         @pos = 0
       end
 
-      def byte = take(1).unpack1("C")
-      def word = take(2).unpack1("v")
-      def dword = take(4).unpack1("V")
-      def qword = take(8).unpack1("Q<")
+      def byte = take(1).unpack1("C").to_i
+      def word = take(2).unpack1("v").to_i
+      def dword = take(4).unpack1("V").to_i
+      def qword = take(8).unpack1("Q<").to_i
       def flag? = !byte.zero?
-      def bytes(count) = take(count).unpack("C*")
+      def bytes(count) = take(count).bytes
       def skip(count) = tap { take(count) }
 
       private
@@ -47,7 +47,7 @@ module Badline
           raise FormatError, "#{@section.name} #{@section.version} ends early, at byte #{@data.bytesize}"
         end
 
-        @data.byteslice(@pos, count).tap { @pos += count }
+        @data.byteslice(@pos, count).to_s.tap { @pos += count }
       end
     end
   end

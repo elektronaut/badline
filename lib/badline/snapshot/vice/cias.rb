@@ -16,8 +16,6 @@ module Badline
         MAJOR = 2
         MINOR = 3
         NAMES = %w[CIA1 CIA2].freeze
-        PORTS = %i[@data_port_a @data_port_b @data_dir_a @data_dir_b].freeze
-        TOD_FIELDS = %i[tenths seconds minutes hours].freeze
 
         # VICE's timer state bits.
         START = 0x001
@@ -40,16 +38,16 @@ module Badline
         end
 
         def registers(cia, fields)
-          PORTS.each { |port| fields.byte(cia.instance_variable_get(port)) }
+          cia.port_registers.each { |value| fields.byte(value) }
           fields.word(cia.timer_a).word(cia.timer_b)
           cia.time_of_day.registers.first(4).each { |value| fields.byte(value) }
           fields.byte(cia.serial.data).byte(cia.interrupt_control.value)
           fields.byte(cia.control_a.value).byte(cia.control_b.value)
           fields.word(cia.timer_a_latch).word(cia.timer_b_latch).byte(cia.interrupt_status.value)
-          ta, tb = timers(cia)
-          fields.byte((toggle?(ta) ? 0x40 : 0) | (toggle?(tb) ? 0x80 : 0) |
+          ta, tb = cia.timers
+          fields.byte((ta.toggle ? 0x40 : 0) | (tb.toggle ? 0x80 : 0) |
                       (ta.underflowed ? 0x04 : 0) | (tb.underflowed ? 0x08 : 0))
-          fields.byte(cia.serial.instance_variable_get(:@steps).clamp(0, 0xff))
+          fields.byte(cia.serial.steps.clamp(0, 0xff))
         end
 
         def time_of_day(tod, fields)
@@ -57,40 +55,29 @@ module Badline
           registers[4, 4].each { |value| fields.byte(value) }
           fields.byte(0) # cycles since the ICR was read
           fields.byte(registers[9] | (registers[8] << 1)) # latched, stopped
-          latch = tod.instance_variable_get(:@latch) || tod.instance_variable_get(:@clock)
-          TOD_FIELDS.each { |field| fields.byte(latch[field]) }
-          fields.qword(tod_ticks(tod))
-        end
-
-        # The cycles until the TOD clock next steps a tenth.
-        def tod_ticks(tod)
-          per_pulse = tod.instance_variable_get(:@cycles_per_pulse)
-          mains = tod.instance_variable_get(:@mains_hz)
-          to_pulse = (per_pulse - tod.instance_variable_get(:@accumulator) + mains - 1) / mains
-          pulses = tod.instance_variable_get(:@match) - tod.instance_variable_get(:@pulses)
-          to_pulse + ([pulses, 0].max * per_pulse / mains)
+          tod.latched_fields.each { |value| fields.byte(value) }
+          fields.qword(tod.cycles_to_tenth)
         end
 
         def internals(cia, fields)
-          timers(cia).each { |timer| fields.word(timer_state(timer)) }
+          cia.timers.each { |timer| fields.word(timer_state(timer)) }
           serial = cia.serial
-          shift = serial.instance_variable_get(:@shift)
-          fields.byte(shift & 0xff).flag(!serial.instance_variable_get(:@pending).nil?).flag(cia.interrupted?)
-          fields.byte(cia.time_of_day.instance_variable_get(:@pulses))
+          shift = serial.shift_register
+          fields.byte(shift & 0xff).flag(!serial.pending.nil?).flag(cia.interrupted?)
+          fields.byte(cia.time_of_day.pulses)
           fields.byte(shift >> 8).byte(0)
           fields.byte((serial.sp_in ? 0x80 : 0) | (serial.cnt_in ? 0x40 : 0))
         end
 
-        def timers(cia) = [cia.instance_variable_get(:@ta), cia.instance_variable_get(:@tb)]
-
-        def toggle?(timer) = timer.instance_variable_get(:@toggle)
-
         def timer_state(timer)
           control = timer.control.value
-          pipe = timer.instance_variable_get(:@pipe)
+          pipe = timer.pipe
           (control & (START | ONESHOT)) | (control.nobits?(0x60) ? PHI2IN : 0) |
             (pipe.anybits?(0b10) ? COUNT2 : 0) | (pipe.anybits?(0b01) ? COUNT3 | COUNT : 0)
         end
+
+        # Later minor versions add fields at the end.
+        def reads?(section) = section.major == MAJOR && section.minor >= MINOR
 
         def import(section, computer)
           cia = section.name == NAMES.first ? computer.cia1 : computer.cia2

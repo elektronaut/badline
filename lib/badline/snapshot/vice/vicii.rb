@@ -45,44 +45,37 @@ module Badline
         end
 
         def beam(vic, fields)
-          registers = registers(vic)
+          registers = vic.registers
           fields.dword(vic.column).dword(0).dword(vic.rasterline).byte(0)
           fields.byte((registers[0x19] & 0x0f) | (vic.interrupted? ? 0x80 : 0))
-          fields.dword(registers.raster_target).flag(vic.instance_variable_get(:@raster_match))
-          %i[@character_buffer @color_buffer].each do |buffer|
-            fields.bytes(vic.instance_variable_get(buffer).map { |value| value || 0 })
-          end
+          fields.dword(registers.raster_target).flag(vic.latch_bits.anybits?(1))
+          [vic.character_buffer, vic.color_buffer].each { |buffer| fields.bytes(buffer.map { |value| value || 0 }) }
           fields.byte(0).dword(0).zeros(65 * 8) # x64sc's graphics buffer and draw buffer
         end
 
         def counters(vic, fields)
-          registers = registers(vic)
-          state = display_state(vic)
-          fields.dword(registers.yscroll).flag(state.instance_variable_get(:@bad_lines_enabled))
+          registers = vic.registers
+          state = vic.display_state
+          fields.dword(registers.yscroll).flag(state.bad_lines_enabled)
           fields.byte(registers[0x1e]).byte(registers[0x1f]).byte(0)
           fields.dword(state.display? ? 0 : 1)
           [state.vc_base, state.vc, state.rc, state.vmli].each { |counter| fields.dword(counter) }
           fields.dword(state.bad_line_condition? ? 1 : 0)
-          fields.flag(vic.instance_variable_get(:@lp_low)).flag(vic.instance_variable_get(:@lp_triggered))
+          fields.flag(vic.latch_bits.anybits?(2)).flag(vic.latch_bits.anybits?(4))
           fields.dword(registers[0x13]).dword(registers[0x14]).dword(0).qword(0)
-          fields.byte(vic.instance_variable_get(:@fetch_d011)).dword(0)
-          fields.dword(sprite_bits(vic, :@display_on)).byte(sprite_bits(vic, :@dma))
+          fields.byte(vic.fetch_d011).dword(0)
+          fields.dword(sprite_bits(vic, &:display_on)).byte(sprite_bits(vic, &:displaying?))
         end
 
         def borders(vic, fields)
-          sequencer = vic.instance_variable_get(:@sequencer)
           fields.byte(0xff).byte(0).byte(0).byte(0) # last colour register and value, last bus bytes
-          %i[@vertical_border @vertical_armed @main_border].each do |flop|
-            fields.flag(sequencer.instance_variable_get(flop))
-          end
+          vic.sequencer.borders.each { |flop| fields.flag(flop) }
           fields.byte(0xff - (5 * vic.rasterline))
         end
 
         def sprite(vic, index, fields)
-          sprite = sprites(vic)[index]
-          fields.dword(sprite.instance_variable_get(:@sr))
-          fields.byte(sprite.instance_variable_get(:@mc)).byte(sprite.instance_variable_get(:@mcbase)).byte(0)
-          fields.flag(sprite.instance_variable_get(:@exp_ff)).dword(sprite.x)
+          sprite = vic.sprites[index]
+          fields.dword(sprite.sr).byte(sprite.mc).byte(sprite.mcbase).byte(0).flag(sprite.exp_ff).dword(sprite.x)
         end
 
         # Blank but for the colour registers and the sprite priority,
@@ -93,15 +86,22 @@ module Badline
           fields.zeros(32 + 8 + 3 + 24).bytes(file.first(0x2f)).byte(0xff).byte(0).dword(0)
         end
 
-        def sprite_bits(vic, flag)
-          8.times.sum { |n| sprites(vic)[n].instance_variable_get(flag) ? 1 << n : 0 }
+        def sprite_bits(vic)
+          8.times.sum { |n| yield(vic.sprites[n]) ? 1 << n : 0 }
         end
 
-        def registers(vic) = vic.instance_variable_get(:@registers)
-        def display_state(vic) = vic.instance_variable_get(:@display_state)
-        def sprites(vic) = vic.instance_variable_get(:@sprites)
+        def reads?(section) = section.major == MAJOR && section.minor == MINOR
 
-        def model(section) = MODELS.fetch(FieldReader.new(section).byte, :mos6569)
+        # VICE's model numbers: the 6569, the 8565 and the 6569R1 run PAL;
+        # the 6567, 8562 and 6567R56A NTSC, and the 6572 PAL-N, which badline
+        # doesn't run yet.
+        def model(section)
+          number = FieldReader.new(section).byte
+          return :mos8565 if number == 1
+          return :mos6569 if [0, 2].include?(number)
+
+          raise FormatError, "#{section}: an NTSC or PAL-N VIC-II (VICE model #{number}), which badline doesn't run"
+        end
 
         def import(section, computer)
           snapshot = Import.new(FieldReader.new(section))

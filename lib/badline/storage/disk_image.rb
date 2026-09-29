@@ -25,15 +25,24 @@ module Badline
       # the read, write and ID errors, 74 is DRIVE NOT READY.
       DOS_ERRORS = (2..11).to_h { |code| [code, code + 18] }.merge(15 => 74).freeze
 
-      def initialize(path, read_only: false)
+      # `bytes` stands in for the host file's contents, as a snapshot
+      # restores the image as it was.
+      def initialize(path, read_only: false, bytes: nil)
         @path = path
         @read_only = read_only
-        @bytes = File.binread(path).bytes
+        @bytes = bytes || File.binread(path).bytes
         @errors = split_error_table
       end
 
       # Whether the image was opened write-protected.
       def read_only? = @read_only
+
+      # What Storage.reopen needs to open the image again as it stands: its
+      # path, whether it is write-protected, and its bytes with the error
+      # table after them.
+      def save_setup(out)
+        out.int(storage_kind).string(::File.expand_path(@path)).boolean(@read_only).blob(@bytes + @errors.to_a)
+      end
 
       # A LOAD reads only PRG files. An OPEN names the type it wants, or
       # takes the first file of any type with a nil `type`.

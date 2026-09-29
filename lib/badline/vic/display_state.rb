@@ -34,7 +34,7 @@ module Badline
 
       GRAPHICS_COLUMNS = Array.new(63) { |column| column.between?(GRAPHICS_FIRST, GRAPHICS_LAST) }.freeze
 
-      attr_reader :vc_base, :vc, :vmli, :rc
+      attr_reader :vc_base, :vc, :vmli, :rc, :bad_lines_enabled
 
       def initialize(registers)
         @registers = registers
@@ -50,6 +50,15 @@ module Badline
       end
 
       def display? = @display
+
+      # Sets VCBASE, VC, RC and VMLI, in that order, and the display and
+      # bad-line flags, as a VICE snapshot gives them.
+      def restore_counters(counters, display, bad_lines_enabled)
+        @vc_base, @vc, @rc, @vmli = counters
+        @display = display
+        @bad_lines_enabled = bad_lines_enabled
+      end
+
       def idle? = !@display
       def bad_line? = !@ba.nil?
 
@@ -61,6 +70,25 @@ module Badline
 
       def fetching?(column)
         @matched && column >= FETCH_FIRST && column <= DMA_LAST
+      end
+
+      def save_state(out)
+        out.int(@vc_base).int(@vc).int(@vmli).int(@rc).boolean(@display).boolean(@bad_lines_enabled)
+        out.boolean(@matched).optional_int(@ba).int(@line_bits).boolean(@den_line).boolean(@in_window)
+      end
+
+      def load_state(input)
+        @vc_base = input.int
+        @vc = input.int
+        @vmli = input.int
+        @rc = input.int
+        @display = input.boolean?
+        @bad_lines_enabled = input.boolean?
+        @matched = input.boolean?
+        @ba = input.optional_int
+        @line_bits = input.int
+        @den_line = input.boolean?
+        @in_window = input.boolean?
       end
 
       def new_frame

@@ -92,6 +92,19 @@ module Badline
         @counter = @reload ? 0xffff : @latch - phase + 1
       end
 
+      def save_state(out)
+        out.int(@counter).int(@latch).boolean(@hold).boolean(@reload).boolean(@armed).boolean(@pb7)
+      end
+
+      def load_state(input)
+        @counter = input.int
+        @latch = input.int
+        @hold = input.boolean?
+        @reload = input.boolean?
+        @armed = input.boolean?
+        @pb7 = input.boolean?
+      end
+
       # What the counter and PB7 don't hold, for comparing the timer at two
       # points.
       def state = [@latch, @armed]

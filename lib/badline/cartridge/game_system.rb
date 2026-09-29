@@ -25,6 +25,14 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        save_windows(out, [*@banks, EMPTY_BANK])
+      end
+
+      def load_mapper(input)
+        load_windows(input, [*@banks, EMPTY_BANK])
+      end
+
       def select(addr)
         @roml = bank(@banks, addr & 0x3f)
         changed!

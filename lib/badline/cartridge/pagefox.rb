@@ -29,6 +29,18 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        save_windows(out, windows)
+        @ram_banks.each { |ram| out.blob(ram.data) }
+      end
+
+      def load_mapper(input)
+        load_windows(input, windows)
+        @ram_banks.each { |ram| input.blob_into(ram.data) }
+      end
+
+      def windows = [*@roml_banks, *@romh_banks, *@ram_banks, @open_bus || EMPTY_BANK, EMPTY_BANK]
+
       def select(value)
         half = (value >> 1) & 0x01
         chip = (value >> 2) & 0x03

@@ -96,6 +96,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   - `sdl.rb` declares the SDL2 functions, structs and constants the
     others call, and `LibC`'s `malloc`, `free` and `poll`.
   - `app.rb` (`App`) opens the window and runs the frame loop.
+  - `snapshots.rb` (`Snapshots`) saves the machine with F11 and
+    `--save-snapshot` and restores it with F12, and `screenshot.rb`
+    (`Screenshot`) saves `--screenshot`'s frame.
   - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
     and `drive_led.rb` (`DriveLed`) places and colours the true drive's
     LED over it.
