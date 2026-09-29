@@ -5,21 +5,21 @@ drive/hls-protection/hlstest.prg	PASS
 drive/inertia/drive-emu-check.prg	FAIL	exit=$ff
 drive/interrupts/timera.prg	PASS
 drive/rpm/rpm1.prg	PASS
-drive/rpm/rpm1.prg	PASS
+drive/rpm/rpm1.prg#2	PASS
 drive/rpm/rpm2.prg	PASS
 drive/format/format.prg	PASS
-drive/rpm/rpm2.prg	PASS
+drive/rpm/rpm2.prg#2	PASS
 drive/rpm/rpm3.prg	PASS
-drive/rpm/rpm3.prg	PASS
+drive/rpm/rpm3.prg#2	PASS
 drive/scanner/scanner35.prg	PASS
 drive/scanner/scanner35e.prg	PASS
 drive/scanner/scanner40.prg	PASS
 drive/scanner/scanner40e.prg	PASS
 drive/scanner/scanner42.prg	PASS
 drive/scanner/scanner42e.prg	PASS
-drive/scanner/scanner35.prg	PASS
-drive/scanner/scanner40.prg	PASS
-drive/scanner/scanner42.prg	PASS
+drive/scanner/scanner35.prg#2	PASS
+drive/scanner/scanner40.prg#2	PASS
+drive/scanner/scanner42.prg#2	PASS
 drive/skew/skew1.prg	PASS
 drive/skew/skew2.prg	PASS
 drive/selftest/selftest.prg	PASS
@@ -44,4 +44,4 @@ drive/viavarious/via11-2.prg	PASS
 drive/viavarious/via12-2.prg	PASS
 drive/viavarious/via13-2.prg	PASS
 drive/viavarious/via14-2.prg	PASS
-C64/autostart/defaults/test.prg	FAIL	exit=$ff
+C64/autostart/defaults/test.prg#2	FAIL	exit=$ff
