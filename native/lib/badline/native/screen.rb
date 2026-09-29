@@ -7,10 +7,10 @@ module Badline
     # Integers to C as 64-bit words, so each word carries two neighbouring
     # pixels, the left one in the low half.
     class Screen
-      WIDTH = 384
-      HEIGHT = 272
-      COL_OFFSET = 96
-      ROW_OFFSET = 20
+      COL_OFFSET = Region::PAL.crop[0]
+      ROW_OFFSET = Region::PAL.crop[1]
+      WIDTH = Region::PAL.crop[2]
+      HEIGHT = Region::PAL.crop[3]
       ROW_BYTES = WIDTH * 4
       ROW_WORDS = WIDTH / 2
 
