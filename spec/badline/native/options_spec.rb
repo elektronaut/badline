@@ -33,6 +33,10 @@ describe Badline::Native::Options do
         .to eq([true, true, true, true, 0])
     end
 
+    it "leaves device 8 to the KERNAL traps" do
+      expect(options.true_drive?).to be(false)
+    end
+
     it "leaves the SID model and the song to the media" do
       expect([options.sid_model, options.song]).to eq([nil, nil])
     end
@@ -68,6 +72,10 @@ describe Badline::Native::Options do
 
   it "boots to READY. with --no-autostart" do
     expect(parse("--no-autostart").autostart?).to be(false)
+  end
+
+  it "puts a true drive on device 8 with --true-drive" do
+    expect(parse("--true-drive").true_drive?).to be(true)
   end
 
   it "mounts disks read-write unless --read-only asks otherwise" do
@@ -112,7 +120,7 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --sound --no-sound --no-vsync --verbose --help --version
+    %w[--song --sid --no-autostart --true-drive --sound --no-sound --no-vsync --verbose --help --version
        --frames --unpaced --screenshot --headless --audio-out --seconds --songlengths
        --rate --filter-chunk --quiet --no-tui].each do |flag|
       expect(described_class::HELP).to include(flag)
@@ -195,6 +203,7 @@ describe Badline::Native::Options do
       %w[--headless --read-only] => "--read-only needs the window",
       %w[--headless --no-sound] => "--no-sound needs the window",
       %w[--headless --verbose] => "--verbose needs the window",
+      %w[--headless --true-drive] => "--true-drive needs the window",
       %w[--headless --frames 3] => "--frames needs the window",
       %w[--seconds=10] => "--seconds needs --headless or --audio-out",
       %w[--songlengths x] => "--songlengths needs --headless or --audio-out",
@@ -214,11 +223,6 @@ describe Badline::Native::Options do
     end
   end
 
-  it "refuses a .g64 image, which needs badline-ruby" do
-    g64 = File.join(dir, "disk.G64").tap { |path| File.write(path, "") }
-    expect { parse(g64) }.to raise_error(described_class::Error, ".g64 images need badline-ruby: #{g64}")
-  end
-
   {
     %w[--turbo] => "invalid option: --turbo",
     %w[--sid 6582] => "invalid argument: --sid 6582",
@@ -227,6 +231,7 @@ describe Badline::Native::Options do
     %w[--frames -1] => "invalid argument: --frames -1",
     %w[--song] => "missing argument: --song",
     %w[--sound=yes] => "needless argument: --sound=yes",
+    %w[--true-drive=yes] => "needless argument: --true-drive=yes",
     %w[missing.prg] => "no such file or directory: missing.prg",
     %w[a.prg b.prg] => "unexpected argument: b.prg"
   }.each do |argv, message|

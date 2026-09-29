@@ -24,7 +24,10 @@ module Badline
       Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
       .g64 disk image for the true 1541, a .t64 tape archive, a .tap
       tape, a .crt cartridge, a .sid tune, or a directory to mount as
-      device 8. It opens in the emulator window.
+      device 8. It opens in the emulator window. Device 8 answers through
+      traps on the KERNAL's disk routines, unless --true-drive puts an
+      emulated 1541 there, which runs its own DOS and reads .d64 and .g64
+      images only.
 
       --headless plays a .sid tune on the host's audio device without the
       window, and --audio-out renders it to 16-bit PCM instead. The
@@ -55,6 +58,7 @@ module Badline
       @read_only = false
       @sound = false
       @verbose = false
+      @true_drive = false
       @headless = false
       @jit = true
       @quiet = false
@@ -99,6 +103,8 @@ module Badline
     def sound? = @sound
 
     def verbose? = @verbose
+
+    def true_drive? = @true_drive
 
     def quiet? = @quiet
 
@@ -168,6 +174,9 @@ module Badline
       end
       opts.on("--sound", "Play the SID through the host's audio device (F10 mutes)") do
         window_only("--sound") { @sound = true }
+      end
+      opts.on("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps") do
+        window_only("--true-drive") { @true_drive = true }
       end
       opts.on("--verbose", "Print the display, sound and gamepad setup and the frame timing") do
         window_only("--verbose") { @verbose = true }

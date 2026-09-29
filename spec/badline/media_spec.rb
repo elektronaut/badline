@@ -3,10 +3,16 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
+require_relative "../support/blank_disk"
 
 describe Badline::Media do
   let(:computer) { Badline::Computer.new }
   let(:dir) { Dir.mktmpdir }
+  let(:g64_path) do
+    File.join(dir, "disk.g64").tap do |path|
+      Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
+    end
+  end
 
   after { FileUtils.remove_entry(dir) }
 
@@ -98,12 +104,6 @@ describe Badline::Media do
     end
 
     context "with a G64 image" do
-      let(:g64_path) do
-        File.join(dir, "disk.g64").tap do |path|
-          Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
-        end
-      end
-
       it "plugs in a true drive as device 8 and puts the disk in it" do
         described_class.attach(computer, g64_path)
         expect([computer.drive1541.device, computer.drive1541.disk.track(36).length]).to eq([8, 7142])
@@ -452,6 +452,209 @@ describe Badline::Media do
     end
   end
 
+  describe ".attach with a true drive" do
+    include BlankDisk
+
+    let(:d64_path) { blank_d64(File.join(dir, "disk.d64")) }
+    let!(:drive) { described_class::TrueDrive.plug(computer) }
+
+    it "puts a .d64 in the drive" do
+      described_class.attach(computer, d64_path)
+      expect(drive.disk).to be_a(Badline::Drive1541::Disk)
+    end
+
+    it "leaves the KERNAL traps unmounted, so device 8 is the drive's alone" do
+      allow(computer).to receive(:mount)
+      described_class.attach(computer, d64_path)
+      expect(computer).not_to have_received(:mount)
+    end
+
+    it "types the autostart command" do
+      allow(computer).to receive(:type_text)
+      described_class.attach(computer, d64_path)
+      expect(computer).to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
+    end
+
+    it "skips autostart when disabled" do
+      allow(computer).to receive(:type_text)
+      described_class.attach(computer, d64_path, autostart: false)
+      expect(computer).not_to have_received(:type_text)
+    end
+
+    it "returns a message" do
+      expect(described_class.attach(computer, d64_path)).to eq("Inserted #{d64_path} in the 1541 as device 8")
+    end
+
+    it "puts a .d64 in writable" do
+      described_class.attach(computer, d64_path)
+      expect(drive.disk.write_protected?).to be(false)
+    end
+
+    it "puts a .d64 in write-protected with disk: { read_only: true }" do
+      described_class.attach(computer, d64_path, disk: { read_only: true })
+      expect(drive.disk.write_protected?).to be(true)
+    end
+
+    it "puts a .g64 in the same drive" do
+      described_class.attach(computer, g64_path)
+      expect([computer.drive1541, drive.disk.track(36).length]).to eq([drive, 7142])
+    end
+
+    it "puts a .g64 in write-protected with disk: { read_only: true }" do
+      described_class.attach(computer, g64_path, disk: { read_only: true })
+      expect(drive.disk.write_protected?).to be(true)
+    end
+
+    {
+      "disk.d71" => 349_696, "disk.d81" => 819_200, "tape.t64" => 0x40
+    }.each do |name, size|
+      it "refuses a #{File.extname(name)}, which the 1541 can't read" do
+        path = File.join(dir, name).tap { |p| File.binwrite(p, "\x00" * size) }
+        expect { described_class.attach(computer, path) }
+          .to raise_error(described_class::TrueDrive::Error, /\.d64 or \.g64/)
+      end
+    end
+
+    it "refuses a directory" do
+      expect { described_class.attach(computer, dir) }.to raise_error(described_class::TrueDrive::Error)
+    end
+
+    it "loads a program as without one" do
+      prg = File.join(dir, "game.prg").tap { |path| File.binwrite(path, [0x00, 0x10, 0x42].pack("C*")) }
+      allow(computer).to receive(:on_init).and_yield
+      described_class.attach(computer, prg)
+      expect(computer.ram.read(0x1000, 1)).to eq([0x42])
+    end
+  end
+
+  describe "the true drive" do
+    it "plugs a 1541 in as device 8" do
+      expect(described_class::TrueDrive.plug(computer).device).to eq(8)
+    end
+
+    it "keeps a 1541 already on device 8" do
+      drive = described_class::TrueDrive.plug(computer)
+      expect(described_class::TrueDrive.plug(computer)).to be(drive)
+    end
+
+    it "plugs in another in place of a 1541 on device 9" do
+      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      expect(described_class::TrueDrive.plug(computer).device).to eq(8)
+    end
+
+    it "leaves a 1541 on device 9 out of device 8's media" do
+      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      allow(computer).to receive(:mount)
+      described_class.attach(computer, dir)
+      expect(computer).to have_received(:mount)
+    end
+
+    it "puts a .g64 in a 1541 of its own rather than one on device 9" do
+      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      described_class.attach(computer, g64_path)
+      expect([computer.drive1541.device, computer.drive1541.disk.nil?]).to eq([8, false])
+    end
+  end
+
+  # SAVE goes through the DOS to a disk put in write-protected, which
+  # answers 26,WRITE PROTECT ON and leaves the file alone.
+  describe ".attach with a true drive and --read-only", :slow do
+    include BlankDisk
+
+    let(:path) { blank_d64(File.join(dir, "disk.d64")) }
+    let(:output) { computer.capture_output }
+
+    def saved?
+      computer.on_init { computer.type_text(%(10 print\rsave"x",8\r)) }
+      100_000.times { computer.cycle! } until done_saving?
+      computer.drive1541.flush
+      output.output.upcase.include?("SAVING")
+    end
+
+    def done_saving? = output.output.upcase.scan("READY.").size >= 2 || computer.cycles > 40_000_000
+
+    before do
+      output
+      described_class::TrueDrive.plug(computer)
+      described_class.attach(computer, path, autostart: false, disk: { read_only: true })
+    end
+
+    it "leaves the image file unchanged after a SAVE" do
+      before = File.binread(path)
+      expect([saved?, File.binread(path) == before]).to eq([true, true])
+    end
+  end
+
+  describe ".attach with a true drive and the DOS ROM", :slow do
+    include BlankDisk
+
+    # 10 PRINT"TRUE DRIVE"
+    let(:program) { [0x01, 0x08, 0x13, 0x08, 0x0a, 0x00, 0x99, 0x22, *"TRUE DRIVE".bytes, 0x22, 0x00, 0x00, 0x00] }
+    let(:output) { computer.capture_output }
+
+    def printed?(text) = output.output.upcase.include?(text)
+
+    before do
+      path = blank_d64(File.join(dir, "disk.d64"))
+      Badline::Storage::D64Image.new(path).write_file("hello", program)
+      output
+      described_class::TrueDrive.plug(computer)
+      described_class.attach(computer, path)
+    end
+
+    it "autostarts the first program on the disk" do
+      100_000.times { computer.cycle! } until printed?("TRUE DRIVE\n") || computer.cycles > 30_000_000
+      expect(output.output.upcase).to include("LOADING").and include("TRUE DRIVE\n")
+    end
+  end
+
+  describe ".insert_disk with a true drive" do
+    include BlankDisk
+
+    let(:d64_path) { blank_d64(File.join(dir, "disk.d64")) }
+
+    before { described_class::TrueDrive.plug(computer) }
+
+    it "puts a .d64 in the drive" do
+      described_class.insert_disk(computer, d64_path)
+      expect(computer.drive1541.disk).to be_a(Badline::Drive1541::Disk)
+    end
+
+    it "leaves the traps unmounted" do
+      allow(computer).to receive(:mount)
+      described_class.insert_disk(computer, d64_path)
+      expect(computer).not_to have_received(:mount)
+    end
+
+    it "returns a message" do
+      expect(described_class.insert_disk(computer, d64_path)).to eq("Inserted #{d64_path} in the 1541 as device 8")
+    end
+
+    it "puts a .d64 in write-protected with read_only" do
+      described_class.insert_disk(computer, d64_path, read_only: true)
+      expect(computer.drive1541.disk.write_protected?).to be(true)
+    end
+
+    it "swaps a .d64 for a .g64 in the same drive" do
+      drive = computer.drive1541
+      described_class.insert_disk(computer, d64_path)
+      described_class.insert_disk(computer, g64_path)
+      expect([computer.drive1541, drive.disk.image]).to match([drive, an_instance_of(Badline::Storage::G64Image)])
+    end
+
+    it "swaps a .g64 for a .d64 in the same drive" do
+      drive = computer.drive1541
+      described_class.insert_disk(computer, g64_path)
+      described_class.insert_disk(computer, d64_path)
+      expect([computer.drive1541, drive.disk.image]).to match([drive, an_instance_of(Badline::Storage::D64Image)])
+    end
+
+    it "puts a .g64 in write-protected with read_only" do
+      described_class.insert_disk(computer, g64_path, read_only: true)
+      expect(computer.drive1541.disk.write_protected?).to be(true)
+    end
+  end
+
   describe ".insert_disk" do
     let(:d64_path) do
       File.join(dir, "disk.d64").tap { |path| File.binwrite(path, "\x00" * 174_848) }
@@ -490,12 +693,6 @@ describe Badline::Media do
     end
 
     context "with a G64 image" do
-      let(:g64_path) do
-        File.join(dir, "disk.g64").tap do |path|
-          Badline::Storage::G64Image.create(path, { 34 => [Array.new(7142, 0x55), 2] })
-        end
-      end
-
       before { allow(computer).to receive(:unmount) }
 
       it "puts it in the true drive, plugging one in" do

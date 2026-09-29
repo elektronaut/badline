@@ -38,13 +38,33 @@ describe Badline::GUI::Application do
 
   describe "the SID model" do
     it "fits the machine with the one asked for" do
-      described_class.new(sid_model: :mos8580)
+      described_class.new(machine: { sid_model: :mos8580 })
       expect(Badline::Computer).to have_received(:new).with(sid_model: :mos8580)
     end
 
     it "fits a 6581 by default" do
       described_class.new
       expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581)
+    end
+  end
+
+  describe "the true drive" do
+    it "plugs a 1541 in as device 8" do
+      described_class.new(machine: { true_drive: true })
+      expect(computer.drive1541.device).to eq(8)
+    end
+
+    it "draws its LED over the screen" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new(machine: { true_drive: true }).run
+      expect(window).to have_received(:draw)
+        .with([instance_of(Badline::GUI::ScreenPane), instance_of(Badline::GUI::DriveLedPane)])
+    end
+
+    it "draws no LED without one" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new.run
+      expect(window).to have_received(:draw).with([instance_of(Badline::GUI::ScreenPane)])
     end
   end
 

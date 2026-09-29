@@ -29,8 +29,8 @@ module Badline
 
       # The switches and valued options only the window or only the
       # headless player takes.
-      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --frames --unpaced
-                       --screenshot].freeze
+      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --frames
+                       --unpaced --screenshot].freeze
 
       HEADLESS_ONLY = %w[--seconds --songlengths --rate --filter-chunk --quiet --no-tui].freeze
 
@@ -50,6 +50,7 @@ module Badline
         @paced = true
         @vsync = true
         @verbose = false
+        @true_drive = false
         @screenshot = ""
         @help = false
         @version = false
@@ -104,6 +105,8 @@ module Badline
       def vsync? = @vsync
 
       def verbose? = @verbose
+
+      def true_drive? = @true_drive
 
       def help? = @help
 
@@ -174,6 +177,7 @@ module Badline
         when "--no-sound" then @sound = false
         when "--no-vsync" then @vsync = false
         when "--verbose" then @verbose = true
+        when "--true-drive" then @true_drive = true
         when "--unpaced" then @paced = false
         when "--help", "-h" then @help = true
         when "--version" then @version = true
@@ -212,7 +216,6 @@ module Badline
         validate_mode
         validate_numbers
         validate_paths
-        validate_media
       end
 
       def validate_mode
@@ -239,11 +242,6 @@ module Badline
       def validate_paths
         raise Error, "no such file or directory: #{@media}" unless @media.empty? || File.exist?(@media)
         raise Error, "no such file or directory: #{@songlengths}" unless @songlengths.nil? || File.exist?(@songlengths)
-      end
-
-      # A .g64 image needs the true drive, which only badline-ruby has.
-      def validate_media
-        raise Error, ".g64 images need badline-ruby: #{@media}" if File.extname(@media).casecmp?(".g64")
       end
     end
   end
