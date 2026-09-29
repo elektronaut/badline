@@ -1,0 +1,112 @@
+CPU/Acid800/cpu_timing_ntsc.prg	PASS
+CIA/CIA-AcountsB/cia-b-counts-a_ntsc.prg	PASS
+CIA/CIA-AcountsB/cmp-b-counts-a-old_ntsc.prg	PASS
+CIA/tod/stability-ntsc.prg	PASS
+VICII/D011Test/disable-bad_ntsc.prg	PASS
+VICII/D011Test/disable-bad_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-48-0_ntsc.prg	PASS
+VICII/dentest/den01-48-1_ntsc.prg	PASS
+VICII/dentest/den01-48-2_ntsc.prg	PASS
+VICII/dentest/den01-49-0_ntsc.prg	PASS
+VICII/dentest/den01-49-1_ntsc.prg	PASS
+VICII/dentest/den01-49-2_ntsc.prg	PASS
+VICII/dentest/den10-48-0_ntsc.prg	PASS
+VICII/dentest/den10-48-1_ntsc.prg	PASS
+VICII/dentest/den10-48-2_ntsc.prg	PASS
+VICII/dentest/den10-51-0_ntsc.prg	PASS
+VICII/dentest/den10-51-1_ntsc.prg	PASS
+VICII/dentest/den10-51-2_ntsc.prg	PASS
+VICII/dentest/den10-51-3_ntsc.prg	PASS
+VICII/dentest/denrsel-0_ntsc.prg	PASS
+VICII/dentest/denrsel-1_ntsc.prg	PASS
+VICII/dentest/denrsel-2_ntsc.prg	PASS
+VICII/dentest/denrsel-63_ntsc.prg	PASS
+VICII/dentest/denrsel-s0_ntsc.prg	PASS
+VICII/dentest/denrsel-s1_ntsc.prg	PASS
+VICII/dentest/denrsel-s2_ntsc.prg	PASS
+VICII/dentest/denrsel55_ntsc.prg	PASS
+VICII/dentest/den01-48-0_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-48-1_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-48-2_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-49-0_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-49-1_ntscold.prg	FAIL	no-ref
+VICII/dentest/den01-49-2_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-48-0_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-48-1_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-48-2_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-51-0_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-51-1_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-51-2_ntscold.prg	FAIL	no-ref
+VICII/dentest/den10-51-3_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-0_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-1_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-2_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-63_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-s0_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-s1_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel-s2_ntscold.prg	FAIL	no-ref
+VICII/dentest/denrsel55_ntscold.prg	FAIL	no-ref
+VICII/dmadelay/test1-2e-03-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-04-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-10-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-11-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-16-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-17-ntsc.prg	PASS
+VICII/dmadelay/test1-2e-18-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-05-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-06-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-11-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-12-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-16-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-17-ntsc.prg	PASS
+VICII/dmadelay/test2-2c-18-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-07-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-08-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-13-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-14-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-18-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-19-ntsc.prg	PASS
+VICII/dmadelay/test3-2c-1a-ntsc.prg	PASS
+VICII/gfxfetch/gfxfetch_ntsc.prg	PASS
+VICII/gfxfetch/gfxfetch_ntscold.prg	FAIL	no-ref
+VICII/phi1timing/phi1timing_ntsc.prg	PASS
+VICII/phi1timing/phi1timing_ntscold.prg	PASS
+VICII/screenpos/screenpos_ntsc.prg	PASS
+VICII/screenpos/screenpos_ntscold.prg	FAIL	no-ref
+VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=458px exit=$00
+VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=62px exit=$00
+VICII/videomode/rmwtest_ntsc.prg	PASS
+VICII/videomode/rmwtest_ntscold.prg	FAIL	no-ref
+VICII/videomode/videomode-v_ntsc.prg	FAIL	diff=122px exit=$00
+VICII/videomode/videomode-w_ntsc.prg	FAIL	diff=80px exit=$00
+VICII/videomode/videomode-x_ntsc.prg	FAIL	diff=44px exit=$00
+VICII/videomode/videomode-y_ntsc.prg	FAIL	diff=909px exit=$00
+VICII/videomode/videomode-z_ntsc.prg	FAIL	diff=2px exit=$00
+VICII/videomode/videomode2_ntsc.prg	FAIL	diff=5852px exit=$00
+VICII/videomode/videomode1_ntsc.prg	FAIL	diff=2976px exit=$00
+VICII/videomode/videomode1_ntscold.prg	FAIL	diff=2997px exit=$00
+VICII/videomode/videomode2_ntscold.prg	FAIL	diff=5847px exit=$00
+VICII/videomode/videomode-v_ntscold.prg	FAIL	diff=156px exit=$00
+VICII/videomode/videomode-w_ntscold.prg	FAIL	diff=80px exit=$00
+VICII/videomode/videomode-x_ntscold.prg	FAIL	diff=79px exit=$00
+VICII/videomode/videomode-y_ntscold.prg	FAIL	diff=885px exit=$00
+VICII/videomode/videomode-z_ntscold.prg	FAIL	diff=2px exit=$00
+VICII/vsp-tester/vsp-tester-ntsc.prg	PASS
+VICII/spritedma/d017-54_ntsc.prg	PASS
+VICII/spritedma/d017-57_ntsc.prg	PASS
+VICII/spritedma/d017-54_ntscold.prg	FAIL	no-ref
+VICII/spritedma/d017-57_ntscold.prg	FAIL	no-ref
+VICII/spriteenable/spriteenable1_ntsc.prg	PASS
+VICII/spriteenable/spriteenable2_ntsc.prg	PASS
+VICII/spriteenable/spriteenable3_ntsc.prg	PASS
+VICII/spriteenable/spriteenable4_ntsc.prg	PASS
+VICII/spriteenable/spriteenable5_ntsc.prg	PASS
+VICII/spriteenable/spriteenable1_ntscold.prg	PASS
+VICII/spriteenable/spriteenable2_ntscold.prg	PASS
+VICII/spriteenable/spriteenable3_ntscold.prg	PASS
+VICII/spriteenable/spriteenable4_ntscold.prg	PASS
+VICII/spriteenable/spriteenable5_ntscold.prg	PASS
+VICII/spritesteal/spritesteal_ntsc.prg	PASS
+VICII/spritesteal/spritesteal_ntscold.prg	PASS
+VICII/spritex/testsuite_ntsc.prg	PASS
+VICII/spritex/testsuite_ntscold.prg	PASS

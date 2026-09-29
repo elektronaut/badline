@@ -26,6 +26,9 @@ on:
           - testbench-vicii-new
           - testbench-general
           - testbench-expansions
+          - testbench-ntsc
+          - testbench-ntsc-vicii-new
+          - testbench-ntsc-cia-new
           - sid-8580
 # No concurrency group: nothing here cancels anything, so a nightly run and
 # a dispatched one never touch each other.

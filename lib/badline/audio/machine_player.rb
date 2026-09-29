@@ -5,7 +5,9 @@ module Badline
     # Runs a tune on the whole machine, for the RSID tunes that install their
     # own interrupts and expect a booted C64 underneath. The tune goes in
     # the way `Media` puts it in: BASIC SYSes the driver stub, or RUNs a
-    # BASIC tune. Rendering starts when the CPU gets there.
+    # BASIC tune. Rendering starts when the CPU gets there. The machine is
+    # PAL whatever the tune asks for, and the frames and the clock follow
+    # its region.
     class MachinePlayer
       FRAME_CYCLES = BarePlayer::FRAME_CYCLES
 
@@ -16,6 +18,8 @@ module Badline
         @tune = tune
         @song = song || tune.start_song
         @computer = Computer.new(sid_model:)
+        region = @computer.region
+        @frame_cycles = region.cycles_per_line * region.lines_per_frame
         @injected = false
         @started = false
       end
@@ -28,13 +32,13 @@ module Badline
 
       def sid = @computer.sid
 
-      # The machine is PAL whatever the tune asks for.
-      def clock_hz = TimeOfDay::CLOCK_HZ
+      def clock_hz = @computer.region.clock_hz
 
-      # Advances one PAL frame, or `budget` cycles if that is shorter, then
-      # yields whatever the SID recorded over it. Returns the cycles advanced.
+      # Advances one frame of the machine, or `budget` cycles if that is
+      # shorter, then yields whatever the SID recorded over it. Returns the
+      # cycles advanced.
       def frame(budget, &)
-        cycles = [budget, FRAME_CYCLES].min
+        cycles = [budget, @frame_cycles].min
         cycles.times { @computer.cycle! }
         sid.drain_samples.each(&)
         cycles

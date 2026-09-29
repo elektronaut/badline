@@ -25,7 +25,7 @@ permissions:
 env:
   # The Spinel commit the harnesses build with. Bumping it rebuilds the
   # cached compiler.
-  SPINEL_REF: cd0357c886664fb81e5b1ca917a250a54ffd3320
+  SPINEL_REF: 7acd87b58918ee7956781868015a4ca0807c236b
 jobs:
   # Builds the compiler once, so the suites below restore it instead of
   # each building it on a cold cache.
@@ -55,7 +55,8 @@ jobs:
       - name: Print the Spinel version
         run: '"$SPINEL_DIR/bin/spinel" --version'
 
-  # Builds the native badline and runs it headless for a few frames.
+  # Builds the native badline and runs it headless for a few frames, then
+  # does the same with its spin pack tarball.
   native:
     name: Native badline
     needs: compiler
@@ -119,6 +120,26 @@ jobs:
             tmp/native/ready.bmp
             tmp/native/restored.bmp
           if-no-files-found: ignore
+      # The tarball the Homebrew formula ships, built and booted the way the
+      # Build workflow's homebrew job checks it at release time.
+      - name: Pack the native badline
+        run: |
+          SPINEL="$SPINEL_DIR/bin/spinel" bundle exec rake native:pack
+          echo "VERSION=$(ruby -r ./lib/badline/version -e 'print Badline::VERSION')" >> "$GITHUB_ENV"
+          echo "TARBALL=$(ls tmp/native/badline-*-spinel-*.tar.gz)" >> "$GITHUB_ENV"
+      - name: Build and run the pack
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          mkdir "$RUNNER_TEMP/check"
+          tar -xzf "$TARBALL" -C "$RUNNER_TEMP/check"
+          cd "$RUNNER_TEMP/check/badline-$VERSION"
+          make -j"$(nproc)"
+          export BADLINE_ROM_PATH="$PWD/roms"
+          ./badline --version
+          ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
 
   suite:
     name: "Spinel (${{ matrix.suite }})"
@@ -165,6 +186,15 @@ jobs:
           - suite: testbench-expansions
             harnesses: testbench
             task: spinel:testbench[testbench-expansions]
+          - suite: testbench-ntsc
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc]
+          - suite: testbench-ntsc-vicii-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc-vicii-new]
+          - suite: testbench-ntsc-cia-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc-cia-new]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]

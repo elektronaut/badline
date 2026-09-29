@@ -34,12 +34,12 @@ module Badline
       # sooner than the 6569's.
       WRITE_DELAY_8565 = WRITE_DELAY.dup.tap { |delays| delays[0x1c] = SEQUENCER_DELAY - 1 }.freeze
 
-      def initialize(registers, bank, width, model: :mos6569)
+      def initialize(registers, bank, width, model: :mos6569, region: Region::PAL)
         @registers = registers
         @write_delay = model == :mos8565 ? WRITE_DELAY_8565 : WRITE_DELAY
         @bank = bank
         @width = width
-        @bus = Sprite::InternalBus.new(bank, width / 8)
+        @bus = Sprite::InternalBus.new(bank, Sprite::Timing.new(region))
         @sprites = Array.new(8) { |i| Sprite.new(i, registers, bank, @bus, model:) }
         @collisions = Collisions.new(registers, width)
         @hits = @collisions.hits

@@ -57,17 +57,26 @@ module Testbench
   # The memory expansion a test line names, or nil for none.
   def self.expansion(fields) = fields.length > 8 && !fields[8].empty? ? fields[8] : nil
 
+  # The video standard a test line names.
+  def self.region(fields)
+    name = fields.length > 9 ? fields[9] : ""
+    if name == "ntsc" then :ntsc
+    elsif name == "ntscold" then :ntscold
+    else :pal
+    end
+  end
+
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
-  # cartridge path, program, directory, CIA model, VIC-II model and memory
-  # expansion, with an empty cartridge, program or expansion for a test
-  # without one. A String in and a String out, so that `spin ext` can
+  # cartridge path, program, directory, CIA model, VIC-II model, memory
+  # expansion and video standard, with an empty cartridge, program or
+  # expansion for a test without one. A String in and a String out, so that `spin ext` can
   # export it to CRuby as it stands.
   def self.run_test(test)
     fields = test.chomp.split("\t")
     type = fields[1]
     cartridge = fields[3].empty? ? nil : fields[3]
-    computer = machine(cartridge, cia_model(fields[6]), vic_model(fields[7]), expansion(fields))
+    computer = machine(cartridge, cia_model(fields[6]), vic_model(fields[7]), expansion(fields), region: region(fields))
     exit_code = Execution.new(computer).run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
     out = "test #{fields[0]}\n"

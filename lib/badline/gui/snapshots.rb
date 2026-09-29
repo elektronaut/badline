@@ -19,8 +19,7 @@ module Badline
       def boot(media_path, machine, media)
         return load(media_path) if Snapshots.snapshot?(media_path)
 
-        sid_model = machine[:sid_model] || Media.sid_model(media_path)
-        Computer.new(sid_model:, **machine.slice(:reu)).tap do |computer|
+        Computer.new(**machine_options(machine, media_path)).tap do |computer|
           Media::TrueDrive.plug(computer) if machine[:true_drive]
           puts Media.attach(computer, media_path, **media) if media_path
         end
@@ -54,6 +53,14 @@ module Badline
       rescue Snapshot::FormatError, SystemCallError => e
         warn "badline: #{@last}: #{e.message}"
         nil
+      end
+
+      private
+
+      def machine_options(machine, media_path)
+        options = { sid_model: machine[:sid_model] || Media.sid_model(media_path), **machine.slice(:reu) }
+        options[:region] = Region::NTSC if machine[:ntsc]
+        options
       end
     end
   end

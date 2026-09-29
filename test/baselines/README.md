@@ -59,6 +59,29 @@ Recorded output of the headless hardware suites, one file per suite:
   `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
   again under `vicii-old`, with the same id. Its FAIL rows are the ones
   [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
+- `testbench-ntsc.txt` — the same runner with `--ntsc`, over the rows the
+  testlist tags `vicii-ntsc` or `vicii-ntscold`, from whichever subtree
+  lists them (`VICII/`, `CIA/CIA-AcountsB`, `CIA/tod` and
+  `CPU/Acid800`). Each runs on an NTSC machine with the VIC-II it asks
+  for, the 6567R8 for `vicii-ntsc` and the 6567R56A for `vicii-ntscold`,
+  and every other suite's rows run on PAL. A screenshot is VICE's NTSC
+  view, 384x247 from raster line 28, running on past the last line into
+  lines 0-11 of the next frame. It compares against the program's
+  `-ntsc` or `-ntscold` reference where there is one and its generic one
+  otherwise, as VICE's testbench does. A PAL-sized generic reference is
+  compared, as VICE's `cmpscreens` compares it, on the rows the two views
+  share, with the display window's top left corner lined up: (32, 35) on
+  PAL, (32, 23) on NTSC. `modesplit.prg` is listed for both NTSC chips
+  under one id, so the 6567R56A's row is `modesplit.prg#2`. A row with no
+  reference at all records `no-ref`, which VICE's testbench fails the
+  same way. It is a suite of its own because its programs are listed
+  again for PAL, many under the same id, as `testbench-cia-new` is.
+- `testbench-ntsc-vicii-new.txt` and `testbench-ntsc-cia-new.txt` — the
+  NTSC rows that ask for the 8562 (`--ntsc --vicii-new`), which compare
+  against the `-8562` reference where there is one, and the one that asks
+  for 6526A CIAs (`--ntsc --cia-new`), kept apart from `testbench-ntsc`
+  as `testbench-vicii-new` and `testbench-cia-new` are from the PAL
+  suites. The 8562 runs on the 8565's model.
 - `testbench-general.txt` — the same runner scoped to `C64/` and
   `general/`, over the testlist's machine-level rows outside the Lorenz
   suite: the power-on RAM pattern (`C64/raminitpattern`), BASIC's pointers
@@ -227,7 +250,9 @@ against SingleStepTests' bus-level traces, for a worst case near nine
 hours. Rows carrying `cia-new` ask for the 6526A, and run only in
 `testbench-cia-new`, on a 6526A machine. Rows carrying `vicii-new` ask for
 the 8565 in the same way, and run only in `testbench-vicii-new`, on an
-8565 machine.
+8565 machine. Rows carrying `vicii-ntsc` or `vicii-ntscold` run only in
+the `testbench-ntsc` suites, and rows carrying `vicii-drean`, the PAL-N
+machine, don't run.
 
 `testbench`, `lorenz` and `sid` are the nightly set. The Regression
 workflow runs them on `main` every night, but skips the night when nothing
@@ -262,12 +287,17 @@ what the suite cost before it was sharded:
 | `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
 | `testbench-general` | 18 | 4 min | 0.2 min | 0.1 min |
 | `testbench-expansions` | 118 | — | 42 min | 25 min |
+| `testbench-ntsc` | 112 | 10 min | 3.3 min | 1.0 min |
+| `testbench-ntsc-vicii-new` | 8 | 0.5 min | 0.5 min | 0.1 min |
+| `testbench-ntsc-cia-new` | 1 | 0.5 min | 0.2 min | 0.2 min |
 
-The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general` and
-`testbench-expansions` rows were measured on a four-core cloud container,
-not the laptop, and on CRuby with YJIT, `testbench-general` over two
-shards.
-Its GEO-RAM, +60K and +256K rows were measured there too, at 11 minutes
+The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
+`testbench-expansions` and three `testbench-ntsc` rows were measured on a
+four-core cloud container, not the laptop, and on CRuby with YJIT,
+`testbench-general` over two shards. The `testbench-ntsc` worst cases
+are the rows' budgets at the throughput of `spritesteal_ntsc`, about 3.5M
+cycles a second, not timed runs.
+`testbench-expansions`' GEO-RAM, +60K and +256K rows were measured there too, at 11 minutes
 serial and 10 at four shards, `memory-expansions/c64-georam-emd.prg`
 nearly all of it. Its REU rows were measured on the laptop, under load
 from other runs: the 110 `REU` rows took 13 minutes serial and 4 at four
@@ -426,3 +456,29 @@ explain.
   CIA 2's port A. The harness injects the program instead of loading it.
   Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
   exits `$ff` as well.
+- The `testbench-ntsc` rows that record `no-ref` (27, all 6567R56A rows:
+  `D011Test/disable-bad`, the `dentest` rows, `gfxfetch`, `screenpos`,
+  `videomode/rmwtest` and `spritedma/d017-54` and `-57`) have no
+  reference in the testprogs, neither `-ntscold` nor generic. VICE's
+  testbench reports each of them as a missing reference.
+- The `videomode` NTSC rows in `testbench-ntsc` and
+  `testbench-ntsc-vicii-new`, all marked `comment:unsafe reference`.
+  - In `-v`, `-w`, `-x` and `-y` the longest runs of differing pixels
+    are multicolour text that the references paint in colours 1 and 2,
+    where badline paints the program's `$d022` and `$d023`, 7 and 5, in
+    the same pattern. That is the PAL `-w` reference's problem, above.
+    The rest are a few pixels at mode-split edges.
+  - `videomode1` and `videomode2` differ by whole character rows below the
+    split lines, which the references leave in the background colour and
+    badline draws as text. Their PAL references show those rows as text.
+  - `-z` is 2 px on the 6567R8 and the 6567R56A, and 21 px on the 8562,
+    at the edges of the mode splits.
+- `VICII/split-tests/modesplit/modesplit.prg` (`testbench-ntsc`, 458 px)
+  fails against its `-ntsc` reference, which its README says was matched
+  against screenshots of a 6567R8 rather than taken from one. Most of the
+  pixels are one pixel at x=293 on 45 rows of the screenshot, which the
+  reference leaves black, and the first 8 pixels of the character after
+  a split on rows 96-107, where the reference shows a different glyph. The PAL row
+  passes, so these are left to a change that re-derives the pipeline
+  rules against a 6567R8. `modesplit.prg#2` (the 6567R56A, 62 px) has no
+  `-ntscold` reference and compares against the PAL one.

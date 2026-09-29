@@ -29,7 +29,7 @@ module Badline
 
       # The switches and valued options only the window or only the
       # headless player takes.
-      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --reu
+      WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --reu --ntsc
                        --frames --unpaced --screenshot --save-snapshot].freeze
 
       HEADLESS_ONLY = %w[--seconds --songlengths --rate --filter-chunk --quiet --no-tui].freeze
@@ -52,6 +52,7 @@ module Badline
         @vsync = true
         @verbose = false
         @true_drive = false
+        @ntsc = false
         @screenshot = ""
         @save_snapshot = ""
         @help = false
@@ -112,6 +113,8 @@ module Badline
       def verbose? = @verbose
 
       def true_drive? = @true_drive
+
+      def ntsc? = @ntsc
 
       def help? = @help
 
@@ -185,6 +188,7 @@ module Badline
         when "--no-vsync" then @vsync = false
         when "--verbose" then @verbose = true
         when "--true-drive" then @true_drive = true
+        when "--ntsc" then @ntsc = true
         when "--unpaced" then @paced = false
         when "--help", "-h" then @help = true
         when "--version" then @version = true

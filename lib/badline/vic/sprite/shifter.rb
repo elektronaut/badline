@@ -6,18 +6,13 @@ module Badline
       # The X comparator and the 24-bit shift register behind it: where a
       # line fires the sprite, and the pixels each firing shifts out.
       module Shifter
-        EMPTY = [].freeze
-
         private
 
         # The first pixel of every comparator match along the line. Writes to
         # $d000/$d010 move the compare value mid-line, so a sprite can miss
         # its match entirely and pick up a later one, a second one, or none.
         def comparator_hits(log)
-          unless log
-            match = compare_x(@registers)
-            return match ? [(match + 1) % @width] : EMPTY
-          end
+          return compare_x(@registers) unless log
 
           hits = []
           log.rewind
@@ -25,8 +20,10 @@ module Badline
           from = 0
           while from < @width
             upto = [log.next_x, @width].min
-            match = compare_x(log)
-            hits << ((match + 1) % @width) if match && match >= from && match < upto
+            compare_x(log).each do |start|
+              match = (start - 1) % @width
+              hits << start if match >= from && match < upto
+            end
             break if upto >= @width
 
             from = upto
@@ -35,15 +32,13 @@ module Badline
           hits
         end
 
-        # The VIC's X counter only runs to 503, so the eight coordinates above
-        # it never match and the sprite stays dark — the gap the spritegap
-        # tests find at $1f8.
+        # The pixels the sprite starts at, one past each comparator match.
+        # The 6569's X counter only runs to 503, so the eight coordinates
+        # above it never match and the sprite stays dark — the gap the
+        # spritegap tests find at $1f8.
         def compare_x(view)
           msb = view[0x10].anybits?(@bit) ? 0x100 : 0
-          xpos = msb | view[index * 2]
-          return if xpos >= @width
-
-          (xpos + COMPARE_OFFSET) % @width
+          @timing.x_pixels[msb | view[index * 2]]
         end
 
         # Pixels from the X match to the next reload.

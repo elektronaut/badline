@@ -1,0 +1,8 @@
+VICII/videomode/rmwtest_ntsc.prg	PASS
+VICII/videomode/videomode-v_ntsc.prg	FAIL	diff=131px exit=$00
+VICII/videomode/videomode-w_ntsc.prg	FAIL	diff=90px exit=$00
+VICII/videomode/videomode-x_ntsc.prg	FAIL	diff=62px exit=$00
+VICII/videomode/videomode-y_ntsc.prg	FAIL	diff=912px exit=$00
+VICII/videomode/videomode-z_ntsc.prg	FAIL	diff=21px exit=$00
+VICII/videomode/videomode2_ntsc.prg	FAIL	diff=5864px exit=$00
+VICII/videomode/videomode1_ntsc.prg	FAIL	diff=2980px exit=$00

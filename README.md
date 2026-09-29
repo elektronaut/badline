@@ -4,7 +4,7 @@
 # Badline
 
 Badline is a Commodore 64 emulator written in Ruby. It emulates a PAL
-machine one clock cycle at a time, stepping the 6510, the VIC-II, both
+or NTSC machine one clock cycle at a time, stepping the 6510, the VIC-II, both
 CIAs and the SID together, so raster timing, bad lines and sprite DMA
 are modelled at the cycle level.
 
@@ -71,7 +71,8 @@ you can type the `LOAD` yourself. `--read-only` mounts a disk image
 write-protected, so the drive reports `26,WRITE PROTECT ON` for any
 write and the image file stays as it was. `--song N` picks a subtune of a
 `.sid` file, `--sid 8580` fits the newer SID and `--reu 512` plugs in a
-512K RAM Expansion Unit. `badline-ruby` also
+512K RAM Expansion Unit. `--ntsc` runs an NTSC C64, with the 6567R8
+VIC-II, instead of a PAL one. `badline-ruby` also
 takes `--disable-jit`, which runs without YJIT, otherwise switched on at
 startup. `--help` lists the options.
 
@@ -213,17 +214,19 @@ badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slo
 ```
 
 Both modes take the same options. The window's own, `--no-autostart`,
-`--read-only`, `--sound`, `--true-drive`, `--reu` and `--verbose`,
-don't apply to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
+`--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
+`--verbose`, don't apply to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
 does, and defaults to the tune's own start song. Playback asks the
 device for 44.1 kHz and takes whatever rate it offers, unless `--rate`
 says otherwise. Ctrl-C stops it.
 
 Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
-length. `n` or → skips to the next song, `p` or ← goes back one, space
-pauses and `q` quits. `--no-tui`, or output that isn't a terminal,
-gives plain progress output instead.
+length. When a song reaches its length it goes on to the next, and it
+stops after the last. `n` or → skips to the next song, `p` or ← goes
+back one, space pauses and `q` quits. `--no-tui`, or output that isn't a
+terminal, gives plain progress output instead and plays just the one
+song, as `--audio-out` renders just the one.
 
 A `.sid` file doesn't store its length, so `badline-ruby` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
@@ -311,6 +314,13 @@ while it's off.
   `Badline::Computer.new(vic_model: :mos8565)` fits the C64C's 8565
   instead, with its grey dots on colour register writes and its own
   timing for mode splits, sprite multicolour splits and the light pen.
+  `Badline::Computer.new(region: Badline::Region::NTSC)` builds an NTSC
+  machine instead: the 6567R8's 65 cycles by 263 lines at 1,022,727 Hz,
+  with its later sprite fetches and its X counter, and TOD clocks on
+  60 Hz mains. `Badline::Region::NTSC_OLD` is the first NTSC C64s'
+  6567R56A, 64 cycles by 262 lines. The stock KERNAL tells them from PAL
+  by the raster, so every region boots the same ROMs. `--ntsc` picks the
+  6567R8.
 - **CIA 1 and 2**: timers, time-of-day clocks with alarms, the serial
   shift register, interrupts, the keyboard matrix with its ghost keys,
   the control ports and the paddle multiplexer. The machine has the
@@ -359,7 +369,7 @@ Known gaps:
 - Without `--true-drive`, fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). The command channel
   doesn't rename, copy, format or validate disks.
-- No NTSC machine.
+- No PAL-N (Drean) machine.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.
 

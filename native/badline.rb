@@ -8,6 +8,8 @@
 
 require "badline/native"
 
+$stdout.sync = true
+
 begin
   options = Badline::Native::Options.parse(ARGV)
 rescue Badline::Native::Options::Error => e
@@ -38,7 +40,8 @@ begin
   end
 
   sid_model = options.sid_model || Badline::Media.sid_model(media.empty? ? nil : media)
-  computer = Badline::Computer.new(sid_model:, reu: options.reu)
+  computer = Badline::Computer.new(sid_model:, reu: options.reu,
+                                   region: options.ntsc? ? Badline::Region::NTSC : Badline::Region::PAL)
   Badline::Media::TrueDrive.plug(computer) if options.true_drive?
   unless media.empty?
     puts Badline::Media.attach(computer, media, autostart: options.autostart?, song: options.song,

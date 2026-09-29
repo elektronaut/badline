@@ -16,7 +16,7 @@ module Badline
         @computer = computer
         @frame_limit = options.frames
         @verbose = options.verbose?
-        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose)
+        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, region: computer.region)
         @screenshot = options.screenshot
         @snapshots = Snapshots.new(computer, options)
         @screen = Screen.new(computer.vic)

@@ -50,12 +50,31 @@ module Badline
     FETCH_HOLD = 0x20
     FETCH_HOLD_ROM = 0x60
 
+    # The hooks a column can carry, as bits: MCBASE, the left border
+    # compare with the end of the sprite, the sprite DMA compare, the
+    # expansion flip-flop, the sprite display compare, and the start of the
+    # vertical border for the line after the last column.
+    HOOK_MCBASE = 1
+    HOOK_LEFT = 2
+    HOOK_DMA = 4
+    HOOK_EXPANSION = 8
+    HOOK_DISPLAY = 16
+    HOOK_LAST = 32
+
+    # On the 6569 the DMA compares fall in columns 53 and 54 and the
+    # display compare in column 57. A region whose sprite fetches run later
+    # moves them with the fetches (Region::Profile#sprite_cycle).
+    DMA_COLUMN = 53
+    EXPANSION_COLUMN = 54
+
     # BA falls three columns ahead of each sprite's pair of s-accesses, and
     # the five-column windows step two columns apart from sprite 0 at column
-    # 54. From sprite 3 on they reach past the end of the line, so each is
-    # split: the tail columns fall on the line whose cycle 55/56 compare
-    # started the fetch, the head columns on the line after it.
-    SPRITE_BA_WINDOWS = Array.new(8) { |n| (54 + (2 * n))..(58 + (2 * n)) }.freeze
+    # 54 on the 6569, a column later where the fetches are. From sprite 3 on
+    # they reach past the end of the line, so each is split: the tail
+    # columns fall on the line whose DMA compare started the fetch, the head
+    # columns on the line after it.
+    SPRITE_BA_FIRST = 54
+    SPRITE_BA_LENGTH = 5
 
     def initialize(address_bus = nil, debug: false, model: :mos6569, region: Region::PAL)
       raise ArgumentError, "unknown VIC-II model #{model}" unless MODELS.include?(model)
@@ -72,6 +91,8 @@ module Badline
       @debug = debug
 
       @columns_per_line = region.cycles_per_line
+      @sprite_cycle = region.sprite_cycle
+      @sprite_shift = region.sprite_cycle - Region::PAL.sprite_cycle
       @width = @columns_per_line * 8
       @height = region.lines_per_frame
       @last_column = @columns_per_line - 1
@@ -94,10 +115,10 @@ module Badline
     def power_on!
       @registers = VIC::Registers.new
       @register_bytes = @registers.bytes
-      @display_state = VIC::DisplayState.new(@registers)
+      @display_state = VIC::DisplayState.new(@registers, @last_column)
       @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @model, region: @region)
       @sequencer.render = @render
-      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @model)
+      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @model, region: @region)
       @display.fill(0)
       @lines.each { |line| line.fill(0) }
       @dirty_lines.fill(true)
@@ -161,7 +182,8 @@ module Badline
 
       fetch_character_data! if dma_active?
 
-      column_hooks if @hook_columns[@column]
+      hooks = @hook_columns[@column]
+      column_hooks(hooks) if hooks
 
       @column += 1
       if @column == @columns_per_line
@@ -178,19 +200,18 @@ module Badline
     # ahead of Bauer's numbering — two for MCBASE, the DMA compares and the
     # expansion flip-flop, which the `spriteenable` and `spritecrunch`
     # references place a column earlier still. Guarded in
-    # #cycle! so an ordinary column pays two compares rather than the
+    # #cycle! so an ordinary column pays an array read rather than the
     # dispatch.
-    def column_hooks
-      case @column
-      when 14 then @sprites.advance_mcbase
-      when 15
+    def column_hooks(hooks)
+      @sprites.advance_mcbase if hooks.anybits?(HOOK_MCBASE)
+      if hooks.anybits?(HOOK_LEFT)
         @sequencer.left_compare_vertical_border
         finish_sprite_mcbase
-      when 53 then check_sprite_dma
-      when 54 then check_dma_and_toggle_expansion
-      when 57 then @sprites.check_display(@rasterline)
-      when @last_column then @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1)
       end
+      check_sprite_dma if hooks.anybits?(HOOK_DMA)
+      @sprites.toggle_expansion if hooks.anybits?(HOOK_EXPANSION)
+      @sprites.check_display(@rasterline) if hooks.anybits?(HOOK_DISPLAY)
+      @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1) if hooks.anybits?(HOOK_LAST)
     end
 
     # The IRQ line is held asserted while any enabled latch bit is set in
@@ -244,7 +265,7 @@ module Badline
     # the first cycle of the sprite's window. Pinned by
     # REU/bonzai/spritetiming.
     def reu_ba_low?
-      return false if @column == SPRITE_BA_WINDOWS[0].first && sprite_zero_starting?
+      return false if @column == SPRITE_BA_FIRST + @sprite_shift && sprite_zero_starting?
 
       ba_low?
     end
@@ -272,7 +293,7 @@ module Badline
       end
       return if line == @last_line && column.positive?
 
-      vic_x = ((column * 8) - Sprite::X_OFFSET) % @width
+      vic_x = Sprite::Timing.xpos(column * 8, @width, @region.x_hold)
       latch_lightpen((vic_x >> 1) + @lightpen_extra, line)
     end
 
@@ -402,24 +423,27 @@ module Badline
       @sprites.log_change(reg, old, value, beam_x)
     end
 
-    # Bauer cycles 1-10 and 58-63 are sprite p- and s-accesses, 11-15
-    # refresh, 16-55 g-accesses and 56-57 idle. @column has already
-    # advanced, so it is the Bauer cycle less one.
+    # On the 6569 Bauer cycles 1-10 and 58-63 are sprite p- and s-accesses,
+    # 11-15 refresh, 16-55 g-accesses and 56-57 idle. Where the sprite
+    # fetches start later, the idle cycles before them grow, and on the
+    # 6567R8 cycle 10 idles too. @column has already advanced, so it is the
+    # Bauer cycle less one.
     def phi1_address
       cycle = @column + 1
-      if cycle < 11 || cycle > 57
-        sprite_phi1_address((cycle - 58) % 63)
-      elsif cycle < 16
+      slot = (cycle - @sprite_cycle) % @columns_per_line
+      if slot < 16
+        sprite_phi1_address(slot)
+      elsif cycle.between?(11, 15)
         0x3f00 | ((0xff - (5 * @rasterline) - (cycle - 11)) & 0xff)
-      elsif cycle < 56
+      elsif cycle.between?(16, 55)
         graphics_phi1_address
       else
         0x3fff
       end
     end
 
-    # Each sprite takes two cycles from Bauer 58, the p-access and then the
-    # middle s-access.
+    # Each sprite takes two cycles from sprite 0's, the p-access and then
+    # the middle s-access.
     def sprite_phi1_address(slot)
       n = slot >> 1
       return @registers.screen_base + 0x3f8 + n if slot.even?
@@ -457,11 +481,6 @@ module Badline
       rebuild_sprite_ba if @sprites.stopped_dma?
     end
 
-    def check_dma_and_toggle_expansion
-      check_sprite_dma
-      @sprites.toggle_expansion
-    end
-
     # The trigger re-arms at the start of each frame; if the pen line is
     # still low, the latch retriggers immediately with a fixed LPX of $d1.
     def start_lightpen_frame
@@ -489,9 +508,25 @@ module Badline
     # of the dispatch.
     def layout_columns
       last = @last_column
-      @sprite_ba_tail = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c <= last } }.freeze
-      @sprite_ba_head = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - last - 1 if c > last } }.freeze
-      @hook_columns = Array.new(@columns_per_line) { |c| c == last || [14, 15, 53, 54, 57].include?(c) }.freeze
+      windows = Array.new(8) do |n|
+        first = SPRITE_BA_FIRST + @sprite_shift + (2 * n)
+        first...(first + SPRITE_BA_LENGTH)
+      end
+      @sprite_ba_tail = windows.map { |w| w.select { |c| c <= last } }.freeze
+      @sprite_ba_head = windows.map { |w| w.filter_map { |c| c - last - 1 if c > last } }.freeze
+      @hook_columns = layout_hooks.map { |hooks| hooks unless hooks.zero? }.freeze
+    end
+
+    def layout_hooks
+      hooks = Array.new(@columns_per_line, 0)
+      hooks[14] |= HOOK_MCBASE
+      hooks[15] |= HOOK_LEFT
+      hooks[DMA_COLUMN + @sprite_shift] |= HOOK_DMA
+      hooks[DMA_COLUMN + @sprite_shift + 1] |= HOOK_DMA
+      hooks[EXPANSION_COLUMN] |= HOOK_EXPANSION
+      hooks[@region.sprite_display_cycle - 1] |= HOOK_DISPLAY
+      hooks[@last_column] |= HOOK_LAST
+      hooks
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY

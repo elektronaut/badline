@@ -54,7 +54,7 @@ class TestTestbenchTestlist < Minitest::Test
   end
 
   def test_drops_options_the_emulator_does_not_model
-    assert_nil parse("../VICII/border/,t.prg,exitcode,1000,vicii-ntsc")
+    assert_nil parse("../VICII/border/,t.prg,exitcode,1000,vicii-drean")
   end
 
   def test_runs_the_cia_old_half_of_a_doubled_row_on_the_old_chip
@@ -254,6 +254,63 @@ class TestTestbenchDrive < Minitest::Test
     end
 
     assert_equal [320, 190], [drive.deadline, plain.deadline]
+  end
+end
+
+class TestTestbenchNTSC < Minitest::Test
+  def parse(options)
+    Testbench::Testlist.parse("../VICII/border/,t.prg,screenshot,1000,#{options}")
+  end
+
+  def test_runs_a_vicii_ntsc_row_on_the_6567r8
+    assert_equal :ntsc, parse("vicii-ntsc").region
+  end
+
+  def test_runs_a_vicii_ntscold_row_on_the_6567r56a
+    assert_equal :ntscold, parse("vicii-ntscold").region
+  end
+
+  def test_runs_an_untagged_row_on_pal
+    assert_equal :pal, parse("vicii-old").region
+  end
+
+  def test_only_an_ntsc_run_takes_an_ntsc_row
+    test = parse("vicii-ntsc")
+    rows = Testbench::Rows.new(carts: false, models: Testbench::DEFAULT_MODELS, expansions: false, drive: nil,
+                               ntsc: true)
+
+    refute_includes Testbench::Rows.plain, test
+    assert_includes rows, test
+  end
+
+  # modesplit is listed for PAL, the 6567R8 and the 6567R56A under one id.
+  def test_numbers_a_program_listed_for_both_ntsc_chips
+    tests = Testbench::Testlist.numbered([parse(""), parse("vicii-ntsc"), parse("vicii-ntscold")])
+
+    assert_equal ["VICII/border/t.prg", "VICII/border/t.prg", "VICII/border/t.prg#2"], tests.map(&:key)
+  end
+
+  def test_compares_an_ntsc_row_against_its_ntsc_then_8562_reference
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "references"))
+      %w[t.prg.png t.prg-ntsc.png t.prg-8562.png].each { |name| FileUtils.touch(File.join(dir, "references", name)) }
+      old, new, older = [%w[vicii-ntsc], %w[vicii-ntsc vicii-new], %w[vicii-ntscold]].map do |options|
+        Testbench::TestCase.new(dir, "t.prg", "screenshot", 1000, options)
+      end
+
+      assert_equal File.join(dir, "references", "t.prg-ntsc.png"), old.reference
+      assert_equal File.join(dir, "references", "t.prg-8562.png"), new.reference
+      assert_equal File.join(dir, "references", "t.prg.png"), older.reference
+    end
+  end
+
+  def test_crops_an_ntsc_screenshot_from_line_28_through_the_next_frame
+    vic = Badline::VIC.new(region: Badline::Region::NTSC)
+    vic.display[(28 * vic.width) + 96] = 5
+    vic.display[(11 * vic.width) + 96] = 7
+    rows = Testbench.screenshot(vic)
+
+    assert_equal [247, 5, 7], [rows.length, rows.first.first, rows.last.first]
   end
 end
 
@@ -693,6 +750,7 @@ class TestTestbenchEngine < Minitest::Test
     def cia_model = :mos6526
     def vic_model = :mos6569
     def expansion = nil
+    def region = :pal
   end
 
   def setup
@@ -709,20 +767,26 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\tpal\n",
                  Testbench::Engine.spec(test)
   end
 
   def test_a_test_line_ends_with_the_expansion
     test = Testbench::TestCase.new("../plus60k", "t.prg", "exitcode", 1000, ["plus60k"])
 
-    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\n")
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\tpal\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices
     outcome = Testbench::Engine.parse(record("screen", "0e" * 192), Test.new("t", "screenshot"))
 
     assert_equal [0, 14], outcome.screen.first.first(2)
+  end
+
+  def test_a_screenshot_keeps_only_its_own_rows
+    outcome = Testbench::Engine.parse(record("screen", "0e" * 192), Test.new("t", "screenshot"))
+
+    assert_equal 272, outcome.screen.length
   end
 
   def test_a_test_that_never_reported_has_no_exit_code

@@ -12,10 +12,6 @@ module Badline
       LAST_LINE  = 0xf7 # 247
       COLUMNS_PER_ROW = 40
 
-      # The last column of a rasterline already compares against the line
-      # about to start, the same wrap the raster IRQ latch uses.
-      WRAP_COLUMN = 62
-
       # AEC follows BA three cycles later; the c-accesses before it read
       # the bus the CPU still drives.
       BA_DELAY = 3
@@ -32,12 +28,16 @@ module Badline
       LOAD_COLUMN = 12
       RC_COLUMN = 56
 
-      GRAPHICS_COLUMNS = Array.new(63) { |column| column.between?(GRAPHICS_FIRST, GRAPHICS_LAST) }.freeze
+      GRAPHICS_COLUMNS = Array.new(65) { |column| column.between?(GRAPHICS_FIRST, GRAPHICS_LAST) }.freeze
 
       attr_reader :vc_base, :vc, :vmli, :rc, :bad_lines_enabled
 
-      def initialize(registers)
+      # The wrap column is the last column of a rasterline, 62 on the 6569,
+      # which already compares against the line about to start, the same
+      # wrap the raster IRQ latch uses.
+      def initialize(registers, wrap_column = 62)
         @registers = registers
+        @wrap_column = wrap_column
         @vc_base = 0
         @vc = 0
         @vmli = 0
@@ -105,7 +105,7 @@ module Badline
 
       # Returns true when this compare opened display state.
       def cycle(rasterline, column)
-        match = column == WRAP_COLUMN ? wrap_match(rasterline + 1) : line_match
+        match = column == @wrap_column ? wrap_match(rasterline + 1) : line_match
         @matched = match
         opened = false
         if match

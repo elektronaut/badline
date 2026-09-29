@@ -48,6 +48,13 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the region" do
+    it "builds an NTSC machine when asked" do
+      described_class.new(machine: { ntsc: true })
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581, region: Badline::Region::NTSC)
+    end
+  end
+
   describe "the REU" do
     it "fits the machine with one of the size asked for" do
       described_class.new(machine: { reu: 256 })

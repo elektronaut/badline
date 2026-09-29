@@ -38,10 +38,11 @@ module Badline
 
     # The machine options (sid_model:, cia_model:, vic_model:, region: and
     # ram_expansion:) configure the AddressBus. The region sets the clock,
-    # the VIC's raster and the mains frequency the CIAs' TOD clocks count.
-    # Only PAL runs as yet. reu plugs an REU of that many K into the
-    # expansion port, where it drives the IRQ line and takes the bus for
-    # its transfers.
+    # the VIC's raster and sprite timing, and the mains frequency the CIAs'
+    # TOD clocks count. The KERNAL tells PAL from NTSC by the raster, so
+    # every region boots the same ROMs. reu plugs an REU of that many K
+    # into the expansion port, where it drives the IRQ line and takes the
+    # bus for its transfers.
     def initialize(debug: false, reu: nil, **machine)
       @address_bus = AddressBus.new(**machine)
       @cpu = CPU.new(@address_bus, debug:)

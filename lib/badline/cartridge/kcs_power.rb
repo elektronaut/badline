@@ -31,7 +31,7 @@ module Badline
         elsif addr.anybits?(0x80)
           (@exrom << 7) | (@game << 6) | (open_bus(addr) & 0x3f)
         else
-          @ram[addr & 0x7f]
+          @io_ram[addr & 0x7f]
         end
       end
 
@@ -39,7 +39,7 @@ module Badline
         if addr < 0xdf00
           switch(addr.anybits?(0x02) ? :ultimax : :rom16k)
         elsif addr.nobits?(0x80)
-          @ram[addr & 0x7f] = value
+          @io_ram[addr & 0x7f] = value
         end
       end
 
@@ -64,7 +64,7 @@ module Badline
         roml, romh = banks_from(chips)
         @roml = roml.first || EMPTY_BANK
         @romh = romh.first || EMPTY_BANK
-        @ram = Array.new(0x80, 0xff)
+        @io_ram = Array.new(0x80, 0xff)
         reset
       end
     end

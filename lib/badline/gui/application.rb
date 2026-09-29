@@ -31,10 +31,10 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      # The machine options (sid_model:, reu:, true_drive:) build the
-      # machine: reu plugs in an REU of that many K, and true_drive puts a
-      # true 1541 on device 8. The media options
-      # (autostart:, song:, disk:) go to Media.attach.
+      # The machine options (sid_model:, reu:, true_drive:, ntsc:) build
+      # the machine: reu plugs in an REU of that many K, true_drive puts a
+      # true 1541 on device 8, and ntsc makes it an NTSC C64. The media
+      # options (autostart:, song:, disk:) go to Media.attach.
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
         @snapshots = Snapshots.new

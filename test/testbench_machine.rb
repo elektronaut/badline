@@ -17,15 +17,21 @@ module Testbench
   COL_OFFSET = 96
   ROW_OFFSET = 16
 
+  # VICE's NTSC view is 247 lines from line 28, and runs on past the last
+  # line of the frame into the first lines of the next.
+  NTSC_HEIGHT = 247
+  NTSC_ROW_OFFSET = 28
+
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
   # the test asks for. expansion is the testlist option naming a memory
   # expansion fitted before power-on, a GEO-RAM, a RAM expansion or an
-  # REU, or nil for none.
-  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil)
+  # REU, or nil for none, and region names the video standard, :pal,
+  # :ntsc or :ntscold.
+  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil, region: :pal)
     computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
-                                     reu: reu_size(expansion))
+                                     reu: reu_size(expansion), region: region_profile(region))
     computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
@@ -48,12 +54,24 @@ module Testbench
     expansion.end_with?("m") ? size * 1024 : size
   end
 
+  # The region profile a video standard names.
+  def self.region_profile(region)
+    case region
+    when :ntsc then Badline::Region::NTSC
+    when :ntscold then Badline::Region::NTSC_OLD
+    else Badline::Region::PAL
+    end
+  end
+
   # The display cropped to the reference screenshots, as rows of palette
   # indices.
   def self.screenshot(vic)
     display = vic.display
     width = vic.width
-    Array.new(HEIGHT) { |row| display[((row + ROW_OFFSET) * width) + COL_OFFSET, WIDTH] }
+    lines = vic.height
+    top = vic.region.name == :pal ? ROW_OFFSET : NTSC_ROW_OFFSET
+    height = vic.region.name == :pal ? HEIGHT : NTSC_HEIGHT
+    Array.new(height) { |row| display[(((row + top) % lines) * width) + COL_OFFSET, WIDTH] }
   end
 
   # The text screen at $0400, 25 lines of 40 characters.
