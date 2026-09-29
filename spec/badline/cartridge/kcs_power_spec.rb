@@ -43,6 +43,11 @@ describe Badline::Cartridge::KCSPower do
     expect(bus[0xdf7f]).to eq(0x5a)
   end
 
+  it "keeps its RAM apart from the C64's" do
+    bus[0xdf10] = 0x42
+    expect(bus.ram[0x10]).not_to eq(0x42)
+  end
+
   it "reads EXROM in bit 7 and GAME in bit 6 of the upper half of I/O 2" do
     bus[0xde02]
     expect(bus[0xdf80] & 0xc0).to eq(0xc0)
