@@ -28,6 +28,7 @@ module Badline
 
       def error_tables = ERROR_TABLES
 
+      def header_name = 0x90
       def directory_track = 18
       def directory_sector = 1
       def directory_interleave = 3

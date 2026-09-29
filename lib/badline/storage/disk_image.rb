@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/storage/disk_image/bam"
+require "badline/storage/disk_image/catalog"
 require "badline/storage/disk_image/directory"
 require "badline/storage/disk_image/writing"
 
@@ -12,6 +13,7 @@ module Badline
     # written.
     class DiskImage
       include Bam
+      include Catalog
       include Directory
       include Writing
 
