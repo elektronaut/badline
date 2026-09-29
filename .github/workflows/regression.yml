@@ -25,6 +25,7 @@ on:
           - testbench-cia-new
           - testbench-vicii-new
           - testbench-general
+          - testbench-expansions
           - sid-8580
 # No concurrency group: nothing here cancels anything, so a nightly run and
 # a dispatched one never touch each other.
@@ -85,7 +86,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.324.0
+      - uses: ruby/setup-ruby@v1.327.0
         with:
           ruby-version: "4.0"
           bundler-cache: true

@@ -49,11 +49,14 @@ module Badline
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region
+                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region, :video_ram
 
-    def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569, region: Region::PAL)
+    # ram_expansion fits a +60K (:plus60k) or +256K (:plus256k).
+    def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569, region: Region::PAL,
+                   ram_expansion: nil)
       @region = region
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
+      @ram_expansion = RAMExpansion.build(ram_expansion, @ram) { update_overlays! }
       @cartridge = nil
       @debug_register = nil
 
@@ -98,11 +101,14 @@ module Badline
 
     def power_on!
       @ram.clear!(RAM_POWER_ON)
+      @ram_expansion.power_on!
     end
 
-    # The 6510's RES line clears the port's direction and output registers.
-    # The floating bits keep their charge.
-    def reset_port!
+    # The RES line clears the 6510 port's direction and output registers,
+    # and a RAM expansion's bank register. The port's floating bits keep
+    # their charge.
+    def reset!
+      @ram_expansion.reset!
       @port_ddr = 0x00
       @port_out = 0x00
       update_port!
@@ -167,8 +173,8 @@ module Badline
     def update_overlays!
       @ultimax = @cartridge ? @cartridge.ultimax? : false
       @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
-      @read_pages.fill(@ram)
-      @write_pages.fill(@ram)
+      @ram_expansion.map(@read_pages, @write_pages)
+      @video_ram = @ram_expansion.video_ram
 
       @ultimax ? map_ultimax_pages : map_banked_pages
     end
@@ -243,6 +249,7 @@ module Badline
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
+      @ram_expansion.map_io(@read_pages, @write_pages)
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
       map_cartridge_io if @cartridge
     end

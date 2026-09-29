@@ -2,7 +2,8 @@
 
 module Badline
   class VIC < Cycleable
-    # The 16K window the VIC sees into RAM, selected by CIA2 $DD00. Character
+    # The 16K window the VIC sees into RAM, selected by CIA2 $DD00, in the
+    # bank a +256K picks for it. Character
     # ROM shadows $1000-$1FFF in banks 0 and 2.
     class Bank
       include Addressable
@@ -24,7 +25,7 @@ module Badline
         if bits.allbits?(0b01) && (offset & 0xf000) == 0x1000
           @address_bus.character_rom.peek(0xc000 + offset)
         else
-          @address_bus.ram.peek(BANK_STARTS[bits] + offset)
+          @address_bus.video_ram.peek(BANK_STARTS[bits] + offset)
         end
       end
 
@@ -61,7 +62,7 @@ module Badline
         if romh && offset.allbits?(0x3000)
           romh.peek(0xe000 + (offset & 0x1fff))
         else
-          @address_bus.ram.peek(BANK_STARTS[bank_switch_register] + offset)
+          @address_bus.video_ram.peek(BANK_STARTS[bank_switch_register] + offset)
         end
       end
 

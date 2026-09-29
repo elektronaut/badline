@@ -55,6 +55,9 @@ module Badline
 
       def active_c1_edge?(high) = high == @control.anybits?(0x01)
 
+      # Everything the lines hold, for comparing them at two points.
+      def state = [@control, @c1_high, @c2_high, @handshake_low, @pulse, @c2_output]
+
       # A new C1 level. An active edge sets the flag and ends a handshake.
       def c1=(high)
         return if high == @c1_high

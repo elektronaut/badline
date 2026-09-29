@@ -20,11 +20,21 @@ module Testbench
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
-  # the test asks for.
-  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
+  # the test asks for. expansion is the testlist option naming a memory
+  # expansion fitted before power-on, or nil for none.
+  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil)
+    computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion))
+    computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
+  end
+
+  # The RAM expansion an expansion option fits, if it names one.
+  def self.ram_expansion(expansion)
+    case expansion
+    when "plus60k" then :plus60k
+    when "plus256k" then :plus256k
+    end
   end
 
   # The display cropped to the reference screenshots, as rows of palette
@@ -59,15 +69,18 @@ module Testbench
   # Runs one test on a machine from Testbench.machine: attaches the
   # cartridge, if any, and the program, if any, from the test's directory
   # mounted as device 8, then runs until the test writes $D7FF or the
-  # budget runs out. As VICE's debug cartridge does, the run ends on the
-  # cycle of the write, so a screenshot shows the display as drawn up to
-  # there. Only a screenshot test reads the display, so the others run
-  # with the VIC's colours unpainted.
+  # budget runs out. With mount false the program loads without the
+  # directory mounted, which leaves device 8 to a true drive. As VICE's
+  # debug cartridge does, the run ends on the cycle of the write, so a
+  # screenshot shows the display as drawn up to there. Only a screenshot
+  # test reads the display, so the others run with the VIC's colours
+  # unpainted.
   class Execution
     attr_reader :exit_code
 
-    def initialize(computer)
+    def initialize(computer, mount: true)
       @computer = computer
+      @mount = mount
       @exit_code = nil
       computer.install_debug_register { |value| @exit_code = value }
     end
@@ -76,7 +89,7 @@ module Testbench
       @computer.vic.render = render
       Badline::Media.attach(@computer, cartridge) if cartridge
       unless prg.empty?
-        @computer.mount(Badline::Storage::HostDirectory.new(directory))
+        @computer.mount(Badline::Storage::HostDirectory.new(directory)) if @mount
         Badline::Media.attach(@computer, File.join(directory, prg))
       end
       @computer.cycle! until @exit_code || @computer.cycles > budget

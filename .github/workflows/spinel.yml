@@ -25,7 +25,7 @@ permissions:
 env:
   # The Spinel commit the harnesses build with. Bumping it rebuilds the
   # cached compiler.
-  SPINEL_REF: 70acc2f90359856f8f4e94594c63281fe2b0b923
+  SPINEL_REF: cd0357c886664fb81e5b1ca917a250a54ffd3320
 jobs:
   # Builds the compiler once, so the suites below restore it instead of
   # each building it on a cold cache.
@@ -69,7 +69,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev
-      - uses: ruby/setup-ruby@v1.324.0
+      - uses: ruby/setup-ruby@v1.327.0
         with:
           ruby-version: "4.0"
           bundler-cache: true
@@ -140,6 +140,9 @@ jobs:
           - suite: testbench-general
             harnesses: testbench
             task: spinel:testbench[testbench-general]
+          - suite: testbench-expansions
+            harnesses: testbench
+            task: spinel:testbench[testbench-expansions]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]
@@ -152,7 +155,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.324.0
+      - uses: ruby/setup-ruby@v1.327.0
         with:
           ruby-version: "4.0"
           bundler-cache: true

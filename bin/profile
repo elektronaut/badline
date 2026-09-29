@@ -6,6 +6,7 @@
 #   ruby --yjit bin/profile [workload] [--cycles N] [--top N] [--out PATH]
 #   ruby --yjit bin/profile [workload] --ceiling
 #   ruby --yjit bin/profile [workload] --compare REV [--pairs N]
+#   ruby --yjit bin/profile [workload] --true-drive [--no-idle-skip] ...
 #
 # Workloads:
 #   idle   the READY prompt after boot (bad lines on, sprites off)
@@ -38,6 +39,13 @@
 # time, which holds about ±3% while other worktrees load the machine;
 # wall-clock time doesn't.
 #
+# --true-drive plugs a Drive1541 into the serial bus before the machine
+# boots, with no disk in, so the workload runs with the drive idling
+# alongside. --no-idle-skip runs every one of its cycles (see
+# Drive1541::Idle). Both reach the fresh processes of --ceiling and
+# --compare, and a base revision whose drive always runs every cycle
+# ignores --no-idle-skip.
+#
 # The fresh processes of --ceiling and --compare run under the JIT this
 # one runs under: --zjit, --yjit, or none on TruffleRuby. Without
 # either flag, CRuby enables YJIT at startup.
@@ -66,8 +74,9 @@ module Profiler
   class Workload
     NOOP = Module.new { def cycle! = nil }
 
-    def initialize(name)
+    def initialize(name, true_drive: false, idle_skip: true)
       @computer = Badline::Computer.new
+      attach_drive(idle_skip) if true_drive
       @synth = name == "synth"
       fast_forward = 3_000_000
       if name == "game"
@@ -77,6 +86,12 @@ module Profiler
       @computer.cycle! while @computer.cycles < fast_forward
       fill_screen if name == "text"
       @computer.sid.record(rate: Badline::Audio::Renderer::DEFAULT_RATE) if @synth
+    end
+
+    def attach_drive(idle_skip)
+      drive = Badline::Drive1541.new
+      drive.idle_skip = idle_skip if drive.respond_to?(:idle_skip=)
+      @computer.attach_drive1541(drive)
     end
 
     def fill_screen
@@ -196,6 +211,8 @@ module Profiler
     command = [RbConfig.ruby, *Jit.flags, __FILE__, workload, "--measure", "--lib", lib]
     command += ["--stub", stub] if stub
     command += ["--cycles", options[:cycles].to_s] if options[:cycles]
+    command << "--true-drive" if options[:true_drive]
+    command << "--no-idle-skip" unless options[:idle_skip]
     output = IO.popen(command, &:read)
     abort "profile: measuring #{stub || lib} failed" unless $CHILD_STATUS.success?
     output.to_f
@@ -241,7 +258,7 @@ module Profiler
     rescue LoadError
       abort "profile: stackprof is missing. Run `bundle install`."
     end
-    machine = Workload.new(workload)
+    machine = Workload.new(workload, **options.slice(:true_drive, :idle_skip))
     machine.run(500_000)
     data = StackProf.run(mode: :cpu, interval: 200, raw: true) { machine.run(options[:cycles] || 5_000_000) }
     out = options[:out] || File.join(ROOT, "tmp/profile/#{workload}.dump")
@@ -252,13 +269,13 @@ module Profiler
   end
 
   def measure(workload, options)
-    machine = Workload.new(workload)
+    machine = Workload.new(workload, **options.slice(:true_drive, :idle_skip))
     machine.stub(options[:stub]) if options[:stub]
     puts machine.rate(options[:cycles] || 3_000_000)
   end
 end
 
-options = { cycles: nil, top: 15, pairs: 3, lib: File.join(Profiler::ROOT, "lib") }
+options = { cycles: nil, top: 15, pairs: 3, lib: File.join(Profiler::ROOT, "lib"), true_drive: false, idle_skip: true }
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/profile [idle|text|game|synth] [options]"
@@ -272,6 +289,8 @@ parser = OptionParser.new do |opts|
     options[:mode] = :compare
     options[:rev] = rev
   end
+  opts.on("--true-drive", "Run the workload with a true 1541 on the serial bus") { options[:true_drive] = true }
+  opts.on("--no-idle-skip", "Run every cycle of the true 1541's idle loop") { options[:idle_skip] = false }
   opts.on("--pairs N", Integer, "Pairs for --compare (default: 3)") { |n| options[:pairs] = n }
   opts.on("--measure", "Print this process's cycles per CPU-second") { options[:mode] = :measure }
   opts.on("--lib DIR", "Load badline from DIR (with --measure)") { |dir| options[:lib] = File.expand_path(dir) }

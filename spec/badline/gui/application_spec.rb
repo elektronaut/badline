@@ -38,13 +38,52 @@ describe Badline::GUI::Application do
 
   describe "the SID model" do
     it "fits the machine with the one asked for" do
-      described_class.new(sid_model: :mos8580)
+      described_class.new(machine: { sid_model: :mos8580 })
       expect(Badline::Computer).to have_received(:new).with(sid_model: :mos8580)
     end
 
     it "fits a 6581 by default" do
       described_class.new
       expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581)
+    end
+  end
+
+  describe "the true drive" do
+    it "plugs a 1541 in as device 8" do
+      described_class.new(machine: { true_drive: true })
+      expect(computer.drive1541.device).to eq(8)
+    end
+
+    it "draws its LED over the screen" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new(machine: { true_drive: true }).run
+      expect(window).to have_received(:draw)
+        .with([instance_of(Badline::GUI::ScreenPane), instance_of(Badline::GUI::DriveLedPane)])
+    end
+
+    it "draws no LED without one" do
+      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      described_class.new.run
+      expect(window).to have_received(:draw).with([instance_of(Badline::GUI::ScreenPane)])
+    end
+  end
+
+  describe "the setup report" do
+    let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: ["Pad"], poll: nil, close: nil) }
+
+    it "stays quiet by default" do
+      described_class.new
+      expect($stdout).not_to have_received(:puts)
+    end
+
+    it "names the display rate with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with(/\ADisplay \d+ Hz/)
+    end
+
+    it "names the gamepads with verbose" do
+      described_class.new(verbose: true)
+      expect($stdout).to have_received(:puts).with("Gamepad: Pad")
     end
   end
 
@@ -195,6 +234,13 @@ describe Badline::GUI::Application do
     it "closes the window" do
       run_with(tabs: 0, button: 1)
       expect(window).to have_received(:close)
+    end
+
+    it "stores what the 1541 wrote in its disk's image" do
+      drive = instance_double(Badline::Drive1541, flush: nil)
+      allow(computer).to receive(:drive1541).and_return(drive)
+      run_with(tabs: 0, button: 1)
+      expect(drive).to have_received(:flush)
     end
   end
 

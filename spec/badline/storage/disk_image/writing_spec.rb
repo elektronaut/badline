@@ -227,6 +227,40 @@ describe Badline::Storage::DiskImage::Writing do
     end
   end
 
+  describe "#store_blocks" do
+    it "stores each block's data" do
+      image.store_blocks([[1, 0, Array.new(256, 0x5a), nil], [2, 3, Array.new(256, 0xa5), nil]])
+      expect([reread.read_block(1, 0), reread.read_block(2, 3)]).to eq([Array.new(256, 0x5a), Array.new(256, 0xa5)])
+    end
+
+    it "keeps the data of a block read without any" do
+      image.store_blocks([[1, 0, nil, 20]])
+      expect(reread.read_block(1, 0)).to eq(Array.new(256, 0))
+    end
+
+    it "skips a block outside the image's geometry" do
+      expect { image.store_blocks([[1, 21, Array.new(256, 1), nil]]) }.not_to(change { File.binread(path) })
+    end
+
+    it "keeps a disk without an error table without one" do
+      image.store_blocks([[1, 0, Array.new(256, 1), 23]])
+      expect(File.size(path)).to eq(174_848)
+    end
+
+    context "with an error table" do
+      before do
+        bytes = File.binread(path).bytes + Array.new(683, 1)
+        bytes[-683] = 5 # 23, READ ERROR at 1/0
+        File.binwrite(path, bytes.pack("C*"))
+      end
+
+      it "sets each block's error" do
+        image.store_blocks([[1, 0, Array.new(256, 1), nil], [1, 1, nil, 22], [1, 2, Array.new(256, 1), 29]])
+        expect((0..2).map { |sector| reread.block_error(1, sector) }).to eq([nil, 22, 29])
+      end
+    end
+  end
+
   describe "BAM changes" do
     it "allocates a block" do
       image.allocate_block(5, 3)
@@ -262,6 +296,42 @@ describe Badline::Storage::DiskImage::Writing do
 
     it "fails as WRITE PROTECT ON" do
       expect(dos_error { image.write_file("hello", program) }).to eq(26)
+    end
+  end
+
+  describe "a read-only image" do
+    subject(:image) { Badline::Storage::D64Image.new(path, read_only: true) }
+
+    let!(:original) { File.binread(path) }
+
+    it "says so" do
+      expect([image.read_only?, reread.read_only?]).to eq([true, false])
+    end
+
+    it "isn't writable" do
+      expect(image.writable?).to be(false)
+    end
+
+    it "fails a file write as WRITE PROTECT ON" do
+      expect(dos_error { image.write_file("hello", program) }).to eq(26)
+    end
+
+    it "fails a block write as WRITE PROTECT ON" do
+      expect(dos_error { image.write_block(1, 0, [0xaa] * 256) }).to eq(26)
+    end
+
+    it "fails a BAM change as WRITE PROTECT ON" do
+      expect(dos_error { image.allocate_block(1, 0) }).to eq(26)
+    end
+
+    it "leaves the host file as it was" do
+      dos_error { image.write_file("hello", program) }
+      expect(File.binread(path)).to eq(original)
+    end
+
+    it "reads as it did" do
+      dos_error { image.write_file("hello", program) }
+      expect(image.read_file("hello")).to be_nil
     end
   end
 
