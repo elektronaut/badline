@@ -182,8 +182,9 @@ jobs:
 
   # Every regression suite on the Spinel build, each compared against its
   # baseline in test/baselines/. The shards are balanced by recent run
-  # times to about 10 minutes each. testbench-irqdma is split by filter
-  # and lorenz by stretch. A runner has 2 cores with 2 threads each, so a
+  # times to about 10 minutes each. testbench-irqdma is split by filter,
+  # testbench-drive by filter into its viavarious rows and the rest, and
+  # lorenz by stretch. A runner has 2 cores with 2 threads each, so a
   # Lorenz stretch runs nearly twice as fast beside one other as beside
   # three.
   suites:
@@ -234,9 +235,19 @@ jobs:
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
               spinel:testbench[testbench-carts]
+          - shard: drive-via-1
+            harnesses: testbench
+            tasks: >-
+              spinel:testbench[testbench-drive,via1.prg,via2.prg,via3,via4.prg,via5.prg,via9.prg]
+          - shard: drive-via-2
+            harnesses: testbench
+            tasks: >-
+              spinel:testbench[testbench-drive,via10,via11,via12,via13,via14,via20,via21]
           - shard: drive
             harnesses: testbench drive_scenarios
-            tasks: spinel:testbench[testbench-drive] spinel:drive_scenarios
+            tasks: >-
+              spinel:testbench[testbench-drive,drive/defaults,drive/diskid,drive/iecdelay,drive/hls-protection,drive/inertia,drive/interrupts,drive/rpm,drive/format,drive/scanner,drive/skew,drive/selftest,drive/openbus,C64/autostart]
+              spinel:drive_scenarios
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
