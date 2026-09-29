@@ -90,8 +90,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   the machine and runs the window.
 - `native/lib/badline/native.rb` requires the emulator core from `lib/`
   file by file, since `lib/badline.rb` also loads the CRuby front end,
-  and badline-ruby's player from `lib/badline/audio` but for its SDL
-  sink and its io/console terminal, then the members in
+  and badline-ruby's command line (`lib/badline/options.rb`) and player
+  from `lib/badline/audio` but for its SDL sink and its io/console
+  terminal, then the members in
   `native/lib/badline/native/`:
   - `sdl.rb` declares the SDL2 functions, structs and constants the
     others call, and `LibC`'s `malloc`, `free` and `poll`.
@@ -106,8 +107,6 @@ Contents read and write access to `elektronaut/homebrew-tap`.
     device.
   - `gamepads.rb` (`Gamepads`) opens and polls the game controllers, and
     `pad_port.rb` (`PadPort`) maps each one onto a joystick.
-  - `options.rb` (`Options`) parses the command line, and `help.rb`
-    holds its `--help`.
   - `headless.rb` (`Headless`) runs `--headless` and `--audio-out` with
     badline-ruby's `Audio::CLI`, handing it `audio_sink.rb`
     (`AudioSink`), SDL's audio queue for playback, and `console.rb`
@@ -129,10 +128,10 @@ tmp/native/badline [options] [media]
 tmp/native/badline vendor/OneLoad64-Games-Collection-v5/IK+.crt
 ```
 
-It takes `exe/badline-ruby`'s options, parsed by
-`Badline::Native::Options` inside Spinel's subset rather than with
-OptionParser, with the same checks and messages. `badline --help` lists
-them. The window's are below, and `--headless` and `--audio-out` play or
+It takes `exe/badline-ruby`'s options, parsed by the same
+`Badline::Options` in `lib/badline/options.rb`, with the same checks and
+messages. One table there lists the options of both builds and makes
+their `--help`, which lists them. The window's are below, and `--headless` and `--audio-out` play or
 render a `.sid` tune without it, as described under
 [Without the window](#without-the-window).
 

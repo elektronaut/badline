@@ -11,15 +11,15 @@ require "badline/native"
 $stdout.sync = true
 
 begin
-  options = Badline::Native::Options.parse(ARGV)
-rescue Badline::Native::Options::Error => e
+  options = Badline::Options.parse(ARGV, native: true)
+rescue Badline::Options::Error => e
   warn "badline: #{e.message}"
   warn "Try 'badline --help' for more information."
   exit 1
 end
 
 if options.help?
-  puts Badline::Native::Options::HELP
+  puts options.help
   exit
 end
 
@@ -30,13 +30,13 @@ end
 
 exit Badline::Native::Headless.run(options) if options.headless?
 
-media = options.media
+media = options.media_path
 begin
-  sid_model = options.sid_model || Badline::Media.sid_model(media.empty? ? nil : media)
+  sid_model = options.sid_model || Badline::Media.sid_model(media)
   computer = Badline::Computer.new(sid_model:, reu: options.reu,
                                    region: options.ntsc? ? Badline::Region::NTSC : Badline::Region::PAL)
   Badline::Media::TrueDrive.plug(computer) if options.true_drive?
-  unless media.empty?
+  unless media.nil?
     puts Badline::Media.attach(computer, media, autostart: options.autostart?, song: options.song,
                                                 disk: { read_only: options.read_only? })
   end

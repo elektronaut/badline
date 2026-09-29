@@ -3,9 +3,11 @@
 # The native badline: the emulator core compiled with Spinel, playing in an
 # SDL2 window, or playing or rendering a .sid tune without one. It requires
 # the core file by file rather than through lib/badline.rb, which also
-# loads the CRuby-only front end, and badline-ruby's headless player from
-# lib/badline/audio but for its SDL sink and its io/console terminal.
+# loads the CRuby-only front end, badline-ruby's command line, and its
+# headless player from lib/badline/audio but for its SDL sink and its
+# io/console terminal.
 require "badline/version"
+require "badline/options"
 require "badline/integer_helper"
 require "badline/region"
 require "badline/addressable"
@@ -57,8 +59,6 @@ require "io/buffer"
 
 require "badline/native/build_info"
 require "badline/native/version"
-require "badline/native/options"
-require "badline/native/help"
 require "badline/native/sdl"
 require "badline/native/frame_rate"
 require "badline/native/screen"
