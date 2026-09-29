@@ -19,10 +19,12 @@
 
 require "badline/version"
 require "badline/integer_helper"
+require "badline/region"
 require "badline/addressable"
 require "badline/memory"
 require "badline/color_memory"
 require "badline/rom"
+require "badline/ram_expansion"
 require "badline/address_bus"
 require "badline/instruction"
 require "badline/instruction_set"
@@ -50,7 +52,6 @@ require "badline/kernal_trap"
 require "badline/chrout_trap"
 require "badline/media"
 require_relative "../test/sidtests_machine"
-require_relative "debug_register"
 
 module SIDTests
   # Runs every test in the list, each on a fresh machine, and returns their

@@ -6,6 +6,7 @@ require "badline/storage/disk_image"
 require "badline/storage/d64_image"
 require "badline/storage/d71_image"
 require "badline/storage/d81_image"
+require "badline/storage/g64_image"
 require "badline/storage/t64"
 require "badline/storage/tap"
 require "badline/storage/crt_file"
@@ -15,6 +16,21 @@ require "badline/storage/song_lengths"
 module Badline
   module Storage
     FILE_TYPES = { "S" => :seq, "P" => :prg, "U" => :usr }.freeze
+
+    # A write the disk refuses, with the DOS error it fails with.
+    class WriteError < StandardError
+      WRITE_PROTECT_ON = 26
+      FILE_NOT_FOUND = 62
+      FILE_EXISTS = 63
+      DISK_FULL = 72
+
+      attr_reader :code
+
+      def initialize(code)
+        @code = code
+        super("DOS error #{code}")
+      end
+    end
 
     class << self
       # Folds shifted PETSCII letters to their ASCII equivalents.

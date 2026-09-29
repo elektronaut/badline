@@ -20,8 +20,8 @@ module Badline
     # The 8565 has no colour latency: ECM and BMM take hold, rising or
     # falling, at the next group's pixel 0, and an MCM that falls out of
     # ECM+MCM does so on time. Where that pixel 0 takes the group out of an
-    # invalid mode into multicolour bitmap, a background pixel there is
-    # still black.
+    # invalid mode, it is still black into hi-res text, and so is a
+    # background pixel into multicolour bitmap.
     class GraphicsShifter
       ECM = 0b100
       ECM_BMM = 0b110
@@ -36,7 +36,7 @@ module Badline
         @registers = registers
         @latency = model != :mos8565
         @next_ecm_bmm = 0
-        @black_background = false
+        @black_below = 0
         @colors = Array.new(8, 0)
         @fg = Array.new(8, false)
         @gbuf = 0
@@ -68,8 +68,8 @@ module Badline
           step_mode(i, mode)
           load(data, screencode, color) if i == shift
           pixel = read_pixel
-          @colors[i] = @black_background && pixel < 2 ? 0 : lookup(pixel)
-          @black_background = false
+          @colors[i] = pixel < @black_below ? 0 : lookup(pixel)
+          @black_below = 0
           @fg[i] = pixel >= 2
           i += 1
         end
@@ -94,7 +94,18 @@ module Badline
 
         invalid = @mode_lookup > ECM
         @mode_lookup = (@mode_lookup & ~ECM_BMM) | @next_ecm_bmm
-        @black_background = invalid && @mode_lookup == MULTICOLOR_BITMAP
+        @black_below = black_pixels_out_of_invalid if invalid
+      end
+
+      # The pixel values below which pixel 0 stays black as the group leaves
+      # an invalid mode: all four into hi-res text, the background ones into
+      # multicolour bitmap.
+      def black_pixels_out_of_invalid
+        case @mode_lookup
+        when 0 then 4
+        when MULTICOLOR_BITMAP then 2
+        else 0
+        end
       end
 
       def step_lookup(mode)

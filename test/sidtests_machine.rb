@@ -6,20 +6,20 @@
 # spinel/sidtests.rb on a Spinel build score a test the same way.
 module SIDTests
   BOOT_ALLOWANCE = 3_000_000
-  BATCH = 10_000
 
   SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
   # Attaches the .prg at path and runs until it reports an exit code or
-  # runs out of its budget of cycles after boot. Returns PASS, the exit
-  # code it failed with, or timeout. Nothing reads the display, so the VIC
-  # leaves its colours unpainted.
+  # runs out of its budget of cycles after boot. As VICE's debug cartridge
+  # does, the run ends on the cycle of the first write. Returns PASS, the
+  # exit code it failed with, or timeout. Nothing reads the display, so the
+  # VIC leaves its colours unpainted.
   def self.exit_code(computer, path, timeout)
     computer.vic.render = false
     Badline::Media.attach(computer, path)
     register = ExitCode.new
     computer.install_debug_register { |value| register.code = value }
-    BATCH.times { computer.cycle! } until register.code || computer.cycles > timeout + BOOT_ALLOWANCE
+    computer.cycle! until register.code || computer.cycles > timeout + BOOT_ALLOWANCE
     verdict(register.code)
   end
 
@@ -34,7 +34,7 @@ module SIDTests
     result == "PASS" ? "#{name}\tPASS\n" : "#{name}\tFAIL\t#{result}\n"
   end
 
-  # The last value the test wrote to the debug register.
+  # The value the test wrote to the debug register.
   class ExitCode
     attr_accessor :code
 

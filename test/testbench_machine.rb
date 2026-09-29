@@ -9,7 +9,6 @@ module Testbench
   # Boot + RUN typing overhead on top of the testlist cycle budgets, which
   # assume VICE's own autostart.
   BOOT_ALLOWANCE = 3_000_000
-  BATCH = 10_000
 
   # The VICE PAL viewport crop of the VIC display, matching the 384x272
   # reference screenshots (the GUI ScreenPane crops 4 lines lower).
@@ -21,11 +20,32 @@ module Testbench
   # A power-on machine for a test with a cartridge, which starts it the way
   # VICE does, and otherwise one booted up to the cycle where an attached
   # program loads (see test/forked_boot.rb), with the CIAs and the VIC-II
-  # the test asks for.
-  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
+  # the test asks for. expansion is the testlist option naming a memory
+  # expansion fitted before power-on, a GEO-RAM, a RAM expansion or an
+  # REU, or nil for none.
+  def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil)
+    computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
+                                     reu: reu_size(expansion))
+    computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
     computer
+  end
+
+  # The RAM expansion an expansion option fits, if it names one.
+  def self.ram_expansion(expansion)
+    case expansion
+    when "plus60k" then :plus60k
+    when "plus256k" then :plus256k
+    end
+  end
+
+  # The size in K of the REU an expansion option plugs in, reu128k to
+  # reu16m, if it names one.
+  def self.reu_size(expansion)
+    return unless expansion&.start_with?("reu")
+
+    size = expansion[3, expansion.length - 4].to_i
+    expansion.end_with?("m") ? size * 1024 : size
   end
 
   # The display cropped to the reference screenshots, as rows of palette
@@ -58,16 +78,20 @@ module Testbench
   end
 
   # Runs one test on a machine from Testbench.machine: attaches the
-  # cartridge, if any, an REU of reu_kb K, unless that is 0, and the
-  # program, if any, from the test's directory mounted as device 8, then runs until the test writes $D7FF or the
-  # budget runs out. Only a screenshot test reads the display, so the
-  # others run with the VIC's colours unpainted.
+  # cartridge, if any, and the program, if any, from the test's directory
+  # mounted as device 8, then runs until the test writes $D7FF or the
+  # budget runs out. With mount false the program loads without the
+  # directory mounted, which leaves device 8 to a true drive. As VICE's
+  # debug cartridge does, the run ends on the cycle of the write, so a
+  # screenshot shows the display as drawn up to there. Only a screenshot
+  # test reads the display, so the others run with the VIC's colours
+  # unpainted.
   class Execution
     attr_reader :exit_code
 
-    def initialize(computer, reu_kb = 0)
+    def initialize(computer, mount: true)
       @computer = computer
-      @reu_kb = reu_kb
+      @mount = mount
       @exit_code = nil
       computer.install_debug_register { |value| @exit_code = value }
     end
@@ -75,12 +99,11 @@ module Testbench
     def run(render, cartridge, directory, prg, budget)
       @computer.vic.render = render
       Badline::Media.attach(@computer, cartridge) if cartridge
-      @computer.attach_reu(Badline::REU.new(@reu_kb)) if @reu_kb.positive?
       unless prg.empty?
-        @computer.mount(Badline::Storage::HostDirectory.new(directory))
+        @computer.mount(Badline::Storage::HostDirectory.new(directory)) if @mount
         Badline::Media.attach(@computer, File.join(directory, prg))
       end
-      BATCH.times { @computer.cycle! } until @exit_code || @computer.cycles > budget
+      @computer.cycle! until @exit_code || @computer.cycles > budget
       @exit_code
     end
   end

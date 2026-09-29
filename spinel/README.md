@@ -159,13 +159,6 @@ the booted machine, so the rows come out the same. `SIDTests.run_list`
 does the work between the list and the rows, so it can be compiled as an
 extension later.
 
-`sidtests.rb` requires `debug_register.rb`, which reopens
-`Badline::Computer`, `AddressBus` and `DebugRegister` to hand the debug
-register's handler on as a value. Spinel refuses a block that reads a
-local when it is passed on with an anonymous `&` into a constructor, as
-`Computer#install_debug_register` passes it, and the handler
-`SIDTests.exit_code` installs reads one.
-
 To run a list by hand:
 
 ```sh
@@ -186,8 +179,9 @@ it, `testbench` (`VICII/`) unless given another, and compares the rows
 against the suite's baseline in `test/baselines/` as
 `rake regression:<suite>` does. `[all]` runs `testbench`,
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
-`testbench-cpu`, `testbench-carts`, `testbench-cia-new` and `testbench-vicii-new` in turn, and fails at the end if any
-of them changed. `SHARDS` and `RESUME=1` work as they do for
+`testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
+`testbench-vicii-new`, `testbench-general` and `testbench-expansions` in
+turn, and fails at the end if any of them changed. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
 The task runs `bin/testbench --engine tmp/spinel/testbench`, so CRuby
@@ -198,15 +192,15 @@ each shard's tests to `<results>.engine-N` and starts one build process
 per shard, which reads them one per line, as tab-separated fields:
 
 ```
-KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION REU    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
+KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION    CARTRIDGE, PROGRAM or EXPANSION empty if the test has none
 ```
 
-EXPANSION is reserved for the memory expansions other than the REU and
-stays empty for now. REU is the size in K of the REU the test plugs in,
-or 0 for none.
+EXPANSION is the testlist option naming the memory expansion the test
+fits: `geo512k`, `plus60k` or `plus256k`.
 
 The compiled binary only emulates. For each test it builds a fresh
-machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`), booted to the cycle where a program loads unless the test starts
+machine with the CIAs and the VIC-II the test asks for (`mos6526` or `mos6526a`, `mos6569` or `mos8565`) and
+its memory expansion, if any, booted to the cycle where a program loads unless the test starts
 from a cartridge, and runs the test with `Testbench::Execution` from
 `test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
 process. It prints what the test left behind, which `Testbench::Engine`

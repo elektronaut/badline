@@ -23,9 +23,12 @@ module Badline
       ffi_func :SDL_DestroyTexture, [:ptr], :void
       ffi_func :SDL_UpdateTexture, %i[ptr ptr int_array int], :int
       ffi_func :SDL_RenderClear, [:ptr], :int
+      ffi_func :SDL_SetRenderDrawColor, %i[ptr int int int int], :int
+      ffi_func :SDL_RenderFillRect, %i[ptr ptr], :int
       ffi_func :SDL_RenderCopy, %i[ptr ptr ptr ptr], :int
       ffi_func :SDL_RenderPresent, [:ptr], :void
       ffi_func :SDL_PollEvent, [:ptr], :int
+      ffi_func :SDL_SetRelativeMouseMode, [:int], :int
       ffi_func :SDL_Delay, [:uint32], :void
       ffi_func :SDL_GetRendererOutputSize, %i[ptr ptr ptr], :int
       ffi_func :SDL_RenderReadPixels, %i[ptr ptr uint32 ptr int], :int
@@ -34,10 +37,11 @@ module Badline
       ffi_func :SDL_RWFromFile, %i[str str], :ptr
       ffi_func :SDL_SaveBMP_RW, %i[ptr ptr int], :int
       ffi_func :SDL_InitSubSystem, [:uint32], :int
+      ffi_func :SDL_QuitSubSystem, [:uint32], :void
       ffi_func :SDL_OpenAudioDevice, %i[ptr int ptr ptr int], :uint32
       ffi_func :SDL_CloseAudioDevice, [:uint32], :void
       ffi_func :SDL_PauseAudioDevice, %i[uint32 int], :void
-      ffi_func :SDL_QueueAudio, %i[uint32 int_array uint32], :int
+      ffi_func :SDL_QueueAudio, %i[uint32 buffer_in uint32], :int
       ffi_func :SDL_GetQueuedAudioSize, [:uint32], :uint32
       ffi_func :SDL_NumJoysticks, [], :int
       ffi_func :SDL_IsGameController, [:int], :int
@@ -52,10 +56,20 @@ module Badline
       ffi_read_u32 :event_type, 0
       ffi_read_u8 :event_repeat, 13
       ffi_read_i32 :event_scancode, 16
+      ffi_read_u16 :event_mod, 24
+      # SDL_MouseMotionEvent's xrel and yrel, and SDL_MouseButtonEvent's
+      # button.
+      ffi_read_i32 :event_xrel, 28
+      ffi_read_i32 :event_yrel, 32
+      ffi_read_u8 :event_button, 16
 
       ffi_buffer :rect, 16
+      ffi_write_i32 :rect_x, 0
+      ffi_write_i32 :rect_y, 4
       ffi_write_i32 :rect_w, 8
       ffi_write_i32 :rect_h, 12
+      # Where the drive LED goes.
+      ffi_buffer :led_rect, 16
 
       # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
       ffi_buffer :display_mode, 24
@@ -87,6 +101,10 @@ module Badline
       ffi_const :QUIT, 0x100
       ffi_const :KEYDOWN, 0x300
       ffi_const :KEYUP, 0x301
+      ffi_const :MOUSEMOTION, 0x400
+      ffi_const :MOUSEBUTTONDOWN, 0x401
+      ffi_const :MOUSEBUTTONUP, 0x402
+      ffi_const :KMOD_SHIFT, 0x0003
       ffi_const :CONTROLLERDEVICEADDED, 0x653
       ffi_const :CONTROLLERDEVICEREMOVED, 0x654
       ffi_const :AUDIO_S16LSB, 0x8010
@@ -96,6 +114,14 @@ module Badline
     module LibC
       ffi_func :malloc, [:size_t], :ptr
       ffi_func :free, [:ptr], :void
+      ffi_func :poll, %i[ptr size_t int], :int
+
+      ffi_const :POLLIN, 0x01
+
+      # struct pollfd: int fd; short events, revents.
+      ffi_buffer :pollfd, 8
+      ffi_write_i32 :pollfd_fd, 0
+      ffi_write_i16 :pollfd_events, 4
     end
   end
 end

@@ -13,6 +13,7 @@ module Badline
       def initialize(title:, width:, height:, scale: 2, vsync: true)
         SDL.check(SDL::InitSubSystem.call(SDL::INIT_VIDEO | SDL::INIT_EVENTS))
         SDL::SetHint.call("SDL_RENDER_SCALE_QUALITY", "0") # nearest-neighbour
+        SDL::SetHint.call("SDL_MOUSE_RELATIVE_SCALING", "0") # host pixels, whatever the window size
 
         @window = SDL.check_pointer(SDL::CreateWindow.call(
                                       title,

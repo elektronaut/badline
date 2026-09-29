@@ -10,20 +10,22 @@ module Badline
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      # Takes the frame limit, the pacing, the screenshot path and the sound
-      # from Options.
+      # Takes the frame limit, the pacing, the screenshot path, the sound and
+      # the verbosity from Options.
       def initialize(computer, options)
         @computer = computer
         @frame_limit = options.frames
-        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?)
+        @verbose = options.verbose?
+        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose)
         @screenshot = options.screenshot
         @screen = Screen.new(computer.vic)
+        @led = DriveLed.new(computer.drive1541) if computer.drive1541
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         open_window
-        @sound = Sound.new(computer.sid, options.sound?)
-        @gamepads = Gamepads.new(computer)
+        @sound = Sound.new(computer.sid, options.sound?, @verbose)
+        @gamepads = Gamepads.new(computer, @verbose)
       end
 
       def run
@@ -33,6 +35,7 @@ module Badline
         @pacer.start(@started)
         @reported_samples = 0
         frame while @running
+        @computer.drive1541&.flush
         @gamepads.close
         @sound.close
         close_window
@@ -72,6 +75,7 @@ module Badline
         abort "SDL_Init: #{SDL.SDL_GetError}" unless SDL.SDL_Init(SDL::INIT_VIDEO | SDL::INIT_EVENTS).zero?
 
         SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0")
+        SDL.SDL_SetHint("SDL_MOUSE_RELATIVE_SCALING", "0")
         @window = SDL.SDL_CreateWindow(
           TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
           Screen::WIDTH * SCALE, Screen::HEIGHT * SCALE, SDL::WINDOW_RESIZABLE
@@ -100,15 +104,21 @@ module Badline
       end
 
       def handle_events
-        while SDL.SDL_PollEvent(SDL.event) != 0
-          type = SDL.event_type(SDL.event)
-          if type == SDL::QUIT
-            @running = false
-          elsif [SDL::KEYDOWN, SDL::KEYUP].include?(type) && SDL.event_repeat(SDL.event).zero?
-            handle_key(SDL.event_scancode(SDL.event), type == SDL::KEYDOWN)
-          elsif [SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED].include?(type)
-            @gamepads.rescan
-          end
+        handle_event(SDL.event_type(SDL.event)) while SDL.SDL_PollEvent(SDL.event) != 0
+      end
+
+      def handle_event(type)
+        case type
+        when SDL::QUIT
+          @running = false
+        when SDL::KEYDOWN, SDL::KEYUP
+          handle_key(SDL.event_scancode(SDL.event), type == SDL::KEYDOWN) if SDL.event_repeat(SDL.event).zero?
+        when SDL::MOUSEMOTION
+          @controls.mouse_motion(SDL.event_xrel(SDL.event), SDL.event_yrel(SDL.event))
+        when SDL::MOUSEBUTTONDOWN, SDL::MOUSEBUTTONUP
+          @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
+        when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
+          @gamepads.rescan
         end
       end
 
@@ -122,7 +132,8 @@ module Badline
 
       def handle_toggle(scancode)
         if scancode == Keys::TAB
-          @controls.toggle_joystick_mode
+          @controls.cycle_mode(SDL.event_mod(SDL.event).anybits?(SDL::KMOD_SHIFT) ? -1 : 1)
+          SDL.SDL_SetRelativeMouseMode(@controls.pot_device? ? 1 : 0)
         elsif scancode == Keys::F9
           @controls.swap_ports
         else
@@ -133,7 +144,7 @@ module Badline
 
       def update_title
         title = TITLE
-        title += " [JOY #{@controls.arrows_port}]" if @controls.joystick_mode
+        title += " [#{@controls.tag}]" unless @controls.tag.empty?
         title += " [MUTED]" if @sound.muted?
         SDL.SDL_SetWindowTitle(@window, title)
       end
@@ -161,6 +172,7 @@ module Badline
       def draw
         SDL.SDL_RenderClear(@renderer)
         SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
+        @led&.draw(@renderer)
         write_screenshot if @screenshot != "" && @frames + 1 == @frame_limit
         SDL.SDL_RenderPresent(@renderer)
       end
@@ -168,13 +180,17 @@ module Badline
       def report(at)
         @pacer.check(50, at - @reported, at)
         @pacer.measure(50, at - @reported)
+        report_frames(at) if @verbose
+        @spent = Array.new(STAGES.size, 0.0)
+        @slowest = 0.0
+        @reported = at
+      end
+
+      def report_frames(at)
         fps = 50 / (at - @reported)
         stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
         puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
         report_sound(at) if @sound.on?
-        @spent = Array.new(STAGES.size, 0.0)
-        @slowest = 0.0
-        @reported = at
       end
 
       def report_sound(at)

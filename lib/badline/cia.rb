@@ -13,7 +13,11 @@ module Badline
     # C64C, which differs from it only in its interrupt control register.
     MODELS = %i[mos6526 mos6526a].freeze
 
-    attr_reader :start, :control_a, :control_b, :peripheral, :serial, :model
+    attr_reader :start, :control_a, :control_b, :serial, :model
+
+    # What's on the ports outside the chip. It pulls port lines low through
+    # read_a and read_b, and on CIA 1 drives PB4 through port_b4_high?.
+    attr_accessor :peripheral
 
     def interrupt_status = @icr.status
 
@@ -47,12 +51,14 @@ module Badline
       @tb.latch = value
     end
 
-    def initialize(start: 0, peripheral: nil, model: :mos6526)
+    def initialize(start: 0, peripheral: nil, model: :mos6526, region: Region::PAL)
       raise ArgumentError, "unknown CIA model #{model}" unless MODELS.include?(model)
 
       addressable_at(start, length: 2**8)
 
       @model = model
+      @clock_hz = region.clock_hz
+      @mains_hz = region.mains_hz
 
       @peripheral = peripheral
       @port_b4_handler = nil
@@ -71,7 +77,7 @@ module Badline
       @port_b4_driven_high = true
       @cnt_high = true
       @cnt_rise = false
-      @tod = TimeOfDay.new
+      @tod = TimeOfDay.new(clock_hz: @clock_hz, mains_hz: @mains_hz)
       @icr = InterruptRegister.new(@model)
       @icr_status = @icr.status
       @control_a = ControlRegister.new(%i[start output out_mode run_mode load

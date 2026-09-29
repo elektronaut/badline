@@ -26,10 +26,10 @@ module Badline
       # and the status bits it ended with.
       attr_reader :host, :target, :remaining, :result
 
-      def initialize(ram, wrap)
+      def initialize(ram, wrap, bus)
         @ram = ram
         @wrap = wrap
-        @bus = nil
+        @bus = bus
         @host = @target = @remaining = @result = 0
         @holding = false
       end
@@ -37,10 +37,6 @@ module Badline
       # Whether the REC held the bus on the last cycle clocked, which it
       # does even while it waits out the VIC, since the CPU stays halted.
       def holds_bus? = @holding
-
-      def connect(bus)
-        @bus = bus
-      end
 
       # A length of 0 moves 64K. control is the address control register,
       # which can keep either side's address fixed.

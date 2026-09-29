@@ -67,7 +67,10 @@ module Badline
 
     attr_reader :trigger
 
-    def initialize(size_kb = 512)
+    # bus is the bus the REC reaches C64 memory through, and vic the VIC,
+    # whose phi1 fetch is left on the bus when the registers are read
+    # during a transfer.
+    def initialize(size_kb, bus:, vic:)
       raise ArgumentError, "No #{size_kb}K REU. Pick one of #{SIZES_KB.join(', ')}." unless SIZES_KB.include?(size_kb)
 
       size = size_kb * 1024
@@ -77,21 +80,13 @@ module Badline
       @bank_unused = size > wrap ? 0 : BANK_UNUSED
       @status_preset = size_kb == 128 ? 0 : CHIPS_256K
       @ram = RAM.new(size, wrap)
-      @dma = DMA.new(@ram, wrap)
+      @dma = DMA.new(@ram, wrap, bus)
       @trigger = Trigger.new(self)
-      @vic = nil
+      @vic = vic
       @on_irq_change = nil
       @on_dma = nil
       @irq = false
       reset!
-    end
-
-    # The bus the REC reaches C64 memory through, and the VIC, whose phi1
-    # fetch is left on the bus when the registers are read during a
-    # transfer.
-    def connect(bus:, vic:)
-      @dma.connect(bus)
-      @vic = vic
     end
 
     def on_irq_change(&block)

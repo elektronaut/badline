@@ -4,13 +4,10 @@ require "spec_helper"
 
 describe Badline::REU do
   let(:size_kb) { 512 }
-  let(:reu) { described_class.new(size_kb) }
-  let(:bus) { Badline::AddressBus.new }
+  let(:bus) { Badline::Computer.new(reu: size_kb).address_bus }
+  let(:reu) { bus.reu }
 
-  before do
-    bus.poke(0x01, 0x37)
-    bus.attach_reu(reu) unless bus.reu
-  end
+  before { bus.poke(0x01, 0x37) }
 
   # Sets up a transfer and writes the command that starts it.
   def transfer(command, c64: 0x1000, reu_address: 0x020000, length: 4, control: 0x00)
@@ -365,7 +362,7 @@ describe Badline::REU do
   end
 
   it "rejects a size no REU came in" do
-    expect { described_class.new(64) }.to raise_error(ArgumentError)
+    expect { Badline::Computer.new(reu: 64) }.to raise_error(ArgumentError)
   end
 
   it "goes back to its power-on registers on reset" do
@@ -375,13 +372,11 @@ describe Badline::REU do
   end
 
   describe "in a computer" do
-    let(:computer) { Badline::Computer.new }
-    let(:reu) { described_class.new(512) }
+    let(:computer) { Badline::Computer.new(reu: 512) }
     let(:bus) { computer.address_bus }
 
     # LDA #$90, STA $DF01 at $C000, then NOPs.
     before do
-      computer.attach_reu(reu)
       computer.ram.write(0xc000, [0xa9, 0x90, 0x8d, 0x01, 0xdf] + ([0xea] * 16))
       computer.cpu.program_counter = 0xc000
     end

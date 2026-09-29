@@ -98,6 +98,9 @@ module Badline
 
       def writable? = @writable
 
+      # A buffer channel's block, as a block write puts it on the disk.
+      def block = @bytes[@base, Drive::BLOCK_SIZE]
+
       def exhausted?
         @pointer >= @length
       end

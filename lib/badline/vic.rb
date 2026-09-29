@@ -15,7 +15,7 @@ module Badline
     MODELS = %i[mos6569 mos8565].freeze
 
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
-                :rasterline, :dirty_lines, :model
+                :rasterline, :dirty_lines, :model, :region
 
     # Returns the byte the CPU's halted read would see, for the c-accesses
     # that run before AEC. Without it they read colour RAM.
@@ -36,17 +36,19 @@ module Badline
     G_IDLE = 1
     G_DISPLAY = 2
 
+    # The idle g-access in the column a mid-row bad line opens display
+    # state reads here on a 6569.
+    DMA_DELAY_IDLE_ADDRESS = 0x38ff
+
     # The $d011 mode bits a g-access still sees for a cycle after they fall:
     # BMM always, and ECM too when the access it leaves read the character
     # ROM.
     FETCH_HOLD = 0x20
     FETCH_HOLD_ROM = 0x60
 
-    # Columns carrying a per-cycle hook, so an ordinary column costs one
-    # array read instead of the dispatch.
-    HOOK_COLUMNS = Array.new(63) do |column|
-      [14, 15, 53, 54, 57, 62].include?(column)
-    end.freeze
+    # The columns carrying a hook, besides the line's last column, which
+    # starts the vertical border for the line after it.
+    HOOKS = [14, 15, 53, 54, 57].freeze
 
     # BA falls three columns ahead of each sprite's pair of s-accesses, and
     # the five-column windows step two columns apart from sprite 0 at column
@@ -54,25 +56,29 @@ module Badline
     # split: the tail columns fall on the line whose cycle 55/56 compare
     # started the fetch, the head columns on the line after it.
     SPRITE_BA_WINDOWS = Array.new(8) { |n| (54 + (2 * n))..(58 + (2 * n)) }.freeze
-    SPRITE_BA_TAIL = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c < 63 } }.freeze
-    SPRITE_BA_HEAD = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - 63 if c >= 63 } }.freeze
 
-    def initialize(address_bus = nil, debug: false, model: :mos6569)
+    def initialize(address_bus = nil, debug: false, model: :mos6569, region: Region::PAL)
       raise ArgumentError, "unknown VIC-II model #{model}" unless MODELS.include?(model)
 
       addressable_at(0xd000, length: 2**10)
       @model = model
+      @region = region
       @lightpen_extra = model == :mos8565 ? 1 : 2
       @grey_dots = model == :mos8565
       @delayed_fetch = model == :mos8565
+      @dma_delay_idle = model == :mos6569
       @address_bus = address_bus || AddressBus.new
       @vic_bank = VIC::Bank.new(@address_bus)
       @debug = debug
 
-      @width = 504
-      @height = 312
-      @columns_per_line = @width / 8
+      @columns_per_line = region.cycles_per_line
+      @width = @columns_per_line * 8
+      @height = region.lines_per_frame
+      @last_column = @columns_per_line - 1
       @last_line = @height - 1
+      layout_columns
+      @blank_columns = Array.new(@columns_per_line) { |column| Region.blanked?(column, region.hblank) }.freeze
+      @blank_lines = Array.new(@height) { |line| Region.blanked?(line, region.vblank) }.freeze
       @display = Array.new(@width * @height, 0)
       @lines = Array.new(@height) { Array.new(@width, 0) }
       @dirty_lines = Array.new(@height, true)
@@ -89,7 +95,7 @@ module Badline
       @registers = VIC::Registers.new
       @register_bytes = @registers.bytes
       @display_state = VIC::DisplayState.new(@registers)
-      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @model)
+      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @model, region: @region)
       @sequencer.render = @render
       @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @model)
       @display.fill(0)
@@ -122,11 +128,11 @@ module Badline
       # The g-access runs in the first half of the cycle, ahead of the bad
       # line compare, and the c-access in the second half, after it.
       draw!
-      @display_state.cycle(@rasterline, @column)
+      dma_delay_idle_access if @display_state.cycle(@rasterline, @column)
 
       fetch_character_data! if dma_active?
 
-      column_hooks if HOOK_COLUMNS[@column]
+      column_hooks if @hook_columns[@column]
 
       @column += 1
       if @column == @columns_per_line
@@ -154,7 +160,7 @@ module Badline
       when 53 then check_sprite_dma
       when 54 then check_dma_and_toggle_expansion
       when 57 then @sprites.check_display(@rasterline)
-      when 62 then @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1)
+      when @last_column then @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1)
       end
     end
 
@@ -249,17 +255,9 @@ module Badline
       vic_bank.peek(phi1_address)
     end
 
-    def hblank?
-      @column < 10 || @column > 60
-    end
-
-    def vblank?
-      @rasterline < 16 || @rasterline > 299
-    end
-
-    def blanking?
-      @rasterline < 16 || @rasterline > 299 || @column < 10 || @column > 60
-    end
+    def hblank? = @blank_columns[@column]
+    def vblank? = @blank_lines[@rasterline]
+    def blanking? = @blank_lines[@rasterline] || @blank_columns[@column]
 
     def render? = @render
 
@@ -347,11 +345,12 @@ module Badline
       graphics_address(@registers[0x11], @display_state.vmli - 1, (@display_state.vc - 1) & 0x3ff)
     end
 
-    # A $d011/$d012 write is compared in the next column. A write after
-    # column 61 is left to column 62, which compares the next line.
+    # A $d011/$d012 write is compared in the next column. A write in the
+    # line's second last column is left to its last, which compares the
+    # next line.
     def compare_raster_writes(reg)
       return unless (0x11..0x12).cover?(reg)
-      return if @column == @columns_per_line - 1
+      return if @column == @last_column
 
       check_raster_irq!
       @sequencer.compare_vertical_border(@rasterline) if reg == 0x11
@@ -398,9 +397,19 @@ module Badline
       8.times do |n|
         next unless @sprites[n].displaying?
 
-        SPRITE_BA_TAIL[n].each { |c| @sprite_ba[c] = true }
-        SPRITE_BA_HEAD[n].each { |c| @sprite_ba[c] = true }
+        @sprite_ba_tail[n].each { |c| @sprite_ba[c] = true }
+        @sprite_ba_head[n].each { |c| @sprite_ba[c] = true }
       end
+    end
+
+    # Splits the sprite BA windows at the end of the line and marks the hook
+    # columns, for a line of the region's length. The marks let an ordinary
+    # column cost one array read instead of the dispatch.
+    def layout_columns
+      last = @last_column
+      @sprite_ba_tail = SPRITE_BA_WINDOWS.map { |w| w.select { |c| c <= last } }.freeze
+      @sprite_ba_head = SPRITE_BA_WINDOWS.map { |w| w.filter_map { |c| c - last - 1 if c > last } }.freeze
+      @hook_columns = Array.new(@columns_per_line) { |c| c == last || HOOKS.include?(c) }.freeze
     end
 
     # Runs this column's g-access and draws the one from GRAPHICS_DELAY
@@ -441,6 +450,18 @@ module Badline
       @g_data[slot] = fetch_graphics(vmli, display_state.vc)
       @g_char[slot] = @g_kept_char = @character_buffer[vmli] || 0
       @g_color[slot] = @g_kept_color = @color_buffer[vmli] || 1
+    end
+
+    # On the 6569 a bad line that opens display state mid-row (DMA delay)
+    # moves the idle g-access of the column that triggers it from $3fff (or
+    # $39ff) to DMA_DELAY_IDLE_ADDRESS, unless YSCROLL is 0 (vsp-tester,
+    # colorfetchbug/main).
+    def dma_delay_idle_access
+      slot = @g_tick
+      return unless @dma_delay_idle && @g_kind[slot] == G_IDLE
+      return if @registers.yscroll.zero?
+
+      @g_data[slot] = vic_bank.peek(DMA_DELAY_IDLE_ADDRESS)
     end
 
     # The 6569's g-access sees a mode bit that falls a cycle late: it

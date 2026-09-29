@@ -21,7 +21,7 @@ describe Badline::REU::DMA do
     end.new
   end
   let(:ram) { Badline::REU::RAM.new(0x80000, 0x80000) }
-  let(:dma) { described_class.new(ram, 0x80000).tap { |dma| dma.connect(bus) } }
+  let(:dma) { described_class.new(ram, 0x80000, bus) }
 
   # Swaps length bytes with BA low from cycle 2 to 5, returning the bytes
   # the REU took in and the cycle the bus came back on.

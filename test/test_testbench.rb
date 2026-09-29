@@ -24,9 +24,24 @@ class TestTestbenchTestlist < Minitest::Test
     end
   end
 
+  def test_keeps_the_machine_level_subtrees
+    assert_equal "C64/bankio/bankio.prg", parse("../C64/bankio/,bankio.prg,exitcode,1000").id
+    assert_equal "general/fuxxortest/ef1-nmi.prg", parse("../general/fuxxortest,ef1-nmi.prg,exitcode,1000").id
+  end
+
+  def test_leaves_the_6526_half_of_lorenz_to_bin_lorenz
+    assert_nil parse("../general/Lorenz-2.15/src/,cia1ta.prg,exitcode,1000")
+    refute_nil parse("../general/Lorenz-2.15/src/,cia1tanew.prg,exitcode,1000,cia-new")
+  end
+
+  def test_drops_rows_that_need_a_true_drive
+    assert_nil parse("../general/fuxxortest,ef2-inst1.prg,exitcode,1000")
+    assert_nil parse("../general/fuxxortest,test-fuxxored.prg,exitcode,1000")
+  end
+
   def test_drops_subtrees_for_unmodelled_hardware
-    assert_nil parse("../GEO-RAM/x/,t.prg,exitcode,1000")
-    assert_nil parse("../drive/rpm/,t.prg,exitcode,1000")
+    assert_nil parse("../REU/mirrors/,t.prg,exitcode,1000")
+    assert_nil parse("../SID/foo/,t.prg,exitcode,1000")
   end
 
   def test_drops_decimalmode_covered_by_singlesteptests
@@ -85,23 +100,6 @@ class TestTestbenchTestlist < Minitest::Test
     end
   end
 
-  def test_keeps_the_reu_subtree
-    refute_nil parse("../REU/mirrors/,t.prg,exitcode,1000,reu512k")
-  end
-
-  def test_reads_the_reu_size_a_row_asks_for
-    assert_equal 128, parse("../REU/mirrors/,t.prg,exitcode,1000,reu128k").reu_kb
-    assert_equal 16_384, parse("../REU/mirrors/,t.prg,exitcode,1000,reu16m").reu_kb
-  end
-
-  def test_a_row_without_an_reu_gets_none
-    assert_equal 0, parse("../CIA/tod/,t.prg,exitcode,1000").reu_kb
-  end
-
-  def test_drops_rows_that_want_an_reu_beside_a_cartridge
-    assert_nil parse("../C64/carts/,,exitcode,100000,reu512k,mountcrt:rr-reu.crt")
-  end
-
   def test_ignores_comments_and_blank_lines
     assert_nil parse("# ../CIA/tod/,t.prg,exitcode,1000")
     assert_nil parse("   \n")
@@ -157,8 +155,165 @@ class TestTestbenchCartridges < Minitest::Test
     assert_nil parse("reu512k,mountcrt:standard.crt")
   end
 
+  def test_drops_a_cartridge_row_that_also_mounts_a_disk
+    FileUtils.touch(File.join(@dir, "disk.d64"))
+
+    assert_nil parse("mountcrt:standard.crt,mountd64:disk.d64")
+  end
+
   def test_a_plain_row_is_not_a_cartridge_row
     assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").cartridge
+  end
+
+  def test_a_cartridge_row_is_listed_under_carts
+    rows = Testbench::Rows.new(carts: true, models: Testbench::DEFAULT_MODELS, expansions: false, drive: nil)
+
+    assert_includes rows, parse("mountcrt:standard.crt")
+  end
+end
+
+class TestTestbenchDrive < Minitest::Test
+  def setup
+    @dir = Dir.mktmpdir
+    @disk = File.join(@dir, "disk.d64")
+    FileUtils.touch(@disk)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(line)
+    Testbench::Testlist.parse(line)
+  end
+
+  def test_runs_a_drive_row_with_a_true_drive
+    assert_predicate parse("../drive/rpm/,rpm.prg,exitcode,1000"), :drive?
+  end
+
+  def test_keeps_the_disk_a_row_mounts
+    assert_equal @disk, parse("../drive/readtest/,t.prg,exitcode,1000,mountd64:#{@disk}").disk_path
+  end
+
+  def test_runs_a_row_that_mounts_a_disk_with_a_true_drive
+    assert_predicate parse("../VICII/x/,t.prg,exitcode,1000,mountd64:#{@disk}"), :drive?
+  end
+
+  def test_drops_a_missing_disk
+    assert_nil parse("../drive/readtest/,t.prg,exitcode,1000,mountd64:#{@dir}/missing.d64")
+  end
+
+  def test_drops_a_disk_outside_the_included_subtrees
+    assert_nil parse("../SID/foo/,t.prg,exitcode,1000,mountd64:#{@disk}")
+  end
+
+  def test_keeps_the_g64_a_row_mounts
+    g64 = File.join(@dir, "skew.g64")
+    FileUtils.touch(g64)
+    test = parse("../drive/skew/,t.prg,exitcode,1000,mountg64:#{g64}")
+
+    assert_equal [:drive, g64], [test.drive_kind, test.disk_path]
+  end
+
+  def test_drops_the_image_formats_the_drive_cannot_read
+    assert_nil parse("../drive/skew/,t.prg,exitcode,1000,mountp64:skew.p64")
+  end
+
+  def test_a_plain_row_has_no_drive
+    refute_predicate parse("../CIA/tod/,t.prg,exitcode,1000"), :drive?
+  end
+
+  def test_lists_each_row_under_one_kind_of_run
+    rows = ["../CIA/tod/,t.prg,exitcode,1000", "../drive/rpm/,t.prg,exitcode,1000",
+            "../VICII/x/,t.prg,exitcode,1000,mountd64:#{@disk}"]
+
+    assert_equal([nil, :drive, :drive], rows.map { |row| parse(row).drive_kind })
+  end
+
+  def test_lists_the_1541_testsuite_only_under_its_own_flag
+    test = parse("../drive/1541-testsuite,1541-testsuite.prg,exitcode,2220000000,mountd64:#{@disk}")
+
+    assert_equal [:testsuite, true], [test.drive_kind, test.drive?]
+  end
+
+  def test_keeps_a_row_that_writes_the_disk_under_drive
+    assert_equal :drive, parse("../drive/format/,format.prg,exitcode,88000000,mountd64:#{@disk}").drive_kind
+  end
+
+  def test_only_a_drive_run_takes_a_drive_row
+    test = parse("../drive/rpm/,t.prg,exitcode,1000")
+    rows = Testbench::Rows.new(carts: false, models: Testbench::DEFAULT_MODELS, expansions: false, drive: :drive)
+
+    refute_includes Testbench::Rows.plain, test
+    assert_includes rows, test
+  end
+
+  def test_a_drive_row_gets_twice_the_deadline
+    drive, plain = ["../drive/rpm", "../CIA/tod"].map do |dir|
+      Testbench::TestCase.new(dir, "t.prg", "exitcode", 10_000_000, [])
+    end
+
+    assert_equal [320, 190], [drive.deadline, plain.deadline]
+  end
+end
+
+class TestTestbenchExpansions < Minitest::Test
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), "\x01\x08".b)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(options, prg: "t.prg")
+    Testbench::Testlist.parse("#{@dir}/,#{prg},exitcode,100000,#{options}")
+  end
+
+  def test_keeps_a_row_for_each_emulated_expansion
+    %w[geo512k plus60k plus256k].each do |option|
+      assert_equal option, parse(option).expansion
+    end
+  end
+
+  def test_drops_a_missing_program
+    assert_nil parse("geo512k", prg: "missing.prg")
+  end
+
+  def test_keeps_a_row_for_each_reu_size
+    %w[reu128k reu512k reu16m].each do |option|
+      assert_equal option, parse(option).expansion
+    end
+  end
+
+  def test_drops_rows_for_expansions_badline_does_not_emulate
+    assert_nil parse("isepic")
+  end
+
+  def test_a_plain_row_has_no_expansion
+    assert_nil Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000").expansion
+  end
+
+  def test_only_an_expansions_run_takes_an_expansion_row
+    test = parse("geo512k")
+
+    rows = Testbench::Rows.new(carts: false, models: Testbench::DEFAULT_MODELS, expansions: true, drive: nil)
+
+    refute_includes Testbench::Rows.plain, test
+    assert_includes rows, test
+  end
+end
+
+class TestTestbenchMachine < Minitest::Test
+  def test_sizes_an_reu_in_k
+    assert_equal 128, Testbench.reu_size("reu128k")
+    assert_equal 16_384, Testbench.reu_size("reu16m")
+  end
+
+  def test_fits_no_reu_for_other_expansions
+    assert_nil Testbench.reu_size("geo512k")
+    assert_nil Testbench.reu_size(nil)
   end
 end
 
@@ -210,11 +365,16 @@ class TestTestbenchSelection < Minitest::Test
   end
 
   IDS = ["VICII/border/t.prg", "interrupts/irqdma/test1.prg",
-         "interrupts/irqnoack/test1.prg", "CPU/cpujam/t.prg"].freeze
+         "interrupts/irqnoack/test1.prg", "CPU/cpujam/t.prg",
+         "C64/bankio/t.prg", "general/banking00/t.prg"].freeze
 
   def test_no_filter_runs_the_whole_scope
     assert_equal ["interrupts/irqdma/test1.prg", "interrupts/irqnoack/test1.prg"],
                  selected([], scope: "interrupts/")
+  end
+
+  def test_a_scope_can_name_several_prefixes
+    assert_equal ["C64/bankio/t.prg", "general/banking00/t.prg"], selected([], scope: "C64/,general/")
   end
 
   def test_a_filter_is_matched_inside_the_scope
@@ -532,7 +692,7 @@ class TestTestbenchEngine < Minitest::Test
     def dir_abs = "/tests"
     def cia_model = :mos6526
     def vic_model = :mos6569
-    def reu_kb = 0
+    def expansion = nil
   end
 
   def setup
@@ -549,8 +709,14 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\t0\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\n",
                  Testbench::Engine.spec(test)
+  end
+
+  def test_a_test_line_ends_with_the_expansion
+    test = Testbench::TestCase.new("../plus60k", "t.prg", "exitcode", 1000, ["plus60k"])
+
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices

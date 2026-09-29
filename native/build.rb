@@ -65,7 +65,7 @@ module NativeBuild
   end
 
   def revision
-    capture("git", "describe", "--always", "--dirty", "--abbrev=8") || ""
+    capture("git", "describe", "--tags", "--always", "--dirty", "--abbrev=8") || ""
   end
 
   def spinel_version(spinel)

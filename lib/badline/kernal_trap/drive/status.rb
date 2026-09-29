@@ -9,6 +9,7 @@ module Badline
       class Status
         MESSAGES = [20, 21, 22, 23, 24, 27].to_h { |code| [code, "READ ERROR"] }.merge(
           0 => " OK",
+          1 => " FILES SCRATCHED",
           25 => "WRITE ERROR",
           26 => "WRITE PROTECT ON",
           28 => "WRITE ERROR",
@@ -16,8 +17,10 @@ module Badline
           30 => "SYNTAX ERROR",
           62 => "FILE NOT FOUND",
           63 => "FILE EXISTS",
+          65 => "NO BLOCK",
           66 => "ILLEGAL TRACK OR SECTOR",
           70 => "NO CHANNEL",
+          72 => "DISK FULL",
           73 => "CBM DOS V2.6 1541",
           74 => "DRIVE NOT READY"
         ).freeze

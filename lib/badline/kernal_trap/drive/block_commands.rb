@@ -19,14 +19,43 @@ module Badline
           report_block_error(track, sector)
         end
 
-        # The disk is write-protected, so a block write that gets as far as
-        # the disk fails at the block it names.
+        # A block write puts the buffer's block on the disk. On a
+        # write-protected disk it fails at the block it names.
         def block_write(arguments, counted: false)
           channel, _drive, track, sector = arguments
           return unless fetch_block(channel, track, sector)
 
-          store_count(@channels[channel]) if counted
-          report(WRITE_PROTECT_ON, track, sector)
+          buffer = @channels[channel]
+          store_count(buffer) if counted
+          return report(WRITE_PROTECT_ON, track, sector) unless writable_disk?
+
+          writing { @storage.write_block(track, sector, buffer.block) }
+        end
+
+        # B-A marks a block in use. One already in use fails as NO BLOCK,
+        # naming the next free one.
+        def block_allocate(arguments)
+          _drive, track, sector = arguments
+          return unless bam_entry(track, sector)
+          return report(NO_BLOCK, *@storage.next_free_block(track, sector)) unless @storage.block_free?(track, sector)
+
+          writing { @storage.allocate_block(track, sector) }
+        end
+
+        # B-F marks a block free.
+        def block_free(arguments)
+          _drive, track, sector = arguments
+          writing { @storage.free_block(track, sector) } if bam_entry(track, sector)
+        end
+
+        # A BAM change needs a disk that takes writes and a block the BAM
+        # has an entry for. Returns whether both hold, once it has reported
+        # why not.
+        def bam_entry(track, sector)
+          return report(WRITE_PROTECT_ON) unless writable_disk?
+          return true if sector && @storage.bam_block?(track, sector)
+
+          report(ILLEGAL_TRACK_OR_SECTOR, track, sector)
         end
 
         # B-W first stores the index of the last byte written, the pointer

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/address_bus/ultimax_pages"
+
 module Badline
   # Memory layout:
   #
@@ -28,6 +30,7 @@ module Badline
   # 0xE000-0xFFFF - KERNAL ROM / Cartridge ROM (high) - 8kb
   class AddressBus
     include Addressable
+    include UltimaxPages
 
     # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
     # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
@@ -49,10 +52,14 @@ module Badline
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
-                :control_ports, :cartridge, :reu, :ultimax, :phi1_ultimax, :datasette
+                :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region, :video_ram, :reu
 
-    def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
+    # ram_expansion fits a +60K (:plus60k) or +256K (:plus256k).
+    def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569, region: Region::PAL,
+                   ram_expansion: nil)
+      @region = region
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
+      @ram_expansion = RAMExpansion.build(ram_expansion, @ram) { update_overlays! }
       @cartridge = @reu = nil
       @debug_register = nil
 
@@ -64,9 +71,9 @@ module Badline
       @joystick1 = Joystick.new
       @joystick2 = Joystick.new
       @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-      @vic  = VIC.new(self, model: vic_model)
-      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model)
-      @cia2 = CIA.new(start: 0xdd00, model: cia_model)
+      @vic  = VIC.new(self, model: vic_model, region:)
+      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model, region:)
+      @cia2 = CIA.new(start: 0xdd00, model: cia_model, region:)
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
       @sid = SID.new(model: sid_model, pots: @control_ports)
@@ -99,17 +106,19 @@ module Badline
     # to $FF00 for the one that starts an armed transfer.
     def attach_reu(reu)
       @reu = reu
-      reu.connect(bus: self, vic: @vic)
       update_overlays!
     end
 
     def power_on!
       @ram.clear!(RAM_POWER_ON)
+      @ram_expansion.power_on!
     end
 
-    # The 6510's RES line clears the port's direction and output registers.
-    # The floating bits keep their charge.
-    def reset_port!
+    # The RES line clears the 6510 port's direction and output registers,
+    # and a RAM expansion's bank register. The port's floating bits keep
+    # their charge.
+    def reset!
+      @ram_expansion.reset!
       @port_ddr = 0x00
       @port_out = 0x00
       update_port!
@@ -132,8 +141,12 @@ module Badline
       @read_pages[addr >> 8].peek(addr)
     end
 
+    # A write to $00 or $01 goes to the port, but the RAM below is still
+    # write-enabled, and takes whatever is left on the bus: the byte the VIC
+    # fetched in the phi1 half of the cycle.
     def poke(addr, value)
       if addr < 0x02
+        @ram.poke(addr, @vic.phi1_data)
         addr.zero? ? @port_ddr = value : @port_out = value
         update_port!
       else
@@ -170,8 +183,8 @@ module Badline
     def update_overlays!
       @ultimax = @cartridge ? @cartridge.ultimax? : false
       @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
-      @read_pages.fill(@ram)
-      @write_pages.fill(@ram)
+      @ram_expansion.map(@read_pages, @write_pages)
+      @video_ram = @ram_expansion.video_ram
 
       @ultimax ? map_ultimax_pages : map_banked_pages
       @write_pages[0xff] = @reu.trigger.wrap(@write_pages[0xff]) if @reu
@@ -214,32 +227,6 @@ module Badline
       @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
     end
 
-    # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
-    # I/O always visible and open address space everywhere else. The ROML
-    # and ROMH selects fire on writes as well, so cartridge RAM or flash in
-    # either window takes the writes there.
-    def map_ultimax_pages
-      @read_pages.fill(@open_bus, 0x10, 0xf0)
-      @write_pages.fill(@open_bus, 0x10, 0xf0)
-      @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
-      map_ultimax_writes(@cartridge.roml, 0x80)
-      @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
-      map_ultimax_writes(@cartridge.romh, 0xe0)
-      map_ultimax_a000
-      map_io_pages
-    end
-
-    def map_ultimax_writes(bank, first_page)
-      @write_pages.fill(bank, first_page, 0x20) if bank.respond_to?(:poke)
-    end
-
-    def map_ultimax_a000
-      return unless (window = @cartridge.ultimax_a000)
-
-      @read_pages.fill(window, 0xa0, 0x20)
-      @write_pages.fill(window, 0xa0, 0x20)
-    end
-
     def map_io_pages
       {
         vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
@@ -247,6 +234,7 @@ module Badline
       }.each do |chip, pages|
         pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
       end
+      @ram_expansion.map_io(@read_pages, @write_pages)
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
       @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
       map_cartridge_io if @cartridge

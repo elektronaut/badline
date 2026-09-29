@@ -538,7 +538,7 @@ describe Badline::KernalTrap::Drive do
 
     it "writes the file" do
       drive.save("game", [0x01, 0x08])
-      expect(storage).to have_received(:write_file).with("game", [0x01, 0x08])
+      expect(storage).to have_received(:write_file).with("game", [0x01, 0x08], type: :prg, replace: false)
     end
 
     it "reports OK" do

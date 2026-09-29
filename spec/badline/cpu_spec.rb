@@ -1893,4 +1893,42 @@ describe Badline::CPU do
       expect(cpu.a).to eq(0x07)
     end
   end
+
+  describe "the SO pin" do
+    before { cpu.status.overflow = false }
+
+    it "sets V on a falling edge" do
+      cpu.so = false
+      expect(cpu.status.overflow?).to be(true)
+    end
+
+    it "sets V once for a held level" do
+      cpu.so = false
+      cpu.status.overflow = false
+      cpu.so = false
+      expect(cpu.status.overflow?).to be(false)
+    end
+
+    it "leaves V alone on a rising edge" do
+      cpu.so = false
+      cpu.status.overflow = false
+      cpu.so = true
+      expect(cpu.status.overflow?).to be(false)
+    end
+
+    it "sets V on each pulse" do
+      cpu.so!
+      cpu.status.overflow = false
+      cpu.so!
+      expect(cpu.status.overflow?).to be(true)
+    end
+
+    it "lets a CLV; BVC * loop go on the next pulse" do
+      execute([0xb8, 0x50, 0xfe]) # CLV; loop: BVC loop
+      10.times { cpu.step! }
+      cpu.so!
+      cpu.step!
+      expect(cpu.program_counter).to eq(start_addr + 3)
+    end
+  end
 end

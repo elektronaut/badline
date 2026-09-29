@@ -1,8 +1,20 @@
 # frozen_string_literal: true
 
+require "badline/storage/disk_image/bam"
+require "badline/storage/disk_image/directory"
+require "badline/storage/disk_image/writing"
+
 module Badline
   module Storage
+    # A disk image served as a drive. It reads files and blocks, and
+    # writes them back to the host file through Writing. One opened with
+    # `read_only` is a write-protected disk, and the host file is never
+    # written.
     class DiskImage
+      include Bam
+      include Directory
+      include Writing
+
       SECTOR_SIZE = 256
       ENTRY_SIZE = 32
       ENTRIES_PER_SECTOR = 8
@@ -13,10 +25,15 @@ module Badline
       # the read, write and ID errors, 74 is DRIVE NOT READY.
       DOS_ERRORS = (2..11).to_h { |code| [code, code + 18] }.merge(15 => 74).freeze
 
-      def initialize(path)
+      def initialize(path, read_only: false)
+        @path = path
+        @read_only = read_only
         @bytes = File.binread(path).bytes
         @errors = split_error_table
       end
+
+      # Whether the image was opened write-protected.
+      def read_only? = @read_only
 
       # A LOAD reads only PRG files. An OPEN names the type it wants, or
       # takes the first file of any type with a nil `type`.
@@ -123,12 +140,16 @@ module Badline
       def entries
         @entries ||= begin
           list = []
-          each_sector(directory_track, directory_sector) { |data| list.concat(parse_entries(data)) }
+          each_sector(directory_track, directory_sector) do |data, track, sector|
+            list.concat(parse_entries(data, sector_offset(track, sector)))
+          end
           list
         end
       end
 
-      def parse_entries(data)
+      # Each entry keeps the offset of its slot in the image, where a write
+      # updates it.
+      def parse_entries(data, offset)
         (0...ENTRIES_PER_SECTOR).filter_map do |i|
           entry = data[i * ENTRY_SIZE, ENTRY_SIZE]
           type = FILETYPES.key(entry[2] & 0x07)
@@ -137,7 +158,9 @@ module Badline
           { name: decode_name(entry[5, 16]),
             type:,
             track: entry[3],
-            sector: entry[4] }
+            sector: entry[4],
+            locked: entry[2].anybits?(0x40),
+            offset: offset + (i * ENTRY_SIZE) }
         end
       end
 

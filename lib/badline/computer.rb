@@ -5,7 +5,9 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :address_bus, :cpu, :cycles
+    attr_reader :address_bus, :cpu, :cycles, :drive1541
+
+    def region = address_bus.region
 
     def vic = address_bus.vic
 
@@ -29,8 +31,14 @@ module Badline
 
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
-    def initialize(debug: false, sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569)
-      @address_bus = AddressBus.new(sid_model:, cia_model:, vic_model:)
+    # The machine options (sid_model:, cia_model:, vic_model:, region: and
+    # ram_expansion:) configure the AddressBus. The region sets the clock,
+    # the VIC's raster and the mains frequency the CIAs' TOD clocks count.
+    # Only PAL runs as yet. reu plugs an REU of that many K into the
+    # expansion port, where it drives the IRQ line and takes the bus for
+    # its transfers.
+    def initialize(debug: false, reu: nil, **machine)
+      @address_bus = AddressBus.new(**machine)
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
@@ -42,7 +50,6 @@ module Badline
       @nmi_asserted = false
       @cartridge_nmi = false
       @restore_pulse = false
-      @reu = nil
       @reu_irq = false
       @dma = false
       @freezing = false
@@ -50,6 +57,10 @@ module Badline
       @init_handlers = []
       @pending_keys = nil
       @drive = nil
+      @serial_trap = nil
+      @drive1541 = nil
+      @iec_bus = nil
+      @reu = reu ? plug_reu(reu) : nil
     end
 
     INIT_THRESHOLD = 2_500_000
@@ -71,6 +82,7 @@ module Badline
       drive_nmi
       watch_freeze if @freezing
       clock_cpu
+      @drive1541&.host_cycle!
 
       @cycles += 1
     end
@@ -88,16 +100,6 @@ module Badline
       power_cycle!
     end
 
-    # An REU in the expansion port, which drives the IRQ line and takes the
-    # bus for its transfers. Unlike a cartridge it goes in without a power
-    # cycle, so a booted machine can take one.
-    def attach_reu(reu)
-      @reu = reu
-      reu.on_irq_change { |level| @reu_irq = level }
-      reu.on_dma { @dma = true }
-      address_bus.attach_reu(reu)
-    end
-
     def reu = address_bus.reu
 
     # A cartridge goes in with the power off, so attaching one switches the
@@ -110,10 +112,10 @@ module Badline
     end
 
     # The RES line reaches the CPU and its port, both CIAs, the SID, the
-    # cartridge port and, through the serial bus's RESET line, the drive.
-    # The VIC has no reset pin.
+    # cartridge port, a RAM expansion and, through the serial bus's RESET
+    # line, the drive. The VIC has no reset pin.
     def reset!
-      address_bus.reset_port!
+      address_bus.reset!
       @cia1.reset!
       @cia2.reset!
       @sid.reset!
@@ -121,6 +123,7 @@ module Badline
       @reu&.reset!
       @dma = false
       @drive&.reset!
+      @drive1541&.reset!
       @freezing = false
       @nmi_asserted = false
       cpu.reset!
@@ -147,17 +150,51 @@ module Badline
       @restore_pulse = true
     end
 
-    # A disk swap keeps the drive's RAM, which only a drive reset clears.
+    # Puts the storage in device 8. Mounting again swaps the disk at any
+    # point while the machine runs: the drive keeps its RAM, which only a
+    # drive reset clears, and its status.
     def mount(storage)
-      @drive_memory ||= KernalTrap::Drive::Memory.new
-      @drive = KernalTrap::Drive.new(storage, @drive_memory)
+      return @drive.insert(storage) if @drive
+
+      @drive = KernalTrap::Drive.new(storage)
       load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-      KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive).install
-      return unless storage.respond_to?(:write_file)
-
+      @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
       save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
       cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
+    end
+
+    # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
+    # serial traps, so the KERNAL's routines go out over the serial bus.
+    # Mounting again starts a new drive, with its RAM cleared.
+    def unmount
+      return unless @drive
+
+      cpu.remove_trap(KernalTrap::Load::ADDRESS)
+      cpu.remove_trap(KernalTrap::Save::ADDRESS)
+      @serial_trap.device = nil
+      @serial_trap = nil
+      @drive = nil
+    end
+
+    # Plugs in a Drive1541, which then runs alongside the C64 on its own
+    # clock and talks to it over the serial bus. The serial traps stop
+    # answering the drive's device number, so the KERNAL's TALK, LISTEN and
+    # byte transfers reach the drive. The LOAD and SAVE traps stay, and
+    # still serve a mounted image.
+    def attach_drive1541(drive)
+      @iec_bus.detach(@drive1541) if @iec_bus && @drive1541
+      drive.host_clock_hz = region.clock_hz
+      @drive1541 = drive
+      drive.connect(iec_bus)
+      @serial_trap&.device = serial_trap_device
+    end
+
+    # The serial bus. CIA 2's port A joins it the first time it's asked
+    # for, which plugging in a drive does. Until then port A's serial
+    # inputs float high.
+    def iec_bus
+      @iec_bus ||= IECBus.new(host: @cia2).tap { |bus| @cia2.peripheral = bus }
     end
 
     def capture_output
@@ -180,6 +217,12 @@ module Badline
 
     private
 
+    # The device number the serial traps answer: device 8, unless a true
+    # drive is on the bus as device 8.
+    def serial_trap_device
+      @drive1541&.device == KernalTrap::Routine::DEVICE ? nil : KernalTrap::Routine::DEVICE
+    end
+
     # The NMI line is wired-OR between CIA 2, the cartridge and the RESTORE
     # key, and the CPU takes an interrupt on its falling edge.
     def drive_nmi
@@ -187,6 +230,14 @@ module Badline
       @restore_pulse = false
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
+    end
+
+    def plug_reu(size_kb)
+      reu = REU.new(size_kb, bus: @address_bus, vic: @vic)
+      reu.on_irq_change { |level| @reu_irq = level }
+      reu.on_dma { @dma = true }
+      @address_bus.attach_reu(reu)
+      reu
     end
 
     # BA halts the CPU on a read cycle, and so does an REU holding the bus

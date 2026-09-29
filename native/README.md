@@ -8,6 +8,20 @@ through Spinel's FFI (`ffi_func`, `ffi_buffer` and the
 with Spinel only and doesn't run on CRuby. `exe/badline-ruby` is the same
 emulator on CRuby.
 
+## Installing
+
+With Homebrew:
+
+```sh
+brew install elektronaut/tap/badline
+badline --version
+```
+
+The formula builds the release's pack (see [Packing](#packing)) with the
+system's C compiler, so it needs no Spinel, and pulls in SDL2. It comes
+from the [elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap)
+tap, which each release updates.
+
 ## Building
 
 Build Spinel from source (`make deps && make`) and install SDL2
@@ -36,24 +50,69 @@ spinel -I native/lib -I lib --no-line-map --rbs spinel/sig native/badline.rb \
   -o tmp/native/badline --cc="cc $(pkg-config --libs-only-L sdl2)"
 ```
 
+### Packing
+
+`rake native:pack` writes a tarball that builds the native badline with a
+C compiler and make alone, from Spinel's `spin pack`: the generated C,
+Spinel's runtime sources and a Makefile, plus the ROMs.
+
+```sh
+SPINEL=~/src/spinel/bin/spinel rake native:pack
+```
+
+The task stages a spin project in `tmp/native/pack/project`, whose
+manifest names the load path as path dependencies, and packs it into
+`tmp/native/pack/badline-VERSION`. The tarball is
+`tmp/native/badline-VERSION-spinel-COMMIT.tar.gz`, and its `PACK-INFO`
+names the badline version, the revision and the Spinel build. `SPIN`
+names `spin` if it isn't beside `SPINEL`.
+
+To build a pack by hand, point the linker at SDL2 and the binary at the
+ROMs, which it otherwise looks for where the pack was made:
+
+```sh
+tar -xzf badline-0.4.0-spinel-15f037af.tar.gz && cd badline-0.4.0
+LIBRARY_PATH="$(brew --prefix)/lib" make -j
+BADLINE_ROM_PATH=roms ./badline --version
+```
+
+The Homebrew formula in `packaging/homebrew/badline.rb` does the same,
+installing the ROMs under its share directory. When release-please cuts a
+release, the Build workflow's `homebrew` job packs the tag, builds and
+boots the pack, attaches it to the GitHub release and pushes the formula,
+with the release's url and sha256, to the tap. The job stays off until the
+repository has a `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with
+Contents read and write access to `elektronaut/homebrew-tap`.
+
 ## The source
 
 - `native/badline.rb` is the entry point: it reads the options, builds
   the machine and runs the window.
 - `native/lib/badline/native.rb` requires the emulator core from `lib/`
   file by file, since `lib/badline.rb` also loads the CRuby front end,
-  then the members in `native/lib/badline/native/`:
+  and badline-ruby's player from `lib/badline/audio` but for its SDL
+  sink and its io/console terminal, then the members in
+  `native/lib/badline/native/`:
   - `sdl.rb` declares the SDL2 functions, structs and constants the
-    others call, and `LibC`'s `malloc` and `free`.
+    others call, and `LibC`'s `malloc`, `free` and `poll`.
   - `app.rb` (`App`) opens the window and runs the frame loop.
-  - `screen.rb` (`Screen`) repacks the VIC's display for the texture.
+  - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
+    and `drive_led.rb` (`DriveLed`) places and colours the true drive's
+    LED over it.
   - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue.
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
-    directions, and `controls.rb` (`Controls`) routes them to the
-    keyboard or the joysticks.
+    directions, and `controls.rb` (`Controls`) holds the input mode and
+    routes keys and the mouse to the keyboard, the joysticks or a pot
+    device.
   - `gamepads.rb` (`Gamepads`) opens and polls the game controllers, and
     `pad_port.rb` (`PadPort`) maps each one onto a joystick.
-  - `options.rb` (`Options`) parses the command line.
+  - `options.rb` (`Options`) parses the command line, and `help.rb`
+    holds its `--help`.
+  - `headless.rb` (`Headless`) runs `--headless` and `--audio-out` with
+    badline-ruby's `Audio::CLI`, handing it `audio_sink.rb`
+    (`AudioSink`), SDL's audio queue for playback, and `console.rb`
+    (`Console`), the terminal in raw mode through `stty`, waiting for
+    keys with `poll(2)`.
   - `pacer.rb` (`Pacer`) and `frame_rate.rb` (`FrameRate`) decide how many
     cycles a frame clocks and how long it waits.
   - `version.rb` and `build_info.rb` make the `--version` line.
@@ -70,20 +129,31 @@ tmp/native/badline [options] [media]
 tmp/native/badline vendor/OneLoad64-Games-Collection-v5/IK+.crt
 ```
 
-It takes `exe/badline-ruby`'s window options, parsed by
+It takes `exe/badline-ruby`'s options, parsed by
 `Badline::Native::Options` inside Spinel's subset rather than with
-OptionParser. `badline --help` lists them:
+OptionParser, with the same checks and messages. `badline --help` lists
+them. The window's are below, and `--headless` and `--audio-out` play or
+render a `.sid` tune without it, as described under
+[Without the window](#without-the-window).
 
 - `-s`, `--song N` picks a subtune of a `.sid` file, and `--sid 6581` or
   `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
   the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
+- `--read-only` mounts a disk image write-protected, leaving its file
+  unchanged.
+- `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
+  traps, as in `exe/badline-ruby`: a `.d64` or `.g64` goes into it and
+  autostarts through its DOS, and its LED lights in the bottom right
+  corner of the border. A `.g64` plugs one in without it.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
   plays unless told not to (`--sound` is accepted too).
 - `--no-vsync` paces PAL frames by the timer, or by the sound, instead of
   the display. See [Pacing](#pacing).
+- `--verbose` prints the display, sound and game controller setup as the
+  window opens, and the frame report below.
 - `--version` names the build.
 
 Values can also come as `--song=2`, and `--` ends the options. Three more
@@ -103,16 +173,22 @@ changed into a streaming texture, presents it and waits.
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
   C64 keys `GUI::KeyMap` gives the same keys by name. Esc is RUN/STOP
   and Page Up is RESTORE.
-- Tab switches to joystick mode and back. As in the SDL front end's
-  joystick mode, the arrow keys and space drive joystick 2 and WASD and
-  left shift drive joystick 1. F9 swaps the two, for games that read
-  port 1, and the title bar names the port the arrows drive.
+- Tab steps through `exe/badline-ruby`'s input modes, and shift-Tab
+  steps back: keyboard, joystick, a 1351 mouse on port 1 or 2, and
+  paddles on port 1 or 2. The title bar names the mode.
+- In joystick mode, as in the SDL front end's, the arrow keys and space
+  drive joystick 2 and WASD and left shift drive joystick 1. F9 swaps the
+  two, for games that read port 1, and the title bar names the port the
+  arrows drive.
+- In the mouse and paddle modes the host mouse is held in relative mode.
+  Its motion moves the 1351 or turns the paddles, and its left and right
+  buttons go to the 1351's buttons or the two paddles' fire buttons.
 - Game controllers drive the joysticks as in `exe/badline-ruby`: the
   first one found drives joystick 2 and a second one joystick 1. The
   D-pad and the left stick steer, and every face and shoulder button
   fires. Controllers are picked up when they are plugged in or out.
 
-Every 50 frames it prints the frame rate, the time per frame spent on
+With `--verbose`, every 50 frames it prints the frame rate, the time per frame spent on
 events, emulation, audio, the texture upload, presenting and waiting, and
 the slowest frame's work. With sound on it adds the samples queued per
 second, the queue's range, and the underruns and dropped samples so far.
@@ -126,7 +202,32 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
   tmp/native/badline --frames 150 --unpaced --screenshot tmp/native/ready.bmp
 ```
 
-There is no mouse or paddle support yet.
+### Without the window
+
+`--headless` plays a `.sid` tune on the host's audio device, and
+`--audio-out FILE` renders it to a `.wav` or `.aiff` file, as
+`badline-ruby --headless` and `--audio-out` do (see
+[Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
+They take the same options: `--song`, `--sid`, `--seconds`,
+`--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
+The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
+`--verbose` and the testing ones included, are refused with them.
+
+It runs badline-ruby's own player from `lib/badline/audio`: the tune
+runs on the bare rig or the whole machine as there, and a render is the
+same file byte for byte. Two parts differ. The audio device is
+`AudioSink`, which queues the samples through Spinel's FFI as
+`Audio::SDLSink` does through ruby-sdl2, and without a display SDL's
+dummy or disk audio drivers work (`SDL_AUDIODRIVER=dummy`). On a
+terminal, `Console` puts it in raw mode with `stty raw -echo isig` and
+restores it with `stty` afterwards, and waits for keys with `poll(2)`,
+where badline-ruby uses io/console and io/wait. A signal handler turns
+Ctrl-C into `Interrupt`, which stops the tune as in badline-ruby.
+
+```sh
+tmp/native/badline --headless tune.sid
+tmp/native/badline --seconds 180 tune.sid --audio-out out.wav
+```
 
 ### Pacing
 
@@ -148,8 +249,9 @@ and 6,842 at 144 Hz, so the machine runs at its own speed on any display.
   samples are dropped.
 - If presenting doesn't wait, as with vsync off in the display's driver
   or under SDL's dummy video driver, the frames come faster than 1.5 times
-  the refresh rate. After 10 frames, and at every report, that prints a
-  notice and falls back to a timer, keeping the display-sized frames.
+  the refresh rate. After 10 frames, and at every report, that falls
+  back to a timer, keeping the display-sized frames, and `--verbose`
+  prints a notice.
 
 `--no-vsync` runs PAL frames of 19,656 cycles instead, paced by the sound
 as below or, without it, by a 20 ms timer.
@@ -175,13 +277,14 @@ queue (`SDL_QueueAudio`). Without vsync, the pacing follows
 - Muted, or when the device won't open, the samples are dropped and the
   frames go back to the timer.
 
-Spinel hands the queue an `Array` of Integers as 64-bit words, so each word
-packs four signed 16-bit samples, and a frame's last one to three samples
-wait for the next frame.
+Each frame's samples go onto the queue through an `IO::Buffer` of signed
+16-bit values (`set_value(:s16, ...)`), which Spinel's FFI hands to
+`SDL_QueueAudio` as a `:buffer_in` pointer.
 
 ### The texture
 
 Spinel hands an `Array` of Integers to C as 64-bit words, and a texture
 wants 32-bit pixels, so `Screen` packs two neighbouring pixels into each
 word of an `XRGB8888` texture, where the top byte of each pixel is
-ignored.
+ignored. The frames stay an `Array`, because writing them into an
+`IO::Buffer` with `set_value` was slower than the `Array` stores.

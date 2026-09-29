@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "fileutils"
+require_relative "../support/blank_disk"
 require_relative "../support/cartridge_builder"
+require_relative "../support/drive1541_rom"
 
 RSpec.describe Badline::Computer do
   let(:computer) { described_class.new }
@@ -365,7 +368,54 @@ RSpec.describe Badline::Computer do
       end
 
       it "saves through the backend" do
-        expect(writable).to have_received(:write_file).with("DATA", [0x00, 0xc0, 0xaa, 0xbb])
+        expect(writable).to have_received(:write_file)
+          .with("DATA", [0x00, 0xc0, 0xaa, 0xbb], type: :prg, replace: false)
+      end
+    end
+
+    context "when unmounted" do
+      let(:disk) do
+        instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0],
+                                                    read_error: nil, write_file: nil)
+      end
+
+      before do
+        computer.mount(disk)
+        computer.unmount
+      end
+
+      it "leaves LOAD to the KERNAL" do
+        run_load
+        return_to_caller
+        expect(disk).not_to have_received(:read_file)
+      end
+
+      it "leaves SAVE to the KERNAL" do
+        run_save
+        return_to_caller
+        expect(disk).not_to have_received(:write_file)
+      end
+
+      it "loads through the LOAD trap once mounted again" do
+        computer.mount(disk)
+        run_load
+        return_to_caller
+        expect(ram.peek(0xc000)).to eq(0x01)
+      end
+    end
+
+    context "with a true drive on device 8" do
+      let(:disk) { instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0]) }
+
+      before do
+        computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub))
+        computer.mount(disk)
+        run_load
+        return_to_caller
+      end
+
+      it "still loads through the LOAD trap" do
+        expect(ram.peek(0xc000)).to eq(0x01)
       end
     end
 
@@ -385,6 +435,58 @@ RSpec.describe Badline::Computer do
 
       it "keeps the drive's RAM, where the last LOAD left its first block" do
         expect(second_disk).to have_received(:read_file_at).with(17, 0)
+      end
+    end
+
+    context "when disk images change mid-session" do
+      include BlankDisk
+
+      let(:dir) { Dir.mktmpdir }
+
+      # The image as its host file holds it
+      def image(name) = Badline::Storage::D64Image.new(File.join(dir, name))
+
+      before do
+        blank_d64(File.join(dir, "first.d64"))
+        blank_d64(File.join(dir, "second.d64"))
+        image("first.d64").write_file("data", [0x00, 0xc0, 0x01])
+        image("second.d64").write_file("other", [0x00, 0xc0, 0x02])
+        computer.mount(image("first.d64"))
+        run_load
+        return_to_caller
+        computer.mount(image("second.d64"))
+      end
+
+      after { FileUtils.remove_entry(dir) }
+
+      it "loads from the disk swapped in" do
+        run_load("OTHER")
+        return_to_caller
+        expect(ram.peek(0xc000)).to eq(0x02)
+      end
+
+      it "saves to the disk swapped in" do
+        run_save
+        return_to_caller
+        expect(image("second.d64").read_file("data")).to eq([0x00, 0xc0, 0xaa, 0xbb])
+      end
+
+      it "leaves the first disk alone" do
+        run_save
+        return_to_caller
+        expect(image("first.d64").read_file("data")).to eq([0x00, 0xc0, 0x01])
+      end
+    end
+
+    context "when a read-only disk replaces one that takes a SAVE" do
+      before do
+        computer.mount(writable)
+        computer.mount(read_only)
+      end
+
+      it "leaves SAVE to the ROM" do
+        run_save
+        expect(computer.cpu.stack_pointer).to eq(0xfd)
       end
     end
 
@@ -511,5 +613,38 @@ RSpec.describe Badline::Computer do
 
   it "ignores the freeze button without a cartridge" do
     expect { computer.press_cartridge_button }.not_to raise_error
+  end
+
+  describe "#attach_drive1541" do
+    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+
+    before { drive.ram.write(0x0300, [0x4c, 0x00, 0x03]) } # JMP *
+
+    it "runs no drive until one is attached" do
+      100.times { computer.cycle! }
+      expect(computer.drive1541).to be_nil
+    end
+
+    it "clocks the drive at 1 MHz against the C64's clock" do
+      computer.attach_drive1541(drive)
+      30_789.times { computer.cycle! } # 1/32 of a second
+      expect(drive.cycles).to eq(31_250)
+    end
+
+    it "leaves CIA 2's port A off the serial bus until a drive is attached" do
+      expect(computer.cia2.peripheral).to be_nil
+    end
+
+    it "puts the drive on the serial bus behind CIA 2's port A" do
+      computer.attach_drive1541(drive)
+      expect([drive.serial_bus, computer.cia2.peripheral]).to eq([computer.iec_bus, computer.iec_bus])
+    end
+
+    it "resets the drive with the C64" do
+      computer.attach_drive1541(drive)
+      drive.cpu.program_counter = 0x0500
+      computer.reset!
+      expect(drive.cpu.program_counter).to eq(0x0300)
+    end
   end
 end

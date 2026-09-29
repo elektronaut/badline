@@ -13,10 +13,12 @@
 
 require "badline/version"
 require "badline/integer_helper"
+require "badline/region"
 require "badline/addressable"
 require "badline/memory"
 require "badline/color_memory"
 require "badline/rom"
+require "badline/ram_expansion"
 require "badline/address_bus"
 require "badline/instruction"
 require "badline/instruction_set"
@@ -52,20 +54,21 @@ module Testbench
   def self.cia_model(name) = name == "mos6526a" ? :mos6526a : :mos6526
   def self.vic_model(name) = name == "mos8565" ? :mos8565 : :mos6569
 
+  # The memory expansion a test line names, or nil for none.
+  def self.expansion(fields) = fields.length > 8 && !fields[8].empty? ? fields[8] : nil
+
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
-  # cartridge path, program, directory, CIA model, VIC-II model, memory
-  # expansion and REU size in K, with an empty cartridge or program for
-  # a test without one, an empty expansion and a size of 0 for one
-  # without an REU. A String in and a String out, so that `spin ext` can
+  # cartridge path, program, directory, CIA model, VIC-II model and memory
+  # expansion, with an empty cartridge, program or expansion for a test
+  # without one. A String in and a String out, so that `spin ext` can
   # export it to CRuby as it stands.
   def self.run_test(test)
     fields = test.chomp.split("\t")
     type = fields[1]
     cartridge = fields[3].empty? ? nil : fields[3]
-    computer = machine(cartridge, cia_model(fields[6]), vic_model(fields[7]))
-    exit_code = Execution.new(computer, fields[9].to_i).run(type != "exitcode", cartridge, fields[5], fields[4],
-                                                            fields[2].to_i)
+    computer = machine(cartridge, cia_model(fields[6]), vic_model(fields[7]), expansion(fields))
+    exit_code = Execution.new(computer).run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
     out = "test #{fields[0]}\n"
     out << "exit #{exit_code.nil? ? 'none' : exit_code.to_s}\n"

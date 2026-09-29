@@ -46,7 +46,7 @@ requires only the namespace file.
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, `REU/`, and cartridges with `--carts` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, and the true 1541 drive with `--drive` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
@@ -139,7 +139,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
-`testbench-cpu` and 2 for `testbench-carts`. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-cpu`, 2 for `testbench-carts` and 10 for `testbench-expansions`. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -172,7 +172,9 @@ the rows your change can't reach tell you nothing about it.
   nightly run. It also runs from the Actions tab on demand. It never runs
   on push or on pull requests, so one verdict can cover a day's merges.
   The `testbench-*` and `sid-8580` suites run from the Actions tab on
-  demand
+  demand. The Spinel workflow runs the Spinel suites on pull requests
+  that touch emulation, harness or build paths. Its jobs aren't required
+  checks yet, and the CRuby Regression nightly runs as before
 - The one exception is a change whose reach you can't bound to a set of
   filters, such as reordering `Computer#cycle!` or changing the LOAD trap
   every suite loads through. Ask before running a full suite for it, and
@@ -185,7 +187,9 @@ CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,
 the 6526A) for anything the interrupt register or the CIA model reaches; cartridge mappers, banking or power-on state →
-`testbench-carts`; the REU, or the VIC's BA line it follows → `testbench-reu`; SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K,
++256K, the REU or the VIC's BA line the REU follows → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
+`testbench-drive` (`bin/testbench --drive`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Lorenz isn't a per-change check:
 its full chain runs nightly, and the planner assigns any row it moves. The
 exception is code whose rule in `doc/pinned-behaviour.md` names Lorenz
@@ -221,6 +225,24 @@ because the suite can stay green while the rule breaks.
 ## Issues and pull requests
 
 Before filing an issue or opening a pull request, read CONTRIBUTING.md and follow it. Use the exact headings from its skeletons. Report only what you observed or verified, and don't include hypotheses about causes. Open an issue before writing non-trivial code; only changes with one obvious fix (typos, broken links, clear-cut fixes) go straight to a pull request.
+
+### Working from issues
+
+Open issues are agreed work. An agent told to pick issues works this way:
+
+- Pick an open issue without the `in-progress` label whose dependencies
+  (named in its body) have merged. Add the label and a comment saying you've
+  taken it before you start
+- Work in a worktree from `origin/main` as described under *Working in
+  parallel*. The issue's text is your brief. If it turns out wrong or
+  blocked, comment on the issue and stop rather than widening the scope
+- Open one pull request per issue with `Closes #N` in its body, and run
+  only the rows your change can reach. Picking an issue is permission to
+  commit, push and open that pull request
+- Never merge, and never enable auto-merge. The planner session reviews
+  every pull request, answers through PR reviews, and merges
+- Fix review findings on the same branch. If you drop an issue, remove
+  the label and say why in a comment
 
 ## Git
 

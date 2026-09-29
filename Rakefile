@@ -7,6 +7,7 @@ require_relative "test/regression"
 require_relative "spinel/check"
 require_relative "spinel/sidtests_check"
 require_relative "native/build"
+require_relative "native/pack"
 
 VENDORED_REPOS = {
   "65x02" => {
@@ -63,10 +64,20 @@ REGRESSION_SUITES = {
 # the same id.
 # testbench-vicii-new is the testlist's vicii-new rows on a machine with an
 # 8565 VIC-II, kept apart from testbench for the same reason.
-# testbench-reu is the REU subtree, each row with an REU of the size its
-# options ask for, less REU/floatingbus/floating3b, which never reports
-# and would spend most of the suite's time running out its 1.5 billion
-# cycles.
+# testbench-general is the machine-level rows of the testlist's C64/ and
+# general/ subtrees that the Lorenz suite leaves over: the power-on RAM
+# pattern, BASIC's pointers after a load, banking, the RAM under the CPU
+# port and emu-fuxxor's checks.
+# testbench-expansions is the testlist's rows that ask for a memory
+# expansion badline emulates, from whichever subtree lists them: the
+# geo512k rows on a machine with a 512K GEO-RAM, the plus60k and plus256k
+# rows on a machine with that RAM expansion fitted, and the REU rows on a
+# machine with an REU of the size each asks for. REU/floatingbus/floating3b
+# is left out: it never reports, and would spend most of the suite's time
+# running out its 1.5 billion cycles.
+# testbench-drive is the testlist's drive/ rows, and the included subtrees'
+# mountd64 ones, on a machine with a true 1541, which needs the DOS ROM.
+# drive/1541-testsuite, about twelve hours a row, is left out of it.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -78,7 +89,10 @@ OPT_IN_SUITES = {
   "testbench-carts" => { runner: "bin/testbench", args: %w[--carts] },
   "testbench-cia-new" => { runner: "bin/testbench", args: %w[--cia-new] },
   "testbench-vicii-new" => { runner: "bin/testbench", args: %w[--vicii-new] },
-  "testbench-reu" => { runner: "bin/testbench", scope: "REU/", exclude: "REU/floatingbus/floating3b" },
+  "testbench-general" => { runner: "bin/testbench", scope: "C64/,general/" },
+  "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions],
+                              exclude: "REU/floatingbus/floating3b" },
+  "testbench-drive" => { runner: "bin/testbench", args: %w[--drive], spinel: false },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 
@@ -323,8 +337,11 @@ end
 
 # The bin/testbench suites on the Spinel build: bin/testbench runs each
 # one's tests on tmp/spinel/testbench, one build process per shard, and
-# scores them as it does in process.
-SPINEL_TESTBENCH_SUITES = ALL_SUITES.select { |_, config| config[:runner] == "bin/testbench" }.keys.freeze
+# scores them as it does in process. The Spinel build has no true drive,
+# so testbench-drive isn't one of them.
+SPINEL_TESTBENCH_SUITES = ALL_SUITES.select do |_, config|
+  config[:runner] == "bin/testbench" && config.fetch(:spinel, true)
+end.keys.freeze
 
 def spinel_testbench_suites(suite)
   return SPINEL_TESTBENCH_SUITES if suite == "all"
@@ -463,6 +480,12 @@ namespace :native do
   task :build do
     NativeBuild.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil),
                                                      sdl2_flags: ENV.fetch("SDL2_LDFLAGS", nil))
+  end
+
+  desc "Pack the native badline with spin pack into #{NativeBuild::OUT}/badline-VERSION-spinel-COMMIT.tar.gz, " \
+       "which builds with a C compiler and make alone (SPINEL=compiler, SPIN=spin, default: beside SPINEL)"
+  task :pack do
+    NativePack.pack(ENV.fetch("SPINEL", "spinel"), spin: ENV.fetch("SPIN", nil))
   end
 end
 
