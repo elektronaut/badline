@@ -6,7 +6,12 @@ module Badline
     # device 8 go to a virtual drive instead of out over the IEC lines, so
     # OPEN/CHKIN/CHRIN reach a CBM DOS, and so do the block reads that
     # loaders make through them. Other devices fall through to the ROM.
+    #
+    # With +device+ nil the traps answer no device, and every frame goes
+    # out over the bus, to a true drive if one is plugged in.
     class Serial < Routine
+      attr_accessor :device
+
       ROUTINES = {
         0xed09 => :talk,
         0xed0c => :listen,
@@ -29,9 +34,10 @@ module Badline
 
       NO_DATA = [0x0d, EOI | READ_TIMEOUT].freeze
 
-      def initialize(cpu:, bus:, drive:)
+      def initialize(cpu:, bus:, drive:, device: DEVICE)
         super(cpu:, bus:)
         @drive = drive
+        @device = device
         @listening = false
         @talking = false
         @listen_channel = nil
@@ -66,13 +72,13 @@ module Badline
       # in the secondary address that follows.
       def talk
         @talk_channel = nil
-        @talking = @cpu.a == DEVICE
+        @talking = @cpu.a == @device
         return_to_caller if @talking
       end
 
       def listen
         @listen_channel = nil
-        @listening = @cpu.a == DEVICE
+        @listening = @cpu.a == @device
         return_to_caller if @listening
       end
 

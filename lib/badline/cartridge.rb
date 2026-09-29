@@ -26,6 +26,7 @@ require "badline/cartridge/atomic_power"
 require "badline/cartridge/final_cartridge3"
 require "badline/cartridge/retro_replay"
 require "badline/cartridge/kcs_power"
+require "badline/cartridge/geo_ram"
 
 module Badline
   class Cartridge

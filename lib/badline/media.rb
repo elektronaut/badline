@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/media/true_drive"
+
 module Badline
   module Media
     AUTOSTART = %(lO"*",8,1\rrun\r)
@@ -14,20 +16,29 @@ module Badline
     }.freeze
 
     class << self
-      # `cartridge` sets the jumpers of a .crt cartridge that has them, such
-      # as `{ flash_jumper: true }` for the Retro Replay's flash mode.
-      def attach(computer, path, autostart: true, song: nil, cartridge: {})
-        if File.directory?(path)
+      # The options are the medium's own. `cartridge:` sets the jumpers of a
+      # .crt cartridge that has them, such as `{ flash_jumper: true }` for
+      # the Retro Replay's flash mode, and `disk: { read_only: true }` mounts
+      # a disk image write-protected, so nothing the program does writes to
+      # its file. Media they don't apply to ignore them.
+      #
+      # A .g64 plugs in a true drive as device 8 (TrueDrive), and with one
+      # there, a .d64 goes into it instead of the KERNAL traps too. The
+      # autostart then loads through it.
+      def attach(computer, path, autostart: true, song: nil, **options)
+        if TrueDrive.takes?(computer, path)
+          attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
+        elsif File.directory?(path)
           computer.mount(Storage::HostDirectory.new(path))
           "Mounted #{path} as device 8"
         elsif File.extname(path).downcase == ".crt"
-          attach_cartridge(computer, path, cartridge)
+          attach_cartridge(computer, path, options.fetch(:cartridge, {}))
         elsif File.extname(path).downcase == ".sid"
           attach_sid(computer, path, autostart:, song:)
         elsif File.extname(path).downcase == ".tap"
           attach_tape(computer, path, autostart:)
-        elsif (storage = MOUNT_TYPES[File.extname(path).downcase])
-          attach_storage(computer, storage.new(path), path, autostart:)
+        elsif MOUNT_TYPES.key?(File.extname(path).downcase)
+          attach_storage(computer, path, options.fetch(:disk, {}), autostart:)
         else
           attach_prg(computer, path, autostart:)
         end
@@ -35,12 +46,19 @@ module Badline
 
       # Swaps the disk in device 8 for a disk image or a host directory,
       # while the machine runs, without loading anything. The drive keeps
-      # its RAM and its status.
-      def insert_disk(computer, path)
-        storage = disk_storage(path)
-        raise ArgumentError, "#{path} is not a disk image or a directory" unless storage
+      # its RAM and its status. `read_only` inserts a disk image
+      # write-protected.
+      #
+      # A .g64 goes in a true 1541, which is plugged in as device 8 when
+      # there's none yet (TrueDrive). Once a true 1541 is device 8, a .d64
+      # goes in its drive as well, and other disks, which a 1541 can't
+      # read, raise TrueDrive::Error, an ArgumentError.
+      def insert_disk(computer, path, read_only: false)
+        return TrueDrive.insert(computer, path, read_only:) if TrueDrive.takes?(computer, path)
 
-        computer.mount(storage)
+        raise ArgumentError, "#{path} is not a disk image or a directory" unless disk?(path)
+
+        computer.mount(open_storage(path, { read_only: }))
         "Inserted #{path} in device 8"
       end
 
@@ -54,11 +72,18 @@ module Badline
 
       private
 
-      def disk_storage(path)
+      def disk?(path)
+        storage = MOUNT_TYPES[File.extname(path).downcase]
+        File.directory?(path) || (!storage.nil? && storage < Storage::DiskImage)
+      end
+
+      # Disk images take the `disk` options. A .t64 is read-only whatever
+      # it's given.
+      def open_storage(path, disk)
         return Storage::HostDirectory.new(path) if File.directory?(path)
 
         storage = MOUNT_TYPES[File.extname(path).downcase]
-        storage.new(path) if storage && storage < Storage::DiskImage
+        storage < Storage::DiskImage ? storage.new(path, **disk) : storage.new(path)
       end
 
       def attach_cartridge(computer, path, options)
@@ -88,8 +113,14 @@ module Badline
         "Inserted #{path} in the datasette"
       end
 
-      def attach_storage(computer, storage, path, autostart:)
-        computer.mount(storage)
+      def attach_true_drive(computer, path, disk, autostart:)
+        message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
+        computer.type_text(AUTOSTART) if autostart
+        message
+      end
+
+      def attach_storage(computer, path, disk, autostart:)
+        computer.mount(open_storage(path, disk))
         computer.type_text(AUTOSTART) if autostart
         "Mounted #{path} as device 8"
       end
@@ -103,11 +134,14 @@ module Badline
 
       def start_prg(computer, data, autostart:)
         load_addr = computer.load_prg(data)
-        # Run only makes sense for programs at BASIC start.
-        return unless autostart && load_addr == BASIC_START
+        # Run only makes sense for programs at BASIC start, or a byte ahead
+        # of it, where BASIC keeps the zero before its first line.
+        return unless autostart && (load_addr == BASIC_START || load_addr == BASIC_START - 1)
 
+        # The end of the program, where BASIC's variables start, and where
+        # the KERNAL's LOAD leaves its end address.
         end_addr = load_addr + data.length - 2
-        computer.ram.write(0x2d, [end_addr & 0xff, end_addr >> 8])
+        [0x2d, 0xae].each { |pointer| computer.ram.write(pointer, [end_addr & 0xff, end_addr >> 8]) }
         computer.type_text("run\r")
       end
     end

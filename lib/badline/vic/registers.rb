@@ -108,6 +108,7 @@ module Badline
         when 0x1a # only the four latch bits
           @bytes[reg] = value & 0x0f
           update_irq_line
+        when 0x1e, 0x1f then nil # the collision registers are read-only
         else @bytes[reg] = value
         end
       end

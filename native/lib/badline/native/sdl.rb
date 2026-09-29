@@ -23,6 +23,8 @@ module Badline
       ffi_func :SDL_DestroyTexture, [:ptr], :void
       ffi_func :SDL_UpdateTexture, %i[ptr ptr int_array int], :int
       ffi_func :SDL_RenderClear, [:ptr], :int
+      ffi_func :SDL_SetRenderDrawColor, %i[ptr int int int int], :int
+      ffi_func :SDL_RenderFillRect, %i[ptr ptr], :int
       ffi_func :SDL_RenderCopy, %i[ptr ptr ptr ptr], :int
       ffi_func :SDL_RenderPresent, [:ptr], :void
       ffi_func :SDL_PollEvent, [:ptr], :int
@@ -35,6 +37,7 @@ module Badline
       ffi_func :SDL_RWFromFile, %i[str str], :ptr
       ffi_func :SDL_SaveBMP_RW, %i[ptr ptr int], :int
       ffi_func :SDL_InitSubSystem, [:uint32], :int
+      ffi_func :SDL_QuitSubSystem, [:uint32], :void
       ffi_func :SDL_OpenAudioDevice, %i[ptr int ptr ptr int], :uint32
       ffi_func :SDL_CloseAudioDevice, [:uint32], :void
       ffi_func :SDL_PauseAudioDevice, %i[uint32 int], :void
@@ -61,8 +64,12 @@ module Badline
       ffi_read_u8 :event_button, 16
 
       ffi_buffer :rect, 16
+      ffi_write_i32 :rect_x, 0
+      ffi_write_i32 :rect_y, 4
       ffi_write_i32 :rect_w, 8
       ffi_write_i32 :rect_h, 12
+      # Where the drive LED goes.
+      ffi_buffer :led_rect, 16
 
       # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
       ffi_buffer :display_mode, 24
@@ -107,6 +114,14 @@ module Badline
     module LibC
       ffi_func :malloc, [:size_t], :ptr
       ffi_func :free, [:ptr], :void
+      ffi_func :poll, %i[ptr size_t int], :int
+
+      ffi_const :POLLIN, 0x01
+
+      # struct pollfd: int fd; short events, revents.
+      ffi_buffer :pollfd, 8
+      ffi_write_i32 :pollfd_fd, 0
+      ffi_write_i16 :pollfd_events, 4
     end
   end
 end

@@ -58,6 +58,46 @@ Recorded output of the headless hardware suites, one file per suite:
   `testbench-cia-new`: all but `VICII/lp-trigger/test2new` are listed
   again under `vicii-old`, with the same id. Its FAIL rows are the ones
   [VIC-II 8565](../../doc/pinned-behaviour.md#vic-ii-8565) explains.
+- `testbench-general.txt` — the same runner scoped to `C64/` and
+  `general/`, over the testlist's machine-level rows outside the Lorenz
+  suite: the power-on RAM pattern (`C64/raminitpattern`), BASIC's pointers
+  after a load (`C64/autostart/basic`), the machine state after a load
+  (`C64/autostart/defaults`), banking and open I/O (`C64/bankio`,
+  `C64/openio`, `general/banking00`), the RAM under the CPU port
+  (`general/ram0001`) and emu-fuxxor's checks (`general/fuxxortest`). All
+  `exitcode` tests. `general/Lorenz-2.15` is left to `lorenz`, apart from
+  its `cia-new` rows in `testbench-cia-new`. Two `fuxxortest` rows,
+  `ef2-inst1` and `test-fuxxored`, upload code to the drive and run it
+  there, which needs a true 1541, so `bin/testbench` doesn't list them.
+- `testbench-expansions.txt` — the same runner with `--expansions`, over
+  the rows that ask for a memory expansion badline emulates, from
+  whichever subtree lists them: the `geo512k` rows of `GEO-RAM` and
+  `memory-expansions`, and the `plus60k` and `plus256k` rows. Each boots
+  with its expansion fitted, a 512K GEO-RAM or the +60K or +256K RAM
+  expansion, then loads and runs its program like any other row. Rows
+  that ask for an REU, Isepic, DQBB or RamCart drop out. All `exitcode`
+  tests.
+- `testbench-drive.txt` — the same runner with `--drive`, over the
+  testlist's `drive/` rows, each run on a machine with a true 1541 on the
+  serial bus and the row's `mountd64` or `mountg64` image in it. Nothing
+  is mounted through the LOAD trap, so every disk access goes through
+  the drive's DOS, which needs `dos1541.rom` in the ROM path. The drive
+  writes back to the image, so each row gets a scratch copy of it, and
+  `drive/format` formats its copy rather than the testprogs' own.
+  `drive/writeprotect` is an `interactive` row, which the runner
+  doesn't run. Rows of the other included subtrees that mount a `.d64`
+  would run here too, and rows that mount a `.p64` drop out. The
+  `rpm` and `scanner` programs run once on a `.d64` and once on a
+  `.g64` under the same id, so the `.g64` row's key is the id with
+  `#2`. `drive/skew/skew1` passes since the disk turns at 300 rpm and a
+  `.d64` starts each track's sector 0 where `N:` would ([1541 disk
+  mechanism](../../doc/pinned-behaviour.md#1541-disk-mechanism)), with
+  the `scanner` error-map rows still passing.
+  `drive/1541-testsuite`'s two rows,
+  at about twelve hours each, run only under `--1541-testsuite` and have
+  no baseline. `drive/readtest` has no testlist row, so nothing runs it.
+  The Spinel build has no drive, so `rake spinel:testbench` leaves this
+  suite out. All `exitcode` tests.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
@@ -175,6 +215,8 @@ nothing runs on a push or a pull request. Any suite, nightly or opt-in, can
 also be started by name from the Actions tab, and a run started there and
 the nightly run never cancel each other. The `testbench-*` suites and
 `sid-8580` are opt-in: run them from the Actions tab or as rake tasks.
+`testbench-drive` runs only as a rake task, since the workflow doesn't
+list it.
 The separate Spinel workflow runs the Spinel suites on every pull request
 that touches emulation, harness or build paths. Its jobs aren't required
 checks yet, and the CRuby nightly run above goes on as before.
@@ -195,9 +237,20 @@ what the suite cost before it was sharded:
 | `testbench-carts` | 64 | 11 min | 7 min | 2 min |
 | `testbench-cia-new` | 93 | 145 min | 52 min | 16 min |
 | `testbench-vicii-new` | 32 | 13 min | 0.5 min | 0.2 min |
+| `testbench-general` | 18 | 4 min | 0.2 min | 0.1 min |
+| `testbench-expansions` | 7 | 22 min | 11 min | 10 min |
 
-The `testbench-cia-new` and `testbench-vicii-new` rows were measured on a
-four-core cloud container, not the laptop, and on CRuby with YJIT.
+The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general` and
+`testbench-expansions` rows were measured on a four-core cloud container,
+not the laptop, and on CRuby with YJIT, `testbench-general` over two
+shards.
+`memory-expansions/c64-georam-emd.prg` is nearly all of
+`testbench-expansions`, which no sharding shortens. Its worst case is
+the rows' budgets at the throughput of that run, not a timed run.
+`testbench-drive` was measured on that container too, without
+`drive/format`: its other 37 rows took 88 minutes serial and 24 at four
+shards. The 19 `viavarious` rows are 60 of those minutes, about three
+each, since a second CPU runs alongside the machine.
 
 `bin/lorenz` chains itself, one LOAD after the next, and is by far the
 slowest suite whole: about two and a half hours on CI. It can also run as
@@ -304,6 +357,22 @@ explain.
     and 73 passes, with x64sc's cycle count one higher than badline's
     column. The failures are a run from line 58 to line 61 and single
     cycles on lines 56, 61, 62 and 63.
+- `drive/inertia/drive-emu-check.prg` (`testbench-drive`, exit `$ff`)
+  prints `00,EMU,00,00`, which its readme gives as every emulator's
+  answer; a real 1541 says `OK`. It steps the head four half tracks in
+  about 500 cycles each, which the model follows at once, and then finds
+  the head two tracks away from the header it searches for. A real head
+  can't follow steps that fast. Passing it takes a stepper that moves the
+  head over time.
+- `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
+  the testlist's second row for the program, the one that mounts
+  `test.d64`. It runs with the true drive and `test.d64` in it, but the
+  harness injects the program as it does for the plain row, so nothing
+  loads from the disk. It fails as its twin in `testbench-general` does
+  (below), with the same dump apart from CIA 2's port A, which reads `$97`
+  where the twin reads `$d7`. The test masks those two bits off. In both
+  rows the four bytes at `$9ff4` that the reference wants to hold the
+  loaded file's name, `TEST`, read `$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
@@ -321,3 +390,15 @@ explain.
     lines in the first character after a `$dd00` bank switch, where the
     reference shows the other bank's character. The output matches the
     6569 reference there.
+- `C64/raminitpattern/cyberloadtest.prg`, `darkstarbbstest.prg` and
+  `platoontest.prg` (`testbench-general`, exit `$ff`) check the pattern
+  RAM powers on with, and badline powers RAM on at `$00`. All three pass
+  on VICE's default pattern (`$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted
+  every `$4000` bytes). That pattern is a change to the power-on state of
+  every suite's machine, so it is left to a change of its own.
+- `C64/autostart/defaults/test.prg` (`testbench-general`, exit `$ff`)
+  compares the machine against a dump taken after `LOAD"TEST",8` and `RUN`
+  on a real C64 with a real drive, down to zero page, CIA 1's timer B and
+  CIA 2's port A. The harness injects the program instead of loading it.
+  Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
+  exits `$ff` as well.

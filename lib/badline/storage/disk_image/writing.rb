@@ -6,11 +6,12 @@ module Badline
       # Writes to the image: files with their chains, directory entries and
       # BAM, raw blocks, and BAM changes. Each write goes back to the host
       # file at once. A write the disk refuses raises WriteError and leaves
-      # the image as it was, and so does one the host can't store, which
-      # fails as a write-protected disk does.
+      # the image as it was, and so does one to a read-only image or one
+      # the host can't store, which fail as a write-protected disk does.
       module Writing
-        # Whether the host file takes writes.
-        def writable? = ::File.writable?(@path)
+        # Whether the disk takes writes: the image wasn't opened read-only
+        # and the host file takes them.
+        def writable? = !read_only? && ::File.writable?(@path)
 
         # Writes a new file, or with `replace` writes over the one of the
         # same name in its directory entry. A name already on the disk
@@ -54,6 +55,22 @@ module Badline
         # table marks bad reads cleanly once written.
         def write_block(track, sector, data)
           update_image { put_sector(track, sector, data) } if block?(track, sector)
+        end
+
+        # Stores blocks as a true drive read them back off its disk, in one
+        # write to the host file. Each is [track, sector, data, error]: nil
+        # data leaves the block's bytes as they were, and the error, the
+        # DOS error a read of it raises or nil, goes into the error table
+        # when the image has one.
+        def store_blocks(blocks)
+          update_image do
+            blocks.each do |track, sector, data, error|
+              next unless block?(track, sector)
+
+              put_sector(track, sector, data) if data
+              @errors[track_offset(track) + sector] = error ? DOS_ERRORS.key(error) : 1 if @errors
+            end
+          end
         end
 
         # Marks a block in use, as B-A does.

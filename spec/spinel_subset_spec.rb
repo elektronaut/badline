@@ -87,6 +87,10 @@ describe SpinelSubset do
         .to eq(%w[instance_variable_get instance_variable_set].map { |c| "code.rb:1: #{c}" })
     end
 
+    it "flags defined? on an instance variable" do
+      expect(scan("return @a if defined?(@a)\ndefined?(a)")).to eq(["code.rb:1: defined?(@ivar)"])
+    end
+
     it "flags ObjectSpace and binding" do
       expect(scan("ObjectSpace.each_object {}; binding"))
         .to eq(%w[ObjectSpace binding].map { |c| "code.rb:1: #{c}" })

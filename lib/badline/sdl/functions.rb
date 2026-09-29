@@ -42,6 +42,7 @@ module Badline
     RenderSetLogicalSize = function("SDL_RenderSetLogicalSize", [POINTER, INT, INT], INT)
     SetRenderDrawColor = function("SDL_SetRenderDrawColor", [POINTER, UINT8, UINT8, UINT8, UINT8], INT)
     RenderClear = function("SDL_RenderClear", [POINTER], INT)
+    RenderFillRect = function("SDL_RenderFillRect", [POINTER, POINTER], INT)
     RenderCopy = function("SDL_RenderCopy", [POINTER, POINTER, POINTER, POINTER], INT)
     RenderPresent = function("SDL_RenderPresent", [POINTER], VOID)
     CreateRGBSurfaceFrom = function("SDL_CreateRGBSurfaceFrom",

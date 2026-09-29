@@ -29,6 +29,8 @@ only catches the rows that happen to move.
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
+- [1541 serial port](#1541-serial-port)
+- [1541 disk mechanism](#1541-disk-mechanism)
 - [SID oscillator](#sid-oscillator)
 - [SID register writes](#sid-register-writes)
 - [SID data bus](#sid-data-bus)
@@ -402,6 +404,14 @@ only catches the rows that happen to move.
 - Spec guard: *#collide_upto* in
   [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
   four examples each fail on a one-pixel change.
+- $D01E and $D01F are read-only. A write, including the write-back of a
+  read-modify-write such as `LSR $D01E`, changes neither register.
+  - Pinned by `general/fuxxortest/ef2-inst4a`, which shifts each frame's
+    collision out of $D01E with `LSR`. Storing the shifted value back
+    leaves bit 0 set for the next frame, which reads as a collision one
+    pixel to the right of every real one.
+  - Spec guard: *with a collision register* in
+    [`vic/registers_spec.rb`](../spec/badline/vic/registers_spec.rb).
 
 ## VIC border and idle state
 
@@ -1073,6 +1083,142 @@ and each was knocked out: removing it fails the rows named.
     before the KERNAL does.
   - Spec guard: *when powered on* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+- A write to `$00` or `$01` goes to the port, and the RAM below takes the
+  byte the VIC fetched in the phi1 half of the same cycle, as in VICE's
+  `zero_store`. Only the VIC reads that RAM.
+  - Pinned by `general/ram0001/test1`, which puts the byte in `$3fff` for
+    the idle fetch, and `general/fuxxortest/ef2-inst4a`, which uses two
+    sprite pointer fetches. Both read the RAM back through sprite
+    collisions.
+  - Spec guard: *when a program writes to the port* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+
+## 1541 serial port
+
+- The drive sees the C64's side of the serial bus a host cycle late. The
+  drive runs after the C64 in each host cycle, so `SerialPort` reads the
+  C64's lines as `latch_host` took them at the end of the previous host
+  cycle, both on VIA 1's port B (DATA IN, CLK IN, ATN IN) and on CA1,
+  which ATN reaches. A CIA 2 write lands for the drive's cycles of the
+  next host cycle, the way the CIA's pins change at the end of the cycle
+  that writes them. The drive's own lines, and what the C64 reads back,
+  stay live.
+- The 2-bit loader that uploads the drive tests' code times its transfer
+  from an ATN edge, and seeing that edge a cycle early loses the first bit
+  pair.
+- Pinned by the `testbench-drive` rows below. Each was checked by having
+  the drive read the live lines (`@bus.atn_low?` and `@bus.low_lines`
+  with no argument) and rerunning the rows:
+  - Fail without the latch (`exit=$ff`): `drive/selftest`,
+    `drive/diskid/diskid1`, `drive/interrupts/timera`, all six
+    `drive/scanner` rows, both `drive/openbus` rows and
+    `drive/viavarious/via1`, `via3a` and `via10`.
+  - Pass either way: `drive/defaults`, `drive/rpm/rpm1` and `rpm2`,
+    `drive/skew/skew1` and `drive/iecdelay/iec-bus-delay-auto`.
+- Spec guard: *sees an assertion from the host cycle after the one it
+  lands in* and *shows the drive the C64's CLK from the host cycle after
+  the write* in [`iec_bus_spec.rb`](../spec/badline/iec_bus_spec.rb).
+
+## 1541 disk mechanism
+
+- A step out against the stop at track 1 slips the stepper's phases: the
+  head stays on half track 2, and the phase that pulled it outwards
+  becomes that half track's. The DOS's bump steps out 92 half tracks, a
+  whole number of phase turns, and then takes the phase it ends on as
+  track 1's: `N:` formats track 1 there and steps in two phases a track.
+  With each half track holding its own phase from power-on instead, the
+  bump ended two half tracks off track 1's phase, the first step in
+  pulled the head against the stop, and the DOS wrote track 2 over track
+  1 and every later track one track out, at half track 2n - 2.
+  - The DOS reads its own format back either way, since each header
+    carries the track the DOS thought it was on: `drive/format` passes
+    without the slip, and so doesn't pin it. Reading the disk back into a
+    D64 does, since each header has to name the track the image holds it
+    on.
+  - Spec guard: *steps in from the stop with the first phase after the
+    bump* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    and *lists it through the traps* (`:slow`) in
+    [`drive1541_spec.rb`](../spec/badline/drive1541_spec.rb).
+- The disk turns at 300 rpm whatever bit rate VIA 2's PB5-6 select: a
+  turn is 200,000 drive cycles over every track and over a half track
+  without data. Each track's bits pass under the head at the rate they
+  were written at: spread evenly over the turn, so a track as long as a
+  turn holds at its zone's rate passes at that rate and a `.g64` track
+  longer or shorter than that passes faster or slower, and a `.g64`
+  speed map widens each byte's cells by its zone. The read clock runs at
+  the selected rate and each flux transition brings it back into step,
+  so a track read in its own zone reads clean and one read far enough
+  off garbles (zone 0 against zone 3). With the rate selected turning
+  the disk instead, a zone 3 track read in zone 0 read clean and took
+  246 ms a turn, and a `.g64` track turned in its length of bytes.
+  - Pinned by `drive/rpm` (`rpm1`, `rpm2` and `rpm3`, on the `.d64` and
+    the `.g64`): each times a turn and passes within 297 to 303 rpm.
+  - Pinned by `drive/skew/skew2`, on a `.g64` whose tracks all start
+    sector 0 at the same angle: the head keeps the disk's angle across
+    the tracks and half tracks it steps over only while every track
+    turns in the same time.
+  - Pinned by `drive/scanner` (all six programs, on the `.d64` and the
+    `.g64`), which reads every track and each track's error map.
+  - Spec guard: the *at 300 rpm* examples and *turns once in 200 ms* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    and *#cell_at* in
+    [`track_spec.rb`](../spec/badline/drive1541/track_spec.rb).
+- A write lays its bits one to a cell from the cell under the head. A
+  half track without data gets a blank track first, as long as a turn at
+  the rate the drive writes at, not at the rate of the track's own zone,
+  and a track written in another zone is laid out again as a turn at the
+  rate written, its flux kept at its angle to within a cell. A track
+  written in the selected zone keeps its length, so a `.g64` track
+  longer or shorter than a turn keeps the sectors around the one written.
+  - Pinned by `drive/rpm/rpm3`, which writes track 36, past a 35-track
+    D64, at the zone 2 rate the DOS leaves selected there: a turn and a
+    half of SYNC and five bytes, and times a turn by reading it back.
+    With a zone 0 track of 6250 bytes a turn took 175,001 cycles
+    (342.86 rpm, `exit=$ff`). With the last byte's leftover part of a
+    cell widening the track's last cell, instead of the cells spread
+    evenly over the turn, the SYNC broke there and the turn read as
+    194,728 cycles (`exit=$ff`).
+  - Spec guard: *gives a half track a blank track 7142 bytes around,
+    written in zone 2* in
+    [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb), and *lays
+    a track written in another zone out again as a turn at the zone
+    written* and *writes a turn of SYNC that reads back without a break*
+    in [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+- A disk made from a `.d64` starts sector 0 of each track where the DOS's
+  `N:` leaves it: track 1 at the index angle, and each track after it
+  round from the last by the skew `N:` leaves in its zone, 0.6869 of a
+  turn in zone 3, 0.8915 in zone 2, 0.0897 in zone 1 and 0.2916 in zone
+  0. Those are measured off a disk formatted here with `N:`.
+  - Pinned by `drive/skew/skew1`, which expects a `.d64` to read with
+    the skew a DOS format leaves. With every track starting sector 0 at
+    the same angle it read `kernal format, tracks are aligned`
+    (`exit=$ff`).
+  - The skew moves which block the DOS meets first on each track, and
+    `drive/scanner`'s three error-map rows (`scanner35e`, `40e`, `42e`)
+    read track 4's error 22 only when the header comes first. They pass
+    with this skew at 300 rpm. With the rate selected turning the disk,
+    the same skew made them read track 4 as error 27, which is why
+    `skew1` failed before.
+  - Spec guard: *starts sector 0 of track N where the DOS's N: leaves
+    it* in [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
+- The CPU sees BYTE READY on SO a cycle late: BYTE READY sets V for the
+  next cycle's instruction step, not the one in the cycle it falls in.
+  - Pinned by `drive/hls-protection`. Its drive code counts the bytes
+    from one SYNC mark to the next, reading `$1C00` for SYNC once per
+    byte, 20 to 22 cycles after each BYTE READY with the delay (19 to 21
+    without). The SYNC marks it has to find follow an `$AF`, whose four
+    trailing 1 bits make SYNC six bits, 19 cycles in zone 3, after its
+    BYTE READY; the ones it has to miss follow a `$2B`, eight bits on.
+    With V set in the same cycle, the read sometimes came a cycle
+    before SYNC, depending on the bit phase: on track 1 two of the 16
+    counts read `$02C8`, two sectors' worth, and the testbench row failed
+    (`exit=$ff`) on track 17. With the delay, tracks 1, 5, 10, 12 and 17
+    (the 4-cycle loop) and 18, 20 and 24 (the 6-cycle loop) all read as
+    the test expects.
+  - Spec guard: *sets V through SO while CA2 is high, a cycle after BYTE
+    READY* in
+    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
 
 ## SID oscillator
 

@@ -78,6 +78,11 @@ class SpinelSubset
       super
     end
 
+    def visit_defined_node(node)
+      record(node, "defined?(@ivar)") if node.value.is_a?(Prism::InstanceVariableReadNode)
+      super
+    end
+
     def visit_constant_read_node(node)
       record(node, node.name.to_s) if CONSTANTS.include?(node.name)
       super
