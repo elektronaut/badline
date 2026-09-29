@@ -2,6 +2,7 @@
 
 require "badline/vic/sprite/internal_bus"
 require "badline/vic/sprite/shifter"
+require "badline/vic/sprite/timing"
 
 module Badline
   class VIC < Cycleable
@@ -21,9 +22,6 @@ module Badline
       # mid-line $d017 write that steps it past 63 keeps it running.
       LAST_MCBASE = 63
       MC_MASK = 0x3f
-
-      # The X comparator matches the pixel before the sprite's first one.
-      COMPARE_OFFSET = X_OFFSET - 1
 
       # 24 bits at two pixels each, plus slack for a mid-sprite expansion
       # change stretching the tail.
@@ -48,7 +46,8 @@ module Badline
 
       # On the line of its last row, a sprite whose DMA ended at cycle 16
       # loses its display at cycle 58, so no hit from this pixel on starts
-      # it (spritegap3). One already shifting runs on.
+      # it (spritegap3). One already shifting runs on. A region whose
+      # display compare falls later moves it with the compare.
       DISPLAY_OFF_X = 460
 
       include Shifter
@@ -63,6 +62,7 @@ module Badline
         @bank = bank
         @bus = bus
         @width = bus.columns * 8
+        @timing = bus.timing
         @bit = 1 << index
         @dma = false
         @display_on = false
@@ -78,8 +78,9 @@ module Badline
         @reload_codes = Array.new(MAX_SPAN + RELOAD_HOLD, 0)
         @reload_leftmost = 0
         @reload_span = 0
-        @reload_x = (RELOAD_X + (RELOAD_STEP * index)) % @width
-        @reload_next_line = RELOAD_X + (RELOAD_STEP * index) < @width
+        reload = @timing.reload_x(index)
+        @reload_x = reload % @width
+        @reload_next_line = reload < @width
         @sr = 0
         @latch = 0
         @mc_flop = false
@@ -168,7 +169,7 @@ module Badline
       def check_dma(line, column)
         return false if @dma || !enabled? || !y_match?(line)
 
-        @first_byte_lost = column + 2 > 55 + (2 * index)
+        @first_byte_lost = column + 2 > @timing.ba_column(index)
         @dma = true
         @mcbase = 0
         @exp_ff = true
@@ -229,7 +230,7 @@ module Badline
         return unless @row_ready || @prev_bits || reload_bits
 
         log = nil if log.nil? || log.empty?
-        @stop_x = @dma ? nil : DISPLAY_OFF_X
+        @stop_x = @dma ? nil : @timing.display_off_x
         comparator_hits(log).each { |start| sequence_hit(log, start, reload_bits) }
       end
 
@@ -261,7 +262,7 @@ module Badline
       def blind_fetch
         @bits = @bus.row(index)
         @row_ready = true
-        @show_from = DISPLAY_OFF_X
+        @show_from = @timing.display_off_x
       end
 
       def code_at(raster_x, leftmost, span, codes)

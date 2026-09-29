@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe Badline::VIC::Sprite do
   subject(:sprite) { described_class.new(0, registers, bank, bus) }
 
-  let(:bus) { Badline::VIC::Sprite::InternalBus.new(bank, 63) }
+  let(:bus) { Badline::VIC::Sprite::InternalBus.new(bank, Badline::VIC::Sprite::Timing.new(Badline::Region::PAL)) }
 
   let(:registers) { Badline::VIC::Registers.new }
   let(:bank) { Badline::VIC::Bank.new }

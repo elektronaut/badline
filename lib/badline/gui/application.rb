@@ -28,12 +28,13 @@ module Badline
       }.freeze
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      # The machine options (sid_model:, true_drive:) build the machine, and
-      # true_drive puts a true 1541 on device 8. The media options
-      # (autostart:, song:, disk:) go to Media.attach.
+      # The machine options (sid_model:, true_drive:, ntsc:) build the
+      # machine: true_drive puts a true 1541 on device 8, and ntsc makes it
+      # an NTSC C64. The media options (autostart:, song:, disk:) go to
+      # Media.attach.
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
-        @computer = Computer.new(sid_model: machine[:sid_model] || Media.sid_model(media_path))
+        @computer = Computer.new(**machine_options(machine, media_path))
         Media::TrueDrive.plug(@computer) if machine[:true_drive]
         puts Media.attach(@computer, media_path, **media) if media_path
 
@@ -166,6 +167,12 @@ module Badline
                           on_underrun: -> { puts "Running below real time, so the sound will stutter." })
       rescue Audio::SDLSink::Error => e
         warn "badline: no sound, can't open the audio device: #{e.message}"
+      end
+
+      def machine_options(machine, media_path)
+        options = { sid_model: machine[:sid_model] || Media.sid_model(media_path) }
+        options[:region] = Region::NTSC if machine[:ntsc]
+        options
       end
 
       def fit_frame

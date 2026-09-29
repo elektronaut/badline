@@ -179,7 +179,8 @@ the rows your change can't reach tell you nothing about it.
 
 Pick the filters from the suites your change can move: VIC → `testbench`,
 plus `testbench-vicii-new` (`bin/testbench --vicii-new`, the 8565) for
-anything the VIC model reaches;
+anything the VIC model reaches, and `testbench-ntsc` (`bin/testbench --ntsc`,
+the 6567R8 and 6567R56A) for anything a region's timing reaches;
 CPU, interrupts or timing → the matching `testbench-*` suite, plus
 `rake test` for CPU; CIA → the slow CIA specs first, then the matching
 `testbench-cia` rows, plus `testbench-cia-new` (`bin/testbench --cia-new`,

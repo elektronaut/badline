@@ -4,34 +4,44 @@ require "spec_helper"
 require_relative "../../../native/lib/badline/native/frame_rate"
 
 describe Badline::Native::FrameRate do
-  describe ".pal" do
-    subject(:rate) { described_class.pal }
+  let(:pal_clock_hz) { Badline::Region::PAL.clock_hz }
 
-    it "clocks a PAL frame of 312 lines of 63 cycles in 20 ms" do
-      expect([rate.base_cycles, rate.seconds]).to eq([19_656, 0.02])
+  describe ".machine" do
+    it "clocks a PAL frame of 312 lines of 63 cycles at the PAL clock" do
+      rate = described_class.machine(Badline::Region::PAL)
+      expect([rate.base_cycles, rate.seconds]).to eq([19_656, 19_656 / 985_248.0])
+    end
+
+    it "clocks an NTSC frame of 263 lines of 65 cycles at the NTSC clock" do
+      rate = described_class.machine(Badline::Region::NTSC)
+      expect([rate.base_cycles, rate.seconds]).to eq([17_095, 17_095 / 1_022_727.0])
     end
   end
 
   describe ".display" do
     it "clocks as many cycles as the machine runs in one refresh" do
-      expect(described_class.display(60).base_cycles).to eq(16_420)
+      expect(described_class.display(60, pal_clock_hz).base_cycles).to eq(16_420)
     end
 
     it "lasts one refresh" do
-      expect(described_class.display(60).seconds).to be_within(1e-6).of(1.0 / 60)
+      expect(described_class.display(60, pal_clock_hz).seconds).to be_within(1e-6).of(1.0 / 60)
     end
 
     it "clocks fewer cycles on a faster display" do
-      expect(described_class.display(144).base_cycles).to eq(6842)
+      expect(described_class.display(144, pal_clock_hz).base_cycles).to eq(6842)
+    end
+
+    it "clocks at the machine's clock" do
+      expect(described_class.display(60, 1_022_727).base_cycles).to eq(17_045)
     end
 
     it "takes a display that reports no rate for 60 Hz" do
-      expect(described_class.display(0).refresh).to eq(60)
+      expect(described_class.display(0, pal_clock_hz).refresh).to eq(60)
     end
   end
 
   describe "#cycles" do
-    subject(:rate) { described_class.display(50) }
+    subject(:rate) { described_class.display(50, pal_clock_hz) }
 
     let(:base) { rate.base_cycles }
 
@@ -64,7 +74,7 @@ describe Badline::Native::FrameRate do
   end
 
   describe "#refit" do
-    subject(:rate) { described_class.display(60) }
+    subject(:rate) { described_class.display(60, pal_clock_hz) }
 
     it "sizes the frames to the rate measured" do
       rate.refit(625, 10.0)
@@ -83,7 +93,7 @@ describe Badline::Native::FrameRate do
   end
 
   describe "#vsync_holds?" do
-    subject(:rate) { described_class.display(60) }
+    subject(:rate) { described_class.display(60, pal_clock_hz) }
 
     it "holds while frames come at the display's rate" do
       expect(rate.vsync_holds?(50, 50 / 60.0)).to be(true)

@@ -2,13 +2,13 @@
 
 module Badline
   module Native
-    # The visible part of the VIC's display, as GUI::ScreenPane crops it,
-    # repacked for an SDL texture in XRGB8888. Spinel hands an Array of
-    # Integers to C as 64-bit words, so each word carries two neighbouring
-    # pixels, the left one in the low half.
+    # The visible part of the VIC's display, the crop of the machine's
+    # region as GUI::ScreenPane takes it, repacked for an SDL texture in
+    # XRGB8888. Spinel hands an Array of Integers to C as 64-bit words, so
+    # each word carries two neighbouring pixels, the left one in the low
+    # half. The texture is PAL's crop, 384x272, and a region with fewer
+    # lines to show sits in the middle of it, between black bands.
     class Screen
-      COL_OFFSET = Region::PAL.crop[0]
-      ROW_OFFSET = Region::PAL.crop[1]
       WIDTH = Region::PAL.crop[2]
       HEIGHT = Region::PAL.crop[3]
       ROW_BYTES = WIDTH * 4
@@ -27,6 +27,11 @@ module Badline
 
       def initialize(vic)
         @vic = vic
+        crop = vic.region.crop
+        @col_offset = crop[0]
+        @row_offset = crop[1]
+        @height = crop[3]
+        @band = (HEIGHT - @height) / 2
         @pixels = Array.new(HEIGHT * ROW_WORDS, 0)
       end
 
@@ -34,8 +39,8 @@ module Badline
       def update
         dirty = @vic.dirty_lines
         row = 0
-        while row < HEIGHT
-          pack_row(row) if dirty[row + ROW_OFFSET]
+        while row < @height
+          pack_row(row) if dirty[row + @row_offset]
           row += 1
         end
         @vic.clear_dirty_lines!
@@ -46,8 +51,8 @@ module Badline
       def pack_row(row)
         display = @vic.display
         pixels = @pixels
-        from = ((row + ROW_OFFSET) * @vic.width) + COL_OFFSET
-        to = row * ROW_WORDS
+        from = ((row + @row_offset) * @vic.width) + @col_offset
+        to = (row + @band) * ROW_WORDS
         last = to + ROW_WORDS
         while to < last
           pixels[to] = PAIRS[(display[from] & 0x0f) | ((display[from + 1] & 0x0f) << 4)]

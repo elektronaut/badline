@@ -122,6 +122,22 @@ describe Badline::Options do
       end
     end
 
+    context "with --ntsc" do
+      let(:argv) { ["--ntsc", program_path] }
+
+      it "runs an NTSC machine" do
+        expect(options.ntsc?).to be(true)
+      end
+    end
+
+    context "without --ntsc" do
+      let(:argv) { [program_path] }
+
+      it "runs a PAL machine" do
+        expect(options.ntsc?).to be(false)
+      end
+    end
+
     context "with --read-only" do
       let(:argv) { ["--read-only", program_path] }
 

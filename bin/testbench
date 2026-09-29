@@ -5,7 +5,7 @@
 #
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
-#                             [--cia-new] [--vicii-new] [--expansions]
+#                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -60,6 +60,14 @@
 # the expansion fitted, as VICE starts it, then loads and runs its program
 # like any other row.
 #
+# --ntsc runs the rows the testlist tags vicii-ntsc or vicii-ntscold
+# instead, each on an NTSC machine with the VIC-II it asks for, the 6567R8
+# or the 6567R56A. It combines with the options above: with --vicii-new it
+# takes the NTSC rows that ask for the 8562, and compares a screenshot row
+# against the 8562 reference. A screenshot is cropped to VICE's NTSC view,
+# 384x247 from line 28, which runs on past the last line into lines 0-11
+# of the next frame. Every other row runs on PAL.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
@@ -93,6 +101,7 @@ require "tmpdir"
 require_relative "../test/forked_boot"
 require_relative "../test/testbench_machine"
 require_relative "../test/testbench_drive"
+require_relative "../test/testbench_region"
 require_relative "../test/testbench_engine"
 
 module Testbench
@@ -121,7 +130,7 @@ module Testbench
   # row, which asks for the 6526A, only under --cia-new, a vicii-new row,
   # which asks for the 8565, only under --vicii-new, and a row that asks
   # for an expansion in EXPANSIONS only under --expansions.
-  SKIP_OPTIONS = /ntsc|drean|mountp64|
+  SKIP_OPTIONS = /drean|mountp64|
                   reu|isepic|dqbb|ramcart/x
   CARTRIDGE_OPTION = "mountcrt:"
   DISK_OPTION = /\Amount[dg]64:/
@@ -188,6 +197,7 @@ module Testbench
     end
 
     include DriveRow
+    include RegionRow
 
     def name
       return cartridge if prg.empty?
@@ -223,14 +233,6 @@ module Testbench
       File.expand_path(dir, Testbench::TESTBENCH_DIR)
     end
 
-    # An 8565 row compares against the program's 8565 reference, as VICE's
-    # testbench does, and falls back to the generic one where there is none.
-    def reference
-      base = File.join(dir_abs, "references", prg.empty? ? cartridge : prg)
-      new_chip = "#{base}-8565.png"
-      vic_model == :mos8565 && File.exist?(new_chip) ? new_chip : "#{base}.png"
-    end
-
     def cartridge_path
       File.join(dir_abs, cartridge)
     end
@@ -251,14 +253,17 @@ module Testbench
 
   # Which rows a run takes: the mountcrt rows or the others, the rows that
   # ask for the models, the CIA and the VIC-II, the rows that ask for a
-  # memory expansion or the others, and the rows that ask for the true
-  # drive (see TestCase#drive_kind) or the others.
-  Rows = Data.define(:carts, :models, :expansions, :drive) do
+  # memory expansion or the others, the rows that ask for the true drive
+  # (see TestCase#drive_kind) or the others, and the rows that ask for an
+  # NTSC VIC-II, either one, or the PAL ones.
+  Rows = Data.define(:carts, :models, :expansions, :drive, :ntsc) do
     def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false, drive: nil)
+
+    def initialize(carts:, models:, expansions:, drive:, ntsc: false) = super
 
     def include?(test)
       test.cartridge.nil? != carts && test.models == models && test.expansion.nil? != expansions &&
-        test.drive_kind == drive
+        test.drive_kind == drive && test.ntsc? == ntsc
     end
   end
 
@@ -273,11 +278,13 @@ module Testbench
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
-    # filters select, and separately for each CIA and VIC-II: a program
-    # listed for both chips keeps the key it has in each suite.
+    # filters select, and separately for each CIA and VIC-II and for PAL
+    # and NTSC: a program listed for both chips or both standards keeps the
+    # key it has in each suite. A program listed for both NTSC VIC-IIs
+    # takes #2 for the second.
     def numbered(tests)
       seen = Hash.new(0)
-      tests.each { |test| test.occurrence = seen[[test.id, *test.models]] += 1 }
+      tests.each { |test| test.occurrence = seen[[test.id, *test.models, test.ntsc?]] += 1 }
     end
 
     def selected?(test, filters, scope, exclude)
@@ -374,6 +381,14 @@ module Testbench
   end
 
   class Screenshot
+    # A PAL screenshot, 384x272, has the display window's top left corner
+    # at (32, 35), and an NTSC one, 384x247, at (32, 23). VICE compares two
+    # screenshots on the rows they share with those corners lined up, so an
+    # NTSC row that has only a PAL reference is compared on the rows both
+    # views show.
+    PAL_TOP = 35
+    NTSC_TOP = 23
+
     attr_reader :rows
 
     def initialize(rows)
@@ -383,31 +398,38 @@ module Testbench
     # Returns the number of mismatched pixels and writes failure artifacts.
     def compare(test)
       reference = ReferenceImage.new(test.reference)
-      return :ref_size unless reference.size == [WIDTH, HEIGHT]
+      width, height = reference.size
+      return :ref_size unless width == WIDTH && [HEIGHT, NTSC_HEIGHT].include?(height)
 
-      diff = HEIGHT.times.sum { |y| row_diff(reference.row(y), rows[y]) }
+      @skip = top(height) - top(rows.length)
+      return :ref_size if @skip.negative?
+
+      @shared = [rows.length, height - @skip].min
+      diff = @shared.times.sum { |y| row_diff(reference.row(y + @skip), rows[y]) }
       write_artifacts(test, reference) if diff.positive?
       diff
     end
 
     private
 
+    def top(height) = height == HEIGHT ? PAL_TOP : NTSC_TOP
+
     def row_diff(expected, actual)
       expected.each_index.count { |x| expected[x] != actual[x] }
     end
 
     def write_artifacts(test, reference)
-      base = File.join(ARTIFACT_DIR, test.id.tr("/", "-"))
+      base = File.join(ARTIFACT_DIR, test.key.tr("/", "-"))
       to_png { |x, y| rows[y][x] }.save("#{base}.actual.png")
       to_png do |x, y|
-        reference.row(y)[x] == rows[y][x] ? rows[y][x] : nil
+        y >= @shared || reference.row(y + @skip)[x] == rows[y][x] ? rows[y][x] : nil
       end.save("#{base}.diff.png")
     end
 
     # Builds a PNG from palette indices; nil pixels are marked red.
     def to_png(&)
-      png = ChunkyPNG::Image.new(WIDTH, HEIGHT)
-      HEIGHT.times do |y|
+      png = ChunkyPNG::Image.new(WIDTH, rows.length)
+      rows.length.times do |y|
         WIDTH.times do |x|
           index = yield(x, y)
           rgb = index ? PALETTE[index] : 0xFF0000
@@ -639,15 +661,17 @@ module Testbench
     # A cartridge test starts from power-on, so its machine is never booted:
     # one that loads a program boots in the child, with the cartridge in.
     # A drive test's machine boots with the drive. Each pair of CIA and
-    # VIC-II models and each expansion gets a machine of its own.
+    # VIC-II models, each video standard and each expansion gets a machine
+    # of its own.
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      @machines[[cartridge, test.drive?, *test.models, test.expansion]] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+      key = [cartridge, test.drive?, *test.models, test.region, test.expansion]
+      @machines[key] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
         if test.drive?
           Testbench.drive_machine(test.cia_model, test.vic_model)
         else
-          Testbench.machine(cartridge, test.cia_model, test.vic_model, test.expansion)
+          Testbench.machine(cartridge, test.cia_model, test.vic_model, test.expansion, region: test.region)
         end
       end
     end
@@ -748,7 +772,8 @@ if $PROGRAM_NAME == __FILE__
           elsif ARGV.delete("--drive") then :drive
           end
   rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
-                             expansions: !ARGV.delete("--expansions").nil?, drive:)
+                             expansions: !ARGV.delete("--expansions").nil?, drive:,
+                             ntsc: !ARGV.delete("--ntsc").nil?)
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
   tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)

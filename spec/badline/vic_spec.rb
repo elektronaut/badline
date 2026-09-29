@@ -30,6 +30,90 @@ RSpec.describe Badline::VIC do
       65.times { ntsc.cycle! }
       expect([ntsc.rasterline, ntsc.column]).to eq([1, 0])
     end
+
+    it "sizes the 6567R56A's raster to 64 cycles by 262 lines" do
+      old = described_class.new(region: Badline::Region::NTSC_OLD)
+      expect([old.width, old.height]).to eq([512, 262])
+    end
+  end
+
+  # Sprite 0's BA falls a column later on both NTSC VIC-IIs than on the
+  # 6569, and sprite 3's reaches the last column of the Y-match line on
+  # the 6567R8 (VICE `cycle_tab_ntsc`, `cycle_tab_ntsc_old`). Pinned by
+  # VICII/spritesteal/spritesteal_ntsc and _ntscold.
+  describe "sprite DMA cycle stealing on NTSC (#ba_low?)" do
+    subject(:ba) do
+      ntsc = described_class.new(region:)
+      ntsc.poke(0xd011, 0x1b)
+      ntsc.poke(0xd015, sprites)
+      ntsc.poke(0xd001, 60)
+      ntsc.poke(0xd007, 60)
+      ((60 * region.cycles_per_line) + column).times { ntsc.cycle! }
+      ntsc.ba_low?
+    end
+
+    let(:region) { Badline::Region::NTSC }
+    let(:sprites) { 0x01 }
+
+    context "with sprite 0 a column before it falls on the 6569" do
+      let(:column) { 54 }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "with sprite 0 three cycles before its first access" do
+      let(:column) { 55 }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "with sprite 0 on the 6567R56A" do
+      let(:region) { Badline::Region::NTSC_OLD }
+      let(:column) { 54 }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "with sprite 3 in the last column of the line" do
+      let(:sprites) { 0x08 }
+      let(:column) { 64 }
+
+      it { is_expected.to be(true) }
+    end
+  end
+
+  describe "#phi1_data on NTSC" do
+    subject(:data) do
+      ntsc = described_class.new(region:)
+      ntsc.poke(0xd011, 0x1b)
+      ntsc.poke(0xd018, 0x18)
+      ntsc.address_bus.ram.poke(0x3fff, 0xff)
+      ntsc.address_bus.ram.poke(0x07fb, 0x33)
+      ntsc.address_bus.ram.poke(0x07f8, 0x44)
+      ((60 * region.cycles_per_line) + column).times { ntsc.cycle! }
+      ntsc.phi1_data
+    end
+
+    let(:region) { Badline::Region::NTSC }
+
+    context "with sprite 0's pointer fetch in Bauer cycle 59" do
+      let(:column) { 58 }
+
+      it { is_expected.to eq(0x44) }
+    end
+
+    context "with the 6567R8's idle access in Bauer cycle 10" do
+      let(:column) { 9 }
+
+      it { is_expected.to eq(0xff) }
+    end
+
+    context "with the 6567R56A's sprite 3 pointer fetch in Bauer cycle 1" do
+      let(:region) { Badline::Region::NTSC_OLD }
+      let(:column) { 0 }
+
+      it { is_expected.to eq(0x33) }
+    end
   end
 
   describe "rasterline" do

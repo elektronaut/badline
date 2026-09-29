@@ -25,6 +25,7 @@ only catches the rows that happen to move.
 - [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
 - [VIC-II 8565](#vic-ii-8565)
+- [VIC-II NTSC](#vic-ii-ntsc)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
@@ -889,6 +890,47 @@ What the 8565 references don't settle, and so what stays as it is:
   before on the 8565. No testprog tells it apart, so the 8565 keeps the
   6569's idle access, without the 6569's `$38ff` read where a DMA delay
   starts.
+
+## VIC-II NTSC
+
+The 6567R8 (`Region::NTSC`) and the 6567R56A (`Region::NTSC_OLD`) run
+every VIC rule above, on a line of 65 or 64 cycles, except where the
+region moves the sprites. The positions follow VICE x64sc's
+`cycle_tab_ntsc` and `cycle_tab_ntsc_old`, and live in `Region::Profile`
+and `VIC::Sprite::Timing`.
+
+- **Sprite fetches.** Sprite 0's p-access runs in cycle 59 instead of
+  58, and everything that hangs off the fetches moves with it: the BA
+  windows (`VIC#layout_columns`), the DMA compares (columns 54 and 55
+  instead of 53 and 54), the phi1 accesses (`VIC#phi1_address`, where the
+  6567R8 idles in cycle 10), the column whose BA a late DMA start misses
+  (`Sprite::Timing#ba_column`), the reload pixels
+  (`Sprite::Timing#reload_x`) and the idle-bus row of sprites 3-7
+  (`Sprite::InternalBus#row`). On the 6567R8 sprite 3's fetch then falls
+  in the last two cycles of the line, so it reloads with the next line's
+  row as sprites 0-2 do. The expansion flip-flop still toggles in column
+  54.
+  - Pinned by `spritesteal_ntsc` and `_ntscold`, `spritex/testsuite_ntsc`
+    and `_ntscold`, `phi1timing_ntsc` and `_ntscold`, and
+    `spriteenable1_ntsc` and `2_ntsc` and their `_ntscold` twins (235 and
+    458 px), all in `testbench-ntsc`: with sprite 0 back in cycle 58 each
+    of them fails, and every other row of the sprite, phi1, dmadelay, vsp
+    and screenpos subsets passes as before.
+  - Spec guard: *sprite DMA cycle stealing on NTSC* and *#phi1_data on
+    NTSC* in [`vic_spec.rb`](../spec/badline/vic_spec.rb), and
+    [`timing_spec.rb`](../spec/badline/vic/sprite/timing_spec.rb).
+- **Display compare and X counter.** The 6567R8 turns a sprite's display
+  on and off in cycle 59 (`sprite_display_cycle`), where the 6567R56A
+  keeps the 6569's cycle 58. Its X counter holds for 8 pixels
+  (`x_hold`), reading $184-$187 three times, so it reaches $1ff on a
+  520-pixel line. The 6567R56A's runs straight through 512 pixels.
+  Neither is pinned yet: moving the 6567R8's display compare to 58, the
+  6567R56A's to 59, or running the 6567R8's counter straight through and
+  wrapping it at 512 fails no row of those subsets.
+- **Blanking and crop.** The blanked lines are the ones VICE's NTSC view
+  leaves out, 12-27 on the 6567R8 and 13-27 on the 6567R56A, so the
+  `testbench-ntsc` screenshots, VICE's 247 lines from line 28 running on
+  into the next frame, see every line they show painted.
 
 ## CIA 6526 timer pipeline
 

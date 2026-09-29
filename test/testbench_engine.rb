@@ -20,7 +20,7 @@ module Testbench
     # A test as a line of the list the build reads.
     def self.spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.cia_model, test.vic_model, test.expansion]
+       test.cia_model, test.vic_model, test.expansion, test.region]
         .join("\t") << "\n"
     end
 
@@ -30,7 +30,7 @@ module Testbench
       raise ArgumentError, "Expected #{test.key}, the build reported #{header}" unless header == "test #{test.key}"
 
       code = exit_line.delete_prefix("exit ")
-      screen = kind == "screen" ? body.first(HEIGHT).map { |row| row.chars.map { it.to_i(16) } } : body.first(25)
+      screen = kind == "screen" ? body.map { |row| row.chars.map { it.to_i(16) } } : body.first(25)
       Outcome.new(code == "none" ? nil : code.to_i, screen)
     end
 

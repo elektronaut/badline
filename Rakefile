@@ -75,6 +75,11 @@ REGRESSION_SUITES = {
 # testbench-drive is the testlist's drive/ rows, and the included subtrees'
 # mountd64 ones, on a machine with a true 1541, which needs the DOS ROM.
 # drive/1541-testsuite, about twelve hours a row, is left out of it.
+# testbench-ntsc is the testlist's vicii-ntsc and vicii-ntscold rows, from
+# whichever subtree lists them, each on an NTSC machine with the VIC-II it
+# asks for, the 6567R8 or the 6567R56A. testbench-ntsc-vicii-new and
+# testbench-ntsc-cia-new are its rows that ask for the 8562 or for 6526A
+# CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 OPT_IN_SUITES = {
@@ -89,6 +94,9 @@ OPT_IN_SUITES = {
   "testbench-general" => { runner: "bin/testbench", scope: "C64/,general/" },
   "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions] },
   "testbench-drive" => { runner: "bin/testbench", args: %w[--drive], spinel: false },
+  "testbench-ntsc" => { runner: "bin/testbench", args: %w[--ntsc] },
+  "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },
+  "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
 }.freeze
 

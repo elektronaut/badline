@@ -48,6 +48,13 @@ describe Badline::GUI::Application do
     end
   end
 
+  describe "the region" do
+    it "builds an NTSC machine when asked" do
+      described_class.new(machine: { ntsc: true })
+      expect(Badline::Computer).to have_received(:new).with(sid_model: :mos6581, region: Badline::Region::NTSC)
+    end
+  end
+
   describe "the true drive" do
     it "plugs a 1541 in as device 8" do
       described_class.new(machine: { true_drive: true })
