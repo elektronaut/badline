@@ -180,10 +180,7 @@ module Badline
       def report(at)
         @pacer.check(50, at - @reported, at)
         @pacer.measure(50, at - @reported)
-        if @verbose
-          report_frames(at)
-          report_sound(at) if @sound.on?
-        end
+        report_frames(at) if @verbose
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         @reported = at
@@ -193,6 +190,7 @@ module Badline
         fps = 50 / (at - @reported)
         stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
         puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
+        report_sound(at) if @sound.on?
       end
 
       def report_sound(at)
