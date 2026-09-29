@@ -9,6 +9,8 @@ module Badline
       HEADER_SIZE = 0x40
       ENTRY_SIZE = 32
       NORMAL_FILE = 1
+      TAPE_NAME = 0x28
+      ID = "T64".bytes.freeze
 
       def initialize(path)
         @bytes = File.binread(path).bytes
@@ -27,6 +29,18 @@ module Badline
 
       def names
         entries.map { |e| e[:name] }
+      end
+
+      # The archive as LOAD"$" lists it: the tape's name, and each file as
+      # a PRG of the blocks it would take on a disk, load address and all.
+      # An archive has no free blocks.
+      def directory
+        Listing.new(name: Listing.encode(decode_name(@bytes[TAPE_NAME, Listing::NAME_LENGTH].to_a)),
+                    id: ID, entries: listing_entries, blocks_free: 0)
+      end
+
+      def listing_entries
+        entries.map { |e| Listing.program(e[:name], e[:length] + 2) }
       end
 
       private

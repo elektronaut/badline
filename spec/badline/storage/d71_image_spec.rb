@@ -34,6 +34,29 @@ describe Badline::Storage::D71Image do
     end
   end
 
+  describe "#directory" do
+    before do
+      header_offset = 17 * 21 * 256 # track 18, sector 0
+      bytes[header_offset + 3] = 0x80 # double-sided
+      bytes[header_offset + 0x90, 16] = "TWO SIDES".bytes + ([0xa0] * 7)
+      bytes[header_offset + 0xa2, 5] = "71".bytes + [0xa0] + "2A".bytes
+      35.times do |i|
+        bytes[header_offset + (4 * (i + 1))] = 1
+        bytes[header_offset + 0xdd + i] = 2
+      end
+      File.binwrite(path, bytes.pack("C*"))
+    end
+
+    it "lists the disk name and ID" do
+      expect([image.directory.name, image.directory.id])
+        .to eq(["TWO SIDES".bytes + ([0xa0] * 7), "71".bytes + [0xa0] + "2A".bytes])
+    end
+
+    it "counts the free blocks on both sides but the directory tracks" do
+      expect(image.directory.blocks_free).to eq(102)
+    end
+  end
+
   describe "#read_block" do
     it "reads blocks on the second side" do
       expect(image.read_block(40, 0).first(6)).to eq([0, 5, 0x00, 0xc0, 0xaa, 0xbb])

@@ -111,7 +111,8 @@ slows the emulation down.
 Apart from a `.g64`, which only a true drive can read, there is no 1541
 unless `--true-drive` asks for one. Device 8 works by trapping the
 KERNAL's `LOAD` and `SAVE` routines and its serial bus primitives, so
-files open by name through `OPEN` and `CHRIN` as well. The command
+files open by name through `OPEN` and `CHRIN` as well. `LOAD"$",8` lists
+the directory of any medium mounted there, as a 1541 does. The command
 channel answers `I`, `B-P` and `U1` block reads, which covers loaders
 that read blocks directly. On a disk image it also takes `SAVE` (with
 `@0:` to replace a file), files opened for writing or appending, `S` to
@@ -301,8 +302,7 @@ Known gaps:
   `badline-ruby --headless`.
 - Without `--true-drive`, fast loaders and anything else that runs code
   on the drive won't work (see [Media](#media)). The command channel
-  doesn't rename, copy, format or validate disks, and `LOAD"$",8`
-  doesn't list a disk's directory yet.
+  doesn't rename, copy, format or validate disks.
 - No REU, and no PAL-N (Drean) machine.
 - The emulator window has no freeze button yet, so a freezer cartridge
   runs its menu but can't freeze a program.

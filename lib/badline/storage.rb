@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/storage/listing"
 require "badline/storage/p00"
 require "badline/storage/host_directory"
 require "badline/storage/disk_image"
