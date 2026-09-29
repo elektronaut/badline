@@ -234,9 +234,9 @@ jobs:
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
               spinel:testbench[testbench-carts]
-          - shard: drive-scenarios
-            harnesses: drive_scenarios
-            tasks: spinel:drive_scenarios
+          - shard: drive
+            harnesses: testbench drive_scenarios
+            tasks: spinel:testbench[testbench-drive] spinel:drive_scenarios
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies

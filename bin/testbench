@@ -40,7 +40,7 @@
 # ROM path). The row's mountd64 or mountg64 image goes in the drive, and
 # its program loads as the other rows' do, but nothing is mounted as
 # device 8 through the LOAD trap, so every disk access goes through the
-# drive. The Spinel build has no drive, so --drive doesn't take --engine.
+# drive.
 #
 # --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
 # Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
@@ -795,10 +795,6 @@ if $PROGRAM_NAME == __FILE__
     exit
   end
 
-  if drive && engine
-    warn "--drive needs a true drive, which the Spinel build doesn't have: drop --engine."
-    exit 1
-  end
   if drive && !Testbench.dos_rom?
     warn "--drive needs the 1541 DOS ROM: #{File.join(Badline.rom_path, Testbench::DOS_ROM)}."
     exit 1

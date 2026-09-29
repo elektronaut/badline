@@ -1,28 +1,14 @@
 # frozen_string_literal: true
 
-# The true drive for bin/testbench's --drive rows. The Spinel build has no
-# drive, so spinel/testbench.rb leaves this file out.
+# Which of bin/testbench's rows run on the true drive, and with which disk.
+# The drive's machine is in test/testbench_machine.rb, which the Spinel
+# build shares.
 module Testbench
   DOS_ROM = "dos1541.rom"
 
   # The true drive's rows, which run only under --drive, except for
   # drive/1541-testsuite's, which run only under --1541-testsuite.
   DRIVE_DIR = %r{\A\.\./drive/(1541-testsuite\z)?}
-
-  # A machine booted as Testbench.machine boots one, with a true 1541 on
-  # the serial bus that boots alongside it.
-  def self.drive_machine(cia_model, vic_model)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
-    computer.attach_drive1541(Badline::Drive1541.new)
-    Badline::Computer::INIT_THRESHOLD.times { computer.cycle! }
-    computer
-  end
-
-  # Puts a .d64 in the true drive, formatted as the DOS would have, or a
-  # .g64 as its tracks are. The drive writes back to the image at +path+.
-  def self.insert_disk(computer, path)
-    computer.drive1541.insert(Badline::Drive1541::Disk.open(path))
-  end
 
   def self.dos_rom? = File.exist?(File.join(Badline.rom_path, DOS_ROM))
 
