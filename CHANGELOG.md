@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.1](https://github.com/elektronaut/badline/compare/v0.5.0...v0.5.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* build the native badline with a Spinel that writes .d64 images through the true drive ([97f537a](https://github.com/elektronaut/badline/commit/97f537afe69b10ae044f83ccf4dd018402ebe1be))
+
+
+### Performance Improvements
+
+* sleep the idle true drive through its timer interrupts ([0482e43](https://github.com/elektronaut/badline/commit/0482e439cfb160ab69027b166b1059ed8fc9dfb3)), closes [#367](https://github.com/elektronaut/badline/issues/367)
+
 ## [0.5.0](https://github.com/elektronaut/badline/compare/v0.4.2...v0.5.0) (2026-09-29)
 
 
