@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.0](https://github.com/elektronaut/badline/compare/v0.4.2...v0.5.0) (2026-09-29)
+
+
+### Features
+
+* add a --true-drive option ([3df4183](https://github.com/elektronaut/badline/commit/3df4183dec298ff6b386a6b6a1c12fb04ce3cca0))
+* run the 1541 as its own machine ([9a4bafa](https://github.com/elektronaut/badline/commit/9a4bafab4c53fc7dc479a8c78527e8711d96c8cf))
+* join the C64 and the 1541 over the IEC serial bus ([7671045](https://github.com/elektronaut/badline/commit/7671045bd47fdf363eb9a57faae3c463835c7544))
+* read D64 disks through the 1541's GCR mechanism ([4c812fa](https://github.com/elektronaut/badline/commit/4c812fa25bad92c5c18219fc22c7a0ed804fe159))
+* write and format disks through the 1541 ([22a2a8b](https://github.com/elektronaut/badline/commit/22a2a8be6b9f84b9fc4d7e214603165462c7ddef))
+* read and write .g64 disk images ([884ac19](https://github.com/elektronaut/badline/commit/884ac19baeb83468444e0631c2fd5840bdffc327))
+* take .g64 images in the native badline ([8d9ab92](https://github.com/elektronaut/badline/commit/8d9ab9285555eaa0681a3113290af872a79d9f0b))
+* skip the 1541's cycles while it idles ([d8502cd](https://github.com/elektronaut/badline/commit/d8502cd589aed3ab7590cf2467b9ea57a76330fc))
+* list a mounted disk with LOAD"$",8 through the KERNAL traps ([c634e18](https://github.com/elektronaut/badline/commit/c634e18e3aa8e1b5ba3096d9b6b4ec9d41afa77b)), closes [#324](https://github.com/elektronaut/badline/issues/324)
+* emulate the REU and run the testbench REU rows ([3d5d69e](https://github.com/elektronaut/badline/commit/3d5d69e7570b9961bfd823adf00c2924c65d45e9)), closes [#232](https://github.com/elektronaut/badline/issues/232)
+* run NTSC machines and the testbench's NTSC rows ([e01ebf1](https://github.com/elektronaut/badline/commit/e01ebf17a03d606ff4a71afdb89506af962300e6)), closes [#306](https://github.com/elektronaut/badline/issues/306)
+* power RAM on in a $00/$ff pattern ([59822c3](https://github.com/elektronaut/badline/commit/59822c3dc2956cd871a6e218cac213cfb38f6bad)), closes [#319](https://github.com/elektronaut/badline/issues/319)
+* go on to the next subtune when one ends in the SID player ([0b2f2a2](https://github.com/elektronaut/badline/commit/0b2f2a209f3cb47d8117126f80217e4cc9030342)), closes [#359](https://github.com/elektronaut/badline/issues/359)
+
+
+### Bug Fixes
+
+* keep the KCS Power Cartridge's RAM apart from the C64's ([c538b43](https://github.com/elektronaut/badline/commit/c538b43e6794cbeedcc4056fb71b38598525bfa9))
+* write stdout as it goes, so errors appear in order ([42ccb02](https://github.com/elektronaut/badline/commit/42ccb026d6fe92c1ec5b67ab6f561084c5b154b2)), closes [#369](https://github.com/elektronaut/badline/issues/369)
+
 ## [0.4.2](https://github.com/elektronaut/badline/compare/v0.4.1...v0.4.2) (2026-09-28)
 
 ### Features
