@@ -372,7 +372,8 @@ explain.
   (below), with the same dump apart from CIA 2's port A, which reads `$97`
   where the twin reads `$d7`. The test masks those two bits off. In both
   rows the four bytes at `$9ff4` that the reference wants to hold the
-  loaded file's name, `TEST`, read `$00`.
+  loaded file's name, `TEST`, hold the power-on pattern,
+  `$ff,$ff,$00,$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
@@ -390,12 +391,6 @@ explain.
     lines in the first character after a `$dd00` bank switch, where the
     reference shows the other bank's character. The output matches the
     6569 reference there.
-- `C64/raminitpattern/cyberloadtest.prg`, `darkstarbbstest.prg` and
-  `platoontest.prg` (`testbench-general`, exit `$ff`) check the pattern
-  RAM powers on with, and badline powers RAM on at `$00`. All three pass
-  on VICE's default pattern (`$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted
-  every `$4000` bytes). That pattern is a change to the power-on state of
-  every suite's machine, so it is left to a change of its own.
 - `C64/autostart/defaults/test.prg` (`testbench-general`, exit `$ff`)
   compares the machine against a dump taken after `LOAD"TEST",8` and `RUN`
   on a real C64 with a real drive, down to zero page, CIA 1's timer B and
