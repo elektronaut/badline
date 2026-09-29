@@ -183,7 +183,8 @@ module Badline
     # The drive's whole state: its clock phase, the CPU, RAM, both VIAs,
     # the serial port's latch of the C64's lines and the mechanism with its
     # disk. The drive settles first, so it is awake and not recording a
-    # pass, and a restored drive starts the same way: Idle's bookkeeping
+    # pass, and a restored drive starts the same way, its orbits forgotten
+    # from the state it takes: Idle's and Orbit's bookkeeping
     # isn't stored. The device number, the host's clock rate and whether
     # the drive may sleep are the machine's wiring.
     def save_state(out)
@@ -210,6 +211,7 @@ module Badline
       @bus.load_state(input)
       @cpu.load_state(input)
       @mechanism.load_state(input)
+      forget_orbits
     end
 
     def inspect

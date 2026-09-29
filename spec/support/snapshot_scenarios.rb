@@ -152,7 +152,8 @@ module SnapshotScenarios
       "Badline::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
       "Badline::CIA" => %i[@peripheral],
       "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording],
+                                 @record_cycles @record_instructions @record_quiet @asleep @recording
+                                 @orbit_instructions],
       "Badline::Drive1541::Bus" => %i[@touched @volatile @watching],
       "Badline::Storage::D64Image" => %i[@entries], "Badline::Storage::D71Image" => %i[@entries],
       "Badline::Storage::D81Image" => %i[@entries], "Badline::Storage::T64" => %i[@entries]

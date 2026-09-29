@@ -13,7 +13,8 @@ describe Badline::Computer, "#snapshot with a true drive", :slow do
 
   let(:idle) do
     { "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording],
+                                 @record_cycles @record_instructions @record_quiet @asleep @recording
+                                 @orbit_instructions],
       "Badline::Drive1541::Bus" => %i[@touched @volatile @watching] }
   end
   let(:dir) { Dir.mktmpdir }
