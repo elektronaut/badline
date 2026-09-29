@@ -1,7 +1,14 @@
 name: Release
-# Runs after CI finishes on a push to main, and releases only when it
-# passed. A workflow_run workflow runs from the default branch's copy of
-# this file, with the repository's secrets.
+# Runs after CI passes on a push to main, or by hand for a tag. A
+# workflow_run workflow runs from the default branch's copy of this file,
+# with the repository's secrets.
+#
+# Publishing doesn't depend on whether this run's release-please created
+# the release. Each run reads the version on main, and once its tag exists,
+# publishes the gem unless RubyGems has that version, and updates the
+# Homebrew formula unless the tap already points at that tag. A run that
+# finds both done does nothing, so any later run finishes a release an
+# earlier one missed.
 on:
   workflow_run:
     workflows:
@@ -10,28 +17,100 @@ on:
       - completed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, such as v0.5.0"
+        required: true
+        type: string
+# Runs queue rather than overlap, so two can't push the same gem version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 permissions: {}
 jobs:
   release-please:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
       pull-requests: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v4
-        id: release
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-  publish:
+  # Works out the tag to publish and what it still lacks. The Homebrew steps
+  # stay off until the HOMEBREW_TAP_TOKEN secret exists: a token with
+  # contents: write on the tap repository. Secrets can't appear in a job's
+  # `if`, so this job reports whether it is set.
+  check:
+    name: Check what to publish
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' || needs.release-please.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
+      gem: ${{ steps.check.outputs.gem }}
+      homebrew: ${{ steps.check.outputs.homebrew }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ inputs.tag || github.event.workflow_run.head_sha }}
+      - id: check
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          version=$(sed -n 's/^  VERSION = "\(.*\)"$/\1/p' lib/badline/version.rb)
+          tag="v$version"
+          if [ -n "$INPUT_TAG" ] && [ "$INPUT_TAG" != "$tag" ]; then
+            echo "::error::$INPUT_TAG holds version $version, not ${INPUT_TAG#v}."
+            exit 1
+          fi
+          gem=false
+          homebrew=false
+          if [ -z "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            echo "$tag isn't tagged yet. Nothing to publish."
+          else
+            status=$(curl -s -o /dev/null -w '%{http_code}' \
+              "https://rubygems.org/api/v2/rubygems/badline/versions/$version.json")
+            case "$status" in
+              200) echo "RubyGems has badline $version." ;;
+              404) gem=true ;;
+              *) echo "::error::RubyGems answered $status for badline $version."; exit 1 ;;
+            esac
+            if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+              echo "No HOMEBREW_TAP_TOKEN. Leaving the tap alone."
+            elif gh api repos/elektronaut/homebrew-tap/contents/Formula/badline.rb --jq .content |
+              base64 -d | grep -q "/releases/download/$tag/"; then
+              echo "The tap's formula is at $tag."
+            else
+              homebrew=true
+            fi
+          fi
+          echo "$tag: publish gem $gem, update Homebrew $homebrew" | tee -a "$GITHUB_STEP_SUMMARY"
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "gem=$gem"
+            echo "homebrew=$homebrew"
+          } >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish the gem
+    needs: check
+    if: needs.check.outputs.gem == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -39,7 +118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.1.0
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.check.outputs.tag }}
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -50,42 +129,24 @@ jobs:
           bundler-cache: true
       - uses: rubygems/release-gem@v1
 
-  # The Homebrew jobs stay off until the HOMEBREW_TAP_TOKEN secret exists: a
-  # token with contents: write on the tap repository below. Secrets can't
-  # appear in a job's `if`, so this job reports whether it is set.
-  homebrew-gate:
-    name: Homebrew gate
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: ubuntu-latest
-    outputs:
-      enabled: ${{ steps.gate.outputs.enabled }}
-    steps:
-      - id: gate
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          if [ -n "$HOMEBREW_TAP_TOKEN" ]; then enabled=true; else enabled=false; fi
-          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
-
   # Packs the native badline at the release tag, checks that the pack builds
   # and boots, attaches it to the release and points the tap's formula at it.
   homebrew:
     name: Homebrew formula
-    needs: [release-please, homebrew-gate]
-    if: needs.homebrew-gate.outputs.enabled == 'true'
+    needs: check
+    if: needs.check.outputs.homebrew == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     permissions:
       contents: write
     env:
-      TAG: ${{ needs.release-please.outputs.tag_name }}
-      VERSION: ${{ needs.release-please.outputs.version }}
+      TAG: ${{ needs.check.outputs.tag }}
+      VERSION: ${{ needs.check.outputs.version }}
       HOMEBREW_TAP: elektronaut/homebrew-tap
     steps:
       - uses: actions/checkout@v6.1.0
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ needs.check.outputs.tag }}
           fetch-depth: 0
       - uses: ruby/setup-ruby@v1.327.0
         with:
@@ -136,5 +197,9 @@ jobs:
           git -C "$tap" config user.name "github-actions[bot]"
           git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C "$tap" add Formula/badline.rb
-          git -C "$tap" commit --quiet -m "badline $VERSION"
-          git -C "$tap" push --quiet
+          if git -C "$tap" diff --cached --quiet; then
+            echo "The tap's formula already matches."
+          else
+            git -C "$tap" commit --quiet -m "badline $VERSION"
+            git -C "$tap" push --quiet
+          fi
