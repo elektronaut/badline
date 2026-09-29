@@ -19,20 +19,20 @@ describe Badline::GUI::Application do
     allow(Badline::Computer).to receive(:new).and_return(computer)
     allow(Badline::GUI::Window).to receive(:new).and_return(window)
     allow(Badline::GUI::Gamepads).to receive(:new).and_return(gamepads)
-    allow(Badline::SDL::SetRelativeMouseMode).to receive(:call)
+    allow(Badline::SDL).to receive(:SDL_SetRelativeMouseMode)
     allow($stdout).to receive(:puts)
   end
 
   def tab
-    Badline::SDL::KeyDown.new(sym: Badline::SDL::KEY_TAB, mod: 0)
+    Badline::GUI::Event::KeyDown.new(sym: Badline::SDL::KEY_TAB, mod: 0)
   end
 
-  def mouse_down(button) = Badline::SDL::MouseButton.new(button:, pressed: true)
+  def mouse_down(button) = Badline::GUI::Event::MouseButton.new(button:, pressed: true)
 
   # Tab steps keyboard, joystick, mouse 1, mouse 2, paddles 1, paddles 2.
   def run_with(tabs:, button:)
-    events = Array.new(tabs) { tab } + [mouse_down(button), Badline::SDL::Quit.new]
-    allow(Badline::SDL).to receive(:poll_event) { events.shift }
+    events = Array.new(tabs) { tab } + [mouse_down(button), Badline::GUI::Event::Quit.new]
+    allow(Badline::GUI::Event).to receive(:poll) { events.shift }
     described_class.new.run
   end
 
@@ -69,14 +69,14 @@ describe Badline::GUI::Application do
     end
 
     it "draws its LED over the screen" do
-      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      allow(Badline::GUI::Event).to receive(:poll).and_return(Badline::GUI::Event::Quit.new, nil)
       described_class.new(machine: { true_drive: true }).run
       expect(window).to have_received(:draw)
         .with([instance_of(Badline::GUI::ScreenPane), instance_of(Badline::GUI::DriveLedPane)])
     end
 
     it "draws no LED without one" do
-      allow(Badline::SDL).to receive(:poll_event).and_return(Badline::SDL::Quit.new, nil)
+      allow(Badline::GUI::Event).to receive(:poll).and_return(Badline::GUI::Event::Quit.new, nil)
       described_class.new.run
       expect(window).to have_received(:draw).with([instance_of(Badline::GUI::ScreenPane)])
     end
@@ -130,8 +130,8 @@ describe Badline::GUI::Application do
     def up = 0x4000_0052
 
     def press(sym, repeat: false)
-      events = [Badline::SDL::KeyDown.new(sym:, mod: 0, repeat:), Badline::SDL::Quit.new]
-      allow(Badline::SDL).to receive(:poll_event) { events.shift }
+      events = [Badline::GUI::Event::KeyDown.new(sym:, mod: 0, repeat:), Badline::GUI::Event::Quit.new]
+      allow(Badline::GUI::Event).to receive(:poll) { events.shift }
       described_class.new.run
     end
 
@@ -162,12 +162,12 @@ describe Badline::GUI::Application do
       allow(window).to receive(:refresh_rate).and_return(50)
     end
 
-    def key_down(sym) = Badline::SDL::KeyDown.new(sym:, mod: 0)
+    def key_down(sym) = Badline::GUI::Event::KeyDown.new(sym:, mod: 0)
 
     # One frame per event, and one more for the quit.
     def run_sound(*events, sound: true)
-      events += [Badline::SDL::Quit.new]
-      allow(Badline::SDL).to receive(:poll_event) { events.shift }
+      events += [Badline::GUI::Event::Quit.new]
+      allow(Badline::GUI::Event).to receive(:poll) { events.shift }
       described_class.new(sound:).tap(&:run)
     end
 
@@ -236,9 +236,9 @@ describe Badline::GUI::Application do
 
   describe "a mouse button let go in paddle mode" do
     it "releases paddle A on port 1" do
-      release = Badline::SDL::MouseButton.new(button: 1, pressed: false)
-      events = Array.new(4) { tab } + [mouse_down(1), release, Badline::SDL::Quit.new]
-      allow(Badline::SDL).to receive(:poll_event) { events.shift }
+      release = Badline::GUI::Event::MouseButton.new(button: 1, pressed: false)
+      events = Array.new(4) { tab } + [mouse_down(1), release, Badline::GUI::Event::Quit.new]
+      allow(Badline::GUI::Event).to receive(:poll) { events.shift }
       described_class.new.run
       expect(ports.read_b(0xff, 0xff)).to eq(0b11111111)
     end

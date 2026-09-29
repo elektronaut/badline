@@ -17,40 +17,51 @@ module Badline
       DEADZONE = 8_000
       PORTS = [2, 1].freeze
 
+      # SDL's controller axes and buttons.
+      AXIS_LEFTX = 0
+      AXIS_LEFTY = 1
+      BUTTON_A = 0
+      BUTTON_B = 1
+      BUTTON_X = 2
+      BUTTON_Y = 3
+      BUTTON_LEFTSHOULDER = 9
+      BUTTON_RIGHTSHOULDER = 10
+      BUTTON_DPAD_UP = 11
+      BUTTON_DPAD_DOWN = 12
+      BUTTON_DPAD_LEFT = 13
+      BUTTON_DPAD_RIGHT = 14
+
       BUTTONS = {
-        up: [SDL::CONTROLLER_BUTTON_DPAD_UP],
-        down: [SDL::CONTROLLER_BUTTON_DPAD_DOWN],
-        left: [SDL::CONTROLLER_BUTTON_DPAD_LEFT],
-        right: [SDL::CONTROLLER_BUTTON_DPAD_RIGHT],
-        fire: [SDL::CONTROLLER_BUTTON_A, SDL::CONTROLLER_BUTTON_B,
-               SDL::CONTROLLER_BUTTON_X, SDL::CONTROLLER_BUTTON_Y,
-               SDL::CONTROLLER_BUTTON_LEFTSHOULDER, SDL::CONTROLLER_BUTTON_RIGHTSHOULDER]
+        up: [BUTTON_DPAD_UP],
+        down: [BUTTON_DPAD_DOWN],
+        left: [BUTTON_DPAD_LEFT],
+        right: [BUTTON_DPAD_RIGHT],
+        fire: [BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_LEFTSHOULDER, BUTTON_RIGHTSHOULDER]
       }.freeze
 
       AXES = {
-        up: [SDL::CONTROLLER_AXIS_LEFTY, -1],
-        down: [SDL::CONTROLLER_AXIS_LEFTY, 1],
-        left: [SDL::CONTROLLER_AXIS_LEFTX, -1],
-        right: [SDL::CONTROLLER_AXIS_LEFTX, 1]
+        up: [AXIS_LEFTY, -1],
+        down: [AXIS_LEFTY, 1],
+        left: [AXIS_LEFTX, -1],
+        right: [AXIS_LEFTX, 1]
       }.freeze
 
       def initialize(computer)
-        SDL.check(SDL::InitSubSystem.call(SDL::INIT_GAMECONTROLLER))
+        SDLError.check(SDL.SDL_InitSubSystem(SDL::INIT_GAMECONTROLLER))
         @computer = computer
         @controllers = []
         @pressed = Array.new(PORTS.size) { [] }
         rescan
       end
 
-      def names = @controllers.map { |controller| SDL::GameControllerName.call(controller) }
+      def names = @controllers.map { |controller| SDL.SDL_GameControllerName(controller) }
 
       def rescan
         close
-        @controllers = (0...SDL::NumJoysticks.call)
-                       .select { |index| SDL::IsGameController.call(index) == 1 }
+        @controllers = (0...SDL.SDL_NumJoysticks)
+                       .select { |index| SDL.SDL_IsGameController(index) == 1 }
                        .first(PORTS.size)
-                       .map { |index| SDL::GameControllerOpen.call(index) }
-                       .reject(&:null?)
+                       .filter_map { |index| SDL.SDL_GameControllerOpen(index) }
       end
 
       def poll
@@ -58,7 +69,7 @@ module Badline
       end
 
       def close
-        @controllers.each { |controller| SDL::GameControllerClose.call(controller) }
+        @controllers.each { |controller| SDL.SDL_GameControllerClose(controller) }
         @controllers = []
         @pressed.size.times { |index| release(index) }
       end
@@ -78,7 +89,7 @@ module Badline
       end
 
       def active?(controller, direction)
-        BUTTONS.fetch(direction).any? { |button| SDL::GameControllerGetButton.call(controller, button) == 1 } ||
+        BUTTONS.fetch(direction).any? { |button| SDL.SDL_GameControllerGetButton(controller, button) == 1 } ||
           tilted?(controller, direction)
       end
 
@@ -86,7 +97,7 @@ module Badline
         axis, sign = AXES[direction]
         return false unless axis
 
-        SDL::GameControllerGetAxis.call(controller, axis) * sign > DEADZONE
+        SDL.SDL_GameControllerGetAxis(controller, axis) * sign > DEADZONE
       end
 
       def joystick(index)

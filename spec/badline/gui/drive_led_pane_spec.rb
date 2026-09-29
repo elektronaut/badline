@@ -19,8 +19,8 @@ describe Badline::GUI::DriveLedPane do
   end
 
   before do
-    allow(sdl::SetRenderDrawColor).to receive(:call)
-    allow(sdl::RenderFillRect).to receive(:call)
+    allow(sdl).to receive(:SDL_SetRenderDrawColor)
+    allow(sdl).to receive(:SDL_RenderFillRect)
   end
 
   it "sits in the bottom right corner of the border" do
@@ -31,17 +31,17 @@ describe Badline::GUI::DriveLedPane do
   it "is bright while the drive lights the LED" do
     light(true)
     pane.render(renderer)
-    expect(sdl::SetRenderDrawColor).to have_received(:call).with(renderer, 0xff, 0x20, 0x20, 0xff)
+    expect(sdl).to have_received(:SDL_SetRenderDrawColor).with(renderer, 0xff, 0x20, 0x20, 0xff)
   end
 
   it "is dim while the LED is off" do
     light(false)
     pane.render(renderer)
-    expect(sdl::SetRenderDrawColor).to have_received(:call).with(renderer, 0x40, 0x00, 0x00, 0xff)
+    expect(sdl).to have_received(:SDL_SetRenderDrawColor).with(renderer, 0x40, 0x00, 0x00, 0xff)
   end
 
   it "fills its rectangle" do
     pane.render(renderer)
-    expect(sdl::RenderFillRect).to have_received(:call).with(renderer, [pane.left, pane.top, 12, 4].pack("l4"))
+    expect(sdl).to have_received(:SDL_RenderFillRect).with(renderer, [pane.left, pane.top, 12, 4].pack("l4"))
   end
 end

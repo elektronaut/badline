@@ -41,7 +41,7 @@ end
 
 begin
   require "badline/gui"
-rescue Badline::SDL::Error => e
+rescue Badline::FFI::Error => e
   warn "badline-ruby: can't open the window: #{e.message}. " \
        "Install SDL2 with 'brew install sdl2' or 'apt install libsdl2-2.0-0'."
   exit 1
