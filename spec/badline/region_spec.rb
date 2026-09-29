@@ -36,12 +36,40 @@ describe Badline::Region do
       expect([region.clock_hz, region.cycles_per_line, region.lines_per_frame]).to eq([1_022_727, 65, 263])
     end
 
-    it "blanks lines 13 to 40" do
-      expect(blanked(263, region.vblank)).to eq([*13..40])
+    it "blanks the lines VICE's NTSC view leaves out, 12 to 27" do
+      expect(blanked(263, region.vblank)).to eq([*12..27])
+    end
+
+    it "crops 384 by 235 from column 96 of line 28" do
+      expect(region.crop).to eq([96, 28, 384, 235])
+    end
+
+    it "fetches sprite 0 in cycle 59 and turns its display on in cycle 59" do
+      expect([region.sprite_cycle, region.sprite_display_cycle]).to eq([59, 59])
+    end
+
+    it "holds the X counter for 8 pixels" do
+      expect(region.x_hold).to eq(8)
     end
 
     it "runs on 60 Hz mains" do
       expect(region.mains_hz).to eq(60)
+    end
+  end
+
+  describe "NTSC_OLD" do
+    subject(:region) { described_class::NTSC_OLD }
+
+    it "clocks the 6567R56A's 64 cycles by 262 lines at 1,022,727 Hz" do
+      expect([region.clock_hz, region.cycles_per_line, region.lines_per_frame]).to eq([1_022_727, 64, 262])
+    end
+
+    it "fetches sprite 0 in cycle 59 and turns its display on in cycle 58" do
+      expect([region.sprite_cycle, region.sprite_display_cycle]).to eq([59, 58])
+    end
+
+    it "runs the X counter straight through" do
+      expect(region.x_hold).to eq(0)
     end
   end
 end

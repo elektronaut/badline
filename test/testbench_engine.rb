@@ -20,17 +20,17 @@ module Testbench
     # A test as a line of the list the build reads.
     def self.spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.cia_model, test.vic_model, test.expansion]
+       test.cia_model, test.vic_model, test.expansion, test.region]
         .join("\t") << "\n"
     end
 
     # Reads one test's record from the build's output.
     def self.parse(record, test)
-      header, exit_line, _cycles, kind, *body = record.lines(chomp: true)
+      header, exit_line, _cycles, kind, *body, _done = record.lines(chomp: true)
       raise ArgumentError, "Expected #{test.key}, the build reported #{header}" unless header == "test #{test.key}"
 
       code = exit_line.delete_prefix("exit ")
-      screen = kind == "screen" ? body.first(HEIGHT).map { |row| row.chars.map { it.to_i(16) } } : body.first(25)
+      screen = kind == "screen" ? body.map { |row| row.chars.map { it.to_i(16) } } : body.first(25)
       Outcome.new(code == "none" ? nil : code.to_i, screen)
     end
 

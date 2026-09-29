@@ -59,6 +59,7 @@ module Badline
       @sound = false
       @verbose = false
       @true_drive = false
+      @ntsc = false
       @headless = false
       @jit = true
       @quiet = false
@@ -105,6 +106,8 @@ module Badline
     def verbose? = @verbose
 
     def true_drive? = @true_drive
+
+    def ntsc? = @ntsc
 
     def quiet? = @quiet
 
@@ -181,6 +184,9 @@ module Badline
       opts.on("--reu SIZE", %w[128 256 512 1024 2048 4096 8192 16384],
               "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384") do |size|
         window_only("--reu") { @reu = size.to_i }
+      end
+      opts.on("--ntsc", "Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one") do
+        window_only("--ntsc") { @ntsc = true }
       end
       opts.on("--verbose", "Print the display, sound and gamepad setup and the frame timing") do
         window_only("--verbose") { @verbose = true }

@@ -148,12 +148,15 @@ render a `.sid` tune without it, as described under
   corner of the border. A `.g64` plugs one in without it.
 - `--reu SIZE` plugs in a RAM Expansion Unit of SIZE K, from 128 up to
   16384, as in `exe/badline-ruby`.
+- `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II, instead of a PAL
+  one. Its 235 lines sit in the middle of the window, which keeps PAL's
+  272, between black bands.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
   plays unless told not to (`--sound` is accepted too).
-- `--no-vsync` paces PAL frames by the timer, or by the sound, instead of
-  the display. See [Pacing](#pacing).
+- `--no-vsync` paces the machine's frames by the timer, or by the sound,
+  instead of the display. See [Pacing](#pacing).
 - `--verbose` prints the display, sound and game controller setup as the
   window opens, and the frame report below.
 - `--version` names the build.
@@ -213,8 +216,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
 The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
-`--reu`, `--verbose` and the testing ones included, are refused with
-them.
+`--reu`, `--ntsc`, `--verbose` and the testing ones included, are refused
+with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the
@@ -256,8 +259,9 @@ and 6,842 at 144 Hz, so the machine runs at its own speed on any display.
   back to a timer, keeping the display-sized frames, and `--verbose`
   prints a notice.
 
-`--no-vsync` runs PAL frames of 19,656 cycles instead, paced by the sound
-as below or, without it, by a 20 ms timer.
+`--no-vsync` runs the machine's own frames instead, paced by the sound
+as below or, without it, by a timer: 19,656 cycles in 19.95 ms on PAL,
+17,095 in 16.7 ms on NTSC.
 
 ### Sound
 

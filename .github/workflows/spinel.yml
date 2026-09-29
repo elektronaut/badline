@@ -143,6 +143,15 @@ jobs:
           - suite: testbench-expansions
             harnesses: testbench
             task: spinel:testbench[testbench-expansions]
+          - suite: testbench-ntsc
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc]
+          - suite: testbench-ntsc-vicii-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc-vicii-new]
+          - suite: testbench-ntsc-cia-new
+            harnesses: testbench
+            task: spinel:testbench[testbench-ntsc-cia-new]
           - suite: sid
             harnesses: sidtests
             task: spinel:sidtests[6581]

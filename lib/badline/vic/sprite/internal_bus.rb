@@ -10,12 +10,15 @@ module Badline
       # the CPU reads or writes a VIC register in that cycle, and the middle
       # one is the idle fetch at $3fff (sbsprf24's readme).
       class InternalBus
-        # The columns of a raster line.
-        attr_reader :columns
+        # The columns of a raster line, and where the region puts the
+        # sprites in it.
+        attr_reader :columns, :timing
 
-        def initialize(bank, columns)
+        def initialize(bank, timing)
           @bank = bank
-          @columns = columns
+          @timing = timing
+          @columns = timing.columns
+          @sprite_cycle = timing.sprite_cycle
           @lines = 0
           @ghost = 0xff
           @value = Array.new(columns, 0xff)
@@ -37,10 +40,11 @@ module Badline
           @line[column] = column.zero? ? @lines + 1 : @lines
         end
 
-        # The row sprite `index` (3-7) fetched this line, in Bauer cycles
-        # 2n-5 and 2n-4.
+        # The row sprite `index` (3-7) fetched this line, in the phi2 halves
+        # of the two cycles from its p-access: Bauer cycles 2n-5 and 2n-4 on
+        # the 6569.
         def row(index)
-          column = (2 * index) - 6
+          column = (@sprite_cycle + (2 * index) - 1) % @columns
           (phi2(column) << 16) | (@ghost << 8) | phi2(column + 1)
         end
 

@@ -82,6 +82,10 @@ describe Badline::Native::Options do
     expect(parse("--no-autostart").autostart?).to be(false)
   end
 
+  it "runs an NTSC machine with --ntsc" do
+    expect(parse("--ntsc").ntsc?).to be(true)
+  end
+
   it "puts a true drive on device 8 with --true-drive" do
     expect(parse("--true-drive").true_drive?).to be(true)
   end
@@ -128,7 +132,7 @@ describe Badline::Native::Options do
   end
 
   it "lists every option in the help" do
-    %w[--song --sid --no-autostart --true-drive --reu --sound --no-sound --no-vsync --verbose --help --version
+    %w[--song --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help --version
        --frames --unpaced --screenshot --headless --audio-out --seconds --songlengths
        --rate --filter-chunk --quiet --no-tui].each do |flag|
       expect(described_class::HELP).to include(flag)

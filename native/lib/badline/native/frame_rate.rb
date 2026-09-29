@@ -3,10 +3,10 @@
 module Badline
   module Native
     # How many cycles a frame clocks and how long it lasts. Without vsync a
-    # frame is a PAL frame, 312 lines of 63 cycles over 20 ms. With vsync a
-    # frame lasts one display refresh and clocks as many cycles as the
-    # machine runs in that time, as badline-ruby does, so a 60 Hz display
-    # shows 60 frames of 16,420 cycles a second.
+    # frame is one of the machine's frames: on PAL 312 lines of 63 cycles
+    # over 19.95 ms. With vsync a frame lasts one display refresh and clocks as
+    # many cycles as the machine runs in that time, as badline-ruby does, so
+    # a 60 Hz display shows 60 PAL frames of 16,420 cycles a second.
     #
     # A display's reported refresh rate is a whole number, and can be some
     # way off the rate it presents at. #refit sizes the frames to the rate
@@ -19,9 +19,6 @@ module Badline
     # that builds up by INTEGRAL a frame while the error lasts, up to
     # MAX_TRIM, so the queue settles at the target instead of beside it.
     class FrameRate
-      PAL_CLOCK_HZ = Region::PAL.clock_hz
-      PAL_FRAME_CYCLES = Region::PAL.cycles_per_line * Region::PAL.lines_per_frame
-      PAL_FRAME_SECONDS = 0.02
       # A display that reports no refresh rate is taken to run at this.
       DEFAULT_REFRESH = 60
       PROPORTIONAL = 0.02
@@ -34,18 +31,23 @@ module Badline
 
       attr_reader :base_cycles, :seconds, :refresh, :trim
 
-      def self.pal = new(PAL_FRAME_CYCLES, PAL_FRAME_SECONDS, 0)
-
-      def self.display(refresh)
-        refresh = DEFAULT_REFRESH unless refresh.positive?
-        cycles = PAL_CLOCK_HZ / refresh
-        new(cycles, cycles.to_f / PAL_CLOCK_HZ, refresh)
+      # One frame of the region's raster.
+      def self.machine(region)
+        cycles = region.cycles_per_line * region.lines_per_frame
+        new(cycles, cycles.to_f / region.clock_hz, 0, region.clock_hz)
       end
 
-      def initialize(base_cycles, seconds, refresh)
+      def self.display(refresh, clock_hz)
+        refresh = DEFAULT_REFRESH unless refresh.positive?
+        cycles = clock_hz / refresh
+        new(cycles, cycles.to_f / clock_hz, refresh, clock_hz)
+      end
+
+      def initialize(base_cycles, seconds, refresh, clock_hz)
         @base_cycles = base_cycles
         @seconds = seconds
         @refresh = refresh
+        @clock_hz = clock_hz
         @trim = 0.0
       end
 
@@ -66,8 +68,8 @@ module Badline
         return unless frames.positive? && elapsed.positive?
         return if ((frames / elapsed) - @refresh).abs > @refresh * REFIT
 
-        @base_cycles = (PAL_CLOCK_HZ * elapsed / frames).round
-        @seconds = @base_cycles.to_f / PAL_CLOCK_HZ
+        @base_cycles = (@clock_hz * elapsed / frames).round
+        @seconds = @base_cycles.to_f / @clock_hz
       end
 
       # Whether `frames` presented in `elapsed` seconds kept to the display.
