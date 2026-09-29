@@ -3,28 +3,27 @@
 module Badline
   class REU
     # The REU's DRAM, as the REC addresses it. The REC counts 19 address
-    # bits, and the 1764 fits DRAM behind only the first 256K of them: the
-    # rest read the latch that drives the REU's data bus, which holds the
-    # last byte the REC moved. A bigger REU latches the bank register's top
-    # bits straight onto its DRAM.
+    # bits, 17 on the 1700, and the 1764 fills only the first 256K of
+    # them: past that a read finds the latch on the REU's data bus, which
+    # holds the last byte the REC moved. A unit past 512K takes its upper
+    # address lines from the bank register.
     class RAM
       BANK_SIZE = 0x10000
 
-      # The stretches of each bank that the power-on pattern inverts, for
-      # the first and the second half of each 256K.
-      INVERTED = [
-        [[0x2a00, 0x5400], [0x8000, 0xac00], [0xd600, 0x10000]],
-        [[0x0000, 0x2a00], [0x5400, 0x8000], [0xac00, 0xd600]]
-      ].freeze
+      # Where a bank of a 1764 that has just been switched on reads
+      # inverted, over the first 128K of each 256K. Over the second 128K
+      # it is the rest of the bank that reads inverted. Measured from
+      # REU/raminitpattern/dumpfile-256k-x1541.bin, a real 1764's dump.
+      INVERTED = [0x2a00...0x5400, 0x8000...0xac00, 0xd600...0x10000].freeze
 
       attr_reader :size
       attr_accessor :latch
 
-      def initialize(size, wrap)
+      def initialize(size, span)
         @size = size
-        @mask = (size > 0x80000 ? size : wrap) - 1
+        @mask = (size > 0x80000 ? size : span) - 1
         @banks = Array.new(size / BANK_SIZE) { [] }
-        @patterns = [[], []]
+        @power_on = [[], []]
         @latch = 0xff
       end
 
@@ -40,30 +39,26 @@ module Badline
 
       private
 
-      # Banks are filled with the power-on pattern the first time they are
-      # touched, so an REU costs only the memory a program uses.
+      # A bank takes its power-on contents the first time it is touched,
+      # so an REU costs only the memory a program uses.
       def bank(number)
         bank = @banks[number]
         return bank unless bank.empty?
 
-        @banks[number] = power_on_pattern(number % 4 < 2 ? 0 : 1).dup
+        half = (number >> 1) & 1
+        @power_on[half] = power_on_bank(half == 1) if @power_on[half].empty?
+        @banks[number] = @power_on[half].dup
       end
 
-      # The pattern VICE measured on a 1764: bytes alternate in pairs
-      # between $00 and $ff, inverted every other page, and inverted again
-      # over stretches that differ between the two halves of each 256K.
-      def power_on_pattern(half)
-        pattern = @patterns[half]
-        return pattern unless pattern.empty?
-
-        inverted = INVERTED[half]
-        BANK_SIZE.times do |offset|
-          value = ((offset + 1) >> 1).odd? ? 0x00 : 0xff
-          value ^= 0xff if (offset >> 8).odd?
-          value ^= 0xff if inverted.any? { |range| offset >= range[0] && offset < range[1] }
-          pattern << value
+      # Pairs of $FF and $00 bytes, starting with a single $FF, and each
+      # odd page the inverse of the even one before it.
+      def power_on_bank(upper)
+        Array.new(BANK_SIZE) do |offset|
+          byte = (offset + 1).anybits?(2) ? 0x00 : 0xff
+          byte ^= 0xff if offset.anybits?(0x100)
+          inverted = INVERTED.any? { |range| range.cover?(offset) }
+          inverted == upper ? byte : byte ^ 0xff
         end
-        pattern
       end
     end
   end

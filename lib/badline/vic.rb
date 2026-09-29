@@ -212,8 +212,8 @@ module Badline
 
     # BA as an REU's DMA sees it. On the line whose raster matches sprite
     # 0's Y, where the sprite's DMA starts, the REU doesn't see BA fall on
-    # the first cycle of the sprite's window. VICE's x64sc makes the same
-    # exception. Pinned by REU/bonzai/spritetiming.
+    # the first cycle of the sprite's window. Pinned by
+    # REU/bonzai/spritetiming.
     def reu_ba_low?
       return false if @column == SPRITE_BA_WINDOWS[0].first && sprite_zero_starting?
 

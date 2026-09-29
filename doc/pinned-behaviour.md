@@ -1223,22 +1223,22 @@ and each was knocked out: removing it fails the rows named.
 
 ## REU DMA
 
-The REC's timing against the VIC follows VICE's x64sc for the first three
-rules. The swap rule goes beyond it.
+The REC's timing against the VIC, each rule derived from the REU
+testprogs named.
 
 - A requested transfer takes the bus on the CPU's next read cycle with BA
   high, and moves its first byte there. Starting a cycle later moves every
   `REU/xfertiming` row and `REU/reutiming/reutiming`.
 - After reading C64 memory the REC waits out every BA-low cycle. After
   writing it goes on through the first BA-low cycle and waits from the
-  second, and a transfer whose last write it waited out takes one more
-  cycle before handing the bus back (`REU::DMA#follow_access`,
-  `#finish_cycle`). Pinned by `REU/bonzai/spritetiming`, whose 45 bytes
-  a line with eight sprites on is 63 less the 18 cycles this leaves.
+  second, and a fetch or swap whose last write it waited out takes one
+  more cycle before handing the bus back (`REU::DMA#note_ba`,
+  `#wind_down`). Pinned by `REU/bonzai/spritetiming`, whose 45 bytes a
+  line with eight sprites on is 63 less the 18 cycles this leaves.
 - On the line whose raster matches sprite 0's Y, the REU doesn't see BA
-  fall on the first cycle of sprite 0's window (`VIC#reu_ba_low?`). This is
-  x64sc's `vicii_cycle_reu` exception. Without it `REU/bonzai/spritetiming`
-  reads `$5a,$87` where a real REU gives `$5b,$88`.
+  fall on the first cycle of sprite 0's window (`VIC#reu_ba_low?`).
+  Without it `REU/bonzai/spritetiming` reads `$5a,$87` where a real REU
+  gives `$5b,$88`.
 - A swap's read that falls on the first BA-low cycle, after its write, is
   held open while AEC stays high and takes the byte on the bus two cycles
   later. If it is the transfer's last byte it is read there instead, its

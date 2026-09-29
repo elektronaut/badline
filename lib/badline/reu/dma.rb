@@ -3,232 +3,224 @@
 module Badline
   class REU
     # One transfer between the C64 and the REU's RAM, clocked a cycle at a
-    # time while the REC holds the bus. It follows the VIC's BA line the
-    # way VICE's x64sc does: after reading C64 memory the REC waits out
-    # every BA-low cycle, and after writing it goes on through the first
-    # and waits from the second.
+    # time while the REC holds the bus. The REC only reads the C64's bus
+    # while BA is high, so a read followed by BA low waits for BA to rise.
+    # After a write it goes on through the first BA-low cycle and stops at
+    # the second. See doc/pinned-behaviour.md, REU DMA.
     class DMA
-      # Transfer types.
-      TO_REU = 0
-      TO_C64 = 1
+      # Transfer types, as the command register's bottom two bits give
+      # them.
+      STASH = 0
+      FETCH = 1
       SWAP = 2
       VERIFY = 3
 
-      # The cycles a swap's read on BA low is held open for.
-      HELD_READ_CYCLES = 2
+      # What the REC did on the cycle before.
+      IDLE = 0
+      READ = 1
+      WRITE = 2
 
-      # What the access just made asks of the next cycle.
-      NO_ACCESS = 0
-      READ_ACCESS = 1
-      WRITE_ACCESS = 2
-
-      # Where the transfer stopped, what it left in the length register
+      # Where the transfer stopped, what it left for the length register,
       # and the status bits it ended with.
-      attr_reader :host, :target, :remaining, :result
+      attr_reader :c64, :expansion, :length, :events
 
-      def initialize(ram, wrap, bus)
+      def initialize(ram, span, bus)
         @ram = ram
-        @wrap = wrap
+        @span = span
         @bus = bus
-        @host = @target = @remaining = @result = 0
+        @c64 = @expansion = @length = @events = 0
         @holding = false
       end
 
       # Whether the REC held the bus on the last cycle clocked, which it
-      # does even while it waits out the VIC, since the CPU stays halted.
+      # does while it waits for BA too, since the CPU stays halted.
       def holds_bus? = @holding
 
       # A length of 0 moves 64K. control is the address control register,
-      # which can keep either side's address fixed.
-      def start(mode, host, target, length, control)
-        @mode = mode
-        @host = host
-        @target = target
-        @remaining = length.zero? ? 0x10000 : length
-        @host_step = control.anybits?(FIX_C64) ? 0 : 1
-        @reu_step = control.anybits?(FIX_REU) ? 0 : 1
+      # which can hold either address where it is.
+      def start(type, c64, expansion, length, control)
+        @type = type
+        @c64 = c64
+        @expansion = expansion
+        @length = length.zero? ? 0x10000 : length
+        @c64_step = control.anybits?(FIX_C64) ? 0 : 1
+        @expansion_step = control.anybits?(FIX_EXPANSION) ? 0 : 1
+        @events = 0
         @holding = true
-        @result = 0
-        @after = NO_ACCESS
-        @delay = 0
-        @last_cycle = false
-        @stealing = false
-        @swap_write = false
-        @swap_value = 0
+        @last = IDLE
+        @waiting = false
+        @ba_low_after_writes = 0
+        @stopped_after_write = false
+        @swap_write_due = false
+        @swap_byte = 0
         @held_read = 0
-        @finished = false
+        @moved_all = false
         @extra_cycle = false
       end
 
-      # Clocks the transfer for one cycle. The cycle it hands the bus back
-      # on is the CPU's.
+      # One cycle of the transfer. The cycle the REC lets go of the bus on
+      # is the CPU's.
       def cycle!(ba_low)
-        follow_access(ba_low)
-        hold_read(ba_low) if @held_read.positive?
-        if @stealing
-          return if ba_low
+        note_ba(ba_low)
+        settle_held_read(ba_low) if @held_read.positive?
+        return if @waiting && ba_low
 
-          @stealing = false
-        end
-        @finished ? finish_cycle : access(ba_low)
+        @waiting = false
+        @moved_all ? wind_down : move(ba_low)
       end
 
       private
 
-      def follow_access(ba_low)
-        case @after
-        when READ_ACCESS
-          @stealing = true if ba_low
-        when WRITE_ACCESS
-          @delay = ba_low ? @delay + 1 : 0
-          @last_cycle = @delay > 1
-          if @last_cycle
-            @stealing = true
-            @delay = 0
+      # The second BA-low cycle in a row after writes stops the REC, and so
+      # does any BA-low cycle after a read. It then waits for BA to rise.
+      def note_ba(ba_low)
+        if @last == READ
+          @waiting = ba_low
+        elsif @last == WRITE
+          @ba_low_after_writes = ba_low ? @ba_low_after_writes + 1 : 0
+          @stopped_after_write = @ba_low_after_writes == 2
+          if @stopped_after_write
+            @waiting = true
+            @ba_low_after_writes = 0
           end
         end
-        @after = NO_ACCESS
+        @last = IDLE
       end
 
-      # After the last byte the REC takes one more cycle if it was waiting
-      # out the VIC when a write ended the transfer, or after a verify
-      # error that left bytes uncompared. Then it hands the bus back.
-      def finish_cycle
-        if @extra_cycle || (@last_cycle && (@mode == TO_C64 || @mode == SWAP))
-          @extra_cycle = false
-          @last_cycle = false
-          @after = READ_ACCESS
+      # A fetch or a swap whose last write ran into BA, or a verify that
+      # found a difference before its last byte, takes one more cycle before
+      # the REC lets go of the bus.
+      def wind_down
+        if @extra_cycle || (@stopped_after_write && (@type == FETCH || @type == SWAP))
+          @extra_cycle = @stopped_after_write = false
+          @last = READ
           return
         end
 
         @holding = false
-        finish
+        settle
       end
 
-      def access(ba_low)
-        case @mode
-        when TO_REU then access_to_reu
-        when TO_C64 then access_to_c64
-        when SWAP then access_swap(ba_low)
-        else access_verify
+      def move(ba_low)
+        case @type
+        when STASH then stash
+        when FETCH then fetch
+        when SWAP then swap(ba_low)
+        else verify
         end
       end
 
-      # The last byte written stays in the latch.
-      def access_to_reu
-        value = read_c64
-        @ram.poke(@target, value)
-        @ram.latch = value
-        advance
-        @after = READ_ACCESS
+      # The REU's data bus latch keeps the last byte the REC stored.
+      def stash
+        byte = read_c64
+        @ram.poke(@expansion, byte)
+        @ram.latch = byte
+        step
+        @last = READ
       end
 
-      def access_to_c64
-        value = @ram.peek(@target)
-        @ram.latch = value
-        write_c64(value)
-        advance
-        @after = WRITE_ACCESS
+      def fetch
+        byte = @ram.peek(@expansion)
+        @ram.latch = byte
+        write_c64(byte)
+        step
+        @last = WRITE
       end
 
-      # A swap takes two cycles a byte: the C64 byte is read as the REU's
-      # goes into the latch, and the REU's is written back on the next.
-      def access_swap(ba_low)
-        if @swap_write
-          @swap_write = false
-          write_c64(@swap_value)
-          advance
-          @after = WRITE_ACCESS
-        else
-          @swap_value = @ram.peek(@target)
-          @swap_write = true
-          @after = READ_ACCESS
-          return swap_read_on_ba(@remaining == 1) if ba_low
-
-          @ram.poke(@target, read_c64)
+      # Two cycles a byte: the C64's byte is read and stored while the
+      # REU's is fetched, and the REU's is written to the C64 on the next.
+      def swap(ba_low)
+        if @swap_write_due
+          @swap_write_due = false
+          write_c64(@swap_byte)
+          step
+          @last = WRITE
+          return
         end
+
+        @swap_byte = @ram.peek(@expansion)
+        @swap_write_due = true
+        @last = READ
+        return swap_read_on_ba if ba_low
+
+        @ram.poke(@expansion, read_c64)
       end
 
-      # A swap's read can fall on the first BA-low cycle, after a write,
-      # while AEC is still high. The last byte's read is made there and its
-      # write follows on the next cycle, after which the REC hands the bus
-      # back. Any other read is held open and takes the byte on the bus two
-      # cycles later, or when BA rises first. Pinned by
-      # REU/reutiming2/e5-m2, f3-m2 and f4-m2.
-      def swap_read_on_ba(last)
-        return @held_read = HELD_READ_CYCLES unless last
+      # A swap's read on the first BA-low cycle after a write, while AEC is
+      # still high. On the last byte the read is made there, the write
+      # follows on the next cycle whatever BA does, and the REC lets go.
+      # Otherwise the read stays open and takes what is on the bus two
+      # cycles later, or on the cycle BA rises if that comes first. Pinned
+      # by REU/reutiming2/e5-m2, f3-m2 and f4-m2.
+      def swap_read_on_ba
+        return @held_read = 2 unless @length == 1
 
-        @ram.poke(@target, read_c64)
-        @after = NO_ACCESS
-        @delay = 0
+        @ram.poke(@expansion, read_c64)
+        @last = IDLE
+        @ba_low_after_writes = 0
       end
 
-      def hold_read(ba_low)
+      def settle_held_read(ba_low)
         @held_read -= 1
-        return unless @held_read.zero? || !ba_low
+        return if @held_read.positive? && ba_low
 
         @held_read = 0
-        @ram.poke(@target, read_c64)
+        @ram.poke(@expansion, read_c64)
       end
 
-      # A verify error ends the transfer, with one more cycle if any bytes
-      # were left to compare.
-      def access_verify
-        expected = @ram.peek(@target)
-        actual = read_c64
-        advance
-        @after = READ_ACCESS
-        return if expected == actual
+      # A difference ends the transfer, with one cycle more if bytes were
+      # left to compare.
+      def verify
+        same = @ram.peek(@expansion) == read_c64
+        step
+        @last = READ
+        return if same
 
-        @result |= VERIFY_ERROR
-        @extra_cycle = @remaining >= 1
-        @finished = true
+        @events |= FAULT
+        @extra_cycle = @length.positive?
+        @moved_all = true
       end
 
-      # The REC reaches C64 memory through the CPU's memory map, except at
-      # $00 and $01, where it reaches the RAM underneath the CPU's port.
+      # The REC reaches C64 memory as the CPU sees it, but at $00 and $01
+      # it reaches the RAM under the CPU's port.
       def read_c64
-        @host < 0x02 ? @bus.ram.peek(@host) : @bus.peek(@host)
+        @c64 < 0x02 ? @bus.ram.peek(@c64) : @bus.peek(@c64)
       end
 
-      def write_c64(value)
-        @host < 0x02 ? @bus.ram.poke(@host, value) : @bus.poke(@host, value)
+      def write_c64(byte)
+        @c64 < 0x02 ? @bus.ram.poke(@c64, byte) : @bus.poke(@c64, byte)
       end
 
-      def advance
-        @host = (@host + @host_step) & 0xffff
-        @target = next_reu_address(@target)
-        @remaining -= 1
-        @finished = true if @remaining.zero?
+      # The REC counts the expansion address in its 19 low bits, from the
+      # top of its span back to 0, and leaves the bank bits above them as
+      # they were.
+      def step
+        @c64 = (@c64 + @c64_step) & 0xffff
+        low = (@expansion & 0x7ffff) + @expansion_step
+        @expansion = (@expansion & 0xf80000) | (low == @span ? 0 : low)
+        @length -= 1
+        @moved_all = true if @length.zero?
       end
 
-      # The REC increments the low 19 bits and wraps them where the REC
-      # does, leaving the latched bank bits above them alone.
-      def next_reu_address(addr)
-        following = (addr & 0x7ffff) + @reu_step
-        following = 0 if following == @wrap
-        (addr & 0xf80000) | following
+      # The length register is left at 1 after a whole block. A fetch has
+      # already fetched the byte after its last into the latch.
+      def settle
+        return settle_verify if @type == VERIFY
+
+        @length += 1
+        @events |= END_OF_BLOCK
+        @ram.latch = @ram.peek(@expansion) if @type == FETCH
       end
 
-      # A finished transfer leaves 1 in the length register. After one to
-      # the C64 the REC has already fetched the next byte into its latch.
-      def finish
-        return finish_verify if @mode == VERIFY
-
-        @remaining += 1
-        @result |= END_OF_BLOCK
-        @ram.latch = @ram.peek(@target) if @mode == TO_C64
-      end
-
-      # A verify that compared every byte ends the block. One that failed
-      # on the second-to-last byte compares the last as well, and ends the
-      # block if that one matches.
-      def finish_verify
-        if @remaining.zero?
-          @remaining = 1
-          @result |= END_OF_BLOCK
-        elsif @remaining == 1
-          @result |= END_OF_BLOCK if @ram.peek(@target) == read_c64
+      # A verify that compared every byte ends the block. One that found a
+      # difference on the byte before the last compares the last too, and
+      # ends the block if that one is the same.
+      def settle_verify
+        if @length.zero?
+          @length = 1
+          @events |= END_OF_BLOCK
+        elsif @length == 1 && @ram.peek(@expansion) == read_c64
+          @events |= END_OF_BLOCK
         end
       end
     end
