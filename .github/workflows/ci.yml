@@ -14,7 +14,7 @@ permissions:
 env:
   # The Spinel commit the suites and the native badline build with. Bumping
   # it rebuilds the cached compiler. release.yml reads it from here.
-  SPINEL_REF: 7acd87b58918ee7956781868015a4ca0807c236b
+  SPINEL_REF: 7304a08a22d2731a9216834ef7e6a850effd422e
 jobs:
   rubocop:
     name: Rubocop
@@ -234,13 +234,9 @@ jobs:
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
               spinel:testbench[testbench-carts]
-          # Five rows fail at this SPINEL_REF, from Spinel bugs in the .d64
-          # write path. Drop allow-failure once SPINEL_REF has the fixes.
           - shard: drive-scenarios
             harnesses: drive_scenarios
             tasks: spinel:drive_scenarios
-            allow-failure: true
-    continue-on-error: ${{ matrix.allow-failure == true }}
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
