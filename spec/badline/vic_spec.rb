@@ -39,8 +39,7 @@ RSpec.describe Badline::VIC do
 
   # Sprite 0's BA falls a column later on both NTSC VIC-IIs than on the
   # 6569, and sprite 3's reaches the last column of the Y-match line on
-  # the 6567R8 (VICE `cycle_tab_ntsc`, `cycle_tab_ntsc_old`). Pinned by
-  # VICII/spritesteal/spritesteal_ntsc and _ntscold.
+  # the 6567R8. Pinned by VICII/spritesteal/spritesteal_ntsc and _ntscold.
   describe "sprite DMA cycle stealing on NTSC (#ba_low?)" do
     subject(:ba) do
       ntsc = described_class.new(region:)

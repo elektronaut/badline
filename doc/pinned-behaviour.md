@@ -895,9 +895,8 @@ What the 8565 references don't settle, and so what stays as it is:
 
 The 6567R8 (`Region::NTSC`) and the 6567R56A (`Region::NTSC_OLD`) run
 every VIC rule above, on a line of 65 or 64 cycles, except where the
-region moves the sprites. The positions follow VICE x64sc's
-`cycle_tab_ntsc` and `cycle_tab_ntsc_old`, and live in `Region::Profile`
-and `VIC::Sprite::Timing`.
+region moves the sprites. The positions live in `Region::Profile` and
+`VIC::Sprite::Timing`.
 
 - **Sprite fetches.** Sprite 0's p-access runs in cycle 59 instead of
   58, and everything that hangs off the fetches moves with it: the BA

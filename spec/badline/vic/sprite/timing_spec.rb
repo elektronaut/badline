@@ -18,7 +18,7 @@ RSpec.describe Badline::VIC::Sprite::Timing do
   end
 
   # The 6567R8's counter reads $184-$187 three times over, so a sprite
-  # there can start again (VICE `cycle_tab_ntsc`).
+  # there can start again.
   it "reads $184 three times on the 6567R8" do
     expect(pixels(Badline::Region::NTSC)[0x184]).to eq([492, 496, 500])
   end

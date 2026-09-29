@@ -37,8 +37,7 @@ module Badline
 
         # The X counter at a raster pixel: X_OFFSET behind it, wrapping at
         # the end of the line, less the pixels it held for past HOLD_AT,
-        # where it ran over $184-$187 again instead (VICE
-        # `cycle_tab_ntsc`).
+        # where it ran over $184-$187 again instead.
         def self.xpos(pixel, width, hold)
           count = (pixel - X_OFFSET) % width
           return count if count < HOLD_AT

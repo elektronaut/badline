@@ -39,9 +39,10 @@ module Badline
 
     # The 6567R8 of an NTSC C64: 65 cycles by 263 lines at 1,022,727 Hz,
     # with 60 Hz mains. The sprite fetches and the compares ahead of them
-    # run a cycle later than on the 6569, and the X counter holds $184-$187
-    # for two more cycles (VICE `cycle_tab_ntsc`). The blanked lines are the
-    # ones VICE's NTSC view leaves out, 12-27. It shows lines 0-11 below
+    # run a cycle later than on the 6569 (the spritesteal, spritex and
+    # phi1timing testprogs), and the X counter pauses near $184, as Bauer's
+    # 6567R8 diagram shows, reading $184-$187 for 8 pixels more. The
+    # blanked lines are the ones VICE's NTSC view leaves out, 12-27. It shows lines 0-11 below
     # line 262, and the crop leaves those out.
     NTSC = Profile.new(
       name: :ntsc, clock_hz: 1_022_727, cycles_per_line: 65, lines_per_frame: 263,
@@ -54,8 +55,8 @@ module Badline
     # The 6567R56A of the first NTSC C64s: 64 cycles by 262 lines at
     # 1,022,727 Hz. Its sprite fetches run a cycle later than the 6569's,
     # as on the 6567R8, but it turns the display on in the same cycle as
-    # the 6569, and its X counter runs straight through 512 pixels
-    # (VICE `cycle_tab_ntsc_old`).
+    # the 6569, and its X counter runs straight through 512 pixels, one
+    # coordinate for each.
     NTSC_OLD = Profile.new(
       name: :ntscold, clock_hz: 1_022_727, cycles_per_line: 64, lines_per_frame: 262,
       hblank: [62, 9].freeze, vblank: [13, 27].freeze,
