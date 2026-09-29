@@ -339,7 +339,7 @@ def splice_recorded(suite, recorded, fresh)
 end
 
 # With filters, only the baseline rows they match are expected, as
-# bin/testbench matches them: id substrings, as a union.
+# bin/testbench matches them (see Regression::Filters).
 def compare_baseline(suite, results, name: suite, filters: [])
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
@@ -348,7 +348,10 @@ def compare_baseline(suite, results, name: suite, filters: [])
   end
 
   expected = Regression.read(baseline)
-  expected = expected.select { |_, row| filters.any? { |filter| row.id.include?(filter) } } if filters.any?
+  if filters.any?
+    matcher = Regression::Filters.parse(filters)
+    expected = expected.select { |_, row| matcher.selects?(row.id) }
+  end
   comparison = Regression::Comparison.new(name, expected, Regression.read(results))
   comparison.report($stdout)
   comparison.publish

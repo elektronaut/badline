@@ -454,6 +454,14 @@ class TestTestbenchSelection < Minitest::Test
     assert_equal ["VICII/border/t.prg", "CPU/cpujam/t.prg"], selected(%w[border cpujam])
   end
 
+  def test_a_bang_filter_leaves_its_tests_out_of_the_scope
+    assert_equal ["interrupts/irqnoack/test1.prg"], selected(["!irqdma"], scope: "interrupts/")
+  end
+
+  def test_a_bang_filter_is_never_unmatched
+    assert_empty Testbench::Testlist.unmatched(%w[border !viavarious], tests(*IDS))
+  end
+
   def test_a_filter_outside_the_scope_selects_nothing
     assert_empty selected(["cpujam"], scope: "VICII/")
   end

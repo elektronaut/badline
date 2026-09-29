@@ -78,7 +78,8 @@
 # testbench-general. Filters are a
 # union matched inside that scope, so a filtered run stays in one
 # baseline's rows; a filter that matches nothing is an error rather than
-# an empty run.
+# an empty run. A filter led by ! leaves out the tests it matches, so
+# `!viavarious` runs every test but those.
 #
 # Tests are independent — each gets its own copy of the machine — so the run is
 # forked over --shards processes (SHARDS in the environment, 4 by
@@ -101,6 +102,7 @@ require "chunky_png"
 require "etc"
 require "tmpdir"
 require_relative "../test/forked_boot"
+require_relative "../test/regression"
 require_relative "../test/testbench_machine"
 require_relative "../test/testbench_drive"
 require_relative "../test/testbench_region"
@@ -274,8 +276,9 @@ module Testbench
   module Testlist
     module_function
 
-    # Filters are id substrings, matched as a union; no filter runs
-    # everything inside the scope.
+    # Filters are id substrings, matched as a union, and one led by "!"
+    # leaves out the tests it matches (see Regression::Filters); no filter
+    # runs everything inside the scope.
     def tests(filters, scope: nil, exclude: nil, rows: Rows.plain)
       numbered(File.readlines(TESTLIST).filter_map { |line| parse(line) })
         .select { |test| rows.include?(test) && selected?(test, filters, scope, exclude) }
@@ -295,7 +298,7 @@ module Testbench
       return false unless in_scope?(test, scope)
       return false if exclude && test.id.include?(exclude)
 
-      filters.empty? || filters.any? { |filter| test.id.include?(filter) }
+      Regression::Filters.parse(filters).selects?(test.id)
     end
 
     # A scope names one prefix, or several separated by commas.
@@ -305,7 +308,7 @@ module Testbench
 
     # Filters that picked up no test at all, which a typo makes silent.
     def unmatched(filters, tests)
-      filters.reject { |filter| tests.any? { |test| test.id.include?(filter) } }
+      Regression::Filters.parse(filters).picks.reject { |filter| tests.any? { |test| test.id.include?(filter) } }
     end
 
     def parse(line)

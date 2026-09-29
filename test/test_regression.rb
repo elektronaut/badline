@@ -125,6 +125,36 @@ class TestRegression < Minitest::Test
   end
 end
 
+class TestRegressionFilters < Minitest::Test
+  IDS = %w[drive/rpm/rpm1.prg drive/viavarious/via1.prg drive/viavarious/via10.prg C64/autostart/test.prg].freeze
+
+  def matched(*filters)
+    matcher = Regression::Filters.parse(filters)
+    IDS.select { |id| matcher.selects?(id) }
+  end
+
+  def test_a_bang_filter_is_a_drop
+    assert_equal Regression::Filters.new(picks: ["rpm"], drops: ["viavarious"]),
+                 Regression::Filters.parse(%w[rpm !viavarious])
+  end
+
+  def test_no_filter_matches_every_id
+    assert_equal IDS, matched
+  end
+
+  def test_filters_are_a_union
+    assert_equal %w[drive/rpm/rpm1.prg C64/autostart/test.prg], matched("rpm", "autostart")
+  end
+
+  def test_a_drop_alone_matches_every_other_id
+    assert_equal %w[drive/rpm/rpm1.prg C64/autostart/test.prg], matched("!viavarious")
+  end
+
+  def test_a_drop_wins_over_a_pick
+    assert_equal %w[drive/viavarious/via1.prg], matched("via1", "!via10")
+  end
+end
+
 class TestRegressionSplice < Minitest::Test
   BASELINE = <<~ROWS
     VICII/a/a1.prg	PASS

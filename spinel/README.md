@@ -191,7 +191,8 @@ against the suite's baseline in `test/baselines/` as
 `testbench-drive`, `testbench-ntsc`, `testbench-ntsc-vicii-new` and
 `testbench-ntsc-cia-new` in turn, and fails at the end if any of them changed. Filters after a
 suite's name run only the rows they match, as `bin/testbench`'s filters
-do, and compare only those rows. `SHARDS` and `RESUME=1` work as they do for
+do, and compare only those rows. A filter led by `!` leaves out the rows
+it matches, as `[testbench-drive,!viavarious]` does. `SHARDS` and `RESUME=1` work as they do for
 `rake regression:<suite>`, and the rows land in `tmp/spinel/<suite>.txt`.
 
 The task runs `bin/testbench --engine tmp/spinel/testbench`, so CRuby

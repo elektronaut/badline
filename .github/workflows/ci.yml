@@ -246,7 +246,7 @@ jobs:
           - shard: drive
             harnesses: testbench drive_scenarios
             tasks: >-
-              spinel:testbench[testbench-drive,drive/defaults,drive/diskid,drive/iecdelay,drive/hls-protection,drive/inertia,drive/interrupts,drive/rpm,drive/format,drive/scanner,drive/skew,drive/selftest,drive/openbus,C64/autostart]
+              spinel:testbench[testbench-drive,!viavarious]
               spinel:drive_scenarios
     steps:
       - uses: actions/checkout@v6.1.0
