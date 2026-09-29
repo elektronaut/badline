@@ -154,8 +154,8 @@ badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slo
 ```
 
 Both modes take the same options. The window's own, `--no-autostart`,
-`--read-only`, `--sound`, `--true-drive` and `--verbose`, don't apply
-to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
+`--read-only`, `--sound`, `--true-drive`, `--reu` and `--verbose`,
+don't apply to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
 does, and defaults to the tune's own start song. Playback asks the
 device for 44.1 kHz and takes whatever rate it offers, unless `--rate`
 says otherwise. Ctrl-C stops it.
