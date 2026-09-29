@@ -36,13 +36,11 @@ module Badline
 
     # A new machine, built as the snapshot's was and restored from it.
     # Yields a line for each thing it leaves out.
-    def load(path, &)
-      image = read(path)
-      image.to_computer.tap { |computer| image.restore(computer, &) }
-    end
+    def load(path, &) = read(path).load(&)
 
     # Restores `computer` from the snapshot at `path`, and returns what it
-    # applied and left out, yielding a line for each thing left out.
+    # applied and left out, yielding a line for each thing left out. A
+    # snapshot that fails leaves the machine as it was.
     def restore(computer, path, &) = read(path).restore(computer, &)
   end
 

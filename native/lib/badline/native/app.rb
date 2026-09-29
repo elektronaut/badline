@@ -128,10 +128,22 @@ module Badline
         if [Keys::TAB, Keys::F9, Keys::F10].include?(scancode)
           handle_toggle(scancode) if down
         elsif down && @snapshots.key(scancode)
-          @led = DriveLed.for(@computer)
+          swap(@snapshots.computer)
         elsif !Snapshots::KEYS.include?(scancode)
           @controls.key(scancode, down)
         end
+      end
+
+      # Runs the restored machine in place of the one before: the screen,
+      # the drive LED, the controls, the gamepads and the sound go over to
+      # it.
+      def swap(computer)
+        @computer = computer
+        @screen = Screen.new(computer.vic)
+        @led = DriveLed.for(computer)
+        @controls.computer = computer
+        @gamepads.computer = computer
+        @sound.sid = computer.sid
       end
 
       def handle_toggle(scancode)

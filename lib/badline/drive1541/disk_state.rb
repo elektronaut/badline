@@ -25,13 +25,14 @@ module Badline
 
         # The disk a state from save_state describes: +current+ when it was
         # opened from the same image the same way, and otherwise a disk for
-        # the image at the path the state names, or one without an image.
-        # Either way its tracks come from the state.
+        # the image at the path the state names, or one without an image,
+        # as a detached reader always gets. Either way its tracks come from
+        # the state.
         def self.load(input, current)
           path = input.optional_string
           read_only = input.boolean?
           disk = current if current && !path.nil? && current.path == path && current.read_only == read_only
-          disk ||= path ? reopen(path, read_only) : Disk.new
+          disk ||= path && !input.detached? ? reopen(path, read_only) : Disk.new
           disk.load_tracks(input)
           disk
         end

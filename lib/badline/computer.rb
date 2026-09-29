@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require "badline/computer/attachments"
 require "badline/computer/saved_state"
 
 module Badline
   class Computer
     include IntegerHelper
     include KeyboardBuffer
+    include Attachments
     include SavedState
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
@@ -102,15 +104,6 @@ module Badline
       power_cycle!
     end
 
-    # Puts the cartridge in the expansion port and wires its clock and NMI
-    # line to the machine, leaving the machine's state as it is. A
-    # restored snapshot's cartridge comes back through here.
-    def connect_cartridge(cartridge)
-      cartridge.clock = -> { @cycles }
-      cartridge.on_nmi_change { |level| @cartridge_nmi = level }
-      address_bus.attach_cartridge(cartridge)
-    end
-
     def reu = address_bus.reu
 
     # A cartridge goes in with the power off, so attaching one switches the
@@ -161,37 +154,6 @@ module Badline
       @restore_pulse = true
     end
 
-    # Puts the storage in device 8. Mounting again swaps the disk at any
-    # point while the machine runs: the drive keeps its RAM, which only a
-    # drive reset clears, and its status.
-    def mount(storage)
-      return @drive.insert(storage) if @drive
-
-      @drive = KernalTrap::Drive.new(storage)
-      load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
-      cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-      @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
-      save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
-      cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
-    end
-
-    # Whether device 8 serves a disk or directory through the traps.
-    def mounted? = !@drive.nil?
-
-    # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
-    # serial traps, so the KERNAL's routines go out over the serial bus.
-    # Mounting again starts a new drive, with its RAM cleared.
-    def unmount
-      return unless @drive
-
-      cpu.remove_trap(KernalTrap::Load::ADDRESS)
-      cpu.remove_trap(KernalTrap::Save::ADDRESS)
-      @serial_trap.device = nil
-      @serial_trap = nil
-      @save_trap = nil
-      @drive = nil
-    end
-
     # Plugs in a Drive1541, which then runs alongside the C64 on its own
     # clock and talks to it over the serial bus. The serial traps stop
     # answering the drive's device number, so the KERNAL's TALK, LISTEN and
@@ -202,15 +164,6 @@ module Badline
       drive.host_clock_hz = region.clock_hz
       @drive1541 = drive
       drive.connect(iec_bus)
-      @serial_trap&.device = serial_trap_device
-    end
-
-    # Unplugs the Drive1541, leaving the serial bus with nothing on it.
-    def detach_drive1541
-      return unless @drive1541
-
-      @iec_bus&.detach(@drive1541)
-      @drive1541 = nil
       @serial_trap&.device = serial_trap_device
     end
 
@@ -225,14 +178,6 @@ module Badline
       @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus).tap do |trap|
         cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
       end
-    end
-
-    # The keyword arguments Computer.new takes to build the machine a
-    # State from #snapshot was taken of.
-    def self.setup(state)
-      input = Snapshot::StateReader.new(state)
-      input.marker("COMPUTER")
-      Snapshot::Setup.read(input)
     end
 
     def inspect

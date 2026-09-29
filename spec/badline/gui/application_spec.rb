@@ -12,7 +12,7 @@ describe Badline::GUI::Application do
       refresh_rate: Badline::Region::PAL.clock_hz, draw: nil, "title=": nil, close: nil
     )
   end
-  let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: [], poll: nil, close: nil) }
+  let(:gamepads) { instance_double(Badline::GUI::Gamepads, names: [], poll: nil, close: nil, "computer=": nil) }
   let(:ports) { computer.control_ports }
 
   before do
@@ -260,21 +260,43 @@ describe Badline::GUI::Application do
 
     around { |example| Dir.mktmpdir { |dir| Dir.chdir(dir) { example.run } } }
 
+    # A machine of its own, which Computer.new doesn't hand out.
+    let(:restored) do
+      allow(Badline::Computer).to receive(:new).and_call_original
+      Badline::Computer.new.tap { allow(Badline::Computer).to receive(:new).and_return(computer) }
+    end
+
     it "saves one with F11" do
       keys(Badline::SDL::KEY_F11)
       expect(Dir.glob("badline-*.vsf").length).to eq(1)
     end
 
     it "restores the one saved with F12" do
-      allow(computer).to receive(:restore_snapshot)
+      allow(Badline::Snapshot).to receive(:load).and_return(restored)
       keys(Badline::SDL::KEY_F11, Badline::SDL::KEY_F12)
-      expect(computer).to have_received(:restore_snapshot).with(Dir.glob("badline-*.vsf").first)
+      expect(Badline::Snapshot).to have_received(:load).with(Dir.glob("badline-*.vsf").first)
+    end
+
+    it "runs the restored machine in place of the one before" do
+      allow(Badline::Snapshot).to receive(:load).and_return(restored)
+      keys(Badline::SDL::KEY_F11, Badline::SDL::KEY_F12)
+      expect([restored.cycles, computer.cycles]).to eq([computer.region.clock_hz / window.refresh_rate, 0])
     end
 
     it "has nothing to restore before one is saved" do
-      allow(computer).to receive(:restore_snapshot)
+      allow(Badline::Snapshot).to receive(:load)
       keys(Badline::SDL::KEY_F12)
-      expect(computer).not_to have_received(:restore_snapshot)
+      expect(Badline::Snapshot).not_to have_received(:load)
+    end
+
+    it "warns when it can't save" do
+      allow(computer).to receive(:save_snapshot).and_raise(Errno::EACCES)
+      expect { keys(Badline::SDL::KEY_F11) }.to output(/Permission denied/).to_stderr
+    end
+
+    it "warns when it can't restore, and runs on" do
+      allow(Badline::Snapshot).to receive(:load).and_raise(Badline::Snapshot::FormatError, "damaged")
+      expect { keys(Badline::SDL::KEY_F11, Badline::SDL::KEY_F12) }.to output(/damaged/).to_stderr
     end
 
     it "boots from a .vsf file" do

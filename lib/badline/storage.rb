@@ -13,6 +13,7 @@ require "badline/storage/tap"
 require "badline/storage/crt_file"
 require "badline/storage/sid_file"
 require "badline/storage/song_lengths"
+require "badline/storage/unavailable"
 
 module Badline
   module Storage
@@ -44,13 +45,14 @@ module Badline
     class << self
       # Opens the storage a save_setup wrote: the same directory or archive
       # by its path, or a disk image with the bytes it held, writes and
-      # all.
+      # all. A detached reader gets the image write-protected, and
+      # Unavailable for a directory or archive.
       def reopen(input)
         kind = input.int
         path = input.string
         case kind
-        when HOST_DIRECTORY then HostDirectory.new(path)
-        when T64_ARCHIVE then T64.new(path)
+        when HOST_DIRECTORY then input.detached? ? Unavailable.new : HostDirectory.new(path)
+        when T64_ARCHIVE then input.detached? ? Unavailable.new : T64.new(path)
         else reopen_image(kind, path, input)
         end
       end
@@ -74,7 +76,7 @@ module Badline
       end
 
       def reopen_image(kind, path, input)
-        read_only = input.boolean?
+        read_only = input.boolean? || input.detached?
         bytes = input.blob
         case kind
         when D64 then D64Image.new(path, read_only:, bytes:)

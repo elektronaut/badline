@@ -12,7 +12,7 @@ describe Badline::Snapshot::Vice do
   let(:settled) { described_class.settled(state) }
   let(:container) { Badline::Snapshot::Container.new(described_class.export(state)) }
   let(:image) { Badline::Snapshot::Image.new(container) }
-  let(:imported) { image.to_computer.tap { |machine| image.restore(machine) { nil } } }
+  let(:imported) { image.load { nil } }
 
   def cpu_registers(machine)
     cpu = machine.cpu
@@ -50,6 +50,16 @@ describe Badline::Snapshot::Vice do
 
     it "describes the machine at an instruction boundary" do
       expect(settled.cpu).to be_boundary
+    end
+
+    it "fails for a machine with an REU" do
+      expect { described_class.export(Badline::Computer.new(reu: 512).snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /REU/)
+    end
+
+    it "fails for an NTSC machine" do
+      expect { described_class.export(Badline::Computer.new(region: Badline::Region::NTSC).snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /NTSC/)
     end
   end
 
@@ -112,6 +122,50 @@ describe Badline::Snapshot::Vice do
     end
   end
 
+  describe "a snapshot that fails to restore into a running machine" do
+    # Mid-instruction at an odd cycle, with a cartridge in.
+    def running_machine
+      Badline::Computer.new.tap do |machine|
+        machine.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 64))
+        run(machine, 3_017)
+      end
+    end
+
+    # The VIC-II module cut short, which only its import finds.
+    def restore_short(machine)
+      with_section("VIC-II") { |section| section.with(data: section.data.byteslice(0, 10)) }.restore(machine)
+    rescue Badline::Snapshot::FormatError
+      machine
+    end
+
+    it "leaves the machine as it was" do
+      machine = running_machine
+      saved = machine.snapshot
+      expect(restore_short(machine).snapshot).to eq(saved)
+    end
+
+    it "leaves the cartridge in" do
+      expect(restore_short(running_machine).address_bus.cartridge).to be_a(Badline::Cartridge::GeoRAM)
+    end
+  end
+
+  describe "a C64C's snapshot" do
+    def c64c
+      machine = Badline::Computer.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580)
+      Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
+    end
+
+    it "loads into a C64C" do
+      restored = c64c.load { nil }
+      expect([restored.vic.model, restored.cia1.model, restored.sid.model]).to eq(%i[mos8565 mos6526a mos8580])
+    end
+
+    it "fails to restore into a machine built another way" do
+      expect { c64c.restore(Badline::Computer.new) }
+        .to raise_error(Badline::Snapshot::FormatError, /mos8565, mos6526a, mos8580, pal, not mos6569/)
+    end
+  end
+
   describe ".setup" do
     it "takes the C64C's chips from an 8565" do
       machine = Badline::Computer.new(vic_model: :mos8565, sid_model: :mos8580)
@@ -121,7 +175,7 @@ describe Badline::Snapshot::Vice do
 
     it "refuses an NTSC VIC-II" do
       ntsc = with_section("VIC-II") { |section| section.with(data: "\x03".b + section.data.byteslice(1..)) }
-      expect { ntsc.to_computer }.to raise_error(Badline::Snapshot::FormatError, /NTSC/)
+      expect { ntsc.load }.to raise_error(Badline::Snapshot::FormatError, /NTSC/)
     end
   end
 
@@ -129,14 +183,21 @@ describe Badline::Snapshot::Vice do
     # 1.2 lacks the ANE and LXA log levels and the jammed flag.
     it "reads MAINCPU 1.2, as VICE 3.7 writes it" do
       old = with_section("MAINCPU") { |section| section.with(minor: 2, data: without_log_levels(section.data)) }
-      restored = old.to_computer.tap { |machine| old.restore(machine) { nil } }
+      restored = old.load { nil }
       expect(cpu_registers(restored)).to eq(cpu_registers(settled))
     end
 
     it "reads MAINC64CPU 1.5, as VICE's development versions name it" do
       trunk = with_section("MAINCPU") { |section| section.with(name: "MAINC64CPU", minor: 5) }
-      restored = trunk.to_computer.tap { |machine| trunk.restore(machine) { nil } }
+      restored = trunk.load { nil }
       expect(cpu_registers(restored)).to eq(cpu_registers(settled))
+    end
+
+    it "reads VIC-IISC 1.4, as VICE's development versions name it" do
+      trunk = with_section("VIC-II") { |section| section.with(name: "VIC-IISC", minor: 4) }
+      restored = trunk.load { nil }
+      expect([restored.vic.register_file, restored.vic.rasterline]).to eq([settled.vic.register_file,
+                                                                           settled.vic.rasterline])
     end
 
     it "fails on a MAINCPU version it doesn't know" do

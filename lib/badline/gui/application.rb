@@ -38,12 +38,11 @@ module Badline
       def initialize(media_path: nil, machine: {}, sound: false, verbose: false, **media)
         @verbose = verbose
         @snapshots = Snapshots.new
-        @computer = boot(media_path, machine, media)
+        @computer = @snapshots.boot(media_path, machine, media)
 
         @mode = :keyboard
         @pot_device = nil
-        @panes = [ScreenPane.new(@computer)]
-        @panes << DriveLedPane.new(@computer.drive1541, @panes.first) if @computer.drive1541
+        @panes = panes
         @stream = open_stream if sound
         @paced = ENV["NOVSYNC"].nil?
         @window = Window.new(
@@ -92,18 +91,6 @@ module Badline
           when SDL::ControllerDevice
             @gamepads.rescan
           end
-        end
-      end
-
-      # A .vsf snapshot restores the machine it holds, built with that
-      # machine's chip models, and F12 goes back to it.
-      def boot(media_path, machine, media)
-        return @snapshots.load(media_path) if Snapshots.snapshot?(media_path)
-
-        sid_model = machine[:sid_model] || Media.sid_model(media_path)
-        Computer.new(sid_model:, **machine.slice(:reu)).tap do |computer|
-          Media::TrueDrive.plug(computer) if machine[:true_drive]
-          puts Media.attach(computer, media_path, **media) if media_path
         end
       end
 
@@ -178,10 +165,27 @@ module Badline
         update_title
       end
 
-      # The input mode stays the host's, so a mouse or paddles go back in
-      # their port.
+      # Runs the restored machine in place of the one before: the screen,
+      # the drive LED, the gamepads and the sound go over to it. The input
+      # mode stays the host's, so a mouse or paddles go back in their port.
       def restore_snapshot
-        attach_pot_device if @snapshots.restore(@computer) && POT_DEVICES.key?(@mode)
+        computer = @snapshots.restore
+        return unless computer
+
+        release_inputs
+        @computer = computer
+        @panes = panes
+        @gamepads.computer = computer
+        @stream&.sid = computer.sid
+        attach_pot_device if POT_DEVICES.key?(@mode)
+      end
+
+      # The screen, and the drive LED in its border when a true drive is
+      # plugged in.
+      def panes
+        screen = ScreenPane.new(@computer)
+        drive = @computer.drive1541
+        drive ? [screen, DriveLedPane.new(drive, screen)] : [screen]
       end
 
       def update_title

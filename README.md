@@ -144,13 +144,15 @@ drive as well.
 
 In the window, `F11` saves the whole machine to a new
 `badline-<date>-<time>.vsf` in the working directory, and `F12` goes
-back to the snapshot last saved or opened. Both executables do this,
-and both open a `.vsf` given as the media. From Ruby,
-`computer.save_snapshot(path)` saves, `computer.restore_snapshot(path)`
-takes a machine back to a snapshot, and `Badline::Snapshot.load(path)`
-builds a new machine as the saved one was built and restores it.
-`computer.snapshot` and `computer.restore(state)` do the same in memory,
-without a file.
+back to the snapshot last saved or opened, in a new machine built as the
+saved one was. Both executables do this, and both open a `.vsf` given as
+the media. A snapshot that fails to open leaves the machine running as
+it was. From Ruby, `computer.save_snapshot(path)` saves,
+`computer.restore_snapshot(path)` takes a machine back to a snapshot,
+and `Badline::Snapshot.load(path)` builds a new machine as the saved one
+was built and restores it. `computer.snapshot` and
+`computer.restore(state)` do the same in memory, without a file. A
+restore that fails leaves the machine as it was.
 
 A snapshot holds the machine as it was on the cycle it was saved: the
 chips down to the instruction step and the pixel pipeline, the RAM and
@@ -159,13 +161,15 @@ GEO-RAM, a true 1541 with its RAM, its VIAs and the disk under the head,
 a disk or directory mounted through the traps with its open channels,
 and the tape with its place on it. A restored machine runs on exactly
 as the saved one would have. A directory, a tape and a true drive's
-disk image open again from their paths, the disk with its tracks as the
-drive last saw them. A disk image mounted through the traps comes back
+disk image open again from their paths when the snapshot is restored,
+the disk with its tracks as the drive last saw them. A disk image mounted through the traps comes back
 with its contents from the snapshot. What the host holds stays the host's: the keyboard, the
 joysticks, the mouse and paddles, sound, and blocks given to `on_init`
 that hadn't run yet, which a restore reports. A snapshot only restores
 in the badline version that wrote it, into a machine with the same
-chip models and RAM expansion.
+chip models, RAM expansion and REU. `computer.snapshot` holds an REU's
+RAM, registers and transfer too, but a machine with an REU doesn't save
+to a file yet, as badline doesn't write VICE's REU module.
 
 Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
 the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, plus the
@@ -183,13 +187,14 @@ instruction boundary, RAM, the CPU port, the CIAs' registers, timers and
 clocks, the SID's registers and reSID voice state, and the VIC-II's
 registers, beam position, counters and colour RAM. The VIC-II's pixel
 pipeline starts empty. badline reads the modules x64sc 3.7 to 3.10
-write, and VICE's development versions' `MAINC64CPU`. A module version
+write, and VICE's development versions' `MAINC64CPU` and `VIC-IISC`. A module version
 it doesn't know is left out, or fails the restore for the CPU and RAM.
 It reports the modules it leaves out, such as the 1541 drives, the
 cartridge, the datasette and the keyboard, and carries on without them.
 An NTSC snapshot fails, as badline runs PAL only. Restored into a
-running machine, a VICE snapshot first takes the cartridge out and
-switches the machine off and on.
+running machine, a VICE snapshot fails for a machine built another way,
+such as a C64C's snapshot in a C64, and otherwise takes the cartridge
+out and switches the machine off and on.
 
 ## Playing and rendering SID tunes
 

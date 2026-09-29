@@ -175,6 +175,8 @@ module Badline
         roll
       end
 
+      private
+
       # The display window's edges per CSEL state, as the region gives them.
       # The graphics window always spans the full 40 columns, ignoring CSEL,
       # and the border flip-flop takes [left compare, right compare] per

@@ -50,6 +50,14 @@ describe Badline::Datasette, "#save_state" do
     expect(round_trip(described_class.new, target).tape).to be_nil
   end
 
+  it "leaves the tape out for a detached reader" do
+    out = Badline::Snapshot::StateWriter.new
+    saved.save_state(out)
+    target = described_class.new
+    target.load_state(Badline::Snapshot::StateReader.new(out.state, detached: true))
+    expect(target.tape).to be_nil
+  end
+
   it "doesn't press the keys through the sense handler" do
     target = described_class.new
     senses = []

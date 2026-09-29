@@ -11,6 +11,11 @@ module Badline
     # are written as 0 and 1. Computer#snapshot takes one and
     # Computer#restore puts it back.
     class State
+      # The layout the chips write their fields in. It goes up whenever a
+      # save_state writes something else, so a State in another layout
+      # fails before anything is read into a machine.
+      SCHEMA = 1
+
       attr_reader :values, :strings
 
       def initialize(values, strings)
@@ -85,16 +90,29 @@ module Badline
       # A name a reader checks for, so a state that has gone out of step
       # fails there instead of loading the wrong fields.
       def marker(name) = string(name)
+
+      # The State's layout and the badline version writing it, which a
+      # reader checks first (StateReader#check_stamp).
+      def stamp = int(State::SCHEMA).string(VERSION)
     end
 
     # Reads a State back in the order a StateWriter wrote it.
+    #
+    # A detached reader restores a machine that opens no host file and
+    # writes none, for a copy the machine runs on its own: a disk image
+    # comes from the bytes the state holds, write-protected, a directory
+    # or .t64 archive device 8 serves and a tape are left out, and a true
+    # drive's disk keeps the state's tracks without its image file.
     class StateReader
-      def initialize(state)
+      def initialize(state, detached: false)
         @values = state.values
         @strings = state.strings
         @value = 0
         @string = 0
+        @detached = detached
       end
+
+      def detached? = @detached
 
       def int
         raise FormatError, "the state ends early, at value #{@value}" if @value >= @values.length
@@ -140,6 +158,17 @@ module Badline
       def marker(name)
         found = string
         raise FormatError, "expected #{name} in the state, found #{found[0, 20].inspect}" unless found == name
+      end
+
+      # Fails unless the State was written in this layout by this badline
+      # version.
+      def check_stamp
+        schema = int
+        version = string
+        return if schema == State::SCHEMA && version == VERSION
+
+        raise FormatError, "the state was written by badline #{version.inspect} in layout #{schema}, " \
+                           "and this is badline #{VERSION}, layout #{State::SCHEMA}"
       end
 
       # Whether every value and string has been read.

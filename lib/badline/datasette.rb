@@ -64,8 +64,8 @@ module Badline
       out.string(@tape.path).int(@tape.position)
     end
 
-    # A tape from another file goes in from its path. The sense and flag
-    # handlers don't fire.
+    # A tape from another file goes in from its path, and a detached
+    # reader leaves the tape out. The sense and flag handlers don't fire.
     def load_state(input)
       input.marker("DATASETTE")
       @playing = input.boolean?
@@ -74,8 +74,11 @@ module Badline
       return @tape = nil unless input.boolean?
 
       path = input.string
+      position = input.int
+      return @tape = nil if input.detached?
+
       @tape = Storage::TAP.new(path) unless @tape&.path&.b == path
-      @tape.position = input.int
+      @tape.position = position
     end
 
     def cycle!

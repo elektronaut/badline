@@ -3,6 +3,7 @@
 require "badline/reu/ram"
 require "badline/reu/dma"
 require "badline/reu/trigger"
+require "badline/reu/saved_state"
 
 module Badline
   # A RAM Expansion Unit: the Commodore 1700 (128K), 1764 (256K) and 1750
@@ -18,6 +19,8 @@ module Badline
   # waits for the CPU's next read cycle with BA high, and Computer then
   # clocks it through #dma_cycle! until it hands the bus back.
   class REU
+    include SavedState
+
     SIZES_KB = [128, 256, 512, 1024, 2048, 4096, 8192, 16_384].freeze
 
     # The registers, by offset.
@@ -74,6 +77,7 @@ module Badline
 
       # The 1700's REC counts 17 address bits, the others' 19.
       span = size_kb == 128 ? 0x20000 : 0x80000
+      @size_kb = size_kb
       size = size_kb * 1024
       @address_mask = [size, span].max - 1
       @bank_bits = size > span ? 0xff : 0x07

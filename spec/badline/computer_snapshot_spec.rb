@@ -64,6 +64,40 @@ describe Badline::Computer, "#snapshot" do
       longer = Badline::Snapshot::State.new(state.values + [0], state.strings)
       expect { target.restore(longer) }.to raise_error(Badline::Snapshot::FormatError, /goes on past/)
     end
+
+    it "fails on a state written in another layout" do
+      values = state.values.dup
+      values[0] = Badline::Snapshot::State::SCHEMA + 1
+      expect { target.restore(Badline::Snapshot::State.new(values, state.strings)) }
+        .to raise_error(Badline::Snapshot::FormatError, /layout #{Badline::Snapshot::State::SCHEMA + 1}/o)
+    end
+  end
+
+  describe "#restore of a damaged state" do
+    # A value three quarters of the way in taken out, so everything after
+    # it reads one place early.
+    let(:damaged) do
+      values = state.values.dup
+      values.delete_at(values.length * 3 / 4)
+      Badline::Snapshot::State.new(values, state.strings)
+    end
+    let(:target) { run(described_class.new, 500_001) }
+
+    def attempt(machine, state)
+      machine.restore(state)
+    rescue Badline::Snapshot::FormatError
+      nil
+    end
+
+    it "fails" do
+      expect { target.restore(damaged) }.to raise_error(Badline::Snapshot::FormatError)
+    end
+
+    it "leaves the machine as it was" do
+      saved = target.snapshot
+      attempt(target, damaged)
+      expect(target.snapshot).to eq(saved)
+    end
   end
 
   describe ".setup" do
@@ -92,6 +126,42 @@ describe Badline::Computer, "#snapshot" do
     it "counts none once the saved machine has booted" do
       booting.resume_at(described_class::INIT_THRESHOLD + 1)
       expect(described_class.new.restore(booting.snapshot).init_handlers_lost).to eq(0)
+    end
+  end
+
+  describe "with an REU" do
+    # A 16M REU part way through a swap, with its interrupt raised by the
+    # stash before it.
+    let(:machine) do
+      described_class.new(reu: 16_384).tap do |computer|
+        bus = computer.address_bus
+        { 0xdf02 => 0x00, 0xdf03 => 0x10, 0xdf04 => 0x34, 0xdf05 => 0x12, 0xdf06 => 0x85, 0xdf07 => 0x00,
+          0xdf08 => 0x02, 0xdf09 => 0xe0, 0xdf01 => 0x90 }.each { |addr, value| bus.poke(addr, value) }
+        run(computer, 7_003)
+        [[0xdf08, 0x02], [0xdf01, 0x92]].each { |addr, value| bus.poke(addr, value) }
+        run(computer, 41)
+      end
+    end
+
+    it "restores the REU's registers, transfer, RAM and IRQ line" do
+      restored = described_class.restored(machine.snapshot)
+      expect(state_differences(machine, restored, host: { "Badline::REU::RAM" => %i[@power_on] })).to be_empty
+    end
+
+    it "runs on as the saved machine does" do
+      restored = described_class.restored(machine.snapshot)
+      run(machine, 5_000)
+      run(restored, 5_000)
+      expect(Badline::Checkpoint.take(restored)).to eq(Badline::Checkpoint.take(machine))
+    end
+
+    it "builds the machine with an REU of the same size" do
+      expect(described_class.setup(machine.snapshot).build.reu.size_kb).to eq(16_384)
+    end
+
+    it "fails to restore into a machine without one" do
+      expect { described_class.new.restore(machine.snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /a 16384K REU/)
     end
   end
 

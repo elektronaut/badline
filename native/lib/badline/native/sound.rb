@@ -37,6 +37,12 @@ module Badline
 
       def on? = @device != 0
 
+      # Plays another machine's SID from here on.
+      def sid=(sid)
+        @sid = sid
+        sid.record(rate: @rate) if on?
+      end
+
       def muted? = @muted
 
       def playing? = @started

@@ -3,7 +3,8 @@
 module Badline
   module Snapshot
     module Vice
-      # VIC-II 1.3 as x64sc writes it: the model, the registers, the beam's
+      # VIC-II 1.3 as x64sc writes it, and VIC-IISC 1.4, the same fields
+      # under a new name, as VICE's development versions write it: the model, the registers, the beam's
       # line and cycle, the IRQ latch, the video counters and buffers, the
       # light pen, the borders, colour RAM and each sprite's counters, then
       # x64sc's pixel pipeline and its frame buffer.
@@ -20,8 +21,10 @@ module Badline
       # the first pixels drawn may differ.
       module VICII
         NAME = "VIC-II"
+        TRUNK_NAME = "VIC-IISC"
         MAJOR = 1
         MINOR = 3
+        VERSIONS = ["VIC-II 1.3", "VIC-IISC 1.4"].freeze
         MODELS = %i[mos6569 mos8565].freeze
         FRAME_WIDTH = 384
         FRAME_HEIGHT = 312
@@ -32,7 +35,7 @@ module Badline
 
         def export(computer)
           vic = computer.vic
-          fields = FieldWriter.new.byte(MODELS.index(vic.model) || 0).bytes(vic.register_file)
+          fields = FieldWriter.new.byte(MODELS.index(vic.model)).bytes(vic.register_file)
           beam(vic, fields)
           counters(vic, fields)
           borders(vic, fields)
@@ -90,7 +93,10 @@ module Badline
           8.times.sum { |n| yield(vic.sprites[n]) ? 1 << n : 0 }
         end
 
-        def reads?(section) = section.major == MAJOR && section.minor == MINOR
+        # The module a snapshot has, under either name.
+        def find(container) = container[NAME] || container[TRUNK_NAME]
+
+        def reads?(section) = VERSIONS.include?(section.to_s)
 
         # VICE's model numbers: the 6569, the 8565 and the 6569R1 run PAL;
         # the 6567, 8562 and 6567R56A NTSC, and the 6572 PAL-N, which badline

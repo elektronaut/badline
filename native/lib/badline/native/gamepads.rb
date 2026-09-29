@@ -21,6 +21,13 @@ module Badline
         puts "No game controllers: #{SDL.SDL_GetError}" if @verbose && !@available
       end
 
+      # Wires the controllers to another machine's joysticks, which take
+      # what they hold on the next poll.
+      def computer=(computer)
+        @ports.each(&:release)
+        @ports = [PadPort.new(computer.joystick2), PadPort.new(computer.joystick1)]
+      end
+
       def rescan
         return unless @available
 

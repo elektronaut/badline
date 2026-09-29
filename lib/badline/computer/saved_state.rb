@@ -2,8 +2,23 @@
 
 module Badline
   class Computer
+    # The keyword arguments Computer.new takes to build the machine a
+    # State from #snapshot was taken of.
+    def self.setup(state)
+      input = Snapshot::StateReader.new(state)
+      input.marker("COMPUTER")
+      input.check_stamp
+      Snapshot::Setup.read(input)
+    end
+
+    # A new machine, built as the one a State from #snapshot was taken of,
+    # at that state. `detached` builds it without the host's files
+    # (Snapshot::StateReader).
+    def self.restored(state, detached: false) = setup(state).build.apply_state(state, detached:)
+
     # The whole machine's state for a snapshot: the machine's own latches,
-    # the bus and its chips, the CPU, and what is attached to it.
+    # the bus and its chips, the CPU, and what is attached to it
+    # (Attachments).
     module SavedState
       # How many more on_init handlers the machine a State was taken of had
       # yet to run than this one has: they are the host's blocks, which a
@@ -26,8 +41,20 @@ module Badline
       # its chips, its traps and its callbacks, and puts in the cartridge,
       # drives and tape the state has, taking out any it hasn't. Raises
       # Snapshot::FormatError for a state of a machine built another way.
+      # The state goes into a new machine first, so one that fails leaves
+      # this machine as it was.
       def restore(state)
-        input = Snapshot::StateReader.new(state)
+        check_setup(Computer.setup(state))
+        Computer.restored(state)
+        apply_state(state)
+      end
+
+      # Puts a State into the machine without trying it on a new one
+      # first, for a machine built for it (Computer.restored): a state that
+      # fails leaves the machine part restored. `detached` restores it
+      # without the host's files (Snapshot::StateReader).
+      def apply_state(state, detached: false)
+        input = Snapshot::StateReader.new(state, detached:)
         load_state(input)
         raise Snapshot::FormatError, "the state goes on past the machine" unless input.finished?
 
@@ -41,7 +68,7 @@ module Badline
       end
 
       def save_state(out)
-        out.marker("COMPUTER")
+        out.marker("COMPUTER").stamp
         Snapshot::Setup.of(address_bus).write(out)
         out.int(@cycles).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse).boolean(@freezing)
         out.int(@freeze_writes).boolean(!@pending_keys.nil?)
@@ -52,10 +79,12 @@ module Badline
         @cpu.save_state(out)
         save_trap_drive(out)
         save_serial_bus(out)
+        save_reu(out)
       end
 
       def load_state(input)
         input.marker("COMPUTER")
+        input.check_stamp
         check_setup(Snapshot::Setup.read(input))
         @cycles = input.int
         @nmi_asserted = input.boolean?
@@ -71,6 +100,7 @@ module Badline
         @cpu.load_state(input)
         load_trap_drive(input)
         load_serial_bus(input)
+        load_reu(input)
       end
 
       private
@@ -80,64 +110,6 @@ module Badline
         return if setup == ours
 
         raise Snapshot::FormatError, "the state is of a machine with #{setup}, not #{ours}"
-      end
-
-      def save_cartridge(out)
-        cartridge = address_bus.cartridge
-        out.boolean(!cartridge.nil?)
-        cartridge&.save_setup(out)
-      end
-
-      # A cartridge comes back built afresh from the setup it was built
-      # with, before the address bus puts its state into it.
-      def load_cartridge(input)
-        if input.boolean?
-          connect_cartridge(Cartridge.from_setup(input))
-        elsif address_bus.cartridge
-          address_bus.detach_cartridge
-        end
-      end
-
-      # The disk device 8 serves through the traps, with the traps' own
-      # state: open channels, the drive's status and RAM, a SAVE under way.
-      def save_trap_drive(out)
-        out.boolean(!@drive.nil?)
-        return unless @drive
-
-        @drive.save_state(out)
-        @serial_trap.save_state(out)
-        @save_trap.save_state(out)
-      end
-
-      def load_trap_drive(input)
-        return unmount unless input.boolean?
-
-        storage = Storage.reopen(input)
-        unmount
-        mount(storage)
-        @drive.load_state(input)
-        @serial_trap.load_state(input)
-        @save_trap.load_state(input)
-      end
-
-      # The serial bus, whose presence decides what CIA 2's port A reads,
-      # and a true 1541 on it.
-      def save_serial_bus(out)
-        out.boolean(!@iec_bus.nil?).boolean(!@drive1541.nil?)
-        return unless @drive1541
-
-        out.int(@drive1541.device)
-        @drive1541.save_state(out)
-      end
-
-      def load_serial_bus(input)
-        iec_bus if input.boolean?
-        return detach_drive1541 unless input.boolean?
-
-        device = input.int
-        detach_drive1541 if @drive1541 && @drive1541.device != device
-        attach_drive1541(Drive1541.new(device:)) unless @drive1541
-        @drive1541.load_state(input)
       end
     end
   end

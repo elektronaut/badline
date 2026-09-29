@@ -34,10 +34,16 @@ module Badline
 
       def self.parse(bytes)
         bytes = bytes.b
-        bytes = Zlib.gunzip(bytes).b if bytes.start_with?(GZIP_MAGIC)
+        bytes = gunzip(bytes) if bytes.start_with?(GZIP_MAGIC)
         raise FormatError, "not a VICE snapshot" unless bytes.start_with?(MAGIC)
 
         Reader.new(bytes).container
+      end
+
+      def self.gunzip(bytes)
+        Zlib.gunzip(bytes).b
+      rescue Zlib::Error => e
+        raise FormatError, "the gzipped snapshot is damaged: #{e.message}"
       end
 
       def initialize(sections = [], machine: MACHINE, vice_version: nil)
