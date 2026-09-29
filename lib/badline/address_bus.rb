@@ -48,7 +48,11 @@ module Badline
     PORT_FLOATING = 0b1100_1000
     TAPE_SENSE    = 0b0001_0000
 
-    RAM_POWER_ON = [0xff, 0x07].freeze
+    # RAM powers on in runs of $00 $00 $FF $FF $FF $FF $00 $00, inverted in
+    # the second and fourth 16K: a C64C (ASSY 250469 R4) from
+    # C64/raminitpattern/readme.txt, without its occasional random bytes.
+    # See doc/pinned-behaviour.md.
+    RAM_POWER_ON = Array.new(2**16) { |addr| (((addr + 2) / 4) ^ (addr / 0x4000)).odd? ? 0xff : 0x00 }.freeze
 
     attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,

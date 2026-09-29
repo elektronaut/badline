@@ -57,7 +57,7 @@ describe Badline::Cartridge::GMod2 do
     it "leaves the C64's RAM under $E000 alone in flash mode" do
       bus[0xde00] = 0xc0
       bus[0xe000] = 0x12
-      expect(bus.ram.peek(0xe000)).to eq(0x00)
+      expect(bus.ram.peek(0xe000)).to eq(Badline::AddressBus::RAM_POWER_ON[0xe000])
     end
 
     it "sends $E000 writes to RAM outside flash mode" do

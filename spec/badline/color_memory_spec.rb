@@ -19,7 +19,7 @@ describe Badline::ColorMemory do
   end
 
   describe "at power-on" do
-    subject { color_ram.read(0xd800, 0x400).uniq }
+    subject { (0xd800..0xdbff).map { |addr| color_ram.nibble(addr) }.uniq }
 
     it { is_expected.to eq([0]) }
   end

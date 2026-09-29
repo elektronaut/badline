@@ -93,6 +93,26 @@ describe Badline::AddressBus do
     expect(address_bus[0xa000]).to eq(0x94)
   end
 
+  # Pinned by C64/raminitpattern: cyberloadtest, darkstarbbstest,
+  # platoontest and typicaltest
+  describe "RAM at power-on" do
+    def bytes(addr) = address_bus.ram.read(addr, 8)
+
+    it "repeats $00 $00 $FF $FF $FF $FF $00 $00" do
+      expect([bytes(0x0000), bytes(0x3ff8)]).to all(eq([0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00]))
+    end
+
+    it "inverts the pattern in the second and fourth 16K" do
+      expect([bytes(0x4000), bytes(0xfff8)]).to all(eq([0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff]))
+    end
+
+    it "comes back after a power cycle" do
+      address_bus.ram.write(0x1000, [0x12, 0x34])
+      address_bus.power_on!
+      expect(address_bus.ram.read(0x1000, 2)).to eq([0x00, 0x00])
+    end
+  end
+
   context "when writing through an overlay" do
     before { address_bus[0xa000] = 0x20 }
 
@@ -122,7 +142,7 @@ describe Badline::AddressBus do
 
     it "drops writes instead of storing them in the RAM below" do
       address_bus[0xde00] = 0x42
-      expect(address_bus.ram[0xde00]).to eq(0x00)
+      expect(address_bus.ram[0xde00]).to eq(Badline::AddressBus::RAM_POWER_ON[0xde00])
     end
 
     context "when I/O is banked out" do

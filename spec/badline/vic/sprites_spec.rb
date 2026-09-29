@@ -20,7 +20,7 @@ RSpec.describe Badline::VIC::Sprites do
     registers.write((index * 2) + 1, 60)
     registers.write(0x27 + index, color)
     ram.poke(0x03f8 + index, ptr)
-    ram.poke(ptr * 64, 0b1000_0000)
+    ram.write(ptr * 64, [0b1000_0000, 0x00, 0x00])
   end
 
   # The Y match at line 60 turns DMA on (cycles 55/56) and display on

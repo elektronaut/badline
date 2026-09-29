@@ -30,6 +30,7 @@ only catches the rows that happen to move.
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
+- [RAM power-on pattern](#ram-power-on-pattern)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1134,6 +1135,28 @@ and each was knocked out: removing it fails the rows named.
     collisions.
   - Spec guard: *when a program writes to the port* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+
+## RAM power-on pattern
+
+- RAM powers on in runs of `$00,$00,$ff,$ff,$ff,$ff,$00,$00`, inverted in
+  `$4000-$7fff` and `$c000-$ffff`, on every power cycle. The RAM under
+  `$00`/`$01` follows the pattern like the rest. It is the pattern of a
+  C64C (ASSY 250469 R4) in `C64/raminitpattern/readme.txt`
+  (`-raminitstartvalue 0 -raminitvalueinvert 4 -raminitvalueoffset 2
+  -raminitpatterninvert 16384 -raminitpatterninvertvalue 255`), without
+  that machine's occasional random bytes. `AddressBus::RAM_POWER_ON`
+  holds it.
+  - Pinned by `C64/raminitpattern`: `cyberloadtest` fails when
+    `$f379-$f478` holds one value, `darkstarbbstest` when the first ten
+    bytes of one of the pages `$4000`, `$5000` … `$9000` do, `platoontest`
+    when `$1000-$10ff` holds five equal bytes in a row and 140 or more
+    bytes of one value, and `typicaltest`
+    checks `$3fff` against a table of values the Typical demo survives.
+    All-`$00` fails the first three, and each other pattern the readme
+    lists fails at least one of the four.
+  - Spec guard: *RAM at power-on* in
+    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+- The RAM expansions' extra banks still power on at `$00`.
 
 ## 1541 serial port
 
