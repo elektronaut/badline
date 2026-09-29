@@ -42,7 +42,7 @@ describe Badline::Storage::SIDFile::Driver do
   end
 
   it "never returns to the caller" do
-    expect(computer.ram.peek(0xc001)).to eq(0)
+    expect(computer.ram.peek(0xc001)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc001])
   end
 
   it "keeps the zero page init wrote for play" do

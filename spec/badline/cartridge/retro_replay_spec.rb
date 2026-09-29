@@ -250,7 +250,7 @@ describe Badline::Cartridge::RetroReplay do
 
       it "keeps writes to $A000 out of the C64 RAM" do
         bus[0xa123] = 0x5a
-        expect(bus.ram[0xa123]).to eq(0x00)
+        expect(bus.ram[0xa123]).to eq(Badline::AddressBus::RAM_POWER_ON[0xa123])
       end
     end
 
@@ -344,7 +344,7 @@ describe Badline::Cartridge::RetroReplay do
     it "writes the RAM at ROML instead with the RAM selected" do
       bus[0xde00] = 0x20
       bus[0x8123] = 0x5a
-      expect([bus[0x8123], bus.ram[0x8123]]).to eq([0x5a, 0x00])
+      expect([bus[0x8123], bus.ram[0x8123]]).to eq([0x5a, Badline::AddressBus::RAM_POWER_ON[0x8123]])
     end
 
     it "takes $DE01 writes more than once" do
@@ -412,7 +412,7 @@ describe Badline::Cartridge::RetroReplay do
     it "keeps writes to the RAM at ROML out of the C64 RAM" do
       bus[0xde00] = 0x20
       bus[0x8123] = 0x5a
-      expect(bus.ram[0x8123]).to eq(0x00)
+      expect(bus.ram[0x8123]).to eq(Badline::AddressBus::RAM_POWER_ON[0x8123])
     end
 
     it "maps the RAM at ROMH with only EXROM released" do

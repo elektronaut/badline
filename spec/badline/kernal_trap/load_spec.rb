@@ -142,7 +142,7 @@ describe Badline::KernalTrap::Load do
       run_trap
     end
 
-    specify { expect(ram.peek(0xc000)).to eq(0) }
+    specify { expect(ram.peek(0xc000)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc000]) }
     specify { expect(computer.cpu.status.carry?).to be(false) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
     specify { expect(ram.peek(0x90)).to eq(0x50) }
@@ -356,7 +356,7 @@ describe Badline::KernalTrap::Load do
     end
 
     specify { expect(computer.cpu.program_counter).to eq(0xc0ed) }
-    specify { expect(ram.read(0x0329, 2)).to eq([0xc0, 0x00]) }
+    specify { expect(ram.read(0x0329, 2)).to eq([0xc0, Badline::AddressBus::RAM_POWER_ON[0x032a]]) }
   end
 
   describe "a relocated load over the zero page" do
@@ -389,7 +389,7 @@ describe Badline::KernalTrap::Load do
       trigger_trap
     end
 
-    specify { expect(ram.peek(0xc000)).to eq(0) }
+    specify { expect(ram.peek(0xc000)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc000]) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
   end
 
@@ -401,7 +401,7 @@ describe Badline::KernalTrap::Load do
       trigger_trap
     end
 
-    specify { expect(ram.peek(0xc000)).to eq(0) }
+    specify { expect(ram.peek(0xc000)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc000]) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
   end
 end
