@@ -24,6 +24,11 @@ class ScriptedConsole
   def status(**fields) = @statuses << fields
 end
 
+# A renderer interrupted by Ctrl-C as it starts.
+class InterruptingRenderer
+  def stream = raise(Interrupt)
+end
+
 describe Badline::Audio::Jukebox do
   subject(:jukebox) do
     described_class.new(sink, console, songs: 3, renderer:, length: ->(song) { song * 10.0 })
@@ -40,18 +45,32 @@ describe Badline::Audio::Jukebox do
     end
   end
 
-  it "plays the song it starts on to the end" do
-    jukebox.run(2)
-    expect([played, sink.played]).to eq([[2], 400])
+  it "plays the last song to the end" do
+    jukebox.run(3)
+    expect([played, sink.played]).to eq([[3], 400])
   end
 
   it "reports how the song ended" do
-    expect(jukebox.run(2)).to eq(:finished)
+    expect(jukebox.run(3)).to eq(:finished)
   end
 
   it "shows the song, its number and its length" do
+    jukebox.run(3)
+    expect(console.statuses.last).to include(song: 3, songs: 3, length: 30.0)
+  end
+
+  it "moves on to the next song when one ends" do
     jukebox.run(2)
-    expect(console.statuses.last).to include(song: 2, songs: 3, length: 20.0)
+    expect([played, sink.played]).to eq([[2, 3], 800])
+  end
+
+  it "plays through to the last song" do
+    jukebox.run(1)
+    expect(played).to eq([1, 2, 3])
+  end
+
+  it "reports how the last song ended" do
+    expect(jukebox.run(1)).to eq(:finished)
   end
 
   context "with n pressed" do
@@ -75,18 +94,18 @@ describe Badline::Audio::Jukebox do
   context "with p pressed" do
     let(:script) { { 3 => [:previous] } }
 
-    it "goes back a song" do
+    it "goes back a song and plays on from there" do
       jukebox.run(2)
-      expect(played).to eq([2, 1])
+      expect(played).to eq([2, 1, 2, 3])
     end
   end
 
   context "with p pressed on the first song" do
     let(:script) { { 3 => [:previous] } }
 
-    it "stays on it" do
+    it "plays on from it" do
       jukebox.run(1)
-      expect(played).to eq([1])
+      expect(played).to eq([1, 2, 3])
     end
   end
 
@@ -103,17 +122,31 @@ describe Badline::Audio::Jukebox do
     end
   end
 
+  context "with Ctrl-C pressed" do
+    let(:renderer) do
+      lambda do |song, _rate|
+        played << song
+        InterruptingRenderer.new
+      end
+    end
+
+    it "plays no further song" do
+      jukebox.run(2)
+      expect(played).to eq([2])
+    end
+  end
+
   context "with space pressed twice" do
     let(:script) { { 3 => [:pause], 8 => [:pause] } }
 
     it "shows the pause while it lasts" do
-      jukebox.run(2)
+      jukebox.run(3)
       paused = console.statuses.map { |status| status[:notes].include?("paused") }
       expect(paused.chunk_while(&:==).map(&:first)).to eq([false, true, false])
     end
 
     it "then plays the song out" do
-      jukebox.run(2)
+      jukebox.run(3)
       expect(sink.played).to eq(400)
     end
   end
@@ -122,7 +155,7 @@ describe Badline::Audio::Jukebox do
     let(:renderer) { ->(_song, _rate) { FakeRenderer.new(sink, frames: 20, size: 20, cost: 0.04) } }
 
     it "says so on the status line" do
-      jukebox.run(2)
+      jukebox.run(3)
       expect(console.statuses.last[:notes]).to include("below real time")
     end
   end
