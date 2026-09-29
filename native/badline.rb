@@ -8,6 +8,8 @@
 
 require "badline/native"
 
+$stdout.sync = true
+
 begin
   options = Badline::Native::Options.parse(ARGV)
 rescue Badline::Native::Options::Error => e
