@@ -179,6 +179,9 @@ jobs:
           - suite: sid-8580
             harnesses: sidtests
             task: spinel:sidtests[8580]
+          - suite: drive-scenarios
+            harnesses: drive_scenarios
+            task: spinel:drive_scenarios
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -228,7 +231,8 @@ jobs:
           bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: ENV["HARNESSES"].split)'
           echo "| Build $HARNESSES | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
       # spinel:lorenz runs the chain's four stretches side by side, and the
-      # testbench and SID tasks run SHARDS processes, set to the core count.
+      # testbench, SID and drive scenario tasks run SHARDS processes, set to
+      # the core count.
       - name: Run ${{ matrix.task }}
         env:
           SPINEL: "true"

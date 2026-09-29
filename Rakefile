@@ -85,6 +85,10 @@ REGRESSION_SUITES = {
 # CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
+# drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
+# the DOS ROM through a save, a format, the error channel, the idle loop, a
+# write-protected disk and an autostart, a row per check. Its filters are
+# scenario names.
 OPT_IN_SUITES = {
   "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
   "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
@@ -101,7 +105,8 @@ OPT_IN_SUITES = {
   "testbench-ntsc" => { runner: "bin/testbench", args: %w[--ntsc] },
   "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },
   "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
-  "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] }
+  "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
+  "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze
 
 ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze
@@ -472,6 +477,15 @@ desc "Run the SID testprogs for a chip (6581 or 8580) on the Spinel build, over 
      "and compare them against #{BASELINE_DIR}/sid.txt or sid-8580.txt"
 task "spinel:sidtests", [:sid] => "vendor:VICE-testprogs" do |_task, args|
   spinel_sidtests(args[:sid] || "6581")
+end
+
+desc "Run the true-drive scenarios on the Spinel build and compare them against " \
+     "#{BASELINE_DIR}/drive-scenarios.txt"
+task "spinel:drive_scenarios" do
+  SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[drive_scenarios])
+  results = File.join(SpinelCheck::OUT, "drive-scenarios.txt")
+  run_suite("drive-scenarios", results, ["--engine", SpinelCheck.binary("drive_scenarios")])
+  compare_baseline("drive-scenarios", results, name: "spinel-drive-scenarios")
 end
 
 desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build " \
