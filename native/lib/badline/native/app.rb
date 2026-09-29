@@ -19,6 +19,7 @@ module Badline
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose)
         @screenshot = options.screenshot
         @screen = Screen.new(computer.vic)
+        @led = DriveLed.new(computer.drive1541) if computer.drive1541
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
@@ -34,6 +35,7 @@ module Badline
         @pacer.start(@started)
         @reported_samples = 0
         frame while @running
+        @computer.drive1541&.flush
         @gamepads.close
         @sound.close
         close_window
@@ -170,6 +172,7 @@ module Badline
       def draw
         SDL.SDL_RenderClear(@renderer)
         SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
+        @led&.draw(@renderer)
         write_screenshot if @screenshot != "" && @frames + 1 == @frame_limit
         SDL.SDL_RenderPresent(@renderer)
       end
@@ -177,10 +180,7 @@ module Badline
       def report(at)
         @pacer.check(50, at - @reported, at)
         @pacer.measure(50, at - @reported)
-        if @verbose
-          report_frames(at)
-          report_sound(at) if @sound.on?
-        end
+        report_frames(at) if @verbose
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
         @reported = at
@@ -190,6 +190,7 @@ module Badline
         fps = 50 / (at - @reported)
         stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
         puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
+        report_sound(at) if @sound.on?
       end
 
       def report_sound(at)

@@ -96,7 +96,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   - `sdl.rb` declares the SDL2 functions, structs and constants the
     others call, and `LibC`'s `malloc`, `free` and `poll`.
   - `app.rb` (`App`) opens the window and runs the frame loop.
-  - `screen.rb` (`Screen`) repacks the VIC's display for the texture.
+  - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
+    and `drive_led.rb` (`DriveLed`) places and colours the true drive's
+    LED over it.
   - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue.
   - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
     directions, and `controls.rb` (`Controls`) holds the input mode and
@@ -140,8 +142,10 @@ render a `.sid` tune without it, as described under
 - `--no-autostart` attaches the media and stops at `READY.`.
 - `--read-only` mounts a disk image write-protected, leaving its file
   unchanged.
-- A `.g64` image needs the true 1541, which only `exe/badline-ruby` has
-  for now, and `badline` refuses one.
+- `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
+  traps, as in `exe/badline-ruby`: a `.d64` or `.g64` goes into it and
+  autostarts through its DOS, and its LED lights in the bottom right
+  corner of the border. A `.g64` plugs one in without it.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
@@ -206,8 +210,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
-The window's options, `--no-sound`, `--no-vsync`, `--verbose` and the
-testing ones included, are refused with them.
+The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
+`--verbose` and the testing ones included, are refused with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the

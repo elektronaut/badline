@@ -10,9 +10,13 @@ module Badline
                badline --headless [options] tune.sid
                badline [options] tune.sid --audio-out FILE
 
-        Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image,
-        a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid tune, or
-        a directory to mount as device 8. It opens in the emulator window.
+        Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
+        .g64 disk image for the true 1541, a .t64 tape archive, a .tap
+        tape, a .crt cartridge, a .sid tune, or a directory to mount as
+        device 8. It opens in the emulator window. Device 8 answers through
+        traps on the KERNAL's disk routines, unless --true-drive puts an
+        emulated 1541 there, which runs its own DOS and reads .d64 and .g64
+        images only.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
@@ -40,6 +44,7 @@ module Badline
                 --read-only                  Mount a disk image write-protected, leaving its file unchanged
                 --sound                      Play the SID through the host's audio device (F10 mutes)#{' (default)' if SOUND}
                 --no-sound                   Don't play the SID#{' (default)' unless SOUND}
+                --true-drive                 Put a true 1541 on device 8 instead of the KERNAL traps
                 --no-vsync                   Pace PAL frames by the timer or the sound instead of the display
                 --verbose                    Print the display, sound and gamepad setup and the frame timing
 
