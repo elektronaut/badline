@@ -1,105 +1,24 @@
-name: Build
+name: Release
+# Runs after CI finishes on a push to main, and releases only when it
+# passed. A workflow_run workflow runs from the default branch's copy of
+# this file, with the repository's secrets.
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
-      - develop
-  pull_request:
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  id-token: write
+permissions: {}
 jobs:
-  rubocop-test:
-    name: Rubocop
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
-    steps:
-      - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          bundler-cache: true
-          ruby-version: "4.0"
-      - name: Check code
-        run: bundle exec rubocop
-
-  rspec-test:
-    name: RSpec
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
-      - name: Run tests
-        run: bundle exec rspec
-
-  # The :slow examples are left out of a plain `rspec` to keep the local
-  # loop fast. Here they run beside the main job, so they cost no wall time.
-  rspec-slow-test:
-    name: RSpec (slow)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
-      - name: Run slow tests
-        run: bundle exec rspec --tag slow
-
-  minitest-test:
-    name: Minitest
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
-      - name: Cache 65x02 test fixtures
-        uses: actions/cache@v4
-        with:
-          path: vendor/65x02
-          key: 65x02-fixtures-6502-v1
-      - name: Run tests
-        run: bundle exec rake test
-
-  automerge:
-    name: "Auto-merge Dependabot"
-    needs: [rubocop-test, rspec-test, rspec-slow-test, minitest-test]
-    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Enable auto-merge
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   release-please:
-    needs: [rubocop-test, rspec-test, rspec-slow-test, minitest-test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -114,8 +33,13 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -152,6 +76,8 @@ jobs:
     if: needs.homebrew-gate.outputs.enabled == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
     env:
       TAG: ${{ needs.release-please.outputs.tag_name }}
       VERSION: ${{ needs.release-please.outputs.version }}
@@ -167,10 +93,10 @@ jobs:
           bundler-cache: true
       - name: Install SDL2
         run: brew install sdl2
-      # The same Spinel commit the Spinel workflow tests with.
+      # The same Spinel commit CI tests with.
       - name: Build Spinel
         run: |
-          ref=$(sed -n 's/^  SPINEL_REF: //p' .github/workflows/spinel.yml)
+          ref=$(sed -n 's/^  SPINEL_REF: //p' .github/workflows/ci.yml)
           git clone --quiet --filter=blob:none https://github.com/matz/spinel "$RUNNER_TEMP/spinel"
           git -C "$RUNNER_TEMP/spinel" checkout --quiet "$ref"
           make -C "$RUNNER_TEMP/spinel" deps
