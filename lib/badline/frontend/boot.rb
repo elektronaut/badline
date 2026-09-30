@@ -7,7 +7,8 @@ module Badline
   module Frontend
     # Builds the machine the options ask for and plays it in the window
     # until it closes, and returns the exit status: 1 when the media won't
-    # attach or an --at key names nothing, which it warns about.
+    # attach, an --at key names nothing or an event fails, which it warns
+    # about.
     def self.run(options)
       error = Timeline.error(options.timeline)
       unless error.empty?
@@ -23,8 +24,9 @@ module Badline
         warn "#{options.program}: #{options.media_path}: #{e.message}"
         return 1
       end
-      App.new(computer, options).run
-      0
+      timeline = Timeline.new(options)
+      App.new(computer, options, timeline).run
+      timeline.failed? ? 1 : 0
     end
 
     # The machine a .vsf snapshot holds, built as the saved one was, or a

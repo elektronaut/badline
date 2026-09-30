@@ -15,12 +15,17 @@ describe Badline::Frontend::App do
 
   def options(*argv) = Badline::Options.parse(["--unpaced", *argv])
 
+  def app(*argv)
+    parsed = options(*argv)
+    described_class.new(computer, parsed, Badline::Frontend::Timeline.new(parsed))
+  end
+
   # Opens the window, queues the events and runs until the frame limit or
   # a quit.
   def run(*events, argv: %w[--frames 2])
-    app = described_class.new(computer, options(*argv))
+    window = app(*argv)
     events.each { |event| sdl.SDL_PushEvent(event.ljust(56, "\0")) }
-    app.run
+    window.run
   end
 
   # type, timestamp and window id, then the rest of the event.
@@ -62,6 +67,13 @@ describe Badline::Frontend::App do
     it "saves --at's screenshots, numbered by frame" do
       run(argv: %w[--frames 3 --at 1,2:screenshot=shot%d.bmp])
       expect(Dir.glob("shot*.bmp")).to eq(%w[shot1.bmp shot2.bmp])
+    end
+
+    it "stops at an --at insert that fails" do
+      File.write("bad.crt", "junk")
+      allow($stderr).to receive(:write)
+      run(argv: %w[--frames 5 --at 1:insert=bad.crt])
+      expect(computer.cycles).to eq(frame_cycles)
     end
 
     it "presses --at's keys once their frame has run" do

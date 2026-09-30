@@ -5,7 +5,8 @@ module Badline
     # The events of --at and --script. Each runs once its number of frames
     # has run: a screenshot saves that frame, and the rest act on the
     # machine before the next frame is clocked. A key or the freeze button
-    # is let go Options::Event::HOLD frames after it is pressed.
+    # is let go Options::Event::HOLD frames after it is pressed. An event
+    # that fails ends the run.
     class Timeline
       # Takes the events, --screenshot's at the last frame and whether to
       # insert disks write-protected from Options.
@@ -15,7 +16,9 @@ module Badline
           @events += [Options::Event.new(options.frames, "screenshot", options.screenshot)]
         end
         @read_only = options.read_only?
+        @program = options.program
         @releases = []
+        @failed = false
       end
 
       # What's wrong with the events, the first key that names nothing,
@@ -60,13 +63,18 @@ module Badline
                .map { |event| Timeline.path(event.argument, frame) }
       end
 
-      def quit?(frame) = @events.any? { |event| event.frame == frame && event.action == "quit" }
+      # Whether the run ends at the frame: at a quit, or once an event failed.
+      def quit?(frame) = @failed || @events.any? { |event| event.frame == frame && event.action == "quit" }
 
-      # Lets go of what was held until this frame, then runs its events.
+      # Whether an event failed, which ends the run.
+      def failed? = @failed
+
+      # Lets go of what was held until this frame, then runs its events, up
+      # to one that fails.
       def run(computer, frame)
         @releases.each { |event| release(computer, event) if event.frame == frame }
         @releases.reject! { |event| event.frame == frame }
-        @events.each { |event| perform(computer, event) if event.frame == frame }
+        @events.each { |event| perform(computer, event) if event.frame == frame && !@failed }
       end
 
       private
@@ -124,19 +132,30 @@ module Badline
       def insert(computer, path)
         puts Media.attach(computer, path, autostart: false, disk: { read_only: @read_only })
       rescue StandardError => e
-        warn "badline: #{path}: #{e.message}"
+        warn "#{@program}: #{path}: #{e.message}"
+        @failed = true
       end
 
       def eject(computer, what)
+        return puts "No #{what} to eject" unless inserted?(computer, what)
+
         if what == "disk"
           eject_disk(computer)
         elsif what == "tape"
           computer.datasette.eject
-        elsif computer.address_bus.cartridge
+        else
           computer.address_bus.detach_cartridge
           computer.power_cycle!
         end
         puts "Ejected the #{what}"
+      end
+
+      def inserted?(computer, what)
+        return !computer.datasette.tape.nil? if what == "tape"
+        return !computer.address_bus.cartridge.nil? if what == "cartridge"
+
+        drive = Media::TrueDrive.drive(computer)
+        drive.nil? ? computer.mounted? : !drive.disk.nil?
       end
 
       def eject_disk(computer)

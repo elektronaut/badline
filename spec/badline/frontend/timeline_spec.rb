@@ -23,10 +23,13 @@ describe Badline::Frontend::Timeline do
 
   def quietly
     stdout = $stdout
+    stderr = $stderr
     $stdout = StringIO.new
+    $stderr = StringIO.new
     yield
   ensure
     $stdout = stdout
+    $stderr = stderr
   end
 
   describe ".error" do
@@ -143,20 +146,58 @@ describe Badline::Frontend::Timeline do
       let(:argv) { at("1:eject=tape") }
 
       it "ejects the datasette's" do
-        allow(computer.datasette).to receive(:eject)
-        quietly { run_to(1) }
-        expect(computer.datasette).to have_received(:eject)
+        computer.datasette.insert(Badline::Storage::TAP.new(tape))
+        expect { run_to(1) }.to output(/Ejected the tape/).to_stdout.and(change(computer.datasette, :tape).to(nil))
+      end
+
+      def tape
+        File.join(dir, "game.tap").tap { |path| File.binwrite(path, "C64-TAPE-RAW".b + ("\0" * 8)) }
+      end
+    end
+
+    %w[disk tape cartridge].each do |what|
+      context "when there's no #{what} to take out" do
+        let(:argv) { at("1:eject=#{what}") }
+
+        it "says so" do
+          expect { run_to(1) }.to output("No #{what} to eject\n").to_stdout
+        end
+
+        it "runs on" do
+          quietly { run_to(1) }
+          expect(timeline).not_to be_failed
+        end
+      end
+    end
+
+    context "when the true drive is empty" do
+      let(:argv) { at("1:eject=disk") }
+
+      it "has no disk to take out" do
+        Badline::Media::TrueDrive.plug(computer)
+        expect { run_to(1) }.to output("No disk to eject\n").to_stdout
       end
     end
 
     context "when a file won't go in" do
       let(:argv) do
         File.write(File.join(dir, "bad.crt"), "junk")
-        at("1:insert=#{File.join(dir, 'bad.crt')}")
+        at("1:insert=#{File.join(dir, 'bad.crt')}", "1:reset")
       end
 
-      it "warns and runs on" do
-        expect { run_to(1) }.to output(/bad\.crt: Missing CRT signature/).to_stderr
+      it "warns" do
+        expect { run_to(1) }.to output(/badline-ruby: .*bad\.crt: Missing CRT signature/).to_stderr
+      end
+
+      it "fails, ending the run" do
+        quietly { run_to(1) }
+        expect(timeline).to be_failed
+      end
+
+      it "skips the frame's other events" do
+        allow(computer).to receive(:reset!)
+        quietly { run_to(1) }
+        expect(computer).not_to have_received(:reset!)
       end
     end
   end

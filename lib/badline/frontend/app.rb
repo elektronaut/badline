@@ -10,14 +10,14 @@ module Badline
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      # Takes the frame limit, the pacing, the screenshot and snapshot paths,
-      # the timeline, the sound and the verbosity from Options.
-      def initialize(computer, options)
+      # Takes the frame limit, the pacing, the snapshot path, the sound and
+      # the verbosity from Options, and runs the timeline's events.
+      def initialize(computer, options, timeline)
         @computer = computer
         @frame_limit = options.frames
         @verbose = options.verbose?
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, region: computer.region)
-        @timeline = Timeline.new(options)
+        @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
         @screen = Screen.new(computer.vic)
         @led = DriveLed.for(computer)
@@ -49,7 +49,6 @@ module Badline
         stamps = [now]
         handle_events
         @gamepads.poll
-        @timeline.run(@computer, @frames)
         stamps << now
         emulate
         stamps << now
@@ -69,6 +68,7 @@ module Badline
         took = stamps[-2] - stamps.first
         @slowest = took if took > @slowest
         @frames += 1
+        @timeline.run(@computer, @frames)
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?

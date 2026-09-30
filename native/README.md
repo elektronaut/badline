@@ -211,8 +211,10 @@ The events:
   `restore`, and a joystick's switch: `joy1-up` or `joy2-fire`.
 - `type=TEXT` types through the keyboard buffer, with `\n` for RETURN.
 - `insert=FILE` puts a disk image, a directory, a tape or a cartridge in,
-  without loading anything. A cartridge goes in with the power off.
-- `eject=disk`, `eject=tape` or `eject=cartridge` takes one out.
+  without loading anything. A cartridge goes in with the power off. A
+  file that won't go in ends the run, with a warning and exit status 1.
+- `eject=disk`, `eject=tape` or `eject=cartridge` takes one out, or says
+  there's none.
 - `screenshot=FILE` saves the frame, with the frame's number in place of
   `%d`, or of `%05d` padded to five digits.
 - `reset`, `freeze` (the cartridge's button) and `quit`.

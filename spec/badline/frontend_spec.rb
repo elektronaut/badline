@@ -19,6 +19,21 @@ describe Badline::Frontend do
     expect { run("bad.crt") }.to output(/badline-ruby: bad.crt: Missing CRT signature/).to_stderr
   end
 
+  describe "an --at insert that fails" do
+    def insert_bad = run("--unpaced", "--frames", "5", "--at", "1:insert=bad.crt")
+
+    before { File.write("bad.crt", "junk") }
+
+    it "warns" do
+      expect { insert_bad }.to output(/badline-ruby: bad\.crt: Missing CRT signature/).to_stderr
+    end
+
+    it "returns 1" do
+      allow($stderr).to receive(:write)
+      expect(insert_bad).to eq(1)
+    end
+  end
+
   it "restores a .vsf" do
     Badline::Computer.new.save_snapshot("saved.vsf")
     expect { run("saved.vsf", "--frames", "1", "--unpaced") }.to output(/Restored saved.vsf/).to_stdout
@@ -28,6 +43,6 @@ describe Badline::Frontend do
     allow(Badline::Frontend::App).to receive(:new).and_return(instance_double(Badline::Frontend::App, run: nil))
     run("--ntsc")
     expect(Badline::Frontend::App).to have_received(:new).with(having_attributes(region: Badline::Region::NTSC),
-                                                               anything)
+                                                               anything, anything)
   end
 end
