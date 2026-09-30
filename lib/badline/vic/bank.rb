@@ -13,9 +13,26 @@ module Badline
 
       attr_reader :address_bus
 
+      # The bank lines as #sample_lines last saw them.
+      attr_accessor :lines
+
       def initialize(address_bus = nil)
         addressable_at(0x0000, length: 2**14)
         @address_bus = address_bus || AddressBus.new
+        @lines = 0b11
+        @swapped = false
+      end
+
+      # On the 8565, a port A write that swaps the two bank lines, driving
+      # one high as the other goes low, shows the VIC both lines low for the
+      # cycle after it: every access in that cycle reads bank 3. A swap that
+      # the DDR makes, releasing a line to float high, shows nothing.
+      # Called once a cycle, ahead of the cycle's accesses.
+      def sample_lines
+        cia2 = @address_bus.cia2
+        lines = cia2.port_a_lines & 0b11
+        @swapped = swap?(@lines, lines) && cia2.port_registers[2].allbits?(0b11)
+        @lines = lines
       end
 
       def peek(offset)
@@ -66,7 +83,11 @@ module Badline
         end
       end
 
+      def swap?(from, to) = (from ^ to) == 0b11 && from.anybits?(0b11) && to.anybits?(0b11)
+
       def bank_switch_register
+        return 0 if @swapped
+
         @address_bus.cia2.port_a_lines & 0b11
       end
     end

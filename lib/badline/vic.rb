@@ -86,6 +86,7 @@ module Badline
       @grey_dots = model == :mos8565
       @delayed_fetch = model == :mos8565
       @dma_delay_idle = model == :mos6569
+      @bank_swaps = model == :mos8565
       @address_bus = address_bus || AddressBus.new
       @vic_bank = VIC::Bank.new(@address_bus)
       @debug = debug
@@ -153,6 +154,7 @@ module Badline
       out.int(@column).int(@rasterline).int(@cycles).boolean(@pending_write)
       out.int(@g_tick).ints(@g_kind).int(@g_kept_char).int(@g_kept_color).boolean(@g_display)
       out.int(@fetch_d011).boolean(@lp_triggered).boolean(@lp_low).boolean(@raster_match)
+      out.int(@vic_bank.lines)
       out.blob(@character_buffer).blob(@color_buffer).booleans(@sprite_ba)
       @lines.each { |line| out.blob(line) }
       @registers.save_state(out)
@@ -372,6 +374,7 @@ module Badline
       @lp_triggered = input.boolean?
       @lp_low = input.boolean?
       @raster_match = input.boolean?
+      @vic_bank.lines = input.int
     end
 
     def load_buffers(input)
@@ -536,6 +539,7 @@ module Badline
     # on zero data with the screen byte and colour the last g-access
     # latched, which an idle g-access clears.
     def draw!
+      @vic_bank.sample_lines if @bank_swaps
       slot = @g_tick = (@g_tick + 1) & 3
       display_state = @display_state
       access = display_state.graphics_column?(@column) && !@sequencer.vertical_closed?

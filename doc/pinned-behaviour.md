@@ -869,6 +869,18 @@ are the row's diff with the rule removed.
     fails with two.
   - Spec guard: *adds one extra half-pixel on the 8565* in
     [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+- **A `$dd00` write that swaps the bank lines shows bank 3 for a cycle.**
+  Where one bank line goes high as the other goes low, every VIC access in
+  the cycle after the write reads bank 3 (both lines low), and the new bank
+  from the cycle after that (`VIC::Bank#sample_lines`). A swap the DDR
+  makes, releasing a line to float high, shows nothing, and neither does a
+  write that moves one line or both the same way.
+  - Pinned by `fetchsplit` (154 → 16 px): every 8565 capture its readme
+    lists shows `3` in the first character after each `$dd00` swap, while
+    the 6569 reference shows none. `M1` also shows it after the DDR swaps;
+    `M7`, which the `-8565` reference is made from, doesn't.
+  - Spec guard: the `#sample_lines` group in
+    [`bank_spec.rb`](../spec/badline/vic/bank_spec.rb).
 
 What the 8565 references don't settle, and so what stays as it is:
 
@@ -882,12 +894,21 @@ What the 8565 references don't settle, and so what stays as it is:
   `vicii_reg_timing-ff` (7 px, the hi-res bitmap into text row) stay FAIL.
   No emulator in the testbench results passes `vicii_reg_timing-a5` or
   `-ff` on the 8565, and only Hoxs64 passes `modesplit`, against the
-  `8565early` reference.
-- `fetchsplit` (154 px) stays FAIL: its readme says its 8565 artefacts
-  differ from chip to chip and change as the machine warms up, and its
-  `M1` and `M7` captures differ. The differences sit in the first character
-  after a `$dd00` bank switch on some lines. Delaying every rising, or
-  every falling, bank bit by a cycle on the 8565 makes it 656 or 752 px.
+  `8565early` reference. Listed by transition, the references disagree
+  on the same pixel: out of ECM+BMM into ECM text a foreground pixel 0 is
+  on time in `videomode-w` and black in `modesplit`; out of ECM into hi-res
+  text a background pixel 0 selecting `$d022` shows the new mode in the
+  `vicii_reg_timing` ECM row and the old one in `modesplit`; out of hi-res
+  bitmap into text a foreground pixel 0 is new in `-a5` and old in `-ff`,
+  with the same screen, colour and pixel values. Each test's position is
+  independent of where it starts: booting 0 to 20000 cycles longer before
+  attaching gives the same diff.
+- `fetchsplit` (16 px) stays FAIL on the one swap the DDR makes that the
+  `-8565` reference shows as bank 3: the swap in column 34 of the `line1c`
+  rows, in the text and ECM blocks but not the bitmap one, while the same
+  swap in column 4 of `line1b` shows nothing. The readme says its 8565
+  artefacts differ from chip to chip and change as the machine warms up,
+  and its `M1` capture shows bank 3 after every DDR swap.
 - VICE's idle g-access also reads ECM from the `$d011` of the column
   before on the 8565. No testprog tells it apart, so the 8565 keeps the
   6569's idle access, without the 6569's `$38ff` read where a DMA delay
@@ -932,6 +953,22 @@ region moves the sprites. The positions live in `Region::Profile` and
   leaves out, 12-27 on the 6567R8 and 13-27 on the 6567R56A, so the
   `testbench-ntsc` screenshots, VICE's 247 lines from line 28 running on
   into the next frame, see every line they show painted.
+
+What the NTSC references don't settle, and so what stays as it is:
+
+- `modesplit` on the 6567R56A (62 px) is compared against the PAL
+  reference, since there is no `-ntscold` one, and every pixel of its
+  diff sits in the label bar, where the test prints the line length and
+  line count it measured, and the reference shows the PAL ones.
+- `modesplit` on the 6567R8 (458 px) matches the PAL reference on every
+  row but the label bar. Its `-ntsc` reference differs from the PAL one
+  in ways no 6567R8 rule here produces: light grey on the first pixel
+  after each `$d021` write (a grey dot, 20 px), the ECM split of section
+  2 alone starting and ending a character later (most of the diff) while
+  sections 1 and 3 keep their PAL positions, and single pixels in
+  section 1. The
+  readme says it was matched against screenshots, and the one 6567R8
+  photograph in the testprogs is of revision R01.
 
 ## CIA 6526 timer pipeline
 
