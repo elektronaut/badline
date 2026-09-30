@@ -61,41 +61,48 @@ badline game.vsf       # Restore a snapshot, from badline or VICE
 badline ~/c64          # Mount a directory as device 8
 ```
 
-`badline-ruby` takes the same media and the same options, with the
-differences noted below.
-
 Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
-from it. `--no-autostart` attaches the media and stops at `READY.`, so
-you can type the `LOAD` yourself. `--read-only` mounts a disk image
-write-protected, so the drive reports `26,WRITE PROTECT ON` for any
-write and the image file stays as it was. `--song N` picks a subtune of a
-`.sid` file, `--sid 8580` fits the newer SID and `--reu 512` plugs in a
-512K RAM Expansion Unit. `--ntsc` runs an NTSC C64, with the 6567R8
-VIC-II, instead of a PAL one. `badline-ruby` also
-takes `--disable-jit`, which runs without YJIT, otherwise switched on at
-startup. `--help` lists the options.
+from it.
 
-The KERNAL, BASIC and character ROMs come with the gem. To run other
-images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
-directory that holds `kernal.rom`, `basic.rom` and `character.rom`,
-plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
-Ruby, `Badline.rom_path = dir` does the same before a
-`Badline::Computer` is built, and `nil` restores the bundled set.
+`badline-ruby` takes the same media and the same options, with the
+differences noted in the table. `--help` lists the options for either.
+
+### Options
+
+| Option | Effect |
+| --- | --- |
+| `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
+| `--read-only` | Mount a disk image write-protected. The drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
+| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
+| `-s`, `--song N` | Pick a subtune of a `.sid` file, counting from 1 |
+| `--sid 6581`, `--sid 8580` | Fit the older or newer SID |
+| `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
+| `--ntsc` | Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one |
+| `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
+| `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
+| `--no-vsync` | Pace the window by a timer, or by the sound while it plays, instead of the display's vsync |
+| `--verbose` | Print the display's refresh rate, the sound's sample rate and the game controllers found as the window opens, then the frame rate and the time each frame takes, once a second |
+| `--disable-jit` | Run without YJIT, otherwise switched on at startup (`badline-ruby` only) |
+| `--version` | Show the version and what built it (`badline` only) |
+| `-h`, `--help` | List the options |
 
 Both run the same window. `badline` plays the SID through the host's
-audio device, and `F10` mutes and unmutes it. `--no-sound` turns it
-off. The window is paced by the display's vsync; `--no-vsync` paces it
-by a timer, or by the sound while it plays.
+audio device, and `F10` mutes and unmutes it. In `badline-ruby` the
+machine runs below real time, so the sound stutters: it plays in bursts
+with silent gaps between them, at the right pitch, and never slows the
+emulation down.
 
-`--verbose` prints the display's refresh rate, the sound's sample rate
-and the game controllers found as the window opens, then the frame rate
-and the time each frame takes, once a second.
+### Scripted runs
 
-For a scripted run, `--frames N` quits after N frames, `--unpaced` runs
-as fast as it can and `--at FRAME:EVENT` presses keys, types, swaps
-media and takes screenshots once that many frames have run. `--script
-FILE` takes one `FRAME:EVENT` a line:
+| Option | Effect |
+| --- | --- |
+| `--frames N` | Quit after N frames |
+| `--unpaced` | Run as fast as it can, without vsync or pacing |
+| `--at FRAME:EVENT` | Press keys, type, swap media or take a screenshot once `FRAME` frames have run |
+| `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |
+| `--screenshot FILE` | Save the last frame as a `.bmp` |
+| `--save-snapshot FILE` | Save the machine as a `.vsf` snapshot after the last frame |
 
 ```sh
 badline --unpaced --frames 12000 --true-drive disk1.d64 \
@@ -106,10 +113,14 @@ badline --unpaced --frames 12000 --true-drive disk1.d64 \
 `--help` lists the events, and [native/README.md](native/README.md#running)
 describes them.
 
-In `badline-ruby` sound is off by default, and `--sound` turns it on.
-The machine runs below real time there, so the sound stutters: it plays
-in bursts with silent gaps between them, at the right pitch, and never
-slows the emulation down.
+### ROMs
+
+The KERNAL, BASIC and character ROMs come with the gem. To run other
+images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
+directory that holds `kernal.rom`, `basic.rom` and `character.rom`,
+plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
+Ruby, `Badline.rom_path = dir` does the same before a
+`Badline::Computer` is built, and `nil` restores the bundled set.
 
 ## Media
 
