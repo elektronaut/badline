@@ -16,7 +16,7 @@ require "badline/instruction_set"
 require "badline/status"
 require "badline/interrupts"
 require "badline/traps"
-require "badline/cpu"
+require "badline/cpu/core"
 
 module CPUTests
   class RecordingMemory < Badline::Memory
@@ -59,6 +59,11 @@ module CPUTests
     end
   end
 
+  # The 6502 core on a RecordingMemory.
+  class CPU
+    include Badline::CPU::Core
+  end
+
   # One test: initial registers and RAM, expected registers and RAM, and the
   # expected bus trace as address, value, kind (0 read, 1 write) triples.
   class StepCase
@@ -96,7 +101,7 @@ module CPUTests
     end
 
     def start(memory)
-      cpu = Badline::CPU.new(memory, ane_constant: 0xee)
+      cpu = CPU.new(memory, ane_constant: 0xee)
       cpu.program_counter = @initial[0]
       cpu.stack_pointer = @initial[1]
       cpu.a = @initial[2]
