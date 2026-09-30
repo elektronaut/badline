@@ -195,6 +195,12 @@ class TestTestbenchDrive < Minitest::Test
     assert_equal @disk, parse("../drive/readtest/,t.prg,exitcode,1000,mountd64:#{@disk}").disk_path
   end
 
+  def test_a_drive_row_hands_the_engine_its_drive_and_disk
+    test = parse("../drive/readtest/,t.prg,exitcode,1000,mountd64:#{@disk}")
+
+    assert Testbench::Engine.spec(test).end_with?("\tpal\tdrive\t#{@disk}\n")
+  end
+
   def test_runs_a_row_that_mounts_a_disk_with_a_true_drive
     assert_predicate parse("../VICII/x/,t.prg,exitcode,1000,mountd64:#{@disk}"), :drive?
   end
@@ -446,6 +452,14 @@ class TestTestbenchSelection < Minitest::Test
 
   def test_filters_are_a_union
     assert_equal ["VICII/border/t.prg", "CPU/cpujam/t.prg"], selected(%w[border cpujam])
+  end
+
+  def test_a_bang_filter_leaves_its_tests_out_of_the_scope
+    assert_equal ["interrupts/irqnoack/test1.prg"], selected(["!irqdma"], scope: "interrupts/")
+  end
+
+  def test_a_bang_filter_is_never_unmatched
+    assert_empty Testbench::Testlist.unmatched(%w[border !viavarious], tests(*IDS))
   end
 
   def test_a_filter_outside_the_scope_selects_nothing
@@ -759,6 +773,8 @@ class TestTestbenchEngine < Minitest::Test
     def vic_model = :mos6569
     def expansion = nil
     def region = :pal
+    def drive? = false
+    def disk = nil
   end
 
   def setup
@@ -775,14 +791,14 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\tpal\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\tpal\t\t\n",
                  Testbench::Engine.spec(test)
   end
 
   def test_a_test_line_ends_with_the_expansion
     test = Testbench::TestCase.new("../plus60k", "t.prg", "exitcode", 1000, ["plus60k"])
 
-    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\tpal\n")
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\tpal\t\t\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices
