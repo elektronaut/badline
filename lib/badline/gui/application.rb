@@ -76,19 +76,19 @@ module Badline
       private
 
       def handle_events
-        while (event = SDL.poll_event)
+        while (event = Event.poll)
           case event
-          when SDL::Quit
+          when Event::Quit
             @running = false
-          when SDL::KeyDown
+          when Event::KeyDown
             handle_key_down(event)
-          when SDL::KeyUp
+          when Event::KeyUp
             handle_key_up(event)
-          when SDL::MouseMotion
+          when Event::MouseMotion
             @pot_device&.move(event.xrel, event.yrel)
-          when SDL::MouseButton
+          when Event::MouseButton
             handle_mouse_button(event)
-          when SDL::ControllerDevice
+          when Event::ControllerDevice
             @gamepads.rescan
           end
         end
@@ -220,7 +220,7 @@ module Badline
         ports = @computer.control_ports
         ports.device1 = port == 1 ? @pot_device : nil
         ports.device2 = port == 2 ? @pot_device : nil
-        SDL::SetRelativeMouseMode.call(@pot_device ? 1 : 0)
+        SDL.SDL_SetRelativeMouseMode(@pot_device ? 1 : 0)
       end
 
       def release_inputs
