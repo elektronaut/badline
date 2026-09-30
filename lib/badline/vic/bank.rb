@@ -31,8 +31,7 @@ module Badline
       def sample_lines
         cia2 = @address_bus.cia2
         lines = cia2.port_a_lines & 0b11
-        @swapped = (lines == 0b01 || lines == 0b10) && (lines ^ @lines) == 0b11 &&
-                   cia2.port_registers[2].allbits?(0b11)
+        @swapped = swap?(@lines, lines) && cia2.port_registers[2].allbits?(0b11)
         @lines = lines
       end
 
@@ -83,6 +82,8 @@ module Badline
           @address_bus.video_ram.peek(BANK_STARTS[bank_switch_register] + offset)
         end
       end
+
+      def swap?(from, to) = (from ^ to) == 0b11 && from.anybits?(0b11) && to.anybits?(0b11)
 
       def bank_switch_register
         return 0 if @swapped

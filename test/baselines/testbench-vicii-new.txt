@@ -1,5 +1,5 @@
 VICII/lp-trigger/test2new.prg	PASS
-VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=154px exit=$00
+VICII/split-tests/fetchsplit/fetchsplit.prg	FAIL	diff=16px exit=$00
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=92px exit=$00
 VICII/vicii_timing/vicii_reg_timing.prg	PASS
 VICII/vicii_timing/vicii_reg_timing-a5.prg	PASS

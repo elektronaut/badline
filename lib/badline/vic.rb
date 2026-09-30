@@ -175,7 +175,6 @@ module Badline
     end
 
     def cycle!
-      @vic_bank.sample_lines if @bank_swaps
       start_line! if @column.zero?
 
       # The g-access runs in the first half of the cycle, ahead of the bad
@@ -540,6 +539,7 @@ module Badline
     # on zero data with the screen byte and colour the last g-access
     # latched, which an idle g-access clears.
     def draw!
+      @vic_bank.sample_lines if @bank_swaps
       slot = @g_tick = (@g_tick + 1) & 3
       display_state = @display_state
       access = display_state.graphics_column?(@column) && !@sequencer.vertical_closed?
