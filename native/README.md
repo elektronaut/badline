@@ -273,7 +273,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 `badline-ruby --headless` and `--audio-out` do (see
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
-`--songlengths`, `--rate`, `--filter-chunk`, `--quiet` and `--no-tui`.
+`--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-songs`
+and `--no-tui`.
 The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
 `--reu`, `--ntsc`, `--verbose` and the testing ones included, are refused
 with them.

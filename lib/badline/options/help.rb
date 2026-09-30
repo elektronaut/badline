@@ -53,8 +53,10 @@ module Badline
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
-        terminal, n or → skips to the next song, p or ← to the previous one,
-        space pauses and q quits.
+        terminal, → and ← step between the tune's songs, n and p between
+        tunes, space pauses and q quits. s shuffles the tunes, l loops them,
+        and a, or --all-songs, plays on through each tune's songs instead
+        of just the one.
 
         A .sid file carries no length of its own. Without --seconds the tune is
         looked up by MD5 in HVSC's Songlengths.md5, taken from --songlengths, from

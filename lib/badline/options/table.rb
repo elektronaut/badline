@@ -44,6 +44,8 @@ module Badline
       Option.new("--filter-chunk N", "Filter step in cycles, 1 is exact (default: 4)",
                  section: "Options without the window", needs: :headless),
       Option.new("--quiet", "Don't report progress", section: "Options without the window", needs: :headless),
+      Option.new("--all-songs", "Play on through each tune's songs, not just the one",
+                 section: "Options without the window", needs: :headless),
       Option.new("--no-tui", "Play without the interactive display, even on a terminal",
                  section: "Options without the window", needs: :headless),
       Option.new("--frames N", "Quit after N frames", section: "Testing options", needs: :window),
