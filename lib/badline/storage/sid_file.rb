@@ -293,10 +293,7 @@ module Badline
       end
 
       def text(offset)
-        @bytes[offset, 32].take_while(&:positive?)
-                          .pack("C*")
-                          .force_encoding(Encoding::ISO_8859_1)
-                          .encode(Encoding::UTF_8)
+        Storage.latin1(@bytes[offset, 32].take_while(&:positive?))
       end
 
       # Header fields are big-endian, unlike everything else the 6502 sees.

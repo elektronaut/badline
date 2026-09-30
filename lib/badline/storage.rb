@@ -62,6 +62,12 @@ module Badline
         bytes.map { |b| b.between?(0xc1, 0xda) ? b - 0x80 : b }.pack("C*")
       end
 
+      # Decodes ISO-8859-1 bytes, the text of .sid headers and HVSC's
+      # documents, to UTF-8.
+      def latin1(bytes)
+        bytes.pack("U*").force_encoding(Encoding::UTF_8)
+      end
+
       # CBM DOS drive prefix: "0:NAME" selects a drive, "@0:NAME" is
       # save-with-replace
       def strip_drive_prefix(name)
