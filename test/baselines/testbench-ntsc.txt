@@ -74,7 +74,7 @@ VICII/phi1timing/phi1timing_ntscold.prg	PASS
 VICII/screenpos/screenpos_ntsc.prg	PASS
 VICII/screenpos/screenpos_ntscold.prg	FAIL	no-ref
 VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=458px exit=$00
-VICII/split-tests/modesplit/modesplit.prg	FAIL	diff=62px exit=$00
+VICII/split-tests/modesplit/modesplit.prg#2	FAIL	diff=62px exit=$00
 VICII/videomode/rmwtest_ntsc.prg	PASS
 VICII/videomode/rmwtest_ntscold.prg	FAIL	no-ref
 VICII/videomode/videomode-v_ntsc.prg	FAIL	diff=122px exit=$00

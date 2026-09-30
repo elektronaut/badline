@@ -7,7 +7,7 @@
 # it. Re-recording the baseline is what pins a new row's verdict.
 module Regression
   Row = Struct.new(:key, :verdict, :detail) do
-    # The occurrence suffix is a read-side key, not part of the recorded id.
+    # The key without its occurrence suffix, which filters match against.
     def id
       key.sub(/#\d+\z/, "")
     end
@@ -17,19 +17,18 @@ module Regression
     end
 
     def to_record
-      "#{[id, verdict, detail].compact.join("\t")}\n"
+      "#{[key, verdict, detail].compact.join("\t")}\n"
     end
   end
 
-  # A few testlist entries are listed twice, so an id that repeats is keyed
-  # by its occurrence.
+  # Each row is keyed as the runner wrote it. A program the testlist lists
+  # twice is written as id and id#2, so a key that repeats is a broken file.
   def self.read(path)
-    seen = Hash.new(0)
-    File.readlines(path, chomp: true).reject(&:empty?).to_h do |line|
-      id, verdict, detail = line.split("\t", 3)
-      seen[id] += 1
-      key = seen[id] > 1 ? "#{id}##{seen[id]}" : id
-      [key, Row.new(key, verdict, detail)]
+    File.readlines(path, chomp: true).reject(&:empty?).each_with_object({}) do |line, rows|
+      key, verdict, detail = line.split("\t", 3)
+      raise ArgumentError, "#{path} lists #{key} twice." if rows.key?(key)
+
+      rows[key] = Row.new(key, verdict, detail)
     end
   end
 
@@ -43,10 +42,6 @@ module Regression
   # run's neighbouring row. Nothing is ever dropped, so a row the vendored
   # suite lost survives a partial record and is reported as gone by the
   # next comparison.
-  #
-  # Baseline order decides the recorded occurrence numbering (`id#2`), so
-  # every inserted row is placed adjacent to the row it followed in the
-  # run, never appended past an occurrence of the same id.
   class Splice
     def initialize(baseline, fresh)
       @baseline = baseline
