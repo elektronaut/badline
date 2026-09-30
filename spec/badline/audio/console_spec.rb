@@ -17,8 +17,8 @@ describe Badline::Audio::Console do
 
   describe "#wait" do
     {
-      "n" => :next, "\e[C" => :next,
-      "p" => :previous, "\e[D" => :previous,
+      "n" => :next, "\e[C" => :next_song,
+      "p" => :previous, "\e[D" => :previous_song,
       " " => :pause, "s" => :shuffle, "l" => :loop,
       "a" => :all_songs, "q" => :quit
     }.each do |key, action|
@@ -30,7 +30,7 @@ describe Badline::Audio::Console do
 
     it "reads every key waiting, in order" do
       press("n p\e[Cq")
-      expect(console.wait(0)).to eq(%i[next pause previous next quit])
+      expect(console.wait(0)).to eq(%i[next pause previous next_song quit])
     end
 
     it "ignores keys it has no use for" do
@@ -68,7 +68,7 @@ describe Badline::Audio::Console do
   describe "#header" do
     it "prints each line, then the keys" do
       console.header(%w[Tune Author])
-      keys = "n/→ next  p/← previous  space pause  s shuffle  l loop  a all songs  q quit"
+      keys = "←/→ song  n/p tune  space pause  s shuffle  l loop  a all songs  q quit"
       expect(output.string).to eq("Tune\r\nAuthor\r\n#{keys}\r\n")
     end
   end

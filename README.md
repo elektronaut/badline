@@ -232,6 +232,7 @@ or `.aiff`. The native `badline` has both modes too.
 ```sh
 badline-ruby --headless tune.sid                             # play, length from HVSC
 badline-ruby --headless -s 3 tune.sid                        # play the third subtune
+badline-ruby --headless --all-songs tune.sid                 # play on through every subtune
 badline-ruby --seconds 180 tune.sid --audio-out out.aiff
 badline-ruby -s 3 --rate 48000 tune.sid --audio-out out.wav
 badline-ruby --headless --sid 8580 tune.sid
@@ -247,17 +248,23 @@ says otherwise. Ctrl-C stops it.
 
 Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
-length. When a song reaches its length it goes on to the next, and it
-stops after the last. `n` or → skips to the next song, `p` or ← goes
-back one, space pauses and `q` quits. The player plays a queue of
-tunes, which for now holds just the one. `s` turns shuffle on and off,
-which plays the queue's tunes in a random order, and `l` turns looping
-on and off, so that the end of the queue goes on to its start. `a`
-switches between playing all of each tune's songs, as it does at first,
-and just the one it starts on. The status line shows which are on, and
-they last until the player quits. `--no-tui`, or output that isn't a
-terminal, gives plain progress output instead and plays just the one
-song, as `--audio-out` renders just the one.
+length. The player plays a queue of tunes, which for now holds just the
+one, and each tune plays its own song: `--song`, or the tune's start
+song. When that song reaches its length the player goes on to the next
+tune, and it stops after the last. `a`, or `--all-songs`, turns on
+playing all songs, so that a song that ends goes on to the tune's next
+song, and a tune stepped to starts on its first song.
+
+→ and ← step to the tune's next and previous song, stopping at its
+first and last. `n` and `p` step to the next and previous tune. `s`
+turns shuffle on and off, which plays the queue's tunes in a random
+order, and `l` turns looping on and off, so that the end of the queue
+goes on to its start. Space pauses and `q` quits. The status line
+shows which modes are on, and they last until the player quits.
+
+`--no-tui`, or output that isn't a terminal, gives plain progress
+output instead and plays just the one song, as `--audio-out` renders
+just the one.
 
 A `.sid` file doesn't store its length, so `badline-ruby` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database

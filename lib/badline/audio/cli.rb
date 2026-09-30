@@ -100,7 +100,8 @@ module Badline
 
       def play_interactively(sink)
         console = @console.call(input: @input, output: @out)
-        queue = Media::Queue.new([Media::Queue::Entry.new(@options.tune_path, part: song, parts: tune.songs)])
+        entry = Media::Queue::Entry.new(@options.tune_path, part: song, parts: tune.songs)
+        queue = Media::Queue.new([entry], all_parts: @options.all_songs?)
         jukebox = Jukebox.new(sink, console, queue:, renderer: ->(_entry, song, rate) { renderer(song, rate) },
                                              length: ->(_entry, song) { length(song) })
         console.session do

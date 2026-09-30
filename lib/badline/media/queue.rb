@@ -7,13 +7,15 @@ module Badline
     # start on, counting from 1, out of the parts the file holds: a .sid
     # tune's songs, say, or 1 of 1 for media with no parts.
     #
-    # #forward and #back step through the entries, and return the entry
-    # they moved to, or nil where they stay put. With #loop? they wrap
-    # around at either end, and with #shuffle? they follow a shuffled
-    # order that starts from the current entry. With #all_parts? an entry
-    # plays every one of its parts before the queue moves on: #forward and
-    # #back step through them first, starting a later entry on its first
-    # part and an earlier one on its last.
+    # #next_entry and #previous_entry step through the entries, and
+    # #next_part and #previous_part through the current entry's parts,
+    # stopping at its ends. Each returns the entry it moved to, or nil
+    # where it stays put. With #loop? the entry steps wrap around at
+    # either end, and with #shuffle? they follow a shuffled order that
+    # starts from the current entry. #all_parts? decides where #advance
+    # goes once a part has played out: on through the entry's parts, or
+    # to the next entry. An entry stepped to starts on its first part
+    # with #all_parts?, otherwise on its own.
     #
     # `shuffle`, if given, returns the entry indices it's given in a new
     # order in place of Array#shuffle.
@@ -31,7 +33,7 @@ module Badline
 
       attr_reader :part
 
-      def initialize(entries, all_parts: true, shuffle: nil)
+      def initialize(entries, all_parts: false, shuffle: nil)
         @entries = entries
         @shuffler = shuffle
         @order = (0...entries.size).to_a
@@ -69,35 +71,47 @@ module Badline
         @shuffle
       end
 
-      def forward
+      def next_entry
         return if empty?
-        return step_part(1) if @all_parts && @part < entry.parts
 
-        move(@position + 1, forward: true)
+        move(@position + 1)
       end
 
-      def back
+      def previous_entry
         return if empty?
-        return step_part(-1) if @all_parts && @part > 1
 
-        move(@position - 1, forward: false)
+        move(@position - 1)
+      end
+
+      def next_part
+        return if empty? || @part >= entry.parts
+
+        @part += 1
+        entry
+      end
+
+      def previous_part
+        return if empty? || @part <= 1
+
+        @part -= 1
+        entry
+      end
+
+      # Where to go once the current part has played to its end: the
+      # entry's next part with #all_parts?, otherwise the next entry.
+      def advance
+        return next_part if @all_parts && !empty? && @part < entry.parts
+
+        next_entry
       end
 
       private
 
-      def step_part(step)
-        @part += step
-        entry
-      end
-
-      def move(position, forward:)
+      def move(position)
         return unless position.between?(0, size - 1) || @loop
 
         @position = position % size
-        @part = if !@all_parts then entry.part
-                elsif forward then 1
-                else entry.parts
-                end
+        @part = @all_parts ? 1 : entry.part
         entry
       end
 

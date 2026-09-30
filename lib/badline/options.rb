@@ -4,6 +4,7 @@ require "badline/options/option"
 require "badline/options/event"
 require "badline/options/table"
 require "badline/options/help"
+require "badline/options/validation"
 
 module Badline
   # The command line of both builds, badline-ruby and the native badline.
@@ -17,6 +18,8 @@ module Badline
   # nothing else from badline, so badline-ruby can parse and reject its
   # arguments before paying for the emulator.
   class Options
+    include Validation
+
     class Error < StandardError; end
 
     FALLBACK_SECONDS = 60.0
@@ -67,6 +70,7 @@ module Badline
       @filter_chunk = nil
       @quiet = false
       @tui = true
+      @all_songs = false
       @window_only = []
       @headless_only = []
     end
@@ -101,6 +105,8 @@ module Badline
     def quiet? = @quiet
 
     def tui? = @tui
+
+    def all_songs? = @all_songs
 
     def autostart? = @autostart
 
@@ -203,6 +209,7 @@ module Badline
       when "--version" then @version = true
       when "--headless" then @headless = true
       when "--quiet" then @quiet = true
+      when "--all-songs" then @all_songs = true
       else @tui = false
       end
     end
@@ -235,38 +242,6 @@ module Badline
       raise Error, "unexpected argument: #{arg}" unless @media_path.nil?
 
       @media_path = arg
-    end
-
-    def validate
-      validate_mode
-      validate_numbers
-      validate_paths
-    end
-
-    def validate_mode
-      if headless?
-        raise Error, "#{@window_only.first} needs the window" unless @window_only.empty?
-        raise Error, "no tune given" if @media_path.nil?
-        raise Error, "not a .sid tune: #{@media_path}" unless File.extname(@media_path).casecmp?(".sid")
-      elsif !@headless_only.empty?
-        raise Error, "#{@headless_only.first} needs --headless or --audio-out"
-      end
-    end
-
-    def validate_numbers
-      positive("--song", @song)
-      positive("--seconds", @seconds)
-      positive("--rate", @rate)
-      positive("--filter-chunk", @filter_chunk)
-    end
-
-    def positive(name, value)
-      raise Error, "invalid argument: #{name} #{value}" if !value.nil? && value <= 0
-    end
-
-    def validate_paths
-      raise Error, "no such file or directory: #{@media_path}" unless @media_path.nil? || File.exist?(@media_path)
-      raise Error, "no such file or directory: #{@songlengths}" unless @songlengths.nil? || File.exist?(@songlengths)
     end
   end
 end

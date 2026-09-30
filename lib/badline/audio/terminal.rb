@@ -10,8 +10,8 @@ module Badline
     # stty and poll(2) for the native badline.
     class Terminal
       KEYS = {
-        "n" => :next, "\e[C" => :next,
-        "p" => :previous, "\e[D" => :previous,
+        "n" => :next, "p" => :previous,
+        "\e[C" => :next_song, "\e[D" => :previous_song,
         " " => :pause,
         "s" => :shuffle,
         "l" => :loop,
@@ -49,7 +49,7 @@ module Badline
 
       def header(lines)
         lines.each { |line| @output.print "#{line}\r\n" }
-        @output.print "n/→ next  p/← previous  space pause  s shuffle  l loop  a all songs  q quit\r\n"
+        @output.print "←/→ song  n/p tune  space pause  s shuffle  l loop  a all songs  q quit\r\n"
       end
 
       def status(song:, songs:, elapsed:, length:, notes: [])
