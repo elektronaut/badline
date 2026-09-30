@@ -14,7 +14,7 @@ module Badline
       # The layout the chips write their fields in. It goes up whenever a
       # save_state writes something else, so a State in another layout
       # fails before anything is read into a machine.
-      SCHEMA = 1
+      SCHEMA = 2
 
       attr_reader :values, :strings
 
