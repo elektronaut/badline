@@ -1,4 +1,27 @@
 module CPUTests
+  class CPU
+    @operation: Symbol
+    @plan: Array[Symbol]
+    @a: Integer
+    @x: Integer
+    @y: Integer
+    @stack_pointer: Integer
+    @program_counter: Integer
+    @address: Integer
+    @pointer: Integer
+    @dummy_address: Integer
+    @value: Integer
+    @rmw_result: Integer
+    @ane_constant: Integer
+    @irq: bool
+    @irq_sample: bool
+    @irq_pending: bool
+    @boundary_irq: bool
+    @boundary_nmi: bool
+    @pending_write: bool
+    @optional_dummy: bool
+  end
+
   class RecordingMemory
     def peek: (Integer) -> Integer
     def poke: (Integer, Integer) -> void

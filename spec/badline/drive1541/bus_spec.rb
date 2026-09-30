@@ -44,7 +44,7 @@ describe Badline::Drive1541::Bus do
     end
 
     it "reads the high byte of LDA abs's address" do
-      cpu = Badline::CPU.new(bus)
+      cpu = Badline::Drive1541::CPU.new(bus)
       bus.ram.write(0x0300, [0xad, 0x23, 0x0c]) # LDA $0C23
       cpu.program_counter = 0x0300
       cpu.step!
@@ -52,7 +52,7 @@ describe Badline::Drive1541::Bus do
     end
 
     it "reads what the dummy read of a page-crossing LDA abs,X found" do
-      cpu = Badline::CPU.new(bus)
+      cpu = Badline::Drive1541::CPU.new(bus)
       bus.ram.write(0x0700, [0xa2, 0x01, 0xbd, 0xff, 0x07]) # LDX #$01; LDA $07FF,X
       cpu.program_counter = 0x0700 # the dummy read at $0700 finds LDX's opcode
       2.times { cpu.step! }

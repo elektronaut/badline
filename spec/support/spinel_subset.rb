@@ -31,7 +31,7 @@ class SpinelSubset
   # CRuby, which Spinel never loads. Any other file, or any other construct
   # in these files, fails.
   ALLOWED = [
-    ["lib/badline/cpu.rb", "send with a computed name"],
+    ["lib/badline/cpu/core.rb", "send with a computed name"],
     ["lib/badline/cpu/addressing.rb", "send with a computed name"],
     ["lib/badline/cpu/operations.rb", "send with a computed name"],
     ["lib/badline/cpu/stack_operations.rb", "send with a computed name"],

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drive1541/bus"
+require "badline/drive1541/cpu"
 require "badline/drive1541/serial_port"
 require "badline/drive1541/gcr"
 require "badline/drive1541/track"
