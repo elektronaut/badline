@@ -1346,6 +1346,38 @@ testprogs named.
 - A fetch's last write doesn't go through the first BA-low cycle: the REC
   waits for BA to rise and writes it then. Pinned by `REU/reutiming2/d`
   and `d2`, and it takes `REU/reutiming2/c` from 6,403 px to 337.
+- A fetch requested on the last cycle before BA falls writes its first
+  byte on the first BA-low cycle, without counting it, then waits for BA
+  and writes the same byte again when it starts (`REU::DMA#write_ahead`).
+  One requested on a BA-low cycle writes nothing until BA rises. Pinned by
+  `REU/badoublewrite`, whose sixth transfer a frame, requested on the
+  cycle before BA falls for raster `$63`, a bad line, holds `$d021` at its
+  first byte for the whole line, where the program's text says "d021
+  doublewrite on this line". The row captures its screen too early to
+  show this (see below), but the frame after matches the reference to the
+  pixel, and without the rule that line is 199 px off.
+- `REU/badoublewrite` writes `$D7FF` from its raster interrupt on the
+  third transfer of the first frame it runs them in, at raster 77, so the
+  screenshot taken at that write shows the frame before below it, with
+  the text half printed and the background still blue. Its reference
+  shows a whole frame of twelve transfers on black, which only a
+  screenshot a frame or more later can. The exit is locked to the raster:
+  starting the program anywhere up to a frame later leaves it on raster
+  77 with the same 58,880 px. VICE's own x64sc and x64 fail the row in every result the
+  testbench keeps, r41951 to r45942, while Denise passes it from 2023.
+  The row stays at 58,880 px.
+- `REU/reutiming2/c`'s reference shows its last transfer, from raster 250
+  into 251 (`$fb`), waiting on raster 251 as the transfers above it wait
+  on their bad lines: the border holds the transfer's byte `$11` up to
+  x 336 and `$12` from x 337, where BA rises on a bad line. Raster 251 is
+  past the bad line range, `$30`–`$f7`, and the program turns on no
+  sprites, so nothing pulls BA there, and badline writes `$12` on the
+  cycle after `$11`, before the line's visible part starts. The 8565 and
+  8565early references show the same wait. No emulator or FPGA core in
+  the testbench's 59 kept results passes the row, VICE, the Ultimate 64
+  and the Chameleon included, and the testlist marks it `warn:vicefail`.
+  badline keeps the bad line range, and the row stays at 337 px, all of
+  them on raster 251.
 - On the line whose raster matches sprite 0's Y, a REC that read or wrote
   on the cycle before doesn't see BA fall on the first cycle of sprite
   0's window (`VIC#reu_ba_late?`). Without it `REU/bonzai/spritetiming`
