@@ -80,6 +80,14 @@ describe Badline::Storage::SIDFile do
       expect(tune.name).to eq("TUNE")
     end
 
+    context "with a name in ISO-8859-1" do
+      before { File.binwrite(path, [0x46, 0xfc, 0x72, 0x00].pack("C*"), 0x16) }
+
+      it "reads it as UTF-8" do
+        expect(tune.name).to eq("Für")
+      end
+    end
+
     it "reads the author" do
       expect(tune.author).to eq("AUTHOR")
     end
