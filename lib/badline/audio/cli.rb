@@ -4,8 +4,8 @@ module Badline
   module Audio
     # Runs `--headless` or `--audio-out`, in either build, once its options
     # have parsed: picks the song and its length, then plays it or renders
-    # it to a file. Played on a terminal, the console lets the listener step
-    # between songs.
+    # it to a file. Played on a terminal, it plays a queue of the tune's
+    # songs, and the console lets the listener step through it.
     class CLI
       class Error < StandardError; end
 
@@ -100,11 +100,13 @@ module Badline
 
       def play_interactively(sink)
         console = @console.call(input: @input, output: @out)
-        jukebox = Jukebox.new(sink, console, songs: tune.songs, renderer: method(:renderer), length: method(:length))
+        queue = Media::Queue.new([Media::Queue::Entry.new(@options.tune_path, part: song, parts: tune.songs)])
+        jukebox = Jukebox.new(sink, console, queue:, renderer: ->(_entry, song, rate) { renderer(song, rate) },
+                                             length: ->(_entry, song) { length(song) })
         console.session do
           console.header([tune.name, tune.author, tune.released].reject(&:empty?) +
                          ["#{model_name} at #{sink.rate} Hz"])
-          jukebox.run(song)
+          jukebox.run
         end
       end
 

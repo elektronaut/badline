@@ -249,7 +249,13 @@ Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
 length. When a song reaches its length it goes on to the next, and it
 stops after the last. `n` or → skips to the next song, `p` or ← goes
-back one, space pauses and `q` quits. `--no-tui`, or output that isn't a
+back one, space pauses and `q` quits. The player plays a queue of
+tunes, which for now holds just the one. `s` turns shuffle on and off,
+which plays the queue's tunes in a random order, and `l` turns looping
+on and off, so that the end of the queue goes on to its start. `a`
+switches between playing all of each tune's songs, as it does at first,
+and just the one it starts on. The status line shows which are on, and
+they last until the player quits. `--no-tui`, or output that isn't a
 terminal, gives plain progress output instead and plays just the one
 song, as `--audio-out` renders just the one.
 

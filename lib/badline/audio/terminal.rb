@@ -13,6 +13,9 @@ module Badline
         "n" => :next, "\e[C" => :next,
         "p" => :previous, "\e[D" => :previous,
         " " => :pause,
+        "s" => :shuffle,
+        "l" => :loop,
+        "a" => :all_songs,
         "q" => :quit
       }.freeze
 
@@ -46,7 +49,7 @@ module Badline
 
       def header(lines)
         lines.each { |line| @output.print "#{line}\r\n" }
-        @output.print "n/→ next  p/← previous  space pause  q quit\r\n"
+        @output.print "n/→ next  p/← previous  space pause  s shuffle  l loop  a all songs  q quit\r\n"
       end
 
       def status(song:, songs:, elapsed:, length:, notes: [])

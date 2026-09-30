@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/media/true_drive"
+require "badline/media/queue"
 
 module Badline
   module Media
