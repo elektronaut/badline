@@ -90,19 +90,12 @@ Contents read and write access to `elektronaut/homebrew-tap`.
 ## The source
 
 - `native/badline.rb` is the entry point: it reads the options and
-  hands the window to `Badline::Frontend.run`, as `exe/badline-ruby`
+  hands the window to `Badline::Frontend.run`, and `--headless` and
+  `--audio-out` to `Badline::Audio::CLI.run`, as `exe/badline-ruby`
   does.
-- `native/lib/badline/native.rb` requires the emulator core from `lib/`
-  file by file, since `lib/badline.rb` also loads badline-ruby's
-  io/console terminal. Then it requires the shared front end,
-  `lib/badline/frontend.rb`, and the members in
-  `native/lib/badline/native/`, the parts that differ from
-  badline-ruby's:
-  - `headless.rb` (`Headless`) runs `--headless` and `--audio-out` with
-    badline-ruby's `Audio::CLI`, handing it the shared
-    `Frontend::AudioSink` and `console.rb` (`Console`), the terminal in
-    raw mode through `stty`, waiting for keys with `poll(2)`.
-  - `version.rb` and `build_info.rb` make the `--version` line.
+- `native/lib/badline/native.rb` requires the emulator core,
+  `lib/badline.rb`, and the shared front end, `lib/badline/frontend.rb`,
+  then the native side of each seam, in `native/lib/badline/native/`.
 
 The front end in `lib/badline/frontend/` is the same for both builds:
 
@@ -133,6 +126,27 @@ The front end and the files under `native/` stay inside the subset of
 Ruby Spinel compiles, which `spec/spinel_subset_spec.rb` enforces. On
 CRuby, `exe/badline-ruby` requires `lib/badline/ffi.rb` before it, and
 the specs run the window under SDL's dummy drivers.
+
+### Per-build files
+
+Only these files differ between the builds, each for a reason the other
+build can't share. Everything else is shared, so new front-end code goes
+to the shared side, in `lib/badline/frontend/` or `lib/badline/audio/`,
+inside Spinel's subset.
+
+| Seam | badline-ruby | The native badline | Why it can't be shared |
+| --- | --- | --- | --- |
+| Entry point | `exe/badline-ruby` | `native/badline.rb` | badline-ruby enables YJIT before loading the core and loads SDL only once it needs it. The native build turns SIGINT into `Interrupt` itself, and answers `--version` |
+| Loading | `lib/badline.rb` | `native/lib/badline/native.rb` | The native build compiles the front end in, and badline-ruby requires it with the Fiddle binding |
+| SDL binding | `lib/badline/ffi.rb` | Spinel's FFI | Spinel compiles `lib/badline/sdl.rb`'s declarations itself, and CRuby needs Fiddle to call them |
+| Terminal of `--headless` | `lib/badline/audio/console.rb` (`Audio::Console`) | `native/lib/badline/native/console.rb` (`Native::Console`) | The native build has no io/console or io/wait, so it uses `stty` and `poll(2)` |
+| `--version` | none | `native/lib/badline/native/version.rb` and `build_info.rb` | Only the native build has a compiler and a revision to name. The gem's version is badline-ruby's |
+| Build and pack | the gemspec | `native/build.rb` and `native/pack.rb` | The native build compiles with Spinel and packs with `spin pack` |
+
+Both consoles subclass `Audio::Terminal` and fill in its `raw!`,
+`restore` and `readable?`, and each entry point hands its own to
+`Audio::CLI.run`, with the shared `Frontend::AudioSink` as the audio
+device.
 
 ## Running
 

@@ -1,64 +1,21 @@
 # frozen_string_literal: true
 
-# The native badline: the emulator core compiled with Spinel, playing in
-# the SDL2 window both builds share, or playing or rendering a .sid tune
-# without one. It requires the core file by file rather than through
-# lib/badline.rb, which also loads the headless player's io/console
-# terminal, where the native build has its own.
-require "badline/version"
-require "badline/options"
-require "badline/integer_helper"
-require "badline/region"
-require "badline/addressable"
-require "badline/memory"
-require "badline/color_memory"
-require "badline/rom"
-require "badline/ram_expansion"
-require "badline/address_bus"
-require "badline/instruction"
-require "badline/instruction_set"
-require "badline/status"
-require "badline/keyboard"
-require "badline/joystick"
-require "badline/control_ports"
-require "badline/input"
-require "badline/cycleable"
-require "badline/datasette"
-require "badline/time_of_day"
-require "badline/cia"
-require "badline/via"
-require "badline/sid"
-require "badline/debug_register"
-require "badline/reu"
-require "badline/interrupts"
-require "badline/traps"
-require "badline/cpu"
-require "badline/vic"
-require "badline/keyboard_buffer"
-require "badline/iec_bus"
-require "badline/drive1541"
-require "badline/computer"
-require "badline/storage"
-require "badline/cartridge"
-require "badline/kernal_trap"
-require "badline/chrout_trap"
-require "badline/media"
-require "badline/snapshot"
-require "badline/audio/pcm_writer"
-require "badline/audio/wav"
-require "badline/audio/aiff"
-require "badline/audio/bare_player"
-require "badline/audio/machine_player"
-require "badline/audio/renderer"
-require "badline/audio/playback"
-require "badline/audio/terminal"
-require "badline/audio/jukebox"
-require "badline/audio/cli"
-
+# The native badline: the emulator core and the front end both builds
+# share, and the native side of each seam where the builds differ: the
+# terminal of --headless and the --version line.
+require "badline"
 require "io/buffer"
+require "badline/frontend"
 
 require "badline/native/build_info"
 require "badline/native/version"
-require "badline/frontend"
 require "badline/native/console"
-require "badline/native/headless"
+
+module Badline
+  module Native
+    # The factories Audio::CLI calls for --headless.
+    SINK = ->(rate:, exact_rate:) { Frontend::AudioSink.new(rate:, exact_rate:) }
+
+    CONSOLE = ->(input:, output:) { Console.new(input:, output:) }
+  end
+end

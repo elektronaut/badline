@@ -35,21 +35,14 @@ def load_sdl
 end
 
 if options.headless?
+  require "badline/audio/console"
   sink = lambda do |rate:, exact_rate:|
     load_sdl
     Badline::Frontend::AudioSink.new(rate:, exact_rate:)
   rescue Badline::FFI::Error => e
     raise Badline::Audio::Playback::DeviceError, e.message
   end
-  begin
-    Badline::Audio::CLI.new(options, sink:, console: Badline::Audio::Console.method(:new)).run
-  rescue Badline::Audio::CLI::Error => e
-    warn "badline-ruby: #{e.message}"
-    exit 1
-  rescue Interrupt
-    exit 130
-  end
-  exit
+  exit Badline::Audio::CLI.run(options, sink:, console: Badline::Audio::Console.method(:new))
 end
 
 begin

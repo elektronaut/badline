@@ -2,19 +2,31 @@
 
 module Badline
   module Audio
-    # Runs `badline-ruby --headless` or `--audio-out` once its options have
-    # parsed: picks the song and its length, then plays it or renders it
-    # to a file. Played on a terminal, the console lets the listener step
+    # Runs `--headless` or `--audio-out`, in either build, once its options
+    # have parsed: picks the song and its length, then plays it or renders
+    # it to a file. Played on a terminal, the console lets the listener step
     # between songs.
     class CLI
       class Error < StandardError; end
 
+      # Plays or renders the tune as #run does, reports an error on stderr
+      # under the program's name, and returns the exit status.
+      def self.run(options, sink:, console:)
+        new(options, sink:, console:).run
+        0
+      rescue Error => e
+        warn "#{options.program}: #{e.message}"
+        1
+      rescue Interrupt
+        130
+      end
+
       # Playing needs `sink`, which builds the audio device given the rate
       # to ask for and whether it has to be exact, and, on a terminal,
       # `console`, which builds the terminal to play on given the input and
-      # output. The front end hands them in, so the native badline can hand
-      # in its own console: both builds' sink is Frontend::AudioSink, and
-      # badline-ruby's console is Console.
+      # output. Each build's entry point hands them in: both builds' sink is
+      # Frontend::AudioSink, and the console is badline-ruby's Console or
+      # the native badline's Native::Console.
       def initialize(options, sink: nil, console: nil, out: $stdout, input: $stdin)
         @options = options
         @out = out

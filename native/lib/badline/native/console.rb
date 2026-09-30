@@ -2,7 +2,8 @@
 
 module Badline
   module Native
-    # The terminal of `badline --headless`. stty puts the terminal in raw
+    # The terminal of `badline --headless`, the native side of the console
+    # seam: badline-ruby's is Audio::Console. stty puts the terminal in raw
     # mode, keeping Ctrl-C's signal as badline-ruby's `raw!(intr: true)`
     # does, and restores it afterwards, and poll(2) waits for keys.
     class Console < Audio::Terminal
