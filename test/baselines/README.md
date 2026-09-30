@@ -142,8 +142,7 @@ Recorded output of the headless hardware suites, one file per suite:
   `drive/1541-testsuite`'s two rows,
   at about twelve hours each, run only under `--1541-testsuite` and have
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
-  The Spinel build has no drive, so `rake spinel:testbench` leaves this
-  suite out. All `exitcode` tests.
+  All `exitcode` tests.
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
   `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
@@ -285,10 +284,9 @@ machine, don't run.
 runs. The `testbench-*` suites, `sid-8580` and `drive-scenarios` are
 opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs every
 suite on the Spinel build on every pull request and every push to `main`,
-and fails on any changed row. `testbench-drive` is the exception: the
-Spinel testbench harness has no true drive, so it runs only as a rake
-task. The Regression workflow runs any other suite on CRuby, started by
-hand from the Actions tab, to check that CRuby and Spinel agree.
+and fails on any changed row. The Regression workflow runs any suite but
+`testbench-drive` on CRuby, started by hand from the Actions tab, to check
+that CRuby and Spinel agree.
 
 An `exitcode` test ends when it writes `$D7FF`, so the testlist's cycle
 count is a timeout rather than a runtime — measure, do not assume. Wall

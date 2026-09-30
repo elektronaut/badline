@@ -101,7 +101,7 @@ OPT_IN_SUITES = {
   "testbench-general" => { runner: "bin/testbench", scope: "C64/,general/" },
   "testbench-expansions" => { runner: "bin/testbench", args: %w[--expansions],
                               exclude: "REU/floatingbus/floating3b" },
-  "testbench-drive" => { runner: "bin/testbench", args: %w[--drive], spinel: false },
+  "testbench-drive" => { runner: "bin/testbench", args: %w[--drive] },
   "testbench-ntsc" => { runner: "bin/testbench", args: %w[--ntsc] },
   "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },
   "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
@@ -339,7 +339,7 @@ def splice_recorded(suite, recorded, fresh)
 end
 
 # With filters, only the baseline rows they match are expected, as
-# bin/testbench matches them: id substrings, as a union.
+# bin/testbench matches them (see Regression::Filters).
 def compare_baseline(suite, results, name: suite, filters: [])
   baseline = baseline_path(suite)
   unless File.exist?(baseline)
@@ -348,7 +348,10 @@ def compare_baseline(suite, results, name: suite, filters: [])
   end
 
   expected = Regression.read(baseline)
-  expected = expected.select { |_, row| filters.any? { |filter| row.id.include?(filter) } } if filters.any?
+  if filters.any?
+    matcher = Regression::Filters.parse(filters)
+    expected = expected.select { |_, row| matcher.selects?(row.id) }
+  end
   comparison = Regression::Comparison.new(name, expected, Regression.read(results))
   comparison.report($stdout)
   comparison.publish
@@ -357,11 +360,8 @@ end
 
 # The bin/testbench suites on the Spinel build: bin/testbench runs each
 # one's tests on tmp/spinel/testbench, one build process per shard, and
-# scores them as it does in process. The Spinel build has no true drive,
-# so testbench-drive isn't one of them.
-SPINEL_TESTBENCH_SUITES = ALL_SUITES.select do |_, config|
-  config[:runner] == "bin/testbench" && config.fetch(:spinel, true)
-end.keys.freeze
+# scores them as it does in process.
+SPINEL_TESTBENCH_SUITES = ALL_SUITES.select { |_, config| config[:runner] == "bin/testbench" }.keys.freeze
 
 def spinel_testbench_suites(suite)
   return SPINEL_TESTBENCH_SUITES if suite == "all"

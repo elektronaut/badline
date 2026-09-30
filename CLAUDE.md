@@ -157,8 +157,8 @@ the rows your change can't reach tell you nothing about it.
   `ruby --yjit bin/lorenz [image] [start_test] [max_cycles]` (resumes the
   chain at a named test, and `--stop-after NAME` ends it once that test is
   done). These take seconds to minutes
-- A pull request's CI is the verdict. It runs every suite but
-  `testbench-drive` on the Spinel build, compared row by row against
+- A pull request's CI is the verdict. It runs every suite on the Spinel
+  build, compared row by row against
   `test/baselines/`, and every job is a required check. A row that moved
   fails it. Re-record only those rows, in the same change:
   `rake "regression:record:<suite>[filter,...]"` (quote it, because zsh
@@ -174,9 +174,6 @@ the rows your change can't reach tell you nothing about it.
 - For a change whose reach you can't bound to a set of filters, such as
   reordering `Computer#cycle!` or changing the LOAD trap every suite loads
   through, push and let CI run the suites
-- `testbench-drive` needs the true drive, which the Spinel testbench
-  harness doesn't have, so CI leaves it out. Run the rows your change can
-  reach locally
 - The Regression workflow runs the suites on CRuby, started by hand from
   the Actions tab, for a person checking that CRuby and Spinel agree.
   Agents don't start it

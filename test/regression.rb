@@ -21,6 +21,21 @@ module Regression
     end
   end
 
+  # Id filters as bin/testbench and the rake tasks take them. A filter
+  # picks the ids that contain it, as a union, and one led by "!" drops the
+  # ids that contain the rest of it. With no filter to pick, every id that
+  # isn't dropped is picked.
+  Filters = Data.define(:picks, :drops) do
+    def self.parse(filters)
+      drops, picks = filters.partition { |filter| filter.start_with?("!") }
+      new(picks:, drops: drops.map { |drop| drop.delete_prefix("!") })
+    end
+
+    def selects?(id)
+      drops.none? { |drop| id.include?(drop) } && (picks.empty? || picks.any? { |pick| id.include?(pick) })
+    end
+  end
+
   # Each row is keyed as the runner wrote it. A program the testlist lists
   # twice is written as id and id#2, so a key that repeats is a broken file.
   def self.read(path)

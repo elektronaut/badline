@@ -20,7 +20,8 @@ module Testbench
     # A test as a line of the list the build reads.
     def self.spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.cia_model, test.vic_model, test.expansion, test.region]
+       test.cia_model, test.vic_model, test.expansion, test.region, ("drive" if test.drive?),
+       (test.disk_path if test.disk)]
         .join("\t") << "\n"
     end
 
@@ -50,7 +51,7 @@ module Testbench
     def run(tests, &)
       tests = run_process(tests, &) until tests.empty? || @stopped.call
     ensure
-      FileUtils.rm_f(@list)
+      FileUtils.rm_f([@list, *Dir.glob("#{@list}.disk.*")])
     end
 
     private
