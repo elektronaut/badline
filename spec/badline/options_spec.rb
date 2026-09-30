@@ -334,14 +334,23 @@ describe Badline::Options do
   end
 
   describe "the options the native build alone takes" do
-    %w[--version --no-sound --no-vsync --frames=1 --unpaced --screenshot=a.bmp --save-snapshot=a.vsf].each do |arg|
+    %w[--version --no-sound].each do |arg|
       context "with #{arg}" do
         let(:argv) { [arg] }
 
         it "is rejected" do
-          expect { options }.to raise_error(described_class::Error, "invalid option: #{arg.split('=').first}")
+          expect { options }.to raise_error(described_class::Error, "invalid option: #{arg}")
         end
       end
+    end
+  end
+
+  describe "the window's pacing and testing options" do
+    let(:argv) { %w[--no-vsync --frames=150 --unpaced --screenshot ready.bmp --save-snapshot ready.vsf] }
+
+    it "are taken" do
+      expect([options.vsync?, options.frames, options.paced?, options.screenshot, options.save_snapshot])
+        .to eq([false, 150, false, "ready.bmp", "ready.vsf"])
     end
   end
 

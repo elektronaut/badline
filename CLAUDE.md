@@ -25,14 +25,18 @@ live in subdirectories:
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
   traps that stand in for a drive), `media.rb` (attach and autostart),
-  `datasette.rb`, and `gui/` and `input/` (SDL front end, controllers)
-- **Native**: `native/` holds the native `badline`, the core compiled with
-  Spinel in an SDL2 window (`rake native:build`, `native/README.md`).
+  `datasette.rb`, and `input/` (the mouse and paddles)
+- **Front end**: `frontend/`, the SDL window both builds run (app loop,
+  screen, pacer, sound, controls, gamepads, snapshots), in Spinel's
+  subset, over the one binding in `sdl.rb` (`ffi.rb` implements it on
+  CRuby)
+- **Native**: `native/` holds the native `badline`, the core and the
+  front end compiled with Spinel (`rake native:build`, `native/README.md`).
   `spinel/` holds the Spinel test harnesses
 
 Timing-critical code lives in `cpu`, `interrupts`, `vic`, `cia` and `sid` and
 in the order `Computer#cycle!` clocks them. Changes there move the test
-suites below. `gui/` changes move none of them.
+suites below. `frontend/` changes move none of them.
 
 Namespaced groups live in `lib/badline/<namespace>/`, with a sibling
 `lib/badline/<namespace>.rb` that requires the members, directly or through

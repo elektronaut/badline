@@ -28,7 +28,7 @@ module Badline
       Option.new("--ntsc", "Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one",
                  section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",
-                 section: "Window options", needs: :window, build: :native),
+                 section: "Window options", needs: :window),
       Option.new("--verbose", "Print the display, sound and gamepad setup and the frame timing",
                  section: "Window options", needs: :window),
       Option.new("--headless", "Play a .sid tune in the terminal instead of the window",
@@ -46,13 +46,13 @@ module Badline
       Option.new("--quiet", "Don't report progress", section: "Options without the window", needs: :headless),
       Option.new("--no-tui", "Play without the interactive display, even on a terminal",
                  section: "Options without the window", needs: :headless),
-      Option.new("--frames N", "Quit after N frames", section: "Testing options", needs: :window, build: :native),
+      Option.new("--frames N", "Quit after N frames", section: "Testing options", needs: :window),
       Option.new("--unpaced", "Run as fast as it can, without vsync or pacing",
-                 section: "Testing options", needs: :window, build: :native),
+                 section: "Testing options", needs: :window),
       Option.new("--screenshot FILE", "Save the last frame as a .bmp",
-                 section: "Testing options", needs: :window, build: :native),
+                 section: "Testing options", needs: :window),
       Option.new("--save-snapshot FILE", "Save the machine as a .vsf snapshot after the last frame",
-                 section: "Testing options", needs: :window, build: :native)
+                 section: "Testing options", needs: :window)
     ].freeze
   end
 end

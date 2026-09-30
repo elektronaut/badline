@@ -197,7 +197,7 @@ describe Badline::Audio::CLI do
     end
 
     context "without an audio device" do
-      let(:sink) { ->(**) { raise Badline::Audio::SDLSink::Error, "no driver" } }
+      let(:sink) { ->(**) { raise Badline::Audio::Playback::DeviceError, "no driver" } }
 
       it "raises" do
         expect { cli.run }.to raise_error(described_class::Error, /audio device: no driver/)

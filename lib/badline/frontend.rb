@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+require "badline/sdl"
+require "badline/frontend/boot"
+require "badline/frontend/frame_rate"
+require "badline/frontend/screen"
+require "badline/frontend/drive_led"
+require "badline/frontend/keys"
+require "badline/frontend/snapshots"
+require "badline/frontend/screenshot"
+require "badline/frontend/sound"
+require "badline/frontend/pacer"
+require "badline/frontend/controls"
+require "badline/frontend/pad_port"
+require "badline/frontend/gamepads"
+require "badline/frontend/app"
+require "badline/frontend/audio_sink"

@@ -13,7 +13,8 @@ module Badline
       # to ask for and whether it has to be exact, and, on a terminal,
       # `console`, which builds the terminal to play on given the input and
       # output. The front end hands them in, so the native badline can hand
-      # in its own: badline-ruby's are SDLSink and Console.
+      # in its own console: both builds' sink is Frontend::AudioSink, and
+      # badline-ruby's console is Console.
       def initialize(options, sink: nil, console: nil, out: $stdout, input: $stdin)
         @options = options
         @out = out

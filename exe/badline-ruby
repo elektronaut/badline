@@ -26,10 +26,23 @@ RubyVM::YJIT.enable if options.jit? && jit_available
 
 require "badline"
 
+# Quiets IO::Buffer's experimental warning.
+Warning[:experimental] = false
+
+def load_sdl
+  require "badline/ffi"
+  require "badline/frontend"
+end
+
 if options.headless?
+  sink = lambda do |rate:, exact_rate:|
+    load_sdl
+    Badline::Frontend::AudioSink.new(rate:, exact_rate:)
+  rescue Badline::FFI::Error => e
+    raise Badline::Audio::Playback::DeviceError, e.message
+  end
   begin
-    Badline::Audio::CLI.new(options, sink: Badline::Audio::SDLSink.method(:new),
-                                     console: Badline::Audio::Console.method(:new)).run
+    Badline::Audio::CLI.new(options, sink:, console: Badline::Audio::Console.method(:new)).run
   rescue Badline::Audio::CLI::Error => e
     warn "badline-ruby: #{e.message}"
     exit 1
@@ -40,7 +53,7 @@ if options.headless?
 end
 
 begin
-  require "badline/gui"
+  load_sdl
 rescue Badline::FFI::Error => e
   warn "badline-ruby: can't open the window: #{e.message}. " \
        "Install SDL2 with 'brew install sdl2' or 'apt install libsdl2-2.0-0'."
@@ -48,17 +61,7 @@ rescue Badline::FFI::Error => e
 end
 
 begin
-  application = Badline::GUI::Application.new(media_path: options.media_path, autostart: options.autostart?,
-                                              song: options.song, sound: options.sound?, verbose: options.verbose?,
-                                              machine: { sid_model: options.sid_model, reu: options.reu,
-                                                         true_drive: options.true_drive?, ntsc: options.ntsc? },
-                                              disk: { read_only: options.read_only? })
-rescue Badline::Media::TrueDrive::Error, Badline::Storage::SIDFile::FormatError, Badline::Storage::T64::FormatError,
-       Badline::Storage::TAP::FormatError, Badline::Storage::CRTFile::FormatError,
-       Badline::Storage::G64Image::FormatError, Badline::Cartridge::UnsupportedTypeError,
-       Badline::Snapshot::FormatError => e
-  warn "badline-ruby: #{options.media_path}: #{e.message}"
-  exit 1
+  exit Badline::Frontend.run(options)
+rescue Interrupt
+  exit 130
 end
-
-application.run
