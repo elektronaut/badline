@@ -706,6 +706,14 @@ class TestTestbenchProgress < Minitest::Test
     assert_equal ["VICII/x/t0.prg", "VICII/x/t0.prg#2"], tests.map(&:key)
   end
 
+  def test_a_repeated_id_gets_a_results_row_of_its_own
+    @tests = Testbench::Testlist.numbered([@tests[0], @tests[0].dup, @tests[2]])
+    run_stub
+    keys = File.readlines(@results).map { |line| line.split("\t").first }
+
+    assert_equal ["VICII/x/t0.prg", "VICII/x/t0.prg#2", "VICII/x/t2.prg"], keys
+  end
+
   def test_each_vicii_counts_its_own_occurrences
     old, new = %w[vicii-old vicii-new].map do |option|
       Testbench::TestCase.new("../VICII/x", "t.prg", "screenshot", 1000, [option])

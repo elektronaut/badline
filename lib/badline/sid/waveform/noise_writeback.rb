@@ -20,11 +20,12 @@ module Badline
         # so they lose a different number of bits. The 8580's pair is the one
         # that reproduces SID/wf12nsr's pulse+noise row (it reads $f8, and the
         # writeback leaves $fc behind), and SID/wb_testsuite's C->9 and C->E
-        # rows need that same $fc written at release. On the 6581 the read is
-        # the $fc of SID/wf12nsr's readme (VICE bug #1037), and the writeback
-        # pulls nothing: wb_testsuite's 8/9/A/B->C rows run pulse+noise and
-        # leave the register alone.
-        PULSE_NOISE_READ = { mos6581: 0xfc0, mos8580: 0xf80 }.freeze
+        # rows need that same $fc written at release. The 6581 reads $00 of a
+        # full register (SID/wf12nsr's pulse+noise row) and pulls nothing
+        # while the register holds: wb_testsuite's 8->C and C->C rows run
+        # pulse+noise and leave the register alone. Its lines only land
+        # part way through a shift (#write_back_shift).
+        PULSE_NOISE_READ = { mos6581: 0x000, mos8580: 0xf80 }.freeze
         PULSE_NOISE_WRITE = { mos6581: 0xff0, mos8580: 0xfc0 }.freeze
 
         # What a 6581 writes back when the test bit falls with only pulse+noise
@@ -40,24 +41,45 @@ module Badline
         # (SID/wf12nsr's noise+triangle and noise+sawtooth rows).
         def write_back(selected, value)
           return value & ((value << 1) | (value >> 1)) unless selected == 0xc
-          return value if value.zero?
+          return 0x000 if @pulse.zero?
 
           noise & @pulse_noise_write
         end
+
+        # What the lines write while the register is part way through a
+        # shift, where the 6581's pulse+noise writes its output as read.
+        def write_back_mid_shift(selected, value)
+          return value if pulse_noise_mid_shift?(selected)
+
+          write_back(selected, value)
+        end
+
+        def pulse_noise_mid_shift?(selected) = @topbit_feedback && selected == 0xc
 
         def write_shift_register(value)
           NOISE_TAPS.each { |bit, line| @shift_register &= ~bit if value.nobits?(line) }
         end
 
-        # Setting the test bit starts the bleed, and writes the output of a
-        # noise combination back first, from the accumulator it had. Only
-        # SID/noiselfsrinit sets the bit onto such a combination from outside
-        # it: its $f8/$80 pairs go from noise alone to all four.
+        # The second phase of a shift writes back by the test bit release
+        # rule with the waveform left alone. The 6581's pulse+noise, which
+        # that rule leaves out, writes its lines too (SID/wf12nsr's
+        # pulse+noise row).
+        def write_back_shift
+          return unless pulse_noise_mid_shift?(@selected) || release_writes_back?(@selected, @selected)
+
+          write_shift_register(write_back_mid_shift(@selected, @output))
+        end
+
+        # Setting the test bit starts the bleed, and stalls the register part
+        # way through a shift, where a noise combination writes its output
+        # back first, from the accumulator it had. SID/noiselfsrinit's
+        # $f8/$80 pairs set the bit onto all four from noise alone, and
+        # SID/wf12nsr's pulse+noise row sets it onto pulse+noise.
         def raise_test
           @shift_register_reset = @shift_register_reset_delay
           return unless @selected.anybits?(0x8) && combined?(@selected) && @shift_pipeline != 1
 
-          write_shift_register(write_back(@selected, shape(@selected)))
+          write_shift_register(write_back_mid_shift(@selected, shape(@selected)))
         end
 
         # Releasing the test bit finishes the shift it interrupted: the old

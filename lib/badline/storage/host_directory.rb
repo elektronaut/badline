@@ -14,6 +14,11 @@ module Badline
         @path = path
       end
 
+      # What Storage.reopen needs to open the directory again.
+      def save_setup(out)
+        out.int(HOST_DIRECTORY).string(::File.expand_path(@path))
+      end
+
       def read_file(name, **)
         entry = find(name)
         return unless entry

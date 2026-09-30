@@ -74,7 +74,7 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
       - name: Cache VICE-testprogs
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: vendor/VICE-testprogs
           key: vice-testprogs-v1
@@ -82,7 +82,7 @@ jobs:
         run: bundle exec rake regression:${{ matrix.suite }}
       - name: Upload run artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: regression-${{ matrix.suite }}
           path: |

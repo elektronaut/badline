@@ -1,9 +1,14 @@
 # frozen_string_literal: true
 
+require "badline/computer/attachments"
+require "badline/computer/saved_state"
+
 module Badline
   class Computer
     include IntegerHelper
     include KeyboardBuffer
+    include Attachments
+    include SavedState
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 
@@ -59,6 +64,7 @@ module Badline
       @pending_keys = nil
       @drive = nil
       @serial_trap = nil
+      @save_trap = nil
       @drive1541 = nil
       @iec_bus = nil
       @reu = reu ? plug_reu(reu) : nil
@@ -95,9 +101,7 @@ module Badline
     end
 
     def attach_cartridge(cartridge)
-      cartridge.clock = -> { @cycles }
-      cartridge.on_nmi_change { |level| @cartridge_nmi = level }
-      address_bus.attach_cartridge(cartridge)
+      connect_cartridge(cartridge)
       power_cycle!
     end
 
@@ -149,33 +153,6 @@ module Badline
     # NMI line however long the key is held, modelled here as one cycle.
     def press_restore
       @restore_pulse = true
-    end
-
-    # Puts the storage in device 8. Mounting again swaps the disk at any
-    # point while the machine runs: the drive keeps its RAM, which only a
-    # drive reset clears, and its status.
-    def mount(storage)
-      return @drive.insert(storage) if @drive
-
-      @drive = KernalTrap::Drive.new(storage)
-      load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
-      cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-      @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
-      save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
-      cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
-    end
-
-    # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
-    # serial traps, so the KERNAL's routines go out over the serial bus.
-    # Mounting again starts a new drive, with its RAM cleared.
-    def unmount
-      return unless @drive
-
-      cpu.remove_trap(KernalTrap::Load::ADDRESS)
-      cpu.remove_trap(KernalTrap::Save::ADDRESS)
-      @serial_trap.device = nil
-      @serial_trap = nil
-      @drive = nil
     end
 
     # Plugs in a Drive1541, which then runs alongside the C64 on its own

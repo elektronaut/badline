@@ -30,6 +30,14 @@ module Badline
         @paddles = Input::Paddles.new
       end
 
+      # Routes the input to another machine, the mode's mouse or paddles
+      # going into its port.
+      def computer=(computer)
+        release_all
+        @computer = computer
+        attach_pot_device
+      end
+
       def joystick_mode? = @mode == :joystick
 
       # Whether the host mouse drives a pot device, and so should be held

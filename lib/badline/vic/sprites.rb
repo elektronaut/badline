@@ -3,10 +3,13 @@
 require "badline/vic/collisions"
 require "badline/vic/register_log"
 require "badline/vic/sprite"
+require "badline/vic/sprites_state"
 
 module Badline
   class VIC < Cycleable
     class Sprites
+      include SavedState
+
       # Pixels between the start of the cycle following a write and the
       # point the new value shows. Each signal reaches the output on its own
       # path: the colors feed the final mux, the sequencer inputs — X

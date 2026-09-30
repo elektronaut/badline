@@ -217,11 +217,10 @@ Quote the task name: zsh treats the brackets as a glob.
 
 A filtered re-record runs only the matching programs and splices their rows
 into the existing baseline; every other row keeps the verdict it had, and
-baseline order — which is what the `id#2` occurrence keys are derived from
-— is preserved. A row the run gained is inserted beside the row it followed
-in the run. Nothing is ever removed, so a test the vendored suite dropped
-survives a partial record and is reported as `gone` by the next comparison;
-clearing it out is a whole-suite record.
+baseline order is preserved. A row the run gained is inserted beside the
+row it followed in the run. Nothing is ever removed, so a test the vendored
+suite dropped survives a partial record and is reported as `gone` by the
+next comparison; clearing it out is a whole-suite record.
 
 Filters are id substrings matched inside the suite's own subtree, so a
 filter cannot reach rows belonging to another baseline, and one that
@@ -387,8 +386,10 @@ both sides can fail the run:
 
 Every run prints that summary, and on CI writes it to the job summary as
 well. `FAIL<TAB>timeout` in `sid.txt` is a test that never wrote `$D7FF`
-within its cycle budget, not one that reported a failure code. Ids that
-`c64-testlist.in` lists twice are keyed by occurrence (`id#2`).
+within its cycle budget, not one that reported a failure code. A program
+`c64-testlist.in` lists twice gets a row for each listing, and the runner
+writes the second one's key as `id#2`. A key that appears twice in a
+results file or a baseline is an error.
 
 Re-record only after deciding the new output is correct, and say why in the
 commit message.

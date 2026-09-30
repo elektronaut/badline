@@ -78,9 +78,28 @@ module Badline
       private
 
       def select_bank
+        map_bank
+        changed!
+      end
+
+      def map_bank
         @roml = @low_flash.window(@bank * BANK_SIZE)
         @romh = @high_flash.window(@bank * BANK_SIZE)
-        changed!
+      end
+
+      def save_mapper(out)
+        out.int(@bank).int(@control).blob(@io_ram)
+        @low_flash.save_state(out)
+        @high_flash.save_state(out)
+      end
+
+      def load_mapper(input)
+        @bank = input.int
+        @control = input.int
+        input.blob_into(@io_ram)
+        @low_flash.load_state(input)
+        @high_flash.load_state(input)
+        map_bank
       end
 
       def apply_control

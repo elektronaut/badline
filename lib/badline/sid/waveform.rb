@@ -3,6 +3,7 @@
 require "badline/sid/waveform/combined"
 require "badline/sid/waveform/fast_forward"
 require "badline/sid/waveform/noise_writeback"
+require "badline/sid/waveform/state"
 
 module Badline
   class SID
@@ -27,6 +28,7 @@ module Badline
     class Waveform
       include FastForward
       include NoiseWriteback
+      include State
 
       # All bits high at power up, odd ones stored inverted (SID/oscinit).
       POWER_ON_ACCUMULATOR = 0x555555
@@ -254,8 +256,7 @@ module Badline
       # A rise of bit 19 starts a shift that takes two more cycles
       # (SID/noisewriteback's noise_writeback_test2, after libresidfp's shift
       # pipeline). The first phase latches the output, and the second writes
-      # it over the taps, by the test bit release rule with the waveform left
-      # alone, before the register shifts.
+      # it over the taps before the register shifts.
       def advance
         previous = @accumulator
         @accumulator = (previous + @frequency) & 0xffffff
@@ -263,7 +264,7 @@ module Badline
         if @accumulator & ~previous & 0x080000 != 0
           @shift_pipeline = 2
         elsif @shift_pipeline != 0 && (@shift_pipeline -= 1).zero?
-          write_shift_register(write_back(@selected, @output)) if release_writes_back?(@selected, @selected)
+          write_back_shift
           shift_noise
         end
       end

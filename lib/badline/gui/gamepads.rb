@@ -53,6 +53,13 @@ module Badline
                        .reject(&:null?)
       end
 
+      # Wires the controllers to another machine's joysticks, which take
+      # what they hold on the next poll.
+      def computer=(computer)
+        @computer = computer
+        @pressed.map! { [] }
+      end
+
       def poll
         @controllers.each_with_index { |controller, index| apply(controller, index) }
       end

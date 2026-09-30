@@ -4,6 +4,7 @@ require "badline/via/control_lines"
 require "badline/via/fast_forward"
 require "badline/via/interrupt_register"
 require "badline/via/shift_register"
+require "badline/via/state"
 require "badline/via/timer1"
 require "badline/via/timer2"
 
@@ -18,6 +19,7 @@ module Badline
   class VIA
     include Addressable
     include FastForward
+    include State
 
     attr_reader :start, :peripheral, :shift_register, :acr, :pcr
 

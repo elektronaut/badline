@@ -13,8 +13,14 @@ module Badline
       ID = "T64".bytes.freeze
 
       def initialize(path)
+        @path = path
         @bytes = File.binread(path).bytes
         raise FormatError, "Missing T64 signature" unless @bytes[0, 3] == SIGNATURE
+      end
+
+      # What Storage.reopen needs to open the archive again.
+      def save_setup(out)
+        out.int(T64_ARCHIVE).string(::File.expand_path(@path))
       end
 
       def read_file(name, **)

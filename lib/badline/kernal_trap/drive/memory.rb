@@ -62,6 +62,15 @@ module Badline
           load_buffer(Channels::BAM_BUFFER, block) if block
         end
 
+        def save_state(out)
+          out.blob(@ram).boolean(@bam)
+        end
+
+        def load_state(input)
+          input.blob_into(@ram)
+          @bam = input.boolean?
+        end
+
         # Whether the BAM has been read since the last reset.
         def bam? = @bam
 

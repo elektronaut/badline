@@ -728,7 +728,7 @@ module Testbench
     # the reference and measured values — which the exit code alone does
     # not carry, so a failure keeps the text screen alongside it.
     def write_screen(test, lines)
-      File.write(File.join(ARTIFACT_DIR, "#{test.id.tr('/', '-')}.screen.txt"),
+      File.write(File.join(ARTIFACT_DIR, "#{test.key.tr('/', '-')}.screen.txt"),
                  "#{lines.join("\n")}\n")
     end
 
@@ -750,7 +750,7 @@ module Testbench
 
     def report(test, result, elapsed)
       puts format("%-55<id>s %7.1<elapsed>fs %<result>s",
-                  id: test.id, elapsed:, result:)
+                  id: test.key, elapsed:, result:)
       $stdout.flush
     end
 
@@ -760,7 +760,7 @@ module Testbench
       puts format("%<passed>d/%<total>d passed in %<wall>.1f min",
                   passed:, total: @results.length, wall: wall / 60)
       File.write(@results_path,
-                 @results.map { |test, result| "#{test.id}\t#{Testbench.verdict(result)}" }.join)
+                 @results.map { |test, result| "#{test.key}\t#{Testbench.verdict(result)}" }.join)
       @progress.clear
     end
   end
@@ -793,7 +793,7 @@ if $PROGRAM_NAME == __FILE__
   end
 
   if list_only
-    tests.each { |test| puts "#{test.id} (#{test.type}, #{test.timeout})" }
+    tests.each { |test| puts "#{test.key} (#{test.type}, #{test.timeout})" }
     puts "#{tests.length} tests"
     exit
   end

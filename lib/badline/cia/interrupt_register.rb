@@ -34,6 +34,23 @@ module Badline
 
       def interrupted? = status.value >= 0x80
 
+      def save_state(out)
+        out.int(@mask.value).int(@status.value).int(@pending)
+        [@read, @read_last_cycle, @read_two_cycles_ago].each { |read| out.optional_int(read) }
+        out.boolean(@timer_b_bug).boolean(@quiet)
+      end
+
+      def load_state(input)
+        @mask.value = input.int
+        @status.value = input.int
+        @pending = input.int
+        @read = input.optional_int
+        @read_last_cycle = input.optional_int
+        @read_two_cycles_ago = input.optional_int
+        @timer_b_bug = input.boolean?
+        @quiet = input.boolean?
+      end
+
       # Raises IR on this cycle.
       def assert_now
         status.interrupt = true

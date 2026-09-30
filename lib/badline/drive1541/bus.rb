@@ -94,6 +94,19 @@ module Badline
         watching!
       end
 
+      # The last byte on the data bus and the RAM. What a watched stretch
+      # touched is Idle's, and a restored bus isn't watching.
+      def save_state(out)
+        out.int(@data)
+        @ram.save_state(out)
+      end
+
+      def load_state(input)
+        @data = input.int
+        @ram.load_state(input)
+        @watching = false
+      end
+
       def peek(addr)
         return @data = @rom.peek(addr | 0x4000) if addr >= 0x8000
 

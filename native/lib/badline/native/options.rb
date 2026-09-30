@@ -4,8 +4,8 @@ module Badline
   module Native
     # The command line of the native badline: badline-ruby's options, window
     # and headless (--headless, --audio-out and the rest), plus --no-sound,
-    # --no-vsync, --version and the testing knobs --frames, --unpaced and
-    # --screenshot. Spinel has no OptionParser, so it parses by hand. Values
+    # --no-vsync, --version and the testing knobs --frames, --unpaced,
+    # --screenshot and --save-snapshot. Spinel has no OptionParser, so it parses by hand. Values
     # come as `--song 2` or `--song=2`, and `--` ends the options.
     class Options
       class Error < StandardError; end
@@ -24,18 +24,18 @@ module Badline
       # fraction and exponent.
       DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
-      VALUED = %w[--song -s --sid --reu --frames --screenshot --audio-out --seconds --songlengths --rate
-                  --filter-chunk].freeze
+      VALUED = %w[--song -s --sid --reu --frames --screenshot --save-snapshot --audio-out --seconds --songlengths
+                  --rate --filter-chunk].freeze
 
       # The switches and valued options only the window or only the
       # headless player takes.
       WINDOW_ONLY = %w[--no-autostart --read-only --sound --no-sound --no-vsync --verbose --true-drive --reu --ntsc
-                       --frames --unpaced --screenshot].freeze
+                       --frames --unpaced --screenshot --save-snapshot].freeze
 
       HEADLESS_ONLY = %w[--seconds --songlengths --rate --filter-chunk --quiet --no-tui].freeze
 
-      attr_reader :media, :song, :sid_model, :reu, :frames, :screenshot, :audio_out, :seconds, :songlengths,
-                  :filter_chunk
+      attr_reader :media, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot, :audio_out, :seconds,
+                  :songlengths, :filter_chunk
 
       def self.parse(argv) = new.parse(argv)
 
@@ -54,6 +54,7 @@ module Badline
         @true_drive = false
         @ntsc = false
         @screenshot = ""
+        @save_snapshot = ""
         @help = false
         @version = false
         @headless = false
@@ -74,6 +75,9 @@ module Badline
         validate unless help? || version?
         self
       end
+
+      # Whether the media is a .vsf snapshot to restore.
+      def snapshot? = File.extname(@media).casecmp?(".vsf")
 
       # Plays or renders a .sid tune without the window.
       def headless? = @headless || render?
@@ -166,6 +170,7 @@ module Badline
         when "--reu" then @reu = reu_size(value)
         when "--frames" then @frames = number(name, value)
         when "--screenshot" then @screenshot = value
+        when "--save-snapshot" then @save_snapshot = value
         when "--audio-out" then @audio_out = value
         when "--seconds" then @seconds = decimal(name, value)
         when "--songlengths" then @songlengths = value

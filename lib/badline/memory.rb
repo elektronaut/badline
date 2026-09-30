@@ -29,6 +29,14 @@ module Badline
       Array(bytes).each_with_index { |b, i| poke(addr + i, b) }
     end
 
+    def save_state(out)
+      out.blob(@storage)
+    end
+
+    def load_state(input)
+      input.blob_into(@storage)
+    end
+
     # Refills the whole memory as if newly built with `initial`
     def clear!(initial = [])
       @storage.replace(zero_fill(initial))

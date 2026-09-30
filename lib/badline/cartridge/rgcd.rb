@@ -28,6 +28,16 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        save_windows(out, [*@banks, EMPTY_BANK])
+        out.boolean(@disabled)
+      end
+
+      def load_mapper(input)
+        load_windows(input, [*@banks, EMPTY_BANK])
+        @disabled = input.boolean?
+      end
+
       def select(value)
         value ^= 0x07 if @hucky
         if value.anybits?(0x08)

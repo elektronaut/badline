@@ -42,6 +42,26 @@ module Badline
         settle
       end
 
+      # The counter, the latch and the pipeline between them. The control
+      # register is the CIA's to save.
+      def save_state(out)
+        out.int(@counter).int(@latch).int(@pipe).int(@load_delay).boolean(@reload).boolean(@underflowed)
+        out.int(@oneshot_linger).boolean(@toggle).boolean(@settled).boolean(@empty)
+      end
+
+      def load_state(input)
+        @counter = input.int
+        @latch = input.int
+        @pipe = input.int
+        @load_delay = input.int
+        @reload = input.boolean?
+        @underflowed = input.boolean?
+        @oneshot_linger = input.int
+        @toggle = input.boolean?
+        @settled = input.boolean?
+        @empty = input.boolean?
+      end
+
       def write_control(value)
         @toggle = true if value.anybits?(0x01) && !started?
         @oneshot_linger = 2 if control.run_mode? && value.nobits?(0x08)
@@ -57,6 +77,19 @@ module Badline
       def write_latch_high(value)
         @latch = (value << 8) | (@latch & 0xff)
         @counter = @latch unless started?
+      end
+
+      # Whether the timer's PB output toggle is high, and its count pipeline
+      # as two bits, the newer stage high.
+      attr_reader :toggle, :pipe
+
+      # Sets the control register without its load strobe, the toggle and
+      # the count pipeline, as a VICE snapshot gives them.
+      def restore_pipeline(control, toggle, pipe)
+        @control.value = control & ~0x10
+        @toggle = toggle
+        @pipe = pipe
+        settle
       end
 
       private
