@@ -226,12 +226,15 @@ module Badline
       @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
     end
 
+    # The REU's /DMA line takes the bus from the CPU from the cycle after
+    # it asks for it, even while it waits for BA, but RDY only halts the
+    # CPU on a read, so a write it makes then goes nowhere.
     def dma_cycle!
       writing = @cpu.pending_write?
-      @reu.dma_cycle!(@vic.reu_ba_low?, writing)
-      return @cpu.stall! if @reu.holds_bus?
+      @reu.dma_cycle!(@vic.ba_low?)
+      return writing ? @address_bus.cycle_cpu_off_bus(@cpu) : @cpu.stall! if @reu.dma?
 
-      @dma = @reu.dma?
+      @dma = false
       writing || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
     end
 

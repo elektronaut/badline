@@ -89,6 +89,7 @@ module Badline
 
       @color_ram = ColorMemory.new(@vic)
       @open_bus = OpenBus.new(@vic)
+      @cpu_off_bus = false
 
       @port_ddr = 0x00
       @port_out = 0x00
@@ -154,9 +155,17 @@ module Badline
         @ram.poke(addr, @vic.phi1_data)
         addr.zero? ? @port_ddr = value : @port_out = value
         update_port!
-      else
+      elsif !@cpu_off_bus
         @write_pages[addr >> 8].poke(addr, value)
       end
+    end
+
+    # Runs a CPU cycle with the CPU off the bus, as an REU's /DMA line
+    # holds it: a write it makes reaches nothing but its own port.
+    def cycle_cpu_off_bus(cpu)
+      @cpu_off_bus = true
+      cpu.cycle!
+      @cpu_off_bus = false
     end
 
     def inspect

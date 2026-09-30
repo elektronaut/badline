@@ -72,12 +72,12 @@ REU/reutiming2/b3.prg	PASS
 REU/reutiming2/b4.prg	FAIL	no-ref
 REU/reutiming2/b5.prg	FAIL	no-ref
 REU/reutiming2/b6.prg	FAIL	no-ref
-REU/reutiming2/c.prg	FAIL	diff=6403px exit=$00
+REU/reutiming2/c.prg	FAIL	diff=337px exit=$00
 REU/reutiming2/c2.prg	PASS
 REU/reutiming2/c3.prg	FAIL	no-ref
 REU/reutiming2/c4.prg	FAIL	no-ref
-REU/reutiming2/d.prg	FAIL	diff=674px exit=$00
-REU/reutiming2/d2.prg	FAIL	diff=337px exit=$00
+REU/reutiming2/d.prg	PASS
+REU/reutiming2/d2.prg	PASS
 REU/reutiming2/d3.prg	FAIL	no-ref
 REU/reutiming2/d4.prg	FAIL	no-ref
 REU/reutiming2/e.prg	FAIL	exit=$ff
@@ -97,19 +97,19 @@ REU/reutiming2/g4.prg	FAIL	exit=$ff
 REU/reutiming2/e-m2.prg	PASS
 REU/reutiming2/e2-m2.prg	PASS
 REU/reutiming2/e3-m2.prg	PASS
-REU/reutiming2/e4-m2.prg	FAIL	exit=$ff
+REU/reutiming2/e4-m2.prg	PASS
 REU/reutiming2/e5-m2.prg	PASS
-REU/reutiming2/e6-m2.prg	FAIL	exit=$ff
+REU/reutiming2/e6-m2.prg	PASS
 REU/reutiming2/f-m2.prg	PASS
 REU/reutiming2/f2-m2.prg	PASS
 REU/reutiming2/f3-m2.prg	PASS
 REU/reutiming2/f4-m2.prg	PASS
 REU/reutiming2/g-m2.prg	PASS
 REU/reutiming2/g2-m2.prg	PASS
-REU/reutiming2/g3-m2.prg	FAIL	exit=$ff
-REU/reutiming2/g4-m2.prg	FAIL	exit=$ff
-REU/rmw-trigger/rmwtrigger-rom.prg	FAIL	exit=$ff
-REU/rmw-trigger/rmwtrigger-ram.prg	FAIL	exit=$ff
+REU/reutiming2/g3-m2.prg	PASS
+REU/reutiming2/g4-m2.prg	PASS
+REU/rmw-trigger/rmwtrigger-rom.prg	PASS
+REU/rmw-trigger/rmwtrigger-ram.prg	PASS
 REU/xfertiming/xfertiming-cmp.prg	PASS
 REU/xfertiming/xfertiming-swap.prg	PASS
 REU/xfertiming/xfertiming-swap2.prg	PASS

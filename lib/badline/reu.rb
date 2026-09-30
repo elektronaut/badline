@@ -106,9 +106,8 @@ module Badline
     # From the moment the REC asks for the bus until it hands it back.
     def dma? = @requested || @running
 
-    # Whether the REC held the bus on the last cycle clocked. The CPU keeps
-    # it while the REC waits to start, and has it back from the cycle the
-    # REC lets go.
+    # Whether the REC ran a transfer on the last cycle clocked, which it
+    # goes on doing until the cycle it lets go of the bus.
     def holds_bus? = @running
 
     def reset!
@@ -158,16 +157,17 @@ module Badline
       request_bus
     end
 
-    # Clocks the REC for a cycle, given the VIC's BA line and whether the
-    # CPU writes on it. A requested transfer starts on the first cycle the
-    # CPU reads with BA high.
-    def dma_cycle!(ba_low, cpu_writing)
+    # Clocks the REC for a cycle, given the VIC's BA line. A requested
+    # transfer starts on the first cycle with BA high as the REC sees it,
+    # even one the CPU writes on. Pinned by REU/rmw-trigger.
+    def dma_cycle!(ba_low)
+      late = ba_low && @vic.reu_ba_late?
       if @requested
-        return if cpu_writing || ba_low
+        return if ba_low && !late
 
         start_transfer
       end
-      @dma.cycle!(ba_low)
+      @dma.cycle!(ba_low, late, ba_low && @vic.reu_ba_handed_on?)
       end_transfer unless @dma.holds_bus?
     end
 
