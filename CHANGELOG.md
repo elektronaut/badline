@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.6.1](https://github.com/elektronaut/badline/compare/v0.6.0...v0.6.1) (2026-09-30)
+
+
+### Features
+
+* run both builds on one shared front end ([0e1ebfb](https://github.com/elektronaut/badline/commit/0e1ebfb07c4705b2e46c1bb44f1ea76f22370b24))
+* run both builds on one shared front end ([3181d5f](https://github.com/elektronaut/badline/commit/3181d5f2ab73628d515ea88c42ddef4b11f74ac0))
+* script key presses, media swaps and screenshots at given frames ([7a87069](https://github.com/elektronaut/badline/commit/7a87069d9b1491297e9a6ebd4fc0a860be3afd27))
+* script key presses, media swaps and screenshots at given frames ([5554511](https://github.com/elektronaut/badline/commit/5554511868d7986950cac829c3341689c88a32a7))
+
+
+### Bug Fixes
+
+* build the native badline with a Spinel that prints the headless player's display ([d2d3df3](https://github.com/elektronaut/badline/commit/d2d3df32c67c02c0e0f20308a03faca5430dfa26))
+* build the native badline with a Spinel that prints the headless player's display ([8dccecb](https://github.com/elektronaut/badline/commit/8dccecb2a2b8d044162b149203ca8aaf75aa4957))
+* build the native badline with a Spinel that renders .wav files ([bacfbea](https://github.com/elektronaut/badline/commit/bacfbea0c2d9af1c61c34aa09ff828ba767b2af3))
+* build the native badline with a Spinel that renders .wav files ([afc4267](https://github.com/elektronaut/badline/commit/afc42670f8543c50e74268ccc81284e46838df48))
+* end the run at a failed insert and say when there's nothing to eject ([f6b686d](https://github.com/elektronaut/badline/commit/f6b686d4094fbf526bffa37c7aa13dba0908bb71))
+* key testbench results by test key, so a row listed twice gets its own line ([a0f4d55](https://github.com/elektronaut/badline/commit/a0f4d555f568c2e82b08971adc00fa4199c1eac4))
+* leave .claude/ and vendor/ out of the gem ([c3ec867](https://github.com/elektronaut/badline/commit/c3ec867f04ee1840a01dfb0de2cce7cdd7aa30c6))
+* save the REU swap's pending re-read in snapshots, from a module of its own ([3448ac8](https://github.com/elektronaut/badline/commit/3448ac8a8827587b01ea2da6101c1f1b2009bc88))
+* show bank 3 for a cycle after a $dd00 bank swap on the 8565 ([2529eff](https://github.com/elektronaut/badline/commit/2529effb0c5fc3cf463e1d0e5b65e2321b3ed06d))
+* show bank 3 for the cycle after a $dd00 write swaps the bank lines on the 8565 ([c9959f4](https://github.com/elektronaut/badline/commit/c9959f430ac7a95397d906e1c70013bbc25b5ca2))
+* time the REU's swaps and fetches against the VIC, and take the bus from an RMW write ([60e48bd](https://github.com/elektronaut/badline/commit/60e48bd8531d130252101d6227ef296ed0b6395b))
+* time the REU's swaps and fetches against the VIC, and take the bus from an RMW write ([eb045fa](https://github.com/elektronaut/badline/commit/eb045fa3d20e0a1abc9acdf68bfb1f9388d7ca57))
+* write a fetch's first byte twice when BA falls as it starts ([35c4cf4](https://github.com/elektronaut/badline/commit/35c4cf419178bdf1b704f94c815dce259368fa26))
+* write a fetch's first byte twice when BA falls as it starts ([1ab691a](https://github.com/elektronaut/badline/commit/1ab691a512b54d58670d5a2ae244f917c715bb25))
+* write the 6581's pulse+noise lines only mid-shift ([95f84dd](https://github.com/elektronaut/badline/commit/95f84dd6e842bf76e562dd9867f24916039debd5))
+
+
+### Performance Improvements
+
+* give the 1541's 6502 a class of its own ([df64d23](https://github.com/elektronaut/badline/commit/df64d231f97824f2a6dc7bd37a1e4ef4294dc8da))
+* give the 1541's 6502 a class of its own ([8193a52](https://github.com/elektronaut/badline/commit/8193a52c642a8c176cc29591d99beffb91300620))
+
+
+### Miscellaneous Chores
+
+* release 0.6.1 ([059cd50](https://github.com/elektronaut/badline/commit/059cd502dd356760179e5df823402891b99349bd))
+
 ## [0.6.0](https://github.com/elektronaut/badline/compare/v0.5.1...v0.6.0) (2026-09-29)
 
 
