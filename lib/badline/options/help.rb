@@ -61,7 +61,8 @@ module Badline
         A .sid file carries no length of its own. Without --seconds the tune is
         looked up by MD5 in HVSC's Songlengths.md5, taken from --songlengths, from
         the DOCUMENTS directory of an HVSC collection above the tune, or from
-        $HVSC_BASE. Failing all of those it runs for #{FALLBACK_SECONDS.to_i} seconds.
+        $HVSC_BASE. Failing all of those it runs for #{FALLBACK_SECONDS.to_i} seconds, or
+        until it has been silent for #{SILENCE_SECONDS.to_i}.
 
         #{@native ? NATIVE_SPEED : RUBY_SPEED}
 

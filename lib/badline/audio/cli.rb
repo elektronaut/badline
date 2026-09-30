@@ -60,6 +60,10 @@ module Badline
         @lengths[song] ||= @options.seconds || songlength(song) || @options.fallback_seconds
       end
 
+      # How long the song may stay silent before it ends, or nil when its
+      # length is known rather than the fallback.
+      def silence(song) = @options.seconds || songlength(song) ? nil : @options.silence_seconds
+
       def sid_model = @options.sid_model || tune.sid_model
 
       def interactive? = @options.tui? && @input.tty? && @out.tty?
@@ -69,6 +73,7 @@ module Badline
       def renderer(song, rate)
         Renderer.new(tune, seconds: length(song), song:, rate:, sid_model:).tap do |renderer|
           renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
+          renderer.silence = silence(song) if silence(song)
         end
       end
 
@@ -78,7 +83,7 @@ module Badline
         @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.audio_out} at #{@options.rate} Hz..."
         started = now
         renderer.render(@options.audio_out) { |done| progress(done) }
-        report(now - started)
+        report(renderer.rendered, now - started)
       end
 
       def play
@@ -92,8 +97,9 @@ module Badline
         @out.puts describe
         @out.puts "Playing #{seconds}s on the #{model_name} at #{sink.rate} Hz. Ctrl-C stops."
         playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
-        result = playback.play(renderer(song, sink.rate)) { |played| progress(played) }
-        progress(seconds) if result == :finished
+        renderer = renderer(song, sink.rate)
+        result = playback.play(renderer) { |played| progress(played) }
+        progress(renderer.rendered) if result == :finished
         @out.print "\n" unless @options.quiet?
         @out.puts(result == :finished ? "Done." : "Stopped.")
       end
@@ -143,10 +149,10 @@ module Badline
         @out.flush
       end
 
-      def report(elapsed)
+      def report(rendered, elapsed)
         @out.print "\r" unless @options.quiet?
         @out.puts format("Wrote %<path>s in %<elapsed>.1fs (%<speed>.2fx real time).",
-                         path: @options.audio_out, elapsed:, speed: seconds / elapsed)
+                         path: @options.audio_out, elapsed:, speed: rendered / elapsed)
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

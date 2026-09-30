@@ -24,6 +24,10 @@ module Badline
 
     FALLBACK_SECONDS = 60.0
 
+    # A tune on the fallback length ends sooner once it has been silent
+    # this long.
+    SILENCE_SECONDS = 5.0
+
     SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
@@ -97,6 +101,9 @@ module Badline
 
     # How long to play a tune whose length nothing gives.
     def fallback_seconds = FALLBACK_SECONDS
+
+    # How long a tune playing for fallback_seconds may stay silent.
+    def silence_seconds = SILENCE_SECONDS
 
     def rate = @rate.nil? ? DEFAULT_RATE : @rate
 

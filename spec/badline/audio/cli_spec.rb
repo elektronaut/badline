@@ -83,6 +83,26 @@ describe Badline::Audio::CLI do
     end
   end
 
+  describe "#silence" do
+    let(:arguments) { ["--songlengths", songlengths("#{tune.md5}=0:10")] }
+
+    it "leaves a song the database lists to its length" do
+      expect(cli.silence(1)).to be_nil
+    end
+
+    it "ends a song on the fallback length after five seconds of silence" do
+      expect(cli.silence(2)).to eq(5.0)
+    end
+
+    context "with --seconds" do
+      let(:arguments) { ["--seconds", "3"] }
+
+      it "leaves the song to that length" do
+        expect(cli.silence(1)).to be_nil
+      end
+    end
+  end
+
   describe "#sid_model" do
     it "follows the tune" do
       expect(cli.sid_model).to eq(:mos6581)
