@@ -10,14 +10,14 @@ module Badline
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      # Takes the frame limit, the pacing, the screenshot and snapshot paths,
-      # the sound and the verbosity from Options.
-      def initialize(computer, options)
+      # Takes the frame limit, the pacing, the snapshot path, the sound and
+      # the verbosity from Options, and runs the timeline's events.
+      def initialize(computer, options, timeline)
         @computer = computer
         @frame_limit = options.frames
         @verbose = options.verbose?
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, region: computer.region)
-        @screenshot = options.screenshot
+        @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
         @screen = Screen.new(computer.vic)
         @led = DriveLed.for(computer)
@@ -68,7 +68,8 @@ module Badline
         took = stamps[-2] - stamps.first
         @slowest = took if took > @slowest
         @frames += 1
-        @running = false if @frames == @frame_limit
+        @timeline.run(@computer, @frames)
+        @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?
       end
@@ -189,7 +190,7 @@ module Badline
         SDL.SDL_RenderClear(@renderer)
         SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
         @led&.draw(@renderer)
-        Screenshot.write(@renderer, @screenshot) if @screenshot != "" && @frames + 1 == @frame_limit
+        @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(@renderer, path) }
         SDL.SDL_RenderPresent(@renderer)
       end
 

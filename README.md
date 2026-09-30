@@ -92,6 +92,20 @@ by a timer, or by the sound while it plays.
 and the game controllers found as the window opens, then the frame rate
 and the time each frame takes, once a second.
 
+For a scripted run, `--frames N` quits after N frames, `--unpaced` runs
+as fast as it can and `--at FRAME:EVENT` presses keys, types, swaps
+media and takes screenshots once that many frames have run. `--script
+FILE` takes one `FRAME:EVENT` a line:
+
+```sh
+badline --unpaced --frames 12000 --true-drive disk1.d64 \
+  --at 3500:key=space --at 5600:insert=disk2.d64 \
+  --at 250,500,6000:screenshot=shot%05d.bmp
+```
+
+`--help` lists the events, and [native/README.md](native/README.md#running)
+describes them.
+
 In `badline-ruby` sound is off by default, and `--sound` turns it on.
 The machine runs below real time there, so the sound stutters: it plays
 in bursts with silent gaps between them, at the right pitch, and never

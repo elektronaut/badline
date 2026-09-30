@@ -52,6 +52,10 @@ module Badline
       Option.new("--screenshot FILE", "Save the last frame as a .bmp",
                  section: "Testing options", needs: :window),
       Option.new("--save-snapshot FILE", "Save the machine as a .vsf snapshot after the last frame",
+                 section: "Testing options", needs: :window),
+      Option.new("--at FRAME:EVENT", "Run EVENT once FRAME frames have run (see above)",
+                 section: "Testing options", needs: :window),
+      Option.new("--script FILE", "Run the events in FILE, one FRAME:EVENT a line",
                  section: "Testing options", needs: :window)
     ].freeze
   end
