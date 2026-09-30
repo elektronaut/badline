@@ -370,6 +370,26 @@ describe Badline::SID::Waveform do
       it "writes nothing back onto noise alone" do
         expect(raise_onto(0x88)).to eq(0x7ffffc)
       end
+
+      # Pinned by SID/wf12nsr's pulse+noise row on the 6581.
+      it "writes pulse+noise's lines low on the 6581" do
+        expect(raise_onto(0xc8)).to eq(0x6bb5d8)
+      end
+    end
+
+    # Pinned by SID/wf12nsr's pulse+noise row and SID/wb_testsuite's 8->C
+    # and C->C rows on the 6581: pulse+noise leaves the register alone while
+    # it holds, and writes every tap low in the second phase of a shift.
+    describe "with pulse+noise on the 6581" do
+      it "leaves the register alone while it holds" do
+        restart(0xc0, frequency: 0x0000, cycles: 8)
+        expect(waveform.shift_register).to eq(0x7ffffc)
+      end
+
+      it "writes every tap low before a shift" do
+        restart(0xc0, frequency: 0x8000, cycles: 18)
+        expect(waveform.shift_register).to eq(0x576bb0)
+      end
     end
   end
 
@@ -544,9 +564,11 @@ describe Badline::SID::Waveform do
       expect(waveform.noise).to eq(0x600)
     end
 
-    it "drops pulse+noise's two lowest noise lines on the 6581" do
+    # Pinned by SID/wf12nsr's pulse+noise row on the 6581: it reads $00 of a
+    # full register before any shift.
+    it "reads nothing of pulse+noise on the 6581" do
       restart(0xc0, frequency: 0x0000)
-      expect(waveform.output).to eq(0xfe0 & 0xfc0)
+      expect(waveform.output).to eq(0x000)
     end
 
     # Pinned by SID/wf12nsr's pulse+noise row on the 8580: it reads $f8

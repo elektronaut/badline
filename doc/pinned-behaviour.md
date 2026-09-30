@@ -1340,7 +1340,8 @@ testprogs named.
   its output is latched instead. The cycle after that is phase 2: the
   latched output is written over the taps, then the register shifts.
   Phase 2 writes back by the test bit release rule below, with the old and
-  new waveform the same: noise combined with anything but pulse alone.
+  new waveform the same: noise combined with anything but pulse alone. On
+  the 6581, phase 2 also writes pulse+noise's lines (below).
   Setting the test bit drops a shift in flight.
   - Pinned by `SID/noisewriteback`'s `noise_writeback_test2` (both chips).
     It releases the test bit into noise+triangle, which pulls every tap low,
@@ -1364,6 +1365,9 @@ testprogs named.
     `$f8`/`$80` pairs set the test bit onto all four waveforms from noise
     alone, and zero the register only if this writes back. The release that
     follows goes to noise alone, which writes nothing back (below).
+  - On the 6581, pulse+noise writes its `$00` read back here, as in a
+    shift's phase 2 (below). Pinned by `SID/wf12nsr`'s pulse+noise row,
+    which sets the test bit onto pulse+noise.
   - Spec guard: *as the test bit rises* in
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
 - The test bit does not clear the LFSR. It stalls it halfway through a
@@ -1445,9 +1449,10 @@ testprogs named.
     register and writes `$fc` back, the only pair among `$f8`, `$fc` and the
     full noise that passes `SID/wf12nsr`'s pulse+noise row. That `$fc` is what
     `SID/wb_testsuite`'s `C`→`9` and `C`→`E` rows need written at release.
-    The 6581 reads `$fc` (the readme of `SID/wf12nsr`, VICE bug #1037,
-    unscored) and writes nothing back: its `8`/`9`/`A`/`B`→`C` rows run
-    pulse+noise and leave the register alone.
+    The 6581 reads `$00` of a full register, and pulls nothing down while
+    the register holds. Its lines land only part way through a shift: in
+    a shift's phase 2, and as the test bit rises onto pulse+noise. Both
+    write the `$00` read, so every tap goes low.
   - Pinned by `SID/wf12nsr` (wf9/wfa on both chips, wfc on the 8580) and
     the `SID/wb_testsuite` rows above. Knock-outs: writing back the plain
     AND fails wf9 and wfa on both chips; on the 8580, reading and writing
@@ -1455,17 +1460,25 @@ testprogs named.
     fails wfc and the `C`→`9`/`C`→`E` rows; applying the lone-line rule to
     the read as well makes `noise_writeback_test2` read `$00` on both
     chips.
-  - Can't pass: the 6581's pulse+noise row of `SID/wf12nsr`. The program
-    never writes voice 3's pulse width, so the row depends on whatever width
-    the machine it was recorded on held. The 6581 reference reads `$00`
-    right after the release into pulse+noise at frequency `$ffff`, as if
-    the pulse was still low and grounding every line. After power-on or
-    reset the width is zero and the pulse is high. With the width set
-    before the program runs, the row passes from `$1a0` up and fails from
-    `$198` down. The 8580 program passes from a zero width. `SID/wf12nsr`'s `quicktest.prg` doesn't set the width
-    either. The row stays failing.
+  - The 6581's pulse+noise is pinned by `SID/wf12nsr`'s wfc row and
+    `SID/wb_testsuite`'s `8`→`C` and `C`→`C` rows. The wfc row releases the
+    test bit into pulse+noise at frequency `$ffff` with the pulse width
+    never written, so zero and the pulse high, and reads `$00` on the next
+    instruction, before bit 19 first rises. That read is of a full
+    register, so the `$00` is the read itself. Its noise run afterwards
+    matches the other combined rows, whose taps were all pulled low. The
+    `8`→`C` and `C`→`C` rows hold pulse+noise at frequency zero, where no
+    shift comes, and leave the register alone. Knock-outs: writing the
+    `$00` back every cycle and at release fails `8`→`C`, `C`→`C` and ten
+    more 6581 rows (the recorded VICE r45942 results pass wfc and fail
+    `8`→`C` and `C`→`C`); dropping the phase 2 write or the write as the
+    test bit rises fails wfc. The readme
+    of `SID/wf12nsr` has a warmed-up 6581 reading `$fc` with the test bit
+    held (`quicktest.prg`, unscored), which this model doesn't reproduce.
   - Spec guard: *writes a lone line of a noise combination back low*, *with
-    pulse+noise on the 8580* and *as the test bit falls* in
+    pulse+noise on the 8580*, *reads nothing of pulse+noise on the 6581*,
+    *with pulse+noise on the 6581*, *as the test bit rises* and *as the
+    test bit falls* in
     [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
 - The pulse comparator's output reaches the lines a cycle after the
   accumulator it compared, on both chips. Setting the test bit forces it
