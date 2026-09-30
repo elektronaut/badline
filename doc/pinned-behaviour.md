@@ -1292,27 +1292,46 @@ and each was knocked out: removing it fails the rows named.
 The REC's timing against the VIC, each rule derived from the REU
 testprogs named.
 
-- A requested transfer takes the bus on the CPU's next read cycle with BA
-  high, and moves its first byte there. Starting a cycle later moves every
-  `REU/xfertiming` row and `REU/reutiming/reutiming`.
+- A requested transfer takes the bus on the next cycle with BA high, and
+  moves its first byte there. Starting a cycle later moves every
+  `REU/xfertiming` row and `REU/reutiming/reutiming`. /DMA takes the bus
+  from the CPU from the cycle after the request, even while the REC waits
+  for BA, and RDY only halts the CPU on a read, so a write the CPU makes
+  then goes nowhere (`AddressBus#cycle_cpu_off_bus`). That is how an `INC
+  $FF00` starts an armed transfer without its second write reaching RAM.
+  Pinned by `REU/rmw-trigger/rmwtrigger-ram` and `rmwtrigger-rom`.
 - After reading C64 memory the REC waits out every BA-low cycle. After
   writing it goes on through the first BA-low cycle and waits from the
   second, and a fetch or swap whose last write it waited out takes one
   more cycle before handing the bus back (`REU::DMA#note_ba`,
   `#wind_down`). Pinned by `REU/bonzai/spritetiming`, whose 45 bytes a
   line with eight sprites on is 63 less the 18 cycles this leaves.
-- On the line whose raster matches sprite 0's Y, the REU doesn't see BA
-  fall on the first cycle of sprite 0's window (`VIC#reu_ba_low?`).
-  Without it `REU/bonzai/spritetiming` reads `$5a,$87` where a real REU
-  gives `$5b,$88`.
+- A fetch's last write doesn't go through the first BA-low cycle: the REC
+  waits for BA to rise and writes it then. Pinned by `REU/reutiming2/d`
+  and `d2`, and it takes `REU/reutiming2/c` from 6,403 px to 337.
+- On the line whose raster matches sprite 0's Y, a REC that read or wrote
+  on the cycle before doesn't see BA fall on the first cycle of sprite
+  0's window (`VIC#reu_ba_late?`). Without it `REU/bonzai/spritetiming`
+  reads `$5a,$87` where a real REU gives `$5b,$88`. A swap's read on that
+  cycle still sees BA low, and is held as the next rule says (pinned by
+  `REU/reutiming2/e4-m2` and `e6-m2`).
 - A swap's read that falls on the first BA-low cycle, after its write, is
   held open while AEC stays high and takes the byte on the bus two cycles
   later. If it is the transfer's last byte it is read there instead, its
   write follows on the next cycle, and the REC hands the bus back
   (`REU::DMA#swap_read_on_ba`). Pinned by `REU/reutiming2/e5-m2`, `f3-m2`
-  and `f4-m2`, whose patterns were captured on a breadbin. The
-  `reutiming2` references without `-m2` read `$42` or a timer value there
-  instead, and still fail.
+  and `f4-m2`, whose patterns were captured on a breadbin.
+- A swap's read made with BA high, when BA falls on the next cycle before
+  its write, is made again when BA rises, and the write follows it
+  (`REU::DMA#read_swap_again`). So is a held read when BA runs straight
+  from a bad line's window into sprite 0's (`VIC#reu_ba_handed_on?`).
+  Pinned by `REU/reutiming2/e4-m2`, `e6-m2`, `g3-m2` and `g4-m2`.
+- The `reutiming2` references without `-m2` read `$42`, the RAM under
+  `$DC04`, on some of the cycles a swap's or stash's read starts with the
+  VIC's DMA. The readme puts that down to a C64C board or an 8565, while
+  the testlist runs those rows on the 6569, the same machine as the `-m2`
+  rows, whose references read the timer there. The two sets can't both
+  pass on one machine, and badline follows the breadbin `-m2` ones.
 
 ## SID oscillator
 

@@ -33,7 +33,7 @@ describe Badline::REU do
   def run_dma(ba_line: [])
     held = 0
     loop do
-      reu.dma_cycle!(ba_line.fetch(held, false), false)
+      reu.dma_cycle!(ba_line.fetch(held, false))
       return held unless reu.holds_bus?
 
       held += 1
@@ -117,13 +117,8 @@ describe Badline::REU do
       expect(bus.peek(0xdf01)).to eq(0x10)
     end
 
-    it "waits for the CPU to finish a write" do
-      reu.dma_cycle!(false, true)
-      expect(reu.holds_bus?).to be(false)
-    end
-
     it "waits for BA to go high before it starts" do
-      reu.dma_cycle!(true, false)
+      reu.dma_cycle!(true)
       expect(reu.holds_bus?).to be(false)
     end
 
@@ -132,12 +127,12 @@ describe Badline::REU do
     end
 
     it "reads the open bus at its registers while it runs" do
-      reu.dma_cycle!(false, false)
+      reu.dma_cycle!(false)
       expect(bus.peek(0xdf00)).to eq(bus.vic.phi1_data)
     end
 
     it "ignores register writes while it runs" do
-      reu.dma_cycle!(false, false)
+      reu.dma_cycle!(false)
       bus.poke(0xdf02, 0x99)
       run_dma
       expect(bus.peek(0xdf02)).to eq(0x04)
@@ -396,19 +391,36 @@ describe Badline::REU do
       expect(computer.cpu.irq).to be(true)
     end
 
+    # Pinned by REU/rmw-trigger/rmwtrigger-ram.
+    it "takes the bus from an INC of $FF00 before its second write" do
+      computer.ram.write(0xc000, [0xee, 0x00, 0xff])
+      transfer(0x80, length: 1)
+      12.times { computer.cycle! }
+      expect(computer.ram.peek(0xff00)).to eq(bus.kernal_rom.peek(0xff00))
+    end
+
     # Pinned by REU/bonzai/spritetiming.
     it "misses BA falling for sprite 0 on the line its DMA starts" do
       bus.poke(0xd015, 0x01)
       bus.poke(0xd001, 0x40)
       computer.cycle! until computer.vic.rasterline == 0x40 && computer.vic.column == 54
-      expect([computer.vic.ba_low?, computer.vic.reu_ba_low?]).to eq([true, false])
+      expect([computer.vic.ba_low?, computer.vic.reu_ba_late?]).to eq([true, true])
     end
 
     it "sees BA for sprite 0 on the lines after" do
       bus.poke(0xd015, 0x01)
       bus.poke(0xd001, 0x40)
       computer.cycle! until computer.vic.rasterline == 0x41 && computer.vic.column == 54
-      expect(computer.vic.reu_ba_low?).to be(true)
+      expect(computer.vic.reu_ba_late?).to be(false)
+    end
+
+    # Pinned by REU/reutiming2/e4-m2.
+    it "sees a bad line's DMA end where sprite 0's follows it" do
+      bus.poke(0xd015, 0x01)
+      bus.poke(0xd001, 0x31)
+      bus.poke(0xd011, 0x1b)
+      computer.cycle! until computer.vic.rasterline == 0x33 && computer.vic.column == 54
+      expect([computer.vic.ba_low?, computer.vic.reu_ba_handed_on?]).to eq([true, true])
     end
 
     it "is reset with the machine" do

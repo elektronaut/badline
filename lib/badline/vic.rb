@@ -260,14 +260,19 @@ module Badline
         @column > DisplayState::DMA_FIRST && @column <= DisplayState::DMA_LAST + 1
     end
 
-    # BA as an REU's DMA sees it. On the line whose raster matches sprite
-    # 0's Y, where the sprite's DMA starts, the REU doesn't see BA fall on
-    # the first cycle of the sprite's window. Pinned by
+    # Whether this is the first cycle of sprite 0's BA window on the line
+    # whose raster matches its Y, where the sprite's DMA starts. An REU
+    # that moved a byte on the cycle before doesn't see BA fall here. Pinned by
     # REU/bonzai/spritetiming.
-    def reu_ba_low?
-      return false if @column == SPRITE_BA_FIRST + @sprite_shift && sprite_zero_starting?
+    def reu_ba_late?
+      @column == SPRITE_BA_FIRST + @sprite_shift && sprite_zero_starting?
+    end
 
-      ba_low?
+    # Whether BA passes straight from a bad line's window to sprite 0's on
+    # this cycle, the first of sprite 0's. An REU sees the bad line's DMA
+    # end here. Pinned by REU/reutiming2/e4-m2 and e6-m2.
+    def reu_ba_handed_on?
+      @column == DisplayState::DMA_LAST + 2 && @sprite_ba[@column] && @display_state.bad_line_condition?
     end
 
     # Light pen input level (CIA1 PB4). A falling edge triggers the latch.

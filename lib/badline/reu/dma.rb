@@ -52,6 +52,7 @@ module Badline
         @ba_low_after_writes = 0
         @stopped_after_write = false
         @swap_write_due = false
+        @swap_read_again = false
         @swap_byte = 0
         @held_read = 0
         @moved_all = false
@@ -59,9 +60,13 @@ module Badline
       end
 
       # One cycle of the transfer. The cycle the REC lets go of the bus on
-      # is the CPU's.
-      def cycle!(ba_low)
-        note_ba(ba_low)
+      # is the CPU's. late says BA fell on this cycle but a REC that moved a
+      # byte on the last one doesn't see it yet (VIC#reu_ba_late?), and
+      # handed_on that BA runs on from a bad line's DMA into a sprite's
+      # here (VIC#reu_ba_handed_on?).
+      def cycle!(ba_low, late, handed_on)
+        note_ba(ba_low, late)
+        @swap_read_again ||= handed_on && @swap_write_due
         settle_held_read(ba_low) if @held_read.positive?
         return if @waiting && ba_low
 
@@ -109,18 +114,32 @@ module Badline
 
       # The second BA-low cycle in a row after writes stops the REC, and so
       # does any BA-low cycle after a read. It then waits for BA to rise.
-      def note_ba(ba_low)
+      def note_ba(ba_low, late)
+        seen = ba_low && !late
         if @last == READ
-          @waiting = ba_low
+          note_ba_after_read(seen)
         elsif @last == WRITE
-          @ba_low_after_writes = ba_low ? @ba_low_after_writes + 1 : 0
-          @stopped_after_write = @ba_low_after_writes == 2
-          if @stopped_after_write
-            @waiting = true
-            @ba_low_after_writes = 0
-          end
+          note_ba_after_write(seen)
         end
         @last = IDLE
+      end
+
+      # A swap's read that BA stops before its write is made again.
+      def note_ba_after_read(ba_low)
+        @waiting = ba_low
+        @ba_low_after_writes = 0
+        @swap_read_again = ba_low && @swap_write_due && @held_read.zero?
+      end
+
+      # A fetch's last write doesn't go through the first BA-low cycle.
+      # Pinned by REU/reutiming2/d and d2.
+      def note_ba_after_write(ba_low)
+        @ba_low_after_writes = ba_low ? @ba_low_after_writes + 1 : 0
+        @stopped_after_write = @ba_low_after_writes == 2 || (ba_low && @type == FETCH && @length == 1)
+        return unless @stopped_after_write
+
+        @waiting = true
+        @ba_low_after_writes = 0
       end
 
       # A fetch or a swap whose last write ran into BA, or a verify that
@@ -166,6 +185,8 @@ module Badline
       # Two cycles a byte: the C64's byte is read and stored while the
       # REU's is fetched, and the REU's is written to the C64 on the next.
       def swap(ba_low)
+        return read_swap_again if @swap_read_again
+
         if @swap_write_due
           @swap_write_due = false
           write_c64(@swap_byte)
@@ -194,6 +215,15 @@ module Badline
         @ram.poke(@expansion, read_c64)
         @last = IDLE
         @ba_low_after_writes = 0
+      end
+
+      # A swap's read that BA cut off from its write is made again when BA
+      # rises, and the write follows it. Pinned by REU/reutiming2/e4-m2,
+      # e6-m2 and g3-m2.
+      def read_swap_again
+        @swap_read_again = false
+        @ram.poke(@expansion, read_c64)
+        @last = READ
       end
 
       def settle_held_read(ba_low)
