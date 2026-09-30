@@ -324,5 +324,288 @@ describe Badline::Options do
       expect(options.help).to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound",
                                       "--verbose", "--true-drive")
     end
+
+    it "lays each option out as OptionParser did" do
+      expect(options.help.lines).to include(
+        "    -s, --song N                     Subtune of a .sid, from 1 (default: the tune's own)\n",
+        "        --sound                      Play the SID through the host's audio device (F10 mutes)\n"
+      )
+    end
+  end
+
+  describe "the options the native build alone takes" do
+    %w[--version --no-sound --no-vsync --frames=1 --unpaced --screenshot=a.bmp --save-snapshot=a.vsf].each do |arg|
+      context "with #{arg}" do
+        let(:argv) { [arg] }
+
+        it "is rejected" do
+          expect { options }.to raise_error(described_class::Error, "invalid option: #{arg.split('=').first}")
+        end
+      end
+    end
+  end
+
+  describe "each build's help" do
+    [false, true].each do |native|
+      it "lists what #{native ? 'badline' : 'badline-ruby'} takes, and no more" do
+        flags = described_class.new(native:).help.scan(/^ +(?:-\w, )?(--[\w-]+)/).flatten
+        expect(flags).to eq(described_class::TABLE.map(&:name).reject { |flag| rejected?(flag, native) })
+      end
+    end
+
+    def rejected?(flag, native)
+      described_class.parse(["--help", flag], native:)
+      false
+    rescue described_class::Error => e
+      e.message.start_with?("invalid option")
+    end
+  end
+
+  describe "in the native build" do
+    def parse(*argv) = described_class.parse(argv, native: true)
+
+    let(:help) { described_class.new(native: true).help }
+
+    describe "with no arguments" do
+      subject(:options) { parse }
+
+      it "boots without media" do
+        expect(options.media_path).to be_nil
+      end
+
+      it "keeps the setup and timing to itself" do
+        expect(options.verbose?).to be(false)
+      end
+
+      it "autostarts, paced by vsync, with sound, until closed" do
+        expect([options.autostart?, options.paced?, options.vsync?, options.sound?, options.frames])
+          .to eq([true, true, true, true, 0])
+      end
+
+      it "leaves device 8 to the KERNAL traps" do
+        expect(options.true_drive?).to be(false)
+      end
+
+      it "leaves the SID model and the song to the media" do
+        expect([options.sid_model, options.song]).to eq([nil, nil])
+      end
+
+      it "plugs in no REU" do
+        expect(options.reu).to be_nil
+      end
+    end
+
+    it "takes the media" do
+      expect(parse(program_path).media_path).to eq(program_path)
+    end
+
+    it "takes the media after the options" do
+      expect(parse("--sound", program_path, "--frames", "5").media_path).to eq(program_path)
+    end
+
+    it "takes an argument after -- as media, even with a dash" do
+      expect { parse("--", "-game.prg") }.to raise_error(described_class::Error, "no such file or directory: -game.prg")
+    end
+
+    it "picks the 8580" do
+      expect(parse("--sid", "8580").sid_model).to eq(:mos8580)
+    end
+
+    it "picks the 6581 with --sid=6581" do
+      expect(parse("--sid=6581").sid_model).to eq(:mos6581)
+    end
+
+    it "plugs in an REU of the size asked for" do
+      expect(parse("--reu", "512").reu).to eq(512)
+    end
+
+    it "takes a song" do
+      expect(parse("--song", "3").song).to eq(3)
+    end
+
+    it "takes a song with -s" do
+      expect(parse("-s", "2").song).to eq(2)
+    end
+
+    it "boots to READY. with --no-autostart" do
+      expect(parse("--no-autostart").autostart?).to be(false)
+    end
+
+    it "runs an NTSC machine with --ntsc" do
+      expect(parse("--ntsc").ntsc?).to be(true)
+    end
+
+    it "puts a true drive on device 8 with --true-drive" do
+      expect(parse("--true-drive").true_drive?).to be(true)
+    end
+
+    it "mounts disks read-write unless --read-only asks otherwise" do
+      expect([parse.read_only?, parse("--read-only").read_only?]).to eq([false, true])
+    end
+
+    it "turns sound off with --no-sound" do
+      expect(parse("--no-sound").sound?).to be(false)
+    end
+
+    it "takes whichever of --sound and --no-sound comes last" do
+      expect(parse("--no-sound", "--sound").sound?).to be(true)
+    end
+
+    it "marks --sound as the default in the help" do
+      expect(help).to include("(F10 mutes) (default)")
+    end
+
+    it "turns vsync off with --no-vsync" do
+      expect(parse("--no-vsync").vsync?).to be(false)
+    end
+
+    it "prints the setup and timing with --verbose" do
+      expect(parse("--verbose").verbose?).to be(true)
+    end
+
+    it "takes the testing knobs" do
+      options = parse("--frames=150", "--unpaced", "--screenshot", "ready.bmp")
+      expect([options.frames, options.paced?, options.screenshot]).to eq([150, false, "ready.bmp"])
+    end
+
+    it "asks for help with -h" do
+      expect(parse("-h").help?).to be(true)
+    end
+
+    it "asks for the version" do
+      expect(parse("--version").version?).to be(true)
+    end
+
+    it "takes a file to save a snapshot to after the last frame" do
+      expect(parse("--frames", "10", "--save-snapshot", "ready.vsf").save_snapshot).to eq("ready.vsf")
+    end
+
+    it "knows a .vsf snapshot among the media" do
+      path = File.join(dir, "saved.VSF").tap { |file| File.write(file, "") }
+      expect(parse(path).snapshot?).to be(true)
+    end
+
+    it "skips the checks when asked for help" do
+      expect(parse("--help", "missing.prg").help?).to be(true)
+    end
+
+    it "lists every option in the help" do
+      %w[--song --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help --version
+         --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
+         --rate --filter-chunk --quiet --no-tui].each do |flag|
+        expect(help).to include(flag)
+      end
+    end
+
+    it "opens the window without --headless or --audio-out" do
+      expect([parse.window?, parse.headless?, parse.render?]).to eq([true, false, false])
+    end
+
+    it "plays without the window with --headless" do
+      options = parse("--headless", tune_path)
+      expect([options.headless?, options.window?, options.render?, options.tune_path])
+        .to eq([true, false, false, tune_path])
+    end
+
+    it "renders without the window with --audio-out" do
+      options = parse(tune_path, "--audio-out", "out.aiff")
+      expect([options.render?, options.headless?, options.audio_out]).to eq([true, true, "out.aiff"])
+    end
+
+    describe "without the window" do
+      subject(:options) do
+        parse("--headless", "--seconds", "12.5", "--rate", "48000", "--sid", "8580", "--filter-chunk=1",
+              "--quiet", "--no-tui", tune_path)
+      end
+
+      it "parses each of the options" do
+        expect([options.seconds, options.rate, options.sid_model, options.filter_chunk, options.quiet?, options.tui?])
+          .to eq([12.5, 48_000, :mos8580, 1, true, false])
+      end
+
+      it "holds the device to the rate asked for" do
+        expect(options.rate_given?).to be(true)
+      end
+
+      it "defaults as badline-ruby does" do
+        defaults = parse("--headless", tune_path)
+        expect([defaults.seconds, defaults.songlengths, defaults.rate, defaults.rate_given?, defaults.filter_chunk,
+                defaults.quiet?, defaults.tui?, defaults.fallback_seconds])
+          .to eq([nil, nil, 44_100, false, nil, false, true, 60.0])
+      end
+
+      it "takes the song length database" do
+        expect(parse("--headless", "--songlengths", program_path, tune_path).songlengths).to eq(program_path)
+      end
+
+      %w[1.5 .5 2e1 +3].each do |value|
+        it "takes #{value} seconds as OptionParser's Float does" do
+          expect(parse("--headless", "--seconds", value, tune_path).seconds).to eq(Float(value))
+        end
+      end
+    end
+
+    describe "the checks badline-ruby makes" do
+      {
+        %w[--headless] => "no tune given",
+        %w[--audio-out out.wav] => "no tune given",
+        %w[--headless missing.sid] => "no such file or directory: missing.sid"
+      }.each do |argv, message|
+        it "refuses #{argv.join(' ')}" do
+          expect { parse(*argv) }.to raise_error(described_class::Error, message)
+        end
+      end
+
+      {
+        %w[--headless --seconds 0] => "invalid argument: --seconds 0.0",
+        %w[--headless --seconds -1] => "invalid argument: --seconds -1.0",
+        %w[--headless --seconds abc] => "invalid argument: --seconds abc",
+        %w[--headless --rate 0] => "invalid argument: --rate 0",
+        %w[--headless --filter-chunk 0] => "invalid argument: --filter-chunk 0",
+        %w[--headless --songlengths missing.md5] => "no such file or directory: missing.md5",
+        %w[--headless --sound] => "--sound needs the window",
+        %w[--headless --no-autostart] => "--no-autostart needs the window",
+        %w[--headless --read-only] => "--read-only needs the window",
+        %w[--headless --reu 512] => "--reu needs the window",
+        %w[--headless --no-sound] => "--no-sound needs the window",
+        %w[--headless --verbose] => "--verbose needs the window",
+        %w[--headless --true-drive] => "--true-drive needs the window",
+        %w[--headless --frames 3] => "--frames needs the window",
+        %w[--seconds=10] => "--seconds needs --headless or --audio-out",
+        %w[--songlengths x] => "--songlengths needs --headless or --audio-out",
+        %w[--rate 8000] => "--rate needs --headless or --audio-out",
+        %w[--filter-chunk 1] => "--filter-chunk needs --headless or --audio-out",
+        %w[--quiet] => "--quiet needs --headless or --audio-out",
+        %w[--no-tui] => "--no-tui needs --headless or --audio-out"
+      }.each do |argv, message|
+        it "refuses #{argv.join(' ')} with a tune_path" do
+          expect { parse(*argv, tune_path) }.to raise_error(described_class::Error, message)
+        end
+      end
+
+      it "refuses a program without the window" do
+        expect { parse("--headless", program_path) }
+          .to raise_error(described_class::Error, "not a .sid tune: #{program_path}")
+      end
+    end
+
+    {
+      %w[--turbo] => "invalid option: --turbo",
+      %w[--disable-jit] => "invalid option: --disable-jit",
+      %w[--sid 6582] => "invalid argument: --sid 6582",
+      %w[--reu 100] => "invalid argument: --reu 100",
+      %w[--song two] => "invalid argument: --song two",
+      %w[--song 0] => "invalid argument: --song 0",
+      %w[--frames -1] => "invalid argument: --frames -1",
+      %w[--song] => "missing argument: --song",
+      %w[--sound=yes] => "needless argument: --sound=yes",
+      %w[--true-drive=yes] => "needless argument: --true-drive=yes",
+      %w[missing.prg] => "no such file or directory: missing.prg",
+      %w[a.prg b.prg] => "unexpected argument: b.prg"
+    }.each do |argv, message|
+      it "refuses #{argv.join(' ')}" do
+        expect { parse(*argv) }.to raise_error(described_class::Error, message)
+      end
+    end
   end
 end

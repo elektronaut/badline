@@ -14,7 +14,7 @@ module Badline
 
       def initialize(computer, options)
         @computer = computer
-        @last = options.snapshot? ? options.media : ""
+        @last = options.snapshot? ? options.media_path.to_s : ""
         @at_finish = options.save_snapshot
       end
 
