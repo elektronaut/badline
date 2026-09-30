@@ -27,13 +27,17 @@ class SpinelSubset
   CONSTANTS = %i[Forwardable ObjectSpace].freeze
 
   # The file and construct pairs let through: the CPU's microcode plan and
-  # operation dispatch, which waits on matz/spinel#4854. Any other file, or
-  # any other construct in these files, fails.
+  # operation dispatch, which waits on matz/spinel#4854, and the FFI DSL for
+  # CRuby, which Spinel never loads. Any other file, or any other construct
+  # in these files, fails.
   ALLOWED = [
     ["lib/badline/cpu.rb", "send with a computed name"],
     ["lib/badline/cpu/addressing.rb", "send with a computed name"],
     ["lib/badline/cpu/operations.rb", "send with a computed name"],
-    ["lib/badline/cpu/stack_operations.rb", "send with a computed name"]
+    ["lib/badline/cpu/stack_operations.rb", "send with a computed name"],
+    ["lib/badline/ffi.rb", "define_method"],
+    ["lib/badline/ffi.rb", "define_singleton_method"],
+    ["lib/badline/ffi.rb", "const_set with a computed name"]
   ].freeze
 
   def self.allowed?(violation)

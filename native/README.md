@@ -6,7 +6,9 @@ in real time. It plays the machine in an SDL2 window, reaching libSDL2
 through Spinel's FFI (`ffi_func`, `ffi_buffer` and the
 `ffi_read_*`/`ffi_write_*` accessors) rather than ruby-sdl2, so it builds
 with Spinel only and doesn't run on CRuby. `exe/badline-ruby` is the same
-emulator on CRuby.
+emulator on CRuby. Both use the one SDL binding, `lib/badline/sdl.rb`:
+Spinel compiles its declarations, and on CRuby `lib/badline/ffi.rb`
+implements them over Fiddle.
 
 ## Installing
 
@@ -92,10 +94,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   file by file, since `lib/badline.rb` also loads the CRuby front end,
   and badline-ruby's command line (`lib/badline/options.rb`) and player
   from `lib/badline/audio` but for its SDL sink and its io/console
-  terminal, then the members in
-  `native/lib/badline/native/`:
-  - `sdl.rb` declares the SDL2 functions, structs and constants the
-    others call, and `LibC`'s `malloc`, `free` and `poll`.
+  terminal. It also requires the SDL binding, `lib/badline/sdl.rb`, which declares the SDL2 functions, structs and
+  constants both builds call, and `LibC`'s `malloc`, `free` and `poll`.
+  Then come the members in `native/lib/badline/native/`:
   - `app.rb` (`App`) opens the window and runs the frame loop.
   - `snapshots.rb` (`Snapshots`) saves the machine with F11 and
     `--save-snapshot` and restores it with F12, and `screenshot.rb`
@@ -224,8 +225,8 @@ with them.
 It runs badline-ruby's own player from `lib/badline/audio`: the tune
 runs on the bare rig or the whole machine as there, and a render is the
 same file byte for byte. Two parts differ. The audio device is
-`AudioSink`, which queues the samples through Spinel's FFI as
-`Audio::SDLSink` does through ruby-sdl2, and without a display SDL's
+`AudioSink`, which queues the samples through Spinel's FFI from an
+`IO::Buffer` where `Audio::SDLSink` packs a String, and without a display SDL's
 dummy or disk audio drivers work (`SDL_AUDIODRIVER=dummy`). On a
 terminal, `Console` puts it in raw mode with `stty raw -echo isig` and
 restores it with `stty` afterwards, and waits for keys with `poll(2)`,

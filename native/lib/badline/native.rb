@@ -60,7 +60,7 @@ require "io/buffer"
 
 require "badline/native/build_info"
 require "badline/native/version"
-require "badline/native/sdl"
+require "badline/sdl"
 require "badline/native/frame_rate"
 require "badline/native/screen"
 require "badline/native/drive_led"

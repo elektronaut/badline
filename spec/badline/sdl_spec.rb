@@ -1,102 +1,121 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "badline/ffi"
 require "badline/sdl"
 
+# The binding both builds use, run on CRuby against SDL's dummy drivers.
 describe Badline::SDL do
-  # SDL_Event's leading type, timestamp and window id, then the rest.
-  def raw_event(type, rest = "")
-    [type, 0, 1].pack("L3").concat(rest.b).ljust(described_class::EVENT_SIZE, "\0")
+  around do |example|
+    drivers = %w[SDL_VIDEODRIVER SDL_AUDIODRIVER SDL_RENDER_DRIVER].to_h { |name| [name, ENV.fetch(name, nil)] }
+    ENV.update("SDL_VIDEODRIVER" => "dummy", "SDL_AUDIODRIVER" => "dummy", "SDL_RENDER_DRIVER" => "software")
+    example.run
+  ensure
+    ENV.update(drivers)
   end
 
-  def push(*events)
-    events.each { |event| described_class::PushEvent.call(event) }
-  end
+  describe "the events" do
+    before { described_class.SDL_InitSubSystem(described_class::INIT_EVENTS) }
 
-  # state, repeat, two bytes of padding, then the keysym: scancode, sym, mod.
-  def key_event(type, sym, mod, repeat: 0) = raw_event(type, [1, repeat, 0, 0, 0, sym, mod].pack("C4l2S"))
-
-  before { described_class.check(described_class::InitSubSystem.call(described_class::INIT_EVENTS)) }
-
-  after do
-    nil while described_class.poll_event
-    described_class::QuitSubSystem.call(described_class::INIT_EVENTS)
-  end
-
-  describe ".poll_event" do
-    it "returns nil once the queue is empty" do
-      expect(described_class.poll_event).to be_nil
+    after do
+      nil while described_class.SDL_PollEvent(described_class.event) == 1
+      described_class.SDL_QuitSubSystem(described_class::INIT_EVENTS)
     end
 
-    it "reads a quit" do
-      push(raw_event(0x100))
-      expect(described_class.poll_event).to eq(described_class::Quit.new)
+    # A key going down: type, timestamp, window id, state, repeat, two bytes
+    # of padding, then the keysym: scancode, sym, mod.
+    def push_key
+      event = [0x300, 0, 1, 1, 1, 0, 0, 43, described_class::KEY_TAB, described_class::KMOD_SHIFT]
+      described_class.SDL_PushEvent(event.pack("L3C4l2S").ljust(56, "\0"))
     end
 
-    it "reads a key going down with its modifiers" do
-      push(key_event(0x300, described_class::KEY_TAB, described_class::KMOD_SHIFT))
-      expect(described_class.poll_event)
-        .to eq(described_class::KeyDown.new(sym: described_class::KEY_TAB, mod: described_class::KMOD_SHIFT))
+    def fields(event)
+      %i[event_type event_scancode event_sym event_mod event_repeat].map { |field| described_class.send(field, event) }
     end
 
-    it "flags a key repeat" do
-      push(key_event(0x300, described_class::KEY_TAB, 0, repeat: 1))
-      expect(described_class.poll_event.repeat).to be(true)
+    it "queues nothing until something happens" do
+      expect(described_class.SDL_PollEvent(described_class.event)).to eq(0)
     end
 
-    it "reads a key going up" do
-      push(key_event(0x301, described_class::KEY_F10, 0))
-      expect(described_class.poll_event).to eq(described_class::KeyUp.new(sym: described_class::KEY_F10, mod: 0))
-    end
-
-    it "reads the mouse's relative motion" do
-      # which, state, x, y, then xrel and yrel.
-      push(raw_event(0x400, [0, 0, 10, 20, -3, 5].pack("L2l4")))
-      expect(described_class.poll_event).to eq(described_class::MouseMotion.new(xrel: -3, yrel: 5))
-    end
-
-    it "reads a mouse button going down" do
-      # which, then button and state.
-      push(raw_event(0x401, [0, 3, 1].pack("LC2")))
-      expect(described_class.poll_event).to eq(described_class::MouseButton.new(button: 3, pressed: true))
-    end
-
-    it "reads a mouse button going up" do
-      push(raw_event(0x402, [0, 1, 0].pack("LC2")))
-      expect(described_class.poll_event).to eq(described_class::MouseButton.new(button: 1, pressed: false))
-    end
-
-    it "reads a controller arriving" do
-      push(raw_event(0x653))
-      expect(described_class.poll_event).to eq(described_class::ControllerDevice.new)
-    end
-
-    it "skips the events the front end doesn't handle" do
-      push(raw_event(0x8000), raw_event(0x100))
-      expect(described_class.poll_event).to eq(described_class::Quit.new)
+    it "reads the event pushed" do
+      push_key
+      described_class.SDL_PollEvent(described_class.event)
+      expect(fields(described_class.event))
+        .to eq([described_class::KEYDOWN, 43, described_class::KEY_TAB, described_class::KMOD_SHIFT, 1])
     end
   end
 
-  describe ".key_name" do
-    it "names a key the way SDL does" do
-      expect(described_class.key_name(described_class::KEY_F10)).to eq("F10")
+  describe "the window" do
+    let(:window) { described_class.SDL_CreateWindow("Badline", 0, 0, 384, 272, 0) }
+    let(:renderer) { described_class.SDL_CreateRenderer(window, -1, 0) }
+
+    before { described_class.SDL_Init(described_class::INIT_VIDEO | described_class::INIT_EVENTS) }
+
+    after { described_class.SDL_Quit }
+
+    def output_size
+      described_class.SDL_GetRendererOutputSize(renderer, described_class.output_w, described_class.output_h)
+      [described_class.read_i32(described_class.output_w), described_class.read_i32(described_class.output_h)]
+    end
+
+    def fill(red, green, blue)
+      rect = described_class.led_rect
+      [[:rect_x, 2], [:rect_y, 3], [:rect_w, 1], [:rect_h, 1]].each do |field, value|
+        described_class.send(field, rect, value)
+      end
+      described_class.SDL_SetRenderDrawColor(renderer, red, green, blue, 0xff)
+      described_class.SDL_RenderFillRect(renderer, rect)
+    end
+
+    def read_pixel
+      pixel = IO::Buffer.new(4)
+      described_class.SDL_RenderReadPixels(renderer, described_class.led_rect,
+                                           described_class::PIXELFORMAT_RGB888, pixel, 4)
+      pixel.get_value(:u32, 0) & 0xffffff
+    end
+
+    it "opens a window and a renderer" do
+      expect([window, renderer]).to all(be_a(Fiddle::Pointer))
+    end
+
+    it "sizes the renderer's output as the window" do
+      expect(output_size).to eq([384, 272])
+    end
+
+    it "reads back what it drew" do
+      fill(0x12, 0x34, 0x56)
+      expect(read_pixel).to eq(0x123456)
     end
   end
 
-  describe ".check" do
-    it "passes a non-negative result through" do
-      expect(described_class.check(3)).to eq(3)
+  describe "the audio queue" do
+    subject(:device) do
+      described_class.spec_freq(described_class.wanted, 8000)
+      described_class.spec_format(described_class.wanted, described_class::AUDIO_S16LSB)
+      described_class.spec_channels(described_class.wanted, 1)
+      described_class.spec_samples(described_class.wanted, 512)
+      described_class.SDL_OpenAudioDevice(nil, 0, described_class.wanted, described_class.obtained, 0)
     end
 
-    it "raises SDL's reason for a negative one" do
-      described_class::SetRelativeMouseMode.call(1) # no video, so this fails and sets the error
-      expect { described_class.check(-1) }.to raise_error(described_class::Error, /\S/)
+    before { described_class.SDL_InitSubSystem(described_class::INIT_AUDIO) }
+
+    after do
+      described_class.SDL_CloseAudioDevice(device)
+      described_class.SDL_QuitSubSystem(described_class::INIT_AUDIO)
+    end
+
+    it "opens at the rate asked for" do
+      device
+      expect(described_class.read_i32(described_class.obtained)).to eq(8000)
+    end
+
+    it "queues the samples of an IO::Buffer" do
+      described_class.SDL_QueueAudio(device, IO::Buffer.new(800), 800)
+      expect(described_class.SDL_GetQueuedAudioSize(device)).to be_within(40).of(800)
     end
   end
 
-  describe ".check_pointer" do
-    it "raises for a null handle" do
-      expect { described_class.check_pointer(Fiddle::Pointer.new(0)) }.to raise_error(described_class::Error)
-    end
+  it "names a key the way SDL does" do
+    expect(described_class.SDL_GetKeyName(described_class::KEY_F10)).to eq("F10")
   end
 end

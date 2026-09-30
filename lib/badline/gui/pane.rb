@@ -21,15 +21,15 @@ module Badline
 
       # The pixels are little-endian RGBA dwords, red in the low byte.
       def blit(renderer, pixels)
-        surface = SDL::CreateRGBSurfaceFrom.call(
+        surface = SDL.SDL_CreateRGBSurfaceFrom(
           pixels, width, height, 32, width * 4,
           0x0000_00ff, 0x0000_ff00, 0x00ff_0000, 0xff00_0000
         )
-        texture = SDL::CreateTextureFromSurface.call(renderer, surface)
-        SDL::RenderCopy.call(renderer, texture, nil, @rect)
+        texture = SDL.SDL_CreateTextureFromSurface(renderer, surface)
+        SDL.SDL_RenderCopy(renderer, texture, nil, @rect)
       ensure
-        SDL::DestroyTexture.call(texture) if texture
-        SDL::FreeSurface.call(surface) if surface
+        SDL.SDL_DestroyTexture(texture) if texture
+        SDL.SDL_FreeSurface(surface) if surface
       end
     end
   end

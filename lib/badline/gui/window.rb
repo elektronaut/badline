@@ -5,55 +5,50 @@ module Badline
     class Window
       DEFAULT_REFRESH_RATE = 60
 
-      # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
-      DISPLAY_MODE_SIZE = 24
-
       attr_reader :renderer
 
       def initialize(title:, width:, height:, scale: 2, vsync: true)
-        SDL.check(SDL::InitSubSystem.call(SDL::INIT_VIDEO | SDL::INIT_EVENTS))
-        SDL::SetHint.call("SDL_RENDER_SCALE_QUALITY", "0") # nearest-neighbour
-        SDL::SetHint.call("SDL_MOUSE_RELATIVE_SCALING", "0") # host pixels, whatever the window size
+        SDLError.check(SDL.SDL_InitSubSystem(SDL::INIT_VIDEO | SDL::INIT_EVENTS))
+        SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0") # nearest-neighbour
+        SDL.SDL_SetHint("SDL_MOUSE_RELATIVE_SCALING", "0") # host pixels, whatever the window size
 
-        @window = SDL.check_pointer(SDL::CreateWindow.call(
-                                      title,
-                                      SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
-                                      width * scale, height * scale,
-                                      SDL::WINDOW_RESIZABLE
-                                    ))
+        @window = SDLError.check_pointer(SDL.SDL_CreateWindow(
+                                           title,
+                                           SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
+                                           width * scale, height * scale,
+                                           SDL::WINDOW_RESIZABLE
+                                         ))
 
         flags = SDL::RENDERER_ACCELERATED
         flags |= SDL::RENDERER_PRESENTVSYNC if vsync
-        @renderer = SDL.check_pointer(SDL::CreateRenderer.call(@window, -1, flags))
-        SDL.check(SDL::RenderSetLogicalSize.call(@renderer, width, height))
+        @renderer = SDLError.check_pointer(SDL.SDL_CreateRenderer(@window, -1, flags))
+        SDLError.check(SDL.SDL_RenderSetLogicalSize(@renderer, width, height))
       end
 
       def title=(title)
-        SDL::SetWindowTitle.call(@window, title)
+        SDL.SDL_SetWindowTitle(@window, title)
       end
 
       def refresh_rate
-        mode = "\0".b * DISPLAY_MODE_SIZE
-        SDL.check(SDL::GetCurrentDisplayMode.call(0, mode))
-        rate = mode.unpack1("l", offset: 12)
+        return DEFAULT_REFRESH_RATE if SDL.SDL_GetCurrentDisplayMode(0, SDL.display_mode).negative?
+
+        rate = SDL.mode_refresh(SDL.display_mode)
         rate.positive? ? rate : DEFAULT_REFRESH_RATE
-      rescue SDL::Error
-        DEFAULT_REFRESH_RATE
       end
 
       def draw(panes)
-        SDL::SetRenderDrawColor.call(@renderer, 0, 0, 0, 255)
-        SDL::RenderClear.call(@renderer)
+        SDL.SDL_SetRenderDrawColor(@renderer, 0, 0, 0, 255)
+        SDL.SDL_RenderClear(@renderer)
         panes.each { |pane| pane.render(@renderer) }
-        SDL::RenderPresent.call(@renderer)
+        SDL.SDL_RenderPresent(@renderer)
       end
 
       def close
         return unless @window
 
-        SDL::DestroyRenderer.call(@renderer)
-        SDL::DestroyWindow.call(@window)
-        SDL::QuitSubSystem.call(SDL::INIT_VIDEO | SDL::INIT_EVENTS)
+        SDL.SDL_DestroyRenderer(@renderer)
+        SDL.SDL_DestroyWindow(@window)
+        SDL.SDL_QuitSubSystem(SDL::INIT_VIDEO | SDL::INIT_EVENTS)
         @window = nil
       end
     end
