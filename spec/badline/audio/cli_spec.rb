@@ -205,6 +205,49 @@ describe Badline::Audio::CLI do
     end
   end
 
+  describe ".run" do
+    let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", tune_path]) }
+    let(:err) { StringIO.new }
+
+    def sink = ->(**) { FakeSink.new(rate: 8000, instant: true) }
+
+    def run = described_class.run(options, sink:, console: nil)
+
+    def quietly
+      $stdout = StringIO.new
+      $stderr = err
+      yield
+    ensure
+      $stdout = STDOUT
+      $stderr = STDERR
+    end
+
+    it "returns 0 once the tune has played" do
+      expect(quietly { run }).to eq(0)
+    end
+
+    context "with an error" do
+      def sink = ->(**) { raise Badline::Audio::Playback::DeviceError, "no driver" }
+
+      it "reports it under the program's name" do
+        quietly { run }
+        expect(err.string).to eq("badline-ruby: can't open the audio device: no driver\n")
+      end
+
+      it "returns 1" do
+        expect(quietly { run }).to eq(1)
+      end
+    end
+
+    context "when interrupted" do
+      def sink = ->(**) { raise Interrupt }
+
+      it "returns 130" do
+        expect(run).to eq(130)
+      end
+    end
+  end
+
   describe "#run on a terminal" do
     subject(:cli) do
       factory = ->(input:, output:) { console.tap { console.built_with = [input, output] } }

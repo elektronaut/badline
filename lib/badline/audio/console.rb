@@ -6,7 +6,8 @@ require "io/wait"
 module Badline
   module Audio
     # The terminal of `badline-ruby --headless`, put in raw mode with
-    # io/console.
+    # io/console. It is badline-ruby's side of the console seam, and
+    # exe/badline-ruby requires it: the native badline's is Native::Console.
     class Console < Terminal
       private
 

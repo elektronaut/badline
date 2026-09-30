@@ -29,6 +29,9 @@ if options.version?
   exit
 end
 
-exit Badline::Native::Headless.run(options) if options.headless?
+if options.headless?
+  Signal.trap("INT") { raise Interrupt }
+  exit Badline::Audio::CLI.run(options, sink: Badline::Native::SINK, console: Badline::Native::CONSOLE)
+end
 
 exit Badline::Frontend.run(options)

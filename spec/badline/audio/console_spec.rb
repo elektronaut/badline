@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "stringio"
+require "badline/audio/console"
 
 describe Badline::Audio::Console do
   subject(:console) { described_class.new(input: reader, output:) }
