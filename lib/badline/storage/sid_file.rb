@@ -153,7 +153,6 @@ module Badline
         raise FormatError, "Truncated header" if truncated?
         raise FormatError, "No tune data" if data.empty?
         raise FormatError, "Sidplayer MUS data, which needs a MUS player" if mus?
-        raise FormatError, "Written for #{sids} SIDs; only one is emulated" if sids > 1
       end
 
       def version = word(0x04)
@@ -177,6 +176,11 @@ module Badline
       # Flag bit 1 marks an RSID body as a BASIC program, which RUN starts
       # instead of a call to init.
       def basic? = !psid? && flags[1] == 1
+
+      # What to say about a tune written for more SIDs than the one badline
+      # emulates, which plays anyway with its extra SIDs' writes landing
+      # wherever a single-SID machine puts them.
+      def sids_notice = sids > 1 ? "Written for #{sids} SIDs; only one is emulated" : ""
 
       # A v3 header can place a second SID at `$Dxx0` and a v4 header a
       # third, each given by its middle byte: even, and in `$d420-$d7e0` or

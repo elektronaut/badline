@@ -166,8 +166,8 @@ render a `.sid` tune without it, as described under
 [Without the window](#without-the-window).
 
 - `-s`, `--song N` picks a subtune of a `.sid` file, and `--sid 6581` or
-  `--sid 8580` the SID to fit, which is otherwise a `.sid` tune's own, or
-  the 6581.
+  `--sid 8580` the SID to fit, which with `--sid auto` or without `--sid`
+  is a `.sid` tune's own, or the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
 - `--read-only` mounts a disk image write-protected, leaving its file
   unchanged.
@@ -268,9 +268,10 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 
 ### Without the window
 
-`--headless` plays a `.sid` tune on the host's audio device, and
-`--audio-out FILE` renders it to a `.wav` or `.aiff` file, as
-`badline-ruby --headless` and `--audio-out` do (see
+`--headless` plays a `.sid` tune on the host's audio device,
+`--audio-out FILE` renders it to a `.wav` or `.aiff` file, and
+`badline sid FILE|DIR...` plays a queue of tunes and directories of
+them, as `badline-ruby --headless`, `--audio-out` and `sid` do (see
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--song`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-songs`
@@ -292,6 +293,7 @@ Ctrl-C into `Interrupt`, which stops the tune as in badline-ruby.
 
 ```sh
 tmp/native/badline --headless tune.sid
+tmp/native/badline sid ~/C64Music/MUSICIANS/H/Hubbard_Rob
 tmp/native/badline --seconds 180 tune.sid --audio-out out.wav
 ```
 

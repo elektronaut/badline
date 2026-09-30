@@ -33,6 +33,26 @@ module Badline
 
       attr_reader :part
 
+      # The files `paths` name, in order: a file as given, and a directory
+      # as every file below it with the extension, in path order.
+      def self.files(paths, extension)
+        paths.flat_map { |path| File.directory?(path) ? below(path, extension).sort : [path] }
+      end
+
+      def self.below(directory, extension)
+        paths = []
+        Dir.children(directory).each do |name|
+          path = File.join(directory, name)
+          if File.directory?(path)
+            paths.concat(below(path, extension))
+          elsif File.extname(name).casecmp?(extension)
+            paths << path
+          end
+        end
+        paths
+      end
+      private_class_method :below
+
       def initialize(entries, all_parts: false, shuffle: nil)
         @entries = entries
         @shuffler = shuffle
@@ -47,6 +67,9 @@ module Badline
       def size = @entries.size
 
       def empty? = @entries.empty?
+
+      # Where the current entry stands in the order played, from 1.
+      def position = empty? ? 0 : @position + 1
 
       def entry = empty? ? nil : @entries[@order[@position]]
 

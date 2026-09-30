@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "tmpdir"
+require "fileutils"
 
 describe Badline::Media::Queue do
   subject(:queue) { described_class.new(entries, all_parts:, shuffle: lambda(&:reverse)) }
@@ -24,6 +26,47 @@ describe Badline::Media::Queue do
 
   it "plays one part of each entry unless told otherwise" do
     expect(described_class.new(entries).all_parts?).to be(false)
+  end
+
+  it "starts at the first place" do
+    expect([queue.position, queue.size]).to eq([1, 3])
+  end
+
+  it "counts places in the shuffled order" do
+    queue.next_entry
+    queue.toggle_shuffle
+    expect(queue.position).to eq(1)
+  end
+
+  it "has no place when empty" do
+    expect(described_class.new([]).position).to eq(0)
+  end
+
+  describe ".files" do
+    let(:dir) { Dir.mktmpdir }
+
+    after { FileUtils.remove_entry(dir) }
+
+    def touch(*names)
+      names.each do |name|
+        FileUtils.mkdir_p(File.dirname(path(name)))
+        File.write(path(name), "")
+      end
+    end
+
+    def path(name) = File.join(dir, name)
+
+    before { touch("b/2.sid", "b/1.SID", "a.sid", "b/c/0.sid", "notes.txt", "z.sid") }
+
+    it "takes a directory as every file below it with the extension, in path order" do
+      expect(described_class.files([dir], ".sid"))
+        .to eq(%w[a.sid b/1.SID b/2.sid b/c/0.sid z.sid].map { |name| path(name) })
+    end
+
+    it "takes files as given, in the order given" do
+      expect(described_class.files([path("z.sid"), path("notes.txt"), path("b/c")], ".sid"))
+        .to eq([path("z.sid"), path("notes.txt"), path("b/c/0.sid")])
+    end
   end
 
   it "starts with shuffle and loop off" do

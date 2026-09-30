@@ -63,6 +63,19 @@ describe Badline::Audio::Console do
       console.status(song: 1, songs: 1, elapsed: 0, length: 60, notes: ["paused"])
       expect(output.string).to end_with("0:00 / 1:00  paused")
     end
+
+    it "leads with the tune's place in a queue of several" do
+      console.place(2, 5)
+      console.status(song: 1, songs: 3, elapsed: 0, length: 60)
+      expect(output.string).to eq("\r\e[Ktune 2/5  song 1/3  0:00 / 1:00")
+    end
+  end
+
+  describe "#announce" do
+    it "prints each line over the status line" do
+      console.announce(%w[Tune Author])
+      expect(output.string).to eq("\r\e[KTune\r\n\r\e[KAuthor\r\n")
+    end
   end
 
   describe "#header" do

@@ -9,8 +9,10 @@ require "badline/options/validation"
 module Badline
   # The command line of both builds, badline-ruby and the native badline.
   # Either opens the window for any media, or with --headless or
-  # --audio-out plays or renders a .sid tune without one. The native build
-  # adds --no-sound and --version, and badline-ruby adds --disable-jit.
+  # --audio-out plays or renders a .sid tune without one. `sid`, given
+  # first, plays .sid tunes and directories of them in the terminal. The
+  # native build adds --no-sound and --version, and badline-ruby adds
+  # --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come
@@ -30,14 +32,19 @@ module Badline
 
     SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
+    # What `sid` leaves out besides the window's options.
+    NOT_FOR_SID = %w[--headless --audio-out].freeze
+
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
 
     # A Float as OptionParser took one: digits with an optional sign,
     # fraction and exponent.
     DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
-    attr_reader :program, :media_path, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot, :audio_out,
-                :seconds, :songlengths, :filter_chunk, :timeline
+    # tune_paths holds the media given, which `sid` takes more than one of:
+    # tunes and directories of tunes, in the order given.
+    attr_reader :program, :media_path, :tune_paths, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
+                :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
@@ -48,6 +55,8 @@ module Badline
       @native = native
       @program = native ? "badline" : "badline-ruby"
       @media_path = nil
+      @sid_command = false
+      @tune_paths = []
       @song = nil
       @sid_model = nil
       @reu = nil
@@ -81,6 +90,7 @@ module Badline
 
     def parse(argv)
       args = argv.dup
+      sid_command(args) if args.first == "sid"
       argument(args.shift, args) until args.empty?
       validate unless help? || version?
       self
@@ -90,7 +100,10 @@ module Badline
     def snapshot? = !@media_path.nil? && File.extname(@media_path).casecmp?(".vsf")
 
     # Plays or renders a .sid tune without the window.
-    def headless? = @headless || render?
+    def headless? = @headless || render? || @sid_command
+
+    # Whether `sid` came first, to play the tunes and directories given.
+    def sid_command? = @sid_command
 
     def window? = !headless?
 
@@ -139,7 +152,18 @@ module Badline
 
     private
 
-    def takes?(option) = [:both, @native ? :native : :ruby].include?(option.build)
+    def takes?(option)
+      return false if @sid_command && (option.needs == :window || NOT_FOR_SID.include?(option.name))
+
+      [:both, @native ? :native : :ruby].include?(option.build)
+    end
+
+    # Without tunes, `sid` shows its usage.
+    def sid_command(args)
+      args.shift
+      @sid_command = true
+      @help = args.empty?
+    end
 
     def argument(arg, args)
       if arg == "--"
@@ -222,6 +246,7 @@ module Badline
     end
 
     def sid_model_for(value)
+      return if value == "auto"
       raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
 
       SID_MODELS[value]
@@ -246,9 +271,10 @@ module Badline
     end
 
     def media_argument(arg)
-      raise Error, "unexpected argument: #{arg}" unless @media_path.nil?
+      raise Error, "unexpected argument: #{arg}" unless @sid_command || @media_path.nil?
 
-      @media_path = arg
+      @media_path = arg if @media_path.nil?
+      @tune_paths << arg
     end
   end
 end

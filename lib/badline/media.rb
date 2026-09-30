@@ -94,6 +94,8 @@ module Badline
 
       def attach_sid(computer, path, autostart:, song:)
         tune = Storage::SIDFile.new(path)
+        raise Storage::SIDFile::FormatError, tune.sids_notice if tune.sids > 1
+
         song = (song || tune.start_song).clamp(1, tune.songs)
         computer.on_init { start_tune(computer, tune, autostart:, song:) }
         title = tune.name.empty? ? path : tune.name

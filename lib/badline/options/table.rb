@@ -9,7 +9,7 @@ module Badline
     # Every option of both builds, in the order the help lists them.
     TABLE = [
       Option.new("-s, --song N", "Subtune of a .sid, from 1 (default: the tune's own)", section: "Options"),
-      Option.new("--sid MODEL", "SID to fit: 6581 or 8580 (default: a .sid tune's own, else 6581)",
+      Option.new("--sid MODEL", "SID to fit: auto, 6581 or 8580 (default: auto, a .sid tune's own, else 6581)",
                  section: "Options"),
       Option.new("--disable-jit", "Run without enabling YJIT", section: "Options", build: :ruby),
       Option.new("-h, --help", "Show this help", section: "Options"),

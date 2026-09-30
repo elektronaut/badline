@@ -76,7 +76,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--read-only` | Mount a disk image write-protected. The drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
 | `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
 | `-s`, `--song N` | Pick a subtune of a `.sid` file, counting from 1 |
-| `--sid 6581`, `--sid 8580` | Fit the older or newer SID |
+| `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--ntsc` | Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
@@ -230,6 +230,8 @@ device without opening the window, and `--audio-out` renders it to a
 or `.aiff`. The native `badline` has both modes too.
 
 ```sh
+badline sid ~/C64Music/MUSICIANS/H/Hubbard_Rob               # play every tune below a directory
+badline sid tune.sid other.sid                               # play a queue of tunes
 badline-ruby --headless tune.sid                             # play, length from HVSC
 badline-ruby --headless -s 3 tune.sid                        # play the third subtune
 badline-ruby --headless --all-songs tune.sid                 # play on through every subtune
@@ -239,6 +241,15 @@ badline-ruby --headless --sid 8580 tune.sid
 badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slower
 ```
 
+`badline sid FILE|DIR...` plays a queue of tunes in the terminal, in
+the order given, and a directory adds every `.sid` tune below it in path
+order. `badline sid` on its own prints its usage. It takes the options
+below except `--headless` and `--audio-out`, and `--song` picks the
+first tune's song. `--sid auto`, the default, fits each tune the SID
+its header names. A tune written for 2 or 3 SIDs plays on the one SID
+badline emulates, with a notice saying so, and a file that isn't a
+tune is skipped. `badline tune.sid` still plays the tune in the window.
+
 Both modes take the same options. The window's own, `--no-autostart`,
 `--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
 `--verbose`, don't apply to them. `--song` (or `-s`) picks the subtune, counting from 1 as HVSC
@@ -246,11 +257,11 @@ does, and defaults to the tune's own start song. Playback asks the
 device for 44.1 kHz and takes whatever rate it offers, unless `--rate`
 says otherwise. Ctrl-C stops it.
 
-Played on a terminal, `--headless` shows the tune's name, author and
-release, the song number and the time played against the song's
-length. The player plays a queue of tunes, which for now holds just the
-one, and each tune plays its own song: `--song`, or the tune's start
-song. When that song ends the player goes on to the next
+Played on a terminal, `--headless` and `sid` show each tune's name,
+author and release as it starts, then the tune's place in the queue,
+the song number and the time played against the song's length. `--headless`
+queues just the one tune. Each tune plays its own song: `--song`, or
+the tune's start song. When that song ends the player goes on to the next
 tune, and it stops after the last. `a`, or `--all-songs`, turns on
 playing all songs, so that a song that ends goes on to the tune's next
 song, and a tune stepped to starts on its first song.
@@ -263,8 +274,8 @@ goes on to its start. Space pauses and `q` quits. The status line
 shows which modes are on, and they last until the player quits.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress
-output instead and plays just the one song, as `--audio-out` renders
-just the one.
+output instead and plays through the queue without the keys, while
+`--audio-out` renders just the one song.
 
 A `.sid` file doesn't store its length, so `badline-ruby` looks the
 tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database

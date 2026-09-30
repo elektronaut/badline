@@ -10,11 +10,13 @@ require_relative "../../support/fake_sink"
 # A console no one presses keys on.
 class QuietConsole
   attr_accessor :built_with
-  attr_reader :headers
+  attr_reader :headers, :announcements, :places
 
   def session = yield
   def header(lines) = (@headers ||= []) << lines
+  def announce(lines) = (@announcements ||= []) << lines
   def wait(_seconds) = []
+  def place(*place) = (@places ||= []) << place
   def status(**) = nil
 end
 
@@ -306,6 +308,101 @@ describe Badline::Audio::CLI do
       it "plays just that song" do
         cli.run
         expect(device.played).to eq(400)
+      end
+    end
+  end
+
+  describe "sid" do
+    subject(:cli) { described_class.new(options, out:, sink: ->(**) { device }) }
+
+    let(:options) { Badline::Options.parse(["sid", "--seconds", "0.05", *paths]) }
+    let(:paths) { [dir] }
+
+    def device = @device ||= FakeSink.new(rate: 8000, instant: true)
+
+    def write_tune(name, bytes = TinySID.bytes) = File.binwrite(File.join(dir, name), bytes)
+
+    # TinySID's header made v3, with a second SID at $d420.
+    def two_sids = TinySID.bytes.b.tap { |bytes| bytes.setbyte(5, 3) }.tap { |bytes| bytes.setbyte(0x7a, 0x42) }
+
+    before { write_tune("tune2.sid", TinySID.bytes(flags: 0x24)) }
+
+    it "plays each tune below a directory in turn" do
+      cli.run
+      expect([device.played, out.string.scan("TUNE / AUTHOR / 1987 (song 1)").size]).to eq([800, 2])
+    end
+
+    it "fits each tune's own SID" do
+      cli.run
+      expect(out.string.scan(/on the (\d+)/).flatten).to eq(%w[6581 8580])
+    end
+
+    context "with --sid" do
+      let(:options) { Badline::Options.parse(["sid", "--sid", "8580", "--seconds", "0.05", dir]) }
+
+      it "fits that SID to each tune" do
+        cli.run
+        expect(out.string.scan(/on the (\d+)/).flatten).to eq(%w[8580 8580])
+      end
+    end
+
+    context "with the tunes given in an order of their own" do
+      let(:paths) { [File.join(dir, "tune2.sid"), tune_path] }
+
+      it "plays them in that order" do
+        cli.run
+        expect(out.string.scan(/on the (\d+)/).flatten).to eq(%w[8580 6581])
+      end
+    end
+
+    context "with a file among them that isn't a tune" do
+      before { write_tune("broken.sid", "XSID") }
+
+      it "skips it and plays the rest" do
+        cli.run
+        expect([out.string, device.played]).to match([/Skipping .*broken\.sid: Missing PSID/, 800])
+      end
+    end
+
+    context "with a tune written for two SIDs" do
+      before { write_tune("tune2.sid", two_sids) }
+
+      it "plays it with a notice" do
+        cli.run
+        expect([out.string, device.played]).to match([/Written for 2 SIDs; only one is emulated/, 800])
+      end
+    end
+
+    context "with a directory holding no tunes" do
+      let(:paths) { [File.join(dir, "empty").tap { |path| Dir.mkdir(path) }] }
+
+      it "raises" do
+        expect { cli.run }.to raise_error(described_class::Error, /no \.sid tunes in .*empty/)
+      end
+    end
+
+    context "when played on a terminal" do
+      subject(:cli) do
+        described_class.new(options, out:, input:, sink: ->(**) { device }, console: ->(**) { console })
+      end
+
+      let(:out) { StringIO.new.tap { |io| def io.tty? = true } }
+
+      def input = @input ||= StringIO.new.tap { |io| def io.tty? = true }
+      def console = @console ||= QuietConsole.new
+
+      before { write_tune("tune1.sid", "XSID") }
+
+      it "shows the first tune's header with the keys and each later one's above the status line" do
+        cli.run
+        expect([console.headers, console.announcements])
+          .to match([[["TUNE", "AUTHOR", "1987", "6581 at 8000 Hz"]],
+                     [[/Skipping .*tune1\.sid/], ["TUNE", "AUTHOR", "1987", "8580 at 8000 Hz"]]])
+      end
+
+      it "shows each tune's place in the queue" do
+        cli.run
+        expect(console.places.uniq).to eq([[1, 3], [3, 3]])
       end
     end
   end
