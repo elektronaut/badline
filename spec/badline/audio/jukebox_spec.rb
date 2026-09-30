@@ -21,7 +21,9 @@ class ScriptedConsole
     @script.fetch(@waits, [])
   end
 
-  def status(**fields) = @statuses << fields
+  def place(tune, tunes) = @place = [tune, tunes]
+
+  def status(**fields) = @statuses << fields.merge(place: @place)
 end
 
 # A renderer interrupted by Ctrl-C as it starts.
@@ -199,6 +201,11 @@ describe Badline::Audio::Jukebox do
       expect(console.statuses.map { |status| status[:songs] }.uniq).to eq([2, 1, 3])
     end
 
+    it "shows each tune's place in the queue" do
+      jukebox.run
+      expect(console.statuses.map { |status| status[:place] }.uniq).to eq([[1, 3], [2, 3], [3, 3]])
+    end
+
     context "with n pressed" do
       let(:script) { { 3 => [:next] } }
 
@@ -215,6 +222,41 @@ describe Badline::Audio::Jukebox do
         jukebox.run
         expect(console.statuses.map { |status| status[:songs] }.chunk_while(&:==).map(&:first)).to eq([2, 1, 2, 1, 3])
       end
+    end
+  end
+
+  context "with a tune in the queue that can't play" do
+    let(:queue) { tunes(2, 1, 3) }
+    let(:renderer) do
+      lambda do |entry, _song, _rate|
+        next if entry.path == "1.sid"
+
+        played << entry.path
+        FakeRenderer.new(sink, frames: 20, size: 20)
+      end
+    end
+
+    it "skips it" do
+      jukebox.run
+      expect(played).to eq(["2.sid", "3.sid"])
+    end
+
+    context "with p pressed on the tune after it" do
+      let(:script) { { 40 => [:previous] } }
+
+      it "skips it going back as well" do
+        jukebox.run
+        expect(played).to eq(["2.sid", "3.sid", "2.sid", "3.sid"])
+      end
+    end
+  end
+
+  context "with no tune in a looping queue that can play" do
+    let(:queue) { tunes(2, 1).tap(&:toggle_loop) }
+    let(:renderer) { ->(_entry, _song, _rate) {} }
+
+    it "gives up once it has tried each" do
+      expect(jukebox.run).to eq(:unplayable)
     end
   end
 

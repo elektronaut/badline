@@ -333,6 +333,60 @@ describe Badline::Options do
     end
   end
 
+  describe "sid" do
+    let(:argv) { ["sid", "--sid", "auto", tune_path, dir] }
+
+    it "plays the tunes and directories given, in order, without the window" do
+      expect([options.sid_command?, options.headless?, options.tune_paths]).to eq([true, true, [tune_path, dir]])
+    end
+
+    it "takes the model from each tune" do
+      expect(options.sid_model).to be_nil
+    end
+
+    context "without tunes" do
+      let(:argv) { ["sid"] }
+
+      it "shows its usage" do
+        expect([options.help?, options.help]).to match([true, start_with("Usage: badline-ruby sid [options] FILE|DIR")])
+      end
+    end
+
+    context "with --help" do
+      let(:argv) { ["sid", "--help"] }
+
+      it "lists the options it takes" do
+        expect(options.help.scan(/^ +(?:-\w, )?(--[\w-]+)/).flatten)
+          .to eq(%w[--song --sid --disable-jit --help --seconds --songlengths --rate --filter-chunk --quiet
+                    --all-songs --no-tui])
+      end
+    end
+
+    {
+      "a window option" => [["--reu", "512"], "invalid option: --reu"],
+      "--audio-out" => [["--audio-out", "out.wav"], "invalid option: --audio-out"],
+      "--headless" => [["--headless"], "invalid option: --headless"],
+      "a program" => [["game.prg"], /not a \.sid tune: .*game\.prg/],
+      "a missing directory" => [["missing"], "no such file or directory: missing"]
+    }.each do |name, (arguments, message)|
+      context "with #{name}" do
+        let(:argv) { ["sid", tune_path, *arguments.map { |arg| arg == "game.prg" ? program_path : arg }] }
+
+        it "is rejected" do
+          expect { options }.to raise_error(described_class::Error, message)
+        end
+      end
+    end
+  end
+
+  describe "--sid auto" do
+    let(:argv) { ["--sid", "8580", "--sid", "auto", program_path] }
+
+    it "leaves the model to the media" do
+      expect(options.sid_model).to be_nil
+    end
+  end
+
   describe "the options the native build alone takes" do
     %w[--version --no-sound].each do |arg|
       context "with #{arg}" do

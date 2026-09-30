@@ -16,10 +16,10 @@ describe Badline::Media do
 
   after { FileUtils.remove_entry(dir) }
 
-  def sid_tune(songs: 1, flags: 0x0004)
+  def sid_tune(songs: 1, flags: 0x0004, version: 2, sids: 0)
     File.join(dir, "tune.sid").tap do |path|
-      header = "PSID".b + [2, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
-               ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [flags, 0, 0].pack("n3")
+      header = "PSID".b + [version, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
+               ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [flags, 0, sids].pack("n3")
       File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
     end
   end
@@ -334,6 +334,11 @@ describe Badline::Media do
       it "names the song it picked" do
         expect(described_class.attach(computer, sid_path, song: 2))
           .to include("song 2")
+      end
+
+      it "rejects a tune written for two SIDs" do
+        expect { described_class.attach(computer, sid_tune(version: 3, sids: 0x4200)) }
+          .to raise_error(Badline::Storage::SIDFile::FormatError, /2 SIDs/)
       end
     end
 

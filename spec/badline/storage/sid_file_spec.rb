@@ -453,17 +453,17 @@ describe Badline::Storage::SIDFile do
     context "with a second SID at $d420" do
       let(:fields) { super().merge(version: 3, sids: [0x42, 0x00]) }
 
-      it "rejects it" do
-        expect { tune }.to raise_error(described_class::FormatError, /2 SIDs/)
+      it { expect(tune.sids).to eq(2) }
+
+      it "says only one is emulated" do
+        expect(tune.sids_notice).to eq("Written for 2 SIDs; only one is emulated")
       end
     end
 
     context "with a second SID at $de00 and a third at $d500" do
       let(:fields) { super().merge(version: 4, sids: [0xe0, 0x50]) }
 
-      it "rejects it" do
-        expect { tune }.to raise_error(described_class::FormatError, /3 SIDs/)
-      end
+      it { expect(tune.sids).to eq(3) }
     end
 
     context "with SID addresses the header's version doesn't define" do
@@ -476,6 +476,8 @@ describe Badline::Storage::SIDFile do
       let(:fields) { super().merge(version: 3, sids: [0x43, 0x00]) }
 
       it { expect(tune.sids).to eq(1) }
+
+      it { expect(tune.sids_notice).to eq("") }
     end
 
     it "accepts an RSID signature" do

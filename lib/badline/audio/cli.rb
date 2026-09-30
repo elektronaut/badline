@@ -2,14 +2,14 @@
 
 module Badline
   module Audio
-    # Runs `--headless` or `--audio-out`, in either build, once its options
-    # have parsed: picks the song and its length, then plays it or renders
-    # it to a file. Played on a terminal, it plays a queue of the tune's
-    # songs, and the console lets the listener step through it.
+    # Runs `--headless`, `--audio-out` or `sid`, in either build, once its
+    # options have parsed: queues the tunes, each with its song and length,
+    # then plays them or renders the one to a file. Played on a terminal,
+    # the console lets the listener step through the queue.
     class CLI
       class Error < StandardError; end
 
-      # Plays or renders the tune as #run does, reports an error on stderr
+      # Plays or renders the tunes as #run does, reports an error on stderr
       # under the program's name, and returns the exit status.
       def self.run(options, sink:, console:)
         new(options, sink:, console:).run
@@ -33,60 +33,76 @@ module Badline
         @input = input
         @sink = sink
         @console = console
-        @lengths = {}
+        @announced = nil
+        @terminal = nil
       end
 
       def run
         @options.render? ? render : play
-      rescue Renderer::UnknownFormatError, Storage::SIDFile::FormatError => e
+      rescue Renderer::UnknownFormatError => e
         raise Error, e.message
       end
 
-      def tune
-        @tune ||= Storage::SIDFile.new(@options.tune_path)
-      rescue Storage::SIDFile::FormatError => e
-        raise Error, "#{@options.tune_path}: #{e.message}"
-      end
-
-      def song
-        @song ||= (@options.song || tune.start_song).tap do |song|
-          raise Error, "no song #{song}: the tune has #{tune.songs}" if song > tune.songs
+      # The tunes to play, in the order given. --song picks the first
+      # one's song.
+      def queue
+        @queue ||= Media::Queue.new(entries, all_parts: @options.all_songs?).tap do |queue|
+          raise Error, "no .sid tunes in #{@options.tune_paths.join(', ')}" if queue.empty?
         end
       end
 
+      def tune = checked(queue.entry).tune
+
+      def song = checked(queue.entry).part
+
       def seconds = length(song)
 
-      def length(song)
-        @lengths[song] ||= @options.seconds || songlength(song) || @options.fallback_seconds
-      end
+      def length(song) = queue.entry.length(song)
 
-      # How long the song may stay silent before it ends, or nil when its
-      # length is known rather than the fallback.
-      def silence(song) = @options.seconds || songlength(song) ? nil : @options.silence_seconds
+      def silence(song) = queue.entry.silence(song)
 
-      def sid_model = @options.sid_model || tune.sid_model
+      def sid_model = queue.entry.sid_model
 
       def interactive? = @options.tui? && @input.tty? && @out.tty?
 
       private
 
-      def renderer(song, rate)
-        Renderer.new(tune, seconds: length(song), song:, rate:, sid_model:).tap do |renderer|
-          renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
-          renderer.silence = silence(song) if silence(song)
+      def entries
+        tunes = []
+        Media::Queue.files(@options.tune_paths, ".sid").each do |path|
+          tunes << QueuedTune.new(path, @options, song: tunes.empty? ? @options.song : nil)
         end
+        tunes
+      end
+
+      # A tune on its own has to play, where one of many is skipped.
+      def checked(entry)
+        raise Error, "#{entry.path}: #{entry.error}" unless entry.error.empty?
+
+        entry
+      end
+
+      def renderer(entry, song, rate)
+        renderer = Renderer.new(entry.tune, seconds: entry.length(song), song:, rate:, sid_model: entry.sid_model)
+        renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
+        renderer.silence = entry.silence(song) if entry.silence(song)
+        renderer
       end
 
       def render
-        renderer = renderer(song, @options.rate)
-        @out.puts describe
-        @out.puts "Rendering #{seconds}s for the #{model_name} to #{@options.audio_out} at #{@options.rate} Hz..."
+        entry = checked(queue.entry)
+        renderer = renderer(entry, song, @options.rate)
+        @out.puts describe(entry, song)
+        entry.notices.each { |line| @out.puts line }
+        @out.puts "Rendering #{seconds}s for the #{entry.model_name} to #{@options.audio_out} " \
+                  "at #{@options.rate} Hz..."
         started = now
-        renderer.render(@options.audio_out) { |done| progress(done) }
+        renderer.render(@options.audio_out) { |done| progress(done, seconds) }
         report(renderer.rendered, now - started)
       end
 
       def play
+        checked(queue.entry) if queue.size == 1
         sink = open_sink
         interactive? ? play_interactively(sink) : play_plainly(sink)
       ensure
@@ -94,27 +110,68 @@ module Badline
       end
 
       def play_plainly(sink)
-        @out.puts describe
-        @out.puts "Playing #{seconds}s on the #{model_name} at #{sink.rate} Hz. Ctrl-C stops."
+        loop do
+          result = play_song(sink, queue.entry, queue.part)
+          break unless %i[finished skipped].include?(result) && queue.advance
+        end
+      end
+
+      def play_song(sink, entry, song)
+        return skip(entry) unless entry.error.empty?
+
+        announce(entry, song)
+        length = entry.length(song)
+        @out.puts "Playing #{length}s on the #{entry.model_name} at #{sink.rate} Hz. Ctrl-C stops."
         playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
-        renderer = renderer(song, sink.rate)
-        result = playback.play(renderer) { |played| progress(played) }
-        progress(renderer.rendered) if result == :finished
+        renderer = renderer(entry, song, sink.rate)
+        result = playback.play(renderer) { |played| progress(played, length) }
+        progress(renderer.rendered, length) if result == :finished
         @out.print "\n" unless @options.quiet?
         @out.puts(result == :finished ? "Done." : "Stopped.")
+        result
+      end
+
+      def skip(entry)
+        @out.puts "Skipping #{entry.path}: #{entry.error}"
+        :skipped
+      end
+
+      def announce(entry, song)
+        @out.puts describe(entry, song)
+        return if entry.equal?(@announced)
+
+        @announced&.release
+        @announced = entry
+        entry.notices.each { |line| @out.puts line }
       end
 
       def play_interactively(sink)
-        console = @console.call(input: @input, output: @out)
-        entry = Media::Queue::Entry.new(@options.tune_path, part: song, parts: tune.songs)
-        queue = Media::Queue.new([entry], all_parts: @options.all_songs?)
-        jukebox = Jukebox.new(sink, console, queue:, renderer: ->(_entry, song, rate) { renderer(song, rate) },
-                                             length: ->(_entry, song) { length(song) })
-        console.session do
-          console.header([tune.name, tune.author, tune.released].reject(&:empty?) +
-                         ["#{model_name} at #{sink.rate} Hz"])
-          jukebox.run
-        end
+        @terminal = @console.call(input: @input, output: @out)
+        jukebox = Jukebox.new(sink, @terminal, queue:,
+                                               renderer: ->(entry, song, rate) { playable(entry, song, rate) },
+                                               length: ->(entry, song) { entry.length(song) })
+        @terminal.session { jukebox.run }
+      end
+
+      # The renderer for the song, or nil for a tune the jukebox skips.
+      def playable(entry, song, rate)
+        introduce(entry, rate) unless entry.equal?(@announced)
+        entry.error.empty? ? renderer(entry, song, rate) : nil
+      end
+
+      # Shows the tune's header above the status line as it starts, below
+      # the keys the first time.
+      def introduce(entry, rate)
+        @announced&.release
+        lines = introduction(entry, rate)
+        @announced.nil? ? @terminal.header(lines) : @terminal.announce(lines)
+        @announced = entry
+      end
+
+      def introduction(entry, rate)
+        return ["Skipping #{entry.path}: #{entry.error}"] unless entry.error.empty?
+
+        entry.header + ["#{entry.model_name} at #{rate} Hz"] + entry.notices
       end
 
       def open_sink
@@ -123,29 +180,15 @@ module Badline
         raise Error, "can't open the audio device: #{e.message}"
       end
 
-      def describe
-        header = [tune.name, tune.author, tune.released].reject(&:empty?).join(" / ")
+      def describe(entry, song)
+        header = entry.header.join(" / ")
         header.empty? ? "song #{song}" : "#{header} (song #{song})"
       end
 
-      # HVSC's database is keyed by the tune's MD5 and lists one length per
-      # song.
-      def songlength(song) = songlengths&.at(song - 1)
-
-      def songlengths
-        return @songlengths if @songlengths_read
-
-        @songlengths_read = true
-        path = @options.songlengths || Storage::SongLengths.locate(@options.tune_path)
-        @songlengths = path && Storage::SongLengths.new(path).lengths(tune.md5)
-      end
-
-      def model_name = sid_model.to_s.delete_prefix("mos")
-
-      def progress(done)
+      def progress(done, total)
         return if @options.quiet?
 
-        @out.print format("\r%<done>6.1fs / %<total>.1fs", done:, total: seconds)
+        @out.print format("\r%<done>6.1fs / %<total>.1fs", done:, total:)
         @out.flush
       end
 

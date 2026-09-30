@@ -10,7 +10,9 @@ module Badline
     # on Ctrl-C.
     #
     # `renderer` builds the renderer for an entry's song at the sink's
-    # rate, and `length` gives an entry's song's length in seconds.
+    # rate, or returns nil for an entry that can't play, which is skipped
+    # in the direction the queue was stepping. `length` gives an entry's
+    # song's length in seconds.
     class Jukebox
       def initialize(sink, console, queue:, renderer:, length:)
         @sink = sink
@@ -18,34 +20,51 @@ module Badline
         @queue = queue
         @renderer = renderer
         @length = length
+        @backward = false
         @below = false
       end
 
-      # Returns the result of the last song's Playback#play.
+      # Returns the result of the last song's Playback#play, or :unplayable
+      # when the last entry reached couldn't play.
       def run
+        skipped = 0
         loop do
           @moved = false
           @quit = false
           result = play(@queue.entry, @queue.part)
           return result if @quit
           next if @moved
-          return result unless result == :finished && @queue.advance
+
+          skipped = result == :unplayable ? skipped + 1 : 0
+          return result if skipped >= @queue.size || !move_on(result)
         end
       end
 
       private
 
+      def move_on(result)
+        return @queue.advance if result == :finished
+        return false unless result == :unplayable
+        return @queue.advance unless @backward
+
+        @queue.previous_entry || @queue.advance
+      end
+
       def play(entry, song)
         @entry = entry
         @song = song
         @elapsed = 0.0
+        renderer = @renderer.call(entry, song, @sink.rate)
+        return :unplayable if renderer.nil?
+
+        @backward = false
         @playback = Playback.new(@sink, sleeper: ->(seconds) { react(@console.wait(seconds)) },
                                         on_underrun: -> { @below = true })
         draw
-        @playback.play(@renderer.call(entry, song, @sink.rate)) do |played|
+        @playback.play(renderer) do |played|
           @elapsed = played
           react(@console.wait(0))
-          draw
+          draw unless @moved
         end
       end
 
@@ -60,10 +79,11 @@ module Badline
           else skip if step(action)
           end
         end
-        draw unless actions.empty?
+        draw unless actions.empty? || @moved
       end
 
       def step(action)
+        @backward = action == :previous if %i[next previous].include?(action)
         case action
         when :next then @queue.next_entry
         when :previous then @queue.previous_entry
@@ -87,6 +107,7 @@ module Badline
       end
 
       def draw
+        @console.place(@queue.position, @queue.size)
         @console.status(song: @song, songs: @entry.parts, elapsed: @elapsed, length: @length.call(@entry, @song),
                         notes:)
       end

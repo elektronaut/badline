@@ -19,7 +19,7 @@ module Badline
     # What --help prints: the usage, then the options this build takes,
     # section by section, laid out as OptionParser did.
     def help
-      lines = [banner]
+      lines = [@sid_command ? sid_banner : banner]
       SECTIONS.each do |section|
         options = TABLE.select { |option| option.section == section && takes?(option) }
         next if options.empty?
@@ -40,6 +40,7 @@ module Badline
         Usage: #{@program} [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
+               #{@program} sid [options] FILE|DIR...
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
         .g64 disk image for the true 1541, a .t64 tape archive, a .tap
@@ -56,7 +57,8 @@ module Badline
         terminal, → and ← step between the tune's songs, n and p between
         tunes, space pauses and q quits. s shuffles the tunes, l loops them,
         and a, or --all-songs, plays on through each tune's songs instead
-        of just the one.
+        of just the one. `#{@program} sid` plays many tunes, and whole
+        directories of them, the same way.
 
         A .sid file carries no length of its own. Without --seconds the tune is
         looked up by MD5 in HVSC's Songlengths.md5, taken from --songlengths, from
@@ -75,6 +77,25 @@ module Badline
         takes one out. screenshot=FILE saves the frame as a .bmp, with the
         frame's number in place of %d. reset, freeze and quit take no
         argument.
+      BANNER
+    end
+
+    def sid_banner
+      <<~BANNER
+        Usage: #{@program} sid [options] FILE|DIR...
+
+        Plays .sid tunes in the terminal, one after another in the order
+        given. A directory adds every .sid tune below it, in path order.
+        → and ← step between a tune's songs, n and p between tunes, space
+        pauses and q quits. s shuffles the tunes, l loops them, and a, or
+        --all-songs, plays on through each tune's songs instead of just
+        the one. --song picks the first tune's song, and each tune after it
+        starts on its own.
+
+        Each tune gets the SID its header names unless --sid says otherwise,
+        and its length from HVSC's Songlengths.md5 as #{@program} --help
+        describes. A tune written for 2 or 3 SIDs plays on the one badline
+        emulates, with a notice.
       BANNER
     end
   end

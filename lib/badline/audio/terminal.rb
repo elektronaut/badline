@@ -23,6 +23,8 @@ module Badline
         @input = input
         @output = output
         @closed = false
+        @tune = 1
+        @tunes = 1
       end
 
       # Raw input and a hidden cursor for the length of the block.
@@ -52,9 +54,22 @@ module Badline
         @output.print "←/→ song  n/p tune  space pause  s shuffle  l loop  a all songs  q quit\r\n"
       end
 
+      # Prints lines above the status line, such as the next tune's header.
+      def announce(lines)
+        lines.each { |line| @output.print "\r\e[K#{line}\r\n" }
+      end
+
+      # The tune's place in the queue, which the status line shows once
+      # there is more than one.
+      def place(tune, tunes)
+        @tune = tune
+        @tunes = tunes
+      end
+
       def status(song:, songs:, elapsed:, length:, notes: [])
         line = format("song %<song>d/%<songs>d  %<elapsed>s / %<length>s",
                       song:, songs:, elapsed: clock(elapsed), length: clock(length))
+        line = format("tune %<tune>d/%<tunes>d  %<line>s", tune: @tune, tunes: @tunes, line:) if @tunes > 1
         @output.print "\r\e[K#{([line] + notes).join('  ')}"
         @output.flush
       end
