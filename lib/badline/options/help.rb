@@ -62,6 +62,16 @@ module Badline
         $HVSC_BASE. Failing all of those it runs for #{FALLBACK_SECONDS.to_i} seconds.
 
         #{@native ? NATIVE_SPEED : RUBY_SPEED}
+
+        --at and --script run events once a number of frames has run, as
+        in --at 3500:key=space or --at 250,500:screenshot=shot%05d.bmp.
+        key=NAME presses a C64 key (space, return, a, f1, run_stop, restore)
+        or a joystick's direction or fire (joy1-up, joy2-fire) for #{Event::HOLD}
+        frames. type=TEXT types it, with \\n for RETURN. insert=FILE swaps
+        in a disk, tape or cartridge, and eject=disk, tape or cartridge
+        takes one out. screenshot=FILE saves the frame as a .bmp, with the
+        frame's number in place of %d. reset, freeze and quit take no
+        argument.
       BANNER
     end
   end

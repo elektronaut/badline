@@ -53,6 +53,24 @@ describe Badline::Frontend::App do
     expect(Badline::Snapshot.load("ready.vsf").cycles).to eq(2 * frame_cycles)
   end
 
+  describe "the timeline" do
+    it "quits at --at's quit" do
+      run(argv: %w[--frames 5 --at 1:quit])
+      expect(computer.cycles).to eq(frame_cycles)
+    end
+
+    it "saves --at's screenshots, numbered by frame" do
+      run(argv: %w[--frames 3 --at 1,2:screenshot=shot%d.bmp])
+      expect(Dir.glob("shot*.bmp")).to eq(%w[shot1.bmp shot2.bmp])
+    end
+
+    it "presses --at's keys once their frame has run" do
+      allow(computer.keyboard).to receive(:press)
+      run(argv: %w[--frames 2 --at 1:key=q])
+      expect(computer.keyboard).to have_received(:press).with(:q)
+    end
+  end
+
   it "types on the C64 keyboard" do
     allow(computer.keyboard).to receive(:press)
     run(key(4))

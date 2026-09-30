@@ -354,6 +354,74 @@ describe Badline::Options do
     end
   end
 
+  describe "the timeline" do
+    let(:script_path) { File.join(dir, "events.txt") }
+
+    def events = options.timeline.map { |event| [event.frame, event.action, event.argument] }
+
+    context "with --at" do
+      let(:argv) { ["--at", "3500:key=space", "--at=250,500:screenshot=shot%d.bmp", "--at", "9:quit"] }
+
+      it "takes an event at each of its frames" do
+        expect(events).to eq([[3500, "key", "space"], [250, "screenshot", "shot%d.bmp"],
+                              [500, "screenshot", "shot%d.bmp"], [9, "quit", ""]])
+      end
+    end
+
+    context "with --script" do
+      let(:argv) { ["--script", script_path] }
+
+      it "takes an event a line, skipping blank lines and comments" do
+        File.write(script_path, "# boot\n\n150:type=print 6*7\\n\n  200:screenshot=ready.bmp  \n")
+        expect(events).to eq([[150, "type", "print 6*7\\n"], [200, "screenshot", "ready.bmp"]])
+      end
+
+      it "names the line it can't take" do
+        File.write(script_path, "150:typo\n")
+        expect { options }.to raise_error(described_class::Error, "invalid argument: --script #{script_path}: 150:typo")
+      end
+    end
+
+    context "with media to insert" do
+      let(:argv) { ["--at", "10:insert=#{dir}", "--at", "20:eject=tape"] }
+
+      it "takes a directory and what comes out" do
+        expect(events).to eq([[10, "insert", dir], [20, "eject", "tape"]])
+      end
+    end
+
+    {
+      "frame 0" => "0:quit", "no frame" => "quit", "a frame that isn't a number" => "x:quit",
+      "an unknown event" => "1:jump", "an argument to quit" => "1:quit=now", "a key without a name" => "1:key",
+      "something that won't eject" => "1:eject=floppy", "a missing disk" => "1:insert=missing.d64",
+      "a program to insert" => "1:insert=PROGRAM"
+    }.each do |name, event|
+      context "with #{name}" do
+        let(:argv) { ["--at", event.sub("PROGRAM", program_path)] }
+
+        it "raises" do
+          expect { options }.to raise_error(described_class::Error, /invalid argument: --at/)
+        end
+      end
+    end
+
+    context "with a missing script" do
+      let(:argv) { %w[--script missing.txt] }
+
+      it "raises" do
+        expect { options }.to raise_error(described_class::Error, "no such file: missing.txt")
+      end
+    end
+
+    context "without the window" do
+      let(:argv) { ["--headless", "--at", "1:quit", tune_path] }
+
+      it "raises" do
+        expect { options }.to raise_error(described_class::Error, "--at needs the window")
+      end
+    end
+  end
+
   describe "each build's help" do
     [false, true].each do |native|
       it "lists what #{native ? 'badline' : 'badline-ruby'} takes, and no more" do

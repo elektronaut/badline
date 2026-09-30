@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/options/option"
+require "badline/options/event"
 require "badline/options/table"
 require "badline/options/help"
 
@@ -29,7 +30,7 @@ module Badline
     DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
     attr_reader :program, :media_path, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot, :audio_out,
-                :seconds, :songlengths, :filter_chunk
+                :seconds, :songlengths, :filter_chunk, :timeline
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
@@ -54,6 +55,7 @@ module Badline
       @ntsc = false
       @screenshot = ""
       @save_snapshot = ""
+      @timeline = []
       @jit = true
       @help = false
       @version = false
@@ -176,6 +178,7 @@ module Badline
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value
       when "--save-snapshot" then @save_snapshot = value
+      when "--at", "--script" then @timeline.concat(Event.given(name, value))
       when "--audio-out" then @audio_out = value
       when "--seconds" then @seconds = decimal(flag, value)
       when "--songlengths" then @songlengths = value

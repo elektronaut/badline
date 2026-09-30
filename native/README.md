@@ -107,7 +107,9 @@ The front end in `lib/badline/frontend/` is the same for both builds:
 - `app.rb` (`App`) opens the window and runs the frame loop.
 - `snapshots.rb` (`Snapshots`) saves the machine with F11 and
   `--save-snapshot` and restores it with F12, and `screenshot.rb`
-  (`Screenshot`) saves `--screenshot`'s frame.
+  (`Screenshot`) saves a frame as a BMP.
+- `timeline.rb` (`Timeline`) runs the events of `--at` and `--script`,
+  and takes `--screenshot`'s frame as one of them.
 - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
   and `drive_led.rb` (`DriveLed`) places and colours the true drive's
   LED over it.
@@ -188,7 +190,7 @@ render a `.sid` tune without it, as described under
   window opens, and the frame report below.
 - `--version` names the build.
 
-Values can also come as `--song=2`, and `--` ends the options. Four more
+Values can also come as `--song=2`, and `--` ends the options. Six more
 options are for testing, and `exe/badline-ruby` takes them too:
 
 - `--frames N` quits after that many frames.
@@ -198,6 +200,33 @@ options are for testing, and `exe/badline-ruby` takes them too:
   it, read back before it is presented.
 - `--save-snapshot FILE` saves the machine as a `.vsf` after the last
   frame.
+- `--at FRAME:EVENT` runs an event once that many frames have run, and
+  `--at 250,500:EVENT` at each of the frames. `--script FILE` takes one
+  `FRAME:EVENT` a line, skipping blank lines and lines starting with `#`.
+
+The events:
+
+- `key=NAME` holds a C64 key for 5 frames. The names are the keyboard's
+  own (`space`, `return`, `a`, `1`, `f1`, `run_stop`, `cursor_up`, ...),
+  `restore`, and a joystick's switch: `joy1-up` or `joy2-fire`.
+- `type=TEXT` types through the keyboard buffer, with `\n` for RETURN.
+- `insert=FILE` puts a disk image, a directory, a tape or a cartridge in,
+  without loading anything. A cartridge goes in with the power off.
+- `eject=disk`, `eject=tape` or `eject=cartridge` takes one out.
+- `screenshot=FILE` saves the frame, with the frame's number in place of
+  `%d`, or of `%05d` padded to five digits.
+- `reset`, `freeze` (the cartridge's button) and `quit`.
+
+With `--unpaced`, both builds run the same frames, so they take the same
+screenshots. This takes the 10 Years HVSC demo from its first disk to
+its second, pressing space where it asks:
+
+```sh
+SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
+  tmp/native/badline --unpaced --frames 12000 --true-drive 10_Years_HVSC_1.d64 \
+  --at 3500:key=space --at 5600:insert=10_Years_HVSC_2.d64 \
+  --at 3400,6000,12000:screenshot=shot%05d.bmp
+```
 
 It boots the machine, or attaches and autostarts a media file, and runs
 it a frame at a time: it polls SDL events, clocks the frame's cycles,
