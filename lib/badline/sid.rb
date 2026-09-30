@@ -74,6 +74,18 @@ module Badline
       reset!
     end
 
+    # Switches the chip, its filter and its voices to the other model's
+    # values. The cycles already passed run on the old model first, and the
+    # running state carries over.
+    def model=(model)
+      catch_up
+      @model = model
+      @bus_ttl_reset = BUS_TTL.fetch(model)
+      @filter.model = model
+      @voices.each { |voice| voice.model = model }
+      update_span_rules
+    end
+
     # The RES line clears the registers, the data bus, the filter and the
     # voices, all but their accumulators. Recording carries on across it.
     def reset!
