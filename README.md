@@ -250,7 +250,7 @@ Played on a terminal, `--headless` shows the tune's name, author and
 release, the song number and the time played against the song's
 length. The player plays a queue of tunes, which for now holds just the
 one, and each tune plays its own song: `--song`, or the tune's start
-song. When that song reaches its length the player goes on to the next
+song. When that song ends the player goes on to the next
 tune, and it stops after the last. `a`, or `--all-songs`, turns on
 playing all songs, so that a song that ends goes on to the tune's next
 song, and a tune stepped to starts on its first song.
@@ -271,7 +271,11 @@ tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
 through `--songlengths`, in a `DOCUMENTS` directory in any of the
 tune's parent directories (the layout of an HVSC collection), or under
 `$HVSC_BASE/DOCUMENTS`. Without a database or `--seconds` it runs for
-60 seconds.
+60 seconds, but a song that falls silent for 5 seconds before then
+ends there, when played and when rendered alike. Silent means the
+output holds within 16 steps of one level, since a 6581 idles at a DC
+offset rather than at zero. A song with a known length plays to its
+length whatever it sounds like.
 
 PSID tunes run on a CPU and RAM with only the SID clocked, at about
 twice real time, so they play smoothly. RSID tunes set up their own

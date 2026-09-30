@@ -608,8 +608,9 @@ describe Badline::Options do
       it "defaults as badline-ruby does" do
         defaults = parse("--headless", tune_path)
         expect([defaults.seconds, defaults.songlengths, defaults.rate, defaults.rate_given?, defaults.filter_chunk,
-                defaults.quiet?, defaults.tui?, defaults.all_songs?, defaults.fallback_seconds])
-          .to eq([nil, nil, 44_100, false, nil, false, true, false, 60.0])
+                defaults.quiet?, defaults.tui?, defaults.all_songs?, defaults.fallback_seconds,
+                defaults.silence_seconds])
+          .to eq([nil, nil, 44_100, false, nil, false, true, false, 60.0, 5.0])
       end
 
       it "takes the song length database" do

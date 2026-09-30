@@ -148,6 +148,33 @@ describe Badline::Audio::Renderer do
       end
     end
 
+    context "with a silence to end on" do
+      let(:options) { { seconds: 1 } }
+
+      before { renderer.silence = 0.1 }
+
+      it "ends once the output holds still" do
+        renderer.render(output("out.wav"))
+        expect(samples("out.wav").length).to be_between(800, 2400)
+      end
+
+      it "reports the seconds it rendered" do
+        renderer.render(output("out.wav"))
+        expect(renderer.rendered).to be_within(0.001).of(samples("out.wav").length / 8000.0)
+      end
+    end
+
+    context "with a silence to end on and a song that keeps sounding" do
+      let(:options) { { song: 2, seconds: 0.3 } }
+
+      before { renderer.silence = 0.1 }
+
+      it "plays the whole length" do
+        renderer.render(output("out.wav"))
+        expect(samples("out.wav").length).to eq(2400)
+      end
+    end
+
     context "with an NTSC tune" do
       let(:options) { { song: 2, seconds: 0.5 } }
 

@@ -7,17 +7,26 @@ module Badline
     # anything else drives its own interrupts and needs the whole machine.
     #
     # A .sid file carries no length, so the caller says how many seconds to
-    # render.
+    # render. For a tune whose length is a guess, #silence= also ends it
+    # once the output has held still for that many seconds.
     class Renderer
       class UnknownFormatError < StandardError; end
 
       DEFAULT_RATE = 44_100
+
+      # How far a sample may stray from where the output settled and still
+      # count as silence. A 6581 settles at a DC offset rather than at zero.
+      QUIET = 16
 
       CONTAINERS = { ".wav" => WAV, ".aiff" => AIFF, ".aif" => AIFF }.freeze
 
       # The cycles the SID's filter integrates at a time; 1 renders the
       # filter cycle by cycle, exactly.
       attr_writer :filter_chunk
+
+      # The seconds rendered so far, short of the length once the tune has
+      # fallen silent.
+      attr_reader :rendered
 
       def initialize(tune, seconds:, song: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
@@ -26,6 +35,14 @@ module Badline
         @rate = rate
         @sid_model = sid_model
         @filter_chunk = SID::FILTER_CHUNK
+        @silent_samples = 0
+        @level = 0
+        @still = 0
+        @rendered = 0.0
+      end
+
+      def silence=(seconds)
+        @silent_samples = (seconds * @rate).round
       end
 
       def player
@@ -77,8 +94,24 @@ module Badline
         while remaining.positive?
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
-          yield samples, (total - remaining).fdiv(player.clock_hz)
+          @rendered = (total - remaining).fdiv(player.clock_hz)
+          yield samples, @rendered
+          break if fallen_silent?(samples)
         end
+      end
+
+      # Counts the samples since the output last strayed more than QUIET
+      # from where it settled.
+      def fallen_silent?(samples)
+        return false if @silent_samples.zero? || samples.empty?
+
+        if samples.max - @level > QUIET || @level - samples.min > QUIET
+          @level = samples.last
+          @still = 0
+        else
+          @still += samples.length
+        end
+        @still >= @silent_samples
       end
     end
   end
