@@ -122,6 +122,15 @@ module Badline
         reset
       end
 
+      # The integrators and the registers carry over; the cutoff maps
+      # through the new model's curve.
+      def model=(model)
+        @model = model
+        @w0_table = W0.fetch(model)
+        @mixer_dc = MIXER_DC.fetch(model)
+        @w0 = @w0_table[@cutoff]
+      end
+
       def reset
         @cutoff = 0x000
         @routing = 0x0

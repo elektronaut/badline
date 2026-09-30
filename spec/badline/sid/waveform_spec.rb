@@ -632,4 +632,19 @@ describe Badline::SID::Waveform do
       expect(dest.accumulator).to eq(0x555555)
     end
   end
+
+  describe "#model=" do
+    it "starts the 8580's delayed sawtooth from the current phase" do
+      start(0x20, frequency: 0x1000)
+      3.times { waveform.cycle! }
+      waveform.model = :mos8580
+      expect(waveform.osc3).to eq(waveform.sawtooth)
+    end
+
+    it "keeps the running state" do
+      start(0x80, frequency: 0x4321)
+      500.times { waveform.cycle! }
+      expect { waveform.model = :mos8580 }.not_to(change { [waveform.accumulator, waveform.shift_register] })
+    end
+  end
 end

@@ -54,15 +54,22 @@ module Badline
       attr_reader :accumulator, :shift_register, :frequency, :pulse_width, :pulse
 
       def initialize(model: :mos6581)
-        @topbit_feedback = model != :mos8580
+        use_model(model)
         @tri_saw_delay = model == :mos8580
-        @pulse_noise_read = PULSE_NOISE_READ.fetch(model)
-        @pulse_noise_write = PULSE_NOISE_WRITE.fetch(model)
-        @combined = Combined.tables(model)
-        @shift_register_reset_delay = SHIFT_REGISTER_RESET_DELAY.fetch(model)
         @accumulator = POWER_ON_ACCUMULATOR
         @sync_source = @sync_dest = self
         reset!
+      end
+
+      # The running state carries over. A 6581 never delays its shapers, so
+      # the 8580's delayed triangle and sawtooth start from the current phase.
+      def model=(model)
+        use_model(model)
+        if model == :mos8580 && !@tri_saw_delay
+          @delayed_sawtooth = sawtooth
+          @delayed_triangle = triangle
+        end
+        @tri_saw_delay = model == :mos8580
       end
 
       # The RES line clears the registers and reseeds the LFSR, but leaves
@@ -189,6 +196,14 @@ module Badline
       end
 
       private
+
+      def use_model(model)
+        @topbit_feedback = model != :mos8580
+        @pulse_noise_read = PULSE_NOISE_READ.fetch(model)
+        @pulse_noise_write = PULSE_NOISE_WRITE.fetch(model)
+        @combined = Combined.tables(model)
+        @shift_register_reset_delay = SHIFT_REGISTER_RESET_DELAY.fetch(model)
+      end
 
       def shape(selected, saw = sawtooth, tri = triangle(selected))
         case selected
