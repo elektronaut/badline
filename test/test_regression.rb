@@ -11,7 +11,7 @@ class TestRegression < Minitest::Test
     b\tFAIL\tdiff=12px
     c\tPASS
     dup\tPASS
-    dup\tFAIL\tx
+    dup#2\tFAIL\tx
     gone\tPASS
   ROWS
 
@@ -21,7 +21,7 @@ class TestRegression < Minitest::Test
     b\tFAIL\tdiff=99px
     c\tFAIL\texit=$ff
     dup\tPASS
-    dup\tFAIL\tx
+    dup#2\tFAIL\tx
     broken\tFAIL\ttimeout
   ROWS
 
@@ -46,8 +46,16 @@ class TestRegression < Minitest::Test
     assert_equal ["PASS", "FAIL exit=$ff"], [before.to_s, after.to_s]
   end
 
-  def test_repeated_ids_are_keyed_by_occurrence
+  def test_rows_are_keyed_as_written
     assert_equal %w[a b c dup dup#2 gone], rows(BASELINE).keys
+  end
+
+  def test_a_key_written_twice_is_refused
+    assert_raises(ArgumentError) { rows("dup\tPASS\ndup\tFAIL\tx\n") }
+  end
+
+  def test_the_id_drops_the_occurrence_suffix
+    assert_equal "dup", rows(BASELINE)["dup#2"].id
   end
 
   def test_added_rows_are_reported
@@ -188,29 +196,29 @@ class TestRegressionSplice < Minitest::Test
   end
 
   def test_repeated_ids_survive_a_partial_record
-    baseline = "x\tPASS\ndup\tPASS\ny\tPASS\ndup\tFAIL\told\n"
-    splice = splice(baseline, "dup\tFAIL\tnew\ndup\tPASS\n")
+    baseline = "x\tPASS\ndup\tPASS\ny\tPASS\ndup#2\tFAIL\told\n"
+    splice = splice(baseline, "dup\tFAIL\tnew\ndup#2\tPASS\n")
 
     assert_equal ["PASS", "FAIL new", "PASS", "PASS"],
                  written(splice).values.map(&:to_s)
   end
 
-  def test_a_repeated_id_is_not_renumbered_by_a_partial_record
-    baseline = "x\tPASS\ndup\tPASS\ny\tPASS\ndup\tFAIL\told\n"
-    splice = splice(baseline, "dup\tFAIL\tnew\ndup\tPASS\n")
+  def test_a_repeated_id_keeps_its_place_through_a_partial_record
+    baseline = "x\tPASS\ndup\tPASS\ny\tPASS\ndup#2\tFAIL\told\n"
+    splice = splice(baseline, "dup\tFAIL\tnew\ndup#2\tPASS\n")
 
     assert_equal %w[x dup y dup#2], written(splice).keys
   end
 
   def test_a_gained_occurrence_stays_next_to_the_one_it_follows
     baseline = "dup\tPASS\nz\tPASS\n"
-    splice = splice(baseline, "dup\tPASS\ndup\tFAIL\tsecond\n")
+    splice = splice(baseline, "dup\tPASS\ndup#2\tFAIL\tsecond\n")
 
     assert_equal %w[dup dup#2 z], written(splice).keys
   end
 
-  def test_the_recorded_row_drops_the_occurrence_suffix
-    assert_equal "dup\tFAIL\tx\n", rows("dup\tPASS\ndup\tFAIL\tx\n")["dup#2"].to_record
+  def test_the_recorded_row_keeps_the_occurrence_suffix
+    assert_equal "dup#2\tFAIL\tx\n", rows("dup\tPASS\ndup#2\tFAIL\tx\n")["dup#2"].to_record
   end
 
   def test_summary_counts_what_moved
@@ -356,8 +364,8 @@ class TestRegressionSplice < Minitest::Test
     rows(text).keys
   end
 
-  # Re-reading what was written is what proves a splice cannot renumber the
-  # occurrence suffixes, which only exist on the read side.
+  # Re-reading what was written is what proves the occurrence suffixes
+  # survive a splice.
   def written(splice)
     path = File.join(@dir, "written.txt")
     Regression.write(path, splice.rows)

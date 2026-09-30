@@ -37,6 +37,14 @@ module Badline
         @saving = false
       end
 
+      def save_state(out)
+        out.boolean(@saving)
+      end
+
+      def load_state(input)
+        @saving = input.boolean?
+      end
+
       def call
         return unless active?
         return finish if @saving

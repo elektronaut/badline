@@ -28,6 +28,21 @@ describe Badline::Audio::Stream do
     expect(sid).to have_received(:record).with(rate: 1000)
   end
 
+  describe "#sid=" do
+    let(:other) { instance_double(Badline::SID, record: nil, drain_samples: [1, 2]) }
+
+    it "records another machine's SID at the device's rate" do
+      stream.sid = other
+      expect(other).to have_received(:record).with(rate: 1000)
+    end
+
+    it "plays it from then on" do
+      stream.sid = other
+      stream.feed
+      expect(sink.queued).to eq(2)
+    end
+  end
+
   describe "#feed" do
     it "queues what the SID recorded" do
       stream.feed

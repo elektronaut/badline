@@ -36,6 +36,17 @@ module Badline
         @cleared_data = 0
       end
 
+      def save_state(out)
+        out.blob(@hits).int(@folded).int(@cleared_sprite).int(@cleared_data)
+      end
+
+      def load_state(input)
+        input.blob_into(@hits)
+        @folded = input.int
+        @cleared_sprite = input.int
+        @cleared_data = input.int
+      end
+
       def start_line
         @folded = 0
         @cleared_sprite = carry(@cleared_sprite)

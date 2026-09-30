@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drive1541/sector_reader"
+require "badline/drive1541/disk_state"
 
 module Badline
   class Drive1541
@@ -16,6 +17,8 @@ module Badline
     # host file. The disk is write-protected when the image won't take
     # writes.
     class Disk
+      include State
+
       MAX_HALF_TRACK = 84
 
       # GCR bytes around a track in each speed zone: 200 ms of rotation at
@@ -52,9 +55,9 @@ module Badline
       # anything else as a .d64, formatted. `read_only` opens the image
       # write-protected.
       def self.open(path, read_only: false)
-        return from_g64(Storage::G64Image.new(path, read_only:)) if File.extname(path).casecmp?(".g64")
+        return from_g64(Storage::G64Image.new(path, read_only:)).opened(path, read_only) if State.g64?(path)
 
-        from_d64(Storage::D64Image.new(path, read_only:))
+        from_d64(Storage::D64Image.new(path, read_only:)).opened(path, read_only)
       end
 
       # A disk from a G64 image, each half track as the image stores it,
@@ -145,6 +148,8 @@ module Badline
         @image = image
         @tracks = Array.new(MAX_HALF_TRACK + 1)
         @written = {}
+        @path = nil
+        @read_only = false
       end
 
       # The Track at the half track, or nil where there's no data.

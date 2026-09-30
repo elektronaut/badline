@@ -57,6 +57,7 @@ badline game.d64       # Mount a disk image as device 8 and load it
 badline game.tap       # Insert a tape and load it
 badline game.crt       # Attach a cartridge
 badline tune.sid       # Play a SID tune
+badline game.vsf       # Restore a snapshot, from badline or VICE
 badline ~/c64          # Mount a directory as device 8
 ```
 
@@ -107,6 +108,7 @@ slows the emulation down.
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
+| `.vsf` | A snapshot of a running machine, badline's own or one VICE's x64sc saved. See [Snapshots](#snapshots) |
 | A directory | Mounted read-write as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
 Apart from a `.g64`, which only a true drive can read, there is no 1541
@@ -138,6 +140,62 @@ as the test harnesses under `bin/` do. A `.g64` goes in the true 1541,
 and takes out a disk mounted through the traps, so `LOAD` and `SAVE`
 reach the 1541 too. With the 1541 in device 8, a `.d64` goes in its
 drive as well.
+
+## Snapshots
+
+In the window, `F11` saves the whole machine to a new
+`badline-<date>-<time>.vsf` in the working directory, and `F12` goes
+back to the snapshot last saved or opened, in a new machine built as the
+saved one was. Both executables do this, and both open a `.vsf` given as
+the media. A snapshot that fails to open leaves the machine running as
+it was. From Ruby, `computer.save_snapshot(path)` saves,
+`computer.restore_snapshot(path)` takes a machine back to a snapshot,
+and `Badline::Snapshot.load(path)` builds a new machine as the saved one
+was built and restores it. `computer.snapshot` and
+`computer.restore(state)` do the same in memory, without a file. A
+restore that fails leaves the machine as it was.
+
+A snapshot holds the machine as it was on the cycle it was saved: the
+chips down to the instruction step and the pixel pipeline, the RAM and
+any +60K or +256K expansion, the cartridge with its RAM and flash, a
+GEO-RAM, a true 1541 with its RAM, its VIAs and the disk under the head,
+a disk or directory mounted through the traps with its open channels,
+and the tape with its place on it. A restored machine runs on exactly
+as the saved one would have. A directory, a tape and a true drive's
+disk image open again from their paths when the snapshot is restored,
+the disk with its tracks as the drive last saw them. A disk image mounted through the traps comes back
+with its contents from the snapshot. What the host holds stays the host's: the keyboard, the
+joysticks, the mouse and paddles, sound, and blocks given to `on_init`
+that hadn't run yet, which a restore reports. A snapshot only restores
+in the badline version that wrote it, into a machine with the same
+chip models, RAM expansion and REU. `computer.snapshot` holds an REU's
+RAM, registers and transfer too, but a machine with an REU doesn't save
+to a file yet, as badline doesn't write VICE's REU module.
+
+Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
+the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, plus the
+ones x64sc needs to open the file, with nothing attached to the
+cartridge, tape or user ports and no true drive. A `BADLINE` module,
+which VICE skips, holds the whole machine, and badline restores its own
+snapshots from it.
+
+x64sc 3.10 opens badline's snapshots, taken at the end of the
+instruction the CPU was in, as long as its VIC-II model matches
+(`-model c64` for the default machine). It keeps its own drives and
+leaves out the cartridge, the expansions and the tape. Snapshots x64sc
+saves open in badline through the same modules: the CPU at its
+instruction boundary, RAM, the CPU port, the CIAs' registers, timers and
+clocks, the SID's registers and reSID voice state, and the VIC-II's
+registers, beam position, counters and colour RAM. The VIC-II's pixel
+pipeline starts empty. badline reads the modules x64sc 3.7 to 3.10
+write, and VICE's development versions' `MAINC64CPU` and `VIC-IISC`. A module version
+it doesn't know is left out, or fails the restore for the CPU and RAM.
+It reports the modules it leaves out, such as the 1541 drives, the
+cartridge, the datasette and the keyboard, and carries on without them.
+An NTSC snapshot fails, as badline runs PAL only. Restored into a
+running machine, a VICE snapshot fails for a machine built another way,
+such as a C64C's snapshot in a C64, and otherwise takes the cartridge
+out and switches the machine off and on.
 
 ## Playing and rendering SID tunes
 

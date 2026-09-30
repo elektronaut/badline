@@ -25,6 +25,17 @@ module Badline
           @line = Array.new(columns, -1)
         end
 
+        def save_state(out)
+          out.int(@lines).int(@ghost).ints(@value).ints(@line)
+        end
+
+        def load_state(input)
+          @lines = input.int
+          @ghost = input.int
+          input.ints_into(@value)
+          input.ints_into(@line)
+        end
+
         # Sprites 3-7 fetch in Bauer cycles 1-10, so the idle byte is taken
         # as the line starts.
         def start_line(sprites_enabled)

@@ -9,7 +9,8 @@ module Badline
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. The native build
   # adds --no-sound, --no-vsync, --version and the testing knobs --frames,
-  # --unpaced and --screenshot, and badline-ruby adds --disable-jit.
+  # --unpaced, --screenshot and --save-snapshot, and badline-ruby adds
+  # --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come
@@ -29,8 +30,8 @@ module Badline
     # fraction and exponent.
     DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
 
-    attr_reader :program, :media_path, :song, :sid_model, :reu, :frames, :screenshot, :audio_out, :seconds,
-                :songlengths, :filter_chunk
+    attr_reader :program, :media_path, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot, :audio_out,
+                :seconds, :songlengths, :filter_chunk
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
@@ -54,6 +55,7 @@ module Badline
       @true_drive = false
       @ntsc = false
       @screenshot = ""
+      @save_snapshot = ""
       @jit = true
       @help = false
       @version = false
@@ -75,6 +77,9 @@ module Badline
       validate unless help? || version?
       self
     end
+
+    # Whether the media is a .vsf snapshot to restore.
+    def snapshot? = !@media_path.nil? && File.extname(@media_path).casecmp?(".vsf")
 
     # Plays or renders a .sid tune without the window.
     def headless? = @headless || render?
@@ -172,6 +177,7 @@ module Badline
       when "--reu" then @reu = reu_size(value)
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value
+      when "--save-snapshot" then @save_snapshot = value
       when "--audio-out" then @audio_out = value
       when "--seconds" then @seconds = decimal(flag, value)
       when "--songlengths" then @songlengths = value

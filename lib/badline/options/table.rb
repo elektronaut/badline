@@ -50,6 +50,8 @@ module Badline
       Option.new("--unpaced", "Run as fast as it can, without vsync or pacing",
                  section: "Testing options", needs: :window, build: :native),
       Option.new("--screenshot FILE", "Save the last frame as a .bmp",
+                 section: "Testing options", needs: :window, build: :native),
+      Option.new("--save-snapshot FILE", "Save the machine as a .vsf snapshot after the last frame",
                  section: "Testing options", needs: :window, build: :native)
     ].freeze
   end

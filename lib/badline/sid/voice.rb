@@ -38,6 +38,16 @@ module Badline
         @envelope = Envelope.new
       end
 
+      def save_state(out)
+        @waveform.save_state(out)
+        @envelope.save_state(out)
+      end
+
+      def load_state(input)
+        @waveform.load_state(input)
+        @envelope.load_state(input)
+      end
+
       def control=(value)
         @waveform.control = value
         @envelope.control = value

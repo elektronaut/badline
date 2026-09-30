@@ -139,4 +139,21 @@ describe Badline::Native::Controls do
       expect(computer).to have_received(:press_restore)
     end
   end
+
+  describe "#computer=" do
+    let(:other) { Badline::Computer.new }
+
+    it "puts the mode's device in the other machine's port" do
+      cycle_to(:paddles2)
+      controls.computer = other
+      expect(other.control_ports.device2.class).to eq(Badline::Input::Paddles)
+    end
+
+    it "sends the keys to the other machine" do
+      allow(other).to receive(:press_restore)
+      controls.computer = other
+      controls.key(75, true)
+      expect(other).to have_received(:press_restore)
+    end
+  end
 end

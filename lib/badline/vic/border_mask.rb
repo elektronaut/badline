@@ -27,6 +27,16 @@ module Badline
         @groups.fill(FULL)
       end
 
+      def save_state(out)
+        out.ints(@groups).booleans(@mask).blob(@snapshot)
+      end
+
+      def load_state(input)
+        input.ints_into(@groups)
+        input.booleans_into(@mask)
+        input.blob_into(@snapshot)
+      end
+
       def at?(pixel_x)
         case @groups[pixel_x >> 3]
         when FULL then true

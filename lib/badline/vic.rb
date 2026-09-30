@@ -17,6 +17,10 @@ module Badline
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines, :model, :region
 
+    # The parts a VICE snapshot reads and sets.
+    attr_reader :registers, :display_state, :sequencer, :sprites, :character_buffer, :color_buffer,
+                :fetch_d011
+
     # Returns the byte the CPU's halted read would see, for the c-accesses
     # that run before AEC. Without it they read colour RAM.
     attr_writer :open_bus
@@ -137,6 +141,35 @@ module Badline
       @lp_triggered = false
       @lp_low = false
       @raster_match = false
+    end
+
+    # Everything the VIC holds between cycles: the beam, the fetch and
+    # g-access pipeline, the light pen and raster latches, the finished
+    # lines, the registers and the display, sequencer and sprite logic.
+    # Whether it renders is the host's, and every line comes back dirty so
+    # a front end repaints.
+    def save_state(out)
+      out.marker("VIC")
+      out.int(@column).int(@rasterline).int(@cycles).boolean(@pending_write)
+      out.int(@g_tick).ints(@g_kind).int(@g_kept_char).int(@g_kept_color).boolean(@g_display)
+      out.int(@fetch_d011).boolean(@lp_triggered).boolean(@lp_low).boolean(@raster_match)
+      out.blob(@character_buffer).blob(@color_buffer).booleans(@sprite_ba)
+      @lines.each { |line| out.blob(line) }
+      @registers.save_state(out)
+      @display_state.save_state(out)
+      @sequencer.save_state(out)
+      @sprites.save_state(out)
+    end
+
+    def load_state(input)
+      input.marker("VIC")
+      load_beam(input)
+      load_buffers(input)
+      load_lines(input)
+      @registers.load_state(input)
+      @display_state.load_state(input)
+      @sequencer.load_state(input)
+      @sprites.load_state(input)
     end
 
     def cycle!
@@ -288,12 +321,73 @@ module Badline
       @sequencer.render = on
     end
 
+    # Puts the beam at the start of `line`.
+    def restore_line(line)
+      @rasterline = line
+      @column = 0
+    end
+
+    # The latches a VICE snapshot holds: the raster match, the light pen's
+    # line held low and its trigger, as bits 0, 1 and 2.
+    def latch_bits = (@raster_match ? 1 : 0) | (@lp_low ? 2 : 0) | (@lp_triggered ? 4 : 0)
+
+    # Sets the latches from latch_bits, and the $D011 the next g-access
+    # holds.
+    def restore_latches(bits, fetch_d011)
+      @raster_match = bits.anybits?(1)
+      @lp_low = bits.anybits?(2)
+      @lp_triggered = bits.anybits?(4)
+      @fetch_d011 = fetch_d011
+    end
+
+    # Marks the columns BA is low for the sprites whose DMA runs.
+    def rebuild_sprite_ba
+      @sprite_ba.fill(false)
+      8.times do |n|
+        next unless @sprites[n].displaying?
+
+        @sprite_ba_tail[n].each { |c| @sprite_ba[c] = true }
+        @sprite_ba_head[n].each { |c| @sprite_ba[c] = true }
+      end
+    end
+
     # Reset the dirty flags once the frontend has consumed them.
     def clear_dirty_lines!
       @dirty_lines.fill(false)
     end
 
     private
+
+    def load_beam(input)
+      @column = input.int
+      @rasterline = input.int
+      @cycles = input.int
+      @pending_write = input.boolean?
+      @g_tick = input.int
+      input.ints_into(@g_kind)
+      @g_kept_char = input.int
+      @g_kept_color = input.int
+      @g_display = input.boolean?
+      @fetch_d011 = input.int
+      @lp_triggered = input.boolean?
+      @lp_low = input.boolean?
+      @raster_match = input.boolean?
+    end
+
+    def load_buffers(input)
+      input.blob_into(@character_buffer)
+      input.blob_into(@color_buffer)
+      input.booleans_into(@sprite_ba)
+    end
+
+    # The display is the finished lines one after another.
+    def load_lines(input)
+      @lines.each_with_index do |line, number|
+        input.blob_into(line)
+        @display[number * @width, @width] = line
+      end
+      @dirty_lines.fill(true)
+    end
 
     # The raster counter as $D011/$D012 read it. Every line advances on the
     # CPU cycle paired with column 62 except line 0, which the counter
@@ -405,16 +499,6 @@ module Badline
 
     def sprite_zero_starting?
       @registers[0x15].anybits?(0x01) && @registers[0x01] == (@rasterline & 0xff)
-    end
-
-    def rebuild_sprite_ba
-      @sprite_ba.fill(false)
-      8.times do |n|
-        next unless @sprites[n].displaying?
-
-        @sprite_ba_tail[n].each { |c| @sprite_ba[c] = true }
-        @sprite_ba_head[n].each { |c| @sprite_ba[c] = true }
-      end
     end
 
     # Splits the sprite BA windows at the end of the line and marks the hook

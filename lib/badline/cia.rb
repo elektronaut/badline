@@ -3,11 +3,13 @@
 require "badline/cia/interrupt_register"
 require "badline/cia/serial"
 require "badline/cia/timer"
+require "badline/cia/state"
 
 module Badline
   # CIA (Complex Interface Adapter) chip
   class CIA
     include Addressable
+    include State
 
     # The original NMOS 6526 of the breadbin C64, and the HMOS 6526A of the
     # C64C, which differs from it only in its interrupt control register.
@@ -18,6 +20,12 @@ module Badline
     # What's on the ports outside the chip. It pulls port lines low through
     # read_a and read_b, and on CIA 1 drives PB4 through port_b4_high?.
     attr_accessor :peripheral
+
+    # Timer A and timer B.
+    def timers = [@ta, @tb]
+
+    # Port A and B's data and direction registers.
+    def port_registers = [@data_port_a, @data_port_b, @data_dir_a, @data_dir_b]
 
     def interrupt_status = @icr.status
 

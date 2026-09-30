@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/sid/envelope/state"
+
 module Badline
   class SID
     # ADSR envelope generator.
@@ -24,6 +26,11 @@ module Badline
       # divider it changes to.
       EXPONENTIAL_PERIODS = { 0xff => 1, 0x5d => 2, 0x36 => 4, 0x1a => 8,
                               0x0e => 16, 0x06 => 30, 0x00 => 1 }.freeze
+
+      # The states a snapshot names by index.
+      STATES = %i[attack decay_sustain release].freeze
+
+      include State
 
       attr_reader :state, :counter, :env3
 

@@ -23,6 +23,18 @@ module Badline
         @high_ram = @banks[0]
       end
 
+      def type = :plus60k
+
+      def save_state(out)
+        out.int(@banks.index(@high_ram))
+        @banks[1].save_state(out)
+      end
+
+      def load_state(input)
+        @high_ram = @banks.fetch(input.int)
+        @banks[1].load_state(input)
+      end
+
       def power_on!
         @banks[1].clear!
       end

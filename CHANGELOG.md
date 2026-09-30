@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/elektronaut/badline/compare/v0.5.1...v0.6.0) (2026-09-29)
+
+
+### Features
+
+* save and restore the machine in VICE .vsf snapshots ([07c0a26](https://github.com/elektronaut/badline/commit/07c0a26d7e73595d5cd4a5bfa90b633ee01195be))
+
+
+### Bug Fixes
+
+* forget the drive's orbits after restoring it ([0238d81](https://github.com/elektronaut/badline/commit/0238d81ab12a0b0ff1e841661e10004ab3683cc1))
+
 ## [0.5.1](https://github.com/elektronaut/badline/compare/v0.5.0...v0.5.1) (2026-09-29)
 
 

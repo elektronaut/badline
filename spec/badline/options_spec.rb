@@ -334,7 +334,7 @@ describe Badline::Options do
   end
 
   describe "the options the native build alone takes" do
-    %w[--version --no-sound --no-vsync --frames=1 --unpaced --screenshot=a.bmp].each do |arg|
+    %w[--version --no-sound --no-vsync --frames=1 --unpaced --screenshot=a.bmp --save-snapshot=a.vsf].each do |arg|
       context "with #{arg}" do
         let(:argv) { [arg] }
 
@@ -476,13 +476,22 @@ describe Badline::Options do
       expect(parse("--version").version?).to be(true)
     end
 
+    it "takes a file to save a snapshot to after the last frame" do
+      expect(parse("--frames", "10", "--save-snapshot", "ready.vsf").save_snapshot).to eq("ready.vsf")
+    end
+
+    it "knows a .vsf snapshot among the media" do
+      path = File.join(dir, "saved.VSF").tap { |file| File.write(file, "") }
+      expect(parse(path).snapshot?).to be(true)
+    end
+
     it "skips the checks when asked for help" do
       expect(parse("--help", "missing.prg").help?).to be(true)
     end
 
     it "lists every option in the help" do
       %w[--song --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help --version
-         --frames --unpaced --screenshot --headless --audio-out --seconds --songlengths
+         --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
          --rate --filter-chunk --quiet --no-tui].each do |flag|
         expect(help).to include(flag)
       end

@@ -4,6 +4,8 @@ module Badline
   module SDL
     KEY_TAB = 0x09
     KEY_F10 = 0x4000_0043
+    KEY_F11 = 0x4000_0044
+    KEY_F12 = 0x4000_0045
     KMOD_SHIFT = 0x0003
 
     # The events the front end handles. SDL_Event is a 56-byte union, read

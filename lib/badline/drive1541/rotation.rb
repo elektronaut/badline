@@ -92,6 +92,16 @@ module Badline
         @writing ? write_bit(at) : read_bit(one)
       end
 
+      # The track under the head and its layout, leaving the head's place
+      # on it as it stands.
+      def head_on_track
+        @track = @disk&.track(@half_track) || BLANK
+        @bytes = @track.bytes
+        @widths = @track.widths
+        @length = @track.length
+        @last = @length - 1
+      end
+
       # The track under the head, from the cell that's under it +time+
       # into the turn.
       def load_track(time = @time)

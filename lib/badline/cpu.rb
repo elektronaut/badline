@@ -4,6 +4,7 @@ require "badline/cpu/microcode"
 require "badline/cpu/addressing"
 require "badline/cpu/operations"
 require "badline/cpu/stack_operations"
+require "badline/cpu/saved_state"
 
 module Badline
   class CPU
@@ -16,6 +17,7 @@ module Badline
     include Addressing
     include Operations
     include StackOperations
+    include SavedState
 
     attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write
     attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq

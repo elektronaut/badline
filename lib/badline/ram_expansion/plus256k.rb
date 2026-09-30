@@ -30,6 +30,22 @@ module Badline
         @locked = false
       end
 
+      def type = :plus256k
+
+      def save_state(out)
+        [@low_ram, @video_ram, @high_ram].each { |bank| out.int(@banks.index(bank)) }
+        out.boolean(@locked)
+        @banks.drop(1).each { |bank| bank.save_state(out) }
+      end
+
+      def load_state(input)
+        @low_ram = @banks.fetch(input.int)
+        @video_ram = @banks.fetch(input.int)
+        @high_ram = @banks.fetch(input.int)
+        @locked = input.boolean?
+        @banks.drop(1).each { |bank| bank.load_state(input) }
+      end
+
       def power_on!
         @banks.drop(1).each(&:clear!)
       end
