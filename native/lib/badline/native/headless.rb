@@ -7,7 +7,7 @@ module Badline
     # put in raw mode with stty.
     module Headless
       # The factories Audio::CLI calls.
-      SINK = ->(rate:, exact_rate:) { AudioSink.new(rate:, exact_rate:) }
+      SINK = ->(rate:, exact_rate:) { Frontend::AudioSink.new(rate:, exact_rate:) }
 
       CONSOLE = ->(input:, output:) { Console.new(input:, output:) }
 

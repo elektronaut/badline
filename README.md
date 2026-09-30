@@ -83,14 +83,14 @@ plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
 Ruby, `Badline.rom_path = dir` does the same before a
 `Badline::Computer` is built, and `nil` restores the bundled set.
 
-`badline` plays the SID through the host's audio device, and `F10`
-mutes and unmutes it. `--no-sound` turns it off. The window is paced by
-the display's vsync; `--no-vsync` paces it by a timer, or by the sound
-while it plays.
+Both run the same window. `badline` plays the SID through the host's
+audio device, and `F10` mutes and unmutes it. `--no-sound` turns it
+off. The window is paced by the display's vsync; `--no-vsync` paces it
+by a timer, or by the sound while it plays.
 
 `--verbose` prints the display's refresh rate, the sound's sample rate
-and the game controllers found as the window opens. In `badline` it also
-prints the frame rate and the time each frame takes, once a second.
+and the game controllers found as the window opens, then the frame rate
+and the time each frame takes, once a second.
 
 In `badline-ruby` sound is off by default, and `--sound` turns it on.
 The machine runs below real time there, so the sound stutters: it plays
@@ -250,9 +250,9 @@ without stuttering. See
 
 ## Input
 
-Keys map by their unshifted symbol, and Shift gives the C64's shifted
-character, not the host's: Shift-2 types `"`. These keys have no
-same-named host key:
+Keys map by their position on a US keyboard, whatever the host's layout,
+and Shift gives the C64's shifted character, not the host's: Shift-2
+types `"`. These keys have no same-named host key:
 
 | C64 | Host |
 |-----|------|
@@ -275,7 +275,7 @@ window title shows the current mode:
 | Mode | What the host drives |
 |------|----------------------|
 | (none) | The keyboard |
-| `[JOY]` | Arrows and Space are joystick 2, `WASD` and Left Shift joystick 1 |
+| `[JOY 2]` / `[JOY 1]` | Arrows and Space (or Right Ctrl) are the joystick named, `WASD` and Left Shift the other. `F9` swaps them |
 | `[MOUSE 1]` / `[MOUSE 2]` | A 1351 mouse in control port 1 or 2 |
 | `[PADDLE 1]` / `[PADDLE 2]` | A pair of paddles in control port 1 or 2 |
 

@@ -11,7 +11,7 @@ module Testbench
   BOOT_ALLOWANCE = 3_000_000
 
   # The VICE PAL viewport crop of the VIC display, matching the 384x272
-  # reference screenshots (the GUI ScreenPane crops 4 lines lower).
+  # reference screenshots (the window's Frontend::Screen crops 4 lines lower).
   WIDTH = 384
   HEIGHT = 272
   COL_OFFSET = 96

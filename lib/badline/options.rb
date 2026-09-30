@@ -8,9 +8,7 @@ module Badline
   # The command line of both builds, badline-ruby and the native badline.
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. The native build
-  # adds --no-sound, --no-vsync, --version and the testing knobs --frames,
-  # --unpaced, --screenshot and --save-snapshot, and badline-ruby adds
-  # --disable-jit.
+  # adds --no-sound and --version, and badline-ruby adds --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come

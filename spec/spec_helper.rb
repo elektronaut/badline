@@ -7,6 +7,9 @@ require "badline"
 require "timecop"
 require "tmpdir"
 
+# Quiets IO::Buffer's experimental warning, as exe/badline-ruby does.
+Warning[:experimental] = false
+
 # Whether the host refuses a file its mode doesn't grant. Root, or a process
 # holding CAP_DAC_OVERRIDE, reads and writes past the mode anyway.
 def file_permissions_enforced?
