@@ -119,7 +119,7 @@ module Badline
       @length = @length_start = 0xffff
       @interrupt_mask = 0x1f
       @address_control = 0x3f
-      @armed = @requested = @running = false
+      @armed = @requested = @running = @ba_was_low = false
       interrupt(false)
     end
 
@@ -159,11 +159,14 @@ module Badline
 
     # Clocks the REC for a cycle, given the VIC's BA line. A requested
     # transfer starts on the first cycle with BA high as the REC sees it,
-    # even one the CPU writes on. Pinned by REU/rmw-trigger.
+    # even one the CPU writes on. Pinned by REU/rmw-trigger. A fetch
+    # requested on the cycle before BA falls writes its first byte on the
+    # first BA-low cycle as well, and again when it starts. Pinned by
+    # REU/badoublewrite.
     def dma_cycle!(ba_low)
       late = ba_low && @vic.reu_ba_late?
       if @requested
-        return if ba_low && !late
+        return hold_off if ba_low && !late
 
         start_transfer
       end
@@ -239,7 +242,13 @@ module Badline
 
     def request_bus
       @requested = true
+      @ba_was_low = @vic.ba_low?
       @on_dma&.call
+    end
+
+    def hold_off
+      @dma.write_ahead(@command & TRANSFER_TYPE, @c64, @expansion | (@bank << 16)) unless @ba_was_low
+      @ba_was_low = true
     end
 
     def start_transfer

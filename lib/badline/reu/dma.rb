@@ -63,6 +63,17 @@ module Badline
         @extra_cycle = false
       end
 
+      # Writes the byte a fetch from these addresses starts with, without
+      # counting it. Other transfers start with a read.
+      def write_ahead(type, c64, expansion)
+        return unless type == FETCH
+
+        @c64 = c64
+        byte = @ram.peek(expansion)
+        @ram.latch = byte
+        write_c64(byte)
+      end
+
       # One cycle of the transfer. The cycle the REC lets go of the bus on
       # is the CPU's. late says BA fell on this cycle but a REC that moved a
       # byte on the last one doesn't see it yet (VIC#reu_ba_late?), and

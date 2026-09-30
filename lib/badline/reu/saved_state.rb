@@ -13,7 +13,7 @@ module Badline
         out.marker("REU")
         [@status, @command, @c64, @c64_start, @expansion, @expansion_start, @bank, @bank_start, @length,
          @length_start, @interrupt_mask, @address_control].each { |value| out.int(value) }
-        out.boolean(@armed).boolean(@requested).boolean(@running).boolean(@irq)
+        out.boolean(@armed).boolean(@requested).boolean(@running).boolean(@irq).boolean(@ba_was_low)
         @dma.save_state(out)
         @ram.save_state(out)
       end
@@ -27,6 +27,7 @@ module Badline
         @requested = input.boolean?
         @running = input.boolean?
         @irq = input.boolean?
+        @ba_was_low = input.boolean?
         @dma.load_state(input)
         @ram.load_state(input)
       end

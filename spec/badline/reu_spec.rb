@@ -158,6 +158,18 @@ describe Badline::REU do
       expect(run_dma(ba_line: [false, false, false, true, true, false])).to eq(6)
     end
 
+    # Pinned by REU/badoublewrite.
+    it "writes its first byte on the first BA-low cycle when BA falls as it starts" do
+      reu.dma_cycle!(true)
+      expect(bus.ram.read(0x1000, 2)).to eq([0xa0, 0x00])
+    end
+
+    it "writes that byte again when BA rises" do
+      2.times { reu.dma_cycle!(true) }
+      reu.dma_cycle!(false)
+      expect(bus.ram.read(0x1000, 2)).to eq([0xa0, 0x00])
+    end
+
     it "writes to the RAM under the CPU port at $00 and $01" do
       transfer(0x91, c64: 0x0000, length: 2)
       run_dma
