@@ -119,6 +119,8 @@ module Badline
     ffi_const :ALLOW_FREQUENCY_CHANGE, 0x01
     ffi_const :KEY_TAB, 0x09
     ffi_const :KEY_F10, 0x4000_0043
+    ffi_const :KEY_F11, 0x4000_0044
+    ffi_const :KEY_F12, 0x4000_0045
   end
 
   # The few C library calls the native front end makes.

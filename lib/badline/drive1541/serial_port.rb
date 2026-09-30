@@ -44,6 +44,16 @@ module Badline
         @host = @bus ? @bus.host_lines : 0
       end
 
+      # The C64's lines as last latched. The jumpers and the bus are the
+      # drive's wiring.
+      def save_state(out)
+        out.int(@host)
+      end
+
+      def load_state(input)
+        @host = input.int
+      end
+
       # Whether the C64 has moved ATN since the last latch_host.
       def atn_moved?
         lines = @bus ? @bus.host_lines : 0

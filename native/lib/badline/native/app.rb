@@ -10,16 +10,17 @@ module Badline
       TITLE = "Badline"
       STAGES = %w[events emulate audio blit present wait].freeze
 
-      # Takes the frame limit, the pacing, the screenshot path, the sound and
-      # the verbosity from Options.
+      # Takes the frame limit, the pacing, the screenshot and snapshot paths,
+      # the sound and the verbosity from Options.
       def initialize(computer, options)
         @computer = computer
         @frame_limit = options.frames
         @verbose = options.verbose?
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, region: computer.region)
         @screenshot = options.screenshot
+        @snapshots = Snapshots.new(computer, options)
         @screen = Screen.new(computer.vic)
-        @led = DriveLed.new(computer.drive1541) if computer.drive1541
+        @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
         @spent = Array.new(STAGES.size, 0.0)
         @slowest = 0.0
@@ -35,6 +36,7 @@ module Badline
         @pacer.start(@started)
         @reported_samples = 0
         frame while @running
+        @snapshots.finish
         @computer.drive1541&.flush
         @gamepads.close
         @sound.close
@@ -125,9 +127,23 @@ module Badline
       def handle_key(scancode, down)
         if [Keys::TAB, Keys::F9, Keys::F10].include?(scancode)
           handle_toggle(scancode) if down
-        else
+        elsif down && @snapshots.key(scancode)
+          swap(@snapshots.computer)
+        elsif !Snapshots::KEYS.include?(scancode)
           @controls.key(scancode, down)
         end
+      end
+
+      # Runs the restored machine in place of the one before: the screen,
+      # the drive LED, the controls, the gamepads and the sound go over to
+      # it.
+      def swap(computer)
+        @computer = computer
+        @screen = Screen.new(computer.vic)
+        @led = DriveLed.for(computer)
+        @controls.computer = computer
+        @gamepads.computer = computer
+        @sound.sid = computer.sid
       end
 
       def handle_toggle(scancode)
@@ -173,7 +189,7 @@ module Badline
         SDL.SDL_RenderClear(@renderer)
         SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
         @led&.draw(@renderer)
-        write_screenshot if @screenshot != "" && @frames + 1 == @frame_limit
+        Screenshot.write(@renderer, @screenshot) if @screenshot != "" && @frames + 1 == @frame_limit
         SDL.SDL_RenderPresent(@renderer)
       end
 
@@ -200,21 +216,6 @@ module Badline
         puts "  sound #{rate.round} samples/s, queue #{queue}, #{sound.underruns} underruns, #{sound.dropped} dropped"
         sound.reset_levels
         @reported_samples = sound.queued
-      end
-
-      # Reads back what the renderer drew, before it is presented, and saves
-      # it as a BMP.
-      def write_screenshot
-        SDL.SDL_GetRendererOutputSize(@renderer, SDL.output_w, SDL.output_h)
-        width = SDL.read_i32(SDL.output_w)
-        height = SDL.read_i32(SDL.output_h)
-        data = LibC.malloc(width * height * 4)
-        SDL.SDL_RenderReadPixels(@renderer, nil, SDL::PIXELFORMAT_RGB888, data, width * 4)
-        surface = SDL.SDL_CreateRGBSurfaceWithFormatFrom(data, width, height, 32, width * 4, SDL::PIXELFORMAT_RGB888)
-        SDL.SDL_SaveBMP_RW(surface, SDL.SDL_RWFromFile(@screenshot, "wb"), 1)
-        SDL.SDL_FreeSurface(surface)
-        LibC.free(data)
-        puts "wrote #{@screenshot}, #{width}x#{height}"
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

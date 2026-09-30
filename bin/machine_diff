@@ -10,6 +10,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] [--cycles N] [--every K]
 #   ruby --yjit bin/machine_diff [scenario|media] --save FILE
 #   ruby --yjit bin/machine_diff [scenario|media] --against REV|FILE
+#   ruby --yjit bin/machine_diff [scenario|media] --restore-at CYCLE
 #
 # Scenarios:
 #   boot   power on and sit at the READY prompt
@@ -41,6 +42,10 @@
 # 1 on a difference. The run for REV goes under the JIT this one runs
 # under: --zjit, --yjit, or none on TruffleRuby. Without either flag,
 # CRuby enables YJIT at startup.
+#
+# --restore-at CYCLE saves a .vsf snapshot at CYCLE, restores it into a
+# second machine built for the same scenario, and runs the two side by
+# side, stopping at the first checkpoint where they differ.
 
 require "English"
 require "fileutils"
@@ -238,6 +243,43 @@ module MachineDiff
     puts "First difference at cycle #{ours.cycle}: #{differing}"
     exit 1
   end
+
+  # --restore-at: a machine and its restored snapshot, run side by side.
+  module RestoreCheck
+    module_function
+
+    # Runs the scenario to options[:restore_at], restores a snapshot of it
+    # into a second machine and checks the two run on alike.
+    def restore_check(scenario, options)
+      Dir.mktmpdir do |dir|
+        computer = MachineDiff.machine(scenario, options, dir)
+        options[:restore_at].times { computer.cycle! }
+        path = File.join(dir, "machine_diff.vsf")
+        computer.save_snapshot(path)
+        restored = MachineDiff.machine(scenario, options, dir)
+        restored.restore_snapshot(path) { |line| puts "  #{line}" }
+        puts "#{scenario} restored from a snapshot at cycle #{options[:restore_at]} (#{File.size(path)} bytes)"
+        compare_restored(computer, restored, options)
+      end
+    end
+
+    def compare_restored(computer, restored, options)
+      every = options[:every]
+      count = 0
+      ((options[:cycles] - options[:restore_at]) / every).times do
+        every.times do
+          computer.cycle!
+          restored.cycle!
+        end
+        ours = Badline::Checkpoint.take(computer)
+        theirs = Badline::Checkpoint.take(restored)
+        MachineDiff.report_difference(ours, theirs) unless ours == theirs
+        puts ours
+        count += 1
+      end
+      puts "#{count} checkpoints match"
+    end
+  end
 end
 
 options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib"),
@@ -257,6 +299,9 @@ parser = OptionParser.new do |opts|
     options[:against] = against
   end
   opts.on("--lib DIR", "Load badline from DIR") { |dir| options[:lib] = File.expand_path(dir) }
+  opts.on("--restore-at CYCLE", Integer, "Snapshot at CYCLE, restore and compare the two") do |cycle|
+    options[:restore_at] = cycle
+  end
 end
 
 begin
@@ -287,4 +332,10 @@ if Badline::Storage::DiskImage.instance_method(:initialize).parameters.include?(
   options[:media] = { disk: { read_only: true } }
 end
 
-options[:against] ? MachineDiff.compare(scenario, options) : MachineDiff.print_run(scenario, options)
+if options[:restore_at]
+  MachineDiff::RestoreCheck.restore_check(scenario, options)
+elsif options[:against]
+  MachineDiff.compare(scenario, options)
+else
+  MachineDiff.print_run(scenario, options)
+end

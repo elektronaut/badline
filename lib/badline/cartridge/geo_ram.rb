@@ -52,7 +52,23 @@ module Badline
         @block = @page = @window = 0
       end
 
+      # A GEO-RAM is built from its size alone.
+      def save_setup(out)
+        out.int(GEO_RAM_SETUP).int(@size)
+      end
+
       private
+
+      def save_mapper(out)
+        out.blob(@ram_data).int(@block).int(@page).int(@window)
+      end
+
+      def load_mapper(input)
+        input.blob_into(@ram_data)
+        @block = input.int
+        @page = input.int
+        @window = input.int
+      end
 
       def install_chips(_chips)
         @ram_data = Array.new(@size * 1024, 0)

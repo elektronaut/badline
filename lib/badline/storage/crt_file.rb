@@ -18,6 +18,11 @@ module Badline
       Image = Data.define(:hardware_type, :subtype, :exrom, :game, :name, :chips)
 
       def self.write(path, image)
+        File.binwrite(path, encode(image))
+      end
+
+      # The CRT file for an image: a parsed CRTFile or an Image.
+      def self.encode(image)
         header = SIGNATURE +
                  [0x40, 0x0100, image.hardware_type, image.exrom, image.game, image.subtype].pack("NnnCCCx5") +
                  [image.name.to_s.b[0, 32]].pack("a32")
@@ -25,11 +30,12 @@ module Badline
           ["CHIP", CHIP_HEADER_SIZE + chip.data.length, chip.chip_type, chip.bank, chip.address,
            chip.data.length].pack("a4Nn4") + chip.data.pack("C*")
         end
-        File.binwrite(path, header + packets.join)
+        header + packets.join
       end
 
-      def initialize(path)
-        parse(File.binread(path))
+      # `bytes` stands in for the file's contents.
+      def initialize(path = nil, bytes: nil)
+        parse(bytes || File.binread(path))
       end
 
       private

@@ -38,6 +38,12 @@ module Badline
 
       def rate = @sink.rate
 
+      # Plays another machine's SID from here on.
+      def sid=(sid)
+        @sid = sid
+        sid.record(rate: rate)
+      end
+
       def muted? = @muted
 
       def playing? = @started

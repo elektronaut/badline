@@ -46,6 +46,22 @@ module Badline
         @buffer = []
       end
 
+      # The frame under way, with the channels and the bytes it gathered.
+      # The device it answers is the machine's to set.
+      def save_state(out)
+        out.boolean(@listening).boolean(@talking).optional_int(@listen_channel).optional_int(@talk_channel)
+        out.int(@frame).blob(@buffer)
+      end
+
+      def load_state(input)
+        @listening = input.boolean?
+        @talking = input.boolean?
+        @listen_channel = input.optional_int
+        @talk_channel = input.optional_int
+        @frame = input.int
+        @buffer = input.blob
+      end
+
       def install
         ROUTINES.each do |address, routine|
           @cpu.install_trap(address) { call_routine(routine) if kernal? }

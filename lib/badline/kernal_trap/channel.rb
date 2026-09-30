@@ -80,6 +80,33 @@ module Badline
         data ? new(data) : new([], error: [Drive::ILLEGAL_TRACK_OR_SECTOR, track, sector])
       end
 
+      # Reads what save_state wrote after the flag that marks a file open
+      # for writing (Drive::Channels.channel_from_state). A buffer channel
+      # takes its block in `ram`, the drive's RAM, again.
+      def self.from_state(input, ram)
+        new.tap { |channel| channel.load_state(input, ram) }
+      end
+
+      # A buffer channel's bytes are the drive's RAM, which the drive
+      # writes itself.
+      def save_state(out)
+        out.boolean(false).boolean(@writable).int(@base).int(@length).int(@pointer)
+        out.optional_int(@lead).optional_int(@buffer).boolean(!@error.nil?)
+        out.ints(@error) if @error
+        out.blob(@bytes) unless @writable
+      end
+
+      def load_state(input, ram)
+        @writable = input.boolean?
+        @base = input.int
+        @length = input.int
+        @pointer = input.int
+        @lead = input.optional_int
+        @buffer = input.optional_int
+        @error = input.boolean? ? input.ints : nil
+        @bytes = @writable ? ram : input.blob
+      end
+
       def replace(bytes, length = bytes.length)
         @bytes = bytes
         rewind(length)

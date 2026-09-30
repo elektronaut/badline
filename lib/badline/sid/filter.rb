@@ -90,6 +90,16 @@ module Badline
           @output = 0
         end
 
+        def save_state(out)
+          out.int(@lowpass).int(@highpass).int(@output)
+        end
+
+        def load_state(input)
+          @lowpass = input.int
+          @highpass = input.int
+          @output = input.int
+        end
+
         # Takes the input in 1/2^Filter::FRACTION units, and reads the
         # output out in whole ones.
         def cycle!(input, cycles = 1)
@@ -122,6 +132,25 @@ module Badline
         @resonance = RESONANCE[0]
         @lowpass = @bandpass = @highpass = 0
         @input = @unfiltered = 0
+      end
+
+      # The registers as the filter decoded them and its integrators. The
+      # W0 table is the model's.
+      def save_state(out)
+        out.int(@cutoff).int(@routing).int(@mode).int(@volume).boolean(@voice3_off).int(@w0).int(@resonance)
+        [@highpass, @bandpass, @lowpass, @unfiltered, @input].each { |value| out.int(value) }
+        @external.save_state(out)
+      end
+
+      def load_state(input)
+        @cutoff = input.int
+        @routing = input.int
+        @mode = input.int
+        @volume = input.int
+        @voice3_off = input.boolean?
+        @w0 = input.int
+        @resonance = input.int
+        load_integrators(input)
       end
 
       def write(reg, value)
@@ -162,6 +191,15 @@ module Badline
       def output = @external.output
 
       private
+
+      def load_integrators(input)
+        @highpass = input.int
+        @bandpass = input.int
+        @lowpass = input.int
+        @unfiltered = input.int
+        @input = input.int
+        @external.load_state(input)
+      end
 
       def write_resonance(value)
         @routing = value & 0x0f

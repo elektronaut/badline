@@ -17,6 +17,17 @@ module Badline
 
       def clear = @patches.clear
 
+      # Each patch as its four numbers: the boundary pixel, the register,
+      # the old colour and the new.
+      def save_state(out)
+        out.int(@patches.length)
+        @patches.each { |patch| out.ints(patch) }
+      end
+
+      def load_state(input)
+        @patches.replace(Array.new(input.int) { input.ints })
+      end
+
       def log(reg, old, value, boundary_x)
         @patches << [boundary_x, reg, @grey_dots ? GREY_DOT : old & 0x0f, value & 0x0f]
       end

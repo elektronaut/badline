@@ -19,6 +19,14 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        save_windows(out, [*@banks, EMPTY_BANK])
+      end
+
+      def load_mapper(input)
+        load_windows(input, [*@banks, EMPTY_BANK])
+      end
+
       # In 16K mode the selected bank shows through ROMH as well.
       def select_bank(number)
         @roml = bank(@banks, number)

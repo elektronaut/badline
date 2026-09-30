@@ -1,7 +1,7 @@
 selftest/c64-pass.crt	PASS
 selftest/c64-fail.crt	PASS
-selftest/c64-pass.crt	PASS
-selftest/c64-fail.crt	PASS
+selftest/c64-pass.crt#2	PASS
+selftest/c64-fail.crt#2	PASS
 CPU/cpuport/initvalue.crt	PASS
 C64/autostart/defaults/test.crt	PASS
 C64/carts/8kgame.crt	PASS

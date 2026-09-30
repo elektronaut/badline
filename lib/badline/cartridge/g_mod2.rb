@@ -47,6 +47,18 @@ module Badline
         changed!
       end
 
+      def save_mapper(out)
+        out.int(@bank).boolean(@flash_writes)
+        @flash.save_state(out)
+      end
+
+      def load_mapper(input)
+        @bank = input.int
+        @flash_writes = input.boolean?
+        @flash.load_state(input)
+        @roml = @flash.window(@bank * BANK_SIZE)
+      end
+
       def install_chips(chips)
         data = Array.new(BANKS * BANK_SIZE, 0xff)
         chips.each do |chip|

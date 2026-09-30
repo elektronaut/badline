@@ -143,6 +143,15 @@ module Badline
 
       def latch_raster_irq! = latch_irq!(0x01)
 
+      def save_state(out)
+        out.blob(@bytes).boolean(@irq_line)
+      end
+
+      def load_state(input)
+        input.blob_into(@bytes)
+        @irq_line = input.boolean?
+      end
+
       def collide!(reg, bits)
         return false if bits.zero?
 
@@ -151,11 +160,13 @@ module Badline
         was_zero
       end
 
-      private
-
+      # Works the IRQ line out from $D019 and $D01A again, after the bytes
+      # were set directly.
       def update_irq_line
         @irq_line = (@bytes[0x19] & @bytes[0x1a]).anybits?(0x0f)
       end
+
+      private
 
       def read_clear(reg)
         @bytes[reg].tap { @bytes[reg] = 0 }

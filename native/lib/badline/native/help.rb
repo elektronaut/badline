@@ -12,8 +12,9 @@ module Badline
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
         .g64 disk image for the true 1541, a .t64 tape archive, a .tap
-        tape, a .crt cartridge, a .sid tune, or a directory to mount as
-        device 8. It opens in the emulator window. Device 8 answers through
+        tape, a .crt cartridge, a .sid tune, a .vsf snapshot, or a directory
+        to mount as device 8. It opens in the emulator window, where F11
+        saves a snapshot and F12 restores it. Device 8 answers through
         traps on the KERNAL's disk routines, unless --true-drive puts an
         emulated 1541 there, which runs its own DOS and reads .d64 and .g64
         images only.
@@ -64,6 +65,7 @@ module Badline
                 --frames N                   Quit after N frames
                 --unpaced                    Run as fast as it can, without vsync or pacing
                 --screenshot FILE            Save the last frame as a .bmp
+                --save-snapshot FILE         Save the machine as a .vsf snapshot after the last frame
       HELP
     end
   end

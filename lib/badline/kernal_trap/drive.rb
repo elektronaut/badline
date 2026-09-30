@@ -143,6 +143,25 @@ module Badline
       # vector, as U: does.
       def reset! = reset(cold: true)
 
+      # The mounted storage's setup, for Storage.reopen, then the drive's
+      # RAM, its status and its open channels.
+      def save_state(out)
+        @storage.save_setup(out)
+        out.marker("TRAP DRIVE")
+        @memory.save_state(out)
+        @status.save_state(out)
+        @channels.save_state(out)
+      end
+
+      # Takes the state after the storage's setup, into a drive mounted on
+      # the reopened storage.
+      def load_state(input)
+        input.marker("TRAP DRIVE")
+        @memory.load_state(input)
+        @status.load_state(input)
+        @channels.load_state(input, @memory)
+      end
+
       # Returns the next byte and whether it is the channel's last, or nil
       # when there is nothing left to send.
       def read(secondary)

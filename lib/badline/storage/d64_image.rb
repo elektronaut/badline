@@ -15,6 +15,8 @@ module Badline
         count
       end
 
+      def storage_kind = D64
+
       def sectors_in(track)
         case track
         when 1..17 then 21

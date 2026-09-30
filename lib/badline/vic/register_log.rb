@@ -19,6 +19,24 @@ module Badline
       # The pixel at which the next logged write takes effect.
       attr_reader :next_x
 
+      # The entries as pixel, register and value in turn, the seed with -1
+      # for a register the line hasn't logged, and a next pixel past the
+      # last entry as -1.
+      def save_state(out)
+        out.ints(@entries.flatten)
+        out.ints(@seed.map { |value| value.nil? ? -1 : value })
+        out.ints(@values).int(@cursor).int(@next_x.infinite? ? -1 : @next_x)
+      end
+
+      def load_state(input)
+        @entries.replace(input.ints.each_slice(3).to_a)
+        @seed.replace(input.ints.map { |value| value.negative? ? nil : value })
+        input.ints_into(@values)
+        @cursor = input.int
+        next_x = input.int
+        @next_x = next_x.negative? ? Float::INFINITY : next_x
+      end
+
       def empty? = @entries.empty?
       def length = @entries.length
 

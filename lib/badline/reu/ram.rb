@@ -37,6 +37,21 @@ module Badline
         bank(addr >> 16)[addr & 0xffff] = value if addr < @size
       end
 
+      # The latch, and each 64K bank the REC has touched. A bank it hasn't
+      # keeps its power-on contents until it does.
+      def save_state(out)
+        out.int(@latch)
+        @banks.each do |bank|
+          out.boolean(!bank.empty?)
+          out.blob(bank) unless bank.empty?
+        end
+      end
+
+      def load_state(input)
+        @latch = input.int
+        @banks.each_index { |number| @banks[number] = input.boolean? ? input.blob : [] }
+      end
+
       private
 
       # A bank takes its power-on contents the first time it is touched,

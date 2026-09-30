@@ -22,6 +22,31 @@ module Badline
 
         def clear = @channels.clear
 
+        # Each open channel with its secondary address, in the order they
+        # opened.
+        def save_state(out)
+          out.int(@channels.length)
+          @channels.each do |secondary, channel|
+            out.int(secondary)
+            channel.save_state(out)
+          end
+        end
+
+        # Buffer channels take their block in the drive's RAM again.
+        def load_state(input, memory)
+          @channels.clear
+          input.int.times do
+            secondary = input.int
+            @channels[secondary] = Channels.channel_from_state(input, memory.ram)
+          end
+        end
+
+        # A channel save_state wrote: a file open for writing, or a Channel
+        # whose buffer, if it has one, is in `ram`.
+        def self.channel_from_state(input, ram)
+          input.boolean? ? WriteFile.from_state(input) : Channel.from_state(input, ram)
+        end
+
         # Opens a buffer channel on the buffer a "#n" name asks for, or on
         # the highest free one. Returns nil when that buffer isn't free,
         # which leaves a channel asking again for its own buffer open.

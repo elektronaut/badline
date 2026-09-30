@@ -98,6 +98,9 @@ Contents read and write access to `elektronaut/homebrew-tap`.
   constants both builds call, and `LibC`'s `malloc`, `free` and `poll`.
   Then come the members in `native/lib/badline/native/`:
   - `app.rb` (`App`) opens the window and runs the frame loop.
+  - `snapshots.rb` (`Snapshots`) saves the machine with F11 and
+    `--save-snapshot` and restores it with F12, and `screenshot.rb`
+    (`Screenshot`) saves `--screenshot`'s frame.
   - `screen.rb` (`Screen`) repacks the VIC's display for the texture,
     and `drive_led.rb` (`DriveLed`) places and colours the true drive's
     LED over it.
