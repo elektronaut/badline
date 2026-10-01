@@ -14,7 +14,7 @@ permissions:
 env:
   # The Spinel commit the suites and the native badline build with. Bumping
   # it rebuilds the cached compiler. release.yml reads it from here.
-  SPINEL_REF: 46fa829809b39f45340c147970256a561f1b89c0
+  SPINEL_REF: f07b2841d50ee8176134d37181177569f74a0d70
 jobs:
   rubocop:
     name: Rubocop
