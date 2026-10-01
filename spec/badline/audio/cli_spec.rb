@@ -35,6 +35,12 @@ describe Badline::Audio::CLI do
   def output = File.join(dir, "out.wav")
   def tune = Badline::Storage::SIDFile.new(tune_path)
 
+  def stil
+    FileUtils.mkdir_p(File.join(dir, "DOCUMENTS"))
+    File.binwrite(File.join(dir, "DOCUMENTS", "STIL.txt"),
+                  "/tune.sid\r\nCOMMENT: About the tune.\r\n(#2)\r\n  TITLE: A cover\r\n")
+  end
+
   def songlengths(line)
     File.join(dir, "Songlengths.md5").tap { |path| File.write(path, "[Database]\n#{line}\n") }
   end
@@ -200,6 +206,17 @@ describe Badline::Audio::CLI do
       expect(out.string).to include("Playing 0.05s on the 6581 at 8000 Hz", "Done.")
     end
 
+    context "with the tune in HVSC's STIL" do
+      let(:arguments) { ["--seconds", "0.05", "-s", "2"] }
+
+      before { stil }
+
+      it "prints its entry and the song's" do
+        cli.run
+        expect(out.string).to include("COMMENT: About the tune.\n(#2)\n  TITLE: A cover\n")
+      end
+    end
+
     context "with a rate asked for" do
       let(:arguments) { ["--seconds", "0.05", "--rate", "22050"] }
 
@@ -299,6 +316,22 @@ describe Badline::Audio::CLI do
       it "plays each song from the start song on" do
         cli.run
         expect(device.played).to eq(800)
+      end
+    end
+
+    context "with the tune in HVSC's STIL" do
+      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--all-songs", tune_path]) }
+
+      before { stil }
+
+      it "puts the tune's entry in the header" do
+        cli.run
+        expect(console.headers.first.last).to eq("COMMENT: About the tune.")
+      end
+
+      it "announces each song's entry as it starts" do
+        cli.run
+        expect(console.announcements).to eq([["(#2)", "  TITLE: A cover"]])
       end
     end
 

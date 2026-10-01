@@ -12,32 +12,9 @@ module Badline
     # The file runs to well over a hundred thousand entries, so a lookup
     # scans for its one key rather than building a table.
     class SongLengths
-      class << self
-        # The database lives in the DOCUMENTS directory of an HVSC
-        # collection, so look for one above the tune, then wherever
-        # `$HVSC_BASE` points.
-        def locate(tune_path)
-          candidates(tune_path).find { |path| File.file?(path) }
-        end
-
-        private
-
-        def candidates(tune_path)
-          ancestors(File.dirname(File.expand_path(tune_path)))
-            .push(ENV.fetch("HVSC_BASE", nil))
-            .compact
-            .map { |dir| File.join(dir, "DOCUMENTS", "Songlengths.md5") }
-        end
-
-        def ancestors(dir)
-          dirs = []
-          until dirs.last == dir
-            dirs << dir
-            dir = File.dirname(dir)
-          end
-          dirs
-        end
-      end
+      # The database lives in the DOCUMENTS directory of an HVSC
+      # collection.
+      def self.locate(tune_path) = HVSC.document(tune_path, "Songlengths.md5")
 
       def initialize(path)
         @path = path

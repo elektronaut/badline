@@ -288,6 +288,11 @@ output holds within 16 steps of one level, since a 6581 idles at a DC
 offset rather than at zero. A song with a known length plays to its
 length whatever it sounds like.
 
+A tune in an HVSC collection also gets its entry in HVSC's `STIL.txt`,
+found the same way: comments, covers, and subtune names and composers.
+The tune's own fields follow its header, and each song's print as it
+starts.
+
 PSID tunes run on a CPU and RAM with only the SID clocked, at about
 twice real time, so they play smoothly. RSID tunes set up their own
 interrupts, so they boot a full C64 first and run at about half real

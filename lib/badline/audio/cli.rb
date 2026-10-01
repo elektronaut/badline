@@ -35,6 +35,7 @@ module Badline
         @console = console
         @announced = nil
         @terminal = nil
+        @stil_lists = {}
       end
 
       def run
@@ -120,6 +121,7 @@ module Badline
         return skip(entry) unless entry.error.empty?
 
         announce(entry, song)
+        song_comments(entry, song).each { |line| @out.puts line }
         length = entry.length(song)
         @out.puts "Playing #{length}s on the #{entry.model_name} at #{sink.rate} Hz. Ctrl-C stops."
         playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
@@ -142,7 +144,7 @@ module Badline
 
         @announced&.release
         @announced = entry
-        entry.notices.each { |line| @out.puts line }
+        (entry.notices + comments(entry)).each { |line| @out.puts line }
       end
 
       def play_interactively(sink)
@@ -156,7 +158,11 @@ module Badline
       # The renderer for the song, or nil for a tune the jukebox skips.
       def playable(entry, song, rate)
         introduce(entry, rate) unless entry.equal?(@announced)
-        entry.error.empty? ? renderer(entry, song, rate) : nil
+        return nil unless entry.error.empty?
+
+        comments = song_comments(entry, song)
+        @terminal.announce(comments) unless comments.empty?
+        renderer(entry, song, rate)
       end
 
       # Shows the tune's header above the status line as it starts, below
@@ -171,7 +177,7 @@ module Badline
       def introduction(entry, rate)
         return ["Skipping #{entry.path}: #{entry.error}"] unless entry.error.empty?
 
-        entry.header + ["#{entry.model_name} at #{rate} Hz"] + entry.notices
+        entry.header + ["#{entry.model_name} at #{rate} Hz"] + entry.notices + comments(entry)
       end
 
       def open_sink
@@ -183,6 +189,24 @@ module Badline
       def describe(entry, song)
         header = entry.header.join(" / ")
         header.empty? ? "song #{song}" : "#{header} (song #{song})"
+      end
+
+      # The tune's entry in HVSC's STIL, as STIL.txt lays it out.
+      def comments(entry)
+        found = stil(entry)
+        found ? found.fields.flat_map(&:lines) : []
+      end
+
+      def song_comments(entry, song)
+        found = stil(entry)
+        lines = found ? found.subtune(song).flat_map(&:lines) : []
+        lines.empty? ? lines : ["(##{song})"] + lines
+      end
+
+      def stil(entry)
+        list = Storage::STIL.locate(entry.path)
+        hvsc_path = list && Storage::HVSC.path(entry.path, list)
+        hvsc_path && (@stil_lists[list] ||= Storage::STIL.new(list)).entry(hvsc_path)
       end
 
       def progress(done, total)
