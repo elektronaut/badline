@@ -374,4 +374,13 @@ describe Badline::Audio::Jukebox do
       end
     end
   end
+
+  context "with an empty queue" do
+    let(:queue) { Badline::Media::Queue.new([]) }
+    let(:script) { { 3 => [:quit] } }
+
+    it "waits on the console until asked to quit" do
+      expect([jukebox.run, sink.played]).to eq([:stopped, 0])
+    end
+  end
 end
