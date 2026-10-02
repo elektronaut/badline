@@ -35,7 +35,8 @@ module Badline
 
       # Where #stream starts: the frames before it are rendered as fast as
       # they go and yielded without their samples, so the seconds rendered
-      # still count up to it.
+      # still count up to it. Set while streaming, it skips ahead from the
+      # frame rendered last.
       attr_writer :from
 
       def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_models: tune.sid_models)
@@ -103,13 +104,12 @@ module Badline
         player.stereo.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
         total = total_cycles
         remaining = total
-        skipped = (@from * player.clock_hz).round
         while remaining.positive?
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
           @rendered = (total - remaining).fdiv(player.clock_hz)
           @observer.call(samples, @rendered)
-          yield(total - remaining < skipped ? [] : samples, @rendered)
+          yield(@rendered < @from ? [] : samples, @rendered)
           break if fallen_silent?(samples)
         end
       end
