@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.7.0](https://github.com/elektronaut/badline/compare/v0.6.1...v0.7.0) (2026-10-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* call a .sid tune's parts subtunes everywhere
+
+### Features
+
+* add a badline sid subcommand that plays tunes and directories ([7dfc21b](https://github.com/elektronaut/badline/commit/7dfc21b5e4ba47cd37a4593da61e95bb1d2329ab))
+* drop .sid files and folders on the SID player to queue them ([cc1f434](https://github.com/elektronaut/badline/commit/cc1f434b7404ded067ef43d1d3d5aa53d338de4c))
+* end a subtune with no known length when it falls silent ([46c4f10](https://github.com/elektronaut/badline/commit/46c4f1064f6382872ec22989253bc9c159f78dcf))
+* open a .sid tune, or no tune at all, in the SID player ([396c010](https://github.com/elektronaut/badline/commit/396c010ee626f95fbb71ced8bf3905909c470c8e))
+* play 2SID and 3SID tunes in stereo in the SID player ([7c72eef](https://github.com/elektronaut/badline/commit/7c72eeff7e5e7b1c56286f9bf6030ae3408f7176))
+* play a queue of tunes, with shuffle, loop and play-all subtunes ([d163106](https://github.com/elektronaut/badline/commit/d163106eea99d90f6ffe74fb91474a2aca4c64eb))
+* play sid tunes in a window that shows what the SID is doing ([60bfd3f](https://github.com/elektronaut/badline/commit/60bfd3f75fe82d928afa374d257d3d21e5ac29ad))
+* seek forward from where the subtune is, not from its start ([34059e8](https://github.com/elektronaut/badline/commit/34059e8f9b12cab44c94124e6455fef9c915d8eb))
+* seek within a subtune, and let the slow warning lapse ([b98ac6e](https://github.com/elektronaut/badline/commit/b98ac6eb6f9c0ce088545f55cc5f2445dd38dd2d))
+* show a tune's STIL entry in the SID player ([82d9dca](https://github.com/elektronaut/badline/commit/82d9dca26d7cefe853a6af41e50fc723a3e90170))
+* show each voice's live output in the SID view ([c61a128](https://github.com/elektronaut/badline/commit/c61a1289983887c0175fca3dc4c37b470e96de92))
+* show HVSC's STIL in the SID player ([bd55c0c](https://github.com/elektronaut/badline/commit/bd55c0c87695ba8cc84dbfd51ab2119a97eccded))
+* show where a seek is headed on the SID player's bar ([1a84b37](https://github.com/elektronaut/badline/commit/1a84b3746a960dba28dc9c789b3d2cd1520d2f94))
+* step subtunes and tunes on separate keys, add --all-subtunes ([eaef338](https://github.com/elektronaut/badline/commit/eaef3384e6205163e2a4b63f5aa8d9204fe5190f))
+* switch a SID between the 6581 and 8580 while it runs ([5920391](https://github.com/elektronaut/badline/commit/592039123d7936b8d22c8fd5f144a9bc9a8f383b))
+
+
+### Bug Fixes
+
+* build the native badline with a Spinel that keeps an array joined mid-expression alive ([d2c4eb2](https://github.com/elektronaut/badline/commit/d2c4eb20d6b80494fb2a20105c0532f3778b205c))
+* build the native badline with a Spinel that reports render progress ([58524ea](https://github.com/elektronaut/badline/commit/58524eaf4881661e7e0e9dd38c32071545bf1fae))
+* show non-ASCII text from a .sid header in the native badline ([959bb6f](https://github.com/elektronaut/badline/commit/959bb6f7d07de4c90ac50ae51ae63f3c66601a78))
+
+
+### Performance Improvements
+
+* draw the SID player's traces in one call each ([afcae15](https://github.com/elektronaut/badline/commit/afcae15ed273aa7a6dd49cb31e0f7180c56feb75))
+
 ## [0.6.1](https://github.com/elektronaut/badline/compare/v0.6.0...v0.6.1) (2026-09-30)
 
 
