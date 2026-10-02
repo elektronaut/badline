@@ -47,9 +47,13 @@ module Badline
       # The tunes to play, in the order given. --subtune picks the first
       # one's subtune.
       def queue
-        @queue ||= Media::Queue.new(entries, all_parts: @options.all_subtunes?).tap do |queue|
+        @queue ||= begin
           paths = @options.tune_paths
+          queue = Media::Queue.new(entries(paths, @options.subtune), all_parts: @options.all_subtunes?,
+                                                                     build: ->(dropped) { entries(dropped) })
           raise Error, "no .sid tunes in #{paths.join(', ')}" if queue.empty? && !paths.empty?
+
+          queue
         end
       end
 
@@ -69,10 +73,12 @@ module Badline
 
       private
 
-      def entries
+      # The tunes in the paths, the files themselves and the .sid files
+      # below the directories, the first starting on `subtune` if given.
+      def entries(paths, subtune = nil)
         tunes = []
-        Media::Queue.files(@options.tune_paths, ".sid").each do |path|
-          tunes << QueuedTune.new(path, @options, subtune: tunes.empty? ? @options.subtune : nil)
+        Media::Queue.files(paths, ".sid").each do |path|
+          tunes << QueuedTune.new(path, @options, subtune: tunes.empty? ? subtune : nil)
         end
         tunes
       end

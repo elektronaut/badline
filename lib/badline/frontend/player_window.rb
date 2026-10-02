@@ -21,6 +21,8 @@ module Badline
       TITLE = "Badline"
       FRAME = 1.0 / 50
 
+      DROPFILE = 0x1000
+
       BACKGROUND = Screen::COLORS[6]
       WARNING = Screen::COLORS[10]
 
@@ -49,9 +51,17 @@ module Badline
         @own_model = :mos6581
         @next_draw = 0.0
         @seek_to = 0.0
+        @dropped = []
       end
 
       attr_reader :seek_to
+
+      # The files dropped on the window since it last said :drop.
+      def dropped
+        paths = @dropped
+        @dropped = []
+        paths
+      end
 
       def session
         open_window
@@ -148,9 +158,17 @@ module Badline
           when SDL::KEYDOWN then key(SDL.event_scancode(SDL.event), actions) if SDL.event_repeat(SDL.event).zero?
           when SDL::MOUSEMOTION then @buttons&.point(SDL.event_x(SDL.event), SDL.event_y(SDL.event))
           when SDL::MOUSEBUTTONDOWN then click(actions) if SDL.event_button(SDL.event) == 1
+          when DROPFILE then drop(actions)
           end
         end
         actions
+      end
+
+      def drop(actions)
+        file = SDL.event_file(SDL.event)
+        @dropped << LibC.strstr(file, "")
+        LibC.free(file)
+        actions << :drop unless actions.include?(:drop)
       end
 
       def key(scancode, actions)
@@ -210,7 +228,7 @@ module Badline
       end
 
       def draw_body
-        return if @player.nil?
+        return draw_empty if @player.nil?
 
         played = @state.played
         if @state.view.zero?
@@ -218,6 +236,12 @@ module Badline
         else
           @sid_view.draw(@history, played, clock_hz: @player.clock_hz, model: @player.sid.model)
         end
+      end
+
+      def draw_empty
+        hint = "Drop .sid files or folders here"
+        @painter.text((WIDTH - Painter.width(hint, scale: 2)) / 2, HEADER + (body_height / 2) - 8, hint,
+                      SIDView::TEXT, scale: 2)
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

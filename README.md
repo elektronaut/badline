@@ -245,7 +245,9 @@ badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slo
 window, in the order given, and a directory adds every `.sid` tune below
 it in path order. `badline sid --headless` plays the queue in the
 terminal instead. `badline sid` on its own opens the window with an
-empty queue. It takes
+empty queue. Dropping `.sid` files or folders on the window adds them
+to the end of the queue, and an empty queue starts playing them. It
+takes
 the options below except `--audio-out`, and `--subtune` picks the first
 tune's subtune. `--sid auto`, the default, fits each tune the SID
 its header names. A tune written for 2 or 3 SIDs plays on the one SID

@@ -28,8 +28,10 @@ module Badline
         x += @buttons.icon(x, row, :previous, :previous, scale: 2) + 4
         x += @buttons.icon(x, row, state.paused? ? :play : :pause, :pause, scale: 2) + 4
         x += @buttons.icon(x, row, :next, :next, scale: 2) + 8
-        x += @painter.text(x, row + 6, "TUNE #{state.tune}/#{state.tunes}", SIDView::BRIGHT) + 24
-        draw_subtunes(state, x, row + 4)
+        unless state.tunes.zero?
+          x += @painter.text(x, row + 6, "TUNE #{state.tune}/#{state.tunes}", SIDView::BRIGHT) + 24
+          draw_subtunes(state, x, row + 4)
+        end
         draw_toggles(state, row + 4)
       end
 

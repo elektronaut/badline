@@ -73,6 +73,8 @@ module Badline
     # Where the pointer is, in a motion or button event.
     ffi_read_i32 :event_x, 20
     ffi_read_i32 :event_y, 24
+    # SDL_DropEvent's file, which the receiver frees.
+    ffi_read_ptr :event_file, 8
 
     ffi_buffer :rect, 16
     ffi_write_i32 :rect_x, 0
@@ -81,9 +83,8 @@ module Badline
     ffi_write_i32 :rect_h, 12
     # Where the drive LED goes.
     ffi_buffer :led_rect, 16
-    # A glyph's place in the SID player's font and on its window.
+    # A glyph's place in the SID player's font, drawn at SDL.rect.
     ffi_buffer :glyph_rect, 16
-    ffi_buffer :place_rect, 16
 
     # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
     ffi_buffer :display_mode, 24
@@ -134,6 +135,9 @@ module Badline
     ffi_func :malloc, [:size_t], :ptr
     ffi_func :free, [:ptr], :void
     ffi_func :poll, %i[ptr size_t int], :int
+    # Called with an empty needle, it returns the C string it's given as a
+    # String.
+    ffi_func :strstr, %i[ptr str], :str
 
     ffi_const :POLLIN, 0x01
 

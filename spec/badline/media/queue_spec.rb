@@ -207,4 +207,34 @@ describe Badline::Media::Queue do
       expect(queue.toggle_shuffle).to be(true)
     end
   end
+
+  describe "#add" do
+    subject(:queue) { described_class.new(entries, build:) }
+
+    let(:build) { ->(paths) { paths.map { |path| described_class::Entry.new(path, part: 2, parts: 3) } } }
+
+    it "puts the entries made of the paths at the end" do
+      queue.add(%w[d.sid e.sid])
+      3.times { queue.next_entry }
+      expect([queue.size, queue.entry.path, queue.next_entry.path]).to eq([5, "d.sid", "e.sid"])
+    end
+
+    context "with an empty queue" do
+      let(:entries) { [] }
+
+      it "starts on the first entry added, on its own part" do
+        queue.add(%w[d.sid])
+        expect([queue.position, queue.entry.path, queue.part]).to eq([1, "d.sid", 2])
+      end
+    end
+
+    context "without a way to build entries" do
+      subject(:queue) { described_class.new(entries) }
+
+      it "ignores the paths" do
+        queue.add(%w[d.sid])
+        expect(queue.size).to eq(3)
+      end
+    end
+  end
 end

@@ -60,7 +60,7 @@ module Badline
 
       def box(left, top, width, height, rgb)
         @size = 0
-        rect = SDL.place_rect
+        rect = SDL.rect
         SDL.rect_x(rect, left)
         SDL.rect_y(rect, top)
         SDL.rect_w(rect, width)
@@ -115,7 +115,7 @@ module Badline
 
       # Sets the row and size glyphs go at, which a run of text shares.
       def place(top, size)
-        to = SDL.place_rect
+        to = SDL.rect
         SDL.rect_y(to, top)
         return if size == @size
 
@@ -128,7 +128,7 @@ module Badline
         from = SDL.glyph_rect
         SDL.rect_x(from, (code % 16) * GLYPH)
         SDL.rect_y(from, (code / 16) * GLYPH)
-        to = SDL.place_rect
+        to = SDL.rect
         SDL.rect_x(to, left)
         SDL.SDL_RenderCopy(@renderer, @font, from, to)
       end
