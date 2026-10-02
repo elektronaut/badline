@@ -55,9 +55,9 @@ module Badline
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
         terminal, → and ← step between the tune's subtunes, n and p between
-        tunes, , and . seek 10 seconds back and forward, space pauses and q
-        quits. s shuffles the tunes, l loops them, and a, or --all-subtunes,
-        plays on through each tune's subtunes instead of just the one. `#{@program} sid` plays many tunes, and whole
+        tunes, , and . seek, space pauses and q quits. s shuffles the tunes,
+        l loops them, and a, or --all-subtunes, plays on through each tune's
+        subtunes instead of just the one. `#{@program} sid` plays many tunes, and whole
         directories of them, the same way.
 
         A .sid file carries no length of its own. Without --seconds the tune is
@@ -84,13 +84,17 @@ module Badline
       <<~BANNER
         Usage: #{@program} sid [options] FILE|DIR...
 
-        Plays .sid tunes in the terminal, one after another in the order
-        given. A directory adds every .sid tune below it, in path order.
-        → and ← step between a tune's subtunes, n and p between tunes, , and
-        . seek 10 seconds back and forward, space pauses and q quits. s
-        shuffles the tunes, l loops them, and a, or --all-subtunes, plays on
-        through each tune's subtunes instead of just the one. --subtune picks
-        the first tune's subtune, and each tune after it starts on its own.
+        Plays .sid tunes in the SID player's window, or in the terminal with
+        --headless, one after another in the order given. A directory adds
+        every .sid tune below it, in path order. → and ← step between a
+        tune's subtunes, n and p between tunes, , and . seek 10 seconds back
+        and forward, space pauses and q quits. s shuffles the tunes, l loops
+        them, and a, or --all-subtunes, plays on through each tune's subtunes
+        instead of just the one. The window has buttons for all of these,
+        and for switching the SID between the tune's own, the 6581 and the
+        8580.
+        --subtune picks the first tune's subtune, and each tune after it starts on
+        its own.
 
         Each tune gets the SID its header names unless --sid says otherwise,
         and its length from HVSC's Songlengths.md5 as #{@program} --help

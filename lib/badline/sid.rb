@@ -67,6 +67,7 @@ module Badline
       @deferred_writes = []
       @decimator = nil
       @samples = []
+      @voice_samples = nil
       @filter_chunk = filter_chunk
       @voices = Voice.linked(VOICES, model:)
       @voice1, @voice2, @voice3 = @voices
@@ -122,6 +123,23 @@ module Badline
       @filter_chunk = filter_chunk
       @decimator = Decimator.new(clock_hz:, rate:)
       @samples = []
+    end
+
+    # Also keeps each voice's own output, before the filter and the volume,
+    # as each recorded sample closes, for #drain_voice_samples.
+    def record_voices!
+      @voice_samples = [] if @voice_samples.nil?
+    end
+
+    # The voices' outputs since the last drain, three to a sample, in voice
+    # order, or nothing unless #record_voices! asked for them.
+    def drain_voice_samples
+      return [] if @voice_samples.nil?
+
+      catch_up
+      samples = @voice_samples
+      @voice_samples = []
+      samples
     end
 
     # The samples recorded since the last drain.

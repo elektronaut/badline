@@ -26,7 +26,11 @@ module Badline
 
       # The seconds rendered so far, short of the length once the tune has
       # fallen silent.
-      attr_reader :rendered
+      attr_reader :rendered, :tune, :rate
+
+      # Hears each frame's samples and the seconds rendered by its end, as
+      # they are rendered.
+      attr_writer :observer
 
       # Where #stream starts: the frames before it are rendered as fast as
       # they go and yielded without their samples, so the seconds rendered
@@ -44,6 +48,7 @@ module Badline
         @level = 0
         @still = 0
         @rendered = 0.0
+        @observer = ->(_samples, _rendered) {}
         @from = 0.0
       end
 
@@ -102,6 +107,7 @@ module Badline
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
           @rendered = (total - remaining).fdiv(player.clock_hz)
+          @observer.call(samples, @rendered)
           yield(total - remaining < skipped ? [] : samples, @rendered)
           break if fallen_silent?(samples)
         end

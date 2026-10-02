@@ -270,8 +270,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 
 `--headless` plays a `.sid` tune on the host's audio device,
 `--audio-out FILE` renders it to a `.wav` or `.aiff` file, and
-`badline sid FILE|DIR...` plays a queue of tunes and directories of
-them, as `badline-ruby --headless`, `--audio-out` and `sid` do (see
+`badline sid --headless FILE|DIR...` plays a queue of tunes and
+directories of them, as `badline-ruby --headless`, `--audio-out` and `sid` do (see
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
 They take the same options: `--subtune`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-subtunes`
@@ -293,7 +293,7 @@ Ctrl-C into `Interrupt`, which stops the tune as in badline-ruby.
 
 ```sh
 tmp/native/badline --headless tune.sid
-tmp/native/badline sid ~/C64Music/MUSICIANS/H/Hubbard_Rob
+tmp/native/badline sid --headless ~/C64Music/MUSICIANS/H/Hubbard_Rob
 tmp/native/badline --seconds 180 tune.sid --audio-out out.wav
 ```
 

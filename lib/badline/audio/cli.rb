@@ -64,7 +64,7 @@ module Badline
 
       def sid_model = queue.entry.sid_model
 
-      def interactive? = @options.tui? && @input.tty? && @out.tty?
+      def interactive? = @options.player_window? || (@options.tui? && @input.tty? && @out.tty?)
 
       private
 
@@ -170,7 +170,9 @@ module Badline
 
         comments = subtune_comments(entry, subtune)
         @terminal.announce(comments) unless comments.empty?
-        renderer(entry, subtune, rate)
+        renderer = renderer(entry, subtune, rate)
+        @terminal.playing(renderer)
+        renderer
       end
 
       # Shows the tune's header above the status line as it starts, below

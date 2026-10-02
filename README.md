@@ -241,11 +241,12 @@ badline-ruby --headless --sid 8580 tune.sid
 badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slower
 ```
 
-`badline sid FILE|DIR...` plays a queue of tunes in the terminal, in
-the order given, and a directory adds every `.sid` tune below it in path
-order. `badline sid` on its own prints its usage. It takes the options
-below except `--headless` and `--audio-out`, and `--subtune` picks the
-first tune's subtune. `--sid auto`, the default, fits each tune the SID
+`badline sid FILE|DIR...` plays a queue of tunes in the SID player's
+window, in the order given, and a directory adds every `.sid` tune below
+it in path order. `badline sid --headless` plays the queue in the
+terminal instead. `badline sid` on its own prints its usage. It takes
+the options below except `--audio-out`, and `--subtune` picks the first
+tune's subtune. `--sid auto`, the default, fits each tune the SID
 its header names. A tune written for 2 or 3 SIDs plays on the one SID
 badline emulates, with a notice saying so, and a file that isn't a
 tune is skipped. `badline tune.sid` still plays the tune in the window.
@@ -271,10 +272,26 @@ first and last. `n` and `p` step to the next and previous tune. `s`
 turns shuffle on and off, which plays the queue's tunes in a random
 order, and `l` turns looping on and off, so that the end of the queue
 goes on to its start. `,` and `.` seek 10 seconds back and forward
-within the subtune, which plays it again from its start and runs
-silently up to the point asked for. Space pauses and `q` quits. The
-status line shows which modes are on, and they last until the player
-quits.
+within the subtune, which plays it again from its start and runs silently
+up to the point asked for. Space pauses and `q` quits. The status line
+shows which modes are on, and they last until the player quits.
+
+![The SID player's visualizer playing Rob Hubbard's Delta](doc/images/sid-player.png)
+
+The SID player's window is worked with the mouse. Its header shows the
+tune's name, author and release, and buttons that switch between two
+views and between the tune's own SID model, the 6581 and the 8580, which
+changes the chip playing on the spot. Its footer shows the time played
+on a bar you can click to seek, and buttons that pause, step between
+tunes and between a tune's subtunes, and turn shuffle, looping and all
+subtunes on and off. The visualizer view shows each voice's note, and how
+far off it is in cents, over a scope of the voice's output, and the
+mixed output below them. The SID view shows each voice's waveforms and
+the shape they make, its control bits, pulse width, envelope settings,
+and the envelope's level and stage, and the filter's modes, cutoff,
+resonance, volume and its response on the chip playing. The terminal's
+keys work in the window too, along with Tab to switch views and `c` to
+step through the SID models.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress
 output instead and plays through the queue without the keys, while
