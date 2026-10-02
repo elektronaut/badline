@@ -5,7 +5,7 @@ module Badline
     # An ordered list of media files to go through one at a time, such as
     # the tunes of a player. Each entry is a file and the part of it to
     # start on, counting from 1, out of the parts the file holds: a .sid
-    # tune's songs, say, or 1 of 1 for media with no parts.
+    # tune's subtunes, say, or 1 of 1 for media with no parts.
     #
     # #next_entry and #previous_entry step through the entries, and
     # #next_part and #previous_part through the current entry's parts,

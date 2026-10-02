@@ -3,7 +3,7 @@
 module Badline
   module Audio
     # Runs `--headless`, `--audio-out` or `sid`, in either build, once its
-    # options have parsed: queues the tunes, each with its song and length,
+    # options have parsed: queues the tunes, each with its subtune and length,
     # then plays them or renders the one to a file. Played on a terminal,
     # the console lets the listener step through the queue.
     class CLI
@@ -44,23 +44,23 @@ module Badline
         raise Error, e.message
       end
 
-      # The tunes to play, in the order given. --song picks the first
-      # one's song.
+      # The tunes to play, in the order given. --subtune picks the first
+      # one's subtune.
       def queue
-        @queue ||= Media::Queue.new(entries, all_parts: @options.all_songs?).tap do |queue|
+        @queue ||= Media::Queue.new(entries, all_parts: @options.all_subtunes?).tap do |queue|
           raise Error, "no .sid tunes in #{@options.tune_paths.join(', ')}" if queue.empty?
         end
       end
 
       def tune = checked(queue.entry).tune
 
-      def song = checked(queue.entry).part
+      def subtune = checked(queue.entry).part
 
-      def seconds = length(song)
+      def seconds = length(subtune)
 
-      def length(song) = queue.entry.length(song)
+      def length(subtune) = queue.entry.length(subtune)
 
-      def silence(song) = queue.entry.silence(song)
+      def silence(subtune) = queue.entry.silence(subtune)
 
       def sid_model = queue.entry.sid_model
 
@@ -71,7 +71,7 @@ module Badline
       def entries
         tunes = []
         Media::Queue.files(@options.tune_paths, ".sid").each do |path|
-          tunes << QueuedTune.new(path, @options, song: tunes.empty? ? @options.song : nil)
+          tunes << QueuedTune.new(path, @options, subtune: tunes.empty? ? @options.subtune : nil)
         end
         tunes
       end
@@ -83,17 +83,17 @@ module Badline
         entry
       end
 
-      def renderer(entry, song, rate)
-        renderer = Renderer.new(entry.tune, seconds: entry.length(song), song:, rate:, sid_model: entry.sid_model)
+      def renderer(entry, subtune, rate)
+        renderer = Renderer.new(entry.tune, seconds: entry.length(subtune), subtune:, rate:, sid_model: entry.sid_model)
         renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
-        renderer.silence = entry.silence(song) if entry.silence(song)
+        renderer.silence = entry.silence(subtune) if entry.silence(subtune)
         renderer
       end
 
       def render
         entry = checked(queue.entry)
-        renderer = renderer(entry, song, @options.rate)
-        @out.puts describe(entry, song)
+        renderer = renderer(entry, subtune, @options.rate)
+        @out.puts describe(entry, subtune)
         entry.notices.each { |line| @out.puts line }
         @out.puts "Rendering #{seconds}s for the #{entry.model_name} to #{@options.audio_out} " \
                   "at #{@options.rate} Hz..."
@@ -112,20 +112,20 @@ module Badline
 
       def play_plainly(sink)
         loop do
-          result = play_song(sink, queue.entry, queue.part)
+          result = play_subtune(sink, queue.entry, queue.part)
           break unless %i[finished skipped].include?(result) && queue.advance
         end
       end
 
-      def play_song(sink, entry, song)
+      def play_subtune(sink, entry, subtune)
         return skip(entry) unless entry.error.empty?
 
-        announce(entry, song)
-        song_comments(entry, song).each { |line| @out.puts line }
-        length = entry.length(song)
+        announce(entry, subtune)
+        subtune_comments(entry, subtune).each { |line| @out.puts line }
+        length = entry.length(subtune)
         @out.puts "Playing #{length}s on the #{entry.model_name} at #{sink.rate} Hz. Ctrl-C stops."
         playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
-        renderer = renderer(entry, song, sink.rate)
+        renderer = renderer(entry, subtune, sink.rate)
         result = playback.play(renderer) { |played| progress(played, length) }
         progress(renderer.rendered, length) if result == :finished
         @out.print "\n" unless @options.quiet?
@@ -138,8 +138,8 @@ module Badline
         :skipped
       end
 
-      def announce(entry, song)
-        @out.puts describe(entry, song)
+      def announce(entry, subtune)
+        @out.puts describe(entry, subtune)
         return if entry.equal?(@announced)
 
         @announced&.release
@@ -150,19 +150,19 @@ module Badline
       def play_interactively(sink)
         @terminal = @console.call(input: @input, output: @out)
         jukebox = Jukebox.new(sink, @terminal, queue:,
-                                               renderer: ->(entry, song, rate) { playable(entry, song, rate) },
-                                               length: ->(entry, song) { entry.length(song) })
+                                               renderer: ->(entry, subtune, rate) { playable(entry, subtune, rate) },
+                                               length: ->(entry, subtune) { entry.length(subtune) })
         @terminal.session { jukebox.run }
       end
 
-      # The renderer for the song, or nil for a tune the jukebox skips.
-      def playable(entry, song, rate)
+      # The renderer for the subtune, or nil for a tune the jukebox skips.
+      def playable(entry, subtune, rate)
         introduce(entry, rate) unless entry.equal?(@announced)
         return nil unless entry.error.empty?
 
-        comments = song_comments(entry, song)
+        comments = subtune_comments(entry, subtune)
         @terminal.announce(comments) unless comments.empty?
-        renderer(entry, song, rate)
+        renderer(entry, subtune, rate)
       end
 
       # Shows the tune's header above the status line as it starts, below
@@ -186,9 +186,9 @@ module Badline
         raise Error, "can't open the audio device: #{e.message}"
       end
 
-      def describe(entry, song)
+      def describe(entry, subtune)
         header = entry.header.join(" / ")
-        header.empty? ? "song #{song}" : "#{header} (song #{song})"
+        header.empty? ? "subtune #{subtune}" : "#{header} (subtune #{subtune})"
       end
 
       # The tune's entry in HVSC's STIL, as STIL.txt lays it out.
@@ -197,10 +197,10 @@ module Badline
         found ? found.fields.flat_map(&:lines) : []
       end
 
-      def song_comments(entry, song)
+      def subtune_comments(entry, subtune)
         found = stil(entry)
-        lines = found ? found.subtune(song).flat_map(&:lines) : []
-        lines.empty? ? lines : ["(##{song})"] + lines
+        lines = found ? found.subtune(subtune).flat_map(&:lines) : []
+        lines.empty? ? lines : ["(##{subtune})"] + lines
       end
 
       def stil(entry)

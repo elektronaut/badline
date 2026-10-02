@@ -17,10 +17,10 @@ describe Badline::Audio::Console do
 
   describe "#wait" do
     {
-      "n" => :next, "\e[C" => :next_song,
-      "p" => :previous, "\e[D" => :previous_song,
+      "n" => :next, "\e[C" => :next_subtune,
+      "p" => :previous, "\e[D" => :previous_subtune,
       " " => :pause, "s" => :shuffle, "l" => :loop,
-      "a" => :all_songs, "q" => :quit
+      "a" => :all_subtunes, "q" => :quit
     }.each do |key, action|
       it "reads #{key.inspect} as #{action}" do
         press(key)
@@ -30,7 +30,7 @@ describe Badline::Audio::Console do
 
     it "reads every key waiting, in order" do
       press("n p\e[Cq")
-      expect(console.wait(0)).to eq(%i[next pause previous next_song quit])
+      expect(console.wait(0)).to eq(%i[next pause previous next_subtune quit])
     end
 
     it "ignores keys it has no use for" do
@@ -55,19 +55,19 @@ describe Badline::Audio::Console do
 
   describe "#status" do
     it "redraws the line in place" do
-      console.status(song: 3, songs: 12, elapsed: 75.4, length: 185.0)
-      expect(output.string).to eq("\r\e[Ksong 3/12  1:15 / 3:05")
+      console.status(subtune: 3, subtunes: 12, elapsed: 75.4, length: 185.0)
+      expect(output.string).to eq("\r\e[Ksubtune 3/12  1:15 / 3:05")
     end
 
     it "appends its notes" do
-      console.status(song: 1, songs: 1, elapsed: 0, length: 60, notes: ["paused"])
+      console.status(subtune: 1, subtunes: 1, elapsed: 0, length: 60, notes: ["paused"])
       expect(output.string).to end_with("0:00 / 1:00  paused")
     end
 
     it "leads with the tune's place in a queue of several" do
       console.place(2, 5)
-      console.status(song: 1, songs: 3, elapsed: 0, length: 60)
-      expect(output.string).to eq("\r\e[Ktune 2/5  song 1/3  0:00 / 1:00")
+      console.status(subtune: 1, subtunes: 3, elapsed: 0, length: 60)
+      expect(output.string).to eq("\r\e[Ktune 2/5  subtune 1/3  0:00 / 1:00")
     end
   end
 
@@ -81,7 +81,7 @@ describe Badline::Audio::Console do
   describe "#header" do
     it "prints each line, then the keys" do
       console.header(%w[Tune Author])
-      keys = "←/→ song  n/p tune  space pause  s shuffle  l loop  a all songs  q quit"
+      keys = "←/→ subtune  n/p tune  space pause  s shuffle  l loop  a all subtunes  q quit"
       expect(output.string).to eq("Tune\r\nAuthor\r\n#{keys}\r\n")
     end
   end

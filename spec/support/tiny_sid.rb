@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# A two-song .sid built from a few bytes of 6502. init sets up a triangle
-# voice but gates it only when the song index is non-zero, so the rendered
+# A two-subtune .sid built from a few bytes of 6502. init sets up a triangle
+# voice but gates it only when the subtune index is non-zero, so the rendered
 # audio says which subtune ran. play is an RTS.
 module TinySID
   module_function
@@ -24,7 +24,7 @@ module TinySID
 
   def header(signature, load_address, play, flags)
     fields = { version: 2, data_offset: 0x7c, load: load_address,
-               init: load_address, play:, songs: 2, start_song: 1 }
+               init: load_address, play:, subtunes: 2, start_subtune: 1 }
     words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
     signature.bytes + words + ([0] * 4) + texts +
       [0x00, flags, 0x00, 0x01, 0x00, 0x00]

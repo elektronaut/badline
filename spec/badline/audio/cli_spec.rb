@@ -45,24 +45,24 @@ describe Badline::Audio::CLI do
     File.join(dir, "Songlengths.md5").tap { |path| File.write(path, "[Database]\n#{line}\n") }
   end
 
-  describe "#song" do
-    it "defaults to the tune's start song" do
-      expect(cli.song).to eq(1)
+  describe "#subtune" do
+    it "defaults to the tune's start subtune" do
+      expect(cli.subtune).to eq(1)
     end
 
-    context "with a song selected" do
+    context "with a subtune selected" do
       let(:arguments) { ["-s", "2"] }
 
       it "takes it" do
-        expect(cli.song).to eq(2)
+        expect(cli.subtune).to eq(2)
       end
     end
 
-    context "with a song past the tune's last" do
+    context "with a subtune past the tune's last" do
       let(:arguments) { ["-s", "3"] }
 
       it "raises" do
-        expect { cli.song }.to raise_error(described_class::Error, /no song 3: the tune has 2/)
+        expect { cli.subtune }.to raise_error(described_class::Error, /no subtune 3: the tune has 2/)
       end
     end
   end
@@ -70,7 +70,7 @@ describe Badline::Audio::CLI do
   describe "#seconds" do
     let(:arguments) { ["-s", "2", "--songlengths", songlengths("#{tune.md5}=0:10 1:02.5")] }
 
-    it "looks the song up in the database" do
+    it "looks the subtune up in the database" do
       expect(cli.seconds).to eq(62.5)
     end
 
@@ -94,18 +94,18 @@ describe Badline::Audio::CLI do
   describe "#silence" do
     let(:arguments) { ["--songlengths", songlengths("#{tune.md5}=0:10")] }
 
-    it "leaves a song the database lists to its length" do
+    it "leaves a subtune the database lists to its length" do
       expect(cli.silence(1)).to be_nil
     end
 
-    it "ends a song on the fallback length after five seconds of silence" do
+    it "ends a subtune on the fallback length after five seconds of silence" do
       expect(cli.silence(2)).to eq(5.0)
     end
 
     context "with --seconds" do
       let(:arguments) { ["--seconds", "3"] }
 
-      it "leaves the song to that length" do
+      it "leaves the subtune to that length" do
         expect(cli.silence(1)).to be_nil
       end
     end
@@ -139,7 +139,7 @@ describe Badline::Audio::CLI do
     def reference = File.join(dir, "reference.wav")
 
     before do
-      renderer = Badline::Audio::Renderer.new(tune, seconds: 0.05, song: 2, rate: 8000)
+      renderer = Badline::Audio::Renderer.new(tune, seconds: 0.05, subtune: 2, rate: 8000)
       renderer.filter_chunk = 1
       renderer.render(reference)
     end
@@ -151,7 +151,7 @@ describe Badline::Audio::CLI do
 
     it "says what it renders" do
       cli.run
-      expect(out.string).to include("TUNE / AUTHOR / 1987 (song 2)", "Rendering 0.05s for the 6581")
+      expect(out.string).to include("TUNE / AUTHOR / 1987 (subtune 2)", "Rendering 0.05s for the 6581")
     end
 
     it "reports the speed" do
@@ -211,7 +211,7 @@ describe Badline::Audio::CLI do
 
       before { stil }
 
-      it "prints its entry and the song's" do
+      it "prints its entry and the subtune's" do
         cli.run
         expect(out.string).to include("COMMENT: About the tune.\n(#2)\n  TITLE: A cover\n")
       end
@@ -305,22 +305,22 @@ describe Badline::Audio::CLI do
       expect(console.built_with).to eq([input, out])
     end
 
-    it "plays the start song on it" do
+    it "plays the start subtune on it" do
       cli.run
       expect([console.headers.size, device.played]).to eq([1, 400])
     end
 
-    context "with --all-songs" do
-      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--all-songs", tune_path]) }
+    context "with --all-subtunes" do
+      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--all-subtunes", tune_path]) }
 
-      it "plays each song from the start song on" do
+      it "plays each subtune from the start subtune on" do
         cli.run
         expect(device.played).to eq(800)
       end
     end
 
     context "with the tune in HVSC's STIL" do
-      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--all-songs", tune_path]) }
+      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--all-subtunes", tune_path]) }
 
       before { stil }
 
@@ -329,16 +329,16 @@ describe Badline::Audio::CLI do
         expect(console.headers.first.last).to eq("COMMENT: About the tune.")
       end
 
-      it "announces each song's entry as it starts" do
+      it "announces each subtune's entry as it starts" do
         cli.run
         expect(console.announcements).to eq([["(#2)", "  TITLE: A cover"]])
       end
     end
 
-    context "with --song on the last song" do
-      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--song", "2", tune_path]) }
+    context "with --subtune on the last subtune" do
+      let(:options) { Badline::Options.parse(["--headless", "--seconds", "0.05", "--subtune", "2", tune_path]) }
 
-      it "plays just that song" do
+      it "plays just that subtune" do
         cli.run
         expect(device.played).to eq(400)
       end
@@ -362,7 +362,7 @@ describe Badline::Audio::CLI do
 
     it "plays each tune below a directory in turn" do
       cli.run
-      expect([device.played, out.string.scan("TUNE / AUTHOR / 1987 (song 1)").size]).to eq([800, 2])
+      expect([device.played, out.string.scan("TUNE / AUTHOR / 1987 (subtune 1)").size]).to eq([800, 2])
     end
 
     it "fits each tune's own SID" do

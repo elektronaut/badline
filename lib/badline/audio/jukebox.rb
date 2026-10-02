@@ -3,16 +3,16 @@
 module Badline
   module Audio
     # Plays a Media::Queue of tunes interactively: the console's keys step
-    # between tunes and between a tune's songs, pause, turn the queue's
-    # shuffle, loop and all-songs modes on and off, and quit, and the
-    # status line follows along. A song that plays to its end moves on as
+    # between tunes and between a tune's subtunes, pause, turn the queue's
+    # shuffle, loop and all-subtunes modes on and off, and quit, and the
+    # status line follows along. A subtune that plays to its end moves on as
     # Media::Queue#advance says. It stops at the end of the queue, on q, or
     # on Ctrl-C.
     #
-    # `renderer` builds the renderer for an entry's song at the sink's
+    # `renderer` builds the renderer for an entry's subtune at the sink's
     # rate, or returns nil for an entry that can't play, which is skipped
     # in the direction the queue was stepping. `length` gives an entry's
-    # song's length in seconds.
+    # subtune's length in seconds.
     class Jukebox
       def initialize(sink, console, queue:, renderer:, length:)
         @sink = sink
@@ -24,7 +24,7 @@ module Badline
         @below = false
       end
 
-      # Returns the result of the last song's Playback#play, or :unplayable
+      # Returns the result of the last subtune's Playback#play, or :unplayable
       # when the last entry reached couldn't play.
       def run
         skipped = 0
@@ -50,11 +50,11 @@ module Badline
         @queue.previous_entry || @queue.advance
       end
 
-      def play(entry, song)
+      def play(entry, subtune)
         @entry = entry
-        @song = song
+        @subtune = subtune
         @elapsed = 0.0
-        renderer = @renderer.call(entry, song, @sink.rate)
+        renderer = @renderer.call(entry, subtune, @sink.rate)
         return :unplayable if renderer.nil?
 
         @backward = false
@@ -74,7 +74,7 @@ module Badline
           when :pause then toggle_pause
           when :shuffle then @queue.toggle_shuffle
           when :loop then @queue.toggle_loop
-          when :all_songs then @queue.toggle_all_parts
+          when :all_subtunes then @queue.toggle_all_parts
           when :quit then quit
           else skip if step(action)
           end
@@ -87,8 +87,8 @@ module Badline
         case action
         when :next then @queue.next_entry
         when :previous then @queue.previous_entry
-        when :next_song then @queue.next_part
-        when :previous_song then @queue.previous_part
+        when :next_subtune then @queue.next_part
+        when :previous_subtune then @queue.previous_part
         end
       end
 
@@ -108,8 +108,8 @@ module Badline
 
       def draw
         @console.place(@queue.position, @queue.size)
-        @console.status(song: @song, songs: @entry.parts, elapsed: @elapsed, length: @length.call(@entry, @song),
-                        notes:)
+        @console.status(subtune: @subtune, subtunes: @entry.parts, elapsed: @elapsed,
+                        length: @length.call(@entry, @subtune), notes:)
       end
 
       def notes
@@ -117,7 +117,7 @@ module Badline
         notes << "paused" if @playback.paused?
         notes << "shuffle" if @queue.shuffle?
         notes << "loop" if @queue.loop?
-        notes << "all songs" if @queue.all_parts?
+        notes << "all subtunes" if @queue.all_parts?
         notes << "below real time" if @below
         notes
       end

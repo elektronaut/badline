@@ -27,10 +27,10 @@ describe Badline::Storage::STIL do
          NAME: Tune One
       (#3)
        AUTHOR: Someone Else
-        TITLE: A Song [from An Album] (0:18)
+        TITLE: A Subtune [from An Album] (0:18)
        ARTIST: A Band
       COMMENT: Only the chorus.
-        TITLE: Another Song (0:40)
+        TITLE: Another Subtune (0:40)
        ARTIST: Another Band
 
       /MUSICIANS/X/Example_Ed/Café.sid

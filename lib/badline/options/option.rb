@@ -3,7 +3,7 @@
 module Badline
   class Options
     # One option of the table: its flags and value as the help shows them
-    # (`-s, --song N`), what it does, the help section it's listed in, the
+    # (`-s, --subtune N`), what it does, the help section it's listed in, the
     # mode it needs (:window, :headless or :either), and the build that
     # takes it (:native, :ruby or :both).
     class Option

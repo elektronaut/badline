@@ -28,10 +28,10 @@ module Badline
       # fallen silent.
       attr_reader :rendered
 
-      def initialize(tune, seconds:, song: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
+      def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
         @seconds = seconds
-        @song = song
+        @subtune = subtune
         @rate = rate
         @sid_model = sid_model
         @filter_chunk = SID::FILTER_CHUNK
@@ -46,7 +46,7 @@ module Badline
       end
 
       def player
-        @player ||= (bare? ? BarePlayer : MachinePlayer).new(@tune, song: @song, sid_model: @sid_model)
+        @player ||= (bare? ? BarePlayer : MachinePlayer).new(@tune, subtune: @subtune, sid_model: @sid_model)
       end
 
       # Yields the seconds rendered so far after every frame.

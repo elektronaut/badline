@@ -13,7 +13,7 @@ describe Badline::Storage::SIDFile do
   let(:image) { [0xa9, 0x00] + ([0xea] * 0x1d) + [0x60] }
   let(:fields) do
     { version: 2, data_offset: 0x7c, load: 0x1000,
-      init: 0x1000, play: 0x1020, songs: 2, start_song: 1, flags: 0x04 }
+      init: 0x1000, play: 0x1020, subtunes: 2, start_subtune: 1, flags: 0x04 }
   end
 
   before { File.binwrite(path, (header + image).pack("C*")) }
@@ -72,8 +72,8 @@ describe Badline::Storage::SIDFile do
       expect(tune.play_address).to eq(0x1020)
     end
 
-    it "reads the song count" do
-      expect(tune.songs).to eq(2)
+    it "reads the subtune count" do
+      expect(tune.subtunes).to eq(2)
     end
 
     it "reads the name" do
@@ -117,22 +117,22 @@ describe Badline::Storage::SIDFile do
     end
   end
 
-  describe "#start_song" do
-    let(:fields) { super().merge(start_song: 9) }
+  describe "#start_subtune" do
+    let(:fields) { super().merge(start_subtune: 9) }
 
-    it "clamps to the song count" do
-      expect(tune.start_song).to eq(2)
+    it "clamps to the subtune count" do
+      expect(tune.start_subtune).to eq(2)
     end
   end
 
   describe "#cia_timed?" do
     let(:speed) { 0b10 }
 
-    it "is false for a raster-paced song" do
+    it "is false for a raster-paced subtune" do
       expect(tune.cia_timed?(1)).to be(false)
     end
 
-    it "is true for a song whose speed bit is set" do
+    it "is true for a subtune whose speed bit is set" do
       expect(tune.cia_timed?(2)).to be(true)
     end
   end
@@ -267,7 +267,7 @@ describe Badline::Storage::SIDFile do
       expect(boot[1, 7]).to eq(bank(0x37))
     end
 
-    it "passes the song index in A" do
+    it "passes the subtune index in A" do
       expect(boot[8, 2]).to eq([0xa9, 0x00])
     end
 
@@ -295,12 +295,12 @@ describe Badline::Storage::SIDFile do
       expect(boot.last(4)).to eq([0x58, 0x4c, 0x84, 0x03])
     end
 
-    it "passes the requested song" do
-      expect(tune.driver(song: 2)[32, 2]).to eq([0xa9, 0x01])
+    it "passes the requested subtune" do
+      expect(tune.driver(subtune: 2)[32, 2]).to eq([0xa9, 0x01])
     end
 
-    it "clamps the requested song" do
-      expect(tune.driver(song: 7)[32, 2]).to eq([0xa9, 0x01])
+    it "clamps the requested subtune" do
+      expect(tune.driver(subtune: 7)[32, 2]).to eq([0xa9, 0x01])
     end
   end
 
@@ -374,7 +374,7 @@ describe Badline::Storage::SIDFile do
 
   describe "starting a tune" do
     it "puts the driver in RAM" do
-      expect(tune.boot_memory(song: 2)).to eq(tune.driver_address => tune.driver(song: 2))
+      expect(tune.boot_memory(subtune: 2)).to eq(tune.driver_address => tune.driver(subtune: 2))
     end
 
     it "SYSes the driver" do
@@ -387,7 +387,7 @@ describe Badline::Storage::SIDFile do
   end
 
   describe "starting a BASIC tune" do
-    let(:fields) { super().merge(load: 0x0801, init: 0x0801, play: 0, songs: 3, flags: 0x06) }
+    let(:fields) { super().merge(load: 0x0801, init: 0x0801, play: 0, subtunes: 3, flags: 0x06) }
 
     before { File.binwrite(path, (header + image).pack("C*").sub("PSID", "RSID")) }
 
@@ -395,8 +395,8 @@ describe Badline::Storage::SIDFile do
       expect(tune).to be_basic
     end
 
-    it "sets VARTAB to the end of the program and the song in A, X and Y" do
-      expect(tune.boot_memory(song: 3)).to eq(0x2d => [0x21, 0x08], 0x030c => [2, 2, 2])
+    it "sets VARTAB to the end of the program and the subtune in A, X and Y" do
+      expect(tune.boot_memory(subtune: 3)).to eq(0x2d => [0x21, 0x08], 0x030c => [2, 2, 2])
     end
 
     it "RUNs the program" do

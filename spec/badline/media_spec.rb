@@ -16,9 +16,9 @@ describe Badline::Media do
 
   after { FileUtils.remove_entry(dir) }
 
-  def sid_tune(songs: 1, flags: 0x0004, version: 2, sids: 0)
+  def sid_tune(subtunes: 1, flags: 0x0004, version: 2, sids: 0)
     File.join(dir, "tune.sid").tap do |path|
-      header = "PSID".b + [version, 0x7c, 0x1000, 0x1000, 0x1020, songs, 1].pack("n7") +
+      header = "PSID".b + [version, 0x7c, 0x1000, 0x1000, 0x1020, subtunes, 1].pack("n7") +
                ("\x00" * 4) + "TUNE".ljust(96, "\x00") + [flags, 0, sids].pack("n3")
       File.binwrite(path, header + [0xa9, 0x00, 0x60].pack("C*"))
     end
@@ -286,7 +286,7 @@ describe Badline::Media do
     end
 
     context "with a SID tune" do
-      let(:sid_path) { sid_tune(songs: 3) }
+      let(:sid_path) { sid_tune(subtunes: 3) }
 
       before { allow(computer).to receive(:on_init).and_yield }
 
@@ -316,24 +316,24 @@ describe Badline::Media do
         expect(described_class.attach(computer, sid_path)).to include("TUNE")
       end
 
-      it "plays the header's own song by default" do
+      it "plays the header's own subtune by default" do
         described_class.attach(computer, sid_path)
         expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x00])
       end
 
-      it "plays the requested song" do
-        described_class.attach(computer, sid_path, song: 3)
+      it "plays the requested subtune" do
+        described_class.attach(computer, sid_path, subtune: 3)
         expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x02])
       end
 
-      it "clamps the requested song" do
-        described_class.attach(computer, sid_path, song: 9)
+      it "clamps the requested subtune" do
+        described_class.attach(computer, sid_path, subtune: 9)
         expect(computer.ram.read(0x0354, 2)).to eq([0xa9, 0x02])
       end
 
-      it "names the song it picked" do
-        expect(described_class.attach(computer, sid_path, song: 2))
-          .to include("song 2")
+      it "names the subtune it picked" do
+        expect(described_class.attach(computer, sid_path, subtune: 2))
+          .to include("subtune 2")
       end
 
       it "rejects a tune written for two SIDs" do

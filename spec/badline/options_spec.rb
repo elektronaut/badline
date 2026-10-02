@@ -44,8 +44,8 @@ describe Badline::Options do
       expect(options.read_only?).to be(false)
     end
 
-    it "leaves the song to the tune" do
-      expect(options.song).to be_nil
+    it "leaves the subtune to the tune" do
+      expect(options.subtune).to be_nil
     end
 
     it "leaves the length to the tune" do
@@ -171,27 +171,27 @@ describe Badline::Options do
     end
   end
 
-  describe "the song" do
-    %w[--song -s].each do |flag|
+  describe "the subtune" do
+    %w[--subtune -s].each do |flag|
       context "with #{flag}" do
         let(:argv) { [flag, "3", tune_path] }
 
         it "selects the subtune" do
-          expect(options.song).to eq(3)
+          expect(options.subtune).to eq(3)
         end
       end
     end
 
-    context "with song 0" do
-      let(:argv) { ["--song", "0", tune_path] }
+    context "with subtune 0" do
+      let(:argv) { ["--subtune", "0", tune_path] }
 
-      it "is rejected, songs counting from 1" do
-        expect { options }.to raise_error(described_class::Error, /--song 0/)
+      it "is rejected, subtunes counting from 1" do
+        expect { options }.to raise_error(described_class::Error, /--subtune 0/)
       end
     end
 
-    context "with a song that isn't a number" do
-      let(:argv) { ["--song", "two", tune_path] }
+    context "with a subtune that isn't a number" do
+      let(:argv) { ["--subtune", "two", tune_path] }
 
       it "is rejected" do
         expect { options }.to raise_error(described_class::Error, /two/)
@@ -236,12 +236,12 @@ describe Badline::Options do
   describe "the options without the window" do
     let(:argv) do
       ["--headless", "--seconds", "12.5", "--rate", "48000", "--sid", "8580", "--filter-chunk", "1",
-       "--quiet", "--disable-jit", "--no-tui", "--all-songs", tune_path]
+       "--quiet", "--disable-jit", "--no-tui", "--all-subtunes", tune_path]
     end
 
     it "parses each of them" do
       expect([options.seconds, options.rate, options.sid_model, options.filter_chunk,
-              options.quiet?, options.jit?, options.tui?, options.all_songs?])
+              options.quiet?, options.jit?, options.tui?, options.all_subtunes?])
         .to eq([12.5, 48_000, :mos8580, 1, true, false, false, true])
     end
 
@@ -269,7 +269,7 @@ describe Badline::Options do
     end
 
     {
-      "a missing song length database" => [%w[--songlengths missing.md5], /missing\.md5/],
+      "a missing subtune length database" => [%w[--songlengths missing.md5], /missing\.md5/],
       "a zero filter chunk" => [%w[--filter-chunk 0], /--filter-chunk 0/],
       "a zero rate" => [%w[--rate 0], /--rate 0/],
       "a negative length" => [%w[--seconds -1], /--seconds -1/]
@@ -291,7 +291,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--seconds=10 --songlengths=x --rate=8000 --filter-chunk=1 --quiet --no-tui --all-songs].each do |arg|
+    %w[--seconds=10 --songlengths=x --rate=8000 --filter-chunk=1 --quiet --no-tui --all-subtunes].each do |arg|
       context "with #{arg} in the window" do
         let(:argv) { [arg, tune_path] }
 
@@ -321,13 +321,13 @@ describe Badline::Options do
     end
 
     it "describes the options" do
-      expect(options.help).to include("Usage: badline-ruby", "--headless", "--song", "--audio-out", "--sound",
+      expect(options.help).to include("Usage: badline-ruby", "--headless", "--subtune", "--audio-out", "--sound",
                                       "--verbose", "--true-drive")
     end
 
     it "lays each option out as OptionParser did" do
       expect(options.help.lines).to include(
-        "    -s, --song N                     Subtune of a .sid, from 1 (default: the tune's own)\n",
+        "    -s, --subtune N                  Subtune of a .sid, from 1 (default: the tune's own)\n",
         "        --sound                      Play the SID through the host's audio device (F10 mutes)\n"
       )
     end
@@ -357,8 +357,8 @@ describe Badline::Options do
 
       it "lists the options it takes" do
         expect(options.help.scan(/^ +(?:-\w, )?(--[\w-]+)/).flatten)
-          .to eq(%w[--song --sid --disable-jit --help --seconds --songlengths --rate --filter-chunk --quiet
-                    --all-songs --no-tui])
+          .to eq(%w[--subtune --sid --disable-jit --help --seconds --songlengths --rate --filter-chunk --quiet
+                    --all-subtunes --no-tui])
       end
     end
 
@@ -517,8 +517,8 @@ describe Badline::Options do
         expect(options.true_drive?).to be(false)
       end
 
-      it "leaves the SID model and the song to the media" do
-        expect([options.sid_model, options.song]).to eq([nil, nil])
+      it "leaves the SID model and the subtune to the media" do
+        expect([options.sid_model, options.subtune]).to eq([nil, nil])
       end
 
       it "plugs in no REU" do
@@ -550,12 +550,12 @@ describe Badline::Options do
       expect(parse("--reu", "512").reu).to eq(512)
     end
 
-    it "takes a song" do
-      expect(parse("--song", "3").song).to eq(3)
+    it "takes a subtune" do
+      expect(parse("--subtune", "3").subtune).to eq(3)
     end
 
-    it "takes a song with -s" do
-      expect(parse("-s", "2").song).to eq(2)
+    it "takes a subtune with -s" do
+      expect(parse("-s", "2").subtune).to eq(2)
     end
 
     it "boots to READY. with --no-autostart" do
@@ -621,9 +621,9 @@ describe Badline::Options do
     end
 
     it "lists every option in the help" do
-      %w[--song --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help --version
-         --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
-         --rate --filter-chunk --quiet --no-tui --all-songs].each do |flag|
+      %w[--subtune --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help
+         --version --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
+         --rate --filter-chunk --quiet --no-tui --all-subtunes].each do |flag|
         expect(help).to include(flag)
       end
     end
@@ -646,12 +646,12 @@ describe Badline::Options do
     describe "without the window" do
       subject(:options) do
         parse("--headless", "--seconds", "12.5", "--rate", "48000", "--sid", "8580", "--filter-chunk=1",
-              "--quiet", "--no-tui", "--all-songs", tune_path)
+              "--quiet", "--no-tui", "--all-subtunes", tune_path)
       end
 
       it "parses each of the options" do
         expect([options.seconds, options.rate, options.sid_model, options.filter_chunk, options.quiet?, options.tui?,
-                options.all_songs?])
+                options.all_subtunes?])
           .to eq([12.5, 48_000, :mos8580, 1, true, false, true])
       end
 
@@ -662,12 +662,12 @@ describe Badline::Options do
       it "defaults as badline-ruby does" do
         defaults = parse("--headless", tune_path)
         expect([defaults.seconds, defaults.songlengths, defaults.rate, defaults.rate_given?, defaults.filter_chunk,
-                defaults.quiet?, defaults.tui?, defaults.all_songs?, defaults.fallback_seconds,
+                defaults.quiet?, defaults.tui?, defaults.all_subtunes?, defaults.fallback_seconds,
                 defaults.silence_seconds])
           .to eq([nil, nil, 44_100, false, nil, false, true, false, 60.0, 5.0])
       end
 
-      it "takes the song length database" do
+      it "takes the subtune length database" do
         expect(parse("--headless", "--songlengths", program_path, tune_path).songlengths).to eq(program_path)
       end
 
@@ -710,7 +710,7 @@ describe Badline::Options do
         %w[--filter-chunk 1] => "--filter-chunk needs --headless or --audio-out",
         %w[--quiet] => "--quiet needs --headless or --audio-out",
         %w[--no-tui] => "--no-tui needs --headless or --audio-out",
-        %w[--all-songs] => "--all-songs needs --headless or --audio-out"
+        %w[--all-subtunes] => "--all-subtunes needs --headless or --audio-out"
       }.each do |argv, message|
         it "refuses #{argv.join(' ')} with a tune_path" do
           expect { parse(*argv, tune_path) }.to raise_error(described_class::Error, message)
@@ -728,10 +728,10 @@ describe Badline::Options do
       %w[--disable-jit] => "invalid option: --disable-jit",
       %w[--sid 6582] => "invalid argument: --sid 6582",
       %w[--reu 100] => "invalid argument: --reu 100",
-      %w[--song two] => "invalid argument: --song two",
-      %w[--song 0] => "invalid argument: --song 0",
+      %w[--subtune two] => "invalid argument: --subtune two",
+      %w[--subtune 0] => "invalid argument: --subtune 0",
       %w[--frames -1] => "invalid argument: --frames -1",
-      %w[--song] => "missing argument: --song",
+      %w[--subtune] => "missing argument: --subtune",
       %w[--sound=yes] => "needless argument: --sound=yes",
       %w[--true-drive=yes] => "needless argument: --true-drive=yes",
       %w[missing.prg] => "no such file or directory: missing.prg",

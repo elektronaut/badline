@@ -48,29 +48,29 @@ module Badline
         def initialize
           @fields = []
           @subtunes = {}
-          @song = 0
+          @subtune = 0
         end
 
-        def subtune(song) = @subtunes.fetch(song, [])
+        def subtune(number) = @subtunes.fetch(number, [])
 
         # Starts the block for a subtune, which the fields read after it
         # go to.
-        def open_subtune(song)
-          @song = song
-          @subtunes[song] = []
+        def open_subtune(subtune)
+          @subtune = subtune
+          @subtunes[subtune] = []
         end
 
         def add(field)
-          if @song.zero?
+          if @subtune.zero?
             @fields << field
           else
-            @subtunes[@song] << field
+            @subtunes[@subtune] << field
           end
         end
 
         # Adds a line to the last field read.
         def continue(line)
-          last = @song.zero? ? @fields.last : @subtunes[@song].last
+          last = @subtune.zero? ? @fields.last : @subtunes[@subtune].last
           last&.continue(line)
         end
       end

@@ -14,9 +14,9 @@ module Badline
       # Boot, plus room for the keyboard buffer to type the SYS.
       START_LIMIT = 15_000_000
 
-      def initialize(tune, song: nil, sid_model: tune.sid_model)
+      def initialize(tune, subtune: nil, sid_model: tune.sid_model)
         @tune = tune
-        @song = song || tune.start_song
+        @subtune = subtune || tune.start_subtune
         @computer = Computer.new(sid_model:)
         region = @computer.region
         @frame_cycles = region.cycles_per_line * region.lines_per_frame
@@ -48,7 +48,7 @@ module Badline
 
       def inject
         @computer.ram.write(@tune.load_address, @tune.data)
-        @tune.boot_memory(song: @song).each { |address, bytes| @computer.ram.write(address, bytes) }
+        @tune.boot_memory(subtune: @subtune).each { |address, bytes| @computer.ram.write(address, bytes) }
         @computer.type_text(@tune.boot_command)
         @injected = true
       end

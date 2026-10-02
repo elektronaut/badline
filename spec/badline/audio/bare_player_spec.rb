@@ -26,7 +26,7 @@ describe Badline::Audio::BarePlayer do
 
   def header
     fields = { version: 2, data_offset: 0x7c, load: 0x1000, init: 0x1000,
-               play: 0x1010, songs: 1, start_song: 1 }
+               play: 0x1010, subtunes: 1, start_subtune: 1 }
     words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
     "PSID".bytes + words + [speed >> 24, (speed >> 16) & 0xff, (speed >> 8) & 0xff, speed & 0xff] +
       ([0] * 96) + [0x00, flags, 0x00, 0x01, 0x00, 0x00]
@@ -41,7 +41,7 @@ describe Badline::Audio::BarePlayer do
       expect(player.frame(100) { nil }).to eq(100)
     end
 
-    context "with a CIA-timed song" do
+    context "with a CIA-timed subtune" do
       let(:speed) { 1 }
 
       it "calls play at the rate the KERNAL leaves timer A running at" do
@@ -49,7 +49,7 @@ describe Badline::Audio::BarePlayer do
       end
     end
 
-    context "with a CIA-timed song whose init sets timer A" do
+    context "with a CIA-timed subtune whose init sets timer A" do
       let(:speed) { 1 }
       let(:timer) { [0xa9, 0x00, 0x8d, 0x04, 0xdc, 0xa9, 0x10, 0x8d, 0x05, 0xdc] }
 

@@ -4,18 +4,18 @@ module Badline
   module Audio
     # A .sid tune in the player's Media::Queue, read only once the queue or
     # the player first asks about it, so a queue of a whole collection
-    # starts at once. Its songs, SID model and lengths follow the options:
-    # --song picks the song to start on, --sid the model and --seconds the
+    # starts at once. Its subtunes, SID model and lengths follow the options:
+    # --subtune picks the subtune to start on, --sid the model and --seconds the
     # length, and without them the tune's own header and HVSC's database
     # decide.
     #
-    # A file that won't read as a tune, or lacks the song asked for, gets
-    # an #error and a single song.
+    # A file that won't read as a tune, or lacks the subtune asked for, gets
+    # an #error and a single subtune.
     class QueuedTune < Media::Queue::Entry
-      def initialize(path, options, song: nil)
+      def initialize(path, options, subtune: nil)
         super(path)
         @options = options
-        @song = song
+        @subtune = subtune
         @tune = nil
         @read = false
         @error = ""
@@ -48,11 +48,11 @@ module Badline
 
       def model_name = sid_model.to_s.delete_prefix("mos")
 
-      def length(song) = @options.seconds || songlengths&.at(song - 1) || @options.fallback_seconds
+      def length(subtune) = @options.seconds || songlengths&.at(subtune - 1) || @options.fallback_seconds
 
-      # How long the song may stay silent before it ends, or nil when its
+      # How long the subtune may stay silent before it ends, or nil when its
       # length is known rather than the fallback.
-      def silence(song) = @options.seconds || songlengths&.at(song - 1) ? nil : @options.silence_seconds
+      def silence(subtune) = @options.seconds || songlengths&.at(subtune - 1) ? nil : @options.silence_seconds
 
       # The header's name, author and release, those it fills in.
       def header = [tune.name, tune.author, tune.released].reject(&:empty?)
@@ -67,15 +67,15 @@ module Badline
         return if @read
 
         @read = true
-        @parts = tune.songs
-        @part = @song || tune.start_song
-        @error = "no song #{@part}: the tune has #{@parts}" if @part > @parts
+        @parts = tune.subtunes
+        @part = @subtune || tune.start_subtune
+        @error = "no subtune #{@part}: the tune has #{@parts}" if @part > @parts
       rescue Storage::SIDFile::FormatError => e
         @error = e.message
       end
 
       # HVSC's database is keyed by the tune's MD5 and lists one length per
-      # song.
+      # subtune.
       def songlengths
         return @lengths if @lengths_read
 

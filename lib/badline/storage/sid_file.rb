@@ -16,7 +16,7 @@ module Badline
       # BASIC's RUN handler, where a BASIC tune starts.
       BASIC_RUN = 0xa871
 
-      # The 6502 stub that starts a tune: call init with the song number,
+      # The 6502 stub that starts a tune: call init with the subtune number,
       # point the KERNAL's IRQ vector at a raster handler that calls play,
       # and spin. Both calls are wrapped in the `$01` save, bank and restore
       # that puts the tune's own RAM under the CPU.
@@ -41,7 +41,7 @@ module Badline
       #         pha
       #         lda #iomap
       #         sta $01
-      #         lda #song
+      #         lda #subtune
       #         jsr init
       #         pla
       #         sta $01
@@ -70,9 +70,9 @@ module Badline
         CIA1_ICR = 0xdc0d
         RASTER_IRQ_STATUS = 0xd019
 
-        def initialize(tune, song:, base:)
+        def initialize(tune, subtune:, base:)
           @tune = tune
-          @song = song
+          @subtune = subtune
           @base = base
         end
 
@@ -96,7 +96,7 @@ module Badline
 
         def boot
           start = [0x78] +
-                  banked(@tune.init_address, lda_imm(@song) + jsr(@tune.init_address)) +
+                  banked(@tune.init_address, lda_imm(@subtune) + jsr(@tune.init_address)) +
                   raster_irq + [0x58]
           start + jmp(boot_address + start.length)
         end
@@ -158,8 +158,8 @@ module Badline
       def version = word(0x04)
       def data_offset = word(0x06)
       def play_address = word(0x0c)
-      def songs = [word(0x0e), 1].max
-      def start_song = word(0x10).clamp(1, songs)
+      def subtunes = [word(0x0e), 1].max
+      def start_subtune = word(0x10).clamp(1, subtunes)
       def speed = (word(0x12) << 16) + word(0x14)
       def name = text(0x16)
       def author = text(0x36)
@@ -200,7 +200,7 @@ module Badline
       # 11 either and 00 unknown. Only an NTSC-only tune gets NTSC.
       def ntsc? = flags[2, 2] == 0b10
 
-      # HVSC keys its song length database on the whole file, header and all.
+      # HVSC keys its subtune length database on the whole file, header and all.
       def md5 = @md5 ||= Digest::MD5.hexdigest(@bytes.pack("C*"))
 
       # The `$01` value a routine at `address` has to run under, following
@@ -231,8 +231,8 @@ module Badline
       # A set speed bit asks for CIA timer pacing instead of a raster IRQ.
       # The bare player honours it; the machine driver paces everything off
       # the raster either way.
-      def cia_timed?(song = start_song)
-        speed[[song - 1, 31].min] == 1
+      def cia_timed?(subtune = start_subtune)
+        speed[[subtune - 1, 31].min] == 1
       end
 
       def driver_address
@@ -240,20 +240,20 @@ module Badline
                             raise(FormatError, "No free RAM for the player")
       end
 
-      def driver(song: start_song)
-        Driver.new(self, song: song.clamp(1, songs) - 1, base: driver_address).bytes
+      def driver(subtune: start_subtune)
+        Driver.new(self, subtune: subtune.clamp(1, subtunes) - 1, base: driver_address).bytes
       end
 
       # What a booted machine needs in RAM besides the image before
       # `boot_command` starts the tune, as address => bytes. A BASIC tune
       # gets the end of its program in VARTAB, as LOAD leaves it, and the
-      # song in the A, X and Y that SYS loads from `$030c-$030e`, where the
+      # subtune in the A, X and Y that SYS loads from `$030c-$030e`, where the
       # tune reads it with PEEK(780).
-      def boot_memory(song: start_song)
-        return { driver_address => driver(song:) } unless basic?
+      def boot_memory(subtune: start_subtune)
+        return { driver_address => driver(subtune:) } unless basic?
 
         { 0x2d => [low_byte(end_address), high_byte(end_address)],
-          0x030c => [song.clamp(1, songs) - 1] * 3 }
+          0x030c => [subtune.clamp(1, subtunes) - 1] * 3 }
       end
 
       def boot_command = basic? ? "run\r" : "sys#{driver_address}\r"
@@ -293,7 +293,7 @@ module Badline
       end
 
       def driver_size
-        @driver_size ||= Driver.new(self, song: 0, base: 0).bytes.length
+        @driver_size ||= Driver.new(self, subtune: 0, base: 0).bytes.length
       end
 
       def text(offset)

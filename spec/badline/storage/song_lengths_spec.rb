@@ -33,7 +33,7 @@ describe Badline::Storage::SongLengths do
       expect(database.lengths("c7c299ce06ec5ccffb2261fb11b42a73")).to eq([273.108])
     end
 
-    it "reads one time per song" do
+    it "reads one time per subtune" do
       expect(database.lengths("4d566160c89bad11cea9b644108ee7ef"))
         .to eq([42.0, 24.0, 96.0])
     end
