@@ -22,6 +22,19 @@ module Badline
       # Cycles until the current window closes, counting the next one as 1.
       attr_reader :cycles_to_close
 
+      # How far the current window has got. The clock and the rate are the
+      # host's.
+      def save_state(out)
+        out.int(@phase).int(@sum).int(@count).int(@cycles_to_close)
+      end
+
+      def load_state(input)
+        @phase = input.int
+        @sum = input.int
+        @count = input.int
+        @cycles_to_close = input.int
+      end
+
       # Returns the averaged sample when these cycles close a window, and
       # nil otherwise. They must not run past the window's end.
       def push(sample, cycles = 1)

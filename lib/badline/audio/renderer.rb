@@ -34,8 +34,13 @@ module Badline
 
       # Where #stream starts: the frames before it are rendered as fast as
       # they go and yielded without their samples, so the seconds rendered
-      # still count up to it.
+      # still count up to it. Rendering picks up from the latest of the
+      # checkpoints at or before it, without the frames before that.
       attr_writer :from
+
+      # The Checkpoints this subtune's renderers keep as they go and start
+      # from, for a player that seeks. Without them nothing is kept.
+      attr_writer :checkpoints
 
       def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
@@ -50,6 +55,7 @@ module Badline
         @rendered = 0.0
         @observer = ->(_samples, _rendered) {}
         @from = 0.0
+        @checkpoints = nil
       end
 
       def silence=(seconds)
@@ -63,7 +69,6 @@ module Badline
       # Yields the seconds rendered so far after every frame.
       def render(path)
         container = container_for(path)
-        player.start
         container.open(path, rate: @rate) do |writer|
           each_frame do |samples, seconds|
             samples.each { |sample| writer << sample }
@@ -74,10 +79,7 @@ module Badline
 
       # Starts the tune, then yields each frame's samples along with the
       # seconds rendered so far.
-      def stream(&)
-        player.start
-        each_frame(&)
-      end
+      def stream(&) = each_frame(&)
 
       private
 
@@ -99,18 +101,70 @@ module Badline
       end
 
       def each_frame
-        player.sid.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
+        clock_hz = player.clock_hz
         total = total_cycles
-        remaining = total
-        skipped = (@from * player.clock_hz).round
+        skipped = (@from * clock_hz).round
+        remaining = total - start(skipped)
         while remaining.positive?
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
-          @rendered = (total - remaining).fdiv(player.clock_hz)
+          played = total - remaining
+          @rendered = played.fdiv(clock_hz)
           @observer.call(samples, @rendered)
-          yield(total - remaining < skipped ? [] : samples, @rendered)
+          yield(played < skipped ? [] : samples, @rendered)
           break if fallen_silent?(samples)
+
+          save_checkpoint(played, clock_hz)
         end
+      end
+
+      # Starts the player and its recording, from the latest checkpoint at
+      # or before `cycles` if there is one, and returns the cycles into the
+      # subtune it starts at.
+      def start(cycles)
+        state = @checkpoints&.latest(cycles)
+        return start_afresh if state.nil?
+
+        input = Snapshot::StateReader.new(state)
+        played = input.int
+        resume(input)
+        record
+        player.sid.load_recording(input)
+        @level = input.int
+        @still = input.int
+        played
+      end
+
+      def start_afresh
+        player.start
+        record
+        0
+      end
+
+      def record = player.sid.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
+
+      # Restores the player as it was, then puts back the SID model chosen
+      # for this renderer.
+      def resume(input)
+        sid = player.sid
+        chosen = sid.model
+        saved = Snapshot::Setup::SID_MODELS.fetch(input.int)
+        sid.model = saved unless saved == chosen
+        player.load_state(input)
+        sid.model = chosen unless sid.model == chosen
+      end
+
+      def save_checkpoint(played, clock_hz)
+        checkpoints = @checkpoints
+        return if checkpoints.nil? || !checkpoints.due?(played, clock_hz)
+
+        sid = player.sid
+        out = Snapshot::StateWriter.new
+        out.int(played).int(Snapshot::Setup::SID_MODELS.index(sid.model) || 0)
+        player.save_state(out)
+        sid.save_recording(out)
+        out.int(@level).int(@still)
+        checkpoints.keep(played, out.state)
       end
 
       # Counts the samples since the output last strayed more than QUIET

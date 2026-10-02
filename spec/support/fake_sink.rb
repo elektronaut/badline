@@ -68,7 +68,7 @@ end
 # before `from` seconds come without their samples.
 class FakeRenderer
   attr_reader :rendered
-  attr_accessor :from
+  attr_accessor :from, :checkpoints
 
   def initialize(sink, frames:, size:, cost: 0.0)
     @sink = sink
