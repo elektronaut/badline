@@ -94,7 +94,9 @@ module Badline
 
       def attach_sid(computer, path, autostart:, subtune:)
         tune = Storage::SIDFile.new(path)
-        raise Storage::SIDFile::FormatError, tune.sids_notice if tune.sids > 1
+        if tune.sids > 1
+          raise Storage::SIDFile::FormatError, "Written for #{tune.sids} SIDs, which only the SID player plays"
+        end
 
         subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes)
         computer.on_init { start_tune(computer, tune, autostart:, subtune:) }

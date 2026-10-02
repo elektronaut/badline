@@ -40,4 +40,13 @@ describe Badline::Frontend::PlayerCommands do
     commands.handle(:mos8580)
     expect(state.chip).to eq(2)
   end
+
+  it "keeps the SID shown to itself" do
+    expect(commands.handle(:sid2)).to be_nil
+  end
+
+  it "shows the SID clicked" do
+    commands.handle(:sid3)
+    expect(state.sid).to eq(2)
+  end
 end

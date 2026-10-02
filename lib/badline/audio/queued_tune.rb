@@ -44,9 +44,14 @@ module Badline
       # Lets go of the tune's data, which #tune reads again if asked.
       def release = @tune = nil
 
-      def sid_model = @options.sid_model || tune.sid_model
+      # Each SID's model, SID 1's first: the one --sid names for all of
+      # them, or each one's own.
+      def sid_models
+        forced = @options.sid_model
+        forced ? Array.new(tune.sids, forced) : tune.sid_models
+      end
 
-      def model_name = sid_model.to_s.delete_prefix("mos")
+      def model_name = sid_models.map { |model| model.to_s.delete_prefix("mos") }.join(" + ")
 
       def length(subtune) = @options.seconds || songlengths&.at(subtune - 1) || @options.fallback_seconds
 
@@ -56,10 +61,6 @@ module Badline
 
       # The header's name, author and release, those it fills in.
       def header = [tune.name, tune.author, tune.released].reject(&:empty?)
-
-      # What to say before playing, such as that the tune was written for
-      # more SIDs than one.
-      def notices = [tune.sids_notice].reject(&:empty?)
 
       private
 

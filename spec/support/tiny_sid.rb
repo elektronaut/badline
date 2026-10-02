@@ -2,12 +2,13 @@
 
 # A two-subtune .sid built from a few bytes of 6502. init sets up a triangle
 # voice but gates it only when the subtune index is non-zero, so the rendered
-# audio says which subtune ran. play is an RTS.
+# audio says which subtune ran. play is an RTS. `sids` holds the middle
+# bytes of the extra SIDs' addresses, which only the first SID ever hears.
 module TinySID
   module_function
 
-  def bytes(signature: "PSID", load_address: 0x1000, play: load_address + 0x40, flags: 0x04)
-    (header(signature, load_address, play, flags) + image).pack("C*")
+  def bytes(signature: "PSID", load_address: 0x1000, play: load_address + 0x40, flags: 0x04, sids: [])
+    (header(signature, load_address, play, flags, sids) + image).pack("C*")
   end
 
   def write(addr, value) = [0xa9, value, 0x8d, addr & 0xff, addr >> 8]
@@ -22,12 +23,12 @@ module TinySID
     init + ([0xea] * (0x40 - init.length)) + [0x60]
   end
 
-  def header(signature, load_address, play, flags)
-    fields = { version: 2, data_offset: 0x7c, load: load_address,
+  def header(signature, load_address, play, flags, sids)
+    fields = { version: 2 + sids.size, data_offset: 0x7c, load: load_address,
                init: load_address, play:, subtunes: 2, start_subtune: 1 }
     words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
     signature.bytes + words + ([0] * 4) + texts +
-      [0x00, flags, 0x00, 0x01, 0x00, 0x00]
+      [flags >> 8, flags & 0xff, 0x00, 0x01] + (sids + [0x00, 0x00]).first(2)
   end
 
   def texts

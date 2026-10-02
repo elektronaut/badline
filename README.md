@@ -226,7 +226,7 @@ out and switches the machine off and on.
 
 `badline-ruby --headless` plays a `.sid` tune on the host's audio
 device without opening the window, and `--audio-out` renders it to a
-16-bit PCM file instead. The file's extension picks the format, `.wav`
+16-bit stereo PCM file instead. The file's extension picks the format, `.wav`
 or `.aiff`. The native `badline` has both modes too.
 
 ```sh
@@ -249,13 +249,15 @@ empty queue. Dropping `.sid` files or folders on the window adds them
 to the end of the queue, and an empty queue starts playing them. It
 takes
 the options below except `--audio-out`, and `--subtune` picks the first
-tune's subtune. `--sid auto`, the default, fits each tune the SID
-its header names. A tune written for 2 or 3 SIDs plays on the one SID
-badline emulates, with a notice saying so, and a file that isn't a
-tune is skipped. `badline tune.sid` plays the tune in the SID player
-too, unless an option of the emulator's window, such as `--ntsc` or
-`--reu`, asks for the machine: then the tune runs on the emulated C64,
-started through a small driver after boot.
+tune's subtune. `--sid auto`, the default, fits each of a tune's SIDs
+the model its header names. A tune written for 2 or 3 SIDs plays on as
+many, at the addresses its header gives, in stereo: SID 1 on the left,
+SID 2 on the right and SID 3 in the centre. A tune on one SID plays the
+same on both channels. A file that isn't a tune is skipped.
+`badline tune.sid` plays the tune in the SID player too, unless an
+option of the emulator's window, such as `--ntsc` or `--reu`, asks for
+the machine: then a tune for one SID runs on the emulated C64, started
+through a small driver after boot.
 
 Both modes take the same options. The window's own, `--no-autostart`,
 `--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
@@ -288,19 +290,23 @@ The SID player's window is worked with the mouse. Its header shows the
 tune's name, author and release, the tune the subtune covers at the
 moment when HVSC's STIL credits one, following the times STIL gives, and
 buttons that switch between three views and between the tune's own SID
-model, the 6581 and the 8580, which changes the chip playing on the
+model, the 6581 and the 8580, which changes the chips playing on the
 spot. Its footer shows the time played on a bar you can click to seek,
 and buttons that pause, step between tunes and between a tune's
 subtunes, and turn shuffle, looping and all subtunes on and off. The
 visualizer view shows each voice's note, and how far off it is in cents,
-over a scope of the voice's output, and the mixed output below them. The
-SID view shows each voice's waveforms and the shape they make, its
-control bits, pulse width, envelope settings, and the envelope's level
-and stage, and the filter's modes, cutoff, resonance, volume and its
-response on the chip playing. The INFO view shows the tune's STIL entry
-and the subtune's, with a scroll bar, the mouse wheel or the up and down
-keys for the long ones. The terminal's keys work in the window too,
-along with Tab to switch views and `c` to step through the SID models.
+over a scope of the voice's output, and the mixed output below them. A
+tune on more than one SID gets a row of voices for each SID, and the mix
+splits into its left and right. The SID view shows one SID at a time,
+and for a tune on more than one, the SID 1, 2 and 3 buttons beside the
+view buttons pick which. It shows each voice's waveforms and the shape
+they make, its control bits, pulse width, envelope settings, and the
+envelope's level and stage, and the filter's modes, cutoff, resonance,
+volume and its response on the chip playing. The INFO view shows the
+tune's STIL entry and the subtune's, with a scroll bar, the mouse wheel
+or the up and down keys for the long ones. The terminal's keys work in
+the window too, along with Tab to switch views and `c` to step through
+the SID models.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress
 output instead and plays through the queue without the keys, while

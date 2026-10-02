@@ -16,19 +16,22 @@ describe Badline::Audio::Renderer do
   let(:signature) { "PSID" }
   let(:play) { load_address + 0x40 }
 
-  before { File.binwrite(tune_path, TinySID.bytes(signature:, load_address:, play:, flags:)) }
+  before { File.binwrite(tune_path, TinySID.bytes(signature:, load_address:, play:, flags:, sids:)) }
   after { FileUtils.remove_entry(dir) }
 
   def tune_path = File.join(dir, "tune.sid")
   def load_address = 0x1000
   def flags = 0x04
+  def sids = []
   def output(name) = File.join(dir, name)
-  def samples(name) = File.binread(output(name))[44..].unpack("s<*")
+  def channels(name) = File.binread(output(name))[44..].unpack("s<*").each_slice(2).to_a.transpose
+
+  def samples(name) = channels(name).first
 
   # The RC network needs a moment to shed the mixer's DC step, so an
   # ungated voice only reads as silence in the second half.
-  def steady_peak(name)
-    data = samples(name)
+  def steady_peak(name, channel = 0)
+    data = channels(name)[channel]
     data[(data.length / 2)..].map(&:abs).max
   end
 
@@ -84,7 +87,7 @@ describe Badline::Audio::Renderer do
     end
 
     context "with an override" do
-      let(:options) { { sid_model: :mos6581 } }
+      let(:options) { { sid_models: [:mos6581] } }
 
       before { allow(tune).to receive(:sid_model).and_return(:mos8580) }
 
@@ -98,6 +101,16 @@ describe Badline::Audio::Renderer do
     it "writes as many samples as the length asks for" do
       renderer.render(output("out.wav"))
       expect(samples("out.wav").length).to eq(400)
+    end
+
+    it "writes a stereo file" do
+      renderer.render(output("out.wav"))
+      expect(File.binread(output("out.wav"))[22, 2].unpack1("v")).to eq(2)
+    end
+
+    it "plays one SID the same on both channels" do
+      renderer.render(output("out.wav"))
+      expect(channels("out.wav").uniq.size).to eq(1)
     end
 
     it "writes an AIFF when the extension asks for one" do
@@ -175,6 +188,22 @@ describe Badline::Audio::Renderer do
       end
     end
 
+    context "with a second SID that only the first one's tone plays on" do
+      let(:options) { { subtune: 2, seconds: 0.1 } }
+
+      def sids = [0x42]
+
+      it "plays the first SID on the left" do
+        renderer.render(output("out.wav"))
+        expect(steady_peak("out.wav", 0)).to be > 3000
+      end
+
+      it "plays the second SID on the right" do
+        renderer.render(output("out.wav"))
+        expect(steady_peak("out.wav", 1)).to be < 2000
+      end
+    end
+
     context "with an NTSC tune" do
       let(:options) { { subtune: 2, seconds: 0.5 } }
 
@@ -201,8 +230,8 @@ describe Badline::Audio::Renderer do
       list
     end
 
-    it "yields every frame's samples" do
-      expect(frames.sum(&:first)).to eq(400)
+    it "yields every frame's samples, the left and the right of each" do
+      expect(frames.sum(&:first)).to eq(800)
     end
 
     context "when starting partway in" do

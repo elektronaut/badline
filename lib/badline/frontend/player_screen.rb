@@ -57,7 +57,7 @@ module Badline
         SDL.SDL_SetWindowTitle(@window, name.empty? ? TITLE : "#{name} - #{TITLE}") if open?
       end
 
-      # Draws a frame of the player: `player` and `history` are the SID's,
+      # Draws a frame of the player: `player` and `history` are the SIDs',
       # nil before anything plays, and `credit` the header's STIL credit.
       def draw(state, player, history, tune, credit)
         return unless open?
@@ -66,7 +66,7 @@ module Badline
                                    BACKGROUND & 0xff, 255)
         SDL.SDL_RenderClear(@renderer)
         @buttons.forget
-        @top.draw(state, tune, player.nil? ? :none : player.sid.model, credit)
+        @top.draw(state, tune, player.nil? ? [] : player.stereo.models, credit)
         player.nil? ? draw_empty(state.view) : draw_body(state, player, history)
         @bottom.draw(state, height(state.view) - PlayerFooter::HEIGHT)
         SDL.SDL_RenderPresent(@renderer)
@@ -92,9 +92,16 @@ module Badline
         played = state.played
         case state.view
         when 0 then @visualizer.draw(history, played, clock_hz: player.clock_hz)
-        when 1 then @sid_view.draw(history, played, clock_hz: player.clock_hz, model: player.sid.model)
+        when 1 then draw_sid(state.sid, player, history, played)
         else @info.draw
         end
+      end
+
+      # The SID view of the SID picked, or of the last a tune has.
+      def draw_sid(sid, player, history, played)
+        models = player.stereo.models
+        shown = [sid, models.size - 1].min
+        @sid_view.draw(history, played, clock_hz: player.clock_hz, model: models[shown], sid: shown)
       end
 
       def draw_empty(view)

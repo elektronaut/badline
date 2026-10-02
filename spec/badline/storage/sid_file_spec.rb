@@ -455,15 +455,31 @@ describe Badline::Storage::SIDFile do
 
       it { expect(tune.sids).to eq(2) }
 
-      it "says only one is emulated" do
-        expect(tune.sids_notice).to eq("Written for 2 SIDs; only one is emulated")
+      it { expect(tune.sid_addresses).to eq([0xd420]) }
+
+      it "gives the second SID the first one's model" do
+        expect(tune.sid_models).to eq(%i[mos6581 mos6581])
       end
+    end
+
+    context "with a second SID on a model of its own" do
+      let(:fields) { super().merge(version: 3, flags: 0x04 | (0b10 << 6), sids: [0x42, 0x00]) }
+
+      it { expect(tune.sid_models).to eq(%i[mos6581 mos8580]) }
     end
 
     context "with a second SID at $de00 and a third at $d500" do
       let(:fields) { super().merge(version: 4, sids: [0xe0, 0x50]) }
 
       it { expect(tune.sids).to eq(3) }
+
+      it { expect(tune.sid_addresses).to eq([0xde00, 0xd500]) }
+    end
+
+    context "with a third SID on a model of its own" do
+      let(:fields) { super().merge(version: 4, flags: 0x24 | (0b01 << 8), sids: [0xe0, 0x50]) }
+
+      it { expect(tune.sid_models).to eq(%i[mos8580 mos8580 mos6581]) }
     end
 
     context "with SID addresses the header's version doesn't define" do
@@ -477,7 +493,7 @@ describe Badline::Storage::SIDFile do
 
       it { expect(tune.sids).to eq(1) }
 
-      it { expect(tune.sids_notice).to eq("") }
+      it { expect(tune.sid_addresses).to eq([]) }
     end
 
     it "accepts an RSID signature" do

@@ -67,7 +67,7 @@ module Badline
 
       def silence(subtune) = queue.entry.silence(subtune)
 
-      def sid_model = queue.entry.sid_model
+      def sid_models = queue.entry.sid_models
 
       def interactive? = @options.player_window? || (@options.tui? && @input.tty? && @out.tty?)
 
@@ -91,7 +91,8 @@ module Badline
       end
 
       def renderer(entry, subtune, rate)
-        renderer = Renderer.new(entry.tune, seconds: entry.length(subtune), subtune:, rate:, sid_model: entry.sid_model)
+        renderer = Renderer.new(entry.tune, seconds: entry.length(subtune), subtune:, rate:,
+                                            sid_models: entry.sid_models)
         renderer.filter_chunk = @options.filter_chunk if @options.filter_chunk
         renderer.silence = entry.silence(subtune) if entry.silence(subtune)
         renderer
@@ -101,7 +102,6 @@ module Badline
         entry = checked(queue.entry)
         renderer = renderer(entry, subtune, @options.rate)
         @out.puts describe(entry, subtune)
-        entry.notices.each { |line| @out.puts line }
         @out.puts "Rendering #{seconds}s for the #{entry.model_name} to #{@options.audio_out} " \
                   "at #{@options.rate} Hz..."
         started = now
@@ -159,7 +159,7 @@ module Badline
 
         @announced&.release
         @announced = entry
-        (entry.notices + comments(entry)).each { |line| @out.puts line }
+        comments(entry).each { |line| @out.puts line }
       end
 
       def play_interactively(sink)
@@ -196,7 +196,7 @@ module Badline
       def introduction(entry, rate)
         return ["Skipping #{entry.path}: #{entry.error}"] unless entry.error.empty?
 
-        entry.header + ["#{entry.model_name} at #{rate} Hz"] + entry.notices + comments(entry)
+        entry.header + ["#{entry.model_name} at #{rate} Hz"] + comments(entry)
       end
 
       def open_sink

@@ -3,8 +3,8 @@
 module Badline
   module Frontend
     # The SID player's detailed view of one SID: each voice's note,
-    # waveform and envelope, then the filter (FilterView) and the output's
-    # scope.
+    # waveform and envelope, then the filter (FilterView) and the scope of
+    # the SID's own output. `sid` picks which of a tune's SIDs it shows.
     class SIDView
       COLORS = Screen::COLORS
       TEXT = COLORS[14]
@@ -56,13 +56,13 @@ module Badline
                             span: 1024, range: 65_536)
       end
 
-      def draw(history, played, clock_hz:, model:)
+      def draw(history, played, clock_hz:, model:, sid: 0)
         return if history.empty?
 
-        frame = history.frame(played)
+        frame = history.frame(played, sid)
         3.times { |voice| draw_voice(history, frame, voice, @top + (voice * VOICE_HEIGHT), clock_hz) }
         @filter.draw(history, frame, @top + (3 * VOICE_HEIGHT) + 4, model)
-        @output.draw(history, played, SIDHistory::MIX, BRIGHT)
+        @output.draw(history, played, history.output(sid), BRIGHT)
       end
 
       private

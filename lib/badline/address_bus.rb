@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "badline/address_bus/saved_state"
+require "badline/address_bus/sid_slots"
+require "badline/address_bus/extra_sids"
 require "badline/address_bus/ultimax_pages"
 
 module Badline
@@ -32,6 +34,7 @@ module Badline
   class AddressBus
     include Addressable
     include UltimaxPages
+    include ExtraSIDs
 
     # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
     # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
@@ -82,6 +85,7 @@ module Badline
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
       @sid = SID.new(model: sid_model, pots: @control_ports)
+      @extra_sids = []
 
       @datasette = Datasette.new
       @datasette.on_flag { @cia1.flag! }
@@ -252,6 +256,7 @@ module Badline
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
       @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
       map_cartridge_io if @cartridge
+      map_extra_sids unless @extra_sids.empty?
     end
 
     def map_cartridge_io

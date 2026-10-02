@@ -44,12 +44,12 @@ module Badline
       # The KERNAL's PAL/NTSC flag, 1 for PAL.
       VIDEO_STANDARD = 0x02a6
 
-      attr_reader :sid
+      attr_reader :sid, :stereo
 
-      def initialize(tune, subtune: nil, sid_model: tune.sid_model)
+      def initialize(tune, subtune: nil, sid_models: tune.sid_models)
         @tune = tune
         @subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes) - 1
-        @bus = AddressBus.new(sid_model:)
+        @bus = AddressBus.new(sid_model: sid_models[0])
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
         @bus.poke(0x01, 0x37)
@@ -57,13 +57,16 @@ module Badline
         @bus.cia1.timer_a_latch = tune.ntsc? ? NTSC_KERNAL_TIMER : KERNAL_TIMER
         @cpu = CPU.new(@bus)
         @sid = @bus.sid
+        @stereo = Stereo.new(@bus, tune, sid_models)
+        @extras = @stereo.extras
+        @multi = !@extras.empty?
         @idle = false
       end
 
       def start
         @bus.ram.write(@tune.load_address, @tune.data)
         @bus.ram.write(stub_address, stub)
-        @sid.synthesize!
+        @stereo.synthesize!
         @cpu.status.interrupt = true
         @cpu.program_counter = idle_address
         install_dispatch
@@ -72,13 +75,20 @@ module Badline
       end
 
       # Advances one call of play, or `budget` cycles if that is shorter,
-      # then yields whatever the SID recorded over it. Returns the cycles
-      # advanced.
+      # then yields whatever the SIDs recorded over it, in stereo. Returns
+      # the cycles advanced.
       def frame(budget, &)
         call(@tune.play_address)
         cycles = [budget, period].min
-        cycles.times { step }
-        @sid.drain_samples.each(&)
+        if @multi
+          cycles.times { step }
+        else
+          cycles.times do
+            @sid.cycle!
+            @cpu.cycle!
+          end
+        end
+        @stereo.mix(&)
         cycles
       end
 
@@ -117,6 +127,7 @@ module Badline
 
       def step
         @sid.cycle!
+        @extras.each(&:cycle!) if @multi
         @cpu.cycle!
       end
 

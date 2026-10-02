@@ -23,7 +23,7 @@ describe Badline::Frontend::AudioSink do
     end
 
     it "holds queued samples until it starts" do
-      sink.queue([0] * 800)
+      sink.queue([0] * 1600)
       expect(sink.queued_seconds).to be_within(0.005).of(0.1)
     end
 
