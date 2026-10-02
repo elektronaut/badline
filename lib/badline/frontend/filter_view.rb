@@ -24,7 +24,7 @@ module Badline
 
       def initialize(painter)
         @painter = painter
-        @curve = Array.new((WIDTH + 1) * 2, 0)
+        @curve = Array.new(WIDTH + 1, 0)
       end
 
       def draw(history, frame, top, model)
@@ -60,8 +60,7 @@ module Badline
         while x <= WIDTH
           hertz = LOW_HZ * ((HIGH_HZ / LOW_HZ)**(x.to_f / WIDTH))
           decibels = gain(hertz / cutoff, quality, mode_volume).clamp(-36.0, 12.0)
-          points[x * 2] = CURVE_LEFT + x
-          points[(x * 2) + 1] = top + 8 + (((12.0 - decibels) * (HEIGHT - 12)) / 48.0).round
+          points[x] = Painter.point(CURVE_LEFT + x, top + 8 + (((12.0 - decibels) * (HEIGHT - 12)) / 48.0).round)
           x += 1
         end
         paint.polyline(points, BRIGHT)

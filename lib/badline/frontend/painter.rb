@@ -69,20 +69,15 @@ module Badline
         SDL.SDL_RenderFillRect(@renderer, rect)
       end
 
-      def line(from_x, from_y, to_x, to_y, rgb)
-        pen(rgb)
-        SDL.SDL_RenderDrawLine(@renderer, from_x, from_y, to_x, to_y)
-      end
-
-      # Joins the points, given as x and y in turn, with lines.
+      # Joins the points, each made by Painter.point, with lines.
       def polyline(points, rgb)
         pen(rgb)
-        i = 2
-        while i < points.size
-          SDL.SDL_RenderDrawLine(@renderer, points[i - 2], points[i - 1], points[i], points[i + 1])
-          i += 2
-        end
+        SDL.SDL_RenderDrawLines(@renderer, points, points.size)
       end
+
+      # A point for #polyline: an SDL_Point, two 32-bit ints packed into one
+      # of the words an Integer Array hands to C, x in the low half.
+      def self.point(left, top) = left | (top << 32)
 
       # Draws the text with its top left at `left` and `top`, each glyph
       # `scale` times its size, and returns the width drawn.

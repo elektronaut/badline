@@ -17,7 +17,7 @@ module Badline
         @span = span
         @range = range
         @centred = centred
-        @points = Array.new((@width + 1) * 2, 0)
+        @points = Array.new(@width + 1, 0)
       end
 
       def draw(history, played, channel, rgb)
@@ -31,8 +31,8 @@ module Badline
         x = 0
         while x <= @width
           value = history.sample_at(start + (x * span / @width), channel) - middle
-          points[x * 2] = @left + x
-          points[(x * 2) + 1] = (centre - (value * (@height - 4) / range)).clamp(@top, @top + @height - 1)
+          top = (centre - (value * (@height - 4) / range)).clamp(@top, @top + @height - 1)
+          points[x] = Painter.point(@left + x, top)
           x += 1
         end
         @painter.polyline(points, rgb)
