@@ -64,9 +64,11 @@ class FakeSink
 end
 
 # Stands in for Renderer#stream: `frames` frames of `size` samples, each
-# taking `cost` seconds of the sink's simulated time to render.
+# taking `cost` seconds of the sink's simulated time to render. The frames
+# before `from` seconds come without their samples.
 class FakeRenderer
   attr_reader :rendered
+  attr_accessor :from
 
   def initialize(sink, frames:, size:, cost: 0.0)
     @sink = sink
@@ -74,13 +76,15 @@ class FakeRenderer
     @size = size
     @cost = cost
     @rendered = 0
+    @from = 0.0
   end
 
   def stream
     @frames.times do
       @sink.advance(@cost)
       @rendered += 1
-      yield Array.new(@size, 0), (@rendered * @size).fdiv(@sink.rate)
+      seconds = (@rendered * @size).fdiv(@sink.rate)
+      yield(seconds <= @from ? [] : Array.new(@size, 0), seconds)
     end
   end
 end

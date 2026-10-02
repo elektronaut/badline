@@ -193,4 +193,28 @@ describe Badline::Audio::Renderer do
       end
     end
   end
+
+  describe "#stream" do
+    def frames
+      list = []
+      renderer.stream { |samples, rendered| list << [samples.size, rendered] }
+      list
+    end
+
+    it "yields every frame's samples" do
+      expect(frames.sum(&:first)).to eq(400)
+    end
+
+    context "when starting partway in" do
+      before { renderer.from = 0.03 }
+
+      it "yields the frames before it without their samples" do
+        expect(frames.reject { |count, _| count.zero? }.map(&:last).min).to be > 0.03
+      end
+
+      it "still counts the seconds from the start" do
+        expect(frames.first.last).to be < 0.03
+      end
+    end
+  end
 end
