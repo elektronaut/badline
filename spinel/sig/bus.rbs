@@ -25,6 +25,11 @@ module Badline
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
     end
+
+    class SIDSlots
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
   end
 
   class DebugRegister

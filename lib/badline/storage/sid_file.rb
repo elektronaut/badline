@@ -177,24 +177,35 @@ module Badline
       # instead of a call to init.
       def basic? = !psid? && flags[1] == 1
 
-      # What to say about a tune written for more SIDs than the one badline
-      # emulates, which plays anyway with its extra SIDs' writes landing
-      # wherever a single-SID machine puts them.
-      def sids_notice = sids > 1 ? "Written for #{sids} SIDs; only one is emulated" : ""
-
       # A v3 header can place a second SID at `$Dxx0` and a v4 header a
       # third, each given by its middle byte: even, and in `$d420-$d7e0` or
       # `$de00-$dfe0`. Anything else means the SID isn't there.
-      def sids
-        1 + [0x7a, 0x7b].first([version - 2, 0].max).count do |offset|
+      def sids = 1 + sid_addresses.size
+
+      # Where the second and third SIDs sit, those the header places.
+      def sid_addresses
+        addresses = []
+        [0x7a, 0x7b].first([version - 2, 0].max).each do |offset|
           page = @bytes[offset].to_i
-          page.even? && ((0x42..0x7e).cover?(page) || (0xe0..0xfe).cover?(page))
+          next unless page.even? && ((0x42..0x7e).cover?(page) || (0xe0..0xfe).cover?(page))
+
+          addresses << (0xd000 | (page << 4))
         end
+        addresses
       end
 
       # Flag bits 4-5 name the SID the tune was written for: 01 the 6581,
       # 10 the 8580, 11 either and 00 unknown. Only an 8580-only tune gets one.
       def sid_model = flags[4, 2] == 0b10 ? :mos8580 : :mos6581
+
+      # Each SID's model, SID 1's first. Bits 6-7 name the second SID's and
+      # bits 8-9 the third's the same way, and one the header leaves unknown
+      # or open takes SID 1's.
+      def sid_models
+        models = [sid_model]
+        sid_addresses.size.times { |extra| models << model_named(flags[6 + (extra * 2), 2]) }
+        models
+      end
 
       # Flag bits 2-3 name the video standard the same way: 01 PAL, 10 NTSC,
       # 11 either and 00 unknown. Only an NTSC-only tune gets NTSC.
@@ -294,6 +305,14 @@ module Badline
 
       def driver_size
         @driver_size ||= Driver.new(self, subtune: 0, base: 0).bytes.length
+      end
+
+      def model_named(bits)
+        case bits
+        when 0b01 then :mos6581
+        when 0b10 then :mos8580
+        else sid_model
+        end
       end
 
       def text(offset)

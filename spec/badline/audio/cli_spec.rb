@@ -113,16 +113,16 @@ describe Badline::Audio::CLI do
     end
   end
 
-  describe "#sid_model" do
+  describe "#sid_models" do
     it "follows the tune" do
-      expect(cli.sid_model).to eq(:mos6581)
+      expect(cli.sid_models).to eq([:mos6581])
     end
 
     context "with --sid" do
       let(:arguments) { ["--sid", "8580"] }
 
       it "takes the override" do
-        expect(cli.sid_model).to eq(:mos8580)
+        expect(cli.sid_models).to eq([:mos8580])
       end
     end
   end
@@ -357,8 +357,7 @@ describe Badline::Audio::CLI do
 
     def write_tune(name, bytes = TinySID.bytes) = File.binwrite(File.join(dir, name), bytes)
 
-    # TinySID's header made v3, with a second SID at $d420.
-    def two_sids = TinySID.bytes.b.tap { |bytes| bytes.setbyte(5, 3) }.tap { |bytes| bytes.setbyte(0x7a, 0x42) }
+    def two_sids = TinySID.bytes(sids: [0x42])
 
     before { write_tune("tune2.sid", TinySID.bytes(flags: 0x24)) }
 
@@ -402,9 +401,9 @@ describe Badline::Audio::CLI do
     context "with a tune written for two SIDs" do
       before { write_tune("tune2.sid", two_sids) }
 
-      it "plays it with a notice" do
+      it "plays it on both" do
         cli.run
-        expect([out.string, device.played]).to match([/Written for 2 SIDs; only one is emulated/, 800])
+        expect([out.string, device.played]).to match([/on the 6581 \+ 6581/, 800])
       end
     end
 

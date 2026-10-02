@@ -13,8 +13,8 @@ module Badline
     # It stands in for the terminal, so Audio::Jukebox drives it the same
     # way: #wait handles the window's clicks, keys and drops between frames
     # and redraws it at the display's pace. The SID model buttons switch
-    # the chip playing on the spot, and each tune after it starts on the
-    # same choice.
+    # the chips playing on the spot, and each tune after it starts on the
+    # same choice. AUTO gives each of a tune's SIDs its own model.
     class PlayerWindow < Audio::Terminal
       FRAME = 1.0 / 50
 
@@ -44,7 +44,6 @@ module Badline
         @history = SIDHistory.new(Audio::Renderer::DEFAULT_RATE)
         @state = PlayerState.new
         @commands = PlayerCommands.new(@state)
-        @own_model = :mos6581
         @next_draw = 0.0
         @seek_to = 0.0
         @dropped = []
@@ -117,16 +116,16 @@ module Badline
         @screen.info.show(fields, subtune, subtune_fields) if @screen.open?
       end
 
-      # Follows the renderer's SID from here on, on the model chosen.
+      # Follows the renderer's SIDs from here on, on the model chosen.
       def playing(renderer)
         @player = renderer.player
         @tune_file = renderer.tune
-        @history = SIDHistory.new(renderer.rate)
-        sid = @player.sid
-        sid.record_voices!
-        @own_model = sid.model
-        renderer.observer = ->(samples, rendered) { @history.record(sid, samples, rendered) }
+        stereo = @player.stereo
+        @history = SIDHistory.new(renderer.rate, stereo.sids.size)
+        stereo.sids.each(&:record_voices!)
+        renderer.observer = ->(samples, rendered) { @history.record(stereo.sids, stereo.outputs, samples, rendered) }
         choose_model
+        @screen.fit_sids(@state.view, stereo.sids.size)
         @screen.title(renderer.tune.name)
       end
 
@@ -203,10 +202,7 @@ module Badline
       def choose_model
         return if @player.nil?
 
-        chip = CHIPS[@state.chip]
-        model = chip == :auto ? @own_model : chip
-        sid = @player.sid
-        sid.model = model unless sid.model == model
+        @player.stereo.refit(CHIPS[@state.chip])
       end
 
       def draw

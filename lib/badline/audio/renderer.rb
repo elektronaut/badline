@@ -3,8 +3,9 @@
 module Badline
   module Audio
     # Renders a .sid tune to a PCM file, or streams its samples to whoever
-    # plays them. A PSID tune with a play address runs on the bare rig;
-    # anything else drives its own interrupts and needs the whole machine.
+    # plays them, in stereo with the left and right interleaved (Stereo).
+    # A PSID tune with a play address runs on the bare rig; anything else
+    # drives its own interrupts and needs the whole machine.
     #
     # A .sid file carries no length, so the caller says how many seconds to
     # render. For a tune whose length is a guess, #silence= also ends it
@@ -37,12 +38,12 @@ module Badline
       # still count up to it.
       attr_writer :from
 
-      def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
+      def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_models: tune.sid_models)
         @tune = tune
         @seconds = seconds
         @subtune = subtune
         @rate = rate
-        @sid_model = sid_model
+        @sid_models = sid_models
         @filter_chunk = SID::FILTER_CHUNK
         @silent_samples = 0
         @level = 0
@@ -57,14 +58,14 @@ module Badline
       end
 
       def player
-        @player ||= (bare? ? BarePlayer : MachinePlayer).new(@tune, subtune: @subtune, sid_model: @sid_model)
+        @player ||= (bare? ? BarePlayer : MachinePlayer).new(@tune, subtune: @subtune, sid_models: @sid_models)
       end
 
       # Yields the seconds rendered so far after every frame.
       def render(path)
         container = container_for(path)
         player.start
-        container.open(path, rate: @rate) do |writer|
+        container.open(path, rate: @rate, channels: 2) do |writer|
           each_frame do |samples, seconds|
             samples.each { |sample| writer << sample }
             yield seconds if block_given?
@@ -99,7 +100,7 @@ module Badline
       end
 
       def each_frame
-        player.sid.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
+        player.stereo.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
         total = total_cycles
         remaining = total
         skipped = (@from * player.clock_hz).round
@@ -122,7 +123,7 @@ module Badline
           @level = samples.last
           @still = 0
         else
-          @still += samples.length
+          @still += samples.length / 2
         end
         @still >= @silent_samples
       end

@@ -13,14 +13,14 @@ module Badline
 
       def header
         ["FORM", 0, "AIFF",
-         "COMM", 18, 1, 0, 16].pack("a4Na4a4NnNn") +
+         "COMM", 18, channels, 0, 16].pack("a4Na4a4NnNn") +
           extended(rate) +
           ["SSND", 0, 0, 0].pack("a4NNN")
       end
 
       def patch
         write_at(4, [46 + data_size].pack("N"))
-        write_at(22, [samples].pack("N"))
+        write_at(22, [frames].pack("N"))
         write_at(42, [8 + data_size].pack("N"))
       end
 

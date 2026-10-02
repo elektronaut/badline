@@ -50,10 +50,11 @@ describe Badline::Audio::MachinePlayer do
       expect(count_frame(100).last).to eq(0)
     end
 
-    # 1000 cycles at 44.1 kHz of a 985248 Hz clock close 44 windows.
+    # 1000 cycles at 44.1 kHz of a 985248 Hz clock close 44 windows, each
+    # yielded to the left and the right.
     it "yields the samples the SID recorded over the frame" do
       player.sid.record(rate: 44_100)
-      expect(count_frame(1000).last).to eq(44)
+      expect(count_frame(1000).last).to eq(88)
     end
   end
 

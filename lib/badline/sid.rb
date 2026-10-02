@@ -16,7 +16,9 @@ module Badline
   # $D41B-$D41C - Voice 3 oscillator/envelope - read only
   # $D41D-$D41F - Unconnected
   #
-  # The register file mirrors every 32 bytes up to $D7FF.
+  # The register file mirrors every 32 bytes up to $D7FF. A second or
+  # third SID, which only the SID player fits, is built `at` another
+  # address and decodes just the 32 bytes there.
   #
   # Reading a write-only or unconnected register returns the last byte the
   # SID saw on the data bus. That value fades to $00 as the capacitance
@@ -55,8 +57,8 @@ module Badline
     attr_accessor :pots
     attr_reader :model
 
-    def initialize(model: :mos6581, pots: nil, filter_chunk: FILTER_CHUNK)
-      addressable_at(0xd400, length: 2**10)
+    def initialize(model: :mos6581, pots: nil, filter_chunk: FILTER_CHUNK, at: 0xd400)
+      addressable_at(at, length: at == 0xd400 ? 2**10 : 2**5)
       @model = model
       @pots = pots
       @bus_ttl_reset = BUS_TTL.fetch(model)

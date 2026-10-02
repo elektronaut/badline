@@ -3,8 +3,10 @@
 module Badline
   module Frontend
     # The SID player's detailed view of one SID: each voice's note,
-    # waveform and envelope, then the filter (FilterView) and the output's
-    # scope.
+    # waveform and envelope, then the filter (FilterView) and the scope of
+    # the SID's own output. `sid` picks which of a tune's SIDs it shows, and
+    # a tune on more than one gets a row of buttons above the voices that
+    # pick it, which makes the view PICKER taller.
     class SIDView
       COLORS = Screen::COLORS
       TEXT = COLORS[14]
@@ -24,6 +26,10 @@ module Badline
       VOICE_HEIGHT = 64
       PANEL_HEIGHT = 72
       HEIGHT = (3 * VOICE_HEIGHT) + PANEL_HEIGHT + 12
+      PICKER = 20
+
+      SID_NAMES = ["SID 1", "SID 2", "SID 3"].freeze
+      SIDS = %i[sid1 sid2 sid3].freeze
 
       # A fixed scatter of 12-bit values for noise, from a 16-bit xorshift.
       NOISE = Array.new(WAVE_WIDTH + 1) do |step|
@@ -47,25 +53,41 @@ module Badline
         name.ljust(3) + format("%<sign>s%<cents>02d", sign: cents.negative? ? "-" : "+", cents: cents.abs)
       end
 
-      def initialize(painter, top)
+      # The view's height for a tune on `sids` SIDs.
+      def self.height(sids) = sids > 1 ? HEIGHT + PICKER : HEIGHT
+
+      def initialize(painter, buttons, top)
         @painter = painter
+        @buttons = buttons
         @top = top
         @filter = FilterView.new(painter)
         @wave = Array.new(WAVE_WIDTH + 1, 0)
-        @output = Scope.new(painter, [WAVE_LEFT, top + (3 * VOICE_HEIGHT) + 4, WAVE_WIDTH, PANEL_HEIGHT],
-                            span: 1024, range: 65_536)
+        @outputs = Array.new(2) do |picker|
+          Scope.new(painter, [WAVE_LEFT, top + (picker * PICKER) + (3 * VOICE_HEIGHT) + 4, WAVE_WIDTH, PANEL_HEIGHT],
+                    span: 1024, range: 65_536)
+        end
       end
 
-      def draw(history, played, clock_hz:, model:)
+      def draw(history, played, clock_hz:, model:, sid: 0)
         return if history.empty?
 
-        frame = history.frame(played)
-        3.times { |voice| draw_voice(history, frame, voice, @top + (voice * VOICE_HEIGHT), clock_hz) }
-        @filter.draw(history, frame, @top + (3 * VOICE_HEIGHT) + 4, model)
-        @output.draw(history, played, SIDHistory::MIX, BRIGHT)
+        picker = history.sid_count > 1 ? 1 : 0
+        draw_picker(history.sid_count, sid) if picker == 1
+        top = @top + (picker * PICKER)
+        frame = history.frame(played, sid)
+        3.times { |voice| draw_voice(history, frame, voice, top + (voice * VOICE_HEIGHT), clock_hz) }
+        @filter.draw(history, frame, top + (3 * VOICE_HEIGHT) + 4, model)
+        @outputs[picker].draw(history, played, history.output(sid), BRIGHT)
       end
 
       private
+
+      def draw_picker(sids, shown)
+        x = LEFT
+        sids.times do |sid|
+          x += @buttons.text(x, @top, SID_NAMES[sid], SIDS[sid], on: sid == shown) + 4
+        end
+      end
 
       def draw_voice(history, frame, voice, top, clock_hz)
         base = voice * 7

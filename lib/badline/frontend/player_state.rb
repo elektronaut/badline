@@ -4,9 +4,10 @@ module Badline
   module Frontend
     # What the SID player's window shows about playback: the subtune and the
     # tune's place in the queue, the time, the modes the jukebox reports
-    # as notes, and the view and SID model chosen.
+    # as notes, the view and SID model chosen, and which of a tune's SIDs
+    # the SID view shows.
     class PlayerState
-      attr_accessor :subtune, :subtunes, :tune, :tunes, :length, :notes, :view, :chip
+      attr_accessor :subtune, :subtunes, :tune, :tunes, :length, :notes, :view, :chip, :sid
 
       def initialize
         @subtune = 0
@@ -17,6 +18,7 @@ module Badline
         @notes = []
         @view = 0
         @chip = 0
+        @sid = 0
         @elapsed = 0.0
         @elapsed_at = now
       end

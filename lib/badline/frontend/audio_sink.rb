@@ -2,9 +2,10 @@
 
 module Badline
   module Frontend
-    # The host's audio device for --headless, fed through SDL's queue: mono
-    # signed 16-bit samples go in at the device's rate and SDL plays them
-    # out behind us. It answers what Audio::Playback asks of a sink.
+    # The host's audio device for --headless and the SID player, fed through
+    # SDL's queue: stereo signed 16-bit samples, the left and right
+    # interleaved, go in at the device's rate and SDL plays them out behind
+    # us. It answers what Audio::Playback asks of a sink.
     class AudioSink
       class Error < Audio::Playback::DeviceError; end
 
@@ -33,7 +34,7 @@ module Badline
         check(SDL.SDL_QueueAudio(@device, buffer, bytes))
       end
 
-      def queued_seconds = SDL.SDL_GetQueuedAudioSize(@device) / (2.0 * @rate)
+      def queued_seconds = SDL.SDL_GetQueuedAudioSize(@device) / (4.0 * @rate)
 
       def start = SDL.SDL_PauseAudioDevice(@device, 0)
 
@@ -54,7 +55,7 @@ module Badline
       def open_device(rate, allowed_changes, buffer)
         SDL.spec_freq(SDL.wanted, rate)
         SDL.spec_format(SDL.wanted, SDL::AUDIO_S16LSB)
-        SDL.spec_channels(SDL.wanted, 1)
+        SDL.spec_channels(SDL.wanted, 2)
         SDL.spec_samples(SDL.wanted, buffer)
         @device = SDL.SDL_OpenAudioDevice(nil, 0, SDL.wanted, SDL.obtained, allowed_changes)
         raise Error, SDL.SDL_GetError if @device.zero?

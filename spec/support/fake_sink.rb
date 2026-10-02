@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 # An audio device on a simulated clock: once started it plays `rate`
-# samples a second of simulated time, and time only passes through
+# stereo samples a second of simulated time, each a left and a right
+# value queued in turn, and time only passes through
 # #advance, which a Playback's sleeper and a FakeRenderer both call. An
 # `instant` one plays whatever it holds as soon as it has started.
 class FakeSink
@@ -21,8 +22,8 @@ class FakeSink
   end
 
   def queue(samples)
-    @queued += samples.length
-    @total += samples.length
+    @queued += samples.length / 2
+    @total += samples.length / 2
     @peak = [@peak, @queued].max
     play_out if @instant
   end
@@ -63,7 +64,7 @@ class FakeSink
   def play_out = advance(queued_seconds)
 end
 
-# Stands in for Renderer#stream: `frames` frames of `size` samples, each
+# Stands in for Renderer#stream: `frames` frames of `size` stereo samples, each
 # taking `cost` seconds of the sink's simulated time to render. The frames
 # before `from` seconds come without their samples.
 class FakeRenderer
@@ -84,7 +85,7 @@ class FakeRenderer
       @sink.advance(@cost)
       @rendered += 1
       seconds = (@rendered * @size).fdiv(@sink.rate)
-      yield(seconds <= @from ? [] : Array.new(@size, 0), seconds)
+      yield(seconds <= @from ? [] : Array.new(@size * 2, 0), seconds)
     end
   end
 end

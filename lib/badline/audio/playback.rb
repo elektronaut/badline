@@ -7,8 +7,9 @@ module Badline
     # queue has drained below `ahead` seconds, and the device only starts
     # once the queue first reaches it.
     #
-    # A sink answers #rate, #queue(samples), #queued_seconds, #start, #pause
-    # and #clear; whoever opened it closes it. An emulator running below
+    # A sink answers #rate, #queue(samples), which takes stereo samples
+    # interleaved, #queued_seconds, #start, #pause and #clear; whoever
+    # opened it closes it. An emulator running below
     # real time lets the queue run dry and the audio stutters; `on_underrun`
     # hears of each time it does.
     class Playback
