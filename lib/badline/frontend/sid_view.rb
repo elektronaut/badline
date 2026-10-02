@@ -51,7 +51,7 @@ module Badline
         @painter = painter
         @top = top
         @filter = FilterView.new(painter)
-        @wave = Array.new((WAVE_WIDTH + 1) * 2, 0)
+        @wave = Array.new(WAVE_WIDTH + 1, 0)
         @output = Scope.new(painter, [WAVE_LEFT, top + (3 * VOICE_HEIGHT) + 4, WAVE_WIDTH, PANEL_HEIGHT],
                             span: 1024, range: 65_536)
       end
@@ -133,8 +133,7 @@ module Badline
         x = 0
         while x <= WAVE_WIDTH
           value = shape(control, pulse, (x * 2 * 4096 / WAVE_WIDTH) % 4096, x)
-          points[x * 2] = WAVE_LEFT + x
-          points[(x * 2) + 1] = middle - (((value - 2048) * level * (height - 4)) / (4096 * 255))
+          points[x] = Painter.point(WAVE_LEFT + x, middle - (((value - 2048) * level * (height - 4)) / (4096 * 255)))
           x += 1
         end
         @painter.polyline(points, color)

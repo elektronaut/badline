@@ -27,7 +27,7 @@ module Badline
     ffi_func :SDL_RenderClear, [:ptr], :int
     ffi_func :SDL_SetRenderDrawColor, %i[ptr int int int int], :int
     ffi_func :SDL_RenderFillRect, %i[ptr ptr], :int
-    ffi_func :SDL_RenderDrawLine, %i[ptr int int int int], :int
+    ffi_func :SDL_RenderDrawLines, %i[ptr int_array int], :int
     ffi_func :SDL_SetTextureBlendMode, %i[ptr int], :int
     ffi_func :SDL_SetTextureColorMod, %i[ptr int int int], :int
     ffi_func :SDL_RenderCopy, %i[ptr ptr ptr ptr], :int
