@@ -3,7 +3,7 @@
 module Badline
   module Frontend
     # The SID player's detailed view of one SID: each voice's note,
-    # waveform and envelope, then the filter (FilterView) and the scope of
+    # registers and envelope over a scope of its output, then the filter (FilterView) and the scope of
     # the SID's own output. `sid` picks which of a tune's SIDs it shows, and
     # a tune on more than one gets a row of buttons above the voices that
     # pick it, which makes the view PICKER taller.
@@ -31,17 +31,6 @@ module Badline
       SID_NAMES = ["SID 1", "SID 2", "SID 3"].freeze
       SIDS = %i[sid1 sid2 sid3].freeze
 
-      # A fixed scatter of 12-bit values for noise, from a 16-bit xorshift.
-      NOISE = Array.new(WAVE_WIDTH + 1) do |step|
-        value = (step * 40_503) + 1
-        3.times do
-          value ^= (value << 7) & 0xffff
-          value ^= value >> 9
-          value ^= (value << 8) & 0xffff
-        end
-        value & 0xfff
-      end.freeze
-
       # The nearest note to `hertz` and how many cents off it it is.
       def self.note(hertz)
         return "---" if hertz < 16.0
@@ -61,7 +50,12 @@ module Badline
         @buttons = buttons
         @top = top
         @filter = FilterView.new(painter)
-        @wave = Array.new(WAVE_WIDTH + 1, 0)
+        @voices = Array.new(2) do |picker|
+          Array.new(3) do |voice|
+            Scope.new(painter, [WAVE_LEFT, top + (picker * PICKER) + (voice * VOICE_HEIGHT), WAVE_WIDTH,
+                                VOICE_HEIGHT - 12], span: 512, range: 9216, centred: true)
+          end
+        end
         @outputs = Array.new(2) do |picker|
           Scope.new(painter, [WAVE_LEFT, top + (picker * PICKER) + (3 * VOICE_HEIGHT) + 4, WAVE_WIDTH, PANEL_HEIGHT],
                     span: 1024, range: 65_536)
@@ -76,6 +70,7 @@ module Badline
         top = @top + (picker * PICKER)
         frame = history.frame(played, sid)
         3.times { |voice| draw_voice(history, frame, voice, top + (voice * VOICE_HEIGHT), clock_hz) }
+        3.times { |voice| @voices[picker][voice].draw(history, played, (sid * 4) + voice, VOICE_COLORS[voice]) }
         @filter.draw(history, frame, top + (3 * VOICE_HEIGHT) + 4, model)
         @outputs[picker].draw(history, played, history.output(sid), BRIGHT)
       end
@@ -101,7 +96,6 @@ module Badline
         draw_waves(control, top, color)
         draw_flags(history, frame, voice, control, top + 24)
         draw_envelope(history, frame, voice, top + 36, color)
-        draw_wave(history, frame, voice, top, color)
       end
 
       def draw_waves(control, top, color)
@@ -140,47 +134,6 @@ module Badline
 
       def pulse_width(history, frame, voice)
         history.register(frame, (voice * 7) + 2) | ((history.register(frame, (voice * 7) + 3) & 0x0f) << 8)
-      end
-
-      # The shape the waveform bits select, two periods of it, scaled by the
-      # envelope. Noise is drawn as a scatter that stays put.
-      def draw_wave(history, frame, voice, top, color)
-        control = history.register(frame, (voice * 7) + 4)
-        pulse = pulse_width(history, frame, voice)
-        level = history.level(frame, voice)
-        height = VOICE_HEIGHT - 12
-        middle = top + (height / 2)
-        @painter.box(WAVE_LEFT, top, WAVE_WIDTH, height, BOX)
-        points = @wave
-        x = 0
-        while x <= WAVE_WIDTH
-          value = shape(control, pulse, (x * 2 * 4096 / WAVE_WIDTH) % 4096, x)
-          points[x] = Painter.point(WAVE_LEFT + x, middle - (((value - 2048) * level * (height - 4)) / (4096 * 255)))
-          x += 1
-        end
-        @painter.polyline(points, color)
-      end
-
-      # The 12-bit output of the waveforms selected at `phase`: those chosen
-      # together are ANDed, as the chip combines them.
-      def shape(control, pulse, phase, step)
-        return 4095 if control.anybits?(0x08)
-        return 2048 if control.nobits?(0xf0)
-
-        value = 4095
-        4.times { |bit| value &= wave(bit, phase, pulse, step) if control[bit + 4] == 1 }
-        value
-      end
-
-      # Triangle, sawtooth, pulse or noise, by their bit in the control
-      # register.
-      def wave(bit, phase, pulse, step)
-        case bit
-        when 0 then phase < 2048 ? phase * 2 : (4095 - phase) * 2
-        when 1 then phase
-        when 2 then phase >= pulse ? 4095 : 0
-        else NOISE[step]
-        end
       end
     end
   end
