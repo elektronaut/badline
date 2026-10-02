@@ -178,6 +178,8 @@ module Badline
         comments = subtune_comments(entry, subtune)
         @terminal.announce(comments) unless comments.empty?
         renderer = renderer(entry, subtune, rate)
+        found = stil(entry)
+        @terminal.stil(found ? found.fields : [], subtune, found ? found.subtune(subtune) : [])
         @terminal.playing(renderer)
         renderer
       end

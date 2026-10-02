@@ -74,6 +74,10 @@ module Badline
       # The files dropped on a window since it last said :drop.
       def dropped = []
 
+      # Hears of the STIL fields for the tune and for the subtune starting,
+      # which the terminal prints as the CLI announces them.
+      def stil(fields, subtune, subtune_fields) = [fields, subtune, subtune_fields]
+
       # Hears of each subtune's renderer as it starts playing.
       def playing(renderer) = renderer
 
