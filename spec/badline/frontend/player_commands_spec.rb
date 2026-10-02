@@ -19,7 +19,7 @@ describe Badline::Frontend::PlayerCommands do
   end
 
   it "steps through the views and wraps around" do
-    2.times { commands.handle(:view) }
+    3.times { commands.handle(:view) }
     expect(state.view).to eq(0)
   end
 

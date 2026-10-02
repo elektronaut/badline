@@ -3,12 +3,13 @@
 module Badline
   module Frontend
     # The top of the SID player's window: the tune's name, author and
-    # release, a warning when there is one, and the buttons for the views
-    # and the SID model.
+    # release, the STIL credit for what the subtune covers at the moment, a
+    # warning when there is one, and the buttons for the views and the SID
+    # model.
     class PlayerHeader
       WIDTH = 640
-      VIEW_NAMES = %w[VISUALIZER SID].freeze
-      VIEWS = %i[visualizer sid].freeze
+      VIEW_NAMES = %w[VISUALIZER SID INFO].freeze
+      VIEWS = %i[visualizer sid info].freeze
       CHIP_NAMES = %w[AUTO 6581 8580].freeze
       CHIPS = %i[auto mos6581 mos8580].freeze
 
@@ -18,11 +19,12 @@ module Badline
       end
 
       # Underlines the model playing while AUTO picks it.
-      def draw(state, tune, playing_model)
+      def draw(state, tune, playing_model, credit)
         unless tune.nil?
           @painter.text(16, 8, fit(tune.name, 26), SIDView::BRIGHT, scale: 2)
           @painter.text(16, 28, fit([tune.author, tune.released].reject(&:empty?).join(" - "), 50), SIDView::TEXT)
-          @painter.text(16, 40, warning(state, tune), PlayerWindow::WARNING)
+          @painter.text(16, 40, fit(credit, 76), SIDView::BRIGHT)
+          @painter.text(16, 52, warning(state, tune), PlayerWindow::WARNING)
         end
         draw_views(state)
         draw_chips(state, playing_model)

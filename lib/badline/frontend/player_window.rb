@@ -2,28 +2,27 @@
 
 module Badline
   module Frontend
-    # The SID player's window, which `sid` plays in. A header with the
-    # tune, the views and the SID model (PlayerHeader), and a footer with
-    # the time and the buttons that step through the queue (PlayerFooter),
-    # frame one of two views: the visualizer, with each voice's note and
-    # output and the mix, and the SID view, with everything the chip is
-    # doing. The window's height follows the view.
+    # The SID player's window, which `sid` plays in, drawn by PlayerScreen:
+    # a header with the tune, its STIL credit, the views and the SID model,
+    # and a footer with the time and the buttons that step through the
+    # queue, framing one of three views: the visualizer, with each voice's
+    # note and output and the mix, the SID view, with everything the chip
+    # is doing, and the tune's STIL entry. The window's height follows the
+    # view, and .sid files and folders dropped on it join the queue.
     #
     # It stands in for the terminal, so Audio::Jukebox drives it the same
-    # way: #wait handles the window's clicks and keys between frames and
-    # redraws it at the display's pace. The SID model buttons switch the
-    # chip playing on the spot, and each tune after it starts on the same
-    # choice.
+    # way: #wait handles the window's clicks, keys and drops between frames
+    # and redraws it at the display's pace. The SID model buttons switch
+    # the chip playing on the spot, and each tune after it starts on the
+    # same choice.
     class PlayerWindow < Audio::Terminal
-      WIDTH = PlayerHeader::WIDTH
-      HEADER = 52
-      SCALE = 2
-      TITLE = "Badline"
       FRAME = 1.0 / 50
 
+      MOUSEWHEEL = 0x403
       DROPFILE = 0x1000
+      UP = 82
+      DOWN = 81
 
-      BACKGROUND = Screen::COLORS[6]
       WARNING = Screen::COLORS[10]
 
       CHIPS = PlayerHeader::CHIPS
@@ -39,10 +38,7 @@ module Badline
 
       def initialize(input:, output:)
         super
-        @window = nil
-        @renderer = nil
-        @painter = nil
-        @buttons = nil
+        @screen = PlayerScreen.new
         @player = nil
         @tune_file = nil
         @history = SIDHistory.new(Audio::Renderer::DEFAULT_RATE)
@@ -52,6 +48,11 @@ module Badline
         @next_draw = 0.0
         @seek_to = 0.0
         @dropped = []
+        @credits = []
+        @stil = []
+        @stil_subtune = 0
+        @subtune_stil = []
+        @scrolling = false
       end
 
       attr_reader :seek_to
@@ -64,15 +65,16 @@ module Badline
       end
 
       def session
-        open_window
+        @screen.open(@state.view)
+        @screen.info.show(@stil, @stil_subtune, @subtune_stil)
         yield
       ensure
-        close_window
+        @screen.close
       end
 
-      # Handles the window's clicks and keys and redraws it until `seconds`
-      # are up, returning early with those that ask the jukebox for
-      # something.
+      # Handles the window's clicks, keys and drops and redraws it until
+      # `seconds` are up, returning early with those that ask the jukebox
+      # for something.
       def wait(seconds)
         actions = poll
         deadline = now + seconds
@@ -105,6 +107,16 @@ module Badline
         state.notes = notes
       end
 
+      # Keeps the subtune's STIL credits for the header and the whole entry
+      # for the INFO view.
+      def stil(fields, subtune, subtune_fields)
+        @credits = Storage::STIL::Credit.list(subtune_fields.empty? ? fields : subtune_fields)
+        @stil = fields
+        @stil_subtune = subtune
+        @subtune_stil = subtune_fields
+        @screen.info.show(fields, subtune, subtune_fields) if @screen.open?
+      end
+
       # Follows the renderer's SID from here on, on the model chosen.
       def playing(renderer)
         @player = renderer.player
@@ -115,40 +127,10 @@ module Badline
         @own_model = sid.model
         renderer.observer = ->(samples, rendered) { @history.record(sid, samples, rendered) }
         choose_model
-        name = renderer.tune.name
-        SDL.SDL_SetWindowTitle(@window, name.empty? ? TITLE : "#{name} - #{TITLE}") unless @window.nil?
+        @screen.title(renderer.tune.name)
       end
 
       private
-
-      def height = HEADER + body_height + PlayerFooter::HEIGHT
-
-      def body_height = @state.view.zero? ? VisualizerView::HEIGHT : SIDView::HEIGHT
-
-      def open_window
-        SDL.SDL_InitSubSystem(SDL::INIT_VIDEO | SDL::INIT_EVENTS)
-        SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0")
-        @window = SDL.SDL_CreateWindow(TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
-                                       WIDTH * SCALE, height * SCALE, SDL::WINDOW_RESIZABLE)
-        @renderer = SDL.SDL_CreateRenderer(@window, -1, SDL::RENDERER_ACCELERATED)
-        SDL.SDL_RenderSetLogicalSize(@renderer, WIDTH, height)
-        @painter = Painter.new(@renderer)
-        @buttons = Buttons.new(@painter)
-        @top = PlayerHeader.new(@painter, @buttons)
-        @bottom = PlayerFooter.new(@painter, @buttons)
-        @visualizer = VisualizerView.new(@painter, HEADER + 4)
-        @sid_view = SIDView.new(@painter, HEADER + 4)
-      end
-
-      def close_window
-        return if @window.nil?
-
-        @painter&.close
-        SDL.SDL_DestroyRenderer(@renderer)
-        SDL.SDL_DestroyWindow(@window)
-        SDL.SDL_QuitSubSystem(SDL::INIT_VIDEO | SDL::INIT_EVENTS)
-        @window = nil
-      end
 
       def poll
         actions = []
@@ -156,8 +138,10 @@ module Badline
           case SDL.event_type(SDL.event)
           when SDL::QUIT then actions << :quit
           when SDL::KEYDOWN then key(SDL.event_scancode(SDL.event), actions) if SDL.event_repeat(SDL.event).zero?
-          when SDL::MOUSEMOTION then @buttons&.point(SDL.event_x(SDL.event), SDL.event_y(SDL.event))
+          when SDL::MOUSEMOTION then point
           when SDL::MOUSEBUTTONDOWN then click(actions) if SDL.event_button(SDL.event) == 1
+          when SDL::MOUSEBUTTONUP then @scrolling = false
+          when MOUSEWHEEL then @screen.info.scroll(-3 * SDL.event_x(SDL.event))
           when DROPFILE then drop(actions)
           end
         end
@@ -171,19 +155,27 @@ module Badline
         actions << :drop unless actions.include?(:drop)
       end
 
+      def point
+        top = SDL.event_y(SDL.event)
+        @screen.buttons.point(SDL.event_x(SDL.event), top)
+        @screen.info.scroll_along(top) if @scrolling
+      end
+
       def key(scancode, actions)
+        return @screen.info.scroll(scancode == UP ? -1 : 1) if [UP, DOWN].include?(scancode)
+
         action = KEYS[scancode]
         command(action, actions) unless action.nil?
       end
 
       def click(actions)
-        return if @buttons.nil?
-
         left = SDL.event_x(SDL.event)
-        action = @buttons.action_at(left, SDL.event_y(SDL.event))
+        action = @screen.buttons.action_at(left, SDL.event_y(SDL.event))
         return if action.nil?
 
         @seek_to = PlayerFooter.seek(left, @state.length) if action == :seek
+        return scroll_along if action == :scroll
+
         command(action, actions)
       end
 
@@ -198,9 +190,13 @@ module Badline
         choose_model unless chip == @state.chip
       end
 
+      def scroll_along
+        @scrolling = true
+        @screen.info.scroll_along(SDL.event_y(SDL.event))
+      end
+
       def resize
-        SDL.SDL_SetWindowSize(@window, WIDTH * SCALE, height * SCALE)
-        SDL.SDL_RenderSetLogicalSize(@renderer, WIDTH, height)
+        @screen.resize(@state.view)
         @next_draw = 0.0
       end
 
@@ -215,33 +211,7 @@ module Badline
 
       def draw
         @next_draw = now + FRAME
-        return if @renderer.nil?
-
-        SDL.SDL_SetRenderDrawColor(@renderer, (BACKGROUND >> 16) & 0xff, (BACKGROUND >> 8) & 0xff,
-                                   BACKGROUND & 0xff, 255)
-        SDL.SDL_RenderClear(@renderer)
-        @buttons.forget
-        @top.draw(@state, @tune_file, @player.nil? ? :none : @player.sid.model)
-        draw_body
-        @bottom.draw(@state, height - PlayerFooter::HEIGHT)
-        SDL.SDL_RenderPresent(@renderer)
-      end
-
-      def draw_body
-        return draw_empty if @player.nil?
-
-        played = @state.played
-        if @state.view.zero?
-          @visualizer.draw(@history, played, clock_hz: @player.clock_hz)
-        else
-          @sid_view.draw(@history, played, clock_hz: @player.clock_hz, model: @player.sid.model)
-        end
-      end
-
-      def draw_empty
-        hint = "Drop .sid files or folders here"
-        @painter.text((WIDTH - Painter.width(hint, scale: 2)) / 2, HEADER + (body_height / 2) - 8, hint,
-                      SIDView::TEXT, scale: 2)
+        @screen.draw(@state, @player, @history, @tune_file, Storage::STIL::Credit.at(@credits, @state.played))
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/storage/stil/credit"
+
 module Badline
   module Storage
     # HVSC's SID Tune Information List, `DOCUMENTS/STIL.txt`: covers,

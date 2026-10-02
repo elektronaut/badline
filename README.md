@@ -285,19 +285,22 @@ shows which modes are on, and they last until the player quits.
 ![The SID player's visualizer playing Rob Hubbard's Delta](doc/images/sid-player.png)
 
 The SID player's window is worked with the mouse. Its header shows the
-tune's name, author and release, and buttons that switch between two
-views and between the tune's own SID model, the 6581 and the 8580, which
-changes the chip playing on the spot. Its footer shows the time played
-on a bar you can click to seek, and buttons that pause, step between
-tunes and between a tune's subtunes, and turn shuffle, looping and all
-subtunes on and off. The visualizer view shows each voice's note, and how
-far off it is in cents, over a scope of the voice's output, and the
-mixed output below them. The SID view shows each voice's waveforms and
-the shape they make, its control bits, pulse width, envelope settings,
-and the envelope's level and stage, and the filter's modes, cutoff,
-resonance, volume and its response on the chip playing. The terminal's
-keys work in the window too, along with Tab to switch views and `c` to
-step through the SID models.
+tune's name, author and release, the tune the subtune covers at the
+moment when HVSC's STIL credits one, following the times STIL gives, and
+buttons that switch between three views and between the tune's own SID
+model, the 6581 and the 8580, which changes the chip playing on the
+spot. Its footer shows the time played on a bar you can click to seek,
+and buttons that pause, step between tunes and between a tune's
+subtunes, and turn shuffle, looping and all subtunes on and off. The
+visualizer view shows each voice's note, and how far off it is in cents,
+over a scope of the voice's output, and the mixed output below them. The
+SID view shows each voice's waveforms and the shape they make, its
+control bits, pulse width, envelope settings, and the envelope's level
+and stage, and the filter's modes, cutoff, resonance, volume and its
+response on the chip playing. The INFO view shows the tune's STIL entry
+and the subtune's, with a scroll bar, the mouse wheel or the up and down
+keys for the long ones. The terminal's keys work in the window too,
+along with Tab to switch views and `c` to step through the SID models.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress
 output instead and plays through the queue without the keys, while

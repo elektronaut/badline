@@ -39,7 +39,7 @@ module Badline
         width = Painter.width(label) + (PAD * 2)
         place(left, top, width, HEIGHT, action)
         @painter.box(left, top, width, HEIGHT, SIDView::TEXT) if on
-        @painter.text(left + PAD, top + PAD, label, on ? PlayerWindow::BACKGROUND : color(@actions.size - 1))
+        @painter.text(left + PAD, top + PAD, label, on ? PlayerScreen::BACKGROUND : color(@actions.size - 1))
         width
       end
 

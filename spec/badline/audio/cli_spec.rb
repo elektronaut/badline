@@ -19,6 +19,7 @@ class QuietConsole
   def place(*place) = (@places ||= []) << place
   def status(**) = nil
   def playing(renderer) = (@renderers ||= []) << renderer
+  def stil(fields, subtune, subtune_fields) = (@stil ||= []) << [fields, subtune, subtune_fields]
 end
 
 describe Badline::Audio::CLI do
