@@ -45,7 +45,7 @@ module Badline
         @state = PlayerState.new
         @commands = PlayerCommands.new(@state)
         @next_draw = 0.0
-        @seek_to = 0.0
+        @seek_left = 0
         @dropped = []
         @credits = []
         @stil = []
@@ -54,7 +54,8 @@ module Badline
         @scrolling = false
       end
 
-      attr_reader :seek_to
+      # The seconds into the subtune the last click on the bar asked for.
+      def seek_to = PlayerFooter.seek(@seek_left, @state.length)
 
       # The files dropped on the window since it last said :drop.
       def dropped
@@ -174,7 +175,7 @@ module Badline
         action = @screen.buttons.action_at(left, SDL.event_y(SDL.event))
         return if action.nil?
 
-        @seek_to = PlayerFooter.seek(left, @state.length) if action == :seek
+        @seek_left = left if action == :seek
         return scroll_along if action == :scroll
 
         command(action, actions)
@@ -196,7 +197,7 @@ module Badline
       def follow_seek(action)
         state = @state
         step = Audio::Jukebox::SEEK_STEP
-        seconds = { seek: @seek_to, forward: state.played + step, back: state.played - step }.fetch(action)
+        seconds = { seek: seek_to, forward: state.played + step, back: state.played - step }.fetch(action)
         state.seek(seconds.clamp(0.0, [state.length - 1.0, 0.0].max))
       end
 
