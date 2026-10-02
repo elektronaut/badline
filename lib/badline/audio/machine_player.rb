@@ -34,6 +34,17 @@ module Badline
 
       def clock_hz = @computer.region.clock_hz
 
+      # The whole machine, as Computer#snapshot takes it, once it plays.
+      def save_state(out) = @computer.save_state(out)
+
+      # Takes a machine that hasn't started to where #save_state found one,
+      # in place of #start.
+      def load_state(input)
+        @computer.load_state(input)
+        @computer.sid.synthesize!
+        @started = true
+      end
+
       # Advances one frame of the machine, or `budget` cycles if that is
       # shorter, then yields whatever the SID recorded over it. Returns the
       # cycles advanced.

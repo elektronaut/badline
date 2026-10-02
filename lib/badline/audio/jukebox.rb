@@ -6,9 +6,10 @@ module Badline
     # between tunes and between a tune's subtunes, seek within the subtune, pause,
     # turn the queue's shuffle, loop and all-subtunes modes on and off, and
     # quit, and the status line follows along. Seeking plays the subtune again
-    # from the start, running silently up to where it was asked to go. A subtune that plays to its end moves on as
-    # Media::Queue#advance says. It stops at the end of the queue, on q, or
-    # on Ctrl-C.
+    # from the latest of its Checkpoints at or before where it was asked to
+    # go, or from the start, running silently up to there. A subtune that
+    # plays to its end moves on as Media::Queue#advance says. It stops at the
+    # end of the queue, on q, or on Ctrl-C.
     #
     # `renderer` builds the renderer for an entry's subtune at the sink's
     # rate, or returns nil for an entry that can't play, which is skipped
@@ -33,6 +34,9 @@ module Badline
         @backward = false
         @below_at = -BELOW_NOTE
         @from = 0.0
+        @entry = nil
+        @subtune = 0
+        @checkpoints = Checkpoints.new
       end
 
       # Returns the result of the last subtune's Playback#play, or :unplayable
@@ -76,6 +80,7 @@ module Badline
       end
 
       def play(entry, subtune)
+        @checkpoints = Checkpoints.new unless entry.equal?(@entry) && subtune == @subtune
         @entry = entry
         @subtune = subtune
         @elapsed = 0.0
@@ -83,6 +88,7 @@ module Badline
         return :unplayable if renderer.nil?
 
         renderer.from = @from
+        renderer.checkpoints = @checkpoints
         @from = 0.0
         @backward = false
         @playback = Playback.new(@sink, sleeper: ->(seconds) { react(@console.wait(seconds)) },

@@ -32,7 +32,7 @@ end
 
 # A renderer interrupted by Ctrl-C as it starts.
 class InterruptingRenderer
-  attr_accessor :from
+  attr_accessor :from, :checkpoints
 
   def stream = raise(Interrupt)
 end
@@ -374,6 +374,30 @@ describe Badline::Audio::Jukebox do
           expect(renderers.map(&:from)).to eq(froms)
         end
       end
+    end
+
+    context "with a step back" do
+      let(:script) { { 2 => [:back] } }
+
+      it "starts from the checkpoints the subtune kept" do
+        jukebox.run
+        expect(renderers.last.checkpoints).to equal(renderers.first.checkpoints)
+      end
+    end
+  end
+
+  context "when moving to another subtune" do
+    let(:queue) { tune(2) }
+    let(:script) { { 3 => [:previous_subtune] } }
+    let(:renderer) do
+      ->(_entry, _subtune, _rate) { FakeRenderer.new(sink, frames: 20, size: 20).tap { |made| renderers << made } }
+    end
+
+    def renderers = @renderers ||= []
+
+    it "drops the checkpoints" do
+      jukebox.run
+      expect(renderers.last.checkpoints).not_to equal(renderers.first.checkpoints)
     end
   end
 

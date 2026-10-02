@@ -125,6 +125,25 @@ module Badline
       @samples = []
     end
 
+    # How far the recording has got into the sample it is averaging, for
+    # a host that carries on recording from a saved state: it calls
+    # #record, then #load_recording.
+    def save_recording(out)
+      decimator = @decimator
+      raise ArgumentError, "the SID isn't recording" if decimator.nil?
+
+      out.marker("RECORDING")
+      decimator.save_state(out)
+    end
+
+    def load_recording(input)
+      decimator = @decimator
+      raise ArgumentError, "the SID isn't recording" if decimator.nil?
+
+      input.marker("RECORDING")
+      decimator.load_state(input)
+    end
+
     # Also keeps each voice's own output, before the filter and the volume,
     # as each recorded sample closes, for #drain_voice_samples.
     def record_voices!
