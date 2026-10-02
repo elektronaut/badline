@@ -20,6 +20,7 @@ module Badline
         @painter = nil
         @buttons = nil
         @info = nil
+        @sids = 1
       end
 
       def open?
@@ -52,6 +53,15 @@ module Badline
         SDL.SDL_RenderSetLogicalSize(@renderer, WIDTH, height(view))
       end
 
+      # Fits the window to a tune on `sids` SIDs, whose SID view is taller
+      # than one on a single SID.
+      def fit_sids(view, sids)
+        return if sids == @sids
+
+        @sids = sids
+        resize(view) if open?
+      end
+
       # Names the tune in the window's title.
       def title(name)
         SDL.SDL_SetWindowTitle(@window, name.empty? ? TITLE : "#{name} - #{TITLE}") if open?
@@ -76,7 +86,7 @@ module Badline
 
       def height(view) = HEADER + body_height(view) + PlayerFooter::HEIGHT
 
-      def body_height(view) = view == 1 ? SIDView::HEIGHT : VisualizerView::HEIGHT
+      def body_height(view) = view == 1 ? SIDView.height(@sids) : VisualizerView::HEIGHT
 
       def build
         @painter = Painter.new(@renderer)
@@ -84,7 +94,7 @@ module Badline
         @top = PlayerHeader.new(@painter, @buttons)
         @bottom = PlayerFooter.new(@painter, @buttons)
         @visualizer = VisualizerView.new(@painter, HEADER + 4)
-        @sid_view = SIDView.new(@painter, HEADER + 4)
+        @sid_view = SIDView.new(@painter, @buttons, HEADER + 4)
         @info = InfoView.new(@painter, @buttons, HEADER + 4)
       end
 

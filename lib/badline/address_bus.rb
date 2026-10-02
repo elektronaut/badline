@@ -85,7 +85,7 @@ module Badline
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
       @sid = SID.new(model: sid_model, pots: @control_ports)
-      @extra_sids = []
+      @sid_slots = []
 
       @datasette = Datasette.new
       @datasette.on_flag { @cia1.flag! }
@@ -256,7 +256,7 @@ module Badline
       @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
       @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
       map_cartridge_io if @cartridge
-      map_extra_sids unless @extra_sids.empty?
+      map_extra_sids unless @sid_slots.empty?
     end
 
     def map_cartridge_io

@@ -9,7 +9,7 @@ module Badline
     class PlayerCommands
       VIEWS = PlayerHeader::VIEWS
       CHIPS = PlayerHeader::CHIPS
-      SIDS = PlayerHeader::SIDS
+      SIDS = SIDView::SIDS
 
       def initialize(state)
         @state = state

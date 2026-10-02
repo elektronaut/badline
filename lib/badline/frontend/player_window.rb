@@ -125,6 +125,7 @@ module Badline
         stereo.sids.each(&:record_voices!)
         renderer.observer = ->(samples, rendered) { @history.record(stereo.sids, stereo.outputs, samples, rendered) }
         choose_model
+        @screen.fit_sids(@state.view, stereo.sids.size)
         @screen.title(renderer.tune.name)
       end
 

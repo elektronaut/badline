@@ -298,8 +298,8 @@ visualizer view shows each voice's note, and how far off it is in cents,
 over a scope of the voice's output, and the mixed output below them. A
 tune on more than one SID gets a row of voices for each SID, and the mix
 splits into its left and right. The SID view shows one SID at a time,
-and for a tune on more than one, the SID 1, 2 and 3 buttons beside the
-view buttons pick which. It shows each voice's waveforms and the shape
+and for a tune on more than one, a row of SID 1, 2 and 3 buttons at its
+top picks which. It shows each voice's waveforms and the shape
 they make, its control bits, pulse width, envelope settings, and the
 envelope's level and stage, and the filter's modes, cutoff, resonance,
 volume and its response on the chip playing. The INFO view shows the
