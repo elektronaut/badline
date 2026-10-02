@@ -31,7 +31,8 @@ end
 
 if options.headless?
   Signal.trap("INT") { raise Interrupt }
-  exit Badline::Audio::CLI.run(options, sink: Badline::Native::SINK, console: Badline::Native::CONSOLE)
+  console = options.player_window? ? Badline::Native::PLAYER : Badline::Native::CONSOLE
+  exit Badline::Audio::CLI.run(options, sink: Badline::Native::SINK, console:)
 end
 
 exit Badline::Frontend.run(options)

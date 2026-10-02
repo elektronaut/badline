@@ -336,8 +336,16 @@ describe Badline::Options do
   describe "sid" do
     let(:argv) { ["sid", "--sid", "auto", tune_path, dir] }
 
-    it "plays the tunes and directories given, in order, without the window" do
-      expect([options.sid_command?, options.headless?, options.tune_paths]).to eq([true, true, [tune_path, dir]])
+    it "plays the tunes and directories given, in order, in the SID player's window" do
+      expect([options.sid_command?, options.player_window?, options.tune_paths]).to eq([true, true, [tune_path, dir]])
+    end
+
+    context "with --headless" do
+      let(:argv) { ["sid", "--headless", tune_path] }
+
+      it "plays in the terminal" do
+        expect([options.headless?, options.player_window?]).to eq([true, false])
+      end
     end
 
     it "takes the model from each tune" do
@@ -357,15 +365,14 @@ describe Badline::Options do
 
       it "lists the options it takes" do
         expect(options.help.scan(/^ +(?:-\w, )?(--[\w-]+)/).flatten)
-          .to eq(%w[--subtune --sid --disable-jit --help --seconds --songlengths --rate --filter-chunk --quiet
-                    --all-subtunes --no-tui])
+          .to eq(%w[--subtune --sid --disable-jit --help --headless --seconds --songlengths --rate --filter-chunk
+                    --quiet --all-subtunes --no-tui])
       end
     end
 
     {
       "a window option" => [["--reu", "512"], "invalid option: --reu"],
       "--audio-out" => [["--audio-out", "out.wav"], "invalid option: --audio-out"],
-      "--headless" => [["--headless"], "invalid option: --headless"],
       "a program" => [["game.prg"], /not a \.sid tune: .*game\.prg/],
       "a missing directory" => [["missing"], "no such file or directory: missing"]
     }.each do |name, (arguments, message)|

@@ -96,7 +96,17 @@ module Badline
 
       def record_sample(span)
         sample = @decimator.push(current_sample, span)
-        @samples << sample if sample
+        return unless sample
+
+        @samples << sample
+        record_voices if @voice_samples
+      end
+
+      def record_voices
+        voice_samples = @voice_samples
+        voice_samples << (@voice1.output >> 7)
+        voice_samples << (@voice2.output >> 7)
+        voice_samples << (@voice3.output >> 7)
       end
 
       def current_sample

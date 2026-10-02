@@ -18,6 +18,7 @@ class QuietConsole
   def wait(_seconds) = []
   def place(*place) = (@places ||= []) << place
   def status(**) = nil
+  def playing(renderer) = (@renderers ||= []) << renderer
 end
 
 describe Badline::Audio::CLI do
@@ -348,7 +349,7 @@ describe Badline::Audio::CLI do
   describe "sid" do
     subject(:cli) { described_class.new(options, out:, sink: ->(**) { device }) }
 
-    let(:options) { Badline::Options.parse(["sid", "--seconds", "0.05", *paths]) }
+    let(:options) { Badline::Options.parse(["sid", "--headless", "--seconds", "0.05", *paths]) }
     let(:paths) { [dir] }
 
     def device = @device ||= FakeSink.new(rate: 8000, instant: true)
@@ -371,7 +372,7 @@ describe Badline::Audio::CLI do
     end
 
     context "with --sid" do
-      let(:options) { Badline::Options.parse(["sid", "--sid", "8580", "--seconds", "0.05", dir]) }
+      let(:options) { Badline::Options.parse(["sid", "--headless", "--sid", "8580", "--seconds", "0.05", dir]) }
 
       it "fits that SID to each tune" do
         cli.run

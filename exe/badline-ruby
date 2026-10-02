@@ -36,13 +36,21 @@ end
 
 if options.headless?
   require "badline/audio/console"
+  console = if options.player_window?
+              lambda do |input:, output:|
+                load_sdl
+                Badline::Frontend::PlayerWindow.new(input:, output:)
+              end
+            else
+              Badline::Audio::Console.method(:new)
+            end
   sink = lambda do |rate:, exact_rate:|
     load_sdl
     Badline::Frontend::AudioSink.new(rate:, exact_rate:)
   rescue Badline::FFI::Error => e
     raise Badline::Audio::Playback::DeviceError, e.message
   end
-  exit Badline::Audio::CLI.run(options, sink:, console: Badline::Audio::Console.method(:new))
+  exit Badline::Audio::CLI.run(options, sink:, console:)
 end
 
 begin

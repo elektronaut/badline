@@ -33,7 +33,7 @@ module Badline
     SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
     # What `sid` leaves out besides the window's options.
-    NOT_FOR_SID = %w[--headless --audio-out].freeze
+    NOT_FOR_SID = %w[--audio-out].freeze
 
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
 
@@ -104,6 +104,10 @@ module Badline
 
     # Whether `sid` came first, to play the tunes and directories given.
     def sid_command? = @sid_command
+
+    # Whether `sid` plays in the SID player's window rather than the
+    # terminal.
+    def player_window? = @sid_command && !@headless
 
     def window? = !headless?
 

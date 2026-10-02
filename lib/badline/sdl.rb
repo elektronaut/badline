@@ -15,6 +15,7 @@ module Badline
     ffi_func :SDL_SetHint, %i[str str], :int
     ffi_func :SDL_CreateWindow, %i[str int int int int uint32], :ptr
     ffi_func :SDL_SetWindowTitle, %i[ptr str], :void
+    ffi_func :SDL_SetWindowSize, %i[ptr int int], :void
     ffi_func :SDL_DestroyWindow, [:ptr], :void
     ffi_func :SDL_CreateRenderer, %i[ptr int uint32], :ptr
     ffi_func :SDL_GetWindowDisplayMode, %i[ptr ptr], :int
@@ -26,6 +27,9 @@ module Badline
     ffi_func :SDL_RenderClear, [:ptr], :int
     ffi_func :SDL_SetRenderDrawColor, %i[ptr int int int int], :int
     ffi_func :SDL_RenderFillRect, %i[ptr ptr], :int
+    ffi_func :SDL_RenderDrawLine, %i[ptr int int int int], :int
+    ffi_func :SDL_SetTextureBlendMode, %i[ptr int], :int
+    ffi_func :SDL_SetTextureColorMod, %i[ptr int int int], :int
     ffi_func :SDL_RenderCopy, %i[ptr ptr ptr ptr], :int
     ffi_func :SDL_RenderPresent, [:ptr], :void
     ffi_func :SDL_PollEvent, [:ptr], :int
@@ -52,9 +56,6 @@ module Badline
     ffi_func :SDL_GameControllerGetButton, %i[ptr int], :uint8
     ffi_func :SDL_GameControllerGetAxis, %i[ptr int], :int16
     ffi_func :SDL_ClearQueuedAudio, [:uint32], :void
-    ffi_func :SDL_GetCurrentDisplayMode, %i[int ptr], :int
-    ffi_func :SDL_CreateRGBSurfaceFrom, %i[ptr int int int int uint32 uint32 uint32 uint32], :ptr
-    ffi_func :SDL_CreateTextureFromSurface, %i[ptr ptr], :ptr
     ffi_func :SDL_PushEvent, [:ptr], :int
     ffi_func :SDL_GetKeyName, [:int], :str
 
@@ -69,6 +70,9 @@ module Badline
     ffi_read_i32 :event_xrel, 28
     ffi_read_i32 :event_yrel, 32
     ffi_read_u8 :event_button, 16
+    # Where the pointer is, in a motion or button event.
+    ffi_read_i32 :event_x, 20
+    ffi_read_i32 :event_y, 24
 
     ffi_buffer :rect, 16
     ffi_write_i32 :rect_x, 0
@@ -77,6 +81,9 @@ module Badline
     ffi_write_i32 :rect_h, 12
     # Where the drive LED goes.
     ffi_buffer :led_rect, 16
+    # A glyph's place in the SID player's font and on its window.
+    ffi_buffer :glyph_rect, 16
+    ffi_buffer :place_rect, 16
 
     # SDL_DisplayMode: Uint32 format; int w, h, refresh_rate; then a pointer.
     ffi_buffer :display_mode, 24
@@ -104,6 +111,8 @@ module Badline
     ffi_const :RENDERER_ACCELERATED, 0x02
     ffi_const :RENDERER_PRESENTVSYNC, 0x04
     ffi_const :PIXELFORMAT_RGB888, 0x16161804
+    ffi_const :PIXELFORMAT_ARGB8888, 0x16362004
+    ffi_const :BLENDMODE_BLEND, 0x01
     ffi_const :TEXTUREACCESS_STREAMING, 1
     ffi_const :QUIT, 0x100
     ffi_const :KEYDOWN, 0x300
@@ -114,13 +123,10 @@ module Badline
     ffi_const :KMOD_SHIFT, 0x0003
     ffi_const :CONTROLLERDEVICEADDED, 0x653
     ffi_const :CONTROLLERDEVICEREMOVED, 0x654
-    ffi_const :CONTROLLERDEVICEREMAPPED, 0x655
     ffi_const :AUDIO_S16LSB, 0x8010
     ffi_const :ALLOW_FREQUENCY_CHANGE, 0x01
     ffi_const :KEY_TAB, 0x09
     ffi_const :KEY_F10, 0x4000_0043
-    ffi_const :KEY_F11, 0x4000_0044
-    ffi_const :KEY_F12, 0x4000_0045
   end
 
   # The few C library calls the native front end makes.

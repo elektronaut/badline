@@ -71,6 +71,9 @@ module Badline
       # asks for it, by a click on the time the subtune has played.
       def seek_to = 0.0
 
+      # Hears of each subtune's renderer as it starts playing.
+      def playing(renderer) = renderer
+
       def status(subtune:, subtunes:, elapsed:, length:, notes: [])
         line = format("subtune %<subtune>d/%<subtunes>d  %<elapsed>s / %<length>s",
                       subtune:, subtunes:, elapsed: clock(elapsed), length: clock(length))
