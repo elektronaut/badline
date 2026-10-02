@@ -124,13 +124,21 @@ module Badline
         subtune_comments(entry, subtune).each { |line| @out.puts line }
         length = entry.length(subtune)
         @out.puts "Playing #{length}s on the #{entry.model_name} at #{sink.rate} Hz. Ctrl-C stops."
-        playback = Playback.new(sink, on_underrun: -> { @out.puts "\rRunning below real time, so it will stutter." })
+        @warned = false
+        playback = Playback.new(sink, on_underrun: -> { warn_below_real_time })
         renderer = renderer(entry, subtune, sink.rate)
         result = playback.play(renderer) { |played| progress(played, length) }
         progress(renderer.rendered, length) if result == :finished
         @out.print "\n" unless @options.quiet?
         @out.puts(result == :finished ? "Done." : "Stopped.")
         result
+      end
+
+      def warn_below_real_time
+        return if @warned
+
+        @warned = true
+        @out.puts "\rRunning below real time, so it will stutter."
       end
 
       def skip(entry)

@@ -16,6 +16,7 @@ module Badline
         "s" => :shuffle,
         "l" => :loop,
         "a" => :all_subtunes,
+        "," => :back, "." => :forward,
         "q" => :quit
       }.freeze
 
@@ -51,7 +52,7 @@ module Badline
 
       def header(lines)
         lines.each { |line| @output.print "#{line}\r\n" }
-        @output.print "←/→ subtune  n/p tune  space pause  s shuffle  l loop  a all subtunes  q quit\r\n"
+        @output.print "←/→ subtune  n/p tune  ,/. seek  space pause  s shuffle  l loop  a all subtunes  q quit\r\n"
       end
 
       # Prints lines above the status line, such as the next tune's header.
@@ -65,6 +66,10 @@ module Badline
         @tune = tune
         @tunes = tunes
       end
+
+      # Where :seek asks the subtune to play from, in seconds. Only a window
+      # asks for it, by a click on the time the subtune has played.
+      def seek_to = 0.0
 
       def status(subtune:, subtunes:, elapsed:, length:, notes: [])
         line = format("subtune %<subtune>d/%<subtunes>d  %<elapsed>s / %<length>s",

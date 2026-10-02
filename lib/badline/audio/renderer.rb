@@ -28,6 +28,11 @@ module Badline
       # fallen silent.
       attr_reader :rendered
 
+      # Where #stream starts: the frames before it are rendered as fast as
+      # they go and yielded without their samples, so the seconds rendered
+      # still count up to it.
+      attr_writer :from
+
       def initialize(tune, seconds:, subtune: nil, rate: DEFAULT_RATE, sid_model: tune.sid_model)
         @tune = tune
         @seconds = seconds
@@ -39,6 +44,7 @@ module Badline
         @level = 0
         @still = 0
         @rendered = 0.0
+        @from = 0.0
       end
 
       def silence=(seconds)
@@ -91,11 +97,12 @@ module Badline
         player.sid.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
         total = total_cycles
         remaining = total
+        skipped = (@from * player.clock_hz).round
         while remaining.positive?
           samples = []
           remaining -= player.frame(remaining) { |sample| samples << sample }
           @rendered = (total - remaining).fdiv(player.clock_hz)
-          yield samples, @rendered
+          yield(total - remaining < skipped ? [] : samples, @rendered)
           break if fallen_silent?(samples)
         end
       end

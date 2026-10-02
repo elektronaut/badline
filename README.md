@@ -270,8 +270,11 @@ subtune, and a tune stepped to starts on its first subtune.
 first and last. `n` and `p` step to the next and previous tune. `s`
 turns shuffle on and off, which plays the queue's tunes in a random
 order, and `l` turns looping on and off, so that the end of the queue
-goes on to its start. Space pauses and `q` quits. The status line
-shows which modes are on, and they last until the player quits.
+goes on to its start. `,` and `.` seek 10 seconds back and forward
+within the subtune, which plays it again from its start and runs
+silently up to the point asked for. Space pauses and `q` quits. The
+status line shows which modes are on, and they last until the player
+quits.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress
 output instead and plays through the queue without the keys, while

@@ -81,7 +81,7 @@ describe Badline::Audio::Console do
   describe "#header" do
     it "prints each line, then the keys" do
       console.header(%w[Tune Author])
-      keys = "←/→ subtune  n/p tune  space pause  s shuffle  l loop  a all subtunes  q quit"
+      keys = "←/→ subtune  n/p tune  ,/. seek  space pause  s shuffle  l loop  a all subtunes  q quit"
       expect(output.string).to eq("Tune\r\nAuthor\r\n#{keys}\r\n")
     end
   end

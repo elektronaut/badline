@@ -23,11 +23,15 @@ class ScriptedConsole
 
   def place(tune, tunes) = @place = [tune, tunes]
 
+  def seek_to = 0.2
+
   def status(**fields) = @statuses << fields.merge(place: @place)
 end
 
 # A renderer interrupted by Ctrl-C as it starts.
 class InterruptingRenderer
+  attr_accessor :from
+
   def stream = raise(Interrupt)
 end
 
@@ -345,6 +349,29 @@ describe Badline::Audio::Jukebox do
     it "says so on the status line" do
       jukebox.run
       expect(console.statuses.last[:notes]).to include("below real time")
+    end
+  end
+
+  context "when seeking" do
+    let(:renderer) do
+      ->(_entry, _subtune, _rate) { FakeRenderer.new(sink, frames: 20, size: 20).tap { |made| renderers << made } }
+    end
+
+    def renderers = @renderers ||= []
+
+    {
+      "a click on the time played" => [:seek, [0.0, 0.2]],
+      "a step forward" => [:forward, [0.0, 9.0]],
+      "a step back" => [:back, [0.0, 0.0]]
+    }.each do |name, (action, froms)|
+      context "with #{name}" do
+        let(:script) { { 2 => [action] } }
+
+        it "plays the subtune again from there" do
+          jukebox.run
+          expect(renderers.map(&:from)).to eq(froms)
+        end
+      end
     end
   end
 end

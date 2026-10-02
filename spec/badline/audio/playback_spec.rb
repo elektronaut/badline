@@ -71,9 +71,9 @@ describe Badline::Audio::Playback do
     context "with a renderer slower than real time" do
       let(:renderer) { FakeRenderer.new(sink, frames: 50, size: 20, cost: 0.04) }
 
-      it "reports the underrun once" do
+      it "reports each time the queue runs dry" do
         playback.play(renderer)
-        expect(underruns.length).to eq(1)
+        expect(underruns.length).to be > 1
       end
 
       it "still plays every sample" do

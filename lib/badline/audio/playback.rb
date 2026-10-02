@@ -10,7 +10,7 @@ module Badline
     # A sink answers #rate, #queue(samples), #queued_seconds, #start, #pause
     # and #clear; whoever opened it closes it. An emulator running below
     # real time lets the queue run dry and the audio stutters; `on_underrun`
-    # hears about the first time.
+    # hears of each time it does.
     class Playback
       # What a sink raises when the audio device won't open.
       class DeviceError < StandardError; end
@@ -73,6 +73,8 @@ module Badline
       private
 
       def enqueue(samples)
+        return if samples.empty?
+
         wait_below(@ahead)
         underrun! if @started && @sink.queued_seconds.zero?
         @sink.queue(samples)
@@ -92,8 +94,6 @@ module Badline
       end
 
       def underrun!
-        return if @underrun
-
         @underrun = true
         @on_underrun&.call
       end
