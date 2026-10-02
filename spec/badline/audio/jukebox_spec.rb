@@ -362,17 +362,25 @@ describe Badline::Audio::Jukebox do
     def renderers = @renderers ||= []
 
     {
-      "a click on the time played" => [:seek, [0.0, 0.2]],
-      "a step forward" => [:forward, [0.0, 9.0]],
-      "a step back" => [:back, [0.0, 0.0]]
+      "a click ahead" => [:seek, [0.2]],
+      "a step forward" => [:forward, [9.0]]
     }.each do |name, (action, froms)|
       context "with #{name}" do
         let(:script) { { 2 => [action] } }
 
-        it "plays the subtune again from there" do
+        it "skips ahead in the subtune playing" do
           jukebox.run
           expect(renderers.map(&:from)).to eq(froms)
         end
+      end
+    end
+
+    context "with a step back" do
+      let(:script) { { 2 => [:back] } }
+
+      it "plays the subtune again from there" do
+        jukebox.run
+        expect(renderers.map(&:from)).to eq([0.0, 0.0])
       end
     end
   end
