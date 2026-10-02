@@ -11,11 +11,11 @@ module Badline
     class Terminal
       KEYS = {
         "n" => :next, "p" => :previous,
-        "\e[C" => :next_song, "\e[D" => :previous_song,
+        "\e[C" => :next_subtune, "\e[D" => :previous_subtune,
         " " => :pause,
         "s" => :shuffle,
         "l" => :loop,
-        "a" => :all_songs,
+        "a" => :all_subtunes,
         "q" => :quit
       }.freeze
 
@@ -51,7 +51,7 @@ module Badline
 
       def header(lines)
         lines.each { |line| @output.print "#{line}\r\n" }
-        @output.print "←/→ song  n/p tune  space pause  s shuffle  l loop  a all songs  q quit\r\n"
+        @output.print "←/→ subtune  n/p tune  space pause  s shuffle  l loop  a all subtunes  q quit\r\n"
       end
 
       # Prints lines above the status line, such as the next tune's header.
@@ -66,9 +66,9 @@ module Badline
         @tunes = tunes
       end
 
-      def status(song:, songs:, elapsed:, length:, notes: [])
-        line = format("song %<song>d/%<songs>d  %<elapsed>s / %<length>s",
-                      song:, songs:, elapsed: clock(elapsed), length: clock(length))
+      def status(subtune:, subtunes:, elapsed:, length:, notes: [])
+        line = format("subtune %<subtune>d/%<subtunes>d  %<elapsed>s / %<length>s",
+                      subtune:, subtunes:, elapsed: clock(elapsed), length: clock(length))
         line = format("tune %<tune>d/%<tunes>d  %<line>s", tune: @tune, tunes: @tunes, line:) if @tunes > 1
         @output.print "\r\e[K#{([line] + notes).join('  ')}"
         @output.flush

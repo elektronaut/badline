@@ -54,9 +54,9 @@ module Badline
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
-        terminal, → and ← step between the tune's songs, n and p between
+        terminal, → and ← step between the tune's subtunes, n and p between
         tunes, space pauses and q quits. s shuffles the tunes, l loops them,
-        and a, or --all-songs, plays on through each tune's songs instead
+        and a, or --all-subtunes, plays on through each tune's subtunes instead
         of just the one. `#{@program} sid` plays many tunes, and whole
         directories of them, the same way.
 
@@ -86,10 +86,10 @@ module Badline
 
         Plays .sid tunes in the terminal, one after another in the order
         given. A directory adds every .sid tune below it, in path order.
-        → and ← step between a tune's songs, n and p between tunes, space
+        → and ← step between a tune's subtunes, n and p between tunes, space
         pauses and q quits. s shuffles the tunes, l loops them, and a, or
-        --all-songs, plays on through each tune's songs instead of just
-        the one. --song picks the first tune's song, and each tune after it
+        --all-subtunes, plays on through each tune's subtunes instead of just
+        the one. --subtune picks the first tune's subtune, and each tune after it
         starts on its own.
 
         Each tune gets the SID its header names unless --sid says otherwise,

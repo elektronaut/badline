@@ -8,7 +8,7 @@ module Badline
 
     # Every option of both builds, in the order the help lists them.
     TABLE = [
-      Option.new("-s, --song N", "Subtune of a .sid, from 1 (default: the tune's own)", section: "Options"),
+      Option.new("-s, --subtune N", "Subtune of a .sid, from 1 (default: the tune's own)", section: "Options"),
       Option.new("--sid MODEL", "SID to fit: auto, 6581 or 8580 (default: auto, a .sid tune's own, else 6581)",
                  section: "Options"),
       Option.new("--disable-jit", "Run without enabling YJIT", section: "Options", build: :ruby),
@@ -44,7 +44,7 @@ module Badline
       Option.new("--filter-chunk N", "Filter step in cycles, 1 is exact (default: 4)",
                  section: "Options without the window", needs: :headless),
       Option.new("--quiet", "Don't report progress", section: "Options without the window", needs: :headless),
-      Option.new("--all-songs", "Play on through each tune's songs, not just the one",
+      Option.new("--all-subtunes", "Play on through each tune's subtunes, not just the one",
                  section: "Options without the window", needs: :headless),
       Option.new("--no-tui", "Play without the interactive display, even on a terminal",
                  section: "Options without the window", needs: :headless),

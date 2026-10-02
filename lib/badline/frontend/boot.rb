@@ -43,7 +43,7 @@ module Badline
                               region: options.ntsc? ? Region::NTSC : Region::PAL)
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
-        puts Media.attach(computer, media, autostart: options.autostart?, song: options.song,
+        puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
                                            disk: { read_only: options.read_only? })
       end
       computer

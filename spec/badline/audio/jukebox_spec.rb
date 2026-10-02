@@ -33,7 +33,7 @@ end
 
 describe Badline::Audio::Jukebox do
   subject(:jukebox) do
-    described_class.new(sink, console, queue:, renderer:, length: ->(_entry, song) { song * 10.0 })
+    described_class.new(sink, console, queue:, renderer:, length: ->(_entry, subtune) { subtune * 10.0 })
   end
 
   let(:sink) { FakeSink.new(rate: 1000) }
@@ -41,25 +41,25 @@ describe Badline::Audio::Jukebox do
   let(:script) { {} }
   let(:queue) { tune(1) }
   let(:renderer) do
-    lambda do |_entry, song, _rate|
-      played << song
+    lambda do |_entry, subtune, _rate|
+      played << subtune
       FakeRenderer.new(sink, frames: 20, size: 20)
     end
   end
 
   def played = @played ||= []
 
-  def tune(start, all_songs: false)
+  def tune(start, all_subtunes: false)
     Badline::Media::Queue.new([Badline::Media::Queue::Entry.new("tune.sid", part: start, parts: 3)],
-                              all_parts: all_songs)
+                              all_parts: all_subtunes)
   end
 
-  def tunes(*songs, all_songs: false)
-    entries = songs.map { |parts| Badline::Media::Queue::Entry.new("#{parts}.sid", parts:) }
-    Badline::Media::Queue.new(entries, all_parts: all_songs, shuffle: lambda(&:reverse))
+  def tunes(*subtunes, all_subtunes: false)
+    entries = subtunes.map { |parts| Badline::Media::Queue::Entry.new("#{parts}.sid", parts:) }
+    Badline::Media::Queue.new(entries, all_parts: all_subtunes, shuffle: lambda(&:reverse))
   end
 
-  context "when started on the last song" do
+  context "when started on the last subtune" do
     let(:queue) { tune(3) }
 
     it "plays it to the end" do
@@ -67,17 +67,17 @@ describe Badline::Audio::Jukebox do
       expect([played, sink.played]).to eq([[3], 400])
     end
 
-    it "reports how the song ended" do
+    it "reports how the subtune ended" do
       expect(jukebox.run).to eq(:finished)
     end
 
-    it "shows the song, its number and its length" do
+    it "shows the subtune, its number and its length" do
       jukebox.run
-      expect(console.statuses.last).to include(song: 3, songs: 3, length: 30.0)
+      expect(console.statuses.last).to include(subtune: 3, subtunes: 3, length: 30.0)
     end
   end
 
-  it "plays just the tune's own song" do
+  it "plays just the tune's own subtune" do
     jukebox.run
     expect(played).to eq([1])
   end
@@ -87,37 +87,37 @@ describe Badline::Audio::Jukebox do
     expect(console.statuses.last[:notes]).to eq([])
   end
 
-  context "with all songs on" do
-    let(:queue) { tune(2, all_songs: true) }
+  context "with all subtunes on" do
+    let(:queue) { tune(2, all_subtunes: true) }
 
-    it "moves on to the next song when one ends" do
+    it "moves on to the next subtune when one ends" do
       jukebox.run
       expect(played).to eq([2, 3])
     end
 
-    it "reports how the last song ended" do
+    it "reports how the last subtune ended" do
       expect(jukebox.run).to eq(:finished)
     end
 
     it "shows it on the status line" do
       jukebox.run
-      expect(console.statuses.last[:notes]).to eq(["all songs"])
+      expect(console.statuses.last[:notes]).to eq(["all subtunes"])
     end
   end
 
   context "with → pressed" do
     let(:queue) { tune(2) }
-    let(:script) { { 3 => [:next_song] } }
+    let(:script) { { 3 => [:next_subtune] } }
 
-    it "moves on to the next song" do
+    it "moves on to the next subtune" do
       jukebox.run
       expect(played).to eq([2, 3])
     end
   end
 
-  context "with → pressed on the last song" do
+  context "with → pressed on the last subtune" do
     let(:queue) { tune(3) }
-    let(:script) { { 3 => [:next_song] } }
+    let(:script) { { 3 => [:next_subtune] } }
 
     it "stays on it" do
       jukebox.run
@@ -127,26 +127,26 @@ describe Badline::Audio::Jukebox do
 
   context "with ← pressed" do
     let(:queue) { tune(2) }
-    let(:script) { { 3 => [:previous_song] } }
+    let(:script) { { 3 => [:previous_subtune] } }
 
-    it "goes back a song" do
+    it "goes back a subtune" do
       jukebox.run
       expect(played).to eq([2, 1])
     end
   end
 
-  context "with ← pressed and all songs on" do
-    let(:queue) { tune(2, all_songs: true) }
-    let(:script) { { 3 => [:previous_song] } }
+  context "with ← pressed and all subtunes on" do
+    let(:queue) { tune(2, all_subtunes: true) }
+    let(:script) { { 3 => [:previous_subtune] } }
 
-    it "goes back a song and plays on from there" do
+    it "goes back a subtune and plays on from there" do
       jukebox.run
       expect(played).to eq([2, 1, 2, 3])
     end
   end
 
-  context "with ← pressed on the first song" do
-    let(:script) { { 3 => [:previous_song] } }
+  context "with ← pressed on the first subtune" do
+    let(:script) { { 3 => [:previous_subtune] } }
 
     it "stays on it" do
       jukebox.run
@@ -165,21 +165,21 @@ describe Badline::Audio::Jukebox do
 
   context "with a pressed" do
     let(:queue) { tune(2) }
-    let(:script) { { 3 => [:all_songs] } }
+    let(:script) { { 3 => [:all_subtunes] } }
 
-    it "plays on through the tune's songs" do
+    it "plays on through the tune's subtunes" do
       jukebox.run
       expect(played).to eq([2, 3])
     end
 
     it "shows it on the status line" do
       jukebox.run
-      expect(console.statuses.last[:notes]).to eq(["all songs"])
+      expect(console.statuses.last[:notes]).to eq(["all subtunes"])
     end
   end
 
-  context "with l pressed on the last song and all songs on" do
-    let(:queue) { tune(3, all_songs: true) }
+  context "with l pressed on the last subtune and all subtunes on" do
+    let(:queue) { tune(3, all_subtunes: true) }
     let(:script) { { 3 => [:loop], 80 => [:quit] } }
 
     it "goes on to the first" do
@@ -189,16 +189,16 @@ describe Badline::Audio::Jukebox do
 
     it "shows it on the status line" do
       jukebox.run
-      expect(console.statuses.last[:notes]).to eq(["loop", "all songs"])
+      expect(console.statuses.last[:notes]).to eq(["loop", "all subtunes"])
     end
   end
 
   context "with a queue of tunes" do
     let(:queue) { tunes(2, 1, 3) }
 
-    it "plays each tune's own song in turn" do
+    it "plays each tune's own subtune in turn" do
       jukebox.run
-      expect(console.statuses.map { |status| status[:songs] }.uniq).to eq([2, 1, 3])
+      expect(console.statuses.map { |status| status[:subtunes] }.uniq).to eq([2, 1, 3])
     end
 
     it "shows each tune's place in the queue" do
@@ -211,7 +211,7 @@ describe Badline::Audio::Jukebox do
 
       it "cuts the first tune short and moves on to the next" do
         jukebox.run
-        expect([console.statuses.map { |status| status[:songs] }.uniq, sink.played < 1200]).to eq([[2, 1, 3], true])
+        expect([console.statuses.map { |status| status[:subtunes] }.uniq, sink.played < 1200]).to eq([[2, 1, 3], true])
       end
     end
 
@@ -220,7 +220,8 @@ describe Badline::Audio::Jukebox do
 
       it "goes back a tune and plays on from there" do
         jukebox.run
-        expect(console.statuses.map { |status| status[:songs] }.chunk_while(&:==).map(&:first)).to eq([2, 1, 2, 1, 3])
+        counts = console.statuses.map { |status| status[:subtunes] }
+        expect(counts.chunk_while(&:==).map(&:first)).to eq([2, 1, 2, 1, 3])
       end
     end
   end
@@ -228,7 +229,7 @@ describe Badline::Audio::Jukebox do
   context "with a tune in the queue that can't play" do
     let(:queue) { tunes(2, 1, 3) }
     let(:renderer) do
-      lambda do |entry, _song, _rate|
+      lambda do |entry, _subtune, _rate|
         next if entry.path == "1.sid"
 
         played << entry.path
@@ -253,17 +254,17 @@ describe Badline::Audio::Jukebox do
 
   context "with no tune in a looping queue that can play" do
     let(:queue) { tunes(2, 1).tap(&:toggle_loop) }
-    let(:renderer) { ->(_entry, _song, _rate) {} }
+    let(:renderer) { ->(_entry, _subtune, _rate) {} }
 
     it "gives up once it has tried each" do
       expect(jukebox.run).to eq(:unplayable)
     end
   end
 
-  context "with a queue of tunes and all songs on" do
-    let(:queue) { tunes(2, 1, 3, all_songs: true) }
+  context "with a queue of tunes and all subtunes on" do
+    let(:queue) { tunes(2, 1, 3, all_subtunes: true) }
 
-    it "plays each tune's songs in turn" do
+    it "plays each tune's subtunes in turn" do
       jukebox.run
       expect(played).to eq([1, 2, 1, 1, 2, 3])
     end
@@ -271,7 +272,7 @@ describe Badline::Audio::Jukebox do
     context "with n pressed" do
       let(:script) { { 3 => [:next] } }
 
-      it "leaves the rest of the tune's songs" do
+      it "leaves the rest of the tune's subtunes" do
         jukebox.run
         expect(played).to eq([1, 1, 1, 2, 3])
       end
@@ -287,35 +288,35 @@ describe Badline::Audio::Jukebox do
 
       it "shows it on the status line" do
         jukebox.run
-        expect(console.statuses.last[:notes]).to eq(["shuffle", "all songs"])
+        expect(console.statuses.last[:notes]).to eq(["shuffle", "all subtunes"])
       end
     end
   end
 
   context "with q pressed" do
-    let(:queue) { tune(2, all_songs: true) }
+    let(:queue) { tune(2, all_subtunes: true) }
     let(:script) { { 3 => [:quit] } }
 
     it "stops" do
       expect(jukebox.run).to eq(:stopped)
     end
 
-    it "plays no further song" do
+    it "plays no further subtune" do
       jukebox.run
       expect(played).to eq([2])
     end
   end
 
   context "with Ctrl-C pressed" do
-    let(:queue) { tune(2, all_songs: true) }
+    let(:queue) { tune(2, all_subtunes: true) }
     let(:renderer) do
-      lambda do |_entry, song, _rate|
-        played << song
+      lambda do |_entry, subtune, _rate|
+        played << subtune
         InterruptingRenderer.new
       end
     end
 
-    it "plays no further song" do
+    it "plays no further subtune" do
       jukebox.run
       expect(played).to eq([2])
     end
@@ -331,7 +332,7 @@ describe Badline::Audio::Jukebox do
       expect(paused.chunk_while(&:==).map(&:first)).to eq([false, true, false])
     end
 
-    it "then plays the song out" do
+    it "then plays the subtune out" do
       jukebox.run
       expect(sink.played).to eq(400)
     end
@@ -339,7 +340,7 @@ describe Badline::Audio::Jukebox do
 
   context "when the tune can't keep up" do
     let(:queue) { tune(3) }
-    let(:renderer) { ->(_entry, _song, _rate) { FakeRenderer.new(sink, frames: 20, size: 20, cost: 0.04) } }
+    let(:renderer) { ->(_entry, _subtune, _rate) { FakeRenderer.new(sink, frames: 20, size: 20, cost: 0.04) } }
 
     it "says so on the status line" do
       jukebox.run

@@ -165,7 +165,7 @@ them. The window's are below, and `--headless` and `--audio-out` play or
 render a `.sid` tune without it, as described under
 [Without the window](#without-the-window).
 
-- `-s`, `--song N` picks a subtune of a `.sid` file, and `--sid 6581` or
+- `-s`, `--subtune N` picks a subtune of a `.sid` file, and `--sid 6581` or
   `--sid 8580` the SID to fit, which with `--sid auto` or without `--sid`
   is a `.sid` tune's own, or the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
@@ -190,7 +190,7 @@ render a `.sid` tune without it, as described under
   window opens, and the frame report below.
 - `--version` names the build.
 
-Values can also come as `--song=2`, and `--` ends the options. Six more
+Values can also come as `--subtune=2`, and `--` ends the options. Six more
 options are for testing, and `exe/badline-ruby` takes them too:
 
 - `--frames N` quits after that many frames.
@@ -273,8 +273,8 @@ SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
 `badline sid FILE|DIR...` plays a queue of tunes and directories of
 them, as `badline-ruby --headless`, `--audio-out` and `sid` do (see
 [Playing and rendering SID tunes](../README.md#playing-and-rendering-sid-tunes)).
-They take the same options: `--song`, `--sid`, `--seconds`,
-`--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-songs`
+They take the same options: `--subtune`, `--sid`, `--seconds`,
+`--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-subtunes`
 and `--no-tui`.
 The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
 `--reu`, `--ntsc`, `--verbose` and the testing ones included, are refused

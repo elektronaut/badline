@@ -2,9 +2,9 @@
 
 module Badline
   module Storage
-    # HVSC's song length database. Each tune gets a comment naming its path
+    # HVSC's subtune length database. Each tune gets a comment naming its path
     # and a line keyed by the MD5 of the whole `.sid` file, holding one
-    # `m:ss` time per song, optionally down to milliseconds:
+    # `m:ss` time per subtune, optionally down to milliseconds:
     #
     #   ; /DEMOS/0-9/12th_Sector_Music.sid
     #   c7c299ce06ec5ccffb2261fb11b42a73=4:33.108
@@ -20,7 +20,7 @@ module Badline
         @path = path
       end
 
-      # The tune's per-song lengths in seconds, or nil when it isn't listed.
+      # The tune's per-subtune lengths in seconds, or nil when it isn't listed.
       def lengths(md5)
         prefix = "#{md5.downcase}="
         File.foreach(@path) do |line|

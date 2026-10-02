@@ -46,9 +46,9 @@ module Badline
 
       attr_reader :sid
 
-      def initialize(tune, song: nil, sid_model: tune.sid_model)
+      def initialize(tune, subtune: nil, sid_model: tune.sid_model)
         @tune = tune
-        @song = (song || tune.start_song).clamp(1, tune.songs) - 1
+        @subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes) - 1
         @bus = AddressBus.new(sid_model:)
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
@@ -67,7 +67,7 @@ module Badline
         @cpu.status.interrupt = true
         @cpu.program_counter = idle_address
         install_dispatch
-        call(@tune.init_address, @song)
+        call(@tune.init_address, @subtune)
         settle
       end
 
@@ -86,10 +86,10 @@ module Badline
 
       private
 
-      # A video frame, or for a CIA-timed song one period of CIA 1 timer A,
+      # A video frame, or for a CIA-timed subtune one period of CIA 1 timer A,
       # which init and play are both free to reprogram.
       def period
-        return (@tune.ntsc? ? NTSC_FRAME_CYCLES : FRAME_CYCLES) unless @tune.cia_timed?(@song + 1)
+        return (@tune.ntsc? ? NTSC_FRAME_CYCLES : FRAME_CYCLES) unless @tune.cia_timed?(@subtune + 1)
 
         @bus.cia1.timer_a_latch + 1
       end

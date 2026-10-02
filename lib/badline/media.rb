@@ -26,7 +26,7 @@ module Badline
       # A .g64 plugs in a true drive as device 8 (TrueDrive), and with one
       # there, a .d64 goes into it instead of the KERNAL traps too. The
       # autostart then loads through it.
-      def attach(computer, path, autostart: true, song: nil, **options)
+      def attach(computer, path, autostart: true, subtune: nil, **options)
         if TrueDrive.takes?(computer, path)
           attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
         elsif File.directory?(path)
@@ -35,7 +35,7 @@ module Badline
         elsif File.extname(path).downcase == ".crt"
           attach_cartridge(computer, path, options.fetch(:cartridge, {}))
         elsif File.extname(path).downcase == ".sid"
-          attach_sid(computer, path, autostart:, song:)
+          attach_sid(computer, path, autostart:, subtune:)
         elsif File.extname(path).downcase == ".tap"
           attach_tape(computer, path, autostart:)
         elsif MOUNT_TYPES.key?(File.extname(path).downcase)
@@ -92,20 +92,20 @@ module Badline
         "Attached cartridge #{path}"
       end
 
-      def attach_sid(computer, path, autostart:, song:)
+      def attach_sid(computer, path, autostart:, subtune:)
         tune = Storage::SIDFile.new(path)
         raise Storage::SIDFile::FormatError, tune.sids_notice if tune.sids > 1
 
-        song = (song || tune.start_song).clamp(1, tune.songs)
-        computer.on_init { start_tune(computer, tune, autostart:, song:) }
+        subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes)
+        computer.on_init { start_tune(computer, tune, autostart:, subtune:) }
         title = tune.name.empty? ? path : tune.name
-        title += " (song #{song})" if tune.songs > 1
+        title += " (subtune #{subtune})" if tune.subtunes > 1
         autostart ? "Playing #{title}" : "Loaded #{title}"
       end
 
-      def start_tune(computer, tune, autostart:, song:)
+      def start_tune(computer, tune, autostart:, subtune:)
         computer.ram.write(tune.load_address, tune.data)
-        tune.boot_memory(song:).each { |address, bytes| computer.ram.write(address, bytes) }
+        tune.boot_memory(subtune:).each { |address, bytes| computer.ram.write(address, bytes) }
         computer.type_text(tune.boot_command) if autostart
       end
 

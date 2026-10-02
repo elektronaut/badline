@@ -6,18 +6,18 @@ require "fileutils"
 require_relative "../../support/tiny_sid"
 
 describe Badline::Audio::QueuedTune do
-  subject(:entry) { described_class.new(path, options, song:) }
+  subject(:entry) { described_class.new(path, options, subtune:) }
 
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "tune.sid") }
   let(:options) { Badline::Options.parse(["sid", *arguments, path]) }
   let(:arguments) { [] }
-  let(:song) { nil }
+  let(:subtune) { nil }
 
   before { File.binwrite(path, TinySID.bytes(flags: 0x24)) }
   after { FileUtils.remove_entry(dir) }
 
-  it "starts on the tune's own song, out of its songs" do
+  it "starts on the tune's own subtune, out of its subtunes" do
     expect([entry.part, entry.parts, entry.error]).to eq([1, 2, ""])
   end
 
@@ -29,23 +29,23 @@ describe Badline::Audio::QueuedTune do
     expect(entry.header).to eq(%w[TUNE AUTHOR 1987])
   end
 
-  context "with a song asked for" do
-    let(:song) { 2 }
+  context "with a subtune asked for" do
+    let(:subtune) { 2 }
 
     it "starts on it" do
       expect(entry.part).to eq(2)
     end
   end
 
-  context "with a song past the tune's last" do
-    let(:song) { 3 }
+  context "with a subtune past the tune's last" do
+    let(:subtune) { 3 }
 
     it "can't play" do
-      expect(entry.error).to eq("no song 3: the tune has 2")
+      expect(entry.error).to eq("no subtune 3: the tune has 2")
     end
   end
 
-  it "ends a song on the fallback length once it falls silent" do
+  it "ends a subtune on the fallback length once it falls silent" do
     expect([entry.length(1), entry.silence(1)]).to eq([60.0, 5.0])
   end
 
@@ -64,7 +64,7 @@ describe Badline::Audio::QueuedTune do
   context "with a file that isn't a tune" do
     before { File.binwrite(path, "XSID") }
 
-    it "has one song and can't play" do
+    it "has one subtune and can't play" do
       expect([entry.parts, entry.error]).to eq([1, "Missing PSID or RSID signature"])
     end
   end

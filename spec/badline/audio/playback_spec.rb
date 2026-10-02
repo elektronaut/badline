@@ -39,7 +39,7 @@ describe Badline::Audio::Playback do
       expect(sink.queued).to eq(0)
     end
 
-    it "leaves the device open for the next song" do
+    it "leaves the device open for the next subtune" do
       playback.play(renderer)
       expect(sink.closed?).to be(false)
     end

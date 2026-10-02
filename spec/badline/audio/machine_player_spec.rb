@@ -24,7 +24,7 @@ describe Badline::Audio::MachinePlayer do
 
   def header
     fields = { version: 2, data_offset: 0x7c, load: 0x1000, init: 0x1000,
-               play: 0x1010, songs: 1, start_song: 1 }
+               play: 0x1010, subtunes: 1, start_subtune: 1 }
     words = fields.values.flat_map { |value| [value >> 8, value & 0xff] }
     "PSID".bytes + words + ([0] * 4) + ([0] * 96) +
       [0x00, 0x04, 0x00, 0x01, 0x00, 0x00]
@@ -87,7 +87,7 @@ describe Badline::Audio::MachinePlayer do
 
   # 10 POKE251,PEEK(780)+1
   describe "#start with a BASIC tune", :slow do
-    subject(:player) { described_class.new(tune, song: 3) }
+    subject(:player) { described_class.new(tune, subtune: 3) }
 
     let(:computer) { Badline::Computer.new }
 
@@ -110,7 +110,7 @@ describe Badline::Audio::MachinePlayer do
       [started, computer.address_bus.peek(0xfb)]
     end
 
-    it "RUNs the program with the song in PEEK(780)" do
+    it "RUNs the program with the subtune in PEEK(780)" do
       expect(run_program).to eq([true, 3])
     end
   end

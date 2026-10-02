@@ -16,7 +16,7 @@ module Badline
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come
-  # as `--song 2` or `--song=2`, and `--` ends the options. It loads
+  # as `--subtune 2` or `--subtune=2`, and `--` ends the options. It loads
   # nothing else from badline, so badline-ruby can parse and reject its
   # arguments before paying for the emulator.
   class Options
@@ -43,7 +43,7 @@ module Badline
 
     # tune_paths holds the media given, which `sid` takes more than one of:
     # tunes and directories of tunes, in the order given.
-    attr_reader :program, :media_path, :tune_paths, :song, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
+    attr_reader :program, :media_path, :tune_paths, :subtune, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
@@ -57,7 +57,7 @@ module Badline
       @media_path = nil
       @sid_command = false
       @tune_paths = []
-      @song = nil
+      @subtune = nil
       @sid_model = nil
       @reu = nil
       @autostart = true
@@ -83,7 +83,7 @@ module Badline
       @filter_chunk = nil
       @quiet = false
       @tui = true
-      @all_songs = false
+      @all_subtunes = false
       @window_only = []
       @headless_only = []
     end
@@ -126,7 +126,7 @@ module Badline
 
     def tui? = @tui
 
-    def all_songs? = @all_songs
+    def all_subtunes? = @all_subtunes
 
     def autostart? = @autostart
 
@@ -209,7 +209,7 @@ module Badline
 
     def valued_option(name, flag, value)
       case name
-      when "--song" then @song = number(flag, value)
+      when "--subtune" then @subtune = number(flag, value)
       when "--sid" then @sid_model = sid_model_for(value)
       when "--reu" then @reu = reu_size(value)
       when "--frames" then @frames = number(flag, value)
@@ -240,7 +240,7 @@ module Badline
       when "--version" then @version = true
       when "--headless" then @headless = true
       when "--quiet" then @quiet = true
-      when "--all-songs" then @all_songs = true
+      when "--all-subtunes" then @all_subtunes = true
       else @tui = false
       end
     end

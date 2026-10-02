@@ -34,7 +34,7 @@ module Badline
       end
 
       def validate_numbers
-        positive("--song", @song)
+        positive("--subtune", @subtune)
         positive("--seconds", @seconds)
         positive("--rate", @rate)
         positive("--filter-chunk", @filter_chunk)

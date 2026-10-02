@@ -121,7 +121,7 @@ describe Badline::Audio::Renderer do
       expect(samples("out.wav").map(&:abs).max).to be_positive
     end
 
-    context "with the tune's own start song" do
+    context "with the tune's own start subtune" do
       let(:options) { { seconds: 0.1 } }
 
       it "leaves the gated voice silent" do
@@ -140,9 +140,9 @@ describe Badline::Audio::Renderer do
     end
 
     context "with a subtune selected" do
-      let(:options) { { song: 2, seconds: 0.1 } }
+      let(:options) { { subtune: 2, seconds: 0.1 } }
 
-      it "plays the song it was given" do
+      it "plays the subtune it was given" do
         renderer.render(output("out.wav"))
         expect(steady_peak("out.wav")).to be > 3000
       end
@@ -164,8 +164,8 @@ describe Badline::Audio::Renderer do
       end
     end
 
-    context "with a silence to end on and a song that keeps sounding" do
-      let(:options) { { song: 2, seconds: 0.3 } }
+    context "with a silence to end on and a subtune that keeps sounding" do
+      let(:options) { { subtune: 2, seconds: 0.3 } }
 
       before { renderer.silence = 0.1 }
 
@@ -176,7 +176,7 @@ describe Badline::Audio::Renderer do
     end
 
     context "with an NTSC tune" do
-      let(:options) { { song: 2, seconds: 0.5 } }
+      let(:options) { { subtune: 2, seconds: 0.5 } }
 
       def flags = 0x08
 
