@@ -56,10 +56,13 @@ module Badline
       private
 
       # Waits on the console while the queue is empty, as a window's is
-      # until something is put in it. Returns false when asked to quit.
+      # until files are dropped on it. Returns false when asked to quit.
       def tunes_to_play?
         while @queue.empty?
-          return false if @console.wait(IDLE).include?(:quit)
+          actions = @console.wait(IDLE)
+          return false if actions.include?(:quit)
+
+          @queue.add(@console.dropped) if actions.include?(:drop)
         end
         true
       end
@@ -100,6 +103,7 @@ module Badline
           when :loop then @queue.toggle_loop
           when :all_subtunes then @queue.toggle_all_parts
           when :quit then quit
+          when :drop then @queue.add(@console.dropped)
           when :seek then seek(@console.seek_to)
           when :forward then seek(@elapsed + SEEK_STEP)
           when :back then seek(@elapsed - SEEK_STEP)

@@ -25,6 +25,8 @@ class ScriptedConsole
 
   def seek_to = 0.2
 
+  def dropped = ["dropped.sid"]
+
   def status(**fields) = @statuses << fields.merge(place: @place)
 end
 
@@ -381,6 +383,31 @@ describe Badline::Audio::Jukebox do
 
     it "waits on the console until asked to quit" do
       expect([jukebox.run, sink.played]).to eq([:stopped, 0])
+    end
+  end
+
+  context "with files dropped on an empty queue" do
+    let(:queue) do
+      Badline::Media::Queue.new([], build: ->(paths) { paths.map { |path| Badline::Media::Queue::Entry.new(path) } })
+    end
+    let(:script) { { 2 => [:drop] } }
+
+    it "plays them" do
+      jukebox.run
+      expect([queue.entry.path, played]).to eq(["dropped.sid", [1]])
+    end
+  end
+
+  context "with files dropped while playing" do
+    let(:queue) do
+      Badline::Media::Queue.new([Badline::Media::Queue::Entry.new("first.sid")],
+                                build: ->(paths) { paths.map { |path| Badline::Media::Queue::Entry.new(path) } })
+    end
+    let(:script) { { 2 => [:drop] } }
+
+    it "plays them after the tune playing" do
+      jukebox.run
+      expect(console.statuses.map { |status| status[:place] }.uniq).to eq([[1, 1], [1, 2], [2, 2]])
     end
   end
 end

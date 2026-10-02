@@ -95,7 +95,7 @@ module Badline
         and for switching the SID between the tune's own, the 6581 and the
         8580. --subtune picks the first tune's subtune, and each tune after
         it starts on its own. Without tunes, the window opens with an empty
-        queue.
+        queue, and .sid files or folders dropped on the window join it.
 
         Each tune gets the SID its header names unless --sid says otherwise,
         and its length from HVSC's Songlengths.md5 as #{@program} --help

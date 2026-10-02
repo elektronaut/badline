@@ -18,7 +18,8 @@ module Badline
     # with #all_parts?, otherwise on its own.
     #
     # `shuffle`, if given, returns the entry indices it's given in a new
-    # order in place of Array#shuffle.
+    # order in place of Array#shuffle. `build`, if given, turns the paths
+    # #add is given into entries.
     class Queue
       # A file and the part of it to start on.
       class Entry
@@ -53,9 +54,10 @@ module Badline
       end
       private_class_method :below
 
-      def initialize(entries, all_parts: false, shuffle: nil)
+      def initialize(entries, all_parts: false, shuffle: nil, build: nil)
         @entries = entries
         @shuffler = shuffle
+        @builder = build
         @order = (0...entries.size).to_a
         @position = 0
         @part = entries.empty? ? 0 : entries.first.part
@@ -78,6 +80,18 @@ module Badline
       def shuffle? = @shuffle
 
       def loop? = @loop
+
+      # Puts the entries `build` makes of the paths at the end of the order,
+      # shuffled or not. An empty queue starts on the first of them.
+      def add(paths)
+        return if @builder.nil?
+
+        started = empty?
+        first = @entries.size
+        @entries.concat(@builder.call(paths))
+        @order.concat((first...@entries.size).to_a)
+        @part = entry.part if started && !empty?
+      end
 
       def toggle_all_parts = @all_parts = !@all_parts
 

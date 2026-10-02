@@ -71,6 +71,9 @@ module Badline
       # asks for it, by a click on the time the subtune has played.
       def seek_to = 0.0
 
+      # The files dropped on a window since it last said :drop.
+      def dropped = []
+
       # Hears of each subtune's renderer as it starts playing.
       def playing(renderer) = renderer
 

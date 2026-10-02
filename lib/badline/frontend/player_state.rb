@@ -9,10 +9,10 @@ module Badline
       attr_accessor :subtune, :subtunes, :tune, :tunes, :length, :notes, :view, :chip
 
       def initialize
-        @subtune = 1
-        @subtunes = 1
-        @tune = 1
-        @tunes = 1
+        @subtune = 0
+        @subtunes = 0
+        @tune = 0
+        @tunes = 0
         @length = 0.0
         @notes = []
         @view = 0
