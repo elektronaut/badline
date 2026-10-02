@@ -17,7 +17,7 @@ module Badline
       def validate_mode
         if headless?
           raise Error, "#{@window_only.first} needs the window" unless @window_only.empty?
-          raise Error, "no tune given" if tune_paths.empty?
+          raise Error, "no tune given" if tune_paths.empty? && !player_window?
 
           tune_paths.each { |path| validate_tune(path) }
         elsif !@headless_only.empty?

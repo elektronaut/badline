@@ -48,7 +48,8 @@ module Badline
       # one's subtune.
       def queue
         @queue ||= Media::Queue.new(entries, all_parts: @options.all_subtunes?).tap do |queue|
-          raise Error, "no .sid tunes in #{@options.tune_paths.join(', ')}" if queue.empty?
+          paths = @options.tune_paths
+          raise Error, "no .sid tunes in #{paths.join(', ')}" if queue.empty? && !paths.empty?
         end
       end
 

@@ -49,7 +49,8 @@ module Badline
         saves a snapshot and F12 restores it. Device 8 answers through
         traps on the KERNAL's disk routines, unless --true-drive puts an
         emulated 1541 there, which runs its own DOS and reads .d64 and .g64
-        images only.
+        images only. A .sid tune opens in the SID player, as `sid` plays it,
+        unless an option of the emulator's window asks for the machine.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
@@ -92,9 +93,9 @@ module Badline
         them, and a, or --all-subtunes, plays on through each tune's subtunes
         instead of just the one. The window has buttons for all of these,
         and for switching the SID between the tune's own, the 6581 and the
-        8580.
-        --subtune picks the first tune's subtune, and each tune after it starts on
-        its own.
+        8580. --subtune picks the first tune's subtune, and each tune after
+        it starts on its own. Without tunes, the window opens with an empty
+        queue.
 
         Each tune gets the SID its header names unless --sid says otherwise,
         and its length from HVSC's Songlengths.md5 as #{@program} --help

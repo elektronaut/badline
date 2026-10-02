@@ -56,7 +56,7 @@ badline game.prg       # Load and run a program
 badline game.d64       # Mount a disk image as device 8 and load it
 badline game.tap       # Insert a tape and load it
 badline game.crt       # Attach a cartridge
-badline tune.sid       # Play a SID tune
+badline tune.sid       # Play a SID tune in the SID player
 badline game.vsf       # Restore a snapshot, from badline or VICE
 badline ~/c64          # Mount a directory as device 8
 ```
@@ -244,12 +244,16 @@ badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slo
 `badline sid FILE|DIR...` plays a queue of tunes in the SID player's
 window, in the order given, and a directory adds every `.sid` tune below
 it in path order. `badline sid --headless` plays the queue in the
-terminal instead. `badline sid` on its own prints its usage. It takes
+terminal instead. `badline sid` on its own opens the window with an
+empty queue. It takes
 the options below except `--audio-out`, and `--subtune` picks the first
 tune's subtune. `--sid auto`, the default, fits each tune the SID
 its header names. A tune written for 2 or 3 SIDs plays on the one SID
 badline emulates, with a notice saying so, and a file that isn't a
-tune is skipped. `badline tune.sid` still plays the tune in the window.
+tune is skipped. `badline tune.sid` plays the tune in the SID player
+too, unless an option of the emulator's window, such as `--ntsc` or
+`--reu`, asks for the machine: then the tune runs on the emulated C64,
+started through a small driver after boot.
 
 Both modes take the same options. The window's own, `--no-autostart`,
 `--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and

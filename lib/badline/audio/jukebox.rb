@@ -17,6 +17,9 @@ module Badline
     class Jukebox
       SEEK_STEP = 10.0
 
+      # How long a wait on an empty queue lasts before it checks again.
+      IDLE = 0.05
+
       # How long the status line says the player fell below real time after
       # the last time it did.
       BELOW_NOTE = 3.0
@@ -37,6 +40,8 @@ module Badline
       def run
         skipped = 0
         loop do
+          return :stopped unless tunes_to_play?
+
           @moved = false
           @quit = false
           result = play(@queue.entry, @queue.part)
@@ -49,6 +54,15 @@ module Badline
       end
 
       private
+
+      # Waits on the console while the queue is empty, as a window's is
+      # until something is put in it. Returns false when asked to quit.
+      def tunes_to_play?
+        while @queue.empty?
+          return false if @console.wait(IDLE).include?(:quit)
+        end
+        true
+      end
 
       def move_on(result)
         return @queue.advance if result == :finished

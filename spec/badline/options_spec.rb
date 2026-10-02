@@ -24,7 +24,8 @@ describe Badline::Options do
       expect([options.media_path, options.tune_path]).to eq([tune_path, tune_path])
     end
 
-    it "opens the window" do
+    it "opens the window for anything but a .sid" do
+      options = described_class.parse([program_path])
       expect([options.window?, options.headless?, options.render?]).to eq([true, false, false])
     end
 
@@ -293,7 +294,7 @@ describe Badline::Options do
 
     %w[--seconds=10 --songlengths=x --rate=8000 --filter-chunk=1 --quiet --no-tui --all-subtunes].each do |arg|
       context "with #{arg} in the window" do
-        let(:argv) { [arg, tune_path] }
+        let(:argv) { [arg, program_path] }
 
         it "raises" do
           expect { options }.to raise_error(described_class::Error,
@@ -333,6 +334,30 @@ describe Badline::Options do
     end
   end
 
+  describe "a .sid on its own" do
+    let(:argv) { [tune_path] }
+
+    it "plays in the SID player" do
+      expect([options.sid_command?, options.player_window?, options.tune_paths]).to eq([true, true, [tune_path]])
+    end
+
+    context "with an option of the emulator's window" do
+      let(:argv) { ["--ntsc", tune_path] }
+
+      it "plays on the emulator" do
+        expect([options.sid_command?, options.window?]).to eq([false, true])
+      end
+    end
+
+    context "with --headless" do
+      let(:argv) { ["--headless", tune_path] }
+
+      it "plays in the terminal" do
+        expect([options.sid_command?, options.headless?]).to eq([false, true])
+      end
+    end
+  end
+
   describe "sid" do
     let(:argv) { ["sid", "--sid", "auto", tune_path, dir] }
 
@@ -355,8 +380,16 @@ describe Badline::Options do
     context "without tunes" do
       let(:argv) { ["sid"] }
 
-      it "shows its usage" do
-        expect([options.help?, options.help]).to match([true, start_with("Usage: badline-ruby sid [options] FILE|DIR")])
+      it "opens an empty player" do
+        expect([options.help?, options.player_window?, options.tune_paths]).to eq([false, true, []])
+      end
+    end
+
+    context "with --headless and without tunes" do
+      let(:argv) { %w[sid --headless] }
+
+      it "is rejected" do
+        expect { options }.to raise_error(described_class::Error, "no tune given")
       end
     end
 
@@ -719,8 +752,9 @@ describe Badline::Options do
         %w[--no-tui] => "--no-tui needs --headless or --audio-out",
         %w[--all-subtunes] => "--all-subtunes needs --headless or --audio-out"
       }.each do |argv, message|
-        it "refuses #{argv.join(' ')} with a tune_path" do
-          expect { parse(*argv, tune_path) }.to raise_error(described_class::Error, message)
+        it "refuses #{argv.join(' ')} with its media" do
+          media = argv.include?("--headless") ? tune_path : program_path
+          expect { parse(*argv, media) }.to raise_error(described_class::Error, message)
         end
       end
 

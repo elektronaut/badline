@@ -92,6 +92,7 @@ module Badline
       args = argv.dup
       sid_command(args) if args.first == "sid"
       argument(args.shift, args) until args.empty?
+      play_lone_tune
       validate unless help? || version?
       self
     end
@@ -162,11 +163,17 @@ module Badline
       [:both, @native ? :native : :ruby].include?(option.build)
     end
 
-    # Without tunes, `sid` shows its usage.
     def sid_command(args)
       args.shift
       @sid_command = true
-      @help = args.empty?
+    end
+
+    # A .sid on its own plays in the SID player, as `sid` would, unless an
+    # option of the emulator's window asks for the machine.
+    def play_lone_tune
+      return if @sid_command || headless? || !@window_only.empty? || @media_path.nil?
+
+      @sid_command = File.extname(@media_path).casecmp?(".sid")
     end
 
     def argument(arg, args)
