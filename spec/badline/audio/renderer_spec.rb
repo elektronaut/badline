@@ -255,6 +255,18 @@ describe Badline::Audio::Renderer do
       end
     end
 
+    context "without checkpoints given" do
+      before do
+        stub_const("Badline::Audio::Checkpoints::EVERY", 0.01)
+        allow(renderer.player).to receive(:save_state)
+      end
+
+      it "saves none" do
+        renderer.stream { |_samples, _rendered| nil }
+        expect(renderer.player).not_to have_received(:save_state)
+      end
+    end
+
     context "with a tune on the bare rig" do
       it_behaves_like "a seek"
     end
