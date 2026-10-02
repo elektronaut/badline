@@ -93,12 +93,14 @@ module Badline
       def announce(lines) = lines
 
       def place(tune, tunes)
+        @state.stop_seeking unless tune == @state.tune
         @state.tune = tune
         @state.tunes = tunes
       end
 
       def status(subtune:, subtunes:, elapsed:, length:, notes: [])
         state = @state
+        state.stop_seeking unless subtune == state.subtune
         state.subtune = subtune
         state.subtunes = subtunes
         state.elapsed = elapsed
@@ -184,9 +186,18 @@ module Badline
         view = @state.view
         chip = @state.chip
         passed = @commands.handle(action)
+        follow_seek(passed) if %i[seek forward back].include?(passed)
         actions << passed unless passed.nil?
         resize unless view == @state.view
         choose_model unless chip == @state.chip
+      end
+
+      # Notes where a seek is headed, as the jukebox will take it.
+      def follow_seek(action)
+        state = @state
+        step = Audio::Jukebox::SEEK_STEP
+        seconds = { seek: @seek_to, forward: state.played + step, back: state.played - step }.fetch(action)
+        state.seek(seconds.clamp(0.0, [state.length - 1.0, 0.0].max))
       end
 
       def scroll_along

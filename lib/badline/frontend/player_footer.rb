@@ -3,7 +3,7 @@
 module Badline
   module Frontend
     # The bottom of the SID player's window: how far the subtune has played,
-    # on a bar a click seeks along, and the buttons that pause and step
+    # on a bar a click seeks along, marked with where a seek is headed, and the buttons that pause and step
     # through the queue's tunes and the tune's subtunes and turn the queue's
     # modes on and off.
     class PlayerFooter
@@ -52,10 +52,22 @@ module Badline
         width = BAR_WIDTH
         @buttons.area([BAR_LEFT, top - 2, width, 12], :seek)
         @painter.box(BAR_LEFT, top + 2, width, 4, SIDView::BOX)
-        done = state.length.positive? ? (width * played / state.length).round.clamp(0, width) : 0
-        @painter.box(BAR_LEFT, top + 2, done, 4, SIDView::BRIGHT)
+        draw_target(state, top) if state.seeking?
+        @painter.box(BAR_LEFT, top + 2, along(state, played), 4, SIDView::BRIGHT)
         @painter.text(WIDTH - 16 - Painter.width(CLOCK), top, "#{clock(played)} / #{clock(state.length)}",
                       SIDView::TEXT)
+      end
+
+      def draw_target(state, top)
+        target = along(state, state.target)
+        @painter.box(BAR_LEFT, top + 2, target, 4, SIDView::DIM)
+        @painter.box(BAR_LEFT + [target, BAR_WIDTH - 1].min, top - 1, 1, 10, SIDView::BRIGHT)
+      end
+
+      # How far along the bar `seconds` into the subtune is.
+      def along(state, seconds)
+        length = state.length
+        length.positive? ? (BAR_WIDTH * seconds / length).round.clamp(0, BAR_WIDTH) : 0
       end
 
       def draw_toggles(state, row)
