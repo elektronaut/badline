@@ -61,7 +61,7 @@ module Badline
       @sid_model = nil
       @reu = nil
       @autostart = true
-      @read_only = false
+      @writable = false
       @sound = native
       @frames = 0
       @paced = true
@@ -135,7 +135,7 @@ module Badline
 
     def autostart? = @autostart
 
-    def read_only? = @read_only
+    def writable? = @writable
 
     def sound? = @sound
 
@@ -238,7 +238,7 @@ module Badline
     def switch(name)
       case name
       when "--no-autostart" then @autostart = false
-      when "--read-only" then @read_only = true
+      when "--writable" then @writable = true
       when "--sound" then @sound = true
       when "--no-sound" then @sound = false
       when "--no-vsync" then @vsync = false

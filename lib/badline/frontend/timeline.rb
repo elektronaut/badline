@@ -15,7 +15,7 @@ module Badline
         unless options.screenshot.empty? || options.frames.zero?
           @events += [Options::Event.new(options.frames, "screenshot", options.screenshot)]
         end
-        @read_only = options.read_only?
+        @read_only = !options.writable?
         @program = options.program
         @releases = []
         @failed = false
