@@ -145,7 +145,6 @@ module Badline
 
       def underrun!
         @underruns += 1
-        puts "Running below real time, so the sound will stutter." if @underruns == 1
         halt
       end
     end
