@@ -41,8 +41,8 @@ describe Badline::Options do
       expect(options.verbose?).to be(false)
     end
 
-    it "mounts disk images read-write" do
-      expect(options.read_only?).to be(false)
+    it "mounts disk images write-protected" do
+      expect(options.writable?).to be(false)
     end
 
     it "leaves the subtune to the tune" do
@@ -139,11 +139,11 @@ describe Badline::Options do
       end
     end
 
-    context "with --read-only" do
-      let(:argv) { ["--read-only", program_path] }
+    context "with --writable" do
+      let(:argv) { ["--writable", program_path] }
 
-      it "mounts disk images write-protected" do
-        expect(options.read_only?).to be(true)
+      it "mounts disk images writable" do
+        expect(options.writable?).to be(true)
       end
     end
 
@@ -303,7 +303,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound --read-only --verbose --true-drive --reu=512].each do |arg|
+    %w[--no-autostart --sound --writable --verbose --true-drive --reu=512].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 
@@ -610,8 +610,8 @@ describe Badline::Options do
       expect(parse("--true-drive").true_drive?).to be(true)
     end
 
-    it "mounts disks read-write unless --read-only asks otherwise" do
-      expect([parse.read_only?, parse("--read-only").read_only?]).to eq([false, true])
+    it "mounts disks write-protected unless --writable asks otherwise" do
+      expect([parse.writable?, parse("--writable").writable?]).to eq([false, true])
     end
 
     it "turns sound off with --no-sound" do
@@ -738,7 +738,7 @@ describe Badline::Options do
         %w[--headless --songlengths missing.md5] => "no such file or directory: missing.md5",
         %w[--headless --sound] => "--sound needs the window",
         %w[--headless --no-autostart] => "--no-autostart needs the window",
-        %w[--headless --read-only] => "--read-only needs the window",
+        %w[--headless --writable] => "--writable needs the window",
         %w[--headless --reu 512] => "--reu needs the window",
         %w[--headless --no-sound] => "--no-sound needs the window",
         %w[--headless --verbose] => "--verbose needs the window",

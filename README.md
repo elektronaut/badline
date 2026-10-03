@@ -73,7 +73,7 @@ differences noted in the table. `--help` lists the options for either.
 | Option | Effect |
 | --- | --- |
 | `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
-| `--read-only` | Mount a disk image write-protected. The drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
+| `--writable` | Let the machine write to disk images. Without it, a disk goes in write-protected: the drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
 | `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
@@ -127,8 +127,8 @@ Ruby, `Badline.rom_path = dir` does the same before a
 | Format | Handling |
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
-| `.d64`, `.d71`, `.d81` | Mounted read-write as device 8, then `LOAD"*",8,1` and `RUN`. Writes go straight back to the image file. With `--read-only`, or an image the host can't write, it acts as a write-protected disk |
-| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. Tracks the drive writes go back to the image file. With `--read-only`, or an image the host can't write, it acts as a write-protected disk |
+| `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. It acts as a write-protected disk unless `--writable` lets writes go straight back to the image file, and an image the host can't write stays write-protected |
+| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. With `--writable`, tracks the drive writes go back to the image file. Without it, or with an image the host can't write, it acts as a write-protected disk |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
@@ -153,7 +153,7 @@ drive.
 own DOS ROM on its own 6502 and talking to the machine over the serial
 bus. It reads `.d64` and `.g64` images, which it autostarts with the
 same `LOAD"*",8,1` and `RUN`, but not `.d71`, `.d81` or `.t64` images
-or directories. `--read-only` puts the disk in write-protected. Loading
+or directories. Its disk goes in write-protected unless `--writable`. Loading
 runs at the speed of a real 1541, and the drive's red LED lights in the
 bottom right corner of the border. Both executables take it.
 
@@ -260,7 +260,7 @@ the machine: then a tune for one SID runs on the emulated C64, started
 through a small driver after boot.
 
 Both modes take the same options. The window's own, `--no-autostart`,
-`--read-only`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
+`--writable`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
 `--verbose`, don't apply to them. `--subtune` (or `-s`) picks the subtune, counting from 1 as HVSC
 does, and defaults to the tune's own start subtune. Playback asks the
 device for 44.1 kHz and takes whatever rate it offers, unless `--rate`

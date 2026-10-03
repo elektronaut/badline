@@ -44,7 +44,7 @@ module Badline
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
-                                           disk: { read_only: options.read_only? })
+                                           disk: { read_only: !options.writable? })
       end
       computer
     end

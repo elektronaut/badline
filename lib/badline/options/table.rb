@@ -16,7 +16,7 @@ module Badline
       Option.new("--version", "Show the version and what built it", section: "Options", build: :native),
       Option.new("--no-autostart", "Boot to READY. instead of running the program",
                  section: "Window options", needs: :window),
-      Option.new("--read-only", "Mount a disk image write-protected, leaving its file unchanged",
+      Option.new("--writable", "Let the machine write to disk images, changing their files",
                  section: "Window options", needs: :window),
       Option.new("--sound", "Play the SID through the host's audio device (F10 mutes)",
                  section: "Window options", needs: :window),

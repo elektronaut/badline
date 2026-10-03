@@ -169,8 +169,8 @@ render a `.sid` tune without it, as described under
   `--sid 8580` the SID to fit, which with `--sid auto` or without `--sid`
   is a `.sid` tune's own, or the 6581.
 - `--no-autostart` attaches the media and stops at `READY.`.
-- `--read-only` mounts a disk image write-protected, leaving its file
-  unchanged.
+- `--writable` lets the machine write to disk images. Without it, disks
+  go in write-protected and their files stay unchanged.
 - `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
   traps: a `.d64` or `.g64` goes into it and
   autostarts through its DOS, and its LED lights in the bottom right
