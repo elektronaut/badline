@@ -16,6 +16,40 @@ env:
   # it rebuilds the cached compiler. release.yml reads it from here.
   SPINEL_REF: f07b2841d50ee8176134d37181177569f74a0d70
 jobs:
+  # A pull request that changes only docs, or only what release-please
+  # bumps for a release, can't move a spec or a suite, so the jobs after
+  # Rubocop skip it. Pushes to main always run everything, so release.yml
+  # sees every one.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.check.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+      - name: Check what changed
+        id: check
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$BASE"...HEAD)
+          echo "$files"
+          code=$(echo "$files" | grep -Ev '(\.md|^doc/.*|^\.release-please-manifest\.json|^lib/badline/version\.rb|^Gemfile\.lock)$' || true)
+          lock=$(git diff "$BASE"...HEAD -- Gemfile.lock | grep -E '^[-+] ' | grep -Ev '^[-+] +badline \(' || true)
+          if [ -n "$code" ] || [ -n "$lock" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only docs or a release's version bump changed, so the specs and suites skip it."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   rubocop:
     name: Rubocop
     runs-on: ubuntu-latest
@@ -37,6 +71,8 @@ jobs:
 
   rspec:
     name: RSpec
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -56,6 +92,8 @@ jobs:
   # loop fast. Here they run beside the main job.
   rspec-slow:
     name: RSpec (slow)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -73,6 +111,8 @@ jobs:
 
   minitest:
     name: Minitest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -97,6 +137,8 @@ jobs:
   # building it on a cold cache.
   compiler:
     name: Spinel compiler
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -380,11 +422,12 @@ jobs:
             tmp/testbench
           if-no-files-found: ignore
 
-  # One check that passes only when every job above did, so the required
-  # checks don't have to follow the shards as they are rebalanced.
+  # One check that passes only when every job above passed or was
+  # skipped for a change that can't move it, so the required checks don't
+  # have to follow the shards as they are rebalanced.
   ci:
     name: CI
-    needs: [rubocop, rspec, rspec-slow, minitest, compiler, native, suites]
+    needs: [changes, rubocop, rspec, rspec-slow, minitest, compiler, native, suites]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -394,7 +437,10 @@ jobs:
         run: |
           echo "$RESULTS"
           for result in $RESULTS; do
-            [ "$result" = success ] || exit 1
+            case "$result" in
+              success | skipped) ;;
+              *) exit 1 ;;
+            esac
           done
 
   automerge:
