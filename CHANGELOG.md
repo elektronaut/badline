@@ -11,7 +11,6 @@
 ### Features
 
 * find the disks of a set by their names ([b2a4ba4](https://github.com/elektronaut/badline/commit/b2a4ba47bb4c9d4175130104c4dd2d3d2d5e570a))
-* find the disks of a set by their names ([d6c86e9](https://github.com/elektronaut/badline/commit/d6c86e976a062cabd3bcfcbb195e993b6e7aad4b))
 * pause the machine in a menu on F9 ([8b2568c](https://github.com/elektronaut/badline/commit/8b2568c8ebe894c3da56d404217189dc7b27db84))
 * put disks in write-protected unless --writable ([aed9fa1](https://github.com/elektronaut/badline/commit/aed9fa173007c85a5b9c19840e011d34f5b6b615))
 
