@@ -63,6 +63,10 @@ module Badline
                .map { |event| Timeline.path(event.argument, frame) }
       end
 
+      # Presses the freeze button after `frame`, and lets go of it as the
+      # events do.
+      def press_freeze(computer, frame) = freeze(computer, Options::Event.new(frame, "freeze", ""))
+
       # Whether the run ends at the frame: at a quit, or once an event failed.
       def quit?(frame) = @failed || @events.any? { |event| event.frame == frame && event.action == "quit" }
 

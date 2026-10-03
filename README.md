@@ -362,21 +362,23 @@ types `"`. These keys have no same-named host key:
 | `+` / `*` | Keypad `+` / Keypad `*` |
 | `RESTORE` | `Page Up` |
 
-`Tab` steps through the input modes and `Shift-Tab` steps back. The
-window title shows the current mode:
+`Tab` switches the keys between the C64 keyboard and the joysticks. The
+window title shows where they go, and any device plugged into a control
+port:
 
-| Mode | What the host drives |
-|------|----------------------|
+| Title | What the host drives |
+|-------|----------------------|
 | (none) | The keyboard |
-| `[JOY 2]` / `[JOY 1]` | Arrows and Space (or Right Ctrl) are the joystick named, `WASD` and Left Shift the other. `F9` swaps them |
+| `[JOY 2]` / `[JOY 1]` | Arrows and Space (or Right Ctrl) are the joystick named, `WASD` and Left Shift the other. SWAP JOYSTICKS on the pause menu's Ports page swaps them |
 | `[MOUSE 1]` / `[MOUSE 2]` | A 1351 mouse in control port 1 or 2 |
 | `[PADDLE 1]` / `[PADDLE 2]` | A pair of paddles in control port 1 or 2 |
 
-The mouse and paddle modes capture the host mouse until you `Tab` out of
-them. Moving it moves the 1351 or turns the two paddle knobs, and the
-left and right buttons are the 1351's buttons, or the fire buttons of
-paddles A and B. Games differ in which port they read, which is why each
-device has a mode per port.
+A 1351 mouse or a pair of paddles plugs into either port on the pause
+menu's Ports page, and stays there whichever way `Tab` sends the keys.
+While one is plugged in it holds the host mouse, and opening the pause
+menu lets go. Moving it moves the 1351 or turns the two paddle knobs,
+and the left and right buttons are the 1351's buttons, or the fire
+buttons of paddles A and B. Games differ in which port they read.
 
 Game controllers work in every mode. The first one is joystick 2 and
 the second is joystick 1. The D-pad and left stick steer, the face and
@@ -389,6 +391,35 @@ light pen registers.
 
 `F10` mutes and unmutes the sound, and the window title shows `[MUTED]`
 while it's off.
+
+## The pause menu
+
+`F9` pauses the machine and opens a menu over the frozen picture, and
+`F9` or `Esc` closes it again. On a Mac, hold `Fn` for `F9`, unless the
+function keys are set to work as standard function keys. Up and Down move
+through the rows, Right goes into a page and Left back out, and Return or
+Space presses a row. A row with choices steps to the next. The mouse works
+too.
+
+| Page | What it holds |
+|------|---------------|
+| Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
+| Datasette | The tape: insert, eject, PLAY and REWIND |
+| Expansion port | The cartridge: insert, remove, and its freeze button if it has one |
+| Ports | The device in each control port, and where the keys go |
+| Sound | Mute, and the SID's model |
+| Power | Reset, power cycle and quit |
+
+INSERT opens a file browser. A disk's set comes from the names in its
+folder: `Disk 1`, `Side B`, `d2`, TOSEC's `(Disk 1 of 2)`, or a trailing
+`_1`, `_2` when the first of the set is there. WRITABLE starts as
+`--writable` sets it and stays as set for the next disk. Quick open starts
+a file in a new machine, as the command line does. It asks first, as
+inserting or removing a cartridge does, since each power cycles the
+machine.
+
+A disk or tape dropped on the window goes into its drive. A cartridge,
+program or `.sid` dropped on it opens the menu to ask first.
 
 ## What's emulated
 

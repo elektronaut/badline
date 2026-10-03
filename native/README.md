@@ -237,14 +237,15 @@ changed into a streaming texture, presents it and waits.
 
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
   C64 keys. Esc is RUN/STOP and Page Up is RESTORE.
-- Tab steps through the input modes, and shift-Tab steps back:
-  keyboard, joystick, a 1351 mouse on port 1 or 2, and paddles on port
-  1 or 2. The title bar names the mode.
+- Tab switches the keys between the keyboard and the joysticks. F9
+  opens the pause menu, whose Ports page plugs a 1351 mouse or paddles
+  into port 1 or 2. The title bar names both.
 - In joystick mode the arrow keys and space (or right Ctrl) drive
-  joystick 2 and WASD and left shift drive joystick 1. F9 swaps the
-  two, for games that read port 1, and the title bar names the port the
-  arrows drive.
-- In the mouse and paddle modes the host mouse is held in relative mode.
+  joystick 2 and WASD and left shift drive joystick 1. The Ports page
+  swaps the two, for games that read port 1, and the title bar names the
+  port the arrows drive.
+- While a mouse or paddles are plugged in, the host mouse is held in
+  relative mode, and the pause menu lets go of it.
   Its motion moves the 1351 or turns the paddles, and its left and right
   buttons go to the 1351's buttons or the two paddles' fire buttons.
 - Game controllers drive the joysticks: the

@@ -10,6 +10,10 @@ describe Badline::Cartridge::ActionReplay do
   let(:cartridge) { build_cartridge(1, chips) }
   let(:bus) { attached_bus(cartridge) }
 
+  it "has a freeze button, which a plain cartridge hasn't" do
+    expect([cartridge.freezer?, build_cartridge(0, [chip(bank: 0, fill: 1)]).freezer?]).to eq([true, false])
+  end
+
   it "boots in 8K mode with the first bank" do
     expect(bus[0x8000]).to eq(0x10)
   end

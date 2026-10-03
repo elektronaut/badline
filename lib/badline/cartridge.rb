@@ -179,6 +179,9 @@ module Badline
     # The RES line on the expansion port.
     def reset; end
 
+    # Whether the cartridge has a freeze button.
+    def freezer? = false
+
     # The freeze button, which cartridges without one ignore.
     def press_button; end
 

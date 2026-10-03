@@ -10,34 +10,33 @@ describe Badline::Frontend::Controls do
   let(:computer) { Badline::Computer.new }
   let(:ports) { computer.control_ports }
 
-  def cycle_to(mode)
-    controls.cycle_mode(1) until controls.mode == mode
+  describe "#toggle_keys" do
+    it "switches the keys between the keyboard and the joysticks" do
+      states = Array.new(3) { controls.toggle_keys.then { controls.joystick_mode? } }
+      expect(states).to eq([true, false, true])
+    end
+
+    it "leaves the pot device plugged in" do
+      controls.plug(:mouse1)
+      controls.toggle_keys
+      expect(ports.device1.class).to eq(Badline::Input::Mouse1351)
+    end
   end
 
-  describe "#cycle_mode" do
-    it "steps through badline-ruby's modes and back round" do
-      modes = Array.new(7) { controls.cycle_mode(1).then { controls.mode } }
-      expect(modes).to eq(%i[joystick mouse1 mouse2 paddles1 paddles2 keyboard joystick])
-    end
-
-    it "steps back with a negative step" do
-      controls.cycle_mode(-1)
-      expect(controls.mode).to eq(:paddles2)
-    end
-
-    it "puts a 1351 mouse on port 1 in mouse1" do
-      cycle_to(:mouse1)
+  describe "#plug" do
+    it "puts a 1351 mouse on port 1" do
+      controls.plug(:mouse1)
       expect([ports.device1.class, ports.device2]).to eq([Badline::Input::Mouse1351, nil])
     end
 
-    it "puts paddles on port 2 in paddles2" do
-      cycle_to(:paddles2)
+    it "puts paddles on port 2" do
+      controls.plug(:paddles2)
       expect([ports.device1, ports.device2.class]).to eq([nil, Badline::Input::Paddles])
     end
 
-    it "takes the device away in keyboard mode" do
-      cycle_to(:paddles2)
-      controls.cycle_mode(1)
+    it "takes the device away with :none" do
+      controls.plug(:paddles2)
+      controls.plug(:none)
       expect([ports.device1, ports.device2]).to eq([nil, nil])
     end
   end
@@ -48,38 +47,46 @@ describe Badline::Frontend::Controls do
     end
 
     it "names the port the arrows drive in joystick mode" do
-      cycle_to(:joystick)
+      controls.toggle_keys
       controls.swap_ports
       expect(controls.tag).to eq("JOY 1")
     end
 
     it "names the pot device and its port" do
-      cycle_to(:paddles1)
+      controls.plug(:paddles1)
       expect(controls.tag).to eq("PADDLE 1")
+    end
+  end
+
+  describe "#tag with both" do
+    it "names the joystick and the pot device" do
+      controls.toggle_keys
+      controls.plug(:mouse1)
+      expect(controls.tag).to eq("JOY 2, MOUSE 1")
     end
   end
 
   describe "#pot_device?" do
     it "is false for the keyboard and the joysticks" do
-      states = Array.new(2) { controls.pot_device?.tap { controls.cycle_mode(1) } }
+      states = Array.new(2) { controls.pot_device?.tap { controls.toggle_keys } }
       expect(states).to eq([false, false])
     end
 
     it "is true for a mouse" do
-      cycle_to(:mouse2)
+      controls.plug(:mouse2)
       expect(controls.pot_device?).to be(true)
     end
   end
 
   describe "#mouse_motion" do
     it "moves the 1351's counters" do
-      cycle_to(:mouse2)
+      controls.plug(:mouse2)
       controls.mouse_motion(6, 4)
       expect([ports.device2.pot_x, ports.device2.pot_y]).to eq([6, 0x7c])
     end
 
     it "turns the paddles" do
-      cycle_to(:paddles1)
+      controls.plug(:paddles1)
       controls.mouse_motion(20, -10)
       expect([ports.device1.pot_x, ports.device1.pot_y]).to eq([0x8a, 0x7b])
     end
@@ -91,26 +98,26 @@ describe Badline::Frontend::Controls do
 
   describe "#mouse_button" do
     it "puts the 1351's left button on the fire line" do
-      cycle_to(:mouse1)
+      controls.plug(:mouse1)
       controls.mouse_button(1, true)
       expect(ports.device1.port_bits & 0x1f).to eq(0b01111)
     end
 
     it "puts the right button on paddle B's line" do
-      cycle_to(:paddles2)
+      controls.plug(:paddles2)
       controls.mouse_button(3, true)
       expect(ports.device2.port_bits & 0x1f).to eq(0b10111)
     end
 
     it "releases the button" do
-      cycle_to(:mouse1)
+      controls.plug(:mouse1)
       controls.mouse_button(1, true)
       controls.mouse_button(1, false)
       expect(ports.device1.port_bits & 0x1f).to eq(0x1f)
     end
 
     it "ignores the middle button" do
-      cycle_to(:mouse1)
+      controls.plug(:mouse1)
       controls.mouse_button(2, true)
       expect(ports.device1.port_bits & 0x1f).to eq(0x1f)
     end
@@ -122,7 +129,7 @@ describe Badline::Frontend::Controls do
     end
 
     it "drives joystick 2 with the arrows in joystick mode" do
-      cycle_to(:joystick)
+      controls.toggle_keys
       controls.key(82, true)
       expect(computer.joystick2.port_bits & 0x1f).to eq(0b11110)
     end
@@ -132,8 +139,8 @@ describe Badline::Frontend::Controls do
       expect(computer.keyboard.keys).to eq([:cursor_up])
     end
 
-    it "presses RESTORE with Page Up in a pot device mode" do
-      cycle_to(:mouse1)
+    it "presses RESTORE with Page Up with a pot device plugged in" do
+      controls.plug(:mouse1)
       allow(computer).to receive(:press_restore)
       controls.key(75, true)
       expect(computer).to have_received(:press_restore)
@@ -143,8 +150,8 @@ describe Badline::Frontend::Controls do
   describe "#computer=" do
     let(:other) { Badline::Computer.new }
 
-    it "puts the mode's device in the other machine's port" do
-      cycle_to(:paddles2)
+    it "puts the pot device in the other machine's port" do
+      controls.plug(:paddles2)
       controls.computer = other
       expect(other.control_ports.device2.class).to eq(Badline::Input::Paddles)
     end

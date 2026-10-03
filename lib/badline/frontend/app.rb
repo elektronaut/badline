@@ -7,8 +7,8 @@ module Badline
     # changed lines, present and wait. Pacer decides the cycles and the wait.
     class App
       SCALE = 2
+      DROPFILE = 0x1000
       TITLE = "Badline"
-      STAGES = %w[events emulate audio blit present wait].freeze
 
       # Takes the frame limit, the pacing, the snapshot path, the sound and
       # the verbosity from Options, and runs the timeline's events.
@@ -22,11 +22,11 @@ module Badline
         @screen = Screen.new(computer.vic)
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
-        @spent = Array.new(STAGES.size, 0.0)
-        @slowest = 0.0
         open_window
         @sound = Sound.new(computer.sid, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
+        @frame_report = FrameReport.new(@sound)
+        @menu = PauseMenu.new(Painter.new(@renderer), options)
       end
 
       def run
@@ -34,8 +34,7 @@ module Badline
         @running = true
         @started = @reported = now
         @pacer.start(@started)
-        @reported_samples = 0
-        frame while @running
+        @menu.open? ? paused_frame : frame while @running
         @snapshots.finish
         @computer.drive1541&.flush
         @gamepads.close
@@ -64,9 +63,7 @@ module Badline
       end
 
       def finish_frame(stamps)
-        STAGES.size.times { |stage| @spent[stage] += stamps[stage + 1] - stamps[stage] }
-        took = stamps[-2] - stamps.first
-        @slowest = took if took > @slowest
+        @frame_report.add(stamps) if @verbose
         @frames += 1
         @timeline.run(@computer, @frames)
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
@@ -95,8 +92,6 @@ module Badline
         @texture = SDL.SDL_CreateTexture(
           @renderer, SDL::PIXELFORMAT_RGB888, SDL::TEXTUREACCESS_STREAMING, Screen::WIDTH, Screen::HEIGHT
         )
-        SDL.rect_w(SDL.rect, Screen::WIDTH)
-        SDL.rect_h(SDL.rect, Screen::HEIGHT)
       end
 
       def close_window
@@ -107,7 +102,7 @@ module Badline
       end
 
       def handle_events
-        handle_event(SDL.event_type(SDL.event)) while SDL.SDL_PollEvent(SDL.event) != 0
+        handle_event(SDL.event_type(SDL.event)) while !@menu.open? && SDL.SDL_PollEvent(SDL.event) != 0
       end
 
       def handle_event(type)
@@ -122,6 +117,7 @@ module Badline
           @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
         when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
           @gamepads.rescan
+        when DROPFILE then resume(false) unless @menu.drop(@computer, @controls, @sound)
         end
       end
 
@@ -145,18 +141,43 @@ module Badline
         @controls.computer = computer
         @gamepads.computer = computer
         @sound.sid = computer.sid
+        @snapshots.computer = computer
       end
 
       def handle_toggle(scancode)
         if scancode == Keys::TAB
-          @controls.cycle_mode(SDL.event_mod(SDL.event).anybits?(SDL::KMOD_SHIFT) ? -1 : 1)
-          SDL.SDL_SetRelativeMouseMode(@controls.pot_device? ? 1 : 0)
+          @controls.toggle_keys
         elsif scancode == Keys::F9
-          @controls.swap_ports
+          return open_menu
         else
           @sound.toggle_mute
         end
         update_title
+      end
+
+      def open_menu = @menu.show(@computer, @controls, @sound)
+
+      # Closes the menu and runs the machine on from where it stood,
+      # pressing the cartridge's freeze button if asked.
+      def resume(freeze)
+        @menu.close
+        SDL.SDL_SetRelativeMouseMode(@controls.pot_device? ? 1 : 0)
+        @timeline.press_freeze(@computer, @frames) if freeze
+        @reported = now
+        @pacer.start(@reported)
+        update_title
+      end
+
+      # Runs a frame of the menu, which has the keys and the mouse while the
+      # machine stands still.
+      def paused_frame
+        action = @menu.frame(@renderer, @texture, @controls)
+        if action == :quit
+          @running = false
+        elsif !action.nil?
+          swap(@menu.computer) if action == :swap
+          resume(action == :freeze)
+        end
       end
 
       def update_title
@@ -183,12 +204,12 @@ module Badline
 
       def upload
         @screen.update
-        SDL.SDL_UpdateTexture(@texture, SDL.rect, @screen.pixels, Screen::ROW_BYTES)
+        SDL.SDL_UpdateTexture(@texture, nil, @screen.pixels, Screen::ROW_BYTES)
       end
 
       def draw
         SDL.SDL_RenderClear(@renderer)
-        SDL.SDL_RenderCopy(@renderer, @texture, SDL.rect, SDL.rect)
+        SDL.SDL_RenderCopy(@renderer, @texture, nil, nil)
         @led&.draw(@renderer)
         @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(@renderer, path) }
         SDL.SDL_RenderPresent(@renderer)
@@ -197,26 +218,8 @@ module Badline
       def report(at)
         @pacer.check(50, at - @reported, at)
         @pacer.measure(50, at - @reported)
-        report_frames(at) if @verbose
-        @spent = Array.new(STAGES.size, 0.0)
-        @slowest = 0.0
+        @frame_report.show(at - @reported) if @verbose
         @reported = at
-      end
-
-      def report_frames(at)
-        fps = 50 / (at - @reported)
-        stages = STAGES.each_with_index.map { |name, stage| "#{name} #{(@spent[stage] * 20).round(2)}" }
-        puts "#{fps.round(1)} fps, per frame ms: #{stages.join(' ')}, slowest work #{(@slowest * 1000).round(2)}"
-        report_sound(at) if @sound.on?
-      end
-
-      def report_sound(at)
-        sound = @sound
-        rate = (sound.queued - @reported_samples) / (at - @reported)
-        queue = sound.high.zero? ? "empty" : "#{(sound.low * 1000).round(1)}-#{(sound.high * 1000).round(1)} ms"
-        puts "  sound #{rate.round} samples/s, queue #{queue}, #{sound.underruns} underruns, #{sound.dropped} dropped"
-        sound.reset_levels
-        @reported_samples = sound.queued
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

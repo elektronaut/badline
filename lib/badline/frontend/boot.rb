@@ -39,12 +39,19 @@ module Badline
         return computer
       end
 
+      start(options, media, options.writable?)
+    end
+
+    # A new machine built from the options, with `media`, if not nil,
+    # attached and started as the command line does, its disk writable if
+    # `writable`.
+    def self.start(options, media, writable)
       computer = Computer.new(sid_model: options.sid_model || Media.sid_model(media), reu: options.reu,
                               region: options.ntsc? ? Region::NTSC : Region::PAL)
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
-                                           disk: { read_only: !options.writable? })
+                                           disk: { read_only: !writable })
       end
       computer
     end
