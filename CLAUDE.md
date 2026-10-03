@@ -164,7 +164,9 @@ the rows your change can't reach tell you nothing about it.
 - A pull request's CI is the verdict. It runs every suite on the Spinel
   build, compared row by row against
   `test/baselines/`, and every job is a required check. A row that moved
-  fails it. Re-record only those rows, in the same change:
+  fails it. A pull request that changes only docs, or only a release's
+  version bump, skips the specs and suites; pushes to main always run
+  them. Re-record only those rows, in the same change:
   `rake "regression:record:<suite>[filter,...]"` (quote it, because zsh
   globs the brackets). It runs only the matching tests on CRuby and
   splices their rows into the baseline, and every other row keeps its
