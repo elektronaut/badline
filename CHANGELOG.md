@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.8.0](https://github.com/elektronaut/badline/compare/v0.7.0...v0.8.0) (2026-10-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* F9 opens the pause menu instead of swapping the joysticks, which the Ports page does now, and Tab no longer steps through the mouse and paddle modes.
+* --read-only is gone, and disks are write-protected by default. Pass --writable to let the machine write to a disk image.
+
+### Features
+
+* find the disks of a set by their names ([b2a4ba4](https://github.com/elektronaut/badline/commit/b2a4ba47bb4c9d4175130104c4dd2d3d2d5e570a))
+* find the disks of a set by their names ([d6c86e9](https://github.com/elektronaut/badline/commit/d6c86e976a062cabd3bcfcbb195e993b6e7aad4b))
+* pause the machine in a menu on F9 ([8b2568c](https://github.com/elektronaut/badline/commit/8b2568c8ebe894c3da56d404217189dc7b27db84))
+* put disks in write-protected unless --writable ([aed9fa1](https://github.com/elektronaut/badline/commit/aed9fa173007c85a5b9c19840e011d34f5b6b615))
+
+
+### Bug Fixes
+
+* stop printing that the window runs below real time ([86a57a6](https://github.com/elektronaut/badline/commit/86a57a635189a8e46e285773ce62ecbf1dd5adde))
+
 ## [0.7.0](https://github.com/elektronaut/badline/compare/v0.6.1...v0.7.0) (2026-10-02)
 
 
