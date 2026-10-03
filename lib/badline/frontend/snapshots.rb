@@ -10,7 +10,7 @@ module Badline
       KEYS = [Keys::F11, Keys::F12].freeze
 
       # The machine running, which F12 replaces with the restored one.
-      attr_reader :computer
+      attr_accessor :computer
 
       def initialize(computer, options)
         @computer = computer

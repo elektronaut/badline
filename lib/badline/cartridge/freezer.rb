@@ -8,6 +8,8 @@ module Badline
     # cartridge ROM in Ultimax mode. The cartridge lets go of NMI when its
     # software acknowledges the freeze.
     module Freezer
+      def freezer? = true
+
       def press_button
         @button = true
         self.nmi = true if freeze_allowed?

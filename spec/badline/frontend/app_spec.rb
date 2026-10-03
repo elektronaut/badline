@@ -94,19 +94,30 @@ describe Badline::Frontend::App do
     expect(computer.joystick2.port_bits & 0x1f).to eq(0b11110)
   end
 
-  it "swaps the arrows to joystick 1 with F9" do
-    run(tab, key(Badline::Frontend::Keys::F9), key(82))
-    expect(computer.joystick1.port_bits & 0x1f).to eq(0b11110)
+  it "switches the keys back to the keyboard with a second Tab" do
+    allow(computer.keyboard).to receive(:press)
+    run(tab, tab, key(82))
+    expect(computer.keyboard).to have_received(:press).with(:cursor_up)
   end
 
-  it "presses the 1351's button with the mouse's" do
-    run(tab, tab, event(sdl::MOUSEBUTTONDOWN, [0, 1, 1].pack("LC2")))
-    expect(computer.control_ports.device1.port_bits & 0x1f).to eq(0b01111)
-  end
+  describe "the pause menu" do
+    def f9 = key(Badline::Frontend::Keys::F9)
 
-  it "steps back through the modes with shift-Tab" do
-    run(key(Badline::Frontend::Keys::TAB, mod: sdl::KMOD_SHIFT))
-    expect(computer.control_ports.device2).to be_a(Badline::Input::Paddles)
+    it "holds the machine while it's open" do
+      run(f9, key(41))
+      expect(computer.cycles).to eq(2 * frame_cycles)
+    end
+
+    it "keeps the keys after F9 from the machine" do
+      allow(computer.keyboard).to receive(:press)
+      run(f9, key(4), key(41))
+      expect(computer.keyboard).not_to have_received(:press)
+    end
+
+    it "plugs a 1351 into port 1, whose button the mouse's presses" do
+      run(f9, key(81), key(81), key(81), key(79), key(40), key(41), event(sdl::MOUSEBUTTONDOWN, [0, 1, 1].pack("LC2")))
+      expect(computer.control_ports.device1.port_bits & 0x1f).to eq(0b01111)
+    end
   end
 
   describe "snapshots" do

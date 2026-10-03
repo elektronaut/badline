@@ -245,6 +245,15 @@ describe Badline::Frontend::Timeline do
     end
   end
 
+  describe "#press_freeze" do
+    it "presses the freeze button for the pause menu, and lets go of it as an event does" do
+      allow(computer).to receive_messages(press_cartridge_button: nil, release_cartridge_button: nil)
+      timeline.press_freeze(computer, 3)
+      (4..9).each { |frame| timeline.run(computer, frame) }
+      expect(computer).to have_received(:release_cartridge_button).once
+    end
+  end
+
   describe "screenshots and quitting" do
     let(:argv) { %w[--frames 9 --screenshot last.bmp --at 3,6:screenshot=shot%d.bmp --at 7:quit] }
 

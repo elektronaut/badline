@@ -2,53 +2,72 @@
 
 module Badline
   module Frontend
-    # Routes host input to the machine in one of the input modes, which Tab
-    # steps through and shift-Tab steps back through:
+    # Routes host input to the machine. Two settings decide where it goes:
     #
-    # - keyboard: every host key goes to the C64 keyboard.
-    # - joystick: the arrow cluster and space drive one joystick and WASD
-    #   and left shift the other. The arrows start on joystick 2, and F9
-    #   swaps them.
-    # - mouse1, mouse2: the host mouse is a 1351 mouse on control port 1 or
-    #   2, and paddles1, paddles2 a pair of paddles there. Motion turns the
-    #   paddles or moves the mouse, and the host's left and right buttons go
-    #   to whichever lines the device puts them on.
+    # - The keys: every host key goes to the C64 keyboard, or, as Tab
+    #   switches, the arrow cluster and space drive one joystick and WASD
+    #   and left shift the other. The arrows start on joystick 2, and
+    #   #swap_ports swaps them.
+    # - A pot device the pause menu plugs into a control port: a 1351
+    #   mouse or a pair of paddles, which the host mouse drives. Motion
+    #   turns the paddles or moves the mouse, and the host's left and right
+    #   buttons go to whichever lines the device puts them on.
     class Controls
-      MODES = %i[keyboard joystick mouse1 mouse2 paddles1 paddles2].freeze
-      TAGS = ["", "JOY", "MOUSE 1", "MOUSE 2", "PADDLE 1", "PADDLE 2"].freeze
+      POTS = %i[none mouse1 mouse2 paddles1 paddles2].freeze
+      TAGS = ["", "MOUSE 1", "MOUSE 2", "PADDLE 1", "PADDLE 2"].freeze
 
       # SDL mouse button numbers.
       MOUSE_BUTTONS = { 1 => :left, 3 => :right }.freeze
 
-      attr_reader :mode, :arrows_port
+      # The pot device plugged in, one of POTS.
+      attr_reader :pot, :arrows_port
 
       def initialize(computer)
         @computer = computer
-        @mode = :keyboard
+        @joystick = false
+        @pot = :none
         @arrows_port = 2
         @mouse = Input::Mouse1351.new
         @paddles = Input::Paddles.new
       end
 
-      # Routes the input to another machine, the mode's mouse or paddles
-      # going into its port.
+      # Routes the input to another machine, the pot device going into its
+      # port.
       def computer=(computer)
         release_all
         @computer = computer
         attach_pot_device
       end
 
-      def joystick_mode? = @mode == :joystick
+      def joystick_mode? = @joystick
+
+      # Sends the keys to the joysticks, or with false to the keyboard.
+      def joystick_mode=(joystick)
+        @joystick = joystick
+        release_all
+      end
+
+      def toggle_keys
+        self.joystick_mode = !@joystick
+      end
+
+      # Plugs in one of POTS, in place of the one before.
+      def plug(pot)
+        @pot = pot
+        release_all
+        attach_pot_device
+      end
 
       # Whether the host mouse drives a pot device, and so should be held
       # in relative mode.
-      def pot_device? = MODES.index(@mode) >= 2
+      def pot_device? = @pot != :none
 
-      # The title bar's tag for the mode, empty for the keyboard.
+      # The title bar's tag for the settings, empty for the keyboard alone.
       def tag
-        return "JOY #{@arrows_port}" if joystick_mode?
-
-        TAGS[MODES.index(@mode)]
+        tags = []
+        tags << "JOY #{@arrows_port}" if @joystick
+        tags << TAGS[POTS.index(@pot)] if pot_device?
+        tags.join(", ")
       end
 
       def key(scancode, down)
@@ -57,13 +76,6 @@ module Badline
         else
           c64_key(Keys.c64_key(scancode), down)
         end
-      end
-
-      # Steps to the next mode, or back with a negative step.
-      def cycle_mode(step)
-        @mode = MODES[(MODES.index(@mode) + step) % MODES.size]
-        release_all
-        attach_pot_device
       end
 
       def swap_ports
@@ -99,9 +111,9 @@ module Badline
         end
       end
 
-      def paddles? = MODES.index(@mode) >= 4
+      def paddles? = POTS.index(@pot) >= 3
 
-      # A fresh device on the mode's port, and none on the other.
+      # A fresh pot device on its port, and none on the other.
       def attach_pot_device
         ports = @computer.control_ports
         ports.device1 = nil
@@ -133,7 +145,7 @@ module Badline
         end
       end
 
-      def port_one? = %i[mouse1 paddles1].include?(@mode)
+      def port_one? = %i[mouse1 paddles1].include?(@pot)
 
       def joystick_key(scancode, down)
         direction = Keys.arrows(scancode)

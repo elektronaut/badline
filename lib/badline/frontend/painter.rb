@@ -95,6 +95,16 @@ module Badline
 
       def self.width(string, scale: 1) = string.length * GLYPH * scale
 
+      # The string cut to `columns` characters in its middle, so both its
+      # start and its end show.
+      def self.fit(string, columns)
+        return string if string.length <= columns
+
+        head = (columns - 3) / 2
+        tail = columns - 3 - head
+        "#{string[0, head]}...#{string[string.length - tail, tail]}"
+      end
+
       def icon(name, left, top, rgb, scale: 1)
         tint(rgb)
         place(top, GLYPH * scale)
