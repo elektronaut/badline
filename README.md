@@ -87,12 +87,6 @@ differences noted in the table. `--help` lists the options for either.
 | `--version` | Show the version and what built it (`badline` only) |
 | `-h`, `--help` | List the options |
 
-Both run the same window. `badline` plays the SID through the host's
-audio device, and `F10` mutes and unmutes it. In `badline-ruby` the
-machine runs below real time, so the sound stutters: it plays in bursts
-with silent gaps between them, at the right pitch, and never slows the
-emulation down.
-
 ### Scripted runs
 
 | Option | Effect |
@@ -113,233 +107,57 @@ badline --unpaced --frames 12000 --true-drive disk1.d64 \
 `--help` lists the events, and [native/README.md](native/README.md#running)
 describes them.
 
-### ROMs
-
-The KERNAL, BASIC and character ROMs come with the gem. To run other
-images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
-directory that holds `kernal.rom`, `basic.rom` and `character.rom`,
-plus `eapi/eapi-am29f040-14` if you attach EasyFlash cartridges. From
-Ruby, `Badline.rom_path = dir` does the same before a
-`Badline::Computer` is built, and `nil` restores the bundled set.
+Other KERNAL, BASIC or character ROMs, and using badline as a Ruby
+library, are covered in [doc/library.md](doc/library.md).
 
 ## Media
 
 | Format | Handling |
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
-| `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. It acts as a write-protected disk unless `--writable` lets writes go straight back to the image file, and an image the host can't write stays write-protected |
-| `.g64` | Put in a true 1541, which is plugged in as device 8 for it, then `LOAD"*",8,1` and `RUN`. The image holds the disk's raw GCR, half tracks and all, so copy protection and fast loaders that read it work. With `--writable`, tracks the drive writes go back to the image file. Without it, or with an image the host can't write, it acts as a write-protected disk |
+| `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. Write-protected unless `--writable` |
+| `.g64` | Put in a true 1541, then `LOAD"*",8,1` and `RUN`. It holds the disk's raw GCR, so copy protection that reads it works. Write-protected unless `--writable` |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
 | `.vsf` | A snapshot of a running machine, badline's own or one VICE's x64sc saved. See [Snapshots](#snapshots) |
-| A directory | Mounted read-write as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
+| A directory | Mounted as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
-Apart from a `.g64`, which only a true drive can read, there is no 1541
-unless `--true-drive` asks for one. Device 8 works by trapping the
-KERNAL's `LOAD` and `SAVE` routines and its serial bus primitives, so
-files open by name through `OPEN` and `CHRIN` as well. `LOAD"$",8` lists
-the directory of any medium mounted there, as a 1541 does. The command
-channel answers `I`, `B-P` and `U1` block reads, which covers loaders
-that read blocks directly. On a disk image it also takes `SAVE` (with
-`@0:` to replace a file), files opened for writing or appending, `S` to
-scratch, `U2` and `B-W` block writes, and `B-A` and `B-F`. Loaders that
-upload their own code to the drive with `M-W` and `M-E`, and copy
-protection that reads raw GCR, won't work there, but do on a true
-drive.
-
-`--true-drive` puts an emulated 1541 on device 8 instead, running its
-own DOS ROM on its own 6502 and talking to the machine over the serial
-bus. It reads `.d64` and `.g64` images, which it autostarts with the
-same `LOAD"*",8,1` and `RUN`, but not `.d71`, `.d81` or `.t64` images
-or directories. Its disk goes in write-protected unless `--writable`. Loading
-runs at the speed of a real 1541, and the drive's red LED lights in the
-bottom right corner of the border. Both executables take it.
-
-`Badline::Media.insert_disk(computer, path)` swaps the disk image or
-directory in device 8 while the machine runs, for software that asks for
-another disk. It takes `read_only: true`, and `Badline::Media.attach`
-takes `disk: { read_only: true }`, to mount a disk image write-protected,
-as the test harnesses under `bin/` do. A `.g64` goes in the true 1541,
-and takes out a disk mounted through the traps, so `LOAD` and `SAVE`
-reach the 1541 too. With the 1541 in device 8, a `.d64` goes in its
-drive as well.
+Without `--true-drive`, device 8 is no drive at all but traps on the
+KERNAL's disk routines. Loading is instant, but fast loaders and copy
+protection that run code on the drive need `--true-drive`, which puts
+an emulated 1541 there, running its own DOS at a real 1541's speed. Its
+red LED lights in the bottom right corner of the border.
+[doc/media.md](doc/media.md) has the details, and how to attach media
+from Ruby.
 
 ## Snapshots
 
-In the window, `F11` saves the whole machine to a new
-`badline-<date>-<time>.vsf` in the working directory, and `F12` goes
-back to the snapshot last saved or opened, in a new machine built as the
-saved one was. Both executables do this, and both open a `.vsf` given as
-the media. A snapshot that fails to open leaves the machine running as
-it was. From Ruby, `computer.save_snapshot(path)` saves,
-`computer.restore_snapshot(path)` takes a machine back to a snapshot,
-and `Badline::Snapshot.load(path)` builds a new machine as the saved one
-was built and restores it. `computer.snapshot` and
-`computer.restore(state)` do the same in memory, without a file. A
-restore that fails leaves the machine as it was.
-
-A snapshot holds the machine as it was on the cycle it was saved: the
-chips down to the instruction step and the pixel pipeline, the RAM and
-any +60K or +256K expansion, the cartridge with its RAM and flash, a
-GEO-RAM, a true 1541 with its RAM, its VIAs and the disk under the head,
-a disk or directory mounted through the traps with its open channels,
-and the tape with its place on it. A restored machine runs on exactly
-as the saved one would have. A directory, a tape and a true drive's
-disk image open again from their paths when the snapshot is restored,
-the disk with its tracks as the drive last saw them. A disk image mounted through the traps comes back
-with its contents from the snapshot. What the host holds stays the host's: the keyboard, the
-joysticks, the mouse and paddles, sound, and blocks given to `on_init`
-that hadn't run yet, which a restore reports. A snapshot only restores
-in the badline version that wrote it, into a machine with the same
-chip models, RAM expansion and REU. `computer.snapshot` holds an REU's
-RAM, registers and transfer too, but a machine with an REU doesn't save
-to a file yet, as badline doesn't write VICE's REU module.
-
-Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
-the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, plus the
-ones x64sc needs to open the file, with nothing attached to the
-cartridge, tape or user ports and no true drive. A `BADLINE` module,
-which VICE skips, holds the whole machine, and badline restores its own
-snapshots from it.
-
-x64sc 3.10 opens badline's snapshots, taken at the end of the
-instruction the CPU was in, as long as its VIC-II model matches
-(`-model c64` for the default machine). It keeps its own drives and
-leaves out the cartridge, the expansions and the tape. Snapshots x64sc
-saves open in badline through the same modules: the CPU at its
-instruction boundary, RAM, the CPU port, the CIAs' registers, timers and
-clocks, the SID's registers and reSID voice state, and the VIC-II's
-registers, beam position, counters and colour RAM. The VIC-II's pixel
-pipeline starts empty. badline reads the modules x64sc 3.7 to 3.10
-write, and VICE's development versions' `MAINC64CPU` and `VIC-IISC`. A module version
-it doesn't know is left out, or fails the restore for the CPU and RAM.
-It reports the modules it leaves out, such as the 1541 drives, the
-cartridge, the datasette and the keyboard, and carries on without them.
-An NTSC snapshot fails, as badline runs PAL only. Restored into a
-running machine, a VICE snapshot fails for a machine built another way,
-such as a C64C's snapshot in a C64, and otherwise takes the cartridge
-out and switches the machine off and on.
+`F11` saves the whole machine to a new `badline-<date>-<time>.vsf` in
+the working directory, and `F12` goes back to the snapshot last saved
+or opened. Snapshots use VICE's `.vsf` format: badline opens those
+x64sc saves, and x64sc opens badline's. See
+[doc/snapshots.md](doc/snapshots.md) for what they hold and how far the
+two agree.
 
 ## Playing and rendering SID tunes
 
-`badline-ruby --headless` plays a `.sid` tune on the host's audio
-device without opening the window, and `--audio-out` renders it to a
-16-bit stereo PCM file instead. The file's extension picks the format, `.wav`
-or `.aiff`. The native `badline` has both modes too.
-
 ```sh
-badline sid ~/C64Music/MUSICIANS/H/Hubbard_Rob               # play every tune below a directory
-badline sid tune.sid other.sid                               # play a queue of tunes
-badline-ruby --headless tune.sid                             # play, length from HVSC
-badline-ruby --headless -s 3 tune.sid                        # play the third subtune
-badline-ruby --headless --all-subtunes tune.sid                 # play on through every subtune
-badline-ruby --seconds 180 tune.sid --audio-out out.aiff
-badline-ruby -s 3 --rate 48000 tune.sid --audio-out out.wav
-badline-ruby --headless --sid 8580 tune.sid
-badline-ruby --filter-chunk 1 tune.sid --audio-out out.wav   # exact filter, slower
+badline tune.sid                                     # play a tune in the SID player
+badline sid ~/C64Music/MUSICIANS/H/Hubbard_Rob       # play every tune below a directory
+badline sid --headless tune.sid other.sid            # play a queue in the terminal
+badline --seconds 180 tune.sid --audio-out out.wav   # render to a .wav or .aiff
 ```
 
-`badline sid FILE|DIR...` plays a queue of tunes in the SID player's
-window, in the order given, and a directory adds every `.sid` tune below
-it in path order. `badline sid --headless` plays the queue in the
-terminal instead. `badline sid` on its own opens the window with an
-empty queue. Dropping `.sid` files or folders on the window adds them
-to the end of the queue, and an empty queue starts playing them. It
-takes
-the options below except `--audio-out`, and `--subtune` picks the first
-tune's subtune. `--sid auto`, the default, fits each of a tune's SIDs
-the model its header names. A tune written for 2 or 3 SIDs plays on as
-many, at the addresses its header gives, in stereo: SID 1 on the left,
-SID 2 on the right and SID 3 in the centre. A tune on one SID plays the
-same on both channels. A file that isn't a tune is skipped.
-`badline tune.sid` plays the tune in the SID player too, unless an
-option of the emulator's window, such as `--ntsc` or `--reu`, asks for
-the machine: then a tune for one SID runs on the emulated C64, started
-through a small driver after boot.
-
-Both modes take the same options. The window's own, `--no-autostart`,
-`--writable`, `--sound`, `--true-drive`, `--reu`, `--ntsc` and
-`--verbose`, don't apply to them. `--subtune` (or `-s`) picks the subtune, counting from 1 as HVSC
-does, and defaults to the tune's own start subtune. Playback asks the
-device for 44.1 kHz and takes whatever rate it offers, unless `--rate`
-says otherwise. Ctrl-C stops it.
-
-Played on a terminal, `--headless` and `sid` show each tune's name,
-author and release as it starts, then the tune's place in the queue,
-the subtune number and the time played against the subtune's length. `--headless`
-queues just the one tune. Each tune plays its own subtune: `--subtune`, or
-the tune's start subtune. When that subtune ends the player goes on to the next
-tune, and it stops after the last. `a`, or `--all-subtunes`, turns on
-playing all subtunes, so that a subtune that ends goes on to the tune's next
-subtune, and a tune stepped to starts on its first subtune.
-
-→ and ← step to the tune's next and previous subtune, stopping at its
-first and last. `n` and `p` step to the next and previous tune. `s`
-turns shuffle on and off, which plays the queue's tunes in a random
-order, and `l` turns looping on and off, so that the end of the queue
-goes on to its start. `,` and `.` seek 10 seconds back and forward
-within the subtune, which plays it again from its start and runs silently
-up to the point asked for. Space pauses and `q` quits. The status line
-shows which modes are on, and they last until the player quits.
+The SID player plays a queue of tunes, looking up each subtune's length
+and STIL entry in an HVSC collection. Its window shows each voice's
+note and output, the SID's registers, envelopes and filter, and the
+tune's STIL entry, and is worked with the mouse. Tunes for 2 or 3 SIDs
+play in stereo. [doc/sid-player.md](doc/sid-player.md) covers the
+options, the keys and the window.
 
 ![The SID player's visualizer playing Rob Hubbard's Delta](doc/images/sid-player.png)
-
-The SID player's window is worked with the mouse. Its header shows the
-tune's name, author and release, the tune the subtune covers at the
-moment when HVSC's STIL credits one, following the times STIL gives, and
-buttons that switch between three views and between the tune's own SID
-model, the 6581 and the 8580, which changes the chips playing on the
-spot. Its footer shows the time played on a bar you can click to seek,
-and buttons that pause, step between tunes and between a tune's
-subtunes, and turn shuffle, looping and all subtunes on and off. The
-visualizer view shows each voice's note, and how far off it is in cents,
-over a scope of the voice's output, and the mixed output below them. A
-tune on more than one SID gets a row of voices for each SID, and the mix
-splits into its left and right. The SID view shows one SID at a time,
-and for a tune on more than one, a row of SID 1, 2 and 3 buttons at its
-top picks which. It shows each voice's waveforms and the shape
-they make, its control bits, pulse width, envelope settings, and the
-envelope's level and stage, and the filter's modes, cutoff, resonance,
-volume and its response on the chip playing. The INFO view shows the
-tune's STIL entry and the subtune's, with a scroll bar, the mouse wheel
-or the up and down keys for the long ones. The terminal's keys work in
-the window too, along with Tab to switch views and `c` to step through
-the SID models.
-
-`--no-tui`, or output that isn't a terminal, gives plain progress
-output instead and plays through the queue without the keys, while
-`--audio-out` renders just the one subtune.
-
-A `.sid` file doesn't store its length, so `badline-ruby` looks the
-tune up by MD5 in HVSC's `Songlengths.md5`. It finds the database
-through `--songlengths`, in a `DOCUMENTS` directory in any of the
-tune's parent directories (the layout of an HVSC collection), or under
-`$HVSC_BASE/DOCUMENTS`. Without a database or `--seconds` it runs for
-60 seconds, but a subtune that falls silent for 5 seconds before then
-ends there, when played and when rendered alike. Silent means the
-output holds within 16 steps of one level, since a 6581 idles at a DC
-offset rather than at zero. A subtune with a known length plays to its
-length whatever it sounds like.
-
-A tune in an HVSC collection also gets its entry in HVSC's `STIL.txt`,
-found the same way: comments, covers, and subtune names and composers.
-The tune's own fields follow its header, and each subtune's print as it
-starts.
-
-PSID tunes run on a CPU and RAM with only the SID clocked, at about
-twice real time, so they play smoothly. RSID tunes set up their own
-interrupts, so they boot a full C64 first and run at about half real
-time. They render fine but stutter when played, and `badline-ruby` says
-so when it falls behind. The filter steps four cycles at a time;
-`--filter-chunk 1` steps it every cycle, which is exact and takes about
-twice as long. `badline-ruby --help` lists the options.
-
-The native `badline` takes the same options and runs the same code, so
-it renders the same file sample for sample, and it plays RSID tunes
-without stuttering. See
-[native/README.md](native/README.md#without-the-window).
 
 ## Input
 
@@ -385,10 +203,6 @@ the second is joystick 1. The D-pad and left stick steer, the face and
 shoulder buttons fire, and controllers can be connected or removed while
 the emulator runs.
 
-Control port 1's fire line is also the VIC-II's light pen input, so
-joystick 1's fire button and the 1351's left button in port 1 latch the
-light pen registers.
-
 `F10` mutes and unmutes the sound, and the window title shows `[MUTED]`
 while it's off.
 
@@ -426,76 +240,37 @@ program or `.sid` dropped on it opens the menu to ask first.
 - **6510**: every opcode, documented and undocumented, with per-cycle
   bus behaviour checked against the
   [65x02 single step tests](https://github.com/SingleStepTests/65x02).
-  `JAM` opcodes halt the CPU until reset.
-- **Memory**: banking through the 6510 port, including the cartridge
-  `EXROM`/`GAME` lines and Ultimax mode. The +60K and +256K RAM
-  expansions fit with `Badline::Computer.new(ram_expansion: :plus60k)` or
-  `:plus256k`, banked through their register at `$D100`.
-- **VIC-II** (PAL 6569): the five standard graphics modes and the
-  invalid ones, sprites with multicolour, expansion, priority and
-  pixel-level collisions, raster interrupts, bad lines, sprite DMA, the
-  border, VIC banks and the light pen.
-  `Badline::Computer.new(vic_model: :mos8565)` fits the C64C's 8565
-  instead, with its grey dots on colour register writes and its own
-  timing for mode splits, sprite multicolour splits and the light pen.
-  `Badline::Computer.new(region: Badline::Region::NTSC)` builds an NTSC
-  machine instead: the 6567R8's 65 cycles by 263 lines at 1,022,727 Hz,
-  with its later sprite fetches and its X counter, and TOD clocks on
-  60 Hz mains. `Badline::Region::NTSC_OLD` is the first NTSC C64s'
-  6567R56A, 64 cycles by 262 lines. The stock KERNAL tells them from PAL
-  by the raster, so every region boots the same ROMs. `--ntsc` picks the
-  6567R8.
-- **CIA 1 and 2**: timers, time-of-day clocks with alarms, the serial
-  shift register, interrupts, the keyboard matrix with its ghost keys,
-  the control ports and the paddle multiplexer. The machine has the
-  original 6526s; `Badline::Computer.new(cia_model: :mos6526a)` fits the
-  C64C's 6526As instead, whose interrupt register timing differs.
-- **SID**: the 6581 and the 8580, with oscillators, ring modulation and
-  sync, the envelope generator including the ADSR delay bug, the filter,
-  and the RC network on the board that removes the DC offset from the
-  output. The machine has a 6581 unless a `.sid` tune asks for an 8580
-  in its header, and `--sid 6581` or `--sid 8580` overrides either.
-- **REU**: the 1700, 1764 and 1750 RAM Expansion Units, and the bigger
-  units up to 16M built on the same REC chip, with DMA timed against the
-  VIC's bad lines and sprites. `--reu SIZE` plugs one in, and
-  `Badline::Computer.new(reu: 512)` does the same from Ruby. An
-  REU beside a cartridge loses I/O 2 to the cartridge.
-- **Datasette**: `.tap` playback into CIA 1's FLAG line, with the motor
-  and sense lines on the 6510 port.
+- **Memory**: banking through the 6510 port, the cartridge lines and
+  Ultimax mode, and the +60K and +256K RAM expansions.
+- **VIC-II**: the PAL 6569, the C64C's 8565, and NTSC's 6567R8 (`--ntsc`)
+  and 6567R56A: every graphics mode, sprites, collisions, bad lines,
+  sprite DMA, the border and the light pen.
+- **CIA 1 and 2**: the 6526 and the C64C's 6526A, with timers,
+  time-of-day clocks, the serial shift register, the keyboard matrix
+  and the control ports.
+- **SID**: the 6581 and the 8580, filter and all.
+- **REU**: the 1700, 1764 and 1750 and bigger units up to 16M
+  (`--reu`), with DMA timed against the VIC's bad lines and sprites.
+- **Datasette**: `.tap` playback.
+- **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
-  Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann Learning,
-  Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon / Super Zaxxon,
-  Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD and GMod2, and
-  the freezers Action Replay (v4.2 to v6), Atomic Power / Nordic Power,
-  Retro Replay / Nordic Replay, Final Cartridge III / III+ and the KCS
-  Power Cartridge.
-  EasyFlash and GMod2 flash takes writes through the chip's command set
-  (program, sector and chip erase, autoselect), so games and EAPI can
-  save to it. An EasyFlash image's EAPI is swapped for a bundled copy of
-  the Am29F040 EAPI on attach, as VICE does. The writes stay in memory
-  and are lost when the emulator quits: the `.crt` file is never
-  overwritten. The Retro Replay's flash
-  works the same way in flash mode, which the flash jumper enables:
-  `Media.attach(computer, path, cartridge: { flash_jumper: true })`, with
-  `bank_jumper: true` to run from the second 64K of a 128K image. The
-  GMod2 EEPROM and the Retro Replay clock port aren't there.
-- **GEO-RAM**: 64K to 4M of RAM seen through the `$DE00` page, with the
-  `$DFFE`/`$DFFF` page and block registers. It takes the expansion port,
-  so it can't sit alongside a cartridge:
-  `computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512))`.
-  Its contents are lost when the emulator quits.
+  Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
+  Learning, Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon /
+  Super Zaxxon, Magic Desk, Comal-80, EasyFlash, Mach 5, Pagefox, RGCD,
+  GMod2 and GEO-RAM, and the freezers Action Replay (v4.2 to v6), Atomic
+  Power / Nordic Power, Retro Replay / Nordic Replay, Final Cartridge III
+  / III+ and the KCS Power Cartridge. Flash writes stay in memory.
+
+Machines other than the default, and the cartridges' jumpers, are
+built from Ruby: see [doc/library.md](doc/library.md).
 
 Known gaps:
 
-- `badline-ruby` runs below real time, so its live audio stutters.
-  `badline` plays smoothly, and so do PSID tunes under
-  `badline-ruby --headless`.
+- `badline-ruby` runs below real time, so its sound, which `--sound`
+  turns on, stutters: it plays in bursts with silent gaps between them.
 - Without `--true-drive`, fast loaders and anything else that runs code
-  on the drive won't work (see [Media](#media)). The command channel
-  doesn't rename, copy, format or validate disks.
+  on the drive won't work.
 - No PAL-N (Drean) machine.
-- The emulator window has no freeze button yet, so a freezer cartridge
-  runs its menu but can't freeze a program.
 
 ## Contributing
 
