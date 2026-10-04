@@ -26,7 +26,7 @@ module Badline
         @sound = Sound.new(computer.sid, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
         @frame_report = FrameReport.new(@sound)
-        @menu = PauseMenu.new(Painter.new(@renderer), options)
+        @menu = PauseMenu.new(Painter.new(@renderer), options, @snapshots)
       end
 
       def run
@@ -66,6 +66,7 @@ module Badline
         @frame_report.add(stamps) if @verbose
         @frames += 1
         @timeline.run(@computer, @frames)
+        @snapshots.tick(@frames)
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?

@@ -104,6 +104,17 @@ module Badline
         false
       end
 
+      # What a save of the machine is named after: the cartridge, the disk,
+      # the tape, or BASIC, without the bracketed parts of a file's name.
+      def game_name
+        name = cartridge_name
+        name = File.basename(@disk_path, File.extname(@disk_path)) if name.empty? && !@disk_path.empty?
+        tape = @computer.datasette.tape
+        name = File.basename(tape.path, File.extname(tape.path)) if name.empty? && !tape.nil?
+        name = name.sub(/\s*[(\[].*\z/, "").strip
+        name.empty? ? "BASIC" : name
+      end
+
       # The name the cartridge in the expansion port gives itself, or an
       # empty one.
       def cartridge_name

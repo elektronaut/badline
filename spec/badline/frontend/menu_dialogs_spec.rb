@@ -10,7 +10,7 @@ require_relative "../../support/blank_disk"
 describe Badline::Frontend::MenuDialogs do
   include BlankDisk
 
-  subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse([])) }
+  subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse([]), nil) }
 
   let(:painter) { instance_double(Badline::Frontend::Painter, text: 0, box: nil) }
   let(:buttons) { Badline::Frontend::Buttons.new(painter, [1, 2, 3, 4]) }

@@ -14,6 +14,7 @@ module Badline
       ROW_WIDTH = 200
 
       WARNING = 0xff7a6b
+      RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -23,7 +24,9 @@ module Badline
       # The disks, tapes and cartridges the pages put in and take out.
       attr_reader :media
 
-      def initialize(painter, buttons, media_path, options)
+      def initialize(painter, buttons, media_path, options, snapshots)
+        @snapshots = snapshots
+        @recent = []
         @painter = painter
         @buttons = buttons
         @media = MenuMedia.new(media_path, options.writable?)
@@ -54,9 +57,13 @@ module Badline
         when :expansion then draw_expansion
         when :ports then draw_ports
         when :sound then draw_sound
+        when :snapshots then draw_snapshots
         else draw_power
         end
       end
+
+      # The path of the quicksave or autosave a RECENT action stands for.
+      def recent(action) = @recent[RECENT.index(action)].to_s
 
       def perform(action)
         case action
@@ -139,6 +146,21 @@ module Badline
           info("OUTPUT", "OFF")
         end
         toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], @computer.sid.model == :mos8580 ? 1 : 0])
+      end
+
+      # Saving now and by name, loading a named save, and the quicksaves
+      # and autosaves, newest first, which a press loads.
+      def draw_snapshots
+        row("QUICKSAVE", :quicksave_now)
+        row("SAVE...", :save_as)
+        row("LOAD...", :load_save)
+        skip
+        saves = (@snapshots.list("quicksaves") + @snapshots.list("autosaves")).sort_by { |path| -File.mtime(path).to_f }
+        @recent = saves.first(RECENT.size)
+        @recent.each_with_index do |path, index|
+          kind = File.basename(path).start_with?("autosave") ? "AUTOSAVE" : "QUICKSAVE"
+          row(kind, RECENT[index], @snapshots.time_of(path))
+        end
       end
 
       def draw_power

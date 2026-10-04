@@ -117,4 +117,58 @@ describe Badline::Frontend::Snapshots do
       expect { snapshots.restore }.to output(/quicksave-1\.vsf: /).to_stderr
     end
   end
+
+  describe "#tick" do
+    let(:autosaves) { File.join(Badline.data_path, "autosaves") }
+
+    def autosaved = Dir.exist?(autosaves) ? Dir.children(autosaves).sort : []
+
+    it "autosaves once AUTOSAVE_FRAMES frames have run" do
+      snapshots.tick(described_class::AUTOSAVE_FRAMES - 1)
+      snapshots.tick(described_class::AUTOSAVE_FRAMES)
+      expect(autosaved).to eq(%w[autosave-1.vsf])
+    end
+
+    it "keeps three autosaves" do
+      (1..4).each { |times| snapshots.tick(described_class::AUTOSAVE_FRAMES * times) }
+      expect(autosaved).to eq(%w[autosave-1.vsf autosave-2.vsf autosave-3.vsf])
+    end
+
+    it "doesn't autosave a run with a frame limit" do
+      limited = described_class.new(computer, Badline::Options.parse(%w[--frames 10]))
+      limited.tick(described_class::AUTOSAVE_FRAMES)
+      expect(autosaved).to eq([])
+    end
+  end
+
+  describe "#list" do
+    it "lists a folder's snapshots, newest first" do
+      snapshot_at(slot(1), 30)
+      snapshot_at(slot(2), 10)
+      expect(snapshots.list("quicksaves")).to eq([slot(2), slot(1)])
+    end
+  end
+
+  describe "#save_named" do
+    it "saves under the name in the saves folder" do
+      expect([snapshots.save_named("Game 1"), File.exist?(File.join(saves, "Game 1.vsf"))]).to eq([true, true])
+    end
+
+    it "leaves a save of the same name alone" do
+      snapshots.save_named("Game 1")
+      expect([snapshots.named?("Game 1"), snapshots.save_named("Game 1")]).to eq([true, false])
+    end
+
+    it "overwrites one when asked to" do
+      snapshots.save_named("Game 1")
+      expect(snapshots.save_named("Game 1", replace: true)).to be(true)
+    end
+  end
+
+  describe "#free_name" do
+    it "numbers the name past the saves already made" do
+      snapshots.save_named("Game 1")
+      expect(snapshots.free_name("Game")).to eq("Game 2")
+    end
+  end
 end

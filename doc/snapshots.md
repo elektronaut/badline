@@ -9,6 +9,20 @@ machine built as the saved one was. Quicksaves stay after badline quits,
 so `F12` finds them the next time it starts. What's printed on a save or
 a restore names the slot and the file.
 
+A run without `--frames` also autosaves every 6,000 frames the machine
+has run, two minutes on PAL, to `autosave-1.vsf` to `autosave-3.vsf` in
+the `autosaves` folder, replacing the oldest. Time in the pause menu
+doesn't count, nothing is printed, and `F12` never picks an autosave. A
+machine that can't be saved to a file, such as one with an REU, warns
+once and stops autosaving.
+
+The pause menu's Snapshots page quicksaves, saves under a name in the
+`saves` folder and loads a named save. The name starts as the game's,
+from its cartridge, disk or tape, or BASIC, with the next free number,
+and saving over a name already taken asks first. Below those, the
+newest quicksaves and autosaves, with the time each was saved, load
+with a press.
+
 The data folder is `~/Library/Application Support/badline` on macOS,
 and `$XDG_DATA_HOME/badline` or `~/.local/share/badline` elsewhere.
 `BADLINE_DATA_PATH` puts it somewhere else.
