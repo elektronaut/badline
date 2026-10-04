@@ -79,9 +79,9 @@ module Badline
         or a joystick's direction or fire (joy1-up, joy2-fire) for #{Event::HOLD}
         frames. type=TEXT types it, with \\n for RETURN. insert=FILE swaps
         in a disk, a list's first disk, a tape or a cartridge, and
-        eject=disk, tape or cartridge takes one out. screenshot=FILE saves the frame as a .bmp, with the
-        frame's number in place of %d. reset, freeze and quit take no
-        argument.
+        eject=disk, tape or cartridge takes one out. screenshot=FILE saves
+        the frame as a .bmp, with the frame's number in place of %d. reset,
+        freeze and quit take no argument.
       BANNER
     end
 
