@@ -468,13 +468,12 @@ explain.
   compares the machine against a dump taken after `LOAD"TEST",8` and `RUN`
   on a real C64 with a real drive, down to zero page, CIA 1's timer B and
   CIA 2's port A. The harness injects the program instead of loading it.
-  Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
-  exits `$ff` as well, on one byte: CIA 2's port A read with every pin
-  an input, `$ff` where the dump has `$3f`. With no drive attached,
-  nothing pulls the clock and data lines that port A's own outputs
-  would pull through the 7406s, so PA6 and PA7 read high. Its
-  `testbench-drive` twin, loaded from `test.d64` through the true drive,
-  passes.
+  Injected, it reads CIA 1's timer B as `$ffff` where the dump has
+  `$04ff`, and CIA 2's port A, read with every pin an output, as `$97`
+  where the dump has `$c7`: no LOAD ran to leave them. Loaded with a
+  typed `LOAD"TEST",8` through the LOAD trap instead, it passes, and so
+  does its `testbench-drive` twin, loaded from `test.d64` through the
+  true drive.
 - The `testbench-ntsc` rows that record `no-ref` (27, all 6567R56A rows:
   `D011Test/disable-bad`, the `dentest` rows, `gfxfetch`, `screenpos`,
   `videomode/rmwtest` and `spritedma/d017-54` and `-57`) have no

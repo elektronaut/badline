@@ -4,6 +4,32 @@ require "spec_helper"
 require_relative "../support/drive1541_rom"
 
 describe Badline::IECBus do
+  context "with only the C64 on it" do
+    let(:computer) { Badline::Computer.new }
+
+    def port_a(direction, output)
+      computer.cia2.poke(0xdd02, direction)
+      computer.cia2.poke(0xdd00, output)
+      computer.cia2.peek(0xdd00)
+    end
+
+    it "reads the clock and data lines low while its own outputs pull them" do
+      expect(port_a(0x3f, 0x37)).to eq(0x37)
+    end
+
+    it "reads them high once it lets them go" do
+      expect(port_a(0x3f, 0x07)).to eq(0xc7)
+    end
+
+    it "reads them low with every pin an input, the inverters' inputs floating high" do
+      expect(port_a(0x00, 0x00)).to eq(0x3f)
+    end
+
+    it "reads the data line alone low while it pulls only that one" do
+      expect(port_a(0x3f, 0x27)).to eq(0x67)
+    end
+  end
+
   context "with the C64 and a drive on it" do
     let(:computer) { Badline::Computer.new }
     let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }

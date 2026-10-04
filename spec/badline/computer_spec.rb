@@ -634,8 +634,8 @@ RSpec.describe Badline::Computer do
       expect(drive.cycles).to eq(31_250)
     end
 
-    it "leaves CIA 2's port A off the serial bus until a drive is attached" do
-      expect(computer.cia2.peripheral).to be_nil
+    it "puts CIA 2's port A on the serial bus without a drive" do
+      expect(computer.cia2.peripheral).to eq(computer.iec_bus)
     end
 
     it "puts the drive on the serial bus behind CIA 2's port A" do

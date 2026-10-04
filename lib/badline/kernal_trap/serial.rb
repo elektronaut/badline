@@ -148,8 +148,7 @@ module Badline
       # UNLSN and UNTLK end by releasing ATN, the clock and the data line on
       # CIA 2's port A, and leave the port's last read in the accumulator.
       def release_bus
-        @bus.poke(0xdd00, @bus.peek(0xdd00) & 0xc7)
-        @cpu.a = @bus.peek(0xdd00) & 0xdf
+        @cpu.a = release_serial_lines
         @cpu.status.negative = @cpu.a.anybits?(0x80)
         @cpu.status.zero = @cpu.a.zero?
         return_to_caller

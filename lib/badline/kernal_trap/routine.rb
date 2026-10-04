@@ -21,6 +21,20 @@ module Badline
         @bus.io_port.kernal?
       end
 
+      # The ROM's release of the serial bus ($EE03): ATN ($EDBE), then the
+      # clock ($EE85), then the data line ($EE97), each a read of CIA 2's
+      # port A, a mask and a write back, so the input bits written back
+      # follow the lines as each one is let go. Returns the last value
+      # written, which the ROM leaves in A.
+      def release_serial_lines
+        value = 0
+        [0xf7, 0xef, 0xdf].each do |mask|
+          value = @bus.peek(0xdd00) & mask
+          @bus.poke(0xdd00, value)
+        end
+        value
+      end
+
       def return_to_caller
         @cpu.program_counter = (uint16(pull_byte, pull_byte) + 1) & 0xffff
       end
