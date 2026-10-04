@@ -5,7 +5,8 @@ module Badline
     class Disk
       # Saving and restoring a Disk for a snapshot: the image by its path,
       # and every half track as the head sees it, with those written since
-      # the last flush. The image itself is read again from its host file.
+      # the last flush. The image itself is read again from its host file,
+      # where there still is one.
       module State
         # The image's path, expanded, and whether it was opened read-only,
         # for a disk from Disk.open. Nil for a disk made another way.
@@ -25,16 +26,24 @@ module Badline
 
         # The disk a state from save_state describes: +current+ when it was
         # opened from the same image the same way, and otherwise a disk for
-        # the image at the path the state names, or one without an image,
-        # as a detached reader always gets. Either way its tracks come from
-        # the state.
+        # the image at the path the state names. Where no file is at that
+        # path, the disk has no image and is write-protected, and a
+        # detached reader always gets one without an image. Either way its
+        # tracks come from the state.
         def self.load(input, current)
           path = input.optional_string
           read_only = input.boolean?
           disk = current if current && !path.nil? && current.path == path && current.read_only == read_only
-          disk ||= path && !input.detached? ? reopen(path, read_only) : Disk.new
+          disk ||= fresh(path, read_only, input.detached?)
           disk.load_tracks(input)
           disk
+        end
+
+        def self.fresh(path, read_only, detached)
+          return Disk.new if path.nil? || detached
+          return Disk.new.opened(path, true) unless File.file?(path)
+
+          reopen(path, read_only)
         end
 
         # Notes the image's path and how it was opened.

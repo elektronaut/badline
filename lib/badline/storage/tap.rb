@@ -13,13 +13,14 @@ module Badline
       HEADER_SIZE = 0x14
       OVERFLOW = 0x100 * 8
 
-      # The file it was read from, expanded, and the offset of the next
-      # pulse byte.
-      attr_reader :version, :path
+      # The file it was read from, expanded, and the file's bytes.
+      attr_reader :version, :path, :bytes
 
-      def initialize(path)
+      # `bytes` stands in for the host file's contents, as a snapshot
+      # restores the tape it holds.
+      def initialize(path, bytes: nil)
         @path = File.expand_path(path)
-        @bytes = File.binread(path).bytes
+        @bytes = bytes || File.binread(path).bytes
         raise FormatError, "Missing TAP signature" unless @bytes[0, SIGNATURE.length] == SIGNATURE
 
         @version = @bytes[0x0c].to_i
@@ -33,6 +34,7 @@ module Badline
         @pos = HEADER_SIZE
       end
 
+      # The offset of the next pulse byte.
       def position = @pos
 
       def position=(offset)

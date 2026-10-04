@@ -77,8 +77,8 @@ describe Badline::Snapshot do
       File.delete(tape)
     end
 
-    it "fails to load" do
-      expect { described_class.load(path) }.to raise_error(Badline::Snapshot::FormatError, /won't open/)
+    it "puts the tape back in from the snapshot" do
+      expect(described_class.load(path).datasette.tape.bytes).to eq(computer.datasette.tape.bytes)
     end
   end
 

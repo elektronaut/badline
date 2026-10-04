@@ -45,16 +45,16 @@ module Badline
     T64_ARCHIVE = 4
 
     class << self
-      # Opens the storage a save_setup wrote: the same directory or archive
-      # by its path, or a disk image with the bytes it held, writes and
-      # all. A detached reader gets the image write-protected, and
-      # Unavailable for a directory or archive.
+      # Opens the storage a save_setup wrote: the same directory by its
+      # path, an archive with the bytes it held, or a disk image with the
+      # bytes it held, writes and all. A detached reader gets the image
+      # write-protected, and Unavailable for a directory.
       def reopen(input)
         kind = input.int
         path = input.string
         case kind
         when HOST_DIRECTORY then input.detached? ? Unavailable.new : HostDirectory.new(path)
-        when T64_ARCHIVE then input.detached? ? Unavailable.new : T64.new(path)
+        when T64_ARCHIVE then T64.new(path, bytes: input.blob)
         else reopen_image(kind, path, input)
         end
       end

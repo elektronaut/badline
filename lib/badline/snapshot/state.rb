@@ -14,7 +14,7 @@ module Badline
       # The layout the chips write their fields in. It goes up whenever a
       # save_state writes something else, so a State in another layout
       # fails before anything is read into a machine.
-      SCHEMA = 2
+      SCHEMA = 3
 
       attr_reader :values, :strings
 
@@ -101,8 +101,8 @@ module Badline
     # A detached reader restores a machine that opens no host file and
     # writes none, for a copy the machine runs on its own: a disk image
     # comes from the bytes the state holds, write-protected, a directory
-    # or .t64 archive device 8 serves and a tape are left out, and a true
-    # drive's disk keeps the state's tracks without its image file.
+    # device 8 serves is left out, and a true drive's disk keeps the
+    # state's tracks without its image file.
     class StateReader
       def initialize(state, detached: false)
         @values = state.values

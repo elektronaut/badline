@@ -50,12 +50,32 @@ describe Badline::Datasette, "#save_state" do
     expect(round_trip(described_class.new, target).tape).to be_nil
   end
 
-  it "leaves the tape out for a detached reader" do
+  def saved_state
     out = Badline::Snapshot::StateWriter.new
     saved.save_state(out)
+    out.state
+  end
+
+  it "plays on once the tape's file is gone" do
+    state = saved_state
+    File.delete(path)
     target = described_class.new
-    target.load_state(Badline::Snapshot::StateReader.new(out.state, detached: true))
-    expect(target.tape).to be_nil
+    target.load_state(Badline::Snapshot::StateReader.new(state))
+    expect(edges(target, 3000)).to eq(edges(saved, 3000))
+  end
+
+  it "plays on for a detached reader" do
+    target = described_class.new
+    target.load_state(Badline::Snapshot::StateReader.new(saved_state, detached: true))
+    expect(edges(target, 3000)).to eq(edges(saved, 3000))
+  end
+
+  it "puts in the saved tape when the file at its path has changed" do
+    state = saved_state
+    target = described_class.new(Badline::Storage::TAP.new(path))
+    File.binwrite(path, "C64-TAPE-RAW".b + [1, 0, 0, 0, 2].pack("C4V") + "\x30\x30".b)
+    target.load_state(Badline::Snapshot::StateReader.new(state))
+    expect(edges(target, 3000)).to eq(edges(saved, 3000))
   end
 
   it "doesn't press the keys through the sense handler" do
