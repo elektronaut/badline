@@ -115,7 +115,8 @@ describe Badline::Frontend::App do
     end
 
     it "plugs a 1351 into port 1, whose button the mouse's presses" do
-      run(f9, key(81), key(81), key(81), key(79), key(40), key(41), event(sdl::MOUSEBUTTONDOWN, [0, 1, 1].pack("LC2")))
+      keys = [81, 81, 81, 81, 79, 40, 41].map { |scancode| key(scancode) }
+      run(f9, *keys, event(sdl::MOUSEBUTTONDOWN, [0, 1, 1].pack("LC2")))
       expect(computer.control_ports.device1.port_bits & 0x1f).to eq(0b01111)
     end
   end

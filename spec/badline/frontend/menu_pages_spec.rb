@@ -5,7 +5,7 @@ require "badline/ffi"
 require "badline/frontend"
 
 describe Badline::Frontend::MenuPages do
-  subject(:pages) { described_class.new(nil, nil, "", Badline::Options.parse([])) }
+  subject(:pages) { described_class.new(nil, nil, "", Badline::Options.parse([]), nil) }
 
   let(:computer) { Badline::Computer.new }
   let(:controls) { Badline::Frontend::Controls.new(computer) }

@@ -14,8 +14,8 @@ module Badline
     # a cartridge going in or out ask first, as each power cycles the
     # machine.
     class PauseMenu
-      SECTIONS = ["DRIVE 8", "DATASETTE", "EXPANSION PORT", "PORTS", "SOUND", "POWER"].freeze
-      PAGES = %i[drive datasette expansion ports sound power].freeze
+      SECTIONS = ["SNAPSHOTS", "DRIVE 8", "DATASETTE", "EXPANSION PORT", "PORTS", "SOUND", "POWER"].freeze
+      PAGES = %i[snapshots drive datasette expansion ports sound power].freeze
       DISKS = %w[.d64 .d71 .d81 .g64 .t64].freeze
 
       PANEL = 0x1d2230
@@ -34,16 +34,18 @@ module Badline
       ESCAPE = 41
       RETURN = 40
       SPACE = 44
+      SNAPSHOT_ACTIONS = %i[quicksave_now save_as load_save].freeze
       ARROWS = { 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       MOUSEWHEEL = 0x403
 
       # Takes the media, the REU and whether disks are writable from Options.
-      def initialize(painter, options)
+      def initialize(painter, options, snapshots)
         media_path = options.media_path.to_s
         @painter = painter
         @buttons = Buttons.new(painter, [TEXT, BRIGHT, PANEL, FILL])
-        @pages = MenuPages.new(painter, @buttons, media_path, options)
-        @dialogs = MenuDialogs.new(painter, @buttons, @pages.media, options)
+        @pages = MenuPages.new(painter, @buttons, media_path, options, snapshots)
+        @snapshots = snapshots
+        @dialogs = MenuDialogs.new(painter, @buttons, @pages.media, options, snapshots)
         @open = false
         @section = 0
       end
@@ -166,6 +168,8 @@ module Badline
       end
 
       def menu_action(action)
+        return snapshot_action(action) if SNAPSHOT_ACTIONS.include?(action) || MenuPages::RECENT.include?(action)
+
         case action
         when :insert_disk then @dialogs.browse(:disk)
         when :insert_tape then @dialogs.browse(:tape)
@@ -173,6 +177,19 @@ module Badline
         when :quick_open then @dialogs.browse(:program)
         when :remove_cartridge then @dialogs.ask_remove
         else @pages.perform(action)
+        end
+        nil
+      end
+
+      # Saves now, asks for a name to save under, opens the saves folder,
+      # or loads one of the page's quicksaves and autosaves, returning
+      # :swap once a save has loaded.
+      def snapshot_action(action)
+        case action
+        when :quicksave_now then @snapshots.quicksave
+        when :save_as then @dialogs.ask_name(@snapshots.free_name(@pages.media.game_name))
+        when :load_save then @dialogs.browse(:snapshot)
+        else return @dialogs.load(@pages.recent(action))
         end
         nil
       end

@@ -91,6 +91,20 @@ describe Badline::Frontend::MenuMedia do
     expect(media.problem).not_to be_empty
   end
 
+  it "names a save after the disk, without its bracketed parts" do
+    media.insert(:disk, blank_d64(File.join(dir, "Ninja (1987)(Disk 1 of 2).d64")))
+    expect(media.game_name).to eq("Ninja")
+  end
+
+  it "names a save after the cartridge" do
+    media.attach_cartridge(crt("game.crt"))
+    expect(media.game_name).to eq("GAME")
+  end
+
+  it "names a save BASIC with nothing attached" do
+    expect(media.game_name).to eq("BASIC")
+  end
+
   it "attaches a cartridge, power cycling the machine" do
     expect([media.attach_cartridge(crt("game.crt")), media.cartridge_name]).to eq([true, "GAME"])
   end

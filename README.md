@@ -137,7 +137,9 @@ from Ruby.
 
 `F11` quicksaves the whole machine to the next of five slots in
 badline's data folder, replacing the oldest, and `F12` restores the
-newest, even after badline has quit and started again. Snapshots use
+newest, even after badline has quit and started again. badline also
+autosaves every two minutes of play, and the pause menu's Snapshots page
+saves under a name and loads any of them. Snapshots use
 VICE's `.vsf` format: badline opens those x64sc saves, and x64sc opens
 badline's. See [doc/snapshots.md](doc/snapshots.md) for where they're
 kept, what they hold and how far the two agree.
@@ -218,6 +220,7 @@ too.
 
 | Page | What it holds |
 |------|---------------|
+| Snapshots | Quicksave, save under a name, load a named save, and the latest quicksaves and autosaves |
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge: insert, remove, and its freeze button if it has one |
