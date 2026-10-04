@@ -66,10 +66,12 @@ end
 
 # Stands in for Renderer#stream: `frames` frames of `size` stereo samples, each
 # taking `cost` seconds of the sink's simulated time to render. The frames
-# before `from` seconds come without their samples.
+# before `from` seconds come without their samples. With `ahead` set, a
+# checkpoint lies ahead of where it plays, short of any seek forward.
 class FakeRenderer
   attr_reader :rendered
-  attr_accessor :from
+  attr_accessor :from, :checkpoints
+  attr_writer :ahead
 
   def initialize(sink, frames:, size:, cost: 0.0)
     @sink = sink
@@ -78,7 +80,10 @@ class FakeRenderer
     @cost = cost
     @rendered = 0
     @from = 0.0
+    @ahead = false
   end
+
+  def checkpoint_ahead?(_seconds) = @ahead
 
   def stream
     @frames.times do

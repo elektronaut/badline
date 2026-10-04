@@ -74,6 +74,30 @@ module Badline
         settle
       end
 
+      # The rig between frames: the bus and its chips, the extra SIDs, the
+      # CPU, and the call waiting for the idle loop.
+      def save_state(out)
+        out.marker("BARE PLAYER")
+        @bus.save_state(out)
+        @extras.each { |sid| sid.save_state(out) }
+        @cpu.save_state(out)
+        out.optional_int(@pending).int(@argument).boolean(@idle)
+      end
+
+      # Takes a rig that hasn't started to where #save_state found one, in
+      # place of #start.
+      def load_state(input)
+        input.marker("BARE PLAYER")
+        @bus.load_state(input)
+        @extras.each { |sid| sid.load_state(input) }
+        @cpu.load_state(input)
+        @pending = input.optional_int
+        @argument = input.int
+        @idle = input.boolean?
+        @stereo.synthesize!
+        install_dispatch
+      end
+
       # Advances one call of play, or `budget` cycles if that is shorter,
       # then yields whatever the SIDs recorded over it, in stereo. Returns
       # the cycles advanced.

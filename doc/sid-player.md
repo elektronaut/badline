@@ -86,9 +86,13 @@ first and last. `n` and `p` step to the next and previous tune. `s`
 turns shuffle on and off, which plays the queue's tunes in a random
 order, and `l` turns looping on and off, so that the end of the queue
 goes on to its start. `,` and `.` seek 10 seconds back and forward
-within the subtune: a seek forward runs on silently from where the
-subtune is, and a seek back plays it again from its start up to the
-point asked for. Space pauses and `q` quits. The status line shows which
+within the subtune. As a subtune plays, the player saves its state every
+10 seconds. A seek back runs silently from the latest of those saved
+states at or before the point asked for, or from the subtune's start
+before the first. A seek forward runs on silently from where the
+subtune is, or from a saved state further on, when an earlier seek back
+left one there. The saved states last until the tune or subtune
+changes. Space pauses and `q` quits. The status line shows which
 modes are on, and they last until the player quits.
 
 `--no-tui`, or output that isn't a terminal, gives plain progress output
