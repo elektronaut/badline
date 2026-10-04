@@ -23,7 +23,7 @@ module Badline
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
         open_window
-        @sound = Sound.new(computer.sid, options.sound?, @verbose)
+        @sound = Sound.new(computer.sid, computer.region.clock_hz, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
         @frame_report = FrameReport.new(@sound)
         @menu = PauseMenu.new(Painter.new(@renderer), options, @snapshots)
@@ -141,7 +141,7 @@ module Badline
         @led = DriveLed.for(computer)
         @controls.computer = computer
         @gamepads.computer = computer
-        @sound.sid = computer.sid
+        @sound.switch(computer.sid, computer.region.clock_hz)
         @snapshots.computer = computer
       end
 
