@@ -266,6 +266,16 @@ describe Badline::SID::Filter do
     it "keeps decaying where a whole-unit integrator stalls" do
       expect(run(176_790, 50_000)).to be_within(3).of(176_790 * Math.exp(-50_000 * 105 / (2.0**20)))
     end
+
+    it "stays bounded over long steps" do
+      100.times { |step| external.cycle!(((step % 2) * 0x7fff) << described_class::FRACTION, 64) }
+      expect(external.output.abs).to be <= 0x8000
+    end
+
+    it "settles onto a step over long steps" do
+      5.times { external.cycle!(100_000 << described_class::FRACTION, 64) }
+      expect(external.output).to be_within(5000).of(100_000)
+    end
   end
 
   describe "the output path" do

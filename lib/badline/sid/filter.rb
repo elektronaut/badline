@@ -101,10 +101,13 @@ module Badline
         end
 
         # Takes the input in 1/2^Filter::FRACTION units, and reads the
-        # output out in whole ones.
+        # output out in whole ones. A step of several cycles moves each pole
+        # at most onto its input.
         def cycle!(input, cycles = 1)
-          delta_lowpass = ((W0_LOWPASS >> 8) * cycles * ((input << INPUT_SHIFT) - @lowpass)) >> 12
-          delta_highpass = (W0_HIGHPASS * cycles * (@lowpass - @highpass)) >> 20
+          w0_lowpass = [(W0_LOWPASS >> 8) * cycles, 1 << 12].min
+          w0_highpass = [W0_HIGHPASS * cycles, 1 << 20].min
+          delta_lowpass = (w0_lowpass * ((input << INPUT_SHIFT) - @lowpass)) >> 12
+          delta_highpass = (w0_highpass * (@lowpass - @highpass)) >> 20
           @output = (@lowpass - @highpass) >> FRACTION
           @lowpass += delta_lowpass
           @highpass += delta_highpass
