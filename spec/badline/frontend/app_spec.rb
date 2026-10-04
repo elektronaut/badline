@@ -121,18 +121,27 @@ describe Badline::Frontend::App do
   end
 
   describe "snapshots" do
-    it "saves one with F11" do
+    around do |example|
+      Dir.mktmpdir do |dir|
+        Badline.data_path = dir
+        example.run
+      end
+    ensure
+      Badline.data_path = nil
+    end
+
+    it "quicksaves with F11" do
       run(key(Badline::Frontend::Keys::F11))
-      expect(Dir.glob("badline-*.vsf").size).to eq(1)
+      expect(Dir.children(Badline.data_folder("quicksaves"))).to eq(["quicksave-1.vsf"])
     end
 
     it "runs the one F12 restores in place of the machine before" do
       expect { run(key(Badline::Frontend::Keys::F11), key(Badline::Frontend::Keys::F12)) }
-        .to output(/Restored badline-.*\.vsf/).to_stdout
+        .to output(/Restored quicksave 1 from /).to_stdout
     end
 
     it "has nothing to restore before one is saved" do
-      expect { run(key(Badline::Frontend::Keys::F12)) }.to output(/No snapshot to restore/).to_stdout
+      expect { run(key(Badline::Frontend::Keys::F12)) }.to output(/No quicksave to restore/).to_stdout
     end
   end
 
