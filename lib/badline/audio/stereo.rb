@@ -65,11 +65,9 @@ module Badline
       private
 
       def both(samples)
-        i = 0
-        while i < samples.size
-          yield samples[i]
-          yield samples[i]
-          i += 1
+        samples.each do |sample|
+          yield sample
+          yield sample
         end
       end
 
