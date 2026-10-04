@@ -246,4 +246,125 @@ describe Badline::Audio::Renderer do
       end
     end
   end
+
+  describe "seeking through checkpoints" do
+    def checkpoints = @checkpoints ||= Badline::Audio::Checkpoints.new(every: 0.03)
+
+    def straight = @straight ||= heard(0.0)
+
+    # The samples of each frame heard, by the seconds rendered at its end,
+    # with the frames yielded without samples under nil.
+    def heard(from)
+      made = described_class.new(tune, seconds: 0.2, rate: 8000, subtune: 2)
+      made.checkpoints = checkpoints
+      made.from = from
+      frames = {}
+      made.stream { |samples, rendered| frames[samples.empty? ? nil : rendered] ||= samples }
+      frames
+    end
+
+    def matched(frames) = straight.slice(*frames.keys.compact)
+
+    def sounding(frames) = frames.except(nil)
+
+    shared_examples "a seek" do
+      it "renders no frame before the latest checkpoint at or before it" do
+        straight
+        expect(heard(0.1)).not_to have_key(nil)
+      end
+
+      it "hears what playing straight through hears, sought forward" do
+        sought = sounding(straight.then { heard(0.15) })
+        expect(sought).to eq(matched(sought))
+      end
+
+      it "hears what playing straight through hears, sought back and forth" do
+        sought = [straight, heard(0.17), heard(0.05), heard(0.11)].drop(1).map { |frames| sounding(frames) }
+        expect(sought).to eq(sought.map { |frames| matched(frames) })
+      end
+    end
+
+    context "without checkpoints given" do
+      before do
+        stub_const("Badline::Audio::Checkpoints::EVERY", 0.01)
+        allow(renderer.player).to receive(:save_state)
+      end
+
+      it "saves none" do
+        renderer.stream { |_samples, _rendered| nil }
+        expect(renderer.player).not_to have_received(:save_state)
+      end
+    end
+
+    context "with another SID model chosen" do
+      def resumed
+        made = described_class.new(tune, seconds: 0.2, rate: 8000, subtune: 2, sid_models: [:mos8580])
+        made.checkpoints = checkpoints
+        made.from = 0.1
+        made.stream { |_samples, _rendered| nil }
+        made
+      end
+
+      it "plays on from the checkpoint on that model" do
+        straight
+        expect(resumed.player.sid.model).to eq(:mos8580)
+      end
+    end
+
+    context "with a tune on the bare rig" do
+      it_behaves_like "a seek"
+    end
+
+    context "with a tune on the whole machine" do
+      let(:signature) { "RSID" }
+
+      it_behaves_like "a seek"
+    end
+
+    context "with a tune on two SIDs" do
+      def sids = [0x42]
+
+      it_behaves_like "a seek"
+    end
+
+    context "with a tune on two SIDs on the whole machine" do
+      let(:signature) { "RSID" }
+
+      def sids = [0x42]
+
+      it_behaves_like "a seek"
+    end
+  end
+
+  describe "#checkpoint_ahead?" do
+    let(:options) { { seconds: 0.2, subtune: 2 } }
+
+    def kept
+      checkpoints = Badline::Audio::Checkpoints.new(every: 0.03)
+      played = described_class.new(tune, seconds: 0.2, rate: 8000, subtune: 2)
+      played.checkpoints = checkpoints
+      played.stream { |_samples, _rendered| nil }
+      checkpoints
+    end
+
+    it "says no without checkpoints" do
+      expect(renderer.checkpoint_ahead?(0.15)).to be(false)
+    end
+
+    it "says yes for a seek past a checkpoint further on" do
+      renderer.checkpoints = kept
+      expect(renderer.checkpoint_ahead?(0.15)).to be(true)
+    end
+
+    it "says no for a seek short of the first checkpoint" do
+      renderer.checkpoints = kept
+      expect(renderer.checkpoint_ahead?(0.02)).to be(false)
+    end
+
+    it "says no once rendering has passed the checkpoints" do
+      renderer.checkpoints = kept
+      renderer.stream { |_samples, _rendered| nil }
+      expect(renderer.checkpoint_ahead?(0.15)).to be(false)
+    end
+  end
 end
