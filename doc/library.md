@@ -19,7 +19,9 @@ computer.address_bus.peek(0x0400)                   # screen RAM starts at $0400
 ## Building a machine
 
 `Badline::Computer.new` builds the default machine: a PAL C64 with the
-6569 VIC-II, 6526 CIAs and a 6581 SID. Its keywords build others:
+6569 VIC-II, 6526 CIAs and a 6581 SID. Its keywords build others, and
+`Badline::Model.named("c64c")` gives the ones `--model` names for each
+model (`Badline::Model::ALL`):
 
 - `vic_model: :mos8565` fits the C64C's 8565, with its grey dots on
   colour register writes and its own timing for mode splits, sprite

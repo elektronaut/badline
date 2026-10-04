@@ -27,7 +27,8 @@ The data folder is `~/Library/Application Support/badline` on macOS,
 and `$XDG_DATA_HOME/badline` or `~/.local/share/badline` elsewhere.
 `BADLINE_DATA_PATH` puts it somewhere else.
 
-Both executables do this, and both open a `.vsf` given as the media.
+Both executables do this, and both open a `.vsf` given as the media,
+in a machine built as the saved one was, whatever `--model` says.
 `--save-snapshot FILE` saves one to `FILE` after the last frame. A
 snapshot that fails to open leaves the machine running as it was.
 

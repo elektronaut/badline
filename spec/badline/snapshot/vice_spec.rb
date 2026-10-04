@@ -162,7 +162,7 @@ describe Badline::Snapshot::Vice do
 
     it "fails to restore into a machine built another way" do
       expect { c64c.restore(Badline::Computer.new) }
-        .to raise_error(Badline::Snapshot::FormatError, /mos8565, mos6526a, mos8580, pal, not mos6569/)
+        .to raise_error(Badline::Snapshot::FormatError, /c64c, mos8565, mos6526a, mos8580, pal, not c64, mos6569/)
     end
   end
 

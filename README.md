@@ -78,7 +78,8 @@ differences noted in the table. `--help` lists the options for either.
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
-| `--ntsc` | Run an NTSC C64, with the 6567R8 VIC-II, instead of a PAL one |
+| `--model NAME` | Run another C64, named as in VICE: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580) or `oldntsc` (the first NTSC C64s' 6567R56A). `--sid` or a `.sid` tune's own SID takes the model's place |
+| `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
 | `--no-vsync` | Pace the window by a timer, or by the sound while it plays, instead of the display's vsync |
@@ -248,8 +249,8 @@ program or `.sid` dropped on it opens the menu to ask first.
   [65x02 single step tests](https://github.com/SingleStepTests/65x02).
 - **Memory**: banking through the 6510 port, the cartridge lines and
   Ultimax mode, and the +60K and +256K RAM expansions.
-- **VIC-II**: the PAL 6569, the C64C's 8565, and NTSC's 6567R8 (`--ntsc`)
-  and 6567R56A: every graphics mode, sprites, collisions, bad lines,
+- **VIC-II**: the PAL 6569, the C64C's 8565, and NTSC's 6567R8, 8562 and
+  6567R56A (`--model`): every graphics mode, sprites, collisions, bad lines,
   sprite DMA, the border and the light pen.
 - **CIA 1 and 2**: the 6526 and the C64C's 6526A, with timers,
   time-of-day clocks, the serial shift register, the keyboard matrix
@@ -267,8 +268,8 @@ program or `.sid` dropped on it opens the menu to ask first.
   Power / Nordic Power, Retro Replay / Nordic Replay, Final Cartridge III
   / III+ and the KCS Power Cartridge. Flash writes stay in memory.
 
-Machines other than the default, and the cartridges' jumpers, are
-built from Ruby: see [doc/library.md](doc/library.md).
+Chip combinations `--model` doesn't name, and the cartridges' jumpers,
+are built from Ruby: see [doc/library.md](doc/library.md).
 
 Known gaps:
 

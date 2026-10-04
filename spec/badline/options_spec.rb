@@ -126,16 +126,32 @@ describe Badline::Options do
     context "with --ntsc" do
       let(:argv) { ["--ntsc", program_path] }
 
-      it "runs an NTSC machine" do
-        expect(options.ntsc?).to be(true)
+      it "runs an NTSC C64" do
+        expect(options.model).to eq("ntsc")
       end
     end
 
-    context "without --ntsc" do
+    context "with --model" do
+      let(:argv) { ["--model", "c64c", program_path] }
+
+      it "runs that model" do
+        expect(options.model).to eq("c64c")
+      end
+    end
+
+    context "with --model ntsc and --ntsc" do
+      let(:argv) { ["--model=ntsc", "--ntsc", program_path] }
+
+      it "runs an NTSC C64" do
+        expect(options.model).to eq("ntsc")
+      end
+    end
+
+    context "without --model or --ntsc" do
       let(:argv) { [program_path] }
 
-      it "runs a PAL machine" do
-        expect(options.ntsc?).to be(false)
+      it "runs a PAL C64" do
+        expect(options.model).to eq("c64")
       end
     end
 
@@ -258,6 +274,9 @@ describe Badline::Options do
       "no tune without the window" => [%w[--headless], /no tune/],
       "an unknown SID" => [%w[--sid 6582], /6582/],
       "an unknown REU size" => [%w[--reu 100], /100/],
+      "an unknown model" => [%w[--model vic20], /invalid argument: --model vic20/],
+      "--ntsc and another model" => [%w[--model c64c --ntsc], /conflicting models: c64c and ntsc/],
+      "two models" => [%w[--model ntsc --model oldntsc], /conflicting models: ntsc and oldntsc/],
       "an unknown option" => [%w[--loud], /--loud/]
     }.each do |name, (args, message)|
       context "with #{name}" do
@@ -303,7 +322,7 @@ describe Badline::Options do
       end
     end
 
-    %w[--no-autostart --sound --writable --verbose --true-drive --reu=512].each do |arg|
+    %w[--no-autostart --sound --writable --verbose --true-drive --reu=512 --model=c64c].each do |arg|
       context "with #{arg} without the window" do
         let(:argv) { ["--headless", arg, tune_path] }
 
@@ -602,8 +621,12 @@ describe Badline::Options do
       expect(parse("--no-autostart").autostart?).to be(false)
     end
 
-    it "runs an NTSC machine with --ntsc" do
-      expect(parse("--ntsc").ntsc?).to be(true)
+    it "runs an NTSC C64 with --ntsc" do
+      expect(parse("--ntsc").model).to eq("ntsc")
+    end
+
+    it "runs the model --model names" do
+      expect(parse("--model", "newntsc").model).to eq("newntsc")
     end
 
     it "puts a true drive on device 8 with --true-drive" do
@@ -661,7 +684,7 @@ describe Badline::Options do
     end
 
     it "lists every option in the help" do
-      %w[--subtune --sid --no-autostart --true-drive --reu --ntsc --sound --no-sound --no-vsync --verbose --help
+      %w[--subtune --sid --no-autostart --true-drive --reu --model --ntsc --sound --no-sound --no-vsync --verbose --help
          --version --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
          --rate --filter-chunk --quiet --no-tui --all-subtunes].each do |flag|
         expect(help).to include(flag)
@@ -769,6 +792,7 @@ describe Badline::Options do
       %w[--disable-jit] => "invalid option: --disable-jit",
       %w[--sid 6582] => "invalid argument: --sid 6582",
       %w[--reu 100] => "invalid argument: --reu 100",
+      %w[--model c128] => "invalid argument: --model c128",
       %w[--subtune two] => "invalid argument: --subtune two",
       %w[--subtune 0] => "invalid argument: --subtune 0",
       %w[--frames -1] => "invalid argument: --frames -1",

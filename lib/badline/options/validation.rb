@@ -10,6 +10,7 @@ module Badline
 
       def validate
         validate_mode
+        validate_models
         validate_numbers
         validate_paths
       end
@@ -31,6 +32,14 @@ module Badline
         return if @sid_command && File.directory?(path)
 
         raise Error, "not a .sid tune: #{path}"
+      end
+
+      # --model and --ntsc may be given more than once, but only for one
+      # model.
+      def validate_models
+        unknown = @models.find { |name| !MODELS.include?(name) }
+        raise Error, "invalid argument: --model #{unknown}" unless unknown.nil?
+        raise Error, "conflicting models: #{@models.uniq.join(' and ')}" unless @models.uniq.size <= 1
       end
 
       def validate_numbers
