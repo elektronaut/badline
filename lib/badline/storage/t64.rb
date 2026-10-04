@@ -12,15 +12,18 @@ module Badline
       TAPE_NAME = 0x28
       ID = "T64".bytes.freeze
 
-      def initialize(path)
+      # `bytes` stands in for the host file's contents, as a snapshot
+      # restores the archive it holds.
+      def initialize(path, bytes: nil)
         @path = path
-        @bytes = File.binread(path).bytes
+        @bytes = bytes || File.binread(path).bytes
         raise FormatError, "Missing T64 signature" unless @bytes[0, 3] == SIGNATURE
       end
 
-      # What Storage.reopen needs to open the archive again.
+      # What Storage.reopen needs to open the archive again: its path and
+      # its bytes.
       def save_setup(out)
-        out.int(T64_ARCHIVE).string(::File.expand_path(@path))
+        out.int(T64_ARCHIVE).string(::File.expand_path(@path)).blob(@bytes)
       end
 
       def read_file(name, **)

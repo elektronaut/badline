@@ -25,10 +25,12 @@ a disk or directory mounted through the traps with its open channels,
 and the tape with its place on it. A restored machine runs on exactly
 as the saved one would have.
 
-A directory, a tape and a true drive's disk image open again from their
-paths when the snapshot is restored, the disk with its tracks as the
-drive last saw them. A disk image mounted through the traps comes back
-with its contents from the snapshot. What the host holds stays the
+A tape, a `.t64` archive and a disk image mounted through the traps come
+back with their contents from the snapshot, so they need no file to
+restore. A true drive's disk opens again from its image's path, with its
+tracks as the drive last saw them. When that file is gone, the disk
+comes back from the tracks alone, write-protected. A directory mounted
+as device 8 opens again from its path. What the host holds stays the
 host's: the keyboard, the joysticks, the mouse and paddles, sound, and
 blocks given to `on_init` that hadn't run yet, which a restore reports.
 

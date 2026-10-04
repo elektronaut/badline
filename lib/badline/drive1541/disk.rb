@@ -160,9 +160,9 @@ module Badline
       end
 
       # Whether the write-protect notch is covered: the disk's image won't
-      # take writes. A disk without an image takes them, and keeps them
-      # only in its tracks.
-      def write_protected? = !@image.nil? && !@image.writable?
+      # take writes, or a disk without an image was opened read-only. A
+      # disk without an image keeps what it takes only in its tracks.
+      def write_protected? = @image.nil? ? @read_only : !@image.writable?
 
       # A half track the head writes to, blank to begin with: no flux, and
       # as many bytes as a turn holds at the bit rate of the +zone+ it's
