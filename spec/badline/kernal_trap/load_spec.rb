@@ -70,6 +70,20 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0x90)).to eq(0x40) }
   end
 
+  describe "the serial bus a load leaves behind" do
+    before do
+      computer.address_bus.poke(0xdd02, 0x3f)
+      computer.address_bus.poke(0xdd00, 0x17)
+      request_load("DATA")
+      run_trap
+      3.times { computer.cia1.cycle! }
+    end
+
+    specify { expect(computer.cia1.timer_b_latch >> 8).to eq(0x04) }
+    specify { expect(computer.cia1.peek(0xdc0f)).to eq(0x09) }
+    specify { expect(computer.address_bus.peek(0xdd00) & 0x38).to eq(0x00) }
+  end
+
   describe "returning to the caller" do
     before do
       ram.write(0x1235, [0xa9, 0x42]) # LDA #$42
@@ -184,6 +198,7 @@ describe Badline::KernalTrap::Load do
     specify { expect(computer.cpu.stack_pointer).to eq(0xff) }
     specify { expect(ram.peek(0x90)).to eq(0x42) }
     specify { expect(ram.peek(0xb9)).to eq(0x60) }
+    specify { expect(computer.cia1.timer_b_latch >> 8).to eq(0x01) }
   end
 
   describe "a file the host can't read", :file_permissions do

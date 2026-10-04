@@ -469,9 +469,10 @@ explain.
   on a real C64 with a real drive, down to zero page, CIA 1's timer B and
   CIA 2's port A. The harness injects the program instead of loading it.
   Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
-  exits `$ff` as well: CIA 1's timer B reads `$ffff` where the dump has
-  `$04ff`, and CIA 2's port A, read with every pin an output, `$d7`
-  where it has `$c7`. Its
+  exits `$ff` as well, on one byte: CIA 2's port A read with every pin
+  an input, `$ff` where the dump has `$3f`. With no drive attached,
+  nothing pulls the clock and data lines that port A's own outputs
+  would pull through the 7406s, so PA6 and PA7 read high. Its
   `testbench-drive` twin, loaded from `test.d64` through the true drive,
   passes.
 - The `testbench-ntsc` rows that record `no-ref` (27, all 6567R56A rows:
