@@ -65,6 +65,18 @@ module Badline
       sprite_cycle: 59, sprite_display_cycle: 58, x_hold: 0
     )
 
+    # The 6572 of the Drean C64, sold in Argentina on PAL-N: 65 cycles by
+    # 312 lines at 1,023,440 Hz, with 50 Hz mains. It lays out the line
+    # as the 6567R8 does, sprite fetches and X counter hold included
+    # (spritescan_drean), and blanks and crops lines as PAL does.
+    DREAN = Profile.new(
+      name: :drean, clock_hz: 1_023_440, cycles_per_line: 65, lines_per_frame: 312,
+      hblank: [63, 9].freeze, vblank: [300, 15].freeze,
+      display_x_bounds: [[135, 438].freeze, [128, 447].freeze].freeze,
+      crop: [96, 20, 384, 272].freeze, mains_hz: 50,
+      sprite_cycle: 59, sprite_display_cycle: 59, x_hold: 8
+    )
+
     # Whether a column or line lies in a [first, last] blanking span.
     def self.blanked?(position, span)
       first, last = span

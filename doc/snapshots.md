@@ -63,8 +63,8 @@ A snapshot only restores in the badline version that wrote it, into a
 machine with the same chip models, RAM expansion and REU.
 `computer.snapshot` holds an REU's RAM, registers and transfer too, but
 a machine with an REU doesn't save to a file yet, as badline doesn't
-write VICE's REU module. Nor does an NTSC machine, as badline doesn't
-write an NTSC VIC-II in VICE's terms yet.
+write VICE's REU module. Nor does an NTSC or Drean machine, as badline
+doesn't write an NTSC or PAL-N VIC-II in VICE's terms yet.
 
 ## VICE
 

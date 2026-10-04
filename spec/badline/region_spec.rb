@@ -72,4 +72,24 @@ describe Badline::Region do
       expect(region.x_hold).to eq(0)
     end
   end
+
+  describe "DREAN" do
+    subject(:region) { described_class::DREAN }
+
+    it "clocks the 6572's 65 cycles by 312 lines at 1,023,440 Hz" do
+      expect([region.clock_hz, region.cycles_per_line, region.lines_per_frame]).to eq([1_023_440, 65, 312])
+    end
+
+    it "blanks and crops lines as PAL does" do
+      expect([region.vblank, region.crop]).to eq([described_class::PAL.vblank, described_class::PAL.crop])
+    end
+
+    it "lays out sprite fetches and the X counter as the 6567R8 does" do
+      expect([region.sprite_cycle, region.sprite_display_cycle, region.x_hold]).to eq([59, 59, 8])
+    end
+
+    it "runs on 50 Hz mains" do
+      expect(region.mains_hz).to eq(50)
+    end
+  end
 end

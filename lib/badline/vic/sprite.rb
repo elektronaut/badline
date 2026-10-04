@@ -37,8 +37,9 @@ module Badline
       # The s-accesses reload the shift register partway through the line,
       # at raster pixel 459 for sprite 0 and 16 later for each sprite after
       # it. A sprite still shifting there loses the rest of its row, and the
-      # comparator is ignored for the twelve pixels from it (the spritescan
-      # dump). Its output holds the last pixel for seven, through K+6
+      # comparator is ignored for the twelve pixels from it, running on into
+      # the next line from a reload near the end of this one (the spritescan
+      # dumps). Its output holds the last pixel for seven, through K+6
       # (spritefetchbug).
       RELOAD_X = 459
       RELOAD_STEP = 16
@@ -275,7 +276,7 @@ module Badline
       end
 
       def sequence_hit(log, start, reload_bits)
-        return if (@stop_x && start >= @stop_x) || start < @show_from
+        return if (@stop_x && start >= @stop_x) || start < @show_from || start < @reload_x + RELOAD_DEAD - @width
 
         if start < @reload_x
           sequence_early(log, start)

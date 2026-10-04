@@ -26,6 +26,7 @@ only catches the rows that happen to move.
 - [VIC light pen](#vic-light-pen)
 - [VIC-II 8565](#vic-ii-8565)
 - [VIC-II NTSC](#vic-ii-ntsc)
+- [VIC-II 6572 (Drean)](#vic-ii-6572-drean)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
@@ -293,7 +294,9 @@ only catches the rows that happen to move.
   early in the next one for 3–7.
   - A sprite still shifting at K loses the rest of its row. Its output
     holds its last pixel from K through **K+6**, then goes dark.
-  - A comparator hit in K..K+11 shows nothing.
+  - A comparator hit in K..K+11 shows nothing. Where K falls in the
+    last 11 pixels of the line, as sprite 3's does on a 65-cycle line,
+    the twelve run on into the next line's first pixels.
   - A hit from K+12 on shows the row the reload brought. For sprites 0–2
     that is the *next* line's row, a line early. For sprites 3–7 it is the
     current row, and a hit ahead of their K shows the previous line's row.
@@ -307,6 +310,11 @@ only catches the rows that happen to move.
     `spritex/demusinterruptus` and `spritegap2` pass on it too.
   - Spec guard: *the reload* in
     [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+  - The run into the next line is pinned by `spritescan_drean`'s 6572
+    dump, where sprite 3 shows nothing for X = $193 to $19e, the twelve
+    pixels from K = 515 on a 520-pixel line. Without it a hit at $198 to
+    $19e collides. Spec guard: *the reload near the end of a 65-cycle
+    line*. The `testbench-ntsc` sprite rows pass either way.
   - The hold's length is pinned by `spritefetchbug/test-136-2a`, whose
     X-expanded sprite 0 sits at X = $136 and is still shifting at 459. Its
     reference holds the last pixel through 465. Holding it for one pixel
@@ -969,6 +977,27 @@ What the NTSC references don't settle, and so what stays as it is:
   section 1. The
   readme says it was matched against screenshots, and the one 6567R8
   photograph in the testprogs is of revision R01.
+
+## VIC-II 6572 (Drean)
+
+The 6572 of the Drean C64 (`Region::DREAN`) runs the 6567R8's line, 65
+cycles with its sprite fetches in cycle 59, its display compare in cycle
+59 and its X counter holding at $184-$187, on PAL-N's 312 lines at
+1,023,440 Hz. The testlist has no Drean rows, so the oracle is
+`split-tests/spritescan/spritescan_drean.prg` run by hand against its
+`dump6572.bin`, from a real 6572R1.
+
+- Pinned by that dump: every byte the test compares matches but four.
+  Measured before the dead pixels ran into the next line, repeating
+  $180-$183 or $188-$18b in the hold instead took the mismatches from
+  11 to 28. The display compare isn't pinned: cycle 58 left the same 11
+  as 59.
+- Not matched: sprite 1, pattern C (a one-pixel sprite against one
+  shifted a pixel left), collides for X = $180 to $186 on the 6572,
+  inside sprite 1's twelve dead pixels, where badline collides only for
+  $184 to $186, the X values the hold repeats. So `spritescan_drean`
+  still reports a failure. No other sprite and no other pattern shows
+  this on the 6572 or the 6569.
 
 ## CIA 6526 timer pipeline
 

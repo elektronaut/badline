@@ -31,7 +31,11 @@ module Badline
     OLD_NTSC = Profile.new(name: "oldntsc", vic_model: :mos6569, cia_model: :mos6526, sid_model: :mos6581,
                            region: Region::NTSC_OLD)
 
-    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC].freeze
+    # The Drean C64 of Argentina, on PAL-N with the 6572 VIC-II.
+    DREAN = Profile.new(name: "drean", vic_model: :mos6569, cia_model: :mos6526, sid_model: :mos6581,
+                        region: Region::DREAN)
+
+    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC, DREAN].freeze
 
     def self.named(name)
       model = ALL.find { |candidate| candidate.name == name }
