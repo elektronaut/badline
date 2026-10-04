@@ -177,9 +177,13 @@ render a `.sid` tune without it, as described under
   corner of the border. A `.g64` plugs one in without it.
 - `--reu SIZE` plugs in a RAM Expansion Unit of SIZE K, from 128 up to
   16384.
-- `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II, instead of a PAL
-  one. Its 235 lines sit in the middle of the window, which keeps PAL's
-  272, between black bands.
+- `--model NAME` runs another C64: `c64` (the default, PAL), `c64c` (the
+  PAL C64C, with the 8565 VIC-II, 6526A CIAs and the 8580 SID), `ntsc`
+  (the 6567R8), `newntsc` (the NTSC C64C, with the 8562) or `oldntsc`
+  (the 6567R56A). `--sid` or a `.sid` tune's own SID takes the model's
+  place. An NTSC machine's lines sit in the middle of the window, which
+  keeps PAL's 272, between black bands.
+- `--ntsc` runs an NTSC C64, as `--model ntsc` does.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
@@ -278,7 +282,7 @@ They take the same options: `--subtune`, `--sid`, `--seconds`,
 `--songlengths`, `--rate`, `--filter-chunk`, `--quiet`, `--all-subtunes`
 and `--no-tui`.
 The window's options, `--no-sound`, `--no-vsync`, `--true-drive`,
-`--reu`, `--ntsc`, `--verbose` and the testing ones included, are refused
+`--reu`, `--model`, `--ntsc`, `--verbose` and the testing ones included, are refused
 with them.
 
 It runs badline-ruby's own player from `lib/badline/audio`: the tune

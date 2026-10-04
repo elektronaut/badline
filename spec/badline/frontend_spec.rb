@@ -39,10 +39,27 @@ describe Badline::Frontend do
     expect { run("saved.vsf", "--frames", "1", "--unpaced") }.to output(/Restored saved.vsf/).to_stdout
   end
 
-  it "builds an NTSC machine with --ntsc" do
-    allow(Badline::Frontend::App).to receive(:new).and_return(instance_double(Badline::Frontend::App, run: nil))
-    run("--ntsc")
-    expect(Badline::Frontend::App).to have_received(:new).with(having_attributes(region: Badline::Region::NTSC),
-                                                               anything, anything)
+  describe "the machine it builds" do
+    def built(*argv)
+      computer = nil
+      allow(Badline::Frontend::App).to receive(:new) do |machine|
+        computer = machine
+        instance_double(Badline::Frontend::App, run: nil)
+      end
+      run(*argv)
+      [computer.vic.model, computer.cia1.model, computer.sid.model, computer.region.name]
+    end
+
+    it "is an NTSC C64 with --ntsc" do
+      expect(built("--ntsc")).to eq(%i[mos6569 mos6526 mos6581 ntsc])
+    end
+
+    it "is the model --model names" do
+      expect(built("--model", "c64c")).to eq(%i[mos8565 mos6526a mos8580 pal])
+    end
+
+    it "fits the SID --sid names over the model's" do
+      expect(built("--model", "c64c", "--sid", "6581")).to eq(%i[mos8565 mos6526a mos6581 pal])
+    end
   end
 end

@@ -10,7 +10,7 @@ module Badline
 
     class Setup
       SID_MODELS = %i[mos6581 mos8580].freeze
-      REGIONS = [Region::PAL, Region::NTSC].freeze
+      REGIONS = [Region::PAL, Region::NTSC, Region::NTSC_OLD].freeze
       RAM_EXPANSIONS = [:none, *RAMExpansion::TYPES.keys].freeze
 
       def self.of(address_bus)
@@ -47,8 +47,12 @@ module Badline
         Computer.new(vic_model:, cia_model:, sid_model:, region:, ram_expansion:, reu:)
       end
 
+      # The chips, led by the model's name when they make one of
+      # Badline::Model's.
       def to_s
+        model = Model.of(self)
         parts = [vic_model, cia_model, sid_model, region.name]
+        parts.unshift(model.name) if model
         parts << ram_expansion if ram_expansion
         parts << "a #{reu}K REU" if reu
         parts.join(", ")

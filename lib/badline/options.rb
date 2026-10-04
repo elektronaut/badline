@@ -59,6 +59,7 @@ module Badline
       @tune_paths = []
       @subtune = nil
       @sid_model = nil
+      @models = []
       @reu = nil
       @autostart = true
       @writable = false
@@ -68,7 +69,6 @@ module Badline
       @vsync = true
       @verbose = false
       @true_drive = false
-      @ntsc = false
       @screenshot = ""
       @save_snapshot = ""
       @timeline = []
@@ -147,9 +147,11 @@ module Badline
 
     def true_drive? = @true_drive
 
-    def ntsc? = @ntsc
-
     def jit? = @jit
+
+    # The name of the C64 to build (Badline::Model). --ntsc is short for
+    # --model ntsc.
+    def model = @models.empty? ? MODELS.first : @models.first
 
     def help? = @help
 
@@ -222,6 +224,7 @@ module Badline
       case name
       when "--subtune" then @subtune = number(flag, value)
       when "--sid" then @sid_model = sid_model_for(value)
+      when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value
@@ -244,7 +247,7 @@ module Badline
       when "--no-vsync" then @vsync = false
       when "--verbose" then @verbose = true
       when "--true-drive" then @true_drive = true
-      when "--ntsc" then @ntsc = true
+      when "--ntsc" then @models << "ntsc"
       when "--unpaced" then @paced = false
       when "--disable-jit" then @jit = false
       when "--help" then @help = true

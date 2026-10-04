@@ -70,9 +70,9 @@ module Badline
       end
 
       # The SID a machine for `path` should be built with. A .sid tune names
-      # its own; everything else gets the 6581.
-      def sid_model(path)
-        return :mos6581 unless path && File.extname(path).downcase == ".sid"
+      # its own; everything else gets `otherwise`.
+      def sid_model(path, otherwise: :mos6581)
+        return otherwise unless path && File.extname(path).downcase == ".sid"
 
         Storage::SIDFile.new(path).sid_model
       end

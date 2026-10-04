@@ -40,6 +40,14 @@ describe Badline::Media do
     it "fits a 6581 with no media" do
       expect(described_class.sid_model(nil)).to eq(:mos6581)
     end
+
+    it "fits the model it's given for other media" do
+      expect(described_class.sid_model(File.join(dir, "game.d64"), otherwise: :mos8580)).to eq(:mos8580)
+    end
+
+    it "takes a tune's own model over the one it's given" do
+      expect(described_class.sid_model(sid_tune(flags: 0x0034), otherwise: :mos8580)).to eq(:mos6581)
+    end
   end
 
   describe ".attach" do

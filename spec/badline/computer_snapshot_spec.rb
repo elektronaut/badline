@@ -60,6 +60,12 @@ describe Badline::Computer, "#snapshot" do
         .to raise_error(Badline::Snapshot::FormatError, /mos6569, mos6526, mos6581, pal/)
     end
 
+    it "names the model of each machine when it fails" do
+      c64c = Badline::Model::C64C
+      machine = described_class.new(vic_model: c64c.vic_model, cia_model: c64c.cia_model, sid_model: c64c.sid_model)
+      expect { machine.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /with c64, .* not c64c, /)
+    end
+
     it "fails on a state that goes on past the machine" do
       longer = Badline::Snapshot::State.new(state.values + [0], state.strings)
       expect { target.restore(longer) }.to raise_error(Badline::Snapshot::FormatError, /goes on past/)
@@ -107,6 +113,11 @@ describe Badline::Computer, "#snapshot" do
       built = described_class.setup(machine.snapshot).build
       expect([built.vic.model, built.cia1.model, built.sid.model, built.address_bus.ram_expansion.type])
         .to eq(%i[mos8565 mos6526a mos8580 plus256k])
+    end
+
+    it "builds a machine of the first NTSC C64s" do
+      machine = described_class.new(region: Badline::Region::NTSC_OLD)
+      expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::NTSC_OLD)
     end
   end
 

@@ -46,7 +46,7 @@ channels.
 Playback asks the device for 44.1 kHz and takes whatever rate it
 offers, unless `--rate` says otherwise. Ctrl-C stops it. The emulator
 window's own options, `--no-autostart`, `--writable`, `--sound`,
-`--true-drive`, `--reu`, `--ntsc` and `--verbose`, don't apply.
+`--true-drive`, `--reu`, `--model`, `--ntsc` and `--verbose`, don't apply.
 
 ## The window
 
