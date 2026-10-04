@@ -17,8 +17,8 @@ module Badline
 
       EJECTABLE = %w[disk tape cartridge].freeze
 
-      # What insert takes: disk images, tapes and cartridges, or a
-      # directory to mount as device 8.
+      # What insert takes: disk images, tapes and cartridges, or an .m3u
+      # or .vfl list of disks or a directory to mount as device 8.
       INSERTABLE = %w[.d64 .d71 .d81 .g64 .t64 .tap .crt].freeze
 
       attr_reader :frame, :action, :argument
@@ -87,7 +87,9 @@ module Badline
       end
 
       def self.insertable?(path)
-        File.directory?(path) || (File.exist?(path) && INSERTABLE.include?(File.extname(path).downcase))
+        return true if File.directory?(path)
+
+        File.exist?(path) && (INSERTABLE.include?(File.extname(path).downcase) || Media::DiskList.list?(path))
       end
     end
   end

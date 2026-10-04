@@ -122,6 +122,16 @@ describe Badline::Frontend::Timeline do
       end
     end
 
+    context "when a list of disks goes in" do
+      let(:list) { File.join(dir, "disks.vfl") }
+      let(:argv) { at("1:insert=#{list}") }
+
+      it "mounts its first disk in device 8" do
+        File.write(list, "UNIT 8\n#{File.basename(disk)}\n")
+        expect { run_to(1) }.to output(/Mounted .*second\.d64 as device 8/).to_stdout
+      end
+    end
+
     context "when the disk comes out" do
       let(:argv) { at("1:insert=#{disk}", "2:eject=disk") }
 
