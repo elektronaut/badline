@@ -105,8 +105,9 @@ The front end in `lib/badline/frontend/` is the same for both builds:
 - `boot.rb` (`Frontend.run`) builds the machine the options ask for, or
   restores a `.vsf`, and runs the window.
 - `app.rb` (`App`) opens the window and runs the frame loop.
-- `snapshots.rb` (`Snapshots`) saves the machine with F11 and
-  `--save-snapshot` and restores it with F12, and `screenshot.rb`
+- `snapshots.rb` (`Snapshots`) quicksaves the machine with F11,
+  autosaves it and saves it for `--save-snapshot`, and restores the
+  newest quicksave or named save with F12. `screenshot.rb`
   (`Screenshot`) saves a frame as a BMP.
 - `timeline.rb` (`Timeline`) runs the events of `--at` and `--script`,
   and takes `--screenshot`'s frame as one of them.

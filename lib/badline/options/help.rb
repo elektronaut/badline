@@ -46,12 +46,15 @@ module Badline
         .g64 disk image for the true 1541, an .m3u or .vfl list of disk
         images, a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid
         tune, a .vsf snapshot, or a directory to mount as device 8. It
-        opens in the emulator window, where F11 saves a snapshot and F12
-        restores it. Device 8 answers through traps on the KERNAL's disk
-        routines, unless --true-drive puts an emulated 1541 there, which
-        runs its own DOS and reads .d64 and .g64 images only. A .sid tune
-        opens in the SID player, as `sid` plays it, unless an option of the
-        emulator's window asks for the machine.
+        opens in the emulator window. There F11 quicksaves the machine to
+        the next of five slots in badline's data folder, replacing the
+        oldest, and F12 restores the newest quicksave or named save. The
+        window also autosaves every two minutes of play, which only the
+        pause menu loads. Device 8 answers through traps on the KERNAL's
+        disk routines, unless --true-drive puts an emulated 1541 there,
+        which runs its own DOS and reads .d64 and .g64 images only. A .sid
+        tune opens in the SID player, as `sid` plays it, unless an option
+        of the emulator's window asks for the machine.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
