@@ -10,6 +10,10 @@ require "tmpdir"
 # Quiets IO::Buffer's experimental warning, as exe/badline-ruby does.
 Warning[:experimental] = false
 
+# Keeps specs out of the real per-user data folder.
+spec_data_path = Dir.mktmpdir("badline-data")
+ENV["BADLINE_DATA_PATH"] = spec_data_path
+
 # Whether the host refuses a file its mode doesn't grant. Root, or a process
 # holding CAP_DAC_OVERRIDE, reads and writes past the mode anyway.
 def file_permissions_enforced?
@@ -44,4 +48,6 @@ RSpec.configure do |config|
     full_run = config.inclusion_filter.empty? && config.files_to_run.sort == all_specs.sort
     SimpleCov.minimum_coverage 90 if full_run
   end
+
+  config.after(:suite) { FileUtils.rm_rf(spec_data_path) }
 end
