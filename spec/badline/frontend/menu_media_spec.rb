@@ -60,6 +60,26 @@ describe Badline::Frontend::MenuMedia do
     expect(media.disk_path).to eq(second)
   end
 
+  it "puts a list's first disk in and steps through the list" do
+    File.write(File.join(dir, "game.m3u"), "#{File.basename(second)}\n#{File.basename(first)}\n")
+    media.insert(:disk, File.join(dir, "game.m3u"))
+    media.drive(:next_disk)
+    expect([media.disk_set, media.disk_path]).to eq([[second, first], first])
+  end
+
+  it "starts on the command line's list" do
+    first
+    File.write(File.join(dir, "game.vfl"), "UNIT 8\n#{second}\n#{first}\n")
+    media = described_class.new(File.join(dir, "game.vfl"), false)
+    expect([media.disk_path, media.disk_set]).to eq([second, [second, first]])
+  end
+
+  it "keeps what went wrong with a list" do
+    File.write(File.join(dir, "game.m3u"), "missing.d64\n")
+    media.insert(:disk, File.join(dir, "game.m3u"))
+    expect(media.problem).to include("no disk image")
+  end
+
   it "takes the disk out" do
     media.insert(:disk, first)
     media.drive(:eject_disk)

@@ -33,6 +33,12 @@ describe Badline::Frontend::MenuDialogs do
     expect([dialogs.drop(blank_d64(File.join(dir, "game.d64"))), media.inserted?]).to eq([false, true])
   end
 
+  it "puts a dropped list's first disk straight in" do
+    blank_d64(File.join(dir, "game.d64"))
+    File.write(File.join(dir, "game.m3u"), "game.d64\n")
+    expect([dialogs.drop(File.join(dir, "game.m3u")), media.disk_path]).to eq([false, File.join(dir, "game.d64")])
+  end
+
   it "asks before a dropped cartridge goes in" do
     expect([dialogs.drop(crt_path), dialogs.open?]).to eq([true, true])
   end

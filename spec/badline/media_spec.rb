@@ -103,6 +103,23 @@ describe Badline::Media do
       end
     end
 
+    context "with a list of disks" do
+      let(:list_path) do
+        File.binwrite(File.join(dir, "disk.d64"), "\x00" * 174_848)
+        File.join(dir, "game.m3u").tap { |path| File.write(path, "missing.d64\ndisk.d64\n") }
+      end
+
+      it "mounts its first disk that's there" do
+        expect(described_class.attach(computer, list_path)).to eq("Mounted #{File.join(dir, 'disk.d64')} as device 8")
+      end
+
+      it "refuses a list with no disk that's there" do
+        File.write(File.join(dir, "empty.vfl"), "UNIT 8\n")
+        expect { described_class.attach(computer, File.join(dir, "empty.vfl")) }
+          .to raise_error(Badline::Media::DiskList::Error)
+      end
+    end
+
     context "with a G64 image" do
       it "plugs in a true drive as device 8 and puts the disk in it" do
         described_class.attach(computer, g64_path)

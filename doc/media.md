@@ -59,8 +59,17 @@ traps, so `LOAD` and `SAVE` reach the 1541 too. With the 1541 in device
 8, a `.d64` goes in its drive as well.
 
 `Badline::Media::DiskSet.around(path)` lists the disks of the set a disk
-image belongs to, found by name in its folder, which the pause menu's
-PREVIOUS DISK and NEXT DISK step through.
+image belongs to, which the pause menu's PREVIOUS DISK and NEXT DISK step
+through. An `.m3u` or `.vfl` list in the disk's folder that names it
+gives the set. Without one, the set is found by name in the folder.
+Given a list, it returns the disks the list names.
+
+A list names one disk image a line, as a path relative to the list or an
+absolute one. Blank lines and lines starting with `#` are skipped, and
+entries that aren't there are left out. In a VICE `.vfl` flip list, only
+the entries after a `UNIT 8` line, or before any `UNIT` line, count.
+`Media.attach` and the command line take a list as media and attach its
+first disk.
 
 ## The light pen
 

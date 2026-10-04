@@ -23,10 +23,10 @@ module Badline
       # The disks, tapes and cartridges the pages put in and take out.
       attr_reader :media
 
-      def initialize(painter, buttons, disk_path, options)
+      def initialize(painter, buttons, media_path, options)
         @painter = painter
         @buttons = buttons
-        @media = MenuMedia.new(disk_path, options.writable?)
+        @media = MenuMedia.new(media_path, options.writable?)
         @reu_kb = options.reu
         @computer = nil
         @controls = nil

@@ -3,6 +3,7 @@
 require "badline/media/true_drive"
 require "badline/media/queue"
 require "badline/media/disk_set"
+require "badline/media/disk_list"
 
 module Badline
   module Media
@@ -27,7 +28,11 @@ module Badline
       # A .g64 plugs in a true drive as device 8 (TrueDrive), and with one
       # there, a .d64 goes into it instead of the KERNAL traps too. The
       # autostart then loads through it.
+      #
+      # An .m3u or .vfl list of disks attaches the first disk it lists
+      # (DiskList).
       def attach(computer, path, autostart: true, subtune: nil, **options)
+        path = DiskList.disk(path)
         if TrueDrive.takes?(computer, path)
           attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
         elsif File.directory?(path)
