@@ -40,7 +40,8 @@
 # ROM path). The row's mountd64 or mountg64 image goes in the drive, and
 # its program loads as the other rows' do, but nothing is mounted as
 # device 8 through the LOAD trap, so every disk access goes through the
-# drive.
+# drive. A row in LOADS_FROM_DISK (test/testbench_drive.rb) types LOAD and
+# RUN instead, and its program loads from the disk.
 #
 # --1541-testsuite runs drive/1541-testsuite's two rows, the same way.
 # Their budgets of 2.2G and 1.85G cycles take about twelve hours each, so
@@ -694,7 +695,7 @@ module Testbench
         exitcode = test.type == "exitcode"
         cartridge = test.cartridge_path if test.cartridge
         Testbench.insert_disk(computer, scratch_disk(test, scratch)) if test.disk
-        execution = Execution.new(computer, mount: !test.drive?)
+        execution = Execution.new(computer, mount: !test.drive?, load_name: test.load_name)
         exit_code = execution.run(!exitcode, cartridge, test.dir_abs, test.prg, test.budget)
         score(test, exit_code, exitcode ? Testbench.screen_text(computer.ram) : Testbench.screenshot(computer.vic))
       end

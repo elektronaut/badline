@@ -139,7 +139,10 @@ Recorded output of the headless hardware suites, one file per suite:
   `.d64` starts each track's sector 0 where `N:` would ([1541 disk
   mechanism](../../doc/pinned-behaviour.md#1541-disk-mechanism)), with
   the `scanner` error-map rows still passing.
-  `drive/1541-testsuite`'s two rows,
+  `C64/autostart/defaults/test.prg#2`, which its readme says has to
+  be loaded from the disk by name, types `LOAD"TEST",8` and `RUN`
+  instead of injecting its program, and the drive loads it from
+  `test.d64`. `drive/1541-testsuite`'s two rows,
   at about twelve hours each, run only under `--1541-testsuite` and have
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   All `exitcode` tests.
@@ -444,16 +447,6 @@ explain.
   the head two tracks away from the header it searches for. A real head
   can't follow steps that fast. Passing it takes a stepper that moves the
   head over time.
-- `C64/autostart/defaults/test.prg` (`testbench-drive`, exit `$ff`) is
-  the testlist's second row for the program, the one that mounts
-  `test.d64`. It runs with the true drive and `test.d64` in it, but the
-  harness injects the program as it does for the plain row, so nothing
-  loads from the disk. It fails as its twin in `testbench-general` does
-  (below), with the same dump apart from CIA 2's port A, which reads `$97`
-  where the twin reads `$d7`. The test masks those two bits off. In both
-  rows the four bytes at `$9ff4` that the reference wants to hold the
-  loaded file's name, `TEST`, hold the power-on pattern,
-  `$ff,$ff,$00,$00`.
 - `VICII/split-tests/modesplit/modesplit.prg`,
   `VICII/vicii_timing/vicii_reg_timing-ff.prg` and
   `VICII/split-tests/fetchsplit/fetchsplit.prg` (`testbench-vicii-new`,
@@ -476,7 +469,11 @@ explain.
   on a real C64 with a real drive, down to zero page, CIA 1's timer B and
   CIA 2's port A. The harness injects the program instead of loading it.
   Loaded with a typed `LOAD"TEST",8` through the LOAD trap instead, it
-  exits `$ff` as well.
+  exits `$ff` as well: CIA 1's timer B reads `$ffff` where the dump has
+  `$04ff`, and CIA 2's port A, read with every pin an output, `$d7`
+  where it has `$c7`. Its
+  `testbench-drive` twin, loaded from `test.d64` through the true drive,
+  passes.
 - The `testbench-ntsc` rows that record `no-ref` (27, all 6567R56A rows:
   `D011Test/disable-bad`, the `dentest` rows, `gfxfetch`, `screenpos`,
   `videomode/rmwtest` and `spritedma/d017-54` and `-57`) have no
