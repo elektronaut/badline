@@ -75,6 +75,10 @@ module Testbench
   # The disk image a test line puts in the true drive, or nil for none.
   def self.disk(fields) = fields.length > 11 && !fields[11].empty? ? fields[11] : nil
 
+  # The name a test line's program loads under from its disk, or "" for a
+  # program injected.
+  def self.load_name(fields) = fields.length > 12 ? fields[12] : ""
+
   # A machine for a test line: booted with the true drive when the line
   # asks for it, with a copy of its disk image at +scratch+ in the drive,
   # since the drive writes back to the image.
@@ -96,17 +100,18 @@ module Testbench
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
   # cartridge path, program, directory, CIA model, VIC-II model, memory
-  # expansion, video standard, "drive" for the true drive and its disk
-  # image, with an empty cartridge, program, expansion, drive or disk for a
-  # test without one. scratch is the path, less its extension, that a copy
-  # of the disk image goes to. Strings in and a String out, so that
-  # `spin ext` can export it to CRuby as it stands.
+  # expansion, video standard, "drive" for the true drive, its disk image
+  # and the name the program loads under from it, with an empty cartridge,
+  # program, expansion, drive, disk or name for a test without one.
+  # scratch is the path, less its extension, that a copy of the disk image
+  # goes to. Strings in and a String out, so that `spin ext` can export it
+  # to CRuby as it stands.
   def self.run_test(test, scratch)
     fields = test.chomp.split("\t")
     type = fields[1]
     cartridge = fields[3].empty? ? nil : fields[3]
     computer = test_machine(fields, cartridge, scratch)
-    execution = Execution.new(computer, mount: !drive?(fields))
+    execution = Execution.new(computer, mount: !drive?(fields), load_name: load_name(fields))
     exit_code = execution.run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
     out = "test #{fields[0]}\n"

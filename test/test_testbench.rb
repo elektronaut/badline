@@ -198,7 +198,17 @@ class TestTestbenchDrive < Minitest::Test
   def test_a_drive_row_hands_the_engine_its_drive_and_disk
     test = parse("../drive/readtest/,t.prg,exitcode,1000,mountd64:#{@disk}")
 
-    assert Testbench::Engine.spec(test).end_with?("\tpal\tdrive\t#{@disk}\n")
+    assert Testbench::Engine.spec(test).end_with?("\tpal\tdrive\t#{@disk}\t\n")
+  end
+
+  def test_a_row_that_loads_from_its_disk_types_its_name
+    test = parse("../C64/autostart/defaults/,test.prg,exitcode,1000,mountd64:#{@disk}")
+
+    assert Testbench::Engine.spec(test).end_with?("\tdrive\t#{@disk}\ttest\n")
+  end
+
+  def test_a_row_without_its_disk_injects_its_program
+    assert_equal "", parse("../C64/autostart/defaults/,test.prg,exitcode,1000").load_name
   end
 
   def test_runs_a_row_that_mounts_a_disk_with_a_true_drive
@@ -775,6 +785,7 @@ class TestTestbenchEngine < Minitest::Test
     def region = :pal
     def drive? = false
     def disk = nil
+    def load_name = ""
   end
 
   def setup
@@ -791,14 +802,14 @@ class TestTestbenchEngine < Minitest::Test
   def test_a_test_is_a_line_of_tab_separated_fields
     test = Testbench::TestCase.new("../VICII/x", "t.prg", "exitcode", 1000, [])
 
-    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\tpal\t\t\n",
+    assert_equal "VICII/x/t.prg\texitcode\t3001000\t\tt.prg\t#{test.dir_abs}\tmos6526\tmos6569\t\tpal\t\t\t\n",
                  Testbench::Engine.spec(test)
   end
 
   def test_a_test_line_ends_with_the_expansion
     test = Testbench::TestCase.new("../plus60k", "t.prg", "exitcode", 1000, ["plus60k"])
 
-    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\tpal\t\t\n")
+    assert Testbench::Engine.spec(test).end_with?("\tmos6526\tmos6569\tplus60k\tpal\t\t\t\n")
   end
 
   def test_a_screenshot_reads_as_rows_of_palette_indices

@@ -21,7 +21,7 @@ module Testbench
     def self.spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
        test.cia_model, test.vic_model, test.expansion, test.region, ("drive" if test.drive?),
-       (test.disk_path if test.disk)]
+       (test.disk_path if test.disk), test.load_name]
         .join("\t") << "\n"
     end
 

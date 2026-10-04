@@ -114,7 +114,9 @@ module Testbench
   # cartridge, if any, and the program, if any, from the test's directory
   # mounted as device 8, then runs until the test writes $D7FF or the
   # budget runs out. With mount false the program loads without the
-  # directory mounted, which leaves device 8 to a true drive. As VICE's
+  # directory mounted, which leaves device 8 to a true drive. With a
+  # load_name it isn't injected at all: LOAD"NAME",8 and RUN go into the
+  # keyboard buffer, and the true drive loads it from its disk. As VICE's
   # debug cartridge does, the run ends on the cycle of the write, so a
   # screenshot shows the display as drawn up to there. Only a screenshot
   # test reads the display, so the others run with the VIC's colours
@@ -122,9 +124,10 @@ module Testbench
   class Execution
     attr_reader :exit_code
 
-    def initialize(computer, mount: true)
+    def initialize(computer, mount: true, load_name: "")
       @computer = computer
       @mount = mount
+      @load_name = load_name
       @exit_code = nil
       computer.install_debug_register { |value| @exit_code = value }
     end
@@ -132,12 +135,20 @@ module Testbench
     def run(render, cartridge, directory, prg, budget)
       @computer.vic.render = render
       Badline::Media.attach(@computer, cartridge) if cartridge
-      unless prg.empty?
-        @computer.mount(Badline::Storage::HostDirectory.new(directory)) if @mount
-        Badline::Media.attach(@computer, File.join(directory, prg))
+      if @load_name.empty?
+        inject(directory, prg) unless prg.empty?
+      else
+        @computer.type_text("load\"#{@load_name}\",8\rrun\r")
       end
       @computer.cycle! until @exit_code || @computer.cycles > budget
       @exit_code
+    end
+
+    private
+
+    def inject(directory, prg)
+      @computer.mount(Badline::Storage::HostDirectory.new(directory)) if @mount
+      Badline::Media.attach(@computer, File.join(directory, prg))
     end
   end
 end
