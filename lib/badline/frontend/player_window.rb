@@ -45,7 +45,7 @@ module Badline
         @state = PlayerState.new
         @commands = PlayerCommands.new(@state)
         @next_draw = 0.0
-        @seek_left = 0
+        @seek_to = 0.0
         @dropped = []
         @credits = []
         @stil = []
@@ -55,7 +55,7 @@ module Badline
       end
 
       # The seconds into the subtune the last click on the bar asked for.
-      def seek_to = PlayerFooter.seek(@seek_left, @state.length)
+      attr_reader :seek_to
 
       # The files dropped on the window since it last said :drop.
       def dropped
@@ -175,7 +175,7 @@ module Badline
         action = @screen.buttons.action_at(left, SDL.event_y(SDL.event))
         return if action.nil?
 
-        @seek_left = left if action == :seek
+        @seek_to = PlayerFooter.seek(left, @state.length) if action == :seek
         return scroll_along if action == :scroll
 
         command(action, actions)
