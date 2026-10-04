@@ -135,12 +135,12 @@ from Ruby.
 
 ## Snapshots
 
-`F11` saves the whole machine to a new `badline-<date>-<time>.vsf` in
-the working directory, and `F12` goes back to the snapshot last saved
-or opened. Snapshots use VICE's `.vsf` format: badline opens those
-x64sc saves, and x64sc opens badline's. See
-[doc/snapshots.md](doc/snapshots.md) for what they hold and how far the
-two agree.
+`F11` quicksaves the whole machine to the next of five slots in
+badline's data folder, replacing the oldest, and `F12` restores the
+newest, even after badline has quit and started again. Snapshots use
+VICE's `.vsf` format: badline opens those x64sc saves, and x64sc opens
+badline's. See [doc/snapshots.md](doc/snapshots.md) for where they're
+kept, what they hold and how far the two agree.
 
 ## Playing and rendering SID tunes
 

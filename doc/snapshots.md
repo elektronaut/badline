@@ -1,11 +1,21 @@
 # Snapshots
 
-In the window, `F11` saves the whole machine to a new
-`badline-<date>-<time>.vsf` in the working directory, and `F12` goes
-back to the snapshot last saved or opened, in a new machine built as the
-saved one was. Both executables do this, and both open a `.vsf` given as
-the media. A snapshot that fails to open leaves the machine running as
-it was.
+In the window, `F11` quicksaves the whole machine to one of five slots,
+`quicksave-1.vsf` to `quicksave-5.vsf` in the `quicksaves` folder of
+badline's data folder. It fills the empty slots first, then replaces the
+one saved longest ago. `F12` restores the newest quicksave, or a named
+save in the data folder's `saves` folder if one is newer, in a new
+machine built as the saved one was. Quicksaves stay after badline quits,
+so `F12` finds them the next time it starts. What's printed on a save or
+a restore names the slot and the file.
+
+The data folder is `~/Library/Application Support/badline` on macOS,
+and `$XDG_DATA_HOME/badline` or `~/.local/share/badline` elsewhere.
+`BADLINE_DATA_PATH` puts it somewhere else.
+
+Both executables do this, and both open a `.vsf` given as the media.
+`--save-snapshot FILE` saves one to `FILE` after the last frame. A
+snapshot that fails to open leaves the machine running as it was.
 
 ## From Ruby
 
