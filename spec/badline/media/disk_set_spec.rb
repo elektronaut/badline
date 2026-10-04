@@ -59,4 +59,32 @@ describe Badline::Media::DiskSet do
     files("Game 1.tap", "Game 2.tap")
     expect(disks_with("Game 1.tap")).to eq(["Game 1.tap"])
   end
+
+  context "with a list in the folder" do
+    def list(name, *lines) = File.write(File.join(dir, name), lines.map { |line| "#{line}\n" }.join)
+
+    it "takes a list's own disks" do
+      files("b.d64", "a.d64")
+      list("game.m3u", "b.d64", "a.d64")
+      expect(disks_with("game.m3u")).to eq(%w[b.d64 a.d64])
+    end
+
+    it "takes the set of a disk the list names, ahead of the names" do
+      files("Pirates disk1.d64", "Pirates disk2.d64", "Pirates intro.d64")
+      list("pirates.m3u", "Pirates intro.d64", "Pirates disk1.d64")
+      expect(disks_with("Pirates disk1.d64")).to eq(["Pirates intro.d64", "Pirates disk1.d64"])
+    end
+
+    it "keeps the disk as given in the set" do
+      files("a.d64", "b.d64")
+      list("game.m3u", "a.d64", File.join(dir, "b.d64"))
+      expect(described_class.around(File.join(dir, ".", "b.d64")).last).to eq(File.join(dir, ".", "b.d64"))
+    end
+
+    it "leaves a disk the list doesn't name to the names" do
+      files("Pirates disk1.d64", "Pirates disk2.d64", "other.d64")
+      list("other.vfl", "UNIT 8", "other.d64")
+      expect(disks_with("Pirates disk2.d64")).to eq(["Pirates disk1.d64", "Pirates disk2.d64"])
+    end
+  end
 end

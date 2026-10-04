@@ -20,7 +20,7 @@ module Badline
         computer = boot(options)
       rescue Media::TrueDrive::Error, Storage::SIDFile::FormatError, Storage::T64::FormatError,
              Storage::TAP::FormatError, Storage::CRTFile::FormatError, Storage::G64Image::FormatError,
-             Cartridge::UnsupportedTypeError, Snapshot::FormatError => e
+             Cartridge::UnsupportedTypeError, Snapshot::FormatError, Media::DiskList::Error => e
         warn "#{options.program}: #{options.media_path}: #{e.message}"
         return 1
       end

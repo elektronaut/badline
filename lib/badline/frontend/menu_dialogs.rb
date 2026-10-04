@@ -8,8 +8,8 @@ module Badline
     # straight in.
     class MenuDialogs
       EXTENSIONS = {
-        disk: PauseMenu::DISKS, tape: %w[.tap], cartridge: %w[.crt],
-        program: %w[.d64 .d71 .d81 .g64 .t64 .tap .crt .prg .p00 .sid]
+        disk: %w[.d64 .d71 .d81 .g64 .t64 .m3u .vfl], tape: %w[.tap], cartridge: %w[.crt],
+        program: %w[.d64 .d71 .d81 .g64 .t64 .m3u .vfl .tap .crt .prg .p00 .sid]
       }.freeze
       TITLES = { disk: "INSERT A DISK", tape: "INSERT A TAPE", cartridge: "INSERT A CARTRIDGE",
                  program: "QUICK OPEN" }.freeze

@@ -8,16 +8,26 @@ module Badline
     # by those markers. A name with no marker can end in a number or a
     # letter, as in game_1.d64 and game_2.d64, which counts only when the
     # folder has the first of the set too.
+    #
+    # A list in the disk's folder that names it (DiskList) gives its set
+    # ahead of the names.
     module DiskSet
       KINDS = %w[disk disc side part].freeze
       EXTENSIONS = %w[.d64 .d71 .d81 .g64].freeze
 
       # The paths of the set's disks in order, or just `path` when it
-      # belongs to none.
+      # belongs to none. A list's set is the disks it lists.
       def self.around(path)
-        extension = File.extname(path).downcase
-        return [path] unless EXTENSIONS.include?(extension)
+        return DiskList.disks(path) if DiskList.list?(path)
+        return [path] unless EXTENSIONS.include?(File.extname(path).downcase)
 
+        listed = DiskList.beside(path)
+        listed.empty? ? named(path) : listed
+      end
+
+      # The set of the disk's name.
+      def self.named(path)
+        extension = File.extname(path).downcase
         marked = !parse(stem(path))[1].negative?
         base = key(stem(path), marked)[0]
         found = siblings(File.dirname(path), extension, base, marked)

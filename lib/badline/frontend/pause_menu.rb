@@ -42,17 +42,18 @@ module Badline
         media_path = options.media_path.to_s
         @painter = painter
         @buttons = Buttons.new(painter, [TEXT, BRIGHT, PANEL, FILL])
-        @pages = MenuPages.new(painter, @buttons, PauseMenu.disk_path(media_path), options)
+        @pages = MenuPages.new(painter, @buttons, media_path, options)
         @dialogs = MenuDialogs.new(painter, @buttons, @pages.media, options)
         @open = false
         @section = 0
       end
 
-      # The path of the disk the command line puts in device 8, or an empty
-      # one for other media.
+      # The path of the disk the command line puts in device 8, a list's
+      # first, or an empty one for other media.
       def self.disk_path(path)
         return "" if path.empty?
         return path if File.directory?(path)
+        return Media::DiskList.disks(path).first.to_s if Media::DiskList.list?(path)
 
         DISKS.include?(File.extname(path).downcase) ? path : ""
       end

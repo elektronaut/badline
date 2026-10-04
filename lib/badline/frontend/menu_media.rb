@@ -5,13 +5,17 @@ module Badline
     # What the pause menu puts in the machine and takes out: disks, tapes
     # and cartridges, whether disks are writable, which carries over from
     # one disk to the next, and the disk's set, which PREVIOUS and NEXT step
-    # through. It keeps what last went wrong for the page to show.
+    # through: the .m3u or .vfl list it came from, while that lists it, or
+    # the set DiskSet finds. It keeps what last went wrong for the page to
+    # show.
     class MenuMedia
       attr_reader :disk_path, :problem
       attr_writer :computer
 
-      def initialize(disk_path, writable)
-        @disk_path = disk_path
+      # Starts on the disk the command line's `media_path` put in.
+      def initialize(media_path, writable)
+        @disk_path = PauseMenu.disk_path(media_path)
+        @list = Media::DiskList.list?(media_path) ? media_path : ""
         @writable = writable
         @set_path = ""
         @set = []
@@ -27,12 +31,14 @@ module Badline
       end
 
       # Puts a disk in device 8 or a tape in the datasette, `kind` :disk or
-      # :tape.
+      # :tape. A list puts its first disk in.
       def insert(kind, path)
         @problem = ""
         if kind == :disk
-          Media.insert_disk(@computer, path, read_only: !@writable)
-          @disk_path = path
+          disk = Media::DiskList.disk(path)
+          Media.insert_disk(@computer, disk, read_only: !@writable)
+          list(path)
+          @disk_path = disk
         else
           @computer.datasette.insert(Storage::TAP.new(path))
         end
@@ -70,7 +76,8 @@ module Badline
         return [] if @disk_path.empty?
 
         unless @set_path == @disk_path
-          @set = Media::DiskSet.around(@disk_path)
+          listed = @list.empty? ? [] : Media::DiskList.disks(@list)
+          @set = listed.include?(@disk_path) ? listed : Media::DiskSet.around(@disk_path)
           @set_path = @disk_path
         end
         @set
@@ -116,12 +123,23 @@ module Badline
         @problem = ""
         computer = Frontend.start(options, path, @writable)
         @disk_path = PauseMenu.disk_path(path)
+        list(path)
         computer
       rescue ArgumentError, SystemCallError, Media::TrueDrive::Error, Storage::SIDFile::FormatError,
              Storage::T64::FormatError, Storage::TAP::FormatError, Storage::CRTFile::FormatError,
              Storage::G64Image::FormatError, Cartridge::UnsupportedTypeError => e
         @problem = e.message
         nil
+      end
+
+      private
+
+      # Keeps `path` as the list the set comes from, if it's a list.
+      def list(path)
+        return unless Media::DiskList.list?(path)
+
+        @list = path
+        @set_path = ""
       end
     end
   end

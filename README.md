@@ -117,6 +117,7 @@ library, are covered in [doc/library.md](doc/library.md).
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
 | `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. Write-protected unless `--writable` |
 | `.g64` | Put in a true 1541, then `LOAD"*",8,1` and `RUN`. It holds the disk's raw GCR, so copy protection that reads it works. Write-protected unless `--writable` |
+| `.m3u`, `.vfl` | A list of disk images, one path a line, relative to the list: an `.m3u` playlist, or a VICE flip list, which only unit 8's entries are taken from. Its first disk goes in as above, and the list is its set for the pause menu |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
@@ -224,15 +225,17 @@ too.
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit |
 
-INSERT opens a file browser. A disk's set comes from the names in its
-folder: `Disk 1`, `Side B`, `d2`, TOSEC's `(Disk 1 of 2)`, or a trailing
-`_1`, `_2` when the first of the set is there. WRITABLE starts as
+INSERT opens a file browser. A disk's set is the `.m3u` or `.vfl` list it
+was opened from, or one in its folder that lists it. Without one, it comes
+from the names in its folder: `Disk 1`, `Side B`, `d2`, TOSEC's
+`(Disk 1 of 2)`, or a trailing `_1`, `_2` when the first of the set is
+there. WRITABLE starts as
 `--writable` sets it and stays as set for the next disk. Quick open starts
 a file in a new machine, as the command line does. It asks first, as
 inserting or removing a cartridge does, since each power cycles the
 machine.
 
-A disk or tape dropped on the window goes into its drive. A cartridge,
+A disk, list of disks or tape dropped on the window goes into its drive. A cartridge,
 program or `.sid` dropped on it opens the menu to ask first.
 
 ## What's emulated
