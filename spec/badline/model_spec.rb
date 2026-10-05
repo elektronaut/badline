@@ -31,6 +31,11 @@ describe Badline::Model do
     expect(chips(described_class.named("drean"))).to eq(%i[mos6569 mos6526 mos6581 drean])
   end
 
+  it "builds the SX-64 with its own KERNAL and no datasette" do
+    model = described_class.named("sx64")
+    expect([*chips(model), model.kernal, model.datasette]).to eq([:mos6569, :mos6526, :mos6581, :pal, :sx64, false])
+  end
+
   it "fails on a name it doesn't know" do
     expect { described_class.named("vic20") }.to raise_error(ArgumentError, /vic20/)
   end

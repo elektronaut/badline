@@ -5,7 +5,7 @@ module Badline
     DEFAULT_RATE = 44_100
 
     # The names Badline::Model builds, in the order the help lists them.
-    MODELS = %w[c64 c64c ntsc newntsc oldntsc drean].freeze
+    MODELS = %w[c64 c64c ntsc newntsc oldntsc drean sx64].freeze
 
     SECTIONS = ["Options", "Window options", "Options without the window", "Testing options"].freeze
 

@@ -60,7 +60,9 @@ host's: the keyboard, the joysticks, the mouse and paddles, sound, and
 blocks given to `on_init` that hadn't run yet, which a restore reports.
 
 A snapshot only restores in the badline version that wrote it, into a
-machine with the same chip models, RAM expansion and REU.
+machine with the same chip models, RAM expansion, REU, KERNAL and
+datasette. One saved before badline recorded the KERNAL and the
+datasette restores as a machine with the C64's KERNAL and a datasette.
 `computer.snapshot` holds an REU's RAM, registers and transfer too, but
 a machine with an REU doesn't save to a file yet, as badline doesn't
 write VICE's REU module. Nor does an NTSC or Drean machine, as badline

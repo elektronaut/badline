@@ -67,7 +67,7 @@ module Badline
         vic = VICII.find(container) ? VICII.model(VICII.find(container)) : :mos6569
         sid = container[SIDRegisters::NAME] ? SIDRegisters.model(container[SIDRegisters::NAME]) : :mos6581
         Setup.new(vic_model: vic, cia_model: vic == :mos8565 ? :mos6526a : :mos6526, sid_model: sid,
-                  region: Region::PAL, ram_expansion: nil, reu: nil)
+                  region: Region::PAL, ram_expansion: nil, reu: nil, kernal: :c64, datasette: true)
       end
     end
   end

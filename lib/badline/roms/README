@@ -17,6 +17,16 @@ character.rom
 -------------
 The character generator ROM.
 
+kernal-sx64.rom
+---------------
+The SX-64's KERNAL, 251104-04. It boots with the SX-64's banner and
+colours, and loads from device 8 rather than tape. Computer.new(kernal:
+:sx64) fits it, as --model sx64 does.
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/kernal.sx.251104-04.bin
+SHA-1 aa136e91ecf3c5ac64f696b3dbcbfc5ba0871c98.
+
 dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01
