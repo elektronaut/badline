@@ -66,7 +66,7 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @drive1541 = nil
-      @iec_bus = nil
+      @iec_bus = IECBus.new(host: @cia2).tap(&:plug_in!)
       @reu = reu ? plug_reu(reu) : nil
     end
 
@@ -161,19 +161,17 @@ module Badline
     # byte transfers reach the drive. The LOAD and SAVE traps stay, and
     # still serve a mounted image.
     def attach_drive1541(drive)
-      @iec_bus.detach(@drive1541) if @iec_bus && @drive1541
+      @iec_bus.detach(@drive1541) if @drive1541
       drive.host_clock_hz = region.clock_hz
       @drive1541 = drive
       drive.connect(iec_bus)
       @serial_trap&.device = serial_trap_device
     end
 
-    # The serial bus. CIA 2's port A joins it the first time it's asked
-    # for, which plugging in a drive does. Until then port A's serial
-    # inputs float high.
-    def iec_bus
-      @iec_bus ||= IECBus.new(host: @cia2).tap(&:plug_in!)
-    end
+    # The serial bus, which CIA 2's port A drives through the C64's own
+    # inverters and reads back on PA6 and PA7, with or without a drive on
+    # it.
+    attr_reader :iec_bus
 
     def capture_output
       @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus).tap do |trap|

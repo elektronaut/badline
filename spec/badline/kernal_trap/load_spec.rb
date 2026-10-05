@@ -322,7 +322,10 @@ describe Badline::KernalTrap::Load do
       end
     end
 
-    before { ram.write(0x0328, [0xed, 0xf6]) } # the STOP vector, as the KERNAL sets it
+    before do
+      ram.write(0x0328, [0xed, 0xf6]) # the STOP vector, as the KERNAL sets it
+      computer.address_bus.poke(0xdd02, 0x3f) # port A's directions, as the KERNAL sets them
+    end
 
     context "when a later block is bad" do
       before do

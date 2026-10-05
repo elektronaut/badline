@@ -105,7 +105,7 @@ module Badline
       def leave_bus(timer_high)
         @bus.poke(0xdc07, timer_high)
         @bus.poke(0xdc0f, TIMER_ONE_SHOT_START)
-        @bus.poke(0xdd00, @bus.peek(0xdd00) & 0xc7)
+        release_serial_lines
       end
 
       def low_memory?(data)

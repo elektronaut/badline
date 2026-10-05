@@ -50,7 +50,7 @@ module Badline
       def detach_drive1541
         return unless @drive1541
 
-        @iec_bus&.detach(@drive1541)
+        @iec_bus.detach(@drive1541)
         @drive1541 = nil
         @serial_trap&.device = serial_trap_device
       end
@@ -95,10 +95,10 @@ module Badline
         @save_trap.load_state(input)
       end
 
-      # The serial bus, whose presence decides what CIA 2's port A reads,
-      # and a true 1541 on it.
+      # A true 1541 on the serial bus. The leading flag is the bus itself,
+      # which every machine now has, kept so older snapshots still load.
       def save_serial_bus(out)
-        out.boolean(!@iec_bus.nil?).boolean(!@drive1541.nil?)
+        out.boolean(true).boolean(!@drive1541.nil?)
         return unless @drive1541
 
         out.int(@drive1541.device)
@@ -106,7 +106,7 @@ module Badline
       end
 
       def load_serial_bus(input)
-        iec_bus if input.boolean?
+        input.boolean?
         return detach_drive1541 unless input.boolean?
 
         device = input.int

@@ -110,8 +110,8 @@ describe Badline::KernalTrap::Serial do
       expect(computer.address_bus.peek(0xdd00) & 0x38).to eq(0)
     end
 
-    it "leaves the port's read in the accumulator" do
-      expect(cpu.a).to eq(0xc7)
+    it "leaves the port's last read in the accumulator, with the data line still low" do
+      expect(cpu.a).to eq(0x47)
     end
   end
 
