@@ -33,6 +33,13 @@ CRuby.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
 - `check.rb` and `sidtests_check.rb` back the rake tasks below.
 
+Every harness but `cpu_tests.rb` loads the emulator core with
+`require "badline/core"`, the list `lib/badline.rb` loads too, so a file
+the core comes to need goes into `lib/badline/core.rb` alone. Spinel only
+warns about a constant the program uses but never defines, so the build
+tasks fail on that warning, leaving out `Snapshot::Setup` until the
+snapshot joins the core.
+
 ## Building
 
 Build Spinel from source (`make deps && make`), then point `SPINEL` at the
