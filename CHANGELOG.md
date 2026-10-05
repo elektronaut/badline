@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.9.0](https://github.com/elektronaut/badline/compare/v0.8.0...v0.9.0) (2026-10-05)
+
+
+### Features
+
+* add a per-user data folder for badline's own files ([27bdf0e](https://github.com/elektronaut/badline/commit/27bdf0edc16d95fc57dea940741cc0b7de74bbb1))
+* add the Drean C64, PAL-N with the 6572, as --model drean ([0562d8e](https://github.com/elektronaut/badline/commit/0562d8eb5b11239039eac934fd21eb7824868f98))
+* add the SX-64 as --model sx64 ([e947cba](https://github.com/elektronaut/badline/commit/e947cba8ff46f0f01eeb6e1a49c0bd4bf91324ea))
+* autosave, and a Snapshots page in the pause menu ([78aede9](https://github.com/elektronaut/badline/commit/78aede9a6052ce6c32184952a7b1d380e7c129e2))
+* keep five quicksave slots in the data folder ([6043543](https://github.com/elektronaut/badline/commit/6043543632aa61a42ff69bdff8ea15ae354ce810))
+* pick the C64 to run with --model ([d5539c8](https://github.com/elektronaut/badline/commit/d5539c8ade245b1e96e78765f15906ce4a80da5b))
+* restore snapshots without their tape, .t64 or true drive disk files ([0c0733a](https://github.com/elektronaut/badline/commit/0c0733a5c7eaf9c217466f7569769eb005c5248f))
+* run the testlist's Drean rows as testbench-drean ([dc8a075](https://github.com/elektronaut/badline/commit/dc8a07524168d399fb7c0305c661ab694c53bc2c))
+* save NTSC, Drean and REU machines as .vsf snapshots ([c4126cf](https://github.com/elektronaut/badline/commit/c4126cfa878d8efe7aaaa9e5113c4ee2a4886e6b))
+* seek within a subtune from checkpoints kept as it plays ([3ac57be](https://github.com/elektronaut/badline/commit/3ac57beac448a43a76387a0ff1f370cd07d06d81))
+* take disk sets from .m3u and .vfl lists ([b4e6845](https://github.com/elektronaut/badline/commit/b4e6845eb04cde80f87c1fcb372987311bf1dd97))
+
+
+### Bug Fixes
+
+* describe F11's quicksave slots, F12 and the autosave in --help ([6cbf148](https://github.com/elektronaut/badline/commit/6cbf148d327699070ef4fba4f2b3e3dd39d41348))
+* keep the board's low-pass stable for long filter steps ([c5af022](https://github.com/elektronaut/badline/commit/c5af0224aad60dbb665e6804bb536746e354da96))
+* leave CIA 1's timer B and the serial lines as the KERNAL's LOAD does ([b4f1a41](https://github.com/elektronaut/badline/commit/b4f1a4173b9413fd59b05bab12d173e0679c4c17))
+* play an NTSC machine's sound at its own clock ([510aab1](https://github.com/elektronaut/badline/commit/510aab1052a58a54b1790802e2a5705fcb208c5c))
+* put CIA 2's port A on the serial bus without a drive ([31f8a4f](https://github.com/elektronaut/badline/commit/31f8a4fad0ea210d4272b4672a84414527b68e31))
+* run the 6567R8 and 6572 X counter over $180-$187 twice ([08a4da3](https://github.com/elektronaut/badline/commit/08a4da33d4bd68a85d61895dcf8c1ea5fa5b539c))
+* set CIA 1's timer B for each byte the serial traps stand in for ([f98e6d7](https://github.com/elektronaut/badline/commit/f98e6d7666d2326ce4d8d3ab7f938dc4fd60cbd1))
+* take .m3u and .vfl lists of disks in --at's insert ([d1e771e](https://github.com/elektronaut/badline/commit/d1e771e6781fc5560dda2e10e6d76abb53be0807))
+
 ## [0.8.0](https://github.com/elektronaut/badline/compare/v0.7.0...v0.8.0) (2026-10-03)
 
 
