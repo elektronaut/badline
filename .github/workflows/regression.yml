@@ -30,6 +30,7 @@ on:
           - testbench-ntsc
           - testbench-ntsc-vicii-new
           - testbench-ntsc-cia-new
+          - testbench-drean
           - sid-8580
           - drive-scenarios
 # No concurrency group: nothing here cancels anything, so two dispatched

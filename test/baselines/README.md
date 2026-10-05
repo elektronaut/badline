@@ -82,6 +82,13 @@ Recorded output of the headless hardware suites, one file per suite:
   for 6526A CIAs (`--ntsc --cia-new`), kept apart from `testbench-ntsc`
   as `testbench-vicii-new` and `testbench-cia-new` are from the PAL
   suites. The 8562 runs on the 8565's model.
+- `testbench-drean.txt` — the same runner with `--drean`, over the rows
+  the testlist tags `vicii-drean`, each on a Drean C64, PAL-N with the
+  6572. The testlist comments its one such row out, with a note that the
+  testbenches don't support the Drean yet, and `--drean` reads it anyway:
+  `split-tests/spritescan/spritescan_drean.prg`, which checks its sprite
+  collisions against a dump from a real 6572. A screenshot would be
+  cropped to the PAL view, since the 6572 draws PAL's 312 lines.
 - `testbench-general.txt` — the same runner scoped to `C64/` and
   `general/`, over the testlist's machine-level rows outside the Lorenz
   suite: the power-on RAM pattern (`C64/raminitpattern`), BASIC's pointers
@@ -281,7 +288,7 @@ hours. Rows carrying `cia-new` ask for the 6526A, and run only in
 the 8565 in the same way, and run only in `testbench-vicii-new`, on an
 8565 machine. Rows carrying `vicii-ntsc` or `vicii-ntscold` run only in
 the `testbench-ntsc` suites, and rows carrying `vicii-drean`, the PAL-N
-machine, don't run.
+machine, only in `testbench-drean`.
 
 `testbench`, `lorenz` and `sid` are the main set, which `rake regression`
 runs. The `testbench-*` suites, `sid-8580` and `drive-scenarios` are
@@ -312,13 +319,16 @@ what the suite cost before it was sharded:
 | `testbench-ntsc` | 112 | 10 min | 3.3 min | 1.0 min |
 | `testbench-ntsc-vicii-new` | 8 | 0.5 min | 0.5 min | 0.1 min |
 | `testbench-ntsc-cia-new` | 1 | 0.5 min | 0.2 min | 0.2 min |
+| `testbench-drean` | 1 | 25 min | 1.7 min | 1.7 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a
 four-core cloud container, not the laptop, and on CRuby with YJIT,
 `testbench-general` over two shards. The `testbench-ntsc` worst cases
 are the rows' budgets at the throughput of `spritesteal_ntsc`, about 3.5M
-cycles a second, not timed runs.
+cycles a second, not timed runs. The `testbench-drean` worst case is its
+one row's budget, a billion cycles, at the 0.66M cycles a second that
+row ran at, which reported after 66M.
 `testbench-expansions`' GEO-RAM, +60K and +256K rows were measured there too, at 11 minutes
 serial and 10 at four shards, `memory-expansions/c64-georam-emd.prg`
 nearly all of it. Its REU rows were measured on the laptop, under load

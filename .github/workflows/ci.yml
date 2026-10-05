@@ -334,6 +334,7 @@ jobs:
               spinel:check
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
+              spinel:testbench[testbench-drean]
               spinel:testbench[testbench-carts]
           - shard: drive-via-1
             harnesses: testbench

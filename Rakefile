@@ -83,6 +83,8 @@ REGRESSION_SUITES = {
 # asks for, the 6567R8 or the 6567R56A. testbench-ntsc-vicii-new and
 # testbench-ntsc-cia-new are its rows that ask for the 8562 or for 6526A
 # CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
+# testbench-drean is the testlist's vicii-drean rows on a Drean C64, PAL-N
+# with the 6572, the one the testlist comments out included.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -105,6 +107,7 @@ OPT_IN_SUITES = {
   "testbench-ntsc" => { runner: "bin/testbench", args: %w[--ntsc] },
   "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },
   "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
+  "testbench-drean" => { runner: "bin/testbench", args: %w[--drean] },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
   "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze

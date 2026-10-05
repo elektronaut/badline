@@ -1,0 +1,1 @@
+VICII/split-tests/spritescan/spritescan_drean.prg	PASS

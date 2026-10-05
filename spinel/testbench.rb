@@ -27,8 +27,10 @@ module Testbench
   # The video standard a test line names.
   def self.region(fields)
     name = fields.length > 9 ? fields[9] : ""
-    if name == "ntsc" then :ntsc
-    elsif name == "ntscold" then :ntscold
+    case name
+    when "ntsc" then :ntsc
+    when "ntscold" then :ntscold
+    when "drean" then :drean
     else :pal
     end
   end
