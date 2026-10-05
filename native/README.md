@@ -105,8 +105,9 @@ The front end in `lib/badline/frontend/` is the same for both builds:
 - `boot.rb` (`Frontend.run`) builds the machine the options ask for, or
   restores a `.vsf`, and runs the window.
 - `app.rb` (`App`) opens the window and runs the frame loop.
-- `snapshots.rb` (`Snapshots`) saves the machine with F11 and
-  `--save-snapshot` and restores it with F12, and `screenshot.rb`
+- `snapshots.rb` (`Snapshots`) quicksaves the machine with F11,
+  autosaves it and saves it for `--save-snapshot`, and restores the
+  newest quicksave or named save with F12. `screenshot.rb`
   (`Screenshot`) saves a frame as a BMP.
 - `timeline.rb` (`Timeline`) runs the events of `--at` and `--script`,
   and takes `--screenshot`'s frame as one of them.
@@ -214,9 +215,10 @@ The events:
   own (`space`, `return`, `a`, `1`, `f1`, `run_stop`, `cursor_up`, ...),
   `restore`, and a joystick's switch: `joy1-up` or `joy2-fire`.
 - `type=TEXT` types through the keyboard buffer, with `\n` for RETURN.
-- `insert=FILE` puts a disk image, a directory, a tape or a cartridge in,
-  without loading anything. A cartridge goes in with the power off. A
-  file that won't go in ends the run, with a warning and exit status 1.
+- `insert=FILE` puts a disk image, the first disk of an `.m3u` or `.vfl`
+  list, a directory, a tape or a cartridge in, without loading anything.
+  A cartridge goes in with the power off. A file that won't go in ends
+  the run, with a warning and exit status 1.
 - `eject=disk`, `eject=tape` or `eject=cartridge` takes one out, or says
   there's none.
 - `screenshot=FILE` saves the frame, with the frame's number in place of

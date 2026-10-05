@@ -503,6 +503,17 @@ describe Badline::Options do
       end
     end
 
+    %w[disks.m3u disks.VFL].each do |name|
+      context "with a #{name} list of disks to insert" do
+        let(:argv) { ["--at", "10:insert=#{File.join(dir, name)}"] }
+
+        it "takes the list" do
+          File.write(File.join(dir, name), "disk1.d64\n")
+          expect(events).to eq([[10, "insert", File.join(dir, name)]])
+        end
+      end
+    end
+
     {
       "frame 0" => "0:quit", "no frame" => "quit", "a frame that isn't a number" => "x:quit",
       "an unknown event" => "1:jump", "an argument to quit" => "1:quit=now", "a key without a name" => "1:key",
