@@ -52,7 +52,34 @@ module Badline
         @banks.each_index { |number| @banks[number] = input.boolean? ? input.blob : [] }
       end
 
+      # Every byte, as one string, with a bank the REC hasn't touched at
+      # its power-on contents.
+      def contents
+        power_on = power_on_strings
+        Array.new(@banks.length) do |number|
+          bank = @banks[number]
+          bank.empty? ? power_on[(number >> 1) & 1] : bank.pack("C*")
+        end.join
+      end
+
+      # Takes every byte from a string as long as the RAM. A bank that
+      # holds its power-on contents stays untouched.
+      def restore(bytes)
+        power_on = power_on_strings
+        @banks.each_index do |number|
+          slice = bytes.byteslice(number * BANK_SIZE, BANK_SIZE).to_s
+          @banks[number] = slice == power_on[(number >> 1) & 1] ? [] : slice.bytes
+        end
+      end
+
       private
+
+      def power_on_strings
+        [0, 1].map do |half|
+          @power_on[half] = power_on_bank(half == 1) if @power_on[half].empty?
+          @power_on[half].pack("C*")
+        end
+      end
 
       # A bank takes its power-on contents the first time it is touched,
       # so an REU costs only the memory a program uses.

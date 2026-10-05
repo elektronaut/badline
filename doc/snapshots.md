@@ -12,9 +12,8 @@ a restore names the slot and the file.
 A run without `--frames` also autosaves every 6,000 frames the machine
 has run, two minutes on PAL, to `autosave-1.vsf` to `autosave-3.vsf` in
 the `autosaves` folder, replacing the oldest. Time in the pause menu
-doesn't count, nothing is printed, and `F12` never picks an autosave. A
-machine that can't be saved to a file, such as one with an REU, warns
-once and stops autosaving.
+doesn't count, nothing is printed, and `F12` never picks an autosave. An
+autosave that fails warns once and stops autosaving.
 
 The pause menu's Snapshots page quicksaves, saves under a name in the
 `saves` folder and loads a named save. The name starts as the game's,
@@ -59,40 +58,45 @@ as device 8 opens again from its path. What the host holds stays the
 host's: the keyboard, the joysticks, the mouse and paddles, sound, and
 blocks given to `on_init` that hadn't run yet, which a restore reports.
 
-A snapshot only restores in the badline version that wrote it, into a
-machine with the same chip models, RAM expansion, REU, KERNAL and
-datasette. One saved before badline recorded the KERNAL and the
-datasette restores as a machine with the C64's KERNAL and a datasette.
-`computer.snapshot` holds an REU's RAM, registers and transfer too, but
-a machine with an REU doesn't save to a file yet, as badline doesn't
-write VICE's REU module. Nor does an NTSC or Drean machine, as badline
-doesn't write an NTSC or PAL-N VIC-II in VICE's terms yet.
+Every model saves this way, PAL, NTSC, old NTSC and Drean alike, and so
+does a machine with an REU, with its RAM, its registers and a transfer
+part way through. A snapshot only restores in the badline version that
+wrote it, into a machine with the same chip models, region, RAM
+expansion, REU, KERNAL and datasette. One saved before badline recorded
+the KERNAL and the datasette restores as a machine with the C64's KERNAL
+and a datasette.
 
 ## VICE
 
 Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
-the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, plus the
-ones x64sc needs to open the file, with nothing attached to the
-cartridge, tape or user ports and no true drive. A `BADLINE` module,
-which VICE skips, holds the whole machine, and badline restores its own
-snapshots from it.
+the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, and an
+REU's `REU1764`, plus the ones x64sc needs to open the file, with
+nothing else attached to the cartridge port, nothing on the tape or user
+ports and no true drive. The VIC-II module names the chip as VICE does:
+the 6569 or 8565 on PAL, the 6567R8 or 8562 on NTSC, the 6567R56A on old
+NTSC and the 6572 on PAL-N. A `BADLINE` module, which VICE skips, holds
+the whole machine, and badline restores its own snapshots from it.
 
 x64sc 3.10 opens badline's snapshots, taken at the end of the
-instruction the CPU was in, as long as its VIC-II model matches
-(`-model c64` for the default machine). It keeps its own drives and
-leaves out the cartridge, the expansions and the tape.
+instruction the CPU was in, and of an REU transfer under way, as long
+as its VIC-II model matches: `-model c64`, `c64c`, `ntsc`, `newntsc`,
+`oldntsc` or `drean`, as `--model` names the machine. It takes the REU
+from the snapshot, keeps its own drives and leaves out the cartridge,
+the other expansions and the tape. A program x64sc runs on from badline's
+snapshot reads the raster as badline does, cycle for cycle.
 
 Snapshots x64sc saves open in badline through the same modules: the CPU
 at its instruction boundary, RAM, the CPU port, the CIAs' registers,
-timers and clocks, the SID's registers and reSID voice state, and the
-VIC-II's registers, beam position, counters and colour RAM. The VIC-II's
-pixel pipeline starts empty. badline reads the modules x64sc 3.7 to 3.10
-write, and VICE's development versions' `MAINC64CPU` and `VIC-IISC`. A
-module version it doesn't know is left out, or fails the restore for the
-CPU and RAM. It reports the modules it leaves out, such as the 1541
-drives, the cartridge, the datasette and the keyboard, and carries on
-without them. A snapshot of an NTSC machine fails, as badline reads only
-VICE's PAL VIC-II. Restored into a running machine, a VICE snapshot
+timers and clocks, the SID's registers and reSID voice state, the
+VIC-II's registers, beam position, counters and colour RAM, and an
+REU's size, registers and RAM. The VIC-II's model builds the machine's
+region, and the 6569R1 runs as the 6569. The VIC-II's pixel pipeline
+starts empty. badline reads the modules x64sc 3.7 to 3.10 write, and
+VICE's development versions' `MAINC64CPU` and `VIC-IISC`. A module
+version it doesn't know is left out, or fails the restore for the CPU
+and RAM. It reports the modules it leaves out, such as the 1541 drives,
+the cartridge port, the datasette and the keyboard, and carries on
+without them. Restored into a running machine, a VICE snapshot
 fails for a machine built another way, such as a C64C's snapshot in a
 C64, and otherwise takes the cartridge out and switches the machine off
 and on.

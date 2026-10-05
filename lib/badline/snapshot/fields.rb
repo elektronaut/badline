@@ -38,6 +38,7 @@ module Badline
       def qword = take(8).unpack1("Q<").to_i
       def flag? = !byte.zero?
       def bytes(count) = take(count).bytes
+      def string(count) = take(count)
       def skip(count) = tap { take(count) }
 
       private

@@ -34,7 +34,7 @@ module Badline
             @cycle = f.dword
             f.skip(4)
             @line = f.dword
-            f.skip(1)
+            @frame_start = f.flag?
             @irq_status = f.byte
             f.skip(4)
             @raster_match = f.flag?
@@ -95,13 +95,24 @@ module Badline
           # Clocks the VIC alone from the start of the line to the cycle,
           # so the line's fetches and sprite checks have run.
           def position(vic)
-            vic.restore_line(@line)
+            region = vic.region
+            vic.restore_line(line(region.lines_per_frame))
             load_display_state(vic)
-            @cycle.times { vic.cycle! }
+            column(region.cycles_per_line).times { vic.cycle! }
             registers = vic.registers
             registers.bytes[0x19] = @irq_status & 0x0f
             registers.bytes[0x1e], registers.bytes[0x1f] = @collisions
             registers.update_irq_line
+          end
+
+          # badline's column, VICE's cycle less one, with VICE's cycle 0
+          # the last column of the line before (VICII.vice_cycle).
+          def column(cycles_per_line) = @cycle.zero? ? cycles_per_line - 1 : @cycle - 1
+
+          def line(lines)
+            return @line unless @cycle.zero? && !@frame_start
+
+            @line.zero? ? lines - 1 : @line - 1
           end
 
           def load_display_state(vic)
