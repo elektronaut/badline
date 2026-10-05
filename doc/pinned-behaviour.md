@@ -991,9 +991,10 @@ What the NTSC references don't settle, and so what stays as it is:
 The 6572 of the Drean C64 (`Region::DREAN`) runs the 6567R8's line, 65
 cycles with its sprite fetches in cycle 59, its display compare in cycle
 59 and its X counter running over $180-$187 twice, on PAL-N's 312 lines at
-1,023,440 Hz. The testlist has no Drean rows, so the oracle is
-`split-tests/spritescan/spritescan_drean.prg` run by hand against its
-`dump6572.bin`, from a real 6572R1.
+1,023,440 Hz. The oracle is `split-tests/spritescan/spritescan_drean.prg`,
+which checks itself against its `dump6572.bin`, from a real 6572R1. The
+testlist comments that row out, and `testbench-drean`
+(`bin/testbench --drean`) runs it.
 
 - Pinned by that dump: every byte the test compares matches, and the
   test passes.

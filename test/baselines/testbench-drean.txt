@@ -1,1 +1,1 @@
-VICII/split-tests/spritescan/spritescan_drean.prg	FAIL	exit=$ff
+VICII/split-tests/spritescan/spritescan_drean.prg	PASS
