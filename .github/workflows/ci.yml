@@ -216,6 +216,16 @@ jobs:
             ours = Badline::Checkpoint.take(saved)
             theirs = Badline::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
+            [saved, again].each do |machine|
+              machine.sid.catch_up!
+              machine.sid.voices.each { |voice| voice.waveform.output }
+            end
+            ours = saved.snapshot
+            theirs = again.snapshot
+            unless ours == theirs
+              first = ours.values.each_index.find { |i| ours.values[i] != theirs.values[i] }
+              abort "the restored native machine holds another state than the CRuby machine, from value #{first.inspect}"
+            end
             puts "restored and ran on to cycle #{again.cycles} as CRuby does"'
       # Saved 200 frames in, the true drive is loading the program the
       # machine autostarts, with its motor running.
