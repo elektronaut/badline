@@ -61,6 +61,11 @@ describe Badline::Snapshot::Vice do
       expect { described_class.export(Badline::Computer.new(region: Badline::Region::NTSC).snapshot) }
         .to raise_error(Badline::Snapshot::FormatError, /NTSC/)
     end
+
+    it "fails for a Drean machine" do
+      expect { described_class.export(Badline::Computer.new(region: Badline::Region::DREAN).snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /PAL-N/)
+    end
   end
 
   describe "a machine restored from the VICE modules alone" do

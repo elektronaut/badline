@@ -30,7 +30,8 @@ model (`Badline::Model::ALL`):
   65 cycles by 263 lines at 1,022,727 Hz, with its later sprite fetches
   and its X counter, and TOD clocks on 60 Hz mains.
   `Badline::Region::NTSC_OLD` is the first NTSC C64s' 6567R56A, 64 cycles
-  by 262 lines. The stock KERNAL tells them from PAL by the raster, so
+  by 262 lines, and `Badline::Region::DREAN` the Drean C64's PAL-N
+  6572, 65 cycles by 312 lines at 1,023,440 Hz. The stock KERNAL tells them from PAL by the raster, so
   every region boots the same ROMs.
 - `cia_model: :mos6526a` fits the C64C's 6526As, whose interrupt
   register timing differs.

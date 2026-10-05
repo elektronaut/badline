@@ -349,6 +349,41 @@ RSpec.describe Badline::VIC::Sprite do
     end
   end
 
+  # On a 65-cycle line sprite 3 reloads at raster pixel 515, and the
+  # twelve pixels it ignores run on past the line's end at 520. Pinned by
+  # spritescan_drean, whose 6572 dump has sprite 3 show nothing from
+  # X = $193 to $19e.
+  describe "the reload near the end of a 65-cycle line" do
+    subject(:sprite) { described_class.new(3, registers, bank, bus) }
+
+    let(:bus) { Badline::VIC::Sprite::InternalBus.new(bank, Badline::VIC::Sprite::Timing.new(Badline::Region::DREAN)) }
+
+    before do
+      registers.write(0x15, 0x08)
+      registers.write(0x07, 60)
+      point_sprite(3, 0x20)
+      put_row(0x20, 0, 0xff, 0xff, 0xff)
+      put_row(0x20, 1, 0xff, 0xff, 0xff)
+      registers.write(0x10, 0x08)
+    end
+
+    def sequence_at(x_pos)
+      registers.write(0x06, x_pos - 0x100)
+      start_display
+      sprite.sequence
+    end
+
+    it "ignores a match on the next line's first pixels" do
+      sequence_at(0x19b) # first pixel at 3
+      expect([sprite.span, sprite.reload_span]).to eq([0, 0])
+    end
+
+    it "shows a match after them" do
+      sequence_at(0x1a0) # first pixel at 8
+      expect(sprite.pixel(8)).to eq(sprite.color)
+    end
+  end
+
   # Pinned by spritefetchbug: at X = $136 an X-expanded multicolor sprite
   # loads its last pair on pixel 458, the one before the reload, and it
   # shows only the pair's high bit, as hi-res does.

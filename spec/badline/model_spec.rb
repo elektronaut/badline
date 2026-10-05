@@ -27,6 +27,10 @@ describe Badline::Model do
     expect(chips(described_class.named("oldntsc"))).to eq(%i[mos6569 mos6526 mos6581 ntscold])
   end
 
+  it "builds the Drean C64 with the 6572" do
+    expect(chips(described_class.named("drean"))).to eq(%i[mos6569 mos6526 mos6581 drean])
+  end
+
   it "fails on a name it doesn't know" do
     expect { described_class.named("vic20") }.to raise_error(ArgumentError, /vic20/)
   end

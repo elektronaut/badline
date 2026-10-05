@@ -10,7 +10,7 @@ module Badline
 
     class Setup
       SID_MODELS = %i[mos6581 mos8580].freeze
-      REGIONS = [Region::PAL, Region::NTSC, Region::NTSC_OLD].freeze
+      REGIONS = [Region::PAL, Region::NTSC, Region::NTSC_OLD, Region::DREAN].freeze
       RAM_EXPANSIONS = [:none, *RAMExpansion::TYPES.keys].freeze
 
       def self.of(address_bus)

@@ -31,7 +31,7 @@ module Badline
       # badline's CPU is inside an instruction the copy runs on to its end.
       # The copy's SID catches up, so its registers and voices stand as of
       # that cycle. badline writes no VICE module for an REU or an NTSC
-      # VIC-II yet, and fails for a machine with either.
+      # or PAL-N VIC-II yet, and fails for a machine with either.
       def self.export(state)
         check_exportable(Computer.setup(state))
         machine = settled(state)
@@ -44,7 +44,7 @@ module Badline
         raise FormatError, "badline can't save an REU in VICE's terms yet, so can't save this machine" if setup.reu
         return if setup.region == Region::PAL
 
-        raise FormatError, "badline can't save an NTSC VIC-II in VICE's terms yet, so can't save this machine"
+        raise FormatError, "badline can't save an NTSC or PAL-N VIC-II in VICE's terms yet, so can't save this machine"
       end
 
       # The copy is detached from the host's files (Snapshot::StateReader),

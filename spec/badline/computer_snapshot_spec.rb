@@ -119,6 +119,11 @@ describe Badline::Computer, "#snapshot" do
       machine = described_class.new(region: Badline::Region::NTSC_OLD)
       expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::NTSC_OLD)
     end
+
+    it "builds a Drean machine" do
+      machine = described_class.new(region: Badline::Region::DREAN)
+      expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::DREAN)
+    end
   end
 
   describe "on_init handlers" do
