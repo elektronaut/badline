@@ -1,23 +1,30 @@
 # frozen_string_literal: true
 
-# The video standard of a bin/testbench row, for --ntsc.
+# The video standard of a bin/testbench row, for --ntsc and --drean.
 module Testbench
   NTSC_OPTION = "vicii-ntsc"
   NTSC_OLD_OPTION = "vicii-ntscold"
+  DREAN_OPTION = "vicii-drean"
 
   # A TestCase's video standard and the reference screenshot it compares
   # against.
   module RegionRow
     # The video standard the row asks for: :ntsc for the 6567R8 of
-    # vicii-ntsc, :ntscold for the 6567R56A of vicii-ntscold, else :pal.
+    # vicii-ntsc, :ntscold for the 6567R56A of vicii-ntscold, :drean for the
+    # 6572 of vicii-drean, else :pal.
     def region
       if options.include?(NTSC_OLD_OPTION) then :ntscold
       elsif options.include?(NTSC_OPTION) then :ntsc
+      elsif options.include?(DREAN_OPTION) then :drean
       else :pal
       end
     end
 
-    def ntsc? = region != :pal
+    # The standard a suite takes the row for: :ntsc for either NTSC
+    # VIC-II, else the row's region.
+    def standard = region == :ntscold ? :ntsc : region
+
+    def ntsc? = standard == :ntsc
 
     # An 8565 row compares against the program's 8565 reference, or on NTSC
     # its 8562 one, and an NTSC row against its -ntsc or -ntscold one, as

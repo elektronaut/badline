@@ -54,7 +54,7 @@ class TestTestbenchTestlist < Minitest::Test
   end
 
   def test_drops_options_the_emulator_does_not_model
-    assert_nil parse("../VICII/border/,t.prg,exitcode,1000,vicii-drean")
+    assert_nil parse("../VICII/border/,t.prg,exitcode,1000,isepic")
   end
 
   def test_runs_the_cia_old_half_of_a_doubled_row_on_the_old_chip
@@ -293,7 +293,7 @@ class TestTestbenchNTSC < Minitest::Test
   def test_only_an_ntsc_run_takes_an_ntsc_row
     test = parse("vicii-ntsc")
     rows = Testbench::Rows.new(carts: false, models: Testbench::DEFAULT_MODELS, expansions: false, drive: nil,
-                               ntsc: true)
+                               standard: :ntsc)
 
     refute_includes Testbench::Rows.plain, test
     assert_includes rows, test
@@ -327,6 +327,56 @@ class TestTestbenchNTSC < Minitest::Test
     rows = Testbench.screenshot(vic)
 
     assert_equal [247, 5, 7], [rows.length, rows.first.first, rows.last.first]
+  end
+end
+
+class TestTestbenchDrean < Minitest::Test
+  def parse(line)
+    Testbench::Testlist.parse(line)
+  end
+
+  def drean_rows
+    Testbench::Rows.new(carts: false, models: Testbench::DEFAULT_MODELS, expansions: false, drive: nil,
+                        standard: :drean)
+  end
+
+  def test_runs_a_vicii_drean_row_on_the_drean
+    assert_equal :drean, parse("../VICII/border/,t.prg,exitcode,1000,vicii-drean").region
+  end
+
+  # The testlist comments its one Drean row out until a testbench can run
+  # the 6572.
+  def test_reads_a_commented_out_vicii_drean_row
+    test = parse("#../VICII/split-tests/spritescan/,spritescan_drean.prg,exitcode,1000000000,vicii-drean")
+
+    assert_equal ["VICII/split-tests/spritescan/spritescan_drean.prg", :drean], [test.id, test.region]
+  end
+
+  def test_leaves_other_commented_out_rows_alone
+    assert_nil parse("#../VICII/border/,t.prg,exitcode,1000,vicii-ntsc")
+  end
+
+  def test_only_a_drean_run_takes_a_drean_row
+    test = parse("../VICII/border/,t.prg,exitcode,1000,vicii-drean")
+
+    refute_includes Testbench::Rows.plain, test
+    assert_includes drean_rows, test
+  end
+
+  def test_a_drean_run_takes_no_pal_row
+    refute_includes drean_rows, parse("../VICII/border/,t.prg,exitcode,1000")
+  end
+
+  def test_builds_a_drean_machine
+    assert_equal Badline::Region::DREAN, Testbench.region_profile(:drean)
+  end
+
+  def test_crops_a_drean_screenshot_as_pal
+    vic = Badline::VIC.new(region: Badline::Region::DREAN)
+    vic.display[(16 * vic.width) + 96] = 5
+    rows = Testbench.screenshot(vic)
+
+    assert_equal [272, 5], [rows.length, rows.first.first]
   end
 end
 

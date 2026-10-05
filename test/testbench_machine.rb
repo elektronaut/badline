@@ -28,7 +28,7 @@ module Testbench
   # the test asks for. expansion is the testlist option naming a memory
   # expansion fitted before power-on, a GEO-RAM, a RAM expansion or an
   # REU, or nil for none, and region names the video standard, :pal,
-  # :ntsc or :ntscold.
+  # :ntsc, :ntscold or :drean.
   def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil, region: :pal)
     computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
                                      reu: reu_size(expansion), region: region_profile(region))
@@ -74,18 +74,20 @@ module Testbench
     case region
     when :ntsc then Badline::Region::NTSC
     when :ntscold then Badline::Region::NTSC_OLD
+    when :drean then Badline::Region::DREAN
     else Badline::Region::PAL
     end
   end
 
   # The display cropped to the reference screenshots, as rows of palette
-  # indices.
+  # indices. A 312-line frame, PAL's or PAL-N's, gets the PAL view.
   def self.screenshot(vic)
     display = vic.display
     width = vic.width
     lines = vic.height
-    top = vic.region.name == :pal ? ROW_OFFSET : NTSC_ROW_OFFSET
-    height = vic.region.name == :pal ? HEIGHT : NTSC_HEIGHT
+    pal = lines == Badline::Region::PAL.lines_per_frame
+    top = pal ? ROW_OFFSET : NTSC_ROW_OFFSET
+    height = pal ? HEIGHT : NTSC_HEIGHT
     Array.new(height) { |row| display[(((row + top) % lines) * width) + COL_OFFSET, WIDTH] }
   end
 

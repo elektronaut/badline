@@ -195,8 +195,8 @@ against the suite's baseline in `test/baselines/` as
 `testbench-cia`, `testbench-interrupts`, `testbench-irqdma`,
 `testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
 `testbench-vicii-new`, `testbench-general`, `testbench-expansions`,
-`testbench-drive`, `testbench-ntsc`, `testbench-ntsc-vicii-new` and
-`testbench-ntsc-cia-new` in turn, and fails at the end if any of them changed. Filters after a
+`testbench-drive`, `testbench-ntsc`, `testbench-ntsc-vicii-new`,
+`testbench-ntsc-cia-new` and `testbench-drean` in turn, and fails at the end if any of them changed. Filters after a
 suite's name run only the rows they match, as `bin/testbench`'s filters
 do, and compare only those rows. A filter led by `!` leaves out the rows
 it matches, as `[testbench-drive,!viavarious]` does. `SHARDS` and `RESUME=1` work as they do for
@@ -215,7 +215,8 @@ KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY CIA VIC EXPANSION REGION DRIVE DISK 
 
 EXPANSION is the testlist option naming the memory expansion the test
 fits: `geo512k`, `plus60k` or `plus256k`. REGION is the video standard,
-`pal`, `ntsc` (the 6567R8) or `ntscold` (the 6567R56A). DRIVE is `drive`
+`pal`, `ntsc` (the 6567R8), `ntscold` (the 6567R56A) or `drean` (the
+6572). DRIVE is `drive`
 for a `testbench-drive` row, which runs with a true 1541 on the serial
 bus, and DISK the `.d64` or `.g64` image that goes in it.
 

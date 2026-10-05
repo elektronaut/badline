@@ -6,6 +6,7 @@
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
+#                             [--drean]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -71,6 +72,11 @@
 # 384x247 from line 28, which runs on past the last line into lines 0-11
 # of the next frame. Every other row runs on PAL.
 #
+# --drean runs the rows the testlist tags vicii-drean instead, each on a
+# Drean C64, PAL-N with the 6572. The testlist comments its one such row
+# out until a testbench can run the 6572, so a commented-out row tagged
+# vicii-drean counts as a row.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
@@ -133,10 +139,14 @@ module Testbench
   # +256K and the REU are not emulated. A mountcrt row runs only under --carts, a drive
   # row or one that mounts a .d64 or a .g64 only under --drive, a cia-new
   # row, which asks for the 6526A, only under --cia-new, a vicii-new row,
-  # which asks for the 8565, only under --vicii-new, and a row that asks
-  # for an expansion in EXPANSIONS only under --expansions.
-  SKIP_OPTIONS = /drean|mountp64|
-                  isepic|dqbb|ramcart/x
+  # which asks for the 8565, only under --vicii-new, a vicii-drean row only
+  # under --drean, and a row that asks for an expansion in EXPANSIONS only
+  # under --expansions.
+  SKIP_OPTIONS = /mountp64|isepic|dqbb|ramcart/
+
+  # A row the testlist comments out but tags vicii-drean, which runs under
+  # --drean.
+  COMMENTED_DREAN_ROW = /\A#\s*(\S+,vicii-drean(?:,\S*)?)\z/
   CARTRIDGE_OPTION = "mountcrt:"
   DISK_OPTION = /\Amount[dg]64:/
 
@@ -261,16 +271,17 @@ module Testbench
   # Which rows a run takes: the mountcrt rows or the others, the rows that
   # ask for the models, the CIA and the VIC-II, the rows that ask for a
   # memory expansion or the others, the rows that ask for the true drive
-  # (see TestCase#drive_kind) or the others, and the rows that ask for an
-  # NTSC VIC-II, either one, or the PAL ones.
-  Rows = Data.define(:carts, :models, :expansions, :drive, :ntsc) do
+  # (see TestCase#drive_kind) or the others, and the rows of one video
+  # standard (see TestCase#standard): :pal, :ntsc for either NTSC VIC-II,
+  # or :drean for the 6572.
+  Rows = Data.define(:carts, :models, :expansions, :drive, :standard) do
     def self.plain = new(carts: false, models: DEFAULT_MODELS, expansions: false, drive: nil)
 
-    def initialize(carts:, models:, expansions:, drive:, ntsc: false) = super
+    def initialize(carts:, models:, expansions:, drive:, standard: :pal) = super
 
     def include?(test)
       test.cartridge.nil? != carts && test.models == models && test.expansion.nil? != expansions &&
-        test.drive_kind == drive && test.ntsc? == ntsc
+        test.drive_kind == drive && test.standard == standard
     end
   end
 
@@ -286,13 +297,13 @@ module Testbench
     end
 
     # Counted over the whole testlist, so a key is the same whatever the
-    # filters select, and separately for each CIA and VIC-II and for PAL
-    # and NTSC: a program listed for both chips or both standards keeps the
-    # key it has in each suite. A program listed for both NTSC VIC-IIs
-    # takes #2 for the second.
+    # filters select, and separately for each CIA and VIC-II and for PAL,
+    # NTSC and PAL-N: a program listed for both chips or several standards
+    # keeps the key it has in each suite. A program listed for both NTSC
+    # VIC-IIs takes #2 for the second.
     def numbered(tests)
       seen = Hash.new(0)
-      tests.each { |test| test.occurrence = seen[[test.id, *test.models, test.ntsc?]] += 1 }
+      tests.each { |test| test.occurrence = seen[[test.id, *test.models, test.standard]] += 1 }
     end
 
     def selected?(test, filters, scope, exclude)
@@ -314,6 +325,7 @@ module Testbench
 
     def parse(line)
       line = line.strip
+      line = line[COMMENTED_DREAN_ROW, 1] || line
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
@@ -780,9 +792,12 @@ if $PROGRAM_NAME == __FILE__
   drive = if ARGV.delete("--1541-testsuite") then :testsuite
           elsif ARGV.delete("--drive") then :drive
           end
+  standard = if ARGV.delete("--ntsc") then :ntsc
+             elsif ARGV.delete("--drean") then :drean
+             else :pal
+             end
   rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
-                             expansions: !ARGV.delete("--expansions").nil?, drive:,
-                             ntsc: !ARGV.delete("--ntsc").nil?)
+                             expansions: !ARGV.delete("--expansions").nil?, drive:, standard:)
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
   tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
