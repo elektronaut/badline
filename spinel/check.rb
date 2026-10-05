@@ -21,8 +21,30 @@ module SpinelCheck
       args = [spinel, "-I", "lib", "--no-line-map", "--rbs", "spinel/sig", "spinel/#{name}.rb", "-o", binary(name)]
       args << "--cc=#{cc}" if cc
       puts args.join(" ")
-      system(*args) || raise("Spinel failed to build spinel/#{name}.rb")
+      missing = compile(args) || raise("Spinel failed to build spinel/#{name}.rb")
+      raise "spinel/#{name}.rb uses constants it doesn't load: #{missing.join(', ')}" if missing.any?
     end
+  end
+
+  # Runs Spinel, passing its output through, and returns the constants it
+  # warned are defined nowhere in the program, or nil if it failed.
+  def compile(args)
+    output = []
+    status = Open3.popen2e(*args) do |_stdin, out, wait|
+      out.each_line do |line|
+        print line
+        output << line if line.include?("uninitialized constant")
+      end
+      wait.value
+    end
+    missing_constants(output) if status.success?
+  end
+
+  # The constants named in Spinel's "uninitialized constant" warnings, but
+  # for Snapshot::Setup: the snapshot isn't in badline/core yet.
+  def missing_constants(lines)
+    names = lines.filter_map { |line| line[/uninitialized constant ((?:\w+::)*\w+)/, 1] }
+    names.uniq - %w[Snapshot::Setup]
   end
 
   def check_boot(*args)
