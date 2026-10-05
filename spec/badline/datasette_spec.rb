@@ -24,6 +24,23 @@ describe Badline::Datasette do
     datasette.motor = true
   end
 
+  describe "on a machine without one" do
+    before { datasette.disconnect! }
+
+    it "takes out the tape it had" do
+      expect(datasette.tape).to be_nil
+    end
+
+    it "refuses a tape" do
+      expect { datasette.insert(tape) }.to raise_error(described_class::Missing, /no datasette/)
+    end
+
+    it "keeps its keys up" do
+      datasette.play!
+      expect(datasette.playing?).to be(false)
+    end
+  end
+
   describe "#cycle!" do
     before do
       datasette.play!

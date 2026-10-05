@@ -40,13 +40,18 @@ describe Badline::Frontend do
   end
 
   describe "the machine it builds" do
-    def built(*argv)
+    def machine(*argv)
       computer = nil
-      allow(Badline::Frontend::App).to receive(:new) do |machine|
-        computer = machine
+      allow(Badline::Frontend::App).to receive(:new) do |built|
+        computer = built
         instance_double(Badline::Frontend::App, run: nil)
       end
       run(*argv)
+      computer
+    end
+
+    def built(*argv)
+      computer = machine(*argv)
       [computer.vic.model, computer.cia1.model, computer.sid.model, computer.region.name]
     end
 
@@ -61,5 +66,15 @@ describe Badline::Frontend do
     it "fits the SID --sid names over the model's" do
       expect(built("--model", "c64c", "--sid", "6581")).to eq(%i[mos8565 mos6526a mos6581 pal])
     end
+
+    it "is an SX-64 with its KERNAL and no datasette with --model sx64" do
+      computer = machine("--model", "sx64")
+      expect([computer.address_bus.kernal, computer.datasette.connected?]).to eq([:sx64, false])
+    end
+  end
+
+  it "warns that an SX-64 takes no tape and returns 1" do
+    File.binwrite("game.tap", "C64-TAPE-RAW".b + [1, 0, 0, 0, 1].pack("C4V") + "\x30".b)
+    expect { run("--model", "sx64", "game.tap") }.to output(/game.tap: this machine has no datasette/).to_stderr
   end
 end

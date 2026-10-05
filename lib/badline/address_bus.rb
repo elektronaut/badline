@@ -4,6 +4,7 @@ require "badline/address_bus/saved_state"
 require "badline/address_bus/sid_slots"
 require "badline/address_bus/extra_sids"
 require "badline/address_bus/ultimax_pages"
+require "badline/address_bus/roms"
 
 module Badline
   # Memory layout:
@@ -35,6 +36,7 @@ module Badline
     include Addressable
     include UltimaxPages
     include ExtraSIDs
+    include ROMs
 
     # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
     # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
@@ -58,7 +60,7 @@ module Badline
     # See doc/pinned-behaviour.md.
     RAM_POWER_ON = Array.new(2**16) { |addr| (((addr + 2) / 4) ^ (addr / 0x4000)).odd? ? 0xff : 0x00 }.freeze
 
-    attr_reader :io_port, :ram, :basic_rom, :character_rom, :kernal_rom,
+    attr_reader :io_port, :ram,
                 :vic, :sid, :color_ram, :cia1, :cia2, :keyboard, :joystick1, :joystick2,
                 :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region, :video_ram, :reu
 
@@ -71,9 +73,7 @@ module Badline
       @cartridge = @reu = nil
       @debug_register = nil
 
-      @basic_rom     = ROM.load("basic.rom",     0xa000)
-      @character_rom = ROM.load("character.rom", 0xd000)
-      @kernal_rom    = ROM.load("kernal.rom",    0xe000)
+      load_roms
 
       @keyboard = Keyboard.new
       @joystick1 = Joystick.new

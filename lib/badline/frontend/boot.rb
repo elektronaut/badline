@@ -20,7 +20,8 @@ module Badline
         computer = boot(options)
       rescue Media::TrueDrive::Error, Storage::SIDFile::FormatError, Storage::T64::FormatError,
              Storage::TAP::FormatError, Storage::CRTFile::FormatError, Storage::G64Image::FormatError,
-             Cartridge::UnsupportedTypeError, Snapshot::FormatError, Media::DiskList::Error => e
+             Cartridge::UnsupportedTypeError, Snapshot::FormatError, Media::DiskList::Error,
+             Datasette::Missing => e
         warn "#{options.program}: #{options.media_path}: #{e.message}"
         return 1
       end
@@ -50,7 +51,8 @@ module Badline
       model = Model.named(options.model)
       computer = Computer.new(vic_model: model.vic_model, cia_model: model.cia_model,
                               sid_model: options.sid_model || Media.sid_model(media, otherwise: model.sid_model),
-                              region: model.region, reu: options.reu)
+                              region: model.region, reu: options.reu, kernal: model.kernal,
+                              datasette: model.datasette)
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,

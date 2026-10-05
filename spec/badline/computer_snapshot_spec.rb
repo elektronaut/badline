@@ -28,6 +28,26 @@ describe Badline::Computer, "#snapshot" do
     end
   end
 
+  # Layout 3 wrote the setup without the KERNAL and the datasette, the two
+  # values after the REU's size.
+  describe "a state in layout 3" do
+    let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
+    let(:restored) do
+      values = original.snapshot.values.dup
+      values[0] = 3
+      values.slice!(7, 2)
+      described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
+    end
+
+    it "builds a C64 with its KERNAL and a datasette" do
+      expect([restored.address_bus.kernal, restored.datasette.connected?]).to eq([:c64, true])
+    end
+
+    it "runs on as the saved machine does" do
+      checkpoints(original, restored, 10_000).each { |ours, theirs| expect(theirs).to eq(ours) }
+    end
+  end
+
   it "leaves the machine it is taken of alone" do
     machine = saved_demo
     machine.snapshot
@@ -118,6 +138,17 @@ describe Badline::Computer, "#snapshot" do
     it "builds a machine of the first NTSC C64s" do
       machine = described_class.new(region: Badline::Region::NTSC_OLD)
       expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::NTSC_OLD)
+    end
+
+    it "builds an SX-64 with its KERNAL and without a datasette" do
+      machine = described_class.new(kernal: :sx64, datasette: false)
+      built = described_class.setup(machine.snapshot).build
+      expect([built.address_bus.kernal, built.datasette.connected?]).to eq([:sx64, false])
+    end
+
+    it "names the SX-64 when it fails" do
+      sx64 = described_class.new(kernal: :sx64, datasette: false)
+      expect { sx64.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /not sx64, /)
     end
 
     it "builds a Drean machine" do

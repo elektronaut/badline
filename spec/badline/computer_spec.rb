@@ -55,6 +55,28 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "the KERNAL" do
+    it "fits the C64's unless given" do
+      expect(computer.address_bus.kernal).to eq(:c64)
+    end
+
+    it "fits the SX-64's when asked" do
+      bus = described_class.new(kernal: :sx64).address_bus
+      expect(bus.kernal_rom.peek(0xff80)).to eq(Badline::ROM.read("kernal-sx64.rom")[0x1f80])
+    end
+
+    it "fails on a KERNAL it doesn't know" do
+      expect { described_class.new(kernal: :c128) }.to raise_error(ArgumentError, /c128/)
+    end
+  end
+
+  describe "the datasette" do
+    it "is there unless the machine has none" do
+      expect([computer.datasette.connected?, described_class.new(datasette: false).datasette.connected?])
+        .to eq([true, false])
+    end
+  end
+
   describe "light pen on control port 1" do
     before { 100.times { computer.cycle! } }
 

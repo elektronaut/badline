@@ -39,6 +39,9 @@ model (`Badline::Model::ALL`):
 - `ram_expansion: :plus60k` or `:plus256k` fits the +60K or +256K RAM
   expansion, banked through its register at `$D100`.
 - `reu: 512` plugs in a RAM Expansion Unit of that many K.
+- `kernal: :sx64` fits the SX-64's KERNAL, and `datasette: false`
+  leaves the cassette port empty, so inserting a tape raises
+  `Badline::Datasette::Missing`. The SX-64 has both.
 
 ## Cartridges
 
@@ -60,6 +63,7 @@ Its contents are lost when the emulator quits.
 The KERNAL, BASIC and character ROMs come with the gem. To run other
 images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
 directory that holds `kernal.rom`, `basic.rom` and `character.rom`, plus
-`eapi/eapi-am29f040-14` if you attach EasyFlash cartridges.
+`kernal-sx64.rom` for the SX-64 and `eapi/eapi-am29f040-14` if you
+attach EasyFlash cartridges.
 `Badline.rom_path = dir` does the same before a `Badline::Computer` is
 built, and `nil` restores the bundled set.

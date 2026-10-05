@@ -5,11 +5,15 @@ module Badline
   # motor runs with a key pressed, and reports the keys through the cassette
   # sense line on the $01 port.
   class Datasette
+    # What inserting a tape raises on a machine without a cassette port.
+    class Missing < ArgumentError; end
+
     attr_reader :tape
     attr_writer :motor
 
     def initialize(tape = nil)
       @tape = tape
+      @connected = true
       @playing = false
       @motor = false
       @countdown = 0
@@ -27,7 +31,18 @@ module Badline
       @sense_handler = handler
     end
 
+    # Whether the machine has a datasette at its cassette port. The SX-64
+    # has none: its keys stay up and it takes no tape.
+    def connected? = @connected
+
+    def disconnect!
+      eject
+      @connected = false
+    end
+
     def insert(tape)
+      raise Missing, "this machine has no datasette" unless @connected
+
       @tape = tape
       rewind
     end
@@ -99,7 +114,7 @@ module Badline
     private
 
     def press(down)
-      return if down == @playing
+      return if down == @playing || !@connected
 
       @playing = down
       @sense_handler&.call
