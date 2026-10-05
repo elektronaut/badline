@@ -13,6 +13,8 @@ module Badline
     # only happens unpaced.
     #
     # Each frame's samples go to SDL through an IO::Buffer of 16-bit values.
+    # The SID's cycles are converted at `clock_hz`, the machine's clock, so
+    # an NTSC or Drean machine plays at its own pitch.
     class Sound
       RATE = 44_100
       AHEAD = 0.08
@@ -20,8 +22,9 @@ module Badline
 
       attr_reader :rate, :underruns, :dropped, :queued, :low, :high
 
-      def initialize(sid, wanted, verbose)
+      def initialize(sid, clock_hz, wanted, verbose)
         @sid = sid
+        @clock_hz = clock_hz
         @verbose = verbose
         @device = 0
         @rate = RATE
@@ -37,10 +40,11 @@ module Badline
 
       def on? = @device != 0
 
-      # Plays another machine's SID from here on.
-      def sid=(sid)
+      # Plays another machine's SID from here on, at that machine's clock.
+      def switch(sid, clock_hz)
         @sid = sid
-        sid.record(rate: @rate) if on?
+        @clock_hz = clock_hz
+        record if on?
       end
 
       def muted? = @muted
@@ -102,9 +106,11 @@ module Badline
         return puts "No sound: #{SDL.SDL_GetError}" unless on?
 
         @rate = SDL.read_i32(SDL.obtained)
-        @sid.record(rate: @rate)
+        record
         puts "Sound at #{@rate} Hz" if @verbose
       end
+
+      def record = @sid.record(rate: @rate, clock_hz: @clock_hz)
 
       def queued_seconds = SDL.SDL_GetQueuedAudioSize(@device) / (2.0 * @rate)
 
