@@ -13,8 +13,4 @@ class TestSpinelCheckMissingConstants < Minitest::Test
 
     assert_equal %w[Drive1541::Disk IECBus], SpinelCheck.missing_constants(lines)
   end
-
-  def test_leaves_out_the_snapshot_setup
-    assert_empty SpinelCheck.missing_constants([warning("Snapshot::Setup")])
-  end
 end

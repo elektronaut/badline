@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
-# The emulator core: the machine, its chips, media and traps, without the
-# options, snapshots, audio or front end. lib/badline.rb and the Spinel
-# harnesses in spinel/ load it, so a file the core needs is added here.
+# The emulator core: the machine, its chips, media and traps, and the
+# snapshot state Computer saves and restores with, without the options,
+# the rest of the snapshot code, audio or front end. lib/badline.rb and
+# the Spinel harnesses in spinel/ load it, so a file the core needs is
+# added here.
 require "badline/version"
 require "badline/integer_helper"
 require "badline/region"
@@ -35,6 +37,8 @@ require "badline/vic"
 require "badline/keyboard_buffer"
 require "badline/iec_bus"
 require "badline/drive1541"
+require "badline/snapshot/state"
+require "badline/snapshot/setup"
 require "badline/computer"
 require "badline/checkpoint"
 require "badline/storage"
