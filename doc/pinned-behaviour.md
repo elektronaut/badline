@@ -949,14 +949,22 @@ region moves the sprites. The positions live in `Region::Profile` and
   - Spec guard: *sprite DMA cycle stealing on NTSC* and *#phi1_data on
     NTSC* in [`vic_spec.rb`](../spec/badline/vic_spec.rb), and
     [`timing_spec.rb`](../spec/badline/vic/sprite/timing_spec.rb).
-- **Display compare and X counter.** The 6567R8 turns a sprite's display
-  on and off in cycle 59 (`sprite_display_cycle`), where the 6567R56A
-  keeps the 6569's cycle 58. Its X counter holds for 8 pixels
-  (`x_hold`), reading $184-$187 three times, so it reaches $1ff on a
-  520-pixel line. The 6567R56A's runs straight through 512 pixels.
-  Neither is pinned yet: moving the 6567R8's display compare to 58, the
-  6567R56A's to 59, or running the 6567R8's counter straight through and
-  wrapping it at 512 fails no row of those subsets.
+- **Display compare.** The 6567R8 turns a sprite's display on and off in
+  cycle 59 (`sprite_display_cycle`), where the 6567R56A keeps the 6569's
+  cycle 58. This isn't pinned yet: moving the 6567R8's to 58 or the
+  6567R56A's to 59 fails no row of those subsets.
+- **X counter.** The 6567R8's X counter spends 8 pixels more on a line
+  (`x_hold`): after $187 it runs over $180-$187 a second time, then on
+  from $188, so it reaches $1ff on a 520-pixel line. The 6567R56A's runs
+  straight through 512 pixels.
+  - Pinned for the 6572, which shares the line, by `spritescan_drean`'s
+    dump (see [VIC-II 6572 (Drean)](#vic-ii-6572-drean)).
+  - The 6567R8's own lightpen dump (`split-tests/lightpen`'s
+    `dump6567.prg`, run by hand on `--model ntsc`) agrees: the sample the
+    test takes 8 pixels into the hold reads $c2 ($180-$181). Reading
+    $184-$187 there instead, as badline did before, gives $c4. The 6572's
+    `dump6572.prg` has the same values. The `testbench-ntsc` rows pass
+    either way.
 - **Blanking and crop.** The blanked lines are the ones VICE's NTSC view
   leaves out, 12-27 on the 6567R8 and 13-27 on the 6567R56A, so the
   `testbench-ntsc` screenshots, VICE's 247 lines from line 28 running on
@@ -982,22 +990,28 @@ What the NTSC references don't settle, and so what stays as it is:
 
 The 6572 of the Drean C64 (`Region::DREAN`) runs the 6567R8's line, 65
 cycles with its sprite fetches in cycle 59, its display compare in cycle
-59 and its X counter holding at $184-$187, on PAL-N's 312 lines at
+59 and its X counter running over $180-$187 twice, on PAL-N's 312 lines at
 1,023,440 Hz. The testlist has no Drean rows, so the oracle is
 `split-tests/spritescan/spritescan_drean.prg` run by hand against its
 `dump6572.bin`, from a real 6572R1.
 
-- Pinned by that dump: every byte the test compares matches but four.
-  Measured before the dead pixels ran into the next line, repeating
-  $180-$183 or $188-$18b in the hold instead took the mismatches from
-  11 to 28. The display compare isn't pinned: cycle 58 left the same 11
-  as 59.
-- Not matched: sprite 1, pattern C (a one-pixel sprite against one
-  shifted a pixel left), collides for X = $180 to $186 on the 6572,
-  inside sprite 1's twelve dead pixels, where badline collides only for
-  $184 to $186, the X values the hold repeats. So `spritescan_drean`
-  still reports a failure. No other sprite and no other pattern shows
-  this on the 6572 or the 6569.
+- Pinned by that dump: every byte the test compares matches, and the
+  test passes.
+- The X counter's second run over $180-$187 is pinned by sprite 1,
+  pattern C (a one-pixel sprite against one shifted a pixel left), which
+  collides for X = $180 to $186 on the 6572. Those are inside sprite 1's
+  twelve dead pixels (K = 483), so the sprite only shows from the second
+  time the counter reads its X. Repeating $184-$187 in the hold instead
+  misses $180-$183 (4 bytes), repeating $180-$183 misses $184-$186 (3),
+  and repeating $17c-$183 or $184-$18b moves 18 bytes. Spec guard: the
+  6567R8 and 6572 examples in
+  [`timing_spec.rb`](../spec/badline/vic/sprite/timing_spec.rb).
+- The display compare isn't pinned: the dump matches with it in cycle
+  58 as well as 59.
+- Not matched: `spritegap3`'s 6572 dump has sprite 0 at X = 0 miss the
+  sprite at X = 1 for every pair it is in, where badline, like the
+  6567R8 dump, has them collide. The test still passes, because it
+  accepts the 6567R8's dump too.
 
 ## CIA 6526 timer pipeline
 

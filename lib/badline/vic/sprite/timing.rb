@@ -11,10 +11,9 @@ module Badline
       # fetches or the compare run a cycle later than on the 6569, what
       # hangs off them moves 8 pixels with them.
       class Timing
-        # The X counter's value where it holds on a raster of more than 512
-        # pixels, and the four values it repeats from there.
+        # The X counter's value where it steps back on a raster of more than
+        # 512 pixels, to run over the eight values below it again.
         HOLD_AT = 0x188
-        HOLD_BASE = 0x184
 
         attr_reader :columns, :sprite_cycle, :display_off_x, :x_pixels
 
@@ -36,14 +35,11 @@ module Badline
         def reload_x(index) = RELOAD_X + (8 * @shift) + (RELOAD_STEP * index)
 
         # The X counter at a raster pixel: X_OFFSET behind it, wrapping at
-        # the end of the line, less the pixels it held for past HOLD_AT,
-        # where it ran over $184-$187 again instead.
+        # the end of the line, less the pixels it held for from HOLD_AT on,
+        # where it ran over $180-$187 a second time.
         def self.xpos(pixel, width, hold)
           count = (pixel - X_OFFSET) % width
-          return count if count < HOLD_AT
-          return count - hold if count >= HOLD_AT + hold
-
-          HOLD_BASE + ((count - HOLD_AT) % 4)
+          count < HOLD_AT ? count : count - hold
         end
 
         # The raster pixels at which the X counter reads each coordinate, 512
