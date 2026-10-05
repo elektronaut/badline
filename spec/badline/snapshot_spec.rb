@@ -68,6 +68,54 @@ describe Badline::Snapshot do
     expect(computer.snapshot).to eq(SnapshotScenarios.demo_state)
   end
 
+  Badline::Model::ALL.reject { |model| model.region == Badline::Region::PAL }.each do |model|
+    describe "the #{model.name}" do
+      let(:computer) do
+        run(demo_machine(vic_model: model.vic_model, cia_model: model.cia_model, sid_model: model.sid_model,
+                         region: model.region), SnapshotScenarios::DEMO_CYCLES)
+      end
+
+      before { computer.save_snapshot(path) }
+
+      it "is built again as it was" do
+        expect(Badline::Model.of(Badline::Snapshot::Setup.of(described_class.load(path).address_bus))).to eq(model)
+      end
+
+      it "runs on as the saved machine does" do
+        restored = described_class.load(path)
+        expect(run(restored, 40_000).snapshot).to eq(run(computer, 40_000).snapshot)
+      end
+    end
+  end
+
+  describe "a machine with an REU part way through a transfer" do
+    # A 512K REU swapping $0800 bytes at $0400 with its RAM at $2000 in
+    # bank 3, with the interrupt on the end of the block enabled.
+    let(:computer) do
+      run(demo_machine(reu: 512), SnapshotScenarios::DEMO_CYCLES).tap do |machine|
+        bus = machine.address_bus
+        { 0xdf02 => 0x00, 0xdf03 => 0x04, 0xdf04 => 0x00, 0xdf05 => 0x20, 0xdf06 => 0x03, 0xdf07 => 0x00,
+          0xdf08 => 0x08, 0xdf09 => 0xc0, 0xdf01 => 0x92 }.each { |addr, value| bus.poke(addr, value) }
+        run(machine, 1_001)
+      end
+    end
+
+    before { computer.save_snapshot(path) }
+
+    it "is saved with the transfer under way" do
+      expect(computer.reu).to be_holds_bus
+    end
+
+    it "is built again with an REU of the same size" do
+      expect(described_class.load(path).reu.size_kb).to eq(512)
+    end
+
+    it "runs on as the saved machine does" do
+      restored = described_class.load(path)
+      expect(run(restored, 40_000).snapshot).to eq(run(computer, 40_000).snapshot)
+    end
+  end
+
   describe "with a tape whose file is gone" do
     before do
       tape = File.join(Dir.mktmpdir, "gone.tap")

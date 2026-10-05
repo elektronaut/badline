@@ -11,7 +11,7 @@ module Badline
         # MAINCPU and C64MEM hold the machine itself, so a version badline
         # doesn't read fails the restore; the others are left out and
         # reported.
-        READ = [MainCPU::NAME, C64Mem::NAME, "CIA1", "CIA2", SIDRegisters::NAME, SIDExtended::NAME,
+        READ = [MainCPU::NAME, C64Mem::NAME, REU1764::NAME, "CIA1", "CIA2", SIDRegisters::NAME, SIDExtended::NAME,
                 VICII::NAME].freeze
         REQUIRED = [MainCPU::NAME, C64Mem::NAME].freeze
 
@@ -83,6 +83,7 @@ module Badline
           case name
           when MainCPU::NAME then MainCPU.reads?(section)
           when C64Mem::NAME then C64Mem.reads?(section)
+          when REU1764::NAME then REU1764.reads?(section)
           when SIDRegisters::NAME then SIDRegisters.reads?(section)
           when SIDExtended::NAME then SIDExtended.reads?(section)
           when VICII::NAME then VICII.reads?(section)
@@ -94,6 +95,7 @@ module Badline
           case name
           when MainCPU::NAME then MainCPU.import(section, computer)
           when C64Mem::NAME then C64Mem.import(section, computer)
+          when REU1764::NAME then REU1764.import(section, computer)
           when SIDRegisters::NAME then SIDRegisters.import(section, computer)
           when SIDExtended::NAME then SIDExtended.import(section, computer)
           when VICII::NAME then VICII.import(section, computer)

@@ -51,21 +51,6 @@ describe Badline::Snapshot::Vice do
     it "describes the machine at an instruction boundary" do
       expect(settled.cpu).to be_boundary
     end
-
-    it "fails for a machine with an REU" do
-      expect { described_class.export(Badline::Computer.new(reu: 512).snapshot) }
-        .to raise_error(Badline::Snapshot::FormatError, /REU/)
-    end
-
-    it "fails for an NTSC machine" do
-      expect { described_class.export(Badline::Computer.new(region: Badline::Region::NTSC).snapshot) }
-        .to raise_error(Badline::Snapshot::FormatError, /NTSC/)
-    end
-
-    it "fails for a Drean machine" do
-      expect { described_class.export(Badline::Computer.new(region: Badline::Region::DREAN).snapshot) }
-        .to raise_error(Badline::Snapshot::FormatError, /PAL-N/)
-    end
   end
 
   describe "a machine restored from the VICE modules alone" do
@@ -178,9 +163,21 @@ describe Badline::Snapshot::Vice do
       expect([setup.vic_model, setup.cia_model, setup.sid_model]).to eq(%i[mos8565 mos6526a mos8580])
     end
 
-    it "refuses an NTSC VIC-II" do
-      ntsc = with_section("VIC-II") { |section| section.with(data: "\x03".b + section.data.byteslice(1..)) }
-      expect { ntsc.load }.to raise_error(Badline::Snapshot::FormatError, /NTSC/)
+    it "refuses a VIC-II model VICE added after the 6572" do
+      newer = with_section("VIC-II") { |section| section.with(data: "\x07".b + section.data.byteslice(1..)) }
+      expect { newer.load }.to raise_error(Badline::Snapshot::FormatError, /model 7, which badline doesn't build/)
+    end
+
+    it "builds no REU for an REU1764 version it doesn't know" do
+      reu = Badline::Snapshot::Section.new(name: "REU1764", major: 1, minor: 0, data: [512].pack("V"))
+      container = Badline::Snapshot::Container.new(described_class.export(state) + [reu])
+      expect(described_class.setup(container).reu).to be_nil
+    end
+
+    it "refuses an REU of a size badline doesn't build" do
+      reu = Badline::Snapshot::Section.new(name: "REU1764", major: 0, minor: 0, data: [96].pack("V"))
+      container = Badline::Snapshot::Container.new(described_class.export(state) + [reu])
+      expect { described_class.setup(container) }.to raise_error(Badline::Snapshot::FormatError, /a 96K REU/)
     end
   end
 
@@ -221,17 +218,17 @@ describe Badline::Snapshot::Vice do
   describe "an unknown module" do
     let(:container) do
       Badline::Snapshot::Container.new(described_class.export(state) +
-                                       [Badline::Snapshot::Section.new(name: "REU1764", major: 3, minor: 1, data: "x")])
+                                       [Badline::Snapshot::Section.new(name: "GEORAM", major: 3, minor: 1, data: "x")])
     end
 
     it "is reported, not fatal" do
       lines = []
       image.restore(Badline::Computer.new) { |line| lines << line }
-      expect(lines).to include("REU1764 3.1: badline doesn't read this module, left out")
+      expect(lines).to include("GEORAM 3.1: badline doesn't read this module, left out")
     end
 
     it "is warned without a block" do
-      expect { image.restore(Badline::Computer.new) }.to output(/REU1764 3\.1/).to_stderr
+      expect { image.restore(Badline::Computer.new) }.to output(/GEORAM 3\.1/).to_stderr
     end
   end
 

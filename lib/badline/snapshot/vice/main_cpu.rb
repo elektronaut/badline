@@ -45,7 +45,7 @@ module Badline
         end
 
         def interrupts(computer, fields)
-          irqs = [computer.vic.interrupted?, computer.cia1.interrupted?].count(true)
+          irqs = [computer.vic.interrupted?, computer.cia1.interrupted?, computer.reu&.irq? || false].count(true)
           nmis = computer.cia2.interrupted? ? 1 : 0
           pending = (irqs.positive? ? IK_IRQ : 0) | (computer.cpu.nmi ? IK_NMI : 0)
           fields.dword(irqs).dword(nmis).dword(pending)
