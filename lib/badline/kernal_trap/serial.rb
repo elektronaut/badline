@@ -85,17 +85,24 @@ module Badline
       end
 
       # Addressing the bus starts a new frame. The channel number arrives
-      # in the secondary address that follows.
+      # in the secondary address that follows. Each byte sent under ATN,
+      # and each byte of a frame, times its handshake with CIA 1's timer B
+      # as ISOUR does.
       def talk
         @talk_channel = nil
         @talking = @cpu.a == @device
-        return_to_caller if @talking
+        sent_under_atn if @talking
       end
 
       def listen
         @listen_channel = nil
         @listening = @cpu.a == @device
-        return_to_caller if @listening
+        sent_under_atn if @listening
+      end
+
+      def sent_under_atn
+        time_serial_byte(ISOUR_TIMEOUT)
+        return_to_caller
       end
 
       def second
@@ -104,19 +111,22 @@ module Badline
         @frame = @cpu.a & 0xf0
         @listen_channel = @cpu.a & 0x0f
         @buffer = []
-        return_to_caller
+        sent_under_atn
       end
 
       def tksa
         return unless @talking
 
         @talk_channel = @cpu.a & 0x0f
-        return_to_caller
+        sent_under_atn
       end
 
+      # CIOUT holds each byte back until the next one, or the UNLISTEN,
+      # comes, so the first byte of a frame sends nothing.
       def ciout
         return unless @listening
 
+        time_serial_byte(ISOUR_TIMEOUT) if !@buffer.empty? && accepted?
         @buffer << @cpu.a
         update_status(DEVICE_NOT_PRESENT) unless accepted?
         @cpu.status.carry = false
@@ -135,6 +145,7 @@ module Badline
 
         @listening = false
         deliver_frame
+        time_serial_byte(ISOUR_TIMEOUT)
         release_bus
       end
 
@@ -142,6 +153,7 @@ module Badline
         return unless @talking
 
         @talking = false
+        time_serial_byte(ISOUR_TIMEOUT)
         release_bus
       end
 
@@ -158,6 +170,7 @@ module Badline
         return unless @talking
 
         byte, status = received
+        time_serial_byte(ACPTR_TIMEOUT)
         @cpu.a = byte
         update_status(status)
         @cpu.status.carry = false

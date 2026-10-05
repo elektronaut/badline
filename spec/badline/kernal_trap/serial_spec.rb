@@ -99,6 +99,49 @@ describe Badline::KernalTrap::Serial do
     end
   end
 
+  describe "CIA 1's timer B, which the ROM times each byte with" do
+    def timer_high = computer.cia1.timer_b_latch >> 8
+
+    def clear_timer = computer.address_bus.poke(0xdc07, 0x00)
+
+    before do
+      send_frame(0xf2, "DATA".bytes)
+      call_routine(:listen, 8)
+      call_routine(:second, 0x62)
+      clear_timer
+    end
+
+    it "is left alone by a frame's first byte, which waits for the next" do
+      call_routine(:ciout, 0x41)
+      expect(timer_high).to eq(0x00)
+    end
+
+    it "is set for a byte sent once the next one comes" do
+      call_routine(:ciout, 0x41)
+      call_routine(:ciout, 0x42)
+      expect(timer_high).to eq(0x04)
+    end
+
+    it "is set for a byte sent by the UNLISTEN" do
+      call_routine(:unlisten, 0x3f)
+      expect(timer_high).to eq(0x04)
+    end
+
+    it "is set for a byte received" do
+      call_routine(:unlisten, 0x3f)
+      call_routine(:talk, 8)
+      call_routine(:tksa, 0x62)
+      call_routine(:acptr, 0)
+      expect(timer_high).to eq(0x01)
+    end
+
+    it "is started one-shot" do
+      call_routine(:unlisten, 0x3f)
+      3.times { computer.cia1.cycle! }
+      expect(computer.cia1.peek(0xdc0f)).to eq(0x09)
+    end
+  end
+
   describe "the end of a frame" do
     before do
       computer.address_bus.poke(0xdd02, 0x3f)

@@ -30,12 +30,6 @@ module Badline
       VERIFY_MISMATCH = 0x10
       READ_TIMEOUT = 0x02
 
-      # Timer B's latch high byte as ISOUR and ACPTR set it, and the
-      # control value both start it with: force load, one-shot, start.
-      ISOUR_TIMEOUT = 0x04
-      ACPTR_TIMEOUT = 0x01
-      TIMER_ONE_SHOT_START = 0x19
-
       # The ROM opens the file with secondary address $60 and leaves it in
       # $B9, so a second LOAD without a SETLFS loads to the file's own
       # address even when the first one relocated.
@@ -96,15 +90,11 @@ module Badline
         @bus.poke(0xb9, LOAD_SECONDARY)
       end
 
-      # The ROM times each byte on the serial bus with CIA 1's timer B,
-      # started one-shot with the high byte of its latch set: $04 for a byte
-      # sent (ISOUR), $01 for one received (ACPTR). A load ends with the
-      # UNLISTEN that closes the file, a byte sent, and a missing file with
-      # the ACPTR that timed out. Either way it releases ATN, the clock and
-      # the data line on CIA 2's port A.
+      # A load ends with the UNLISTEN that closes the file, a byte sent,
+      # and a missing file with the ACPTR that timed out. Either way it
+      # releases ATN, the clock and the data line on CIA 2's port A.
       def leave_bus(timer_high)
-        @bus.poke(0xdc07, timer_high)
-        @bus.poke(0xdc0f, TIMER_ONE_SHOT_START)
+        time_serial_byte(timer_high)
         release_serial_lines
       end
 

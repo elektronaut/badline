@@ -10,6 +10,12 @@ module Badline
 
       DEVICE = 8
 
+      # Timer B's latch high byte as ISOUR and ACPTR set it, and the
+      # control value both start it with: force load, one-shot, start.
+      ISOUR_TIMEOUT = 0x04
+      ACPTR_TIMEOUT = 0x01
+      TIMER_ONE_SHOT_START = 0x19
+
       def initialize(cpu:, bus:)
         @cpu = cpu
         @bus = bus
@@ -19,6 +25,14 @@ module Badline
 
       def kernal?
         @bus.io_port.kernal?
+      end
+
+      # The ROM times each byte on the serial bus with CIA 1's timer B,
+      # started one-shot with the high byte of its latch set: ISOUR_TIMEOUT
+      # for a byte sent, ACPTR_TIMEOUT for one received.
+      def time_serial_byte(timer_high)
+        @bus.poke(0xdc07, timer_high)
+        @bus.poke(0xdc0f, TIMER_ONE_SHOT_START)
       end
 
       # The ROM's release of the serial bus ($EE03): ATN ($EDBE), then the
