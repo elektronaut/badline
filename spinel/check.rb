@@ -40,11 +40,10 @@ module SpinelCheck
     missing_constants(output) if status.success?
   end
 
-  # The constants named in Spinel's "uninitialized constant" warnings, but
-  # for Snapshot::Setup: the snapshot isn't in badline/core yet.
+  # The constants named in Spinel's "uninitialized constant" warnings.
   def missing_constants(lines)
     names = lines.filter_map { |line| line[/uninitialized constant ((?:\w+::)*\w+)/, 1] }
-    names.uniq - %w[Snapshot::Setup]
+    names.uniq
   end
 
   def check_boot(*args)

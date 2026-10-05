@@ -37,8 +37,7 @@ Every harness but `cpu_tests.rb` loads the emulator core with
 `require "badline/core"`, the list `lib/badline.rb` loads too, so a file
 the core comes to need goes into `lib/badline/core.rb` alone. Spinel only
 warns about a constant the program uses but never defines, so the build
-tasks fail on that warning, leaving out `Snapshot::Setup` until the
-snapshot joins the core.
+tasks fail on that warning.
 
 ## Building
 
