@@ -21,8 +21,8 @@ module Badline
     # `sprite_cycle` is Bauer's cycle for sprite 0's p-access, and each
     # sprite after it takes two more. `sprite_display_cycle` is the cycle
     # that turns a sprite's display on or off. `x_hold` is how many pixels
-    # the X counter spends past its run, repeating $184-$187, and a raster
-    # of more than 512 pixels needs them.
+    # the X counter spends past its run, going over $180-$187 a second
+    # time, and a raster of more than 512 pixels needs them.
     Profile = Data.define(:name, :clock_hz, :cycles_per_line, :lines_per_frame, :hblank, :vblank,
                           :display_x_bounds, :crop, :mains_hz, :sprite_cycle, :sprite_display_cycle,
                           :x_hold)
@@ -40,8 +40,8 @@ module Badline
     # The 6567R8 of an NTSC C64: 65 cycles by 263 lines at 1,022,727 Hz,
     # with 60 Hz mains. The sprite fetches and the compares ahead of them
     # run a cycle later than on the 6569 (the spritesteal, spritex and
-    # phi1timing testprogs), and the X counter pauses near $184, as Bauer's
-    # 6567R8 diagram shows, reading $184-$187 for 8 pixels more. The
+    # phi1timing testprogs), and the X counter runs over $180-$187 twice,
+    # 8 pixels more, as the 6567R8's lightpen dump shows. The
     # blanked lines are the ones VICE's NTSC view leaves out, 12-27. It shows lines 0-11 below
     # line 262, and the crop leaves those out.
     NTSC = Profile.new(

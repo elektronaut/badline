@@ -17,10 +17,15 @@ RSpec.describe Badline::VIC::Sprite::Timing do
     expect(pixels(Badline::Region::NTSC_OLD)[0x1ff]).to eq([(0x1ff + 104) % 512])
   end
 
-  # The 6567R8's counter reads $184-$187 three times over, so a sprite
-  # there can start again.
-  it "reads $184 three times on the 6567R8" do
-    expect(pixels(Badline::Region::NTSC)[0x184]).to eq([492, 496, 500])
+  # The 6567R8's and the 6572's counter runs over $180-$187 a second time,
+  # so a sprite there can start again. Pinned by spritescan_drean's 6572
+  # dump: sprite 1 at $180-$186 starts past its dead pixels.
+  it "reads $180 twice on the 6567R8" do
+    expect(pixels(Badline::Region::NTSC)[0x180]).to eq([488, 496])
+  end
+
+  it "reads $187 twice on the 6572" do
+    expect(pixels(Badline::Region::DREAN)[0x187]).to eq([495, 503])
   end
 
   it "reaches every X on the 6567R8, 8 pixels later past the hold" do
