@@ -364,12 +364,12 @@ RSpec.describe Badline::Computer do
       ram.write(0xc000, [0xaa, 0xbb])
       ram.write(0xc1, [0x00, 0xc0]) # start $c000
       ram.write(0xae, [0x02, 0xc0]) # end $c002
-      run_routine(Badline::KernalTrap::Save::ADDRESS)
+      run_routine(Badline::KernalTrap::C64_LAYOUT.save)
     end
 
     def run_load(name = "DATA")
       request(name)
-      run_routine(Badline::KernalTrap::Load::ADDRESS)
+      run_routine(Badline::KernalTrap::C64_LAYOUT.load)
     end
 
     def run_routine(address)

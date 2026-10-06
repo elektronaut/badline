@@ -2,8 +2,8 @@
 
 module Badline
   module KernalTrap
-    # PC trap on the KERNAL serial LOAD routine ($F4A5, the default ILOAD
-    # vector target). Reads device 8 requests from the virtual drive's
+    # PC trap on the KERNAL serial LOAD routine (the default ILOAD vector
+    # target, $F4A5 on the C64). Reads device 8 requests from the virtual drive's
     # channel 0, then hands over to the ROM's own tail so it prints
     # SEARCHING FOR and LOADING (or VERIFYING) in direct mode, reports
     # errors and returns with the routine's register/zeropage contract;
@@ -12,19 +12,6 @@ module Badline
     # ROM's byte loop then loads it through the serial traps, and a loader
     # that overwrites ISTOP takes over mid-load as it does on a real drive.
     class Load < File
-      ADDRESS = 0xf4a5
-
-      # ROM entry points: the SEARCHING FOR and LOADING/VERIFYING messages,
-      # the byte loop that retries a timed-out byte until RUN/STOP, the
-      # successful return (CLC, LDX $AE, LDY $AF, RTS) and the
-      # FILE NOT FOUND and MISSING FILE NAME error exits
-      SEARCHING_MESSAGE = 0xf5af
-      LOADING_MESSAGE = 0xf5d2
-      BYTE_LOOP = 0xf4f3
-      LOAD_DONE = 0xf5a9
-      FILE_NOT_FOUND_EXIT = 0xf704
-      MISSING_FILE_NAME_EXIT = 0xf710
-
       # ST bits at $90
       EOI = 0x40
       VERIFY_MISMATCH = 0x10
@@ -35,8 +22,8 @@ module Badline
       # address even when the first one relocated.
       LOAD_SECONDARY = 0x60
 
-      def initialize(cpu:, bus:, drive:)
-        super(cpu:, bus:)
+      def initialize(cpu:, bus:, layout:, drive:)
+        super(cpu:, bus:, layout:)
         @drive = drive
       end
 
@@ -46,7 +33,7 @@ module Badline
         @bus.poke(0x93, @cpu.a)
         @bus.poke(0x90, 0x00)
         name = filename
-        return @cpu.program_counter = MISSING_FILE_NAME_EXIT if Storage.parse_name(name).first.empty?
+        return @cpu.program_counter = @layout.missing_file_name_exit if Storage.parse_name(name).first.empty?
 
         data, complete = receive(name)
         if low_memory?(data)
@@ -80,22 +67,23 @@ module Badline
         if data.empty?
           @bus.poke(0x90, EOI | READ_TIMEOUT)
           leave_bus(ACPTR_TIMEOUT)
-          continue_with(SEARCHING_MESSAGE, FILE_NOT_FOUND_EXIT)
+          continue_with(@layout.searching_message, @layout.file_not_found_exit)
         else
           deliver(data)
           @bus.poke(0x90, @bus.peek(0x90) & ~EOI) unless complete
           leave_bus(ISOUR_TIMEOUT)
-          continue_with(SEARCHING_MESSAGE, LOADING_MESSAGE, complete ? LOAD_DONE : BYTE_LOOP)
+          continue_with(@layout.searching_message, @layout.loading_message,
+                        complete ? @layout.load_done : @layout.load_byte_loop)
         end
         @bus.poke(0xb9, LOAD_SECONDARY)
       end
 
       # A load ends with the UNLISTEN that closes the file, a byte sent,
       # and a missing file with the ACPTR that timed out. Either way it
-      # releases ATN, the clock and the data line on CIA 2's port A.
+      # releases ATN, the clock and the data line.
       def leave_bus(timer_high)
         time_serial_byte(timer_high)
-        release_serial_lines
+        @layout.release_serial_lines(@bus)
       end
 
       def low_memory?(data)

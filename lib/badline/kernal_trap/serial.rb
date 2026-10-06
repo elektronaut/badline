@@ -12,17 +12,6 @@ module Badline
     class Serial < Routine
       attr_accessor :device
 
-      ROUTINES = {
-        0xed09 => :talk,
-        0xed0c => :listen,
-        0xedb9 => :second,
-        0xedc7 => :tksa,
-        0xeddd => :ciout,
-        0xedef => :untalk,
-        0xedfe => :unlisten,
-        0xee13 => :acptr
-      }.freeze
-
       # Frame type in the high nibble of the secondary address
       OPEN = 0xf0
       CLOSE = 0xe0
@@ -34,8 +23,8 @@ module Badline
 
       NO_DATA = [0x0d, EOI | READ_TIMEOUT].freeze
 
-      def initialize(cpu:, bus:, drive:, device: DEVICE)
-        super(cpu:, bus:)
+      def initialize(cpu:, bus:, layout:, drive:, device: DEVICE)
+        super(cpu:, bus:, layout:)
         @drive = drive
         @device = device
         @listening = false
@@ -63,13 +52,26 @@ module Badline
       end
 
       def install
-        ROUTINES.each do |address, routine|
-          @cpu.install_trap(address) { call_routine(routine) if kernal? }
+        routines.each do |address, routine|
+          @cpu.install_trap(address) { call_routine(routine) if kernal_mapped? }
         end
         self
       end
 
       private
+
+      def routines
+        {
+          @layout.talk => :talk,
+          @layout.listen => :listen,
+          @layout.second => :second,
+          @layout.tksa => :tksa,
+          @layout.ciout => :ciout,
+          @layout.untalk => :untalk,
+          @layout.unlisten => :unlisten,
+          @layout.acptr => :acptr
+        }
+      end
 
       def call_routine(routine)
         case routine
@@ -157,10 +159,10 @@ module Badline
         release_bus
       end
 
-      # UNLSN and UNTLK end by releasing ATN, the clock and the data line on
-      # CIA 2's port A, and leave the port's last read in the accumulator.
+      # UNLSN and UNTLK end by releasing ATN, the clock and the data line,
+      # and leave the port's last read in the accumulator.
       def release_bus
-        @cpu.a = release_serial_lines
+        @cpu.a = @layout.release_serial_lines(@bus)
         @cpu.status.negative = @cpu.a.anybits?(0x80)
         @cpu.status.zero = @cpu.a.zero?
         return_to_caller

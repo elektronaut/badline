@@ -38,7 +38,7 @@ describe Badline::KernalTrap::Load do
   end
 
   def trigger_trap
-    computer.cpu.program_counter = described_class::ADDRESS
+    computer.cpu.program_counter = Badline::KernalTrap::C64_LAYOUT.load
     computer.cpu.cycle!
   end
 
@@ -300,8 +300,9 @@ describe Badline::KernalTrap::Load do
 
     def mount_image(bad_sector)
       write_image(bad_sector)
-      trap = described_class.new(cpu: computer.cpu, bus: computer.address_bus, drive:)
-      computer.cpu.install_trap(described_class::ADDRESS) { trap.call }
+      layout = Badline::KernalTrap::C64_LAYOUT
+      trap = described_class.new(cpu: computer.cpu, bus: computer.address_bus, layout:, drive:)
+      computer.cpu.install_trap(layout.load) { trap.call }
     end
 
     def status

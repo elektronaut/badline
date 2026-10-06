@@ -22,11 +22,13 @@ module Badline
         return @drive.insert(storage) if @drive
 
         @drive = KernalTrap::Drive.new(storage)
-        load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, drive: @drive)
-        cpu.install_trap(KernalTrap::Load::ADDRESS) { load_trap.call }
-        @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, drive: @drive, device: serial_trap_device).install
-        save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, drive: @drive)
-        cpu.install_trap(KernalTrap::Save::ADDRESS) { save_trap.call }
+        layout = KernalTrap::C64_LAYOUT
+        load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, layout:, drive: @drive)
+        cpu.install_trap(layout.load) { load_trap.call }
+        @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, layout:, drive: @drive,
+                                              device: serial_trap_device).install
+        save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, layout:, drive: @drive)
+        cpu.install_trap(layout.save) { save_trap.call }
       end
 
       # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
@@ -35,8 +37,8 @@ module Badline
       def unmount
         return unless @drive
 
-        cpu.remove_trap(KernalTrap::Load::ADDRESS)
-        cpu.remove_trap(KernalTrap::Save::ADDRESS)
+        cpu.remove_trap(KernalTrap::C64_LAYOUT.load)
+        cpu.remove_trap(KernalTrap::C64_LAYOUT.save)
         @serial_trap.device = nil
         @serial_trap = nil
         @save_trap = nil

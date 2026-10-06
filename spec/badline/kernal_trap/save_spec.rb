@@ -41,7 +41,7 @@ describe Badline::KernalTrap::Save do
   end
 
   def trigger_trap
-    computer.cpu.program_counter = described_class::ADDRESS
+    computer.cpu.program_counter = Badline::KernalTrap::C64_LAYOUT.save
     computer.cpu.cycle!
   end
 

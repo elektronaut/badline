@@ -2,8 +2,8 @@
 
 module Badline
   module KernalTrap
-    # PC trap on the KERNAL serial SAVE routine ($F5ED, the default ISAVE
-    # vector target). Hands device 8 saves to the virtual drive as a PRG
+    # PC trap on the KERNAL serial SAVE routine (the default ISAVE vector
+    # target, $F5ED on the C64). Hands device 8 saves to the virtual drive as a PRG
     # (load address followed by the memory range); other devices fall
     # through to the ROM, and so do saves to a disk that doesn't take them
     # whole. The ROM prints SAVING in direct mode and returns
@@ -15,24 +15,13 @@ module Badline
     # and the ROM returns without an error. A "@" before the drive prefix
     # writes over a file of the same name.
     class Save < File
-      ADDRESS = 0xf5ed
-
-      # ROM entry points: the SAVING message, the two line releases that
-      # end UNLISTEN (clock, then data, leaving A as read from $DD00), the
-      # successful return (CLC, RTS) and the MISSING FILE NAME error exit
-      SAVING_MESSAGE = 0xf68f
-      CLOCK_RELEASE = 0xee85
-      DATA_RELEASE = 0xee97
-      SAVE_DONE = 0xf657
-      MISSING_FILE_NAME_EXIT = 0xf710
-
       SECONDARY = 0x61
 
       # ST bit at $90
       DEVICE_NOT_PRESENT = 0x80
 
-      def initialize(cpu:, bus:, drive:)
-        super(cpu:, bus:)
+      def initialize(cpu:, bus:, layout:, drive:)
+        super(cpu:, bus:, layout:)
         @drive = drive
         @saving = false
       end
@@ -51,11 +40,11 @@ module Badline
         return unless @drive.saves?
 
         @bus.poke(0xb9, SECONDARY)
-        return @cpu.program_counter = MISSING_FILE_NAME_EXIT if name.empty?
+        return @cpu.program_counter = @layout.missing_file_name_exit if name.empty?
 
         @bus.poke(0x90, 0x00)
         @saving = true
-        continue_with(SAVING_MESSAGE, ADDRESS)
+        continue_with(@layout.saving_message, @layout.save)
       end
 
       private
@@ -72,7 +61,7 @@ module Badline
         @bus.poke(0xad, @bus.peek(0xaf))
         @cpu.y = 0
         @cpu.status.overflow = true
-        continue_with(CLOCK_RELEASE, DATA_RELEASE, SAVE_DONE)
+        continue_with(@layout.clock_release, @layout.data_release, @layout.save_done)
       end
 
       # Start address at $C1/$C2 (STAL), end address (exclusive) at
