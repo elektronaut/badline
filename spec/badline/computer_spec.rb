@@ -113,6 +113,19 @@ RSpec.describe Badline::Computer do
       expect(described_class.new(kernal: :pet64).address_bus.kernal_rom.peek(0xff80)).to eq(0x64)
     end
 
+    it "fits the C64GS's BASIC with it, whose unused bytes are $00" do
+      expect(described_class.new(kernal: :gs).address_bus.basic_rom.peek(0xbf53)).to eq(0x00)
+    end
+
+    it "fits the C64GS's KERNAL from the second half of its image" do
+      bus = described_class.new(kernal: :gs).address_bus
+      expect(bus.kernal_rom.peek(0xff80)).to eq(Badline::ROM.read("c64gs.rom")[0x3f80])
+    end
+
+    it "fits the C64's BASIC with an 8K KERNAL" do
+      expect(described_class.new(kernal: :sx64).address_bus.basic_rom.peek(0xbf53)).to eq(0xaa)
+    end
+
     it "fails on a KERNAL it doesn't know" do
       expect { described_class.new(kernal: :c128) }.to raise_error(ArgumentError, /c128/)
     end
@@ -125,6 +138,10 @@ RSpec.describe Badline::Computer do
 
     it "shows them in green on the PET 64's monitor" do
       expect(described_class.new(board: :pet64).vic.palette).to eq(Badline::VIC::GREEN_PALETTE)
+    end
+
+    it "has no keyboard on the C64GS's" do
+      expect(described_class.new(board: :gs).keyboard.connected?).to be(false)
     end
 
     it "fails on a board it doesn't know" do
@@ -681,6 +698,11 @@ RSpec.describe Badline::Computer do
 
     it "takes an NMI" do
       expect(restore_edge?).to be(true)
+    end
+
+    it "takes none on a machine without a keyboard" do
+      computer.keyboard.connected = false
+      expect(restore_edge?).to be(false)
     end
 
     it "lets go of the NMI line after the pulse, so a second press takes another" do

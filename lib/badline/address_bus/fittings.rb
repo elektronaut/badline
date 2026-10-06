@@ -8,9 +8,10 @@ module Badline
       # The keywords #fit takes.
       NAMES = %i[kernal datasette board].freeze
 
-      # The C64's board and case, or the PET 64's, whose built-in monitor
-      # shows the VIC's output in shades of green.
-      BOARDS = %i[c64 pet64].freeze
+      # The C64's board and case, the PET 64's, whose built-in monitor
+      # shows the VIC's output in shades of green, or the C64GS's, which
+      # has no keyboard.
+      BOARDS = %i[c64 pet64 gs].freeze
 
       attr_reader :board
 
@@ -28,6 +29,7 @@ module Badline
 
         @board = name
         vic.palette = name == :pet64 ? VIC::GREEN_PALETTE : VIC::PALETTE
+        keyboard.connected = name != :gs
       end
     end
   end

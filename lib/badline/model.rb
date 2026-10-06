@@ -45,7 +45,13 @@ module Badline
     PET64 = Profile.new(name: "pet64", vic_model: :mos6569, cia_model: :mos6526, sid_model: :mos6581,
                         region: Region::PAL, kernal: :pet64, datasette: true, board: :pet64)
 
-    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC, DREAN, SX64, PET64].freeze
+    # The C64GS games console: a PAL C64C's board with its own BASIC and
+    # KERNAL, which show an animation asking for a cartridge when it has
+    # none, in a case with no keyboard and no cassette port.
+    C64GS = Profile.new(name: "c64gs", vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580,
+                        region: Region::PAL, kernal: :gs, datasette: false, board: :gs)
+
+    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC, DREAN, SX64, PET64, C64GS].freeze
 
     def self.named(name)
       model = ALL.find { |candidate| candidate.name == name }

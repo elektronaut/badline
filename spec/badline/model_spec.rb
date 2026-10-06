@@ -41,6 +41,12 @@ describe Badline::Model do
     expect([*chips(model), model.kernal, model.board]).to eq(%i[mos6569 mos6526 mos6581 pal pet64 pet64])
   end
 
+  it "builds the C64GS with a C64C's chips, its own ROMs and board, and no datasette" do
+    model = described_class.named("c64gs")
+    expect([*chips(model), model.kernal, model.board, model.datasette])
+      .to eq([:mos8565, :mos6526a, :mos8580, :pal, :gs, :gs, false])
+  end
+
   it "fails on a name it doesn't know" do
     expect { described_class.named("vic20") }.to raise_error(ArgumentError, /vic20/)
   end

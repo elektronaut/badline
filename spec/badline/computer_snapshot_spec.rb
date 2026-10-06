@@ -181,6 +181,11 @@ describe Badline::Computer, "#snapshot" do
         .to raise_error(Badline::Snapshot::FormatError, /not .*the pet64 board/)
     end
 
+    it "builds the C64GS's board" do
+      machine = described_class.new(board: :gs)
+      expect(described_class.setup(machine.snapshot).build.keyboard.connected?).to be(false)
+    end
+
     it "builds a Drean machine" do
       machine = described_class.new(region: Badline::Region::DREAN)
       expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::DREAN)
