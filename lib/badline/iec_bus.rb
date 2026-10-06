@@ -3,13 +3,14 @@
 module Badline
   # The serial bus between the C64 and its drives: ATN, CLK and DATA, each
   # an open-collector line with a pull-up. A line is low while any device
-  # pulls it (wired-AND), and high otherwise. The bus holds no state of its
-  # own: every read works the levels out from what each side drives now.
+  # pulls it (wired-AND), and high otherwise. Every read works the levels
+  # out from what each side drives now.
   #
   # The C64 drives the lines from CIA 2's port A through 7406 inverters, so
   # an output bit of 1 pulls its line low: PA3 ATN, PA4 CLK and PA5 DATA.
-  # PA6 and PA7 read CLK and DATA directly, 1 for a released line. The bus
-  # stands in as CIA 2's peripheral for those two inputs.
+  # The machine pushes those bits into the bus (host_lines=), which holds
+  # them. PA6 and PA7 read CLK and DATA directly, 1 for a released line.
+  # The bus stands in as CIA 2's peripheral for those two inputs.
   #
   # A drive drives CLK and DATA from VIA 1's PB3 and PB1, the same way. It
   # also pulls DATA while ATN IN differs from its ATN acknowledge on PB4
@@ -33,29 +34,20 @@ module Badline
     CLK = 0x02
     DATA = 0x04
 
-    attr_reader :host, :drives
+    attr_reader :drives, :host_lines
 
-    # +host+ is CIA 2, or nil for a bus with only drives on it.
-    def initialize(host: nil)
-      @host = host
+    def initialize
       @drives = []
-      @notifies = false
+      @host_lines = 0
     end
 
-    # Stands in as the host's peripheral, CIA 2's, and has it say when it
-    # writes port A (see notifies?).
-    def plug_in!
-      @host.peripheral = self
-      @host.on_port_a_write { host_written }
-      @notifies = true
+    # The machine pushes the lines it pulls, as port A bits, whenever they
+    # may have moved: its output bits, with input bits floating high as the
+    # 7406 inputs see them. A bus with only drives on it keeps 0.
+    def host_lines=(lines)
+      @host_lines = lines
+      @drives.each(&:host_written!)
     end
-
-    # Whether the host says when it may have moved a line (see plug_in!).
-    # Without, a drive asleep checks ATN every cycle.
-    def notifies? = @notifies
-
-    # CIA 2 wrote its port A, which may have moved a line.
-    def host_written = @drives.each(&:host_written!)
 
     def attach(drive)
       @drives << drive unless @drives.include?(drive)
@@ -68,7 +60,7 @@ module Badline
     # One pass over everything on the bus, for a reader that wants more
     # than one line. +host+ is the C64's port A lines as the reader sees
     # them, which a drive takes a cycle late (see Drive1541::SerialPort).
-    def low_lines(host = host_lines)
+    def low_lines(host = @host_lines)
       atn = host.anybits?(HOST_ATN_OUT)
       low = atn ? ATN : 0
       low |= CLK if host.anybits?(HOST_CLK_OUT)
@@ -83,7 +75,7 @@ module Badline
       low
     end
 
-    def atn_low?(host = host_lines) = host.anybits?(HOST_ATN_OUT)
+    def atn_low?(host = @host_lines) = host.anybits?(HOST_ATN_OUT)
 
     def clk_low? = low_lines.anybits?(CLK)
 
@@ -101,9 +93,5 @@ module Badline
 
     # Port B goes to the user port, not the serial bus.
     def read_b(_port_a, _port_b) = 0xff
-
-    # What the C64 pulls, as port A bits: its output bits, with input bits
-    # floating high as the 7406 inputs see them.
-    def host_lines = @host ? @host.port_a_lines : 0
   end
 end

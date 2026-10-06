@@ -157,18 +157,18 @@ module DriveScenarios
     # while the C64's lines move. The DOS reaches its idle loop about 1M
     # cycles after power-on, and the lines move from 1.2M.
     def run(report)
-      host = Badline::CIA.new(start: 0xdd00)
-      host.poke(0xdd02, 0xff)
-      host.poke(0xdd00, 0x07)
-      skipping = idle_drive(host, true)
-      stepping = idle_drive(host, false)
+      skipping = idle_drive(true)
+      stepping = idle_drive(false)
       asleep = 0
       cycle = 0
       differs = []
       CHECKPOINTS.each do |checkpoint|
         while cycle < checkpoint
           lines = LINES[cycle]
-          host.poke(0xdd00, lines) if lines
+          if lines
+            skipping.serial_bus.host_lines = lines
+            stepping.serial_bus.host_lines = lines
+          end
           skipping.host_cycle!
           stepping.host_cycle!
           asleep += 1 if skipping.asleep?
@@ -180,10 +180,13 @@ module DriveScenarios
       report.check("matches-stepping", differs.empty?, "differs at #{differs.join(',')}")
     end
 
-    def idle_drive(host, idle_skip)
+    # A drive on a bus of its own, the C64's lines released.
+    def idle_drive(idle_skip)
       drive = Badline::Drive1541.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      drive.connect(Badline::IECBus.new(host:))
+      bus = Badline::IECBus.new
+      bus.host_lines = 0x07
+      drive.connect(bus)
       drive
     end
 

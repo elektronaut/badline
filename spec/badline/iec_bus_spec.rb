@@ -28,6 +28,47 @@ describe Badline::IECBus do
     it "reads the data line alone low while it pulls only that one" do
       expect(port_a(0x3f, 0x27)).to eq(0x67)
     end
+
+    it "holds the lines CIA 2's port A pulls, input bits floating high" do
+      port_a(0x3f, 0x0f)
+      expect(computer.iec_bus.host_lines).to eq(0xcf)
+    end
+
+    it "takes them again as CIA 2's direction register changes" do
+      port_a(0x3f, 0x07)
+      computer.cia2.poke(0xdd02, 0x00)
+      expect(computer.iec_bus.host_lines).to eq(0xff)
+    end
+
+    it "takes them from a write through the address bus, as the serial traps release the lines" do
+      computer.address_bus.poke(0xdd02, 0x3f)
+      computer.address_bus.poke(0xdd00, 0x17)
+      expect(computer.iec_bus.host_lines).to eq(0xd7)
+    end
+
+    it "takes them back from a snapshot" do
+      port_a(0x3f, 0x0f)
+      state = computer.snapshot
+      port_a(0x3f, 0x07)
+      computer.restore(state)
+      expect(computer.iec_bus.host_lines).to eq(0xcf)
+    end
+  end
+
+  describe "a bus with only drives on it" do
+    subject(:bus) { described_class.new }
+
+    let(:drive) { instance_double(Badline::Drive1541, host_written!: nil) }
+
+    it "holds no host lines" do
+      expect(bus.host_lines).to eq(0)
+    end
+
+    it "tells its drives when the host pushes its lines" do
+      bus.attach(drive)
+      bus.host_lines = 0x0f
+      expect(drive).to have_received(:host_written!)
+    end
   end
 
   context "with the C64 and a drive on it" do

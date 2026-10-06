@@ -149,8 +149,8 @@ module Badline
     # The host has run this cycle already, and the drive sees what it did
     # from the next one on (see SerialPort). Asleep, the drive owes the
     # cycles instead, until ATN moves or its counters are due (see Idle).
-    # It looks at ATN only after the C64 wrote CIA 2's port A, on a bus
-    # that says so (see host_written!).
+    # It looks at ATN only after the machine pushed its lines into the bus
+    # (see host_written!).
     def host_cycle!
       if @asleep
         return if (@slept += 1) != @wake_at && @host_still
@@ -169,7 +169,7 @@ module Badline
       plan_wake if @asleep
     end
 
-    # The C64 wrote CIA 2's port A, so ATN may have moved.
+    # The machine pushed its lines into the bus, so ATN may have moved.
     def host_written!
       @host_still = false
     end

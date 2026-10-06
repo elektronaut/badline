@@ -97,6 +97,7 @@ module Badline
         @init_handlers_lost = [input.int - @init_handlers.length, 0].max
         load_cartridge(input)
         address_bus.load_state(input)
+        push_serial_lines
         @cpu.load_state(input)
         load_trap_drive(input)
         load_serial_bus(input)
