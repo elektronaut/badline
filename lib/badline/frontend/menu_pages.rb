@@ -75,7 +75,7 @@ module Badline
         when :keys_c64, :keys_joystick then keys(action == :keys_c64 ? :keyboard : :joystick)
         when :swap then @controls.swap_ports
         when :sound_on, :mute then @sound.toggle_mute unless @sound.muted? == (action == :mute)
-        when :sid6581, :sid8580 then @computer.sid.model = action == :sid8580 ? :mos8580 : :mos6581
+        when :sid6581, :sid8580 then @computer.sound_source.model = action == :sid8580 ? :mos8580 : :mos6581
         when :reset then @computer.reset!
         when :power_cycle then @computer.power_cycle!
         else pick_port(action)
@@ -145,7 +145,7 @@ module Badline
         else
           info("OUTPUT", "OFF")
         end
-        toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], @computer.sid.model == :mos8580 ? 1 : 0])
+        toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], @computer.sound_source.model == :mos8580 ? 1 : 0])
       end
 
       # Saving now and by name, loading a named save, and the quicksaves

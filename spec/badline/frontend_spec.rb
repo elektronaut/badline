@@ -59,6 +59,10 @@ describe Badline::Frontend do
       expect(built("--ntsc")).to eq(%i[mos6569 mos6526 mos6581 ntsc])
     end
 
+    it "is a C64 with c64" do
+      expect(built("c64")).to eq(%i[mos6569 mos6526 mos6581 pal])
+    end
+
     it "is the model --model names" do
       expect(built("--model", "c64c")).to eq(%i[mos8565 mos6526a mos8580 pal])
     end

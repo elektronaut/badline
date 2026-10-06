@@ -10,7 +10,9 @@ module Badline
   # The command line of both builds, badline-ruby and the native badline.
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. `sid`, given
-  # first, plays .sid tunes and directories of them in the terminal. The
+  # first, plays .sid tunes and directories of them in the terminal.
+  # `c64` or `vic20`, given first, names the machine family, and without
+  # either the family is the C64. The
   # native build adds --no-sound and --version, and badline-ruby adds
   # --disable-jit.
   #
@@ -46,6 +48,9 @@ module Badline
     attr_reader :program, :media_path, :tune_paths, :subtune, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
+    # The machine family to build (Badline::Machine), :c64 or :vic20.
+    attr_reader :family
+
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
     # The native build plays the SID in the window unless --no-sound says
@@ -55,6 +60,7 @@ module Badline
       @native = native
       @program = native ? "badline" : "badline-ruby"
       @media_path = nil
+      @family = :c64
       @sid_command = false
       @tune_paths = []
       @subtune = nil
@@ -90,7 +96,7 @@ module Badline
 
     def parse(argv)
       args = argv.dup
-      sid_command(args) if args.first == "sid"
+      subcommand(args)
       argument(args.shift, args) until args.empty?
       play_lone_tune
       validate unless help? || version?
@@ -165,9 +171,15 @@ module Badline
       [:both, @native ? :native : :ruby].include?(option.build)
     end
 
-    def sid_command(args)
+    # Takes `sid`, `c64` or `vic20` when given first.
+    def subcommand(args)
+      case args.first
+      when "sid" then @sid_command = true
+      when "c64" then @family = :c64
+      when "vic20" then @family = :vic20
+      else return
+      end
       args.shift
-      @sid_command = true
     end
 
     # A .sid on its own plays in the SID player, as `sid` would, unless an
@@ -257,31 +269,6 @@ module Badline
       when "--all-subtunes" then @all_subtunes = true
       else @tui = false
       end
-    end
-
-    def sid_model_for(value)
-      return if value == "auto"
-      raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
-
-      SID_MODELS[value]
-    end
-
-    def reu_size(value)
-      raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
-
-      value.to_i
-    end
-
-    def number(flag, value)
-      raise Error, "invalid argument: #{flag} #{value}" unless value.match?(/\A\d+\z/)
-
-      value.to_i
-    end
-
-    def decimal(flag, value)
-      raise Error, "invalid argument: #{flag} #{value}" unless value.match?(DECIMAL)
-
-      value.to_f
     end
 
     def media_argument(arg)
