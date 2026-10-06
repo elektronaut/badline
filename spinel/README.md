@@ -13,7 +13,9 @@ CRuby.
 - `vic20_boot.rb` boots the VIC-20 headless and types `print 6*7`. It
   prints digests of the CPU, RAM, colour RAM, VIC and both VIAs every
   250,000 cycles, then the screen, the counts and the registers. An
-  argument picks the RAM expansion.
+  argument picks the RAM expansion, and another records the sound at a
+  sample rate: the line typed then plays all four voices first, and the
+  sample count and a checksum of the samples follow the registers.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
   registers, cycle counts, the bus trace and RAM.
 - `convert.rb` samples the SingleStepTests JSON into the line format
@@ -82,7 +84,8 @@ and the same harness on CRuby. It fails unless the outputs match: every
 checkpoint, the screen, the counts and the registers for both boots, and
 every SingleStepTests verdict. Without media the C64 boots for 6M cycles.
 With media it runs 23M cycles unless given a count. The VIC-20 boots
-unexpanded for 2M cycles either way. The first run converts 100
+unexpanded for 2M cycles either way, once silent and once recording its
+sound at 44.1 kHz. The first run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, so it needs
 `vendor/65x02` (`rake vendor:65x02`).
 

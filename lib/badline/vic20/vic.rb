@@ -6,8 +6,9 @@ require "badline/vic20/vic/text_window"
 module Badline
   class Vic20
     # The VIC-I, the 6561 on PAL machines: its sixteen registers, the
-    # raster, the text window's fetches over the V-bus and the picture,
-    # without the sound.
+    # raster, the text window's fetches over the V-bus and the picture. The
+    # writes to the sound's registers, $900A-$900E, go on to the Sound
+    # attached as #sound.
     #
     # The registers repeat through $9000-$90FF. $9003 bit 7 and $9004 read
     # the raster line, its bit 0 and bits 8-1. $9006 and $9007 read the
@@ -69,6 +70,7 @@ module Badline
       ].freeze
 
       attr_reader :rasterline, :column, :profile
+      attr_accessor :sound
 
       def initialize(profile = PAL)
         @profile = profile
@@ -81,6 +83,7 @@ module Badline
         @starts = @painter.starts
         @stale = @painter.stale
         @bus = nil
+        @sound = nil
         @color_cells = Array.new(0x400, 0)
         power_on!
       end
@@ -168,7 +171,10 @@ module Badline
         when 0x01 then @origin_y = value
         when 0x03 then rows_written(value)
         when 0x05 then bases_written
-        when 0x0e then @painter.aux_written(pixel_position, value >> 4)
+        when 0x0a, 0x0b, 0x0c, 0x0d then @sound&.write(register, value)
+        when 0x0e
+          @painter.aux_written(pixel_position, value >> 4)
+          @sound&.write(register, value)
         when 0x0f then @painter.colors_written(pixel_position, value)
         end
       end

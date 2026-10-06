@@ -50,8 +50,8 @@ module SpinelCheck
     compare("boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
   end
 
-  def check_vic20_boot
-    compare("vic20_boot", []) { |out| out.reject { |line| line.start_with?("timed ") } }
+  def check_vic20_boot(*args)
+    compare("vic20_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
   end
 
   def check_cpu_tests

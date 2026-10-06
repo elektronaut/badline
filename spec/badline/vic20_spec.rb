@@ -29,6 +29,17 @@ describe Badline::Vic20 do
     expect(machine.vic.peek(0x900f)).to eq(0x1b)
   end
 
+  it "sends the VIC's sound registers to its sound source" do
+    machine.bus.poke(0x900e, 0x3c)
+    expect([machine.sound_source.volume, machine.vic.peek(0x900e)]).to eq([12, 0x3c])
+  end
+
+  it "records its sound at the machine's clock" do
+    machine.sound_source.record(rate: 44_100)
+    machine.run_cycles(110_841)
+    expect(machine.sound_source.drain_samples.size).to eq(4_410)
+  end
+
   it "clocks the VIC with the CPU" do
     machine.run_cycles(71)
     expect(machine.vic.rasterline).to eq(1)

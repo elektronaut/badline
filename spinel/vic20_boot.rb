@@ -5,17 +5,23 @@
 # the screen, counts and registers, and the speed from timed_from on.
 # Builds with Spinel as well as running on CRuby:
 #
-#   ruby --yjit -Ilib spinel/vic20_boot.rb [cycles] [timed_from] [ram]
+#   ruby --yjit -Ilib spinel/vic20_boot.rb [cycles] [timed_from] [ram] [rate]
 #   spinel -I lib --no-line-map --rbs spinel/sig spinel/vic20_boot.rb -o tmp/spinel/vic20_boot
-#   tmp/spinel/vic20_boot [cycles] [timed_from] [ram]
+#   tmp/spinel/vic20_boot [cycles] [timed_from] [ram] [rate]
 #
 # ram names a RAM expansion from Badline::Vic20::Bus::RAM_CONFIGURATIONS.
+# A rate above 0 records the sound at that many samples a second, drained
+# once a frame, and the line typed plays a tone on each voice and the
+# noise first. The sample count and a checksum of the samples follow the
+# registers.
 
 require "badline/core"
 require "badline/vic20"
 
 CLOCK_HZ = 1_108_405
 CHECKPOINT = 250_000
+FRAME = 71 * 312
+SOUND = "poke36878,15:poke36874,200:poke36875,215:poke36876,230:poke36877,240:"
 
 def screen_char(code)
   code &= 0x7f
@@ -57,20 +63,34 @@ end
 cycles = ARGV[0] ? ARGV[0].to_i : 2_000_000
 timed_from = ARGV[1] ? ARGV[1].to_i : 1_000_000
 ram = ARGV[2] ? ARGV[2].to_sym : :unexpanded
+rate = ARGV[3] ? ARGV[3].to_i : 0
 
 machine = Badline::Vic20.new(ram:)
-machine.on_init { machine.type_text("print 6*7\r") }
+line = rate.positive? ? "#{SOUND}print 6*7\r" : "print 6*7\r"
+machine.on_init { machine.type_text(line) }
+sound = machine.sound_source
+sound.record(rate:) if rate.positive?
 
+count = 0
+checksum = 0
 started = 0.0
 i = 0
 while i < cycles
   started = Process.clock_gettime(Process::CLOCK_MONOTONIC) if i == timed_from
   stop = ((i / CHECKPOINT) + 1) * CHECKPOINT
+  frame_end = ((i / FRAME) + 1) * FRAME
+  stop = frame_end if rate.positive? && frame_end < stop
   stop = timed_from if i < timed_from && timed_from < stop
   stop = cycles if cycles < stop
   machine.run_cycles(stop - i)
   i = stop
   puts checkpoint(machine) if (i % CHECKPOINT).zero?
+  next unless rate.positive?
+
+  sound.drain_samples.each do |sample|
+    checksum = ((checksum * 31) + (sample & 0xffff)) & 0xffffffff
+    count += 1
+  end
 end
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
@@ -90,6 +110,7 @@ end
 cpu = machine.cpu
 puts "cycles #{machine.cycles} instructions #{cpu.instructions}"
 puts "pc #{cpu.program_counter} a #{cpu.a} x #{cpu.x} y #{cpu.y} p #{cpu.p}"
+puts "samples #{count} checksum #{checksum}" if rate.positive?
 timed = cycles - timed_from
 puts "timed #{timed} cycles in #{(elapsed * 1000).round} ms, " \
      "#{(timed / elapsed / CLOCK_HZ).round(3)}x real time"
