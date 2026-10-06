@@ -8,9 +8,8 @@ module Badline
     # passes go in bulk, and the rest cycle by cycle, which may find the
     # idle loop and put the drive back to sleep.
     #
-    # The drive looks at ATN only when the C64 may have moved it, on a
-    # bus that says when (IECBus#notifies?), and every host cycle on one
-    # that doesn't.
+    # The drive looks at ATN only when the machine may have moved it, as
+    # it pushes its lines into the bus (IECBus#host_lines=).
     module Sleep
       # Whether the drive is skipping its idle loop right now.
       def asleep? = @asleep
@@ -40,10 +39,10 @@ module Badline
         @wake_at = 0
       end
 
-      # A host cycle asleep that may wake the drive. The bus says whether
-      # the next ones need a look at ATN.
+      # A host cycle asleep that may wake the drive. The next ones need no
+      # look at ATN until the machine pushes its lines again.
       def doze
-        @host_still = @serial_bus.notifies?
+        @host_still = true
         if @serial_port.atn_moved?
           settle!
         elsif @slept == @wake_at

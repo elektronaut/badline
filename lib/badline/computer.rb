@@ -70,7 +70,7 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @drive1541 = nil
-      @iec_bus = IECBus.new(host: @cia2).tap(&:plug_in!)
+      plug_serial_bus
       @reu = reu ? plug_reu(reu) : nil
     end
 
@@ -210,6 +210,20 @@ module Badline
       @restore_pulse = false
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
+    end
+
+    # CIA 2's port A drives the serial bus, which reads CLK and DATA back
+    # into it.
+    def plug_serial_bus
+      @iec_bus = IECBus.new
+      @cia2.peripheral = @iec_bus
+      @cia2.on_port_a_write { push_serial_lines }
+      push_serial_lines
+    end
+
+    # Pushes the lines CIA 2's port A pulls into the serial bus.
+    def push_serial_lines
+      @iec_bus.host_lines = @cia2.port_a_lines
     end
 
     def plug_reu(size_kb)

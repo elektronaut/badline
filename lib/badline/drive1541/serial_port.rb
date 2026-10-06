@@ -27,7 +27,7 @@ module Badline
 
       attr_reader :bus
 
-      def initialize(device: 8, bus: nil)
+      def initialize(device: 8, bus: IECBus.new)
         @port_b = (0xff & ~(SERIAL_INPUTS | JUMPERS)) | (((device - 8) & 0x03) << 5)
         @host = 0
         self.bus = bus
@@ -38,10 +38,10 @@ module Badline
         latch_host
       end
 
-      # Takes the C64's lines as they stand, for the drive cycles of the
-      # next host cycle.
+      # Takes the C64's lines as the machine last pushed them into the bus,
+      # for the drive cycles of the next host cycle.
       def latch_host
-        @host = @bus ? @bus.host_lines : 0
+        @host = @bus.host_lines
       end
 
       # The C64's lines as last latched. The jumpers and the bus are the
@@ -55,10 +55,7 @@ module Badline
       end
 
       # Whether the C64 has moved ATN since the last latch_host.
-      def atn_moved?
-        lines = @bus ? @bus.host_lines : 0
-        (lines ^ @host).anybits?(IECBus::HOST_ATN_OUT)
-      end
+      def atn_moved? = (@bus.host_lines ^ @host).anybits?(IECBus::HOST_ATN_OUT)
 
       def atn_low? = @bus.atn_low?(@host)
 

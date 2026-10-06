@@ -3,8 +3,8 @@
 require "spec_helper"
 
 describe Badline::Drive1541::Idle do
-  # The C64's side of the bus: CIA 2's port A lines, which the spec sets.
-  let(:host) { Struct.new(:port_a_lines).new(0x07) }
+  # The C64's side of the bus, whose port A lines the spec pushes.
+  let(:bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
   # INC $10; DEC $10; JMP $EBFF
   let(:pure_loop) { [0xe6, 0x10, 0xc6, 0x10, 0x4c, 0xff, 0xeb] }
 
@@ -24,7 +24,7 @@ describe Badline::Drive1541::Idle do
     rom = Badline::ROM.new(bytes, length: 0x4000, start: 0xc000)
     Badline::Drive1541.new(rom:).tap do |drive|
       drive.idle_skip = idle_skip
-      drive.connect(Badline::IECBus.new(host:))
+      drive.connect(bus)
     end
   end
 
@@ -81,7 +81,7 @@ describe Badline::Drive1541::Idle do
   it "wakes when ATN moves" do
     drive = drive_running(pure_loop)
     asleep_for(drive, 100)
-    host.port_a_lines = 0x0f
+    bus.host_lines = 0x0f
     drive.host_cycle!
     expect(drive.asleep?).to be(false)
   end
@@ -89,7 +89,7 @@ describe Badline::Drive1541::Idle do
   it "sleeps through CLK and DATA moving" do
     drive = drive_running(pure_loop)
     asleep_for(drive, 100)
-    host.port_a_lines = 0x37
+    bus.host_lines = 0x37
     drive.host_cycle!
     expect(drive.asleep?).to be(true)
   end
@@ -170,7 +170,7 @@ describe Badline::Drive1541::Idle do
     it "wakes when ATN moves" do
       drive = interrupted
       asleep_for(drive, 40_000)
-      host.port_a_lines = 0x0f
+      bus.host_lines = 0x0f
       drive.host_cycle!
       expect(drive.asleep?).to be(false)
     end
@@ -178,7 +178,7 @@ describe Badline::Drive1541::Idle do
     it "leaves the drive as running every cycle does, as ATN moves" do
       drives = [interrupted, interrupted(idle_skip: false)]
       states(drives, [40_000])
-      host.port_a_lines = 0x0f
+      bus.host_lines = 0x0f
       expect(states(drives, [1, 3, 5_000])).to all(satisfy { |skipping, stepping| skipping == stepping })
     end
 
