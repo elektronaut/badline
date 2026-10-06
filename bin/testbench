@@ -77,15 +77,16 @@
 # out until a testbench can run the 6572, so a commented-out row tagged
 # vicii-drean counts as a row.
 #
-# --vic20 runs the exitcode rows of vic20-testlist.in instead, each on a
-# PAL VIC-20 with the RAM its options ask for: none for vic20-unexp or no
-# option, BLK1 for vic20-8k and every block, xvic's -memory all, for
-# vic20-32k. Rows that ask for a GEO-RAM drop out. The program goes to the
-# start of BASIC, as xvic's -basicload puts it, and RUN is typed once the
-# machine has booted. A mountcrt row starts from power-on with the
+# --vic20 runs the exitcode and screenshot rows of vic20-testlist.in
+# instead, each on a PAL VIC-20 with the RAM its options ask for: none for
+# vic20-unexp or no option, BLK1 for vic20-8k and every block, xvic's
+# -memory all, for vic20-32k. Rows that ask for a GEO-RAM drop out. The
+# program goes to the start of BASIC, as xvic's -basicload puts it, and
+# RUN is typed once the machine has booted. A mountcrt row starts from power-on with the
 # cartridge's ROM in its block. Tests report through $910F, and a failure
-# keeps the VIC-20's 22-column text screen. Screenshot rows wait for the
-# VIC-I's video.
+# keeps the VIC-20's 22-column text screen. A screenshot shows xvic's
+# view, and compares from the text window's top left corner, as
+# xvic-hooks.sh does, against the reference by colour index.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -389,10 +390,12 @@ module Testbench
     end
   end
 
-  # Maps reference PNG pixels to C64 color indices by nearest palette entry.
+  # Maps reference PNG pixels to color indices by nearest palette entry,
+  # the C64's by default.
   class ReferenceImage
-    def initialize(path)
+    def initialize(path, palette = PALETTE)
       @png = ChunkyPNG::Image.from_file(path)
+      @palette = palette
       @indices = Hash.new { |cache, pixel| cache[pixel] = nearest(pixel) }
     end
 
@@ -409,7 +412,7 @@ module Testbench
     def nearest(pixel)
       rgb = [ChunkyPNG::Color.r(pixel), ChunkyPNG::Color.g(pixel),
              ChunkyPNG::Color.b(pixel)]
-      (0..15).min_by { |i| distance(PALETTE[i], rgb) }
+      (0..15).min_by { |i| distance(@palette[i], rgb) }
     end
 
     def distance(color, rgb)
@@ -744,7 +747,7 @@ module Testbench
     # screen is the text screen for an exitcode test, and the display's
     # rows of palette indices for a screenshot test.
     def score(test, exit_code, screen)
-      return score_screenshot(test, exit_code, Screenshot.new(screen)) unless test.type == "exitcode"
+      return score_screenshot(test, exit_code, test.screenshot_of(screen)) unless test.type == "exitcode"
 
       score_exitcode(test, exit_code).tap do |result|
         write_screen(test, screen) unless result == "PASS"

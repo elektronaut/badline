@@ -5,16 +5,18 @@ require_relative "testbench_machine"
 # The machine-driving half of bin/testbench --vic20: building the VIC-20 a
 # row asks for, loading its program as xvic's -basicload does, running it
 # until it reports through $910F or its budget runs out, and reading back
-# the text screen. It stays inside the Ruby subset Spinel compiles, so
+# the text screen or the display. It stays inside the Ruby subset Spinel compiles, so
 # bin/testbench on CRuby and spinel/vic20_testbench.rb on a Spinel build
 # run each test the same way.
 module Testbench
   # A VIC-20 with the RAM expansion +ram+ names
   # (Badline::Vic20::Bus::RAM_CONFIGURATIONS), booted up to the cycle where
   # a program loads, or left at power-on when +boot+ is false, for a
-  # cartridge that has to be in before the first cycle.
+  # cartridge that has to be in before the first cycle. The VIC doesn't
+  # paint its display until a screenshot row's run asks it to.
   def self.vic20_machine(ram, boot)
     machine = Badline::Vic20.new(ram:)
+    machine.vic.render = false
     machine.run_cycles(machine.init_threshold) if boot
     machine
   end
@@ -29,9 +31,21 @@ module Testbench
     Array.new(23) { |row| screen_line(ram, screen + (row * 22), 22) }
   end
 
+  # The display cropped to the machine's view, xvic's, as rows of palette
+  # indices.
+  def self.vic20_screenshot(machine)
+    vic = machine.vic
+    crop = machine.timing.crop
+    display = vic.display
+    width = vic.width
+    Array.new(crop[3]) { |row| display[((crop[1] + row) * width) + crop[0], crop[2]] }
+  end
+
   # Runs one test on a machine from Testbench.vic20_machine: puts the
   # cartridge's ROM chips, if any, into their blocks, loads the program, if
-  # any, then runs until the test writes $910F or the budget runs out.
+  # any, then runs until the test writes $910F or the budget runs out. As
+  # with VICE's debug cartridge, the run ends on the cycle of the write.
+  # Only a screenshot test has the VIC paint its display.
   class Vic20Execution
     attr_reader :exit_code
 
@@ -41,7 +55,8 @@ module Testbench
       machine.install_debug_register { |value| @exit_code = value }
     end
 
-    def run(cartridge, directory, prg, budget)
+    def run(render, cartridge, directory, prg, budget)
+      @machine.vic.render = render
       insert(cartridge) if cartridge
       basic_load(File.binread(File.join(directory, prg)).bytes) unless prg.empty?
       @machine.run_until(budget) { @exit_code }

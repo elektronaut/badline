@@ -481,8 +481,8 @@ class TestTestbenchVic20 < Minitest::Test
     assert_equal :all, parse("vic20-32k").ram_configuration
   end
 
-  def test_takes_only_exitcode_rows
-    assert_nil parse("vic20-8k", type: "screenshot")
+  def test_takes_exitcode_and_screenshot_rows
+    assert_equal "screenshot", parse("vic20-8k", type: "screenshot").type
     assert_nil parse("", type: "interactive")
   end
 
@@ -523,6 +523,76 @@ class TestTestbenchVic20 < Minitest::Test
     machine = Testbench.vic20_machine(:unexpanded, true)
 
     assert_equal "**** cbm basic v2 ****", Testbench.vic20_screen_text(machine)[0]
+  end
+
+  def test_crops_a_screenshot_to_xvics_view
+    rows = Testbench.vic20_screenshot(Testbench.vic20_machine(:unexpanded, false))
+
+    assert_equal [284, 284], [rows.length, rows.first.length]
+  end
+
+  def test_paints_the_display_only_for_a_screenshot_row
+    test = parse("vic20-unexp", type: "screenshot")
+    machine = test.vic20_machine
+
+    refute machine.vic.render
+    test.run_vic20(machine)
+
+    assert machine.vic.render
+  end
+end
+
+class TestTestbenchVic20Screenshot < Minitest::Test
+  Row = Struct.new(:key, :reference)
+
+  def setup
+    @dir = Dir.mktmpdir
+    @test = Row.new("vic20/test.prg", File.join(@dir, "reference.png"))
+    @rows = Array.new(284) { Array.new(284, 1) }
+    save_reference(568, 284)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  # A reference of +width+ by +height+, white but for the pixel pairs at
+  # each of +marks+, [x, y] in the VIC's pixels, drawn red.
+  def save_reference(width, height, marks = [])
+    png = ChunkyPNG::Image.new(width, height, ChunkyPNG::Color.rgb(255, 255, 255))
+    marks.each { |x, y| png[2 * x, y] = png[(2 * x) + 1, y] = ChunkyPNG::Color.rgb(0xb6, 0x1f, 0x21) }
+    png.save(@test.reference)
+  end
+
+  def compare = Testbench::Vic20Screenshot.new(@rows).compare(@test)
+
+  def test_matches_a_reference_drawn_twice_across
+    assert_equal 0, compare
+  end
+
+  def test_counts_the_pixels_that_differ_from_the_text_window_on
+    save_reference(568, 284, [[48, 48], [283, 283]])
+
+    assert_equal 2, compare
+  end
+
+  def test_leaves_out_the_border_above_and_left_of_the_text_window
+    save_reference(568, 284, [[47, 100], [100, 47]])
+
+    assert_equal 0, compare
+  end
+
+  def test_maps_reference_colours_to_the_nearest_vic_colour
+    save_reference(568, 284, [[60, 60]])
+    @rows[60][60] = 2
+
+    assert_equal 0, compare
+  end
+
+  def test_refuses_a_reference_of_another_size
+    save_reference(384, 272)
+
+    assert_equal :ref_size, compare
   end
 end
 
