@@ -20,10 +20,12 @@ module Testbench
   end
 
   # The text screen where the KERNAL keeps it, at the page in $0288, 23
-  # lines of 22 characters.
+  # lines of 22 characters, or blank lines before the KERNAL has set it.
   def self.vic20_screen_text(machine)
     ram = machine.ram
     screen = ram.peek(0x0288) << 8
+    return Array.new(23) { "" } if screen >= 0x2000
+
     Array.new(23) { |row| screen_line(ram, screen + (row * 22), 22) }
   end
 

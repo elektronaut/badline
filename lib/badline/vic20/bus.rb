@@ -45,6 +45,12 @@ module Badline
         all: %i[ram123 blk1 blk2 blk3 blk5]
       }.freeze
 
+      # RAM, internal and expansion alike, powers on in alternating $FF
+      # and $00 bytes, $FF at the even addresses, the alternation most of
+      # the machines in VIC20/raminitpattern/readme.txt show. Colour RAM
+      # powers on at zero. See doc/pinned-behaviour.md.
+      RAM_POWER_ON = Array.new(0xc000) { |addr| addr.even? ? 0xff : 0x00 }.freeze
+
       # The last byte on the V-bus's data lines, which an empty spot on
       # the VIC's side reads back.
       class VideoOpenBus
@@ -149,7 +155,7 @@ module Badline
       # blocks that hold RAM (BLOCKS), and +kernal+ the KERNAL ROM's file.
       def initialize(vic:, via1:, via2:, blocks: [], kernal: "vic20/kernal-pal.rom")
         addressable_at(0, length: 2**16)
-        @ram = Memory.new([], length: 0xc000, start: 0)
+        @ram = Memory.new(RAM_POWER_ON, length: 0xc000, start: 0)
         @color_ram = ColorRAM.new(self)
         @character_rom = ROM.load("vic20/character.rom", 0x8000)
         @basic_rom = ROM.load("vic20/basic.rom", 0xc000)
@@ -184,6 +190,10 @@ module Badline
       def blocks=(names)
         @blocks = names.dup.freeze
         map_pages
+      end
+
+      def power_on!
+        @ram.clear!(RAM_POWER_ON)
       end
 
       # Whether +block+ (BLOCKS) holds RAM.

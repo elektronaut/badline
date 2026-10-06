@@ -2,8 +2,8 @@ selftest/vic20-pass.prg	PASS
 selftest/vic20-fail.prg	PASS
 selftest/vic20-pass.crt	PASS
 selftest/vic20-fail.crt	PASS
-VIC20/raminitpattern/ae.crt	FAIL	exit=$ff
-VIC20/raminitpattern/jellymonsters.crt	FAIL	exit=$ff
+VIC20/raminitpattern/ae.crt	PASS
+VIC20/raminitpattern/jellymonsters.crt	PASS
 VIC20/via_pb7/main.prg	PASS
 VIC20/via_pb7/main-exp.prg	PASS
 VIC20/via_t1crash/via1crash.prg	PASS

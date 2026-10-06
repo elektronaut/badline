@@ -32,6 +32,7 @@ only catches the rows that happen to move.
 - [CIA serial shift register](#cia-serial-shift-register)
 - [6510 I/O port](#6510-io-port)
 - [RAM power-on pattern](#ram-power-on-pattern)
+- [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1238,6 +1239,22 @@ and each was knocked out: removing it fails the rows named.
   - Spec guard: *RAM at power-on* in
     [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
 - The RAM expansions' extra banks still power on at `$00`.
+
+## VIC-20 RAM power-on pattern
+
+- The VIC-20's RAM powers on in alternating bytes, `$ff` at the even
+  addresses and `$00` at the odd ones, on every power cycle. The internal
+  RAM and the expansion blocks (RAM1-3, BLK1-3, BLK5) all follow it.
+  Colour RAM powers on at zero. `Vic20::Bus::RAM_POWER_ON` holds it.
+  - Pinned by `VIC20/raminitpattern`: `ae.crt` fails unless `$0288` reads
+    `$ff` and `jellymonsters.crt` unless `$1046` does, read from a
+    cartridge before the KERNAL clears RAM. The readme says AE and Jelly
+    Monsters need `$ff` there. Its dumps of real machines' `$1000-$1fff`
+    show bytes alternating `$00` and `$ff` on most machines, with either
+    phase, and noise or other patterns on the rest. They show nothing
+    for colour RAM or expansion RAM that a pattern could be read from.
+  - Spec guard: *RAM at power-on* in
+    [`vic20/bus_spec.rb`](../spec/badline/vic20/bus_spec.rb).
 
 ## 1541 serial port
 

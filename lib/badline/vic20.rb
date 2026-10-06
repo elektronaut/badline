@@ -97,7 +97,7 @@ module Badline
     # Switches the machine off and on: RAM and the VIC start from their
     # power-on state, and the RES line resets everything else.
     def power_cycle!
-      ram.clear!
+      @bus.power_on!
       @vic.power_on!
       reset!
     end

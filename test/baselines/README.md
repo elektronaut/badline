@@ -166,8 +166,6 @@ Recorded output of the headless hardware suites, one file per suite:
   for a GEO-RAM drop out, and the screenshot rows wait for the VIC-I's
   video. On Spinel the rows run on `spinel/vic20_testbench.rb`, so the
   C64's harness doesn't carry the VIC-20. The FAIL rows, all `$ff`:
-  - `VIC20/raminitpattern/ae.crt` and `jellymonsters.crt`, which check
-    the power-on RAM pattern.
   - `VIC20/via_sr`: shift register modes `04`, `08`, `14` and `18` in all
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
     plain and `exp` variants.
