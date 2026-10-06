@@ -36,3 +36,30 @@ Both halves downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1541/
 (1541-c000.325302-01.bin and 1541-e000.901229-05.bin) and concatenated.
 SHA-1 ab16f56989b27d89babe5f89c5a8cb3da71a82f0.
+
+Commodore VIC-20 ROMs
+=====================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/vic20/
+Nothing uses them yet.
+
+vic20/basic.rom
+---------------
+VIC-20 BASIC V2, 901486-01, for $C000-$DFFF.
+SHA-1 587d1e90950675ab6b12d91248a3f0d640d02e8d.
+
+vic20/kernal-pal.rom
+--------------------
+The PAL KERNAL, 901486-07, for $E000-$FFFF.
+SHA-1 ce0137ed69f003a299f43538fa9eee27898e621e.
+
+vic20/kernal-ntsc.rom
+---------------------
+The NTSC KERNAL, 901486-06, for $E000-$FFFF.
+SHA-1 06de7ec017a5e78bd6746d89c2ecebb646efeb19.
+
+vic20/character.rom
+-------------------
+The character generator ROM, 901460-03, for $8000-$8FFF.
+SHA-1 4fd85ab6647ee2ac7ba40f729323f2472d35b9b4.
