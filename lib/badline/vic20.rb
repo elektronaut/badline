@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/vic20/attachments"
 require "badline/vic20/bus"
 require "badline/vic20/cpu"
 require "badline/vic20/keyboard_via_ports"
@@ -14,13 +15,16 @@ module Badline
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
   # So far it runs headless, with the VIC's picture and sound. The
-  # keyboard, the joystick and RESTORE reach the VIAs; the datasette and
-  # the serial bus don't yet.
+  # keyboard, the joystick and RESTORE reach the VIAs, and device 8 serves
+  # disks through the KERNAL traps; the datasette and the serial bus don't
+  # yet.
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
+    include Attachments
 
-    attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound
+    attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound,
+                :drive1541
 
     def ram = @bus.ram
 
@@ -42,6 +46,11 @@ module Badline
       @nmi_asserted = false
       @init_handlers = []
       @pending_keys = nil
+      @drive = nil
+      @serial_trap = nil
+      @save_trap = nil
+      @capture_output = nil
+      @drive1541 = nil
       @init_threshold = boot_cycles
     end
 
@@ -119,17 +128,22 @@ module Badline
     # Calls the block with the exit code a VICE testprog writes to $910F.
     def install_debug_register(&) = @bus.install_debug_register(&)
 
-    # Writes a PRG's bytes to RAM at its load address, and returns that.
+    # Stores a PRG's bytes from its load address on, as the CPU would, so
+    # bytes for an empty block go nowhere, and returns that address.
     def load_prg(data)
-      uint16(data[0], data[1]).tap do |load_addr|
-        ram.write(load_addr, data[2..])
-      end
+      load_addr = uint16(data[0], data[1])
+      bytes = data[2..] || []
+      bytes = bytes[0, 0x10000 - load_addr] if load_addr + bytes.length > 0x10000
+      bytes.each_with_index { |byte, i| @bus.poke(load_addr + i, byte) }
+      load_addr
     end
 
-    # The RES line reaches the CPU and both VIAs. The VIC has no reset pin.
+    # The RES line reaches the CPU and both VIAs, and through the serial
+    # bus's RESET line, the drive. The VIC has no reset pin.
     def reset!
       @via1.reset!
       @via2.reset!
+      @drive&.reset!
       @nmi_asserted = false
       @cpu.reset!
     end

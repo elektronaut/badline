@@ -167,6 +167,16 @@ describe Badline::Vic20 do
     expect([address, machine.ram.peek(0x1001), machine.ram.peek(0x1002)]).to eq([0x1001, 0xaa, 0xbb])
   end
 
+  it "loads a PRG through the bus, so bytes for colour RAM reach it" do
+    machine.load_prg([0x00, 0x94, 0x05])
+    expect(machine.bus.color_ram.nibble(0x9400)).to eq(0x05)
+  end
+
+  it "loads nothing past the top of memory" do
+    machine.load_prg([0xff, 0xff, 0x01, 0x02])
+    expect(machine.bus.peek(0x0000)).to eq(0xff)
+  end
+
   it "shows the VIC's display" do
     expect(machine.video).to be(machine.vic)
   end

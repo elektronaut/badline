@@ -88,7 +88,7 @@ module Badline
 
       # Addressing the bus starts a new frame. The channel number arrives
       # in the secondary address that follows. Each byte sent under ATN,
-      # and each byte of a frame, times its handshake with CIA 1's timer B
+      # and each byte of a frame, times its handshake with the serial timer
       # as ISOUR does.
       def talk
         @talk_channel = nil
