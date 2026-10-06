@@ -109,6 +109,52 @@ describe Badline::Vic20 do
     end
   end
 
+  describe "the keyboard" do
+    it "has the VIC-20's matrix" do
+      expect(machine.keyboard.matrix).to be(Badline::Vic20::KeyboardVIAPorts::MATRIX)
+    end
+
+    it "reaches VIA 2's port A" do
+      machine.keyboard.press(:a)
+      machine.bus.poke(0x9122, 0xff)
+      machine.bus.poke(0x9120, 0b1111_1011)
+      expect(machine.bus.peek(0x9121)).to eq(0b1111_1101)
+    end
+  end
+
+  describe "the joystick" do
+    it "reaches VIA 1's port A" do
+      machine.joystick1.press(:fire)
+      expect(machine.bus.peek(0x9111)).to eq(0b1101_1111)
+    end
+
+    it "reaches VIA 2's port B" do
+      machine.joystick1.press(:right)
+      expect(machine.bus.peek(0x9120)).to eq(0x7f)
+    end
+  end
+
+  describe "RESTORE" do
+    before do
+      machine.cpu.p = 0x04
+      machine.bus.poke(0x911e, 0x82)
+    end
+
+    it "takes NMI on the press" do
+      machine.press_restore
+      machine.run_cycles(2)
+      expect(machine.cpu.nmi).to be(true)
+    end
+
+    it "leaves NMI alone on the release" do
+      machine.press_restore
+      machine.bus.peek(0x9111)
+      machine.release_restore
+      machine.run_cycles(2)
+      expect(machine.cpu.nmi).to be(false)
+    end
+  end
+
   it "hands over the exit code written to $910F" do
     codes = []
     machine.install_debug_register { |code| codes << code }
