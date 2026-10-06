@@ -10,8 +10,9 @@ module Badline
   # $9120, pulls IRQ. Nothing else interrupts the CPU, and nothing halts
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
-  # So far it runs headless, with nothing plugged into the VIAs' ports: no
-  # keyboard, joystick, tape or serial bus.
+  # So far it runs headless, with the VIC's picture but no sound, and
+  # nothing plugged into the VIAs' ports: no keyboard, joystick, tape or
+  # serial bus.
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
@@ -26,6 +27,7 @@ module Badline
       @via1 = VIA.new(start: 0x9000)
       @via2 = VIA.new(start: 0x9000)
       @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram))
+      @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @nmi_asserted = false
@@ -74,6 +76,20 @@ module Badline
       else
         block.call
       end
+    end
+
+    # The chip whose #display a front end shows.
+    def video = @vic
+
+    # The PAL clock and raster, and the part of the display xvic shows: all
+    # 284 pixels of a line, from line 28, below the VIC's vertical blank.
+    def timing
+      profile = @vic.profile
+      width = profile.cycles_per_line * VIC::PIXELS_PER_CYCLE
+      blanked = profile.blanked_lines
+      Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
+                 lines_per_frame: profile.lines_per_frame,
+                 crop: [0, blanked, width, profile.lines_per_frame - blanked])
     end
 
     # Calls the block with the exit code a VICE testprog writes to $910F.

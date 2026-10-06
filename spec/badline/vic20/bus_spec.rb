@@ -236,9 +236,43 @@ describe Badline::Vic20::Bus do
       expect(bus.peek(0x9012)).to eq(0x0c)
     end
 
-    it "reads the CPU's last byte where no chip answers" do
+    it "reads the V-bus's last byte where no chip answers" do
       bus.poke(0x1000, 0x29)
+      bus.peek(0xc000)
       expect([0x9100, 0x914f, 0x93cf].map { |addr| bus.peek(addr) }).to all(eq(0x29))
+    end
+  end
+
+  describe "#video_fetch" do
+    it "reads the internal RAM at $2000-$3FFF" do
+      bus.poke(0x1e00, 0x41)
+      expect(bus.video_fetch(0x3e00)).to eq(0x41)
+    end
+
+    it "reads the character ROM at $0000-$0FFF" do
+      expect(bus.video_fetch(0x0008)).to eq(bus.peek(0x8008))
+    end
+
+    it "leaves the byte it read on the V-bus" do
+      bus.poke(0x0010, 0x77)
+      bus.video_fetch(0x2010)
+      expect(bus.peek(0x9100)).to eq(0x77)
+    end
+
+    context "with the 3K expansion" do
+      let(:blocks) { %i[ram123] }
+
+      it "reads the V-bus's last byte where the expansion is" do
+        bus.poke(0x0400, 0x12)
+        bus.poke(0x1000, 0x34)
+        expect(bus.video_fetch(0x2400)).to eq(0x34)
+      end
+    end
+
+    it "reads the V-bus's last byte at colour RAM and I/O" do
+      bus.poke(0x9400, 0x0f)
+      bus.poke(0x1000, 0x56)
+      expect([0x1400, 0x1000, 0x1800].map { |address| bus.video_fetch(address) }).to all(eq(0x56))
     end
   end
 end
