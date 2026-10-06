@@ -13,7 +13,8 @@ module Badline
     # SAFETY, so no samples are dropped. #measure fits the frames to the
     # rate the display presents at, measured over the whole run.
     #
-    # Without vsync, a frame is one of the machine's frames, 20 ms on PAL.
+    # Without vsync, a frame is one of the machine's frames, as its Timing
+    # gives them, 20 ms on PAL.
     # With the sound playing, #wait lasts until the audio queue is down to
     # Sound::AHEAD; otherwise it waits out the rest of the frame.
     class Pacer
@@ -23,12 +24,12 @@ module Badline
 
       attr_reader :rate
 
-      def initialize(paced:, vsync:, verbose:, region: Region::PAL)
+      def initialize(paced:, vsync:, verbose:, timing:)
         @paced = paced
         @verbose = verbose
         @vsync = paced && vsync
-        @region = region
-        @rate = FrameRate.machine(region)
+        @timing = timing
+        @rate = FrameRate.machine(timing)
         @deadline = 0.0
         @measured_frames = 0
         @measured_seconds = 0.0
@@ -39,7 +40,7 @@ module Badline
       # Fits the frames to the display's refresh rate, once the window has
       # been opened with vsync.
       def fit(refresh)
-        @rate = FrameRate.display(refresh, @region.clock_hz)
+        @rate = FrameRate.display(refresh, @timing.clock_hz)
         puts "Display #{@rate.refresh} Hz, vsync: #{@rate.base_cycles} cycles a frame" if @verbose
       end
 

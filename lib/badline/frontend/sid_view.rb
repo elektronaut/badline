@@ -8,7 +8,7 @@ module Badline
     # a tune on more than one gets a row of buttons above the voices that
     # pick it, which makes the view PICKER taller.
     class SIDView
-      COLORS = Screen::COLORS
+      COLORS = VIC::PALETTE
       TEXT = COLORS[14]
       BRIGHT = COLORS[1]
       DIM = COLORS[11]

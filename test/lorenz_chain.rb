@@ -119,7 +119,7 @@ module Lorenz
 
     # Runs a batch and returns what the machine printed in it.
     def step
-      BATCH.times { @computer.cycle! }
+      @computer.run_cycles(BATCH)
       text = take_output
       classify
       send_key if @getin_hits > GETIN_LIMIT

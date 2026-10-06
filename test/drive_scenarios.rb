@@ -88,7 +88,7 @@ module DriveScenarios
     computer.attach_drive1541(Badline::Drive1541.new)
     output = computer.capture_output
     computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
-    7_000_000.times { computer.cycle! }
+    computer.run_cycles(7_000_000)
     # PRINT follows each number with a cursor right, which CHROUT capture drops
     report.check("power-on-message", output.output.upcase.include?(" 73CBM DOS V2.6 1541 0 0"),
                  "printed no 73,CBM DOS V2.6 1541,0,0")
@@ -241,7 +241,7 @@ module DriveScenarios
     # Runs in steps of 100,000 cycles until the block holds or the machine
     # has run limit cycles.
     def run_until(computer, limit)
-      100_000.times { computer.cycle! } until yield || computer.cycles > limit
+      computer.run_cycles(100_000) until yield || computer.cycles > limit
     end
 
     # Whether text has number, then only what isn't a letter, then word, as

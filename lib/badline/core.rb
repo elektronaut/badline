@@ -8,6 +8,7 @@
 require "badline/version"
 require "badline/integer_helper"
 require "badline/region"
+require "badline/timing"
 require "badline/model"
 require "badline/addressable"
 require "badline/memory"

@@ -34,6 +34,50 @@ RSpec.describe Badline::Computer do
     end
   end
 
+  describe "#run_cycles" do
+    it "leaves the machine where as many calls to #cycle! do" do
+      stepped = described_class.new
+      30_000.times { stepped.cycle! }
+      computer.run_cycles(30_000)
+      expect(Badline::Checkpoint.take(computer)).to eq(Badline::Checkpoint.take(stepped))
+    end
+  end
+
+  describe "#run_until" do
+    it "stops before the cycle after the block turns true" do
+      computer.run_until(1_000_000) { computer.cycles == 500 }
+      expect(computer.cycles).to eq(500)
+    end
+
+    it "stops once the cycles pass the limit" do
+      computer.run_until(1_000) { false }
+      expect(computer.cycles).to eq(1_001)
+    end
+  end
+
+  describe "#init_threshold" do
+    it "is the cycle the init handlers run at, once the KERNAL has booted" do
+      expect(computer.init_threshold).to eq(2_500_000)
+    end
+  end
+
+  describe "#timing" do
+    it "gives the region's clock, raster and crop" do
+      timing = described_class.new(region: Badline::Region::NTSC).timing
+      expect(timing.to_h.values).to eq([1_022_727, 65, 263, [96, 28, 384, 235]])
+    end
+  end
+
+  describe "the video and sound chips" do
+    it "shows the VIC and records the SID" do
+      expect([computer.video, computer.sound_source]).to eq([computer.vic, computer.sid])
+    end
+
+    it "paints the VIC's sixteen colours" do
+      expect(computer.video.palette.length).to eq(16)
+    end
+  end
+
   describe "the CIA model" do
     it "fits 6526s unless given" do
       expect([computer.cia1.model, computer.cia2.model]).to eq(%i[mos6526 mos6526])

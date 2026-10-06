@@ -14,6 +14,14 @@ module Badline
     # The 6569 of the breadbin C64, and the HMOS 8565 of the C64C.
     MODELS = %i[mos6569 mos8565].freeze
 
+    # The sixteen colours #display's palette indices stand for, as RGB.
+    PALETTE = [
+      0x000000, 0xffffff, 0x924a40, 0x84c5cc,
+      0x9351b6, 0x72b14b, 0x483aaa, 0xd5df7c,
+      0x675200, 0xc33d00, 0xc18178, 0x606060,
+      0x8a8a8a, 0xb3ec91, 0x867ade, 0xb3b3b3
+    ].freeze
+
     attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines, :model, :region
 
@@ -362,6 +370,8 @@ module Badline
     def clear_dirty_lines!
       @dirty_lines.fill(false)
     end
+
+    def palette = PALETTE
 
     private
 

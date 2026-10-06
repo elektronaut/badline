@@ -6,16 +6,14 @@
 # each test starts from the booted state without paying for the boot.
 #
 # Computer#cycle! runs the init handlers at the start of the cycle where
-# cycles reaches Computer::INIT_THRESHOLD, and on_init on a machine already
+# cycles reaches Computer#init_threshold, and on_init on a machine already
 # there runs its block at once. So a child that attaches its program to a
 # machine stopped exactly at the threshold loads it before that same cycle
 # runs, as a machine that had it attached before boot would.
 class ForkedBoot
   # A machine booted to the threshold and not a cycle further.
   def self.computer(**)
-    Badline::Computer.new(**).tap do |computer|
-      Badline::Computer::INIT_THRESHOLD.times { computer.cycle! }
-    end
+    Badline::Computer.new(**).tap { |computer| computer.run_cycles(computer.init_threshold) }
   end
 
   # The block boots the machine, and runs in whichever process first needs

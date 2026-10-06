@@ -16,14 +16,15 @@ module Badline
         @computer = computer
         @frame_limit = options.frames
         @verbose = options.verbose?
-        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, region: computer.region)
+        timing = computer.timing
+        @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, timing:)
         @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
-        @screen = Screen.new(computer.vic)
+        @screen = Screen.new(computer.video, timing.crop)
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
         open_window
-        @sound = Sound.new(computer.sid, computer.region.clock_hz, options.sound?, @verbose)
+        @sound = Sound.new(computer.sound_source, timing.clock_hz, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
         @frame_report = FrameReport.new(@sound)
         @menu = PauseMenu.new(Painter.new(@renderer), options, @snapshots)
@@ -137,11 +138,12 @@ module Badline
       # it.
       def swap(computer)
         @computer = computer
-        @screen = Screen.new(computer.vic)
+        timing = computer.timing
+        @screen = Screen.new(computer.video, timing.crop)
         @led = DriveLed.for(computer)
         @controls.computer = computer
         @gamepads.computer = computer
-        @sound.switch(computer.sid, computer.region.clock_hz)
+        @sound.switch(computer.sound_source, timing.clock_hz)
         @snapshots.computer = computer
       end
 
@@ -194,13 +196,7 @@ module Badline
       end
 
       def emulate
-        computer = @computer
-        cycles = @pacer.cycles(@sound)
-        i = 0
-        while i < cycles
-          computer.cycle!
-          i += 1
-        end
+        @computer.run_cycles(@pacer.cycles(@sound))
       end
 
       def upload

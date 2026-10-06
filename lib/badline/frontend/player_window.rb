@@ -23,7 +23,7 @@ module Badline
       UP = 82
       DOWN = 81
 
-      WARNING = Screen::COLORS[10]
+      WARNING = VIC::PALETTE[10]
 
       CHIPS = PlayerHeader::CHIPS
 
