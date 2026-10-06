@@ -75,6 +75,9 @@ module Badline
 
       # Colour RAM: four bits a cell, under the V-bus's high four lines.
       class ColorRAM
+        # The 1,024 cells, which the VIC reads its colour nibbles from.
+        attr_reader :cells
+
         def initialize(bus)
           @bus = bus
           @cells = Array.new(0x400, 0)
@@ -95,7 +98,9 @@ module Badline
       # address lines alone: A4 selects VIA 1 and A5 selects VIA 2. Where
       # more than one chip answers a read, each pulls the lines it drives
       # low, so the CPU reads the AND of them, and a write reaches them
-      # all. Where none answers, the CPU reads its own open bus.
+      # all. Where none answers, the CPU reads the V-bus's last byte: the
+      # VIC's fetch in a cycle it fetches in, as the real 6561E's dump of
+      # VIC20/split-tests/timing shows at $9100 and $9200.
       class IO0
         def initialize(bus, vic:, via1:, via2:)
           @bus = bus
@@ -106,7 +111,7 @@ module Badline
 
         def peek(addr)
           vic = addr < 0x9100
-          return @bus.data unless vic || addr.anybits?(0x30)
+          return @bus.video_data unless vic || addr.anybits?(0x30)
 
           value = vic ? @vic.peek(addr) : 0xff
           value &= @via1.peek(addr) if addr.anybits?(0x10)
@@ -198,6 +203,26 @@ module Badline
 
       # Whether +block+ (BLOCKS) holds RAM.
       def ram?(block) = @blocks.include?(block)
+
+      # The VIC's fetch from +address+, its own 14-bit address, which leaves
+      # the byte on the V-bus. The VIC's A13 is the CPU's A15 inverted, so
+      # $2000-$3FFF are the CPU's $0000-$1FFF and $0000-$1FFF its
+      # $8000-$9FFF. It reaches the internal RAM and the character ROM, and
+      # no expansion RAM. Elsewhere nothing drives the V-bus's data lines,
+      # and the VIC reads the byte they hold, as does a fetch from colour
+      # RAM, which drives only the colour bus while the VIC fetches.
+      def video_fetch(address)
+        value =
+          if address >= 0x2000
+            internal = address & 0x1fff
+            internal < 0x0400 || internal >= 0x1000 ? @ram.peek(internal) : @video_data
+          elsif address < 0x1000
+            @character_rom.peek(address | 0x8000)
+          else
+            @video_data
+          end
+        @video_data = value
+      end
 
       def peek(addr)
         value = @read_pages[addr >> 8].peek(addr)

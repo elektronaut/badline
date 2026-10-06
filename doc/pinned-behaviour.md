@@ -34,6 +34,7 @@ only catches the rows that happen to move.
 - [6510 I/O port](#6510-io-port)
 - [RAM power-on pattern](#ram-power-on-pattern)
 - [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
+- [VIC-I fetches and the V-bus](#vic-i-fetches-and-the-v-bus)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1293,6 +1294,32 @@ and each was knocked out: removing it fails the rows named.
     for colour RAM or expansion RAM that a pattern could be read from.
   - Spec guard: *RAM at power-on* in
     [`vic20/bus_spec.rb`](../spec/badline/vic20/bus_spec.rb).
+
+## VIC-I fetches and the V-bus
+
+- On a line of the text window the 6561 fetches the first character code
+  4 cycles after the column in `$9000`, 16 cycles after the raster count
+  moves with the KERNAL's origin of 12, then the code's pattern byte in
+  the next cycle, two cycles a character. Outside the window it fetches
+  nothing.
+- A read where no chip answers in I/O 0 (`$9100`, `$9200`) returns the
+  V-bus's last byte: the VIC's fetch in a cycle it fetches in, and the
+  CPU's own last byte on the V-bus in the other cycles.
+  - Pinned by `VIC20/split-tests/timing`: all 1,024 bytes of its readings
+    of `$9003`, `$9004`, `$9100` and `$9200` over 256 cycles match
+    `dumps/dump6561e.prg`, a real 6561E. The later 6561-101's dump reads
+    `$20` in the idle cycles instead; badline follows the 6561E.
+  - Spec guard:
+    [`vic20/vic_split_tests_timing_spec.rb`](../spec/badline/vic20/vic_split_tests_timing_spec.rb)
+    (`:slow`), and *the fetches* in
+    [`vic20/vic_video_spec.rb`](../spec/badline/vic20/vic_video_spec.rb).
+- A write to `$900F` or `$900E` takes hold from the second of the four
+  pixels of the cycle it lands in, the reverse bit two pixels later, and
+  a character's pixels come out in the two cycles after its pattern
+  fetch. These match xvic's screenshots of a test of cycle-timed writes
+  pixel for pixel; no testprog or hardware capture checks them.
+  - Spec guard: *a colour write* in
+    [`vic20/vic_video_spec.rb`](../spec/badline/vic20/vic_video_spec.rb).
 
 ## 1541 serial port
 

@@ -110,6 +110,15 @@ describe Badline::Vic20 do
     expect([address, machine.ram.peek(0x1001), machine.ram.peek(0x1002)]).to eq([0x1001, 0xaa, 0xbb])
   end
 
+  it "shows the VIC's display" do
+    expect(machine.video).to be(machine.vic)
+  end
+
+  it "shows xvic's view of the PAL frame, from line 28 on" do
+    expect(machine.timing.to_h).to eq(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312,
+                                      crop: [0, 28, 284, 284])
+  end
+
   describe "#reset!" do
     before do
       machine.run_cycles(5000)

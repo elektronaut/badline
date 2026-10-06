@@ -99,8 +99,38 @@ module Badline
     end
 
     class VIC
+      @bus: Bus
+      @stale: Array[bool]
+      @cycles_per_line: Integer
+      @lines_per_frame: Integer
+      @origin_x: Integer
+      @origin_y: Integer
+      @columns: Integer
+      @rows: Integer
+      @char_shift: Integer
+      @screen_base: Integer
+      @char_base: Integer
+      @fetch_from: Integer
+      @fetch_to: Integer
+      @matrix: Integer
+      @row_start: Integer
+      @char_line: Integer
+      @text_rows: Integer
+      @window_open: bool
+      @window_done: bool
+      def connect: (Bus) -> void
+      def render=: (bool) -> void
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
+
+      class Painter
+        @render: bool
+        @reverse: bool
+        @written: bool
+        @stale: Array[bool]
+        @dirty_lines: Array[bool]
+        def render=: (bool) -> void
+      end
     end
   end
 end
