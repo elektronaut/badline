@@ -47,7 +47,7 @@ module Badline
       profile = Model.named(model)
       Computer.new(vic_model: profile.vic_model, cia_model: profile.cia_model,
                    sid_model: sid_model || profile.sid_model, region: profile.region, reu:,
-                   kernal: profile.kernal, datasette: profile.datasette)
+                   kernal: profile.kernal, datasette: profile.datasette, board: profile.board)
     end
 
     def self.vic20(model, ram)

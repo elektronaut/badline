@@ -4,9 +4,9 @@ module Badline
   class AddressBus
     # The BASIC, character and KERNAL ROMs, and which KERNAL is fitted.
     module ROMs
-      # The KERNAL ROMs a machine can be fitted with, by name: the C64's
-      # and the SX-64's.
-      KERNALS = { c64: "kernal.rom", sx64: "kernal-sx64.rom" }.freeze
+      # The KERNAL ROMs a machine can be fitted with, by name: the C64's,
+      # the SX-64's and the PET 64's.
+      KERNALS = { c64: "kernal.rom", sx64: "kernal-sx64.rom", pet64: "kernal-pet64.rom" }.freeze
 
       attr_reader :basic_rom, :character_rom, :kernal_rom, :kernal
 

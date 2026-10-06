@@ -69,7 +69,8 @@ module Badline
         reu = nil unless reu && REU1764.reads?(reu)
         Setup.new(vic_model: model, cia_model: model == :mos8565 ? :mos6526a : :mos6526, sid_model: sid,
                   region: vic ? VICII.region(vic) : Region::PAL, ram_expansion: nil,
-                  reu: reu ? REU1764.size_kb(reu) : nil, kernal: :c64, datasette: true)
+                  reu: reu ? REU1764.size_kb(reu) : nil, kernal: :c64, datasette: true,
+                  board: :c64)
       end
     end
   end

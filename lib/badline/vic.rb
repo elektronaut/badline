@@ -24,8 +24,23 @@ module Badline
       0x8a8a8a, 0xb3ec91, 0x867ade, 0xb3b3b3
     ].freeze
 
+    # The sixteen colours' luminances, out of 32, as Philip Timmermann
+    # (Pepto) measured them on the 6569.
+    LUMINANCES = [0, 32, 10, 20, 12, 16, 8, 24, 12, 8, 16, 10, 15, 24, 15, 20].freeze
+
+    # The sixteen colours on a green monochrome monitor, which shows only
+    # their luminance, as the PET 64's does.
+    GREEN_PALETTE = LUMINANCES.map do |luminance|
+      green = luminance * 255 / 32
+      ((green / 4) << 16) | (green << 8) | (green / 4)
+    end.freeze
+
     attr_reader :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines, :model, :region
+
+    # The RGB colours #display's palette indices stand for: PALETTE, or
+    # GREEN_PALETTE on a monochrome monitor.
+    attr_accessor :palette
 
     # The parts a VICE snapshot reads and sets.
     attr_reader :registers, :display_state, :sequencer, :sprites, :character_buffer, :color_buffer,
@@ -94,6 +109,7 @@ module Badline
       @iie = %i[mos8566 mos8564].include?(model)
       @core = model == :mos6569 ? :mos6569 : :mos8565
       @region = region
+      @palette = PALETTE
       @lightpen_extra = @core == :mos8565 ? 1 : 2
       @grey_dots = @core == :mos8565
       @delayed_fetch = @core == :mos8565
@@ -379,8 +395,6 @@ module Badline
     def clear_dirty_lines!
       @dirty_lines.fill(false)
     end
-
-    def palette = PALETTE
 
     private
 

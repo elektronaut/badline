@@ -48,13 +48,12 @@ module Badline
     # TOD clocks count. The KERNAL tells PAL from NTSC by the raster, so
     # every region boots the same ROMs. reu plugs an REU of that many K
     # into the expansion port, where it drives the IRQ line and takes the
-    # bus for its transfers. kernal: names the KERNAL ROM
-    # (AddressBus::ROMs::KERNALS), and datasette: false leaves the cassette port
-    # empty, as on the SX-64.
-    def initialize(debug: false, reu: nil, kernal: :c64, datasette: true, **machine)
-      @address_bus = AddressBus.new(**machine)
-      @address_bus.kernal = kernal unless kernal == :c64
-      @address_bus.datasette.disconnect! unless datasette
+    # bus for its transfers. kernal:, datasette: and board: fit the bus
+    # afterwards (AddressBus::Fittings): the KERNAL ROM, the cassette port,
+    # which is empty on the SX-64, and the board and case.
+    def initialize(debug: false, reu: nil, **machine)
+      @address_bus = AddressBus.new(**machine.except(*AddressBus::Fittings::NAMES))
+      @address_bus.fit(**machine.slice(*AddressBus::Fittings::NAMES))
       @cpu = CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }

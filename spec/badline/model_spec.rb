@@ -36,6 +36,11 @@ describe Badline::Model do
     expect([*chips(model), model.kernal, model.datasette]).to eq([:mos6569, :mos6526, :mos6581, :pal, :sx64, false])
   end
 
+  it "builds the PET 64 with its own KERNAL and board" do
+    model = described_class.named("pet64")
+    expect([*chips(model), model.kernal, model.board]).to eq(%i[mos6569 mos6526 mos6581 pal pet64 pet64])
+  end
+
   it "fails on a name it doesn't know" do
     expect { described_class.named("vic20") }.to raise_error(ArgumentError, /vic20/)
   end

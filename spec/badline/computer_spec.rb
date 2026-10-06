@@ -109,8 +109,26 @@ RSpec.describe Badline::Computer do
       expect(bus.kernal_rom.peek(0xff80)).to eq(Badline::ROM.read("kernal-sx64.rom")[0x1f80])
     end
 
+    it "fits the PET 64's when asked" do
+      expect(described_class.new(kernal: :pet64).address_bus.kernal_rom.peek(0xff80)).to eq(0x64)
+    end
+
     it "fails on a KERNAL it doesn't know" do
       expect { described_class.new(kernal: :c128) }.to raise_error(ArgumentError, /c128/)
+    end
+  end
+
+  describe "the board" do
+    it "shows the VIC's colours on a C64's" do
+      expect(computer.vic.palette).to eq(Badline::VIC::PALETTE)
+    end
+
+    it "shows them in green on the PET 64's monitor" do
+      expect(described_class.new(board: :pet64).vic.palette).to eq(Badline::VIC::GREEN_PALETTE)
+    end
+
+    it "fails on a board it doesn't know" do
+      expect { described_class.new(board: :c128) }.to raise_error(ArgumentError, /c128/)
     end
   end
 
