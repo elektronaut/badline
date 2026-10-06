@@ -85,9 +85,10 @@ REGRESSION_SUITES = {
 # CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
 # testbench-drean is the testlist's vicii-drean rows on a Drean C64, PAL-N
 # with the 6572, the one the testlist comments out included.
-# testbench-vic20 is the VIC-20 testlist's exitcode rows on a PAL VIC-20
-# with the RAM each asks for. Its Spinel build is spinel/vic20_testbench.rb,
-# which :engine names, so the C64's harness doesn't carry the VIC-20.
+# testbench-vic20 is the VIC-20 testlist's exitcode and screenshot rows on
+# a PAL VIC-20 with the RAM each asks for. Its Spinel build is
+# spinel/vic20_testbench.rb, which :engine names, so the C64's harness
+# doesn't carry the VIC-20.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running

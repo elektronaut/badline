@@ -154,7 +154,8 @@ Recorded output of the headless hardware suites, one file per suite:
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   All `exitcode` tests.
 - `testbench-vic20.txt` — the same runner with `--vic20`, over the
-  `exitcode` rows of `vendor/VICE-testprogs/testbench/vic20-testlist.in`,
+  `exitcode` and `screenshot` rows of
+  `vendor/VICE-testprogs/testbench/vic20-testlist.in`,
   each on a PAL VIC-20 with the RAM its options ask for: none for
   `vic20-unexp` or no option, BLK1 for `vic20-8k`, and every block for
   `vic20-32k`, as xvic's `-memory all` fits them. The program goes to the
@@ -162,9 +163,11 @@ Recorded output of the headless hardware suites, one file per suite:
   it, with BASIC's end pointers set as LOAD sets them, and `RUN` is typed
   once the machine has booted. A `mountcrt` row starts from power-on with
   the cartridge's ROM chips in their blocks. Tests report through `$910F`,
-  and a failure keeps the 22-column text screen. The two rows that ask
-  for a GEO-RAM drop out, and the screenshot rows wait for the VIC-I's
-  video. On Spinel the rows run on `spinel/vic20_testbench.rb`, so the
+  and a failure keeps the 22-column text screen. A screenshot is xvic's
+  view of the frame, 284 pixels by 284 lines from line 28, compared from
+  (48, 48), the text window's corner, against the reference drawn twice
+  across, by nearest colour of the VIC-I's palette. The two rows that
+  ask for a GEO-RAM drop out. On Spinel the rows run on `spinel/vic20_testbench.rb`, so the
   C64's harness doesn't carry the VIC-20. The FAIL rows, all `$ff`:
   - `VIC20/via_sr`: shift register modes `04`, `08`, `14` and `18` in all
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
