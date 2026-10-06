@@ -74,8 +74,11 @@ describe Badline::Vic20, :slow do
   end
 
   describe "#joystick1, read by VIC20/joystick/joystick.prg" do
+    let(:program) { File.expand_path("../../vendor/VICE-testprogs/VIC20/joystick/joystick.prg", __dir__) }
+
     before do
-      machine.load_prg(File.binread("vendor/VICE-testprogs/VIC20/joystick/joystick.prg").bytes)
+      skip "VICE-testprogs not checked out" unless File.exist?(program)
+      machine.load_prg(File.binread(program).bytes)
       machine.type_text("sys4110\r")
       machine.run_cycles(machine.init_threshold + 200_000)
     end
