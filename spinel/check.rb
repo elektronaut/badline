@@ -10,7 +10,7 @@ require_relative "../test/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests].freeze
+  HARNESSES = %w[boot cpu_tests vic20_boot].freeze
   CASES = "#{OUT}/cases.txt".freeze
 
   module_function
@@ -48,6 +48,10 @@ module SpinelCheck
 
   def check_boot(*args)
     compare("boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
+  end
+
+  def check_vic20_boot
+    compare("vic20_boot", []) { |out| out.reject { |line| line.start_with?("timed ") } }
   end
 
   def check_cpu_tests
