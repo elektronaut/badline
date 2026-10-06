@@ -30,6 +30,7 @@ only catches the rows that happen to move.
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
 - [CIA 6526A interrupt register](#cia-6526a-interrupt-register)
 - [CIA serial shift register](#cia-serial-shift-register)
+- [VIA shift register](#via-shift-register)
 - [6510 I/O port](#6510-io-port)
 - [RAM power-on pattern](#ram-power-on-pattern)
 - [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
@@ -1196,6 +1197,43 @@ and each was knocked out: removing it fails the rows named.
 - Spec guard: the "serial port in output mode" block in
   [`cia_spec.rb`](../spec/badline/cia_spec.rb) covers the flag timing, the
   waiting byte, both mode-change reports and the zero-latch stall.
+
+## VIA shift register
+
+- A read or write of SR starts a byte only while the register is idle
+  and enabled. An access in mode 0 starts nothing, even once the mode
+  changes, and an access before the eighth bit is in leaves the count
+  alone. The byte in progress runs on, and the first access after it
+  ends starts the next.
+- In the φ2 modes (2 and 6) CB1 falls on the second cycle after the
+  access, rises on the third, and so on. Mode 6 puts a bit out on cycles
+  +2, +4 … +16, mode 2 takes one in on cycles +3, +5 … +17, and the flag
+  rises with the eighth rising edge, on cycle +17.
+- In the timer 2 modes (1, 4 and 5) each clock edge comes two cycles
+  after the timer 2 low byte underflows, on the cycle after the low byte
+  reloads from its latch. The half period stays N + 2 cycles.
+- Pinned by the `VIC20/via_sr` rows, each checked by breaking the rule and
+  rerunning all 32. The plain and `exp` rows dump SR every 7 cycles, the
+  `ifr` and `iex` rows dump IFR, and the SR write comes before the ACR
+  write that sets the mode:
+  - Mode 0 starts nothing: `viasr08` and `viasr18`, and the `ifr`/`iex`
+    rows of modes 04, 08, 14 and 18, which would see the SR flag.
+  - No restart before the eighth bit: `viasr14` and `viasr18`. Their
+    reads come every 7 cycles, faster than a byte.
+  - The φ2 start a cycle late: `viasr08` and `viasr18`. Ticking from the
+    first cycle, or from the third, fails both.
+  - The timer 2 edge two cycles late: `viasr04`, `viasr10` and `viasr14`.
+    A delay of 0, 1 or 3 cycles fails all three.
+  - Every rule also fails the row's `exp` twin, the same test on an
+    expanded VIC-20.
+- Nothing pins whether the timer 2 delay keeps running while the register
+  is idle. It does, and freezing it passes every row too. Nothing pins
+  the flag's cycle in the φ2 modes either: no row starts a byte and then
+  reads IFR.
+- Spec guard: the mode blocks in
+  [`shift_register_spec.rb`](../spec/badline/via/shift_register_spec.rb)
+  and *the shift register* in
+  [`via_spec.rb`](../spec/badline/via_spec.rb).
 
 ## 6510 I/O port
 
