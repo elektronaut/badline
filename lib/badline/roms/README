@@ -42,7 +42,7 @@ Commodore VIC-20 ROMs
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/vic20/
-Nothing uses them yet.
+Vic20::Bus maps them.
 
 vic20/basic.rom
 ---------------
