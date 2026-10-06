@@ -20,12 +20,23 @@ module Badline
 
     def ram = @bus.ram
 
+    # The chip whose #display a front end shows.
+    def video = @vic
+
+    # The clock, the raster and the crop of the VIC's region.
+    def timing
+      region = @vic.region
+      Timing.new(clock_hz: region.clock_hz, cycles_per_line: region.cycles_per_line,
+                 lines_per_frame: region.lines_per_frame, crop: region.crop)
+    end
+
     # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS.
     def initialize(ram: :unexpanded, debug: false)
       @vic = VIC.new
       @via1 = VIA.new(start: 0x9000)
       @via2 = VIA.new(start: 0x9000)
       @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram))
+      @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @nmi_asserted = false

@@ -24,6 +24,19 @@ describe Badline::Vic20 do
     expect([machine.via1.peek(0x9002), machine.via2.peek(0x9002)]).to eq([0x12, 0x22])
   end
 
+  it "shows its VIC's display" do
+    expect(machine.video).to be(machine.vic)
+  end
+
+  it "runs at the 6561's clock and raster" do
+    timing = machine.timing
+    expect([timing.clock_hz, timing.cycles_per_line, timing.lines_per_frame]).to eq([1_108_405, 71, 312])
+  end
+
+  it "crops to VICE's PAL view, from line 28 to the end of the frame" do
+    expect(machine.timing.crop).to eq([0, 28, 284, 284])
+  end
+
   it "puts its VIC in I/O 0" do
     machine.bus.poke(0x900f, 0x1b)
     expect(machine.vic.peek(0x900f)).to eq(0x1b)

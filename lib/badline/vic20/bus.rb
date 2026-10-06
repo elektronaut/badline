@@ -95,7 +95,7 @@ module Badline
       # address lines alone: A4 selects VIA 1 and A5 selects VIA 2. Where
       # more than one chip answers a read, each pulls the lines it drives
       # low, so the CPU reads the AND of them, and a write reaches them
-      # all. Where none answers, the CPU reads its own open bus.
+      # all. Where none answers, the CPU reads the V-bus's last byte.
       class IO0
         def initialize(bus, vic:, via1:, via2:)
           @bus = bus
@@ -106,7 +106,7 @@ module Badline
 
         def peek(addr)
           vic = addr < 0x9100
-          return @bus.data unless vic || addr.anybits?(0x30)
+          return @bus.video_data unless vic || addr.anybits?(0x30)
 
           value = vic ? @vic.peek(addr) : 0xff
           value &= @via1.peek(addr) if addr.anybits?(0x10)
@@ -142,13 +142,13 @@ module Badline
         end
       end
 
-      attr_reader :ram, :color_ram, :blocks
+      attr_reader :ram, :color_ram, :blocks, :character_rom
 
       # The last byte the CPU read or wrote.
       attr_reader :data
 
-      # The last byte on the V-bus.
-      attr_reader :video_data
+      # The last byte on the V-bus, which the VIC's fetches set too.
+      attr_accessor :video_data
 
       # +vic+, +via1+ and +via2+ are the chips in I/O 0, each answering
       # peek and poke with the CPU's address. +blocks+ names the expansion

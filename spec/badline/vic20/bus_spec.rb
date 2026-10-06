@@ -236,7 +236,7 @@ describe Badline::Vic20::Bus do
       expect(bus.peek(0x9012)).to eq(0x0c)
     end
 
-    it "reads the CPU's last byte where no chip answers" do
+    it "reads the V-bus's last byte where no chip answers" do
       bus.poke(0x1000, 0x29)
       expect([0x9100, 0x914f, 0x93cf].map { |addr| bus.peek(addr) }).to all(eq(0x29))
     end

@@ -99,8 +99,21 @@ module Badline
     end
 
     class VIC
+      @bus: Bus
+      @ram: Memory
+      @character_rom: ROM
+      @color_ram: Bus::ColorRAM
+      @render: bool
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
+      def connect: (Bus) -> void
+      def video_read: (Integer) -> Integer
+      def render=: (bool) -> void
+      def draw: (Integer) -> void
+      def draw_group: (Integer, Integer) -> void
+      def draw_pixels: (Integer, Integer, Integer, Integer, Integer, Integer, Integer, Integer, Integer) -> void
+      def finish_line: () -> void
+      def clear_dirty_lines!: () -> void
     end
   end
 end
