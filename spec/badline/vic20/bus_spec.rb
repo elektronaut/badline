@@ -84,7 +84,8 @@ describe Badline::Vic20::Bus do
   describe "the RAM configurations" do
     {
       unexpanded: [], "3k": [0x0400], "8k": [0x2000], "16k": [0x2000, 0x4000],
-      "24k": [0x2000, 0x4000, 0x6000], "32k": [0x2000, 0x4000, 0x6000, 0xa000]
+      "24k": [0x2000, 0x4000, 0x6000], "32k": [0x2000, 0x4000, 0x6000, 0xa000],
+      all: [0x0400, 0x2000, 0x4000, 0x6000, 0xa000]
     }.each do |name, filled|
       it "fills #{filled.map { |addr| format('$%04X', addr) }.join(', ').then { |s| s.empty? ? 'nothing' : s }} " \
          "for #{name}" do
@@ -112,6 +113,47 @@ describe Badline::Vic20::Bus do
 
     it "reports which blocks hold RAM" do
       expect(%i[ram123 blk1 blk5].map { |block| bus.ram?(block) }).to eq([true, false, true])
+    end
+  end
+
+  describe "#map_rom" do
+    let(:blocks) { %i[blk5] }
+
+    before { bus.map_rom(0xa000, [0x09, 0xa0, 0x41].fill(0xea, 3, 0xfd)) }
+
+    it "answers reads with the ROM's bytes" do
+      expect([0xa000, 0xa001, 0xa002].map { |addr| bus.peek(addr) }).to eq([0x09, 0xa0, 0x41])
+    end
+
+    it "ignores writes" do
+      bus.poke(0xa000, 0xff)
+      expect(bus.peek(0xa000)).to eq(0x09)
+    end
+
+    it "keeps the ROM when the blocks change" do
+      bus.blocks = %i[blk1 blk5]
+      expect(bus.peek(0xa002)).to eq(0x41)
+    end
+
+    it "leaves the rest of the block alone" do
+      bus.poke(0xa100, 0x5c)
+      expect(bus.peek(0xa100)).to eq(0x5c)
+    end
+  end
+
+  describe "#install_debug_register" do
+    let(:codes) { [] }
+
+    before { bus.install_debug_register { |code| codes << code } }
+
+    it "hands over each byte written to $910F" do
+      bus.poke(0x910f, 0xff)
+      expect(codes).to eq([0xff])
+    end
+
+    it "leaves the rest of I/O 0 to the chips" do
+      bus.poke(0x9112, 0x3c)
+      expect([user_via.peek(0x9002), codes]).to eq([0x3c, []])
     end
   end
 

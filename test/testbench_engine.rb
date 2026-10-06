@@ -17,12 +17,20 @@ module Testbench
 
     RECORD_END = "\ndone\n"
 
-    # A test as a line of the list the build reads.
+    # A test as a line of the list the build reads. A VIC-20 row's build
+    # takes its RAM configuration where a C64 row's takes its CIA.
     def self.spec(test)
+      return vic20_spec(test) if test.vic20?
+
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
        test.cia_model, test.vic_model, test.expansion, test.region, ("drive" if test.drive?),
        (test.disk_path if test.disk), test.load_name]
         .join("\t") << "\n"
+    end
+
+    def self.vic20_spec(test)
+      [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
+       test.ram_configuration].join("\t") << "\n"
     end
 
     # Reads one test's record from the build's output.

@@ -440,6 +440,92 @@ class TestTestbenchMachine < Minitest::Test
   end
 end
 
+class TestTestbenchVic20 < Minitest::Test
+  # 10 POKE37135,0, which reports a pass through $910F.
+  REPORTS_PASS = [0x01, 0x10, 0x0e, 0x10, 0x0a, 0x00, 0x97, *"37135,0".bytes, 0x00, 0x00, 0x00].freeze
+
+  # Starts itself from BLK5 and reports a pass: LDA #$00, STA $910F, JMP
+  # to itself.
+  AUTOSTART = [0x09, 0xa0, 0x09, 0xa0, 0x41, 0x30, 0xc3, 0xc2, 0xcd,
+               0xa9, 0x00, 0x8d, 0x0f, 0x91, 0x4c, 0x0e, 0xa0].freeze
+
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), REPORTS_PASS.pack("C*"))
+    write_crt("cart.crt", AUTOSTART + Array.new(256 - AUTOSTART.length, 0xea))
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def write_crt(name, rom)
+    header = "VIC20 CARTRIDGE ".b + [0x40, 0x0100, 0, 0, 0, 0].pack("NnnCCCx5") + ["Generic"].pack("a32")
+    chip = ["CHIP", 0x10 + rom.length, 0, 0, 0xa000, rom.length].pack("a4Nn4") + rom.pack("C*")
+    File.binwrite(File.join(@dir, name), header + chip)
+  end
+
+  def parse(options, prg: "t.prg", type: "exitcode")
+    Testbench::Vic20Testlist.parse("#{@dir}/,#{prg},#{type},100000,#{options}")
+  end
+
+  def test_runs_a_row_on_the_vic20
+    assert_predicate parse("vic20-unexp"), :vic20?
+    refute_predicate Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000"), :vic20?
+  end
+
+  def test_fits_the_ram_each_option_asks_for
+    assert_equal :unexpanded, parse("vic20-unexp").ram_configuration
+    assert_equal :unexpanded, parse("expect:error").ram_configuration
+    assert_equal :"8k", parse("vic20-8k").ram_configuration
+    assert_equal :all, parse("vic20-32k").ram_configuration
+  end
+
+  def test_takes_only_exitcode_rows
+    assert_nil parse("vic20-8k", type: "screenshot")
+    assert_nil parse("", type: "interactive")
+  end
+
+  def test_drops_a_row_that_asks_for_a_georam
+    assert_nil parse("vic20-8k,geo512k")
+  end
+
+  def test_drops_a_missing_program
+    assert_nil parse("vic20-8k", prg: "missing.prg")
+  end
+
+  def test_names_a_cartridge_row_after_its_cartridge
+    assert_equal "#{@dir}/cart.crt", parse("mountcrt:cart.crt", prg: "").id
+  end
+
+  def test_drops_a_missing_cartridge
+    assert_nil parse("mountcrt:missing.crt", prg: "")
+  end
+
+  def test_hands_the_engine_its_ram_configuration
+    assert Testbench::Engine.spec(parse("vic20-8k")).end_with?("\t#{@dir}\t8k\n")
+  end
+
+  def test_runs_a_program_from_the_start_of_basic
+    test = parse("vic20-unexp")
+
+    assert_equal 0, test.run_vic20(test.vic20_machine).first
+  end
+
+  def test_starts_a_cartridge_from_power_on
+    test = parse("mountcrt:cart.crt", prg: "")
+    machine = test.vic20_machine
+
+    assert_equal [0, 0], [machine.cycles, test.run_vic20(machine).first]
+  end
+
+  def test_reads_the_text_screen_where_the_kernal_keeps_it
+    machine = Testbench.vic20_machine(:unexpanded, true)
+
+    assert_equal "**** cbm basic v2 ****", Testbench.vic20_screen_text(machine)[0]
+  end
+end
+
 class TestTestbenchExpectations < Minitest::Test
   def test_case(*options)
     Testbench::TestCase.new("../CPU/cpujam", "t.prg", "exitcode", 1000, options)
@@ -836,6 +922,7 @@ class TestTestbenchEngine < Minitest::Test
     def drive? = false
     def disk = nil
     def load_name = ""
+    def vic20? = false
   end
 
   def setup

@@ -85,6 +85,9 @@ REGRESSION_SUITES = {
 # CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
 # testbench-drean is the testlist's vicii-drean rows on a Drean C64, PAL-N
 # with the 6572, the one the testlist comments out included.
+# testbench-vic20 is the VIC-20 testlist's exitcode rows on a PAL VIC-20
+# with the RAM each asks for. Its Spinel build is spinel/vic20_testbench.rb,
+# which :engine names, so the C64's harness doesn't carry the VIC-20.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -108,6 +111,7 @@ OPT_IN_SUITES = {
   "testbench-ntsc-vicii-new" => { runner: "bin/testbench", args: %w[--ntsc --vicii-new] },
   "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
   "testbench-drean" => { runner: "bin/testbench", args: %w[--drean] },
+  "testbench-vic20" => { runner: "bin/testbench", args: %w[--vic20], engine: "vic20_testbench" },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
   "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze
@@ -362,9 +366,12 @@ def compare_baseline(suite, results, name: suite, filters: [])
 end
 
 # The bin/testbench suites on the Spinel build: bin/testbench runs each
-# one's tests on tmp/spinel/testbench, one build process per shard, and
-# scores them as it does in process.
+# one's tests on tmp/spinel/testbench, or the harness the suite's :engine
+# names, one build process per shard, and scores them as it does in
+# process.
 SPINEL_TESTBENCH_SUITES = ALL_SUITES.select { |_, config| config[:runner] == "bin/testbench" }.keys.freeze
+
+def spinel_testbench_engine(suite) = ALL_SUITES.fetch(suite).fetch(:engine, "testbench")
 
 def spinel_testbench_suites(suite)
   return SPINEL_TESTBENCH_SUITES if suite == "all"
@@ -378,10 +385,9 @@ end
 # next when one changed, and fails once they have all run. Filters bound a
 # single suite's run to the rows they match.
 def run_spinel_testbench(suites, filters = [])
-  engine = SpinelCheck.binary("testbench")
   problems = suites.filter_map do |suite|
     results = File.join(SpinelCheck::OUT, "#{suite}.txt")
-    run_suite(suite, results, [*filters, "--engine", engine])
+    run_suite(suite, results, [*filters, "--engine", SpinelCheck.binary(spinel_testbench_engine(suite))])
     compare_baseline(suite, results, name: "spinel-#{suite}", filters:)
     nil
   rescue RuntimeError => e
@@ -504,7 +510,8 @@ task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
   filters = args.extras.compact.reject(&:empty?)
   raise "Filters take one suite, not all of them." if filters.any? && suites.length > 1
 
-  SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[testbench])
+  harnesses = suites.map { |suite| spinel_testbench_engine(suite) }.uniq
+  SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses:)
   run_spinel_testbench(suites, filters)
 end
 

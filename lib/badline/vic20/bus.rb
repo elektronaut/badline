@@ -33,14 +33,16 @@ module Badline
         ram123: [0x04, 0x0c], blk1: [0x20, 0x20], blk2: [0x40, 0x20], blk3: [0x60, 0x20], blk5: [0xa0, 0x20]
       }.freeze
 
-      # The blocks each of the usual RAM expansions fills.
+      # The blocks each of the usual RAM expansions fills, and every block,
+      # which is what xvic's -memory all fits.
       RAM_CONFIGURATIONS = {
         unexpanded: [],
         "3k": %i[ram123],
         "8k": %i[blk1],
         "16k": %i[blk1 blk2],
         "24k": %i[blk1 blk2 blk3],
-        "32k": %i[blk1 blk2 blk3 blk5]
+        "32k": %i[blk1 blk2 blk3 blk5],
+        all: %i[ram123 blk1 blk2 blk3 blk5]
       }.freeze
 
       # The last byte on the V-bus's data lines, which an empty spot on
@@ -113,6 +115,27 @@ module Badline
         end
       end
 
+      # VICE's debug cartridge register at $910F, a spot in I/O 0 that
+      # nothing answers. A write there calls the handler with the byte, the
+      # exit code the VICE testprogs report. Every other access falls
+      # through to I/O 0.
+      class DebugRegister
+        ADDRESS = 0x910f
+
+        def initialize(io0, &handler)
+          @io0 = io0
+          @handler = handler
+        end
+
+        def peek(addr) = @io0.peek(addr)
+
+        def poke(addr, value)
+          return @handler.call(value) if addr == ADDRESS
+
+          @io0.poke(addr, value)
+        end
+      end
+
       attr_reader :ram, :color_ram, :blocks
 
       # The last byte the CPU read or wrote.
@@ -137,7 +160,23 @@ module Badline
         @data = @video_data = 0
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @open_bus)
+        @roms = []
+        @debug_register = nil
         self.blocks = blocks
+      end
+
+      # Puts a cartridge's ROM chip of +bytes+, whole pages of them, at
+      # +address+. It answers reads on the pages it covers in place of
+      # whatever was there, and writes to them go nowhere.
+      def map_rom(address, bytes)
+        @roms << ROM.new(bytes, length: bytes.length, start: address)
+        map_pages
+      end
+
+      # Calls the block with each byte written to $910F (DebugRegister).
+      def install_debug_register(&)
+        @debug_register = DebugRegister.new(@io0, &)
+        map_pages
       end
 
       # Fills the expansion blocks named in +names+ with RAM and empties
@@ -175,6 +214,15 @@ module Badline
         map(@color_ram, 0x94, 0x04)
         @read_pages.fill(@basic_rom, 0xc0, 0x20)
         @read_pages.fill(@kernal_rom, 0xe0, 0x20)
+        @roms.each { |rom| map_rom_pages(rom) }
+        @write_pages[0x91] = @debug_register if @debug_register
+      end
+
+      def map_rom_pages(rom)
+        first = rom.start >> 8
+        count = rom.length >> 8
+        @read_pages.fill(rom, first, count)
+        @write_pages.fill(@open_bus, first, count)
       end
 
       def map(chip, first, count)
