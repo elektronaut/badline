@@ -6,13 +6,14 @@ module Badline
       class FormatError < StandardError; end
 
       SIGNATURE = "C64 CARTRIDGE   ".b
+      VIC20_SIGNATURE = "VIC20 CARTRIDGE ".b
       CHIP_SIGNATURE = "CHIP".b
       CHIP_HEADER_SIZE = 0x10
       RAM_CHIP = 1
 
       Chip = Data.define(:chip_type, :bank, :address, :data)
 
-      attr_reader :hardware_type, :subtype, :exrom, :game, :name, :chips
+      attr_reader :machine, :hardware_type, :subtype, :exrom, :game, :name, :chips
 
       # What .write needs of an image: the fields a parsed CRTFile reads.
       Image = Data.define(:hardware_type, :subtype, :exrom, :game, :name, :chips)
@@ -33,22 +34,32 @@ module Badline
         header + packets.join
       end
 
-      # `bytes` stands in for the file's contents.
-      def initialize(path = nil, bytes: nil)
+      # `bytes` stands in for the file's contents. `machine` is the one the
+      # image has to be for, :c64 or :vic20, or nil for either.
+      def initialize(path = nil, bytes: nil, machine: :c64)
         parse(bytes || File.binread(path))
+        return if machine.nil? || @machine == machine
+
+        raise FormatError, "Cartridge image is for the #{@machine}, not the #{machine}"
       end
 
       private
 
       def parse(bytes)
-        raise FormatError, "Missing CRT signature" unless bytes.start_with?(SIGNATURE)
-
+        @machine = signed_machine(bytes)
         @hardware_type = bytes[0x16, 2].unpack1("n")
         @exrom = bytes.getbyte(0x18)
         @game = bytes.getbyte(0x19)
         @subtype = bytes.getbyte(0x1a)
         @name = bytes[0x20, 32].unpack1("Z*")
         @chips = parse_chips(bytes, bytes[0x10, 4].unpack1("N"))
+      end
+
+      def signed_machine(bytes)
+        return :c64 if bytes.start_with?(SIGNATURE)
+        return :vic20 if bytes.start_with?(VIC20_SIGNATURE)
+
+        raise FormatError, "Missing CRT signature"
       end
 
       # Trailing bytes too short to hold a CHIP header are ignored.

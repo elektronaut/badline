@@ -98,6 +98,46 @@ describe Badline::Storage::CRTFile do
     end
   end
 
+  it "is for the C64" do
+    expect(crt.machine).to eq(:c64)
+  end
+
+  it "rejects a C64 image where a VIC-20 one is wanted" do
+    expect { described_class.new(path, machine: :vic20) }
+      .to raise_error(described_class::FormatError, /for the c64, not the vic20/)
+  end
+
+  context "with a VIC-20 image" do
+    subject(:crt) { described_class.new(path, machine: :vic20) }
+
+    let(:chips) { [chip_packet(bank: 0, address: 0xa000, data: [0x55] * 0x800)] }
+    let(:header) do
+      "VIC20 CARTRIDGE ".b + [0x40, 0x0200, 0, 0, 0].pack("NnnCC") +
+        ("\x00" * 6) + "Generic VIC20 Cartridge".ljust(32, "\x00")
+    end
+
+    it "is for the VIC-20" do
+      expect(crt.machine).to eq(:vic20)
+    end
+
+    it "parses the chip load address" do
+      expect(crt.chips.first.address).to eq(0xa000)
+    end
+
+    it "parses the chip data" do
+      expect(crt.chips.first.data).to eq([0x55] * 0x800)
+    end
+
+    it "is refused where a C64 image is wanted" do
+      expect { described_class.new(path) }
+        .to raise_error(described_class::FormatError, /for the vic20, not the c64/)
+    end
+
+    it "is accepted when any machine will do" do
+      expect(described_class.new(path, machine: nil).machine).to eq(:vic20)
+    end
+  end
+
   context "with a corrupt chip packet" do
     let(:chips) { ["JUNK#{"\x00" * 16}"] }
 
