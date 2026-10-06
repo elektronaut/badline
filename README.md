@@ -65,6 +65,10 @@ Programs, disk and tape images and SID tunes start automatically, and
 a cartridge starts itself. A mounted directory waits for you to `LOAD`
 from it.
 
+The first argument can name the machine, as in `badline c64 game.prg`.
+The C64 is the default, and so far the only one. `--model` picks which
+C64.
+
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
 
@@ -78,7 +82,7 @@ differences noted in the table. `--help` lists the options for either.
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
-| `--model NAME` | Run another C64, named as in VICE: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572) or `sx64` (the portable SX-64, with its own KERNAL and no datasette). `--sid` or a `.sid` tune's own SID takes the model's place |
+| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572) or `sx64` (the portable SX-64, with its own KERNAL and no datasette). `--sid` or a `.sid` tune's own SID takes the model's place |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |

@@ -2,13 +2,39 @@
 
 module Badline
   class Options
-    # The checks Options#parse makes once every argument has been read:
-    # the options fit the mode, the numbers are positive and the files
-    # exist.
+    # The checks Options#parse makes: that each value reads as its option
+    # takes it, and once every argument has been read, that the options
+    # fit the mode, the numbers are positive and the files exist.
     module Validation
       private
 
+      def sid_model_for(value)
+        return if value == "auto"
+        raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
+
+        SID_MODELS[value]
+      end
+
+      def reu_size(value)
+        raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
+
+        value.to_i
+      end
+
+      def number(flag, value)
+        raise Error, "invalid argument: #{flag} #{value}" unless value.match?(/\A\d+\z/)
+
+        value.to_i
+      end
+
+      def decimal(flag, value)
+        raise Error, "invalid argument: #{flag} #{value}" unless value.match?(DECIMAL)
+
+        value.to_f
+      end
+
       def validate
+        validate_family
         validate_mode
         validate_models
         validate_numbers
@@ -24,6 +50,10 @@ module Badline
         elsif !@headless_only.empty?
           raise Error, "#{@headless_only.first} needs --headless or --audio-out"
         end
+      end
+
+      def validate_family
+        raise Error, "the VIC-20 isn't emulated yet" if @family == :vic20
       end
 
       # `sid` takes directories as well as tunes.

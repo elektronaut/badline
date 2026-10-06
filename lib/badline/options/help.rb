@@ -37,10 +37,15 @@ module Badline
 
     def banner
       <<~BANNER
-        Usage: #{@program} [options] [media]
+        Usage: #{@program} [c64] [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
+
+        Commands:
+            c64                              Run a C64, the one --model names (the default)
+            vic20                            Run a VIC-20 (not emulated yet)
+            sid                              Play .sid tunes and directories of them
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
         .g64 disk image for the true 1541, an .m3u or .vfl list of disk

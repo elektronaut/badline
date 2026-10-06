@@ -45,14 +45,11 @@ module Badline
 
     # A new machine built from the options, with `media`, if not nil,
     # attached and started as the command line does, its disk writable if
-    # `writable`. The model gives the chips, and a .sid tune or --sid the
-    # SID.
+    # `writable`. The family and model give the machine, and a .sid tune
+    # or --sid the SID.
     def self.start(options, media, writable)
-      model = Model.named(options.model)
-      computer = Computer.new(vic_model: model.vic_model, cia_model: model.cia_model,
-                              sid_model: options.sid_model || Media.sid_model(media, otherwise: model.sid_model),
-                              region: model.region, reu: options.reu, kernal: model.kernal,
-                              datasette: model.datasette)
+      sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
+      computer = Machine.build(options.family, model: options.model, sid_model:, reu: options.reu)
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,

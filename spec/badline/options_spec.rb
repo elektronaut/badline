@@ -353,6 +353,48 @@ describe Badline::Options do
     end
   end
 
+  describe "the machine family" do
+    it "is the C64 without a subcommand" do
+      expect(described_class.parse([program_path]).family).to eq(:c64)
+    end
+
+    context "with c64" do
+      let(:argv) { ["c64", "--model", "c64c", program_path] }
+
+      it "runs the C64 model given on the media given" do
+        expect([options.family, options.model, options.media_path]).to eq([:c64, "c64c", program_path])
+      end
+    end
+
+    context "with vic20" do
+      let(:argv) { ["vic20", program_path] }
+
+      it "is rejected" do
+        expect { options }.to raise_error(described_class::Error, "the VIC-20 isn't emulated yet")
+      end
+    end
+
+    context "with c64 after the media" do
+      let(:argv) { [program_path, "c64"] }
+
+      it "takes it for media" do
+        expect { options }.to raise_error(described_class::Error, "unexpected argument: c64")
+      end
+    end
+
+    context "with --help" do
+      let(:argv) { ["--help"] }
+
+      it "lists the subcommands" do
+        expect(options.help.lines).to include(
+          "    c64                              Run a C64, the one --model names (the default)\n",
+          "    vic20                            Run a VIC-20 (not emulated yet)\n",
+          "    sid                              Play .sid tunes and directories of them\n"
+        )
+      end
+    end
+  end
+
   describe "a .sid on its own" do
     let(:argv) { [tune_path] }
 
