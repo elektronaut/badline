@@ -62,9 +62,9 @@ RSpec.describe Badline::Computer do
   end
 
   describe "#timing" do
-    it "gives the region's clock, raster and crop" do
+    it "gives the region's clock, raster and crop, a pixel to a window pixel" do
       timing = described_class.new(region: Badline::Region::NTSC).timing
-      expect(timing.to_h.values).to eq([1_022_727, 65, 263, [96, 28, 384, 235]])
+      expect(timing.to_h.values).to eq([1_022_727, 65, 263, [96, 28, 384, 235], 1])
     end
   end
 

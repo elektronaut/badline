@@ -17,7 +17,7 @@ describe Badline::Frontend::DriveLed do
   end
 
   it "sits in the bottom right corner of the border" do
-    described_class.place
+    described_class.place(384, 272)
     expect(Badline::SDL.led_rect[0, 16].unpack("l4")).to eq([364, 262, 12, 4])
   end
 

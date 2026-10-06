@@ -2,7 +2,9 @@
 
 module Badline
   module Frontend
-    # The SID's output on SDL's audio queue, as mono signed 16-bit samples.
+    # The machine's sound source, the C64's SID or the VIC-20's VIC, on
+    # SDL's audio queue, as mono signed 16-bit samples. Both take
+    # #record(rate:, clock_hz:) and #drain_samples.
     # Once the device plays, it is the clock: #wait holds each frame until
     # the queue is down to `AHEAD`, so the machine runs at the device's pace.
     #
@@ -13,7 +15,7 @@ module Badline
     # only happens unpaced.
     #
     # Each frame's samples go to SDL through an IO::Buffer of 16-bit values.
-    # The SID's cycles are converted at `clock_hz`, the machine's clock, so
+    # The chip's cycles are converted at `clock_hz`, the machine's clock, so
     # an NTSC or Drean machine plays at its own pitch.
     class Sound
       RATE = 44_100
@@ -22,8 +24,8 @@ module Badline
 
       attr_reader :rate, :underruns, :dropped, :queued, :low, :high
 
-      def initialize(sid, clock_hz, wanted, verbose)
-        @sid = sid
+      def initialize(source, clock_hz, wanted, verbose)
+        @source = source
         @clock_hz = clock_hz
         @verbose = verbose
         @device = 0
@@ -40,9 +42,9 @@ module Badline
 
       def on? = @device != 0
 
-      # Plays another machine's SID from here on, at that machine's clock.
-      def switch(sid, clock_hz)
-        @sid = sid
+      # Plays another machine's sound from here on, at that machine's clock.
+      def switch(source, clock_hz)
+        @source = source
         @clock_hz = clock_hz
         record if on?
       end
@@ -54,7 +56,7 @@ module Badline
       def feed
         return unless on?
 
-        samples = @sid.drain_samples
+        samples = @source.drain_samples
         return if @muted || samples.empty?
 
         level = queued_seconds
@@ -110,7 +112,7 @@ module Badline
         puts "Sound at #{@rate} Hz" if @verbose
       end
 
-      def record = @sid.record(rate: @rate, clock_hz: @clock_hz)
+      def record = @source.record(rate: @rate, clock_hz: @clock_hz)
 
       def queued_seconds = SDL.SDL_GetQueuedAudioSize(@device) / (2.0 * @rate)
 

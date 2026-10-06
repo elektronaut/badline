@@ -8,8 +8,6 @@ module Badline
     class DriveLed
       WIDTH = 12
       HEIGHT = 4
-      LEFT = Screen::WIDTH - WIDTH - 8
-      TOP = Screen::HEIGHT - HEIGHT - 6
 
       LIT = [0xff, 0x20, 0x20].freeze
       DARK = [0x40, 0x00, 0x00].freeze
@@ -20,11 +18,12 @@ module Badline
         drive ? new(drive) : nil
       end
 
-      # Sets SDL.led_rect to where the LED goes.
-      def self.place
+      # Sets SDL.led_rect to where the LED goes on a screen `width` by
+      # `height`.
+      def self.place(width, height)
         rect = SDL.led_rect
-        SDL.rect_x(rect, LEFT)
-        SDL.rect_y(rect, TOP)
+        SDL.rect_x(rect, width - WIDTH - 8)
+        SDL.rect_y(rect, height - HEIGHT - 6)
         SDL.rect_w(rect, WIDTH)
         SDL.rect_h(rect, HEIGHT)
       end
@@ -37,10 +36,10 @@ module Badline
 
       def color = lit? ? LIT : DARK
 
-      # Fills the LED's rectangle in its colour, then puts back the black
-      # that RenderClear clears with.
-      def draw(renderer)
-        DriveLed.place
+      # Fills the LED's rectangle on a screen `width` by `height` in its
+      # colour, then puts back the black that RenderClear clears with.
+      def draw(renderer, width, height)
+        DriveLed.place(width, height)
         rgb = color
         SDL.SDL_SetRenderDrawColor(renderer, rgb[0], rgb[1], rgb[2], 255)
         SDL.SDL_RenderFillRect(renderer, SDL.led_rect)

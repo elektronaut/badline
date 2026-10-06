@@ -7,6 +7,8 @@ module Badline
     # row for each thing to do, a setting showing its value on the right,
     # which a press steps on.
     class MenuPages
+      include MenuPorts
+
       TEXT = PauseMenu::TEXT
       DIM = PauseMenu::DIM
       LINE = 12
@@ -16,10 +18,11 @@ module Badline
       WARNING = 0xff7a6b
       RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
-      PORT_DEVICES = %i[joystick mouse paddles].freeze
-      PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
-      PORT_ACTIONS = [%i[port1_joystick port1_mouse port1_paddles], %i[port2_joystick port2_mouse port2_paddles]].freeze
-      POTS = [%i[none mouse1 paddles1], %i[none mouse2 paddles2]].freeze
+      SID_MODELS = %i[mos6581 mos8580].freeze
+      RAM_NAMES = {
+        unexpanded: "", "3k": "3K", "8k": "8K", "16k": "16K", "24k": "24K", "32k": "32K",
+        all: "35K, ALL BLOCKS"
+      }.freeze
 
       # The disks, tapes and cartridges the pages put in and take out.
       attr_reader :media
@@ -84,6 +87,14 @@ module Badline
 
       private
 
+      def vic20? = @computer.family == :vic20
+
+      # Says in the dim colour that the VIC-20 hasn't got what the page
+      # shows.
+      def note
+        @painter.text(@left, @top, "NOT ON THE VIC-20 YET", DIM)
+      end
+
       def draw_drive
         media = @media
         inserted = media.inserted?
@@ -114,6 +125,8 @@ module Badline
       end
 
       def draw_expansion
+        return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
+
         cartridge = @computer.address_bus.cartridge
         info("CARTRIDGE", cartridge.nil? ? "" : cartridge.name)
         row("INSERT...", :insert_cartridge)
@@ -125,32 +138,24 @@ module Badline
         info("RAM EXPANSION", "REU, #{@reu_kb} KB")
       end
 
-      def draw_ports
-        toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
-        toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
-        joystick = @controls.joystick_mode?
-        toggle("KEYS", :keys, [%w[C64 JOYSTICK], %i[keys_c64 keys_joystick], joystick ? 1 : 0])
-        return unless joystick
-
-        row("SWAP JOYSTICKS", :swap)
-        skip
-        arrows = @controls.arrows_port
-        info("ARROWS, SPACE", "PORT #{arrows}")
-        info("WASD, LEFT SHIFT", "PORT #{3 - arrows}")
-      end
-
+      # The SID's model is a setting, and other sound chips have none.
       def draw_sound
         if @sound.on?
           toggle("OUTPUT", :output, [%w[ON MUTED], %i[sound_on mute], @sound.muted? ? 1 : 0])
         else
           info("OUTPUT", "OFF")
         end
-        toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], @computer.sound_source.model == :mos8580 ? 1 : 0])
+        model = @computer.sound_source.model
+        return unless SID_MODELS.include?(model)
+
+        toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], model == :mos8580 ? 1 : 0])
       end
 
       # Saving now and by name, loading a named save, and the quicksaves
       # and autosaves, newest first, which a press loads.
       def draw_snapshots
+        return note unless @snapshots.available?
+
         row("QUICKSAVE", :quicksave_now)
         row("SAVE...", :save_as)
         row("LOAD...", :load_save)
@@ -194,26 +199,6 @@ module Badline
 
       def skip
         @top += LINE
-      end
-
-      def keys(mode) = @controls.joystick_mode = mode == :joystick
-
-      def port_device(port)
-        index = POTS[port - 1].index(@controls.pot)
-        index.nil? ? :joystick : PORT_DEVICES[index]
-      end
-
-      # Plugs the device a choice such as :port1_mouse names into its port.
-      def pick_port(action)
-        index = PORT_ACTIONS[0].include?(action) ? 0 : 1
-        choice = PORT_ACTIONS[index].index(action)
-        plug_device(index + 1, choice) unless choice.nil? || choice == PORT_DEVICES.index(port_device(index + 1))
-      end
-
-      # Plugs PORT_DEVICES[choice] into the port. A joystick there takes out
-      # the pot device.
-      def plug_device(port, choice)
-        @controls.plug(POTS[port - 1][choice])
       end
     end
   end

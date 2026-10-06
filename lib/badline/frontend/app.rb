@@ -3,12 +3,10 @@
 module Badline
   module Frontend
     # Opens the window, then runs the machine a frame at a time: poll
-    # events, clock the frame's cycles, queue the SID's samples, upload the
+    # events, clock the frame's cycles, queue the sound's samples, upload the
     # changed lines, present and wait. Pacer decides the cycles and the wait.
     class App
-      SCALE = 2
       DROPFILE = 0x1000
-      TITLE = "Badline"
 
       # Takes the frame limit, the pacing, the snapshot path, the sound and
       # the verbosity from Options, and runs the timeline's events.
@@ -23,11 +21,13 @@ module Badline
         @screen = Screen.new(computer.video, timing.crop)
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
-        open_window
+        @window = MachineWindow.new(@screen, timing.pixel_width, vsync: @pacer.vsync?)
+        @pacer.fit(@window.refresh_rate) if @pacer.vsync?
         @sound = Sound.new(computer.sound_source, timing.clock_hz, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
         @frame_report = FrameReport.new(@sound)
-        @menu = PauseMenu.new(Painter.new(@renderer), options, @snapshots)
+        @menu = PauseMenu.new(Painter.new(@window.renderer), options, @snapshots)
+        @menu.center(@window.width, @window.height)
       end
 
       def run
@@ -40,7 +40,7 @@ module Badline
         @computer.drive1541&.flush
         @gamepads.close
         @sound.close
-        close_window
+        @window.close
       end
 
       private
@@ -71,36 +71,6 @@ module Badline
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?
-      end
-
-      def open_window
-        abort "SDL_Init: #{SDL.SDL_GetError}" unless SDL.SDL_Init(SDL::INIT_VIDEO | SDL::INIT_EVENTS).zero?
-
-        SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0")
-        SDL.SDL_SetHint("SDL_MOUSE_RELATIVE_SCALING", "0")
-        @window = SDL.SDL_CreateWindow(
-          TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
-          Screen::WIDTH * SCALE, Screen::HEIGHT * SCALE, SDL::WINDOW_RESIZABLE
-        )
-        flags = SDL::RENDERER_ACCELERATED
-        flags |= SDL::RENDERER_PRESENTVSYNC if @pacer.vsync?
-        @renderer = SDL.SDL_CreateRenderer(@window, -1, flags)
-        fit_display if @pacer.vsync?
-        SDL.SDL_RenderSetLogicalSize(@renderer, Screen::WIDTH, Screen::HEIGHT)
-        create_texture
-      end
-
-      def create_texture
-        @texture = SDL.SDL_CreateTexture(
-          @renderer, SDL::PIXELFORMAT_RGB888, SDL::TEXTUREACCESS_STREAMING, Screen::WIDTH, Screen::HEIGHT
-        )
-      end
-
-      def close_window
-        SDL.SDL_DestroyTexture(@texture)
-        SDL.SDL_DestroyRenderer(@renderer)
-        SDL.SDL_DestroyWindow(@window)
-        SDL.SDL_Quit
       end
 
       def handle_events
@@ -140,6 +110,8 @@ module Badline
         @computer = computer
         timing = computer.timing
         @screen = Screen.new(computer.video, timing.crop)
+        @window.fit(@screen, timing.pixel_width)
+        @menu.center(@window.width, @window.height)
         @led = DriveLed.for(computer)
         @controls.computer = computer
         @gamepads.computer = computer
@@ -174,7 +146,7 @@ module Badline
       # Runs a frame of the menu, which has the keys and the mouse while the
       # machine stands still.
       def paused_frame
-        action = @menu.frame(@renderer, @texture, @controls)
+        action = @menu.frame(@window.renderer, @window.texture, @controls)
         if action == :quit
           @running = false
         elsif !action.nil?
@@ -184,15 +156,10 @@ module Badline
       end
 
       def update_title
-        title = TITLE
-        title += " [#{@controls.tag}]" unless @controls.tag.empty?
-        title += " [MUTED]" if @sound.muted?
-        SDL.SDL_SetWindowTitle(@window, title)
-      end
-
-      def fit_display
-        SDL.SDL_GetWindowDisplayMode(@window, SDL.display_mode)
-        @pacer.fit(SDL.mode_refresh(SDL.display_mode))
+        tags = []
+        tags << @controls.tag unless @controls.tag.empty?
+        tags << "MUTED" if @sound.muted?
+        @window.title(tags)
       end
 
       def emulate
@@ -201,15 +168,16 @@ module Badline
 
       def upload
         @screen.update
-        SDL.SDL_UpdateTexture(@texture, nil, @screen.pixels, Screen::ROW_BYTES)
+        @window.upload(@screen)
       end
 
       def draw
-        SDL.SDL_RenderClear(@renderer)
-        SDL.SDL_RenderCopy(@renderer, @texture, nil, nil)
-        @led&.draw(@renderer)
-        @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(@renderer, path) }
-        SDL.SDL_RenderPresent(@renderer)
+        renderer = @window.renderer
+        SDL.SDL_RenderClear(renderer)
+        SDL.SDL_RenderCopy(renderer, @window.texture, nil, nil)
+        @led&.draw(renderer, @window.width, @window.height)
+        @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(renderer, path) }
+        SDL.SDL_RenderPresent(renderer)
       end
 
       def report(at)

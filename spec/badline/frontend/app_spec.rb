@@ -158,6 +158,39 @@ describe Badline::Frontend::App do
     end
   end
 
+  describe "with a VIC-20" do
+    let(:computer) { Badline::Vic20.new }
+    let(:frame_cycles) { 71 * 312 }
+
+    def options(*argv) = Badline::Options.parse(["vic20", "--unpaced", *argv])
+
+    it "runs its frames" do
+      run
+      expect(computer.cycles).to eq(2 * frame_cycles)
+    end
+
+    it "shows its 284 by 284 picture with each pixel two wide" do
+      run(argv: %w[--frames 1 --screenshot vic20.bmp])
+      expect(File.binread("vic20.bmp").unpack("@18l2")).to eq([284 * 2 * 2, 284 * 2])
+    end
+
+    it "lets go of RESTORE as the key comes up" do
+      restore = Badline::Frontend::Keys::OTHERS.key(:restore)
+      allow(computer).to receive(:release_restore)
+      run(key(restore), key(restore, down: false))
+      expect(computer).to have_received(:release_restore)
+    end
+
+    it "drives its one joystick with both sets of keys" do
+      run(tab, key(82), key(22))
+      expect(computer.joystick1.port_bits & 0x1f).to eq(0b11100)
+    end
+
+    it "says F11 can't save it" do
+      expect { run(key(Badline::Frontend::Keys::F11)) }.to output(/The VIC-20 can't save or restore/).to_stdout
+    end
+  end
+
   describe "a true drive" do
     it "draws its LED in the border, lit as the drive powers on" do
       Badline::Media::TrueDrive.plug(computer)
@@ -170,8 +203,8 @@ describe Badline::Frontend::App do
     def led_pixel(path)
       bmp = File.binread(path)
       offset, width, height = bmp.unpack("@10L@18l2")
-      x = (Badline::Frontend::DriveLed::LEFT + 6) * 2
-      y = height - 1 - ((Badline::Frontend::DriveLed::TOP + 2) * 2)
+      x = (384 - 8 - 12 + 6) * 2
+      y = height - 1 - ((272 - 6 - 4 + 2) * 2)
       bmp.unpack("@#{offset + (y * (((width * 3) + 3) / 4) * 4) + (x * 3)}C3")
     end
   end
