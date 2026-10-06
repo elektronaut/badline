@@ -29,35 +29,35 @@ VIC20/viavarious/via20.prg	PASS
 VIC20/viavarious/via21.prg	PASS
 VIC20/via_sr/viasr00.prg	PASS
 VIC20/via_sr/viasr00ifr.prg	PASS
-VIC20/via_sr/viasr04.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr04ifr.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr08.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr08ifr.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr04.prg	PASS
+VIC20/via_sr/viasr04ifr.prg	PASS
+VIC20/via_sr/viasr08.prg	PASS
+VIC20/via_sr/viasr08ifr.prg	PASS
 VIC20/via_sr/viasr0c.prg	PASS
 VIC20/via_sr/viasr0cifr.prg	PASS
-VIC20/via_sr/viasr10.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr10.prg	PASS
 VIC20/via_sr/viasr10ifr.prg	PASS
-VIC20/via_sr/viasr14.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr14ifr.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr18.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr18ifr.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr14.prg	PASS
+VIC20/via_sr/viasr14ifr.prg	PASS
+VIC20/via_sr/viasr18.prg	PASS
+VIC20/via_sr/viasr18ifr.prg	PASS
 VIC20/via_sr/viasr1c.prg	PASS
 VIC20/via_sr/viasr1cifr.prg	PASS
 VIC20/via_sr/viasr00exp.prg	PASS
-VIC20/via_sr/viasr04exp.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr08exp.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr04exp.prg	PASS
+VIC20/via_sr/viasr08exp.prg	PASS
 VIC20/via_sr/viasr0cexp.prg	PASS
-VIC20/via_sr/viasr10exp.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr14exp.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr18exp.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr10exp.prg	PASS
+VIC20/via_sr/viasr14exp.prg	PASS
+VIC20/via_sr/viasr18exp.prg	PASS
 VIC20/via_sr/viasr1cexp.prg	PASS
 VIC20/via_sr/viasr00iex.prg	PASS
-VIC20/via_sr/viasr04iex.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr08iex.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr04iex.prg	PASS
+VIC20/via_sr/viasr08iex.prg	PASS
 VIC20/via_sr/viasr0ciex.prg	PASS
 VIC20/via_sr/viasr10iex.prg	PASS
-VIC20/via_sr/viasr14iex.prg	FAIL	exit=$ff
-VIC20/via_sr/viasr18iex.prg	FAIL	exit=$ff
+VIC20/via_sr/viasr14iex.prg	PASS
+VIC20/via_sr/viasr18iex.prg	PASS
 VIC20/via_sr/viasr1ciex.prg	PASS
 VIC20/via_mapping/bugvicevia1.prg	PASS
 VIC20/via_mapping/bugvicevia2.prg	PASS

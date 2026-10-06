@@ -3,10 +3,10 @@
 require "spec_helper"
 require "badline/via/shift_register"
 
-# The cycle counts below follow the R6522 datasheet's shift register timing:
-# under its own clock the register drops CB1 on the first tick after the
-# access, raises it on the second, and sets the flag on the tick that raises
-# it over the eighth bit.
+# Under its own clock the register drops CB1 on the first tick of a byte,
+# raises it on the second, and sets the flag on the tick that raises it over
+# the eighth bit. The cycle counts below are the VIC-20's via_sr testprogs'
+# (see doc/pinned-behaviour.md, "VIA shift register").
 describe Badline::VIA::ShiftRegister do
   subject(:sr) { described_class.new }
 
@@ -101,24 +101,25 @@ describe Badline::VIA::ShiftRegister do
       expect([run(32), sr.data]).to eq([[], 0x00])
     end
 
-    it "drops CB1 on the first cycle after the access and raises it on the second" do
+    # Pinned by VIC20/via_sr/viasr08.
+    it "drops CB1 on the second cycle after the access and raises it on the third" do
       sr.access!
-      expect(cb1_levels([false] * 4)).to eq([false, true, false, true])
+      expect(cb1_levels([false] * 5)).to eq([true, false, true, false, true])
     end
 
-    it "sets the flag on the sixteenth cycle, and only once" do
+    it "sets the flag on the seventeenth cycle, and only once" do
       sr.access!
-      expect(run(64, underflow: false)).to eq([16])
+      expect(run(64, underflow: false)).to eq([17])
     end
 
     it "shifts CB2 in on each rising edge, MSB first" do
       sr.access!
-      expect(feed(halves(0xa5), underflow: false)).to eq(0xa5)
+      expect(feed([0] + halves(0xa5), underflow: false)).to eq(0xa5)
     end
 
     it "samples CB2 as CB1 rises, not as it falls" do
       sr.access!
-      expect(feed([0, 1], underflow: false)).to eq(0x01)
+      expect(feed([0, 0, 1], underflow: false)).to eq(0x01)
     end
 
     it "leaves CB1 high once the byte is in" do
@@ -127,11 +128,26 @@ describe Badline::VIA::ShiftRegister do
       expect(sr.cb1_output).to be(true)
     end
 
-    it "restarts the count on a new access" do
+    it "carries on through an access before the eighth bit" do
       sr.access!
       run(10)
       sr.access!
-      expect(run(40)).to eq([16])
+      expect(run(40)).to eq([7])
+    end
+
+    it "starts a new byte on an access after the flag" do
+      sr.access!
+      run(17)
+      sr.access!
+      expect(run(40)).to eq([17])
+    end
+
+    # Pinned by VIC20/via_sr/viasr08ifr.
+    it "ignores an access while disabled" do
+      sr.mode = 0
+      sr.access!
+      sr.mode = 2
+      expect(run(40)).to eq([])
     end
   end
 
@@ -145,16 +161,17 @@ describe Badline::VIA::ShiftRegister do
       expect([run(32, underflow: false), sr.cb1_output]).to eq([[], true])
     end
 
-    it "toggles CB1 on each underflow" do
-      expect(cb1_levels([true, false, true, true])).to eq([false, false, true, false])
+    # Pinned by VIC20/via_sr/viasr04.
+    it "toggles CB1 two cycles after each underflow" do
+      expect(cb1_levels([true, false, true, true, false, false])).to eq([true, true, false, false, true, false])
     end
 
-    it "sets the flag on the sixteenth underflow" do
-      expect(flags((1..48).map { |cycle| (cycle % 3).zero? })).to eq([48])
+    it "sets the flag two cycles after the sixteenth underflow" do
+      expect(flags((1..51).map { |cycle| (cycle % 3).zero? })).to eq([50])
     end
 
     it "shifts CB2 in on each rising edge" do
-      expect(feed(halves(0x3c))).to eq(0x3c)
+      expect(feed([0, 0] + halves(0x3c))).to eq(0x3c)
     end
   end
 
@@ -202,26 +219,27 @@ describe Badline::VIA::ShiftRegister do
       expect([sr.cb1_output, sr.cb2_output]).to eq([true, true])
     end
 
-    it "puts bit 7 on CB2 as CB1 falls on the first cycle after the access" do
-      sr.cycle!(false)
+    # Pinned by VIC20/via_sr/viasr18.
+    it "puts bit 7 on CB2 as CB1 falls on the second cycle after the access" do
+      2.times { sr.cycle!(false) }
       expect([sr.cb1_output, sr.cb2_output]).to eq([false, true])
     end
 
     it "shifts the byte out MSB first, one bit per falling edge" do
-      expect(bits_out(16, underflow: false)).to eq(bits_of(0xb4))
+      expect(bits_out(17, underflow: false)).to eq(bits_of(0xb4))
     end
 
-    it "sets the flag on the sixteenth cycle" do
-      expect(run(40, underflow: false)).to eq([16])
+    it "sets the flag on the seventeenth cycle" do
+      expect(run(40, underflow: false)).to eq([17])
     end
 
     it "has the byte back in place after eight bits" do
-      run(16)
+      run(17)
       expect(sr.data).to eq(0xb4)
     end
 
     it "rotates bit 7 into bit 0 as each bit goes out" do
-      sr.cycle!(false)
+      2.times { sr.cycle!(false) }
       expect(sr.data).to eq(0x69)
     end
 
@@ -243,12 +261,20 @@ describe Badline::VIA::ShiftRegister do
     end
 
     it "shifts the byte out over sixteen underflows, then stops" do
-      bits = bits_out(16)
+      bits = bits_out(18)
       expect([bits, run(16)]).to eq([bits_of(0x4d), []])
     end
 
-    it "sets the flag on the sixteenth underflow" do
-      expect(run(32)).to eq([16])
+    # Pinned by VIC20/via_sr/viasr14.
+    it "sets the flag two cycles after the sixteenth underflow" do
+      expect(run(32)).to eq([18])
+    end
+
+    # Pinned by VIC20/via_sr/viasr14.
+    it "carries on through an access before the eighth bit" do
+      run(6)
+      sr.access!
+      expect(run(32)).to eq([12])
     end
   end
 
@@ -264,7 +290,7 @@ describe Badline::VIA::ShiftRegister do
 
     it "sends the byte over and over without ever flagging" do
       sr.access!
-      expect([bits_out(48), run(64)]).to eq([bits_of(0xc1) * 3, []])
+      expect([bits_out(50), run(64)]).to eq([bits_of(0xc1) * 3, []])
     end
 
     it "only moves on underflows" do
@@ -302,6 +328,20 @@ describe Badline::VIA::ShiftRegister do
     it "flags the eighth rising edge after an access" do
       sr.access!
       expect(clock_in([0] * 16)).to eq([8])
+    end
+  end
+
+  describe "a snapshot in layout 4" do
+    # A byte under way in mode 6, written before the clock delay was saved.
+    let(:layout4) do
+      out = Badline::Snapshot::StateWriter.new.int(4).string(Badline::VERSION)
+      out.int(6).int(0xb4).int(8).boolean(true).boolean(true).boolean(true)
+      Badline::Snapshot::StateReader.new(out.state).tap(&:check_stamp)
+    end
+
+    it "restores the byte with its clock delay cleared" do
+      sr.load_state(layout4)
+      expect([sr.mode, sr.data, run(40)]).to eq([6, 0xb4, [17]])
     end
   end
 

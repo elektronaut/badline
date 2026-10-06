@@ -413,24 +413,24 @@ describe Badline::VIA do
         via.poke(0x180a, 0x80)
       end
 
-      it "sets its flag after eight bits, on cycle 16" do
-        expect(trace(16) { sr_flag? }).to eq(Array.new(16, false) + [true])
+      it "sets its flag after eight bits, on cycle 17" do
+        expect(trace(17) { sr_flag? }).to eq(Array.new(17, false) + [true])
       end
 
       it "clears its flag on a read of $A" do
-        run(16)
+        run(17)
         via.peek(0x180a)
         expect(sr_flag?).to be(false)
       end
 
       it "clears its flag on a write of $A" do
-        run(16)
+        run(17)
         via.poke(0x180a, 0x55)
         expect(sr_flag?).to be(false)
       end
 
       it "drives CB1 as its clock" do
-        via.cycle!
+        run(2)
         expect(via.cb1_output).to be(false)
       end
 
@@ -450,10 +450,10 @@ describe Badline::VIA do
       end
 
       # The load holds a cycle, then the low byte underflows every N + 2 = 2
-      # cycles: the sixteenth underflow, the eighth bit's rising edge, lands
-      # on cycle 32.
+      # cycles: the sixteenth underflow lands on cycle 32, and the eighth
+      # bit's rising edge two cycles later.
       it "clocks a bit every 2 × (N + 2) cycles" do
-        expect(trace(32) { sr_flag? }).to eq(Array.new(32, false) + [true])
+        expect(trace(34) { sr_flag? }).to eq(Array.new(34, false) + [true])
       end
     end
 
