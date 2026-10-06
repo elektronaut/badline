@@ -19,22 +19,25 @@ module Badline
       cursor_left: %i[lshift cursor_h]
     }.freeze
 
+    # The C64's wiring: one row of keys per port A line, in port B column
+    # order.
+    C64_MATRIX = [
+      %i[delete return cursor_h f7 f1 f3 f5 cursor_v],
+      %i[3 w a 4 z s e lshift],
+      %i[5 r d 6 c f t x],
+      %i[7 y g 8 b h u v],
+      %i[9 i j 0 m k o n],
+      %i[+ p l - . : @ ,],
+      %i[£ * ; clr_home rshift = up /],
+      %i[1 left control 2 space cbm q run_stop]
+    ].freeze
+
     attr_reader :keys, :matrix
 
-    def initialize
+    def initialize(matrix: C64_MATRIX)
       @keys = []
       @row_masks = nil
-
-      @matrix = [
-        %i[delete return cursor_h f7 f1 f3 f5 cursor_v],
-        %i[3 w a 4 z s e lshift],
-        %i[5 r d 6 c f t x],
-        %i[7 y g 8 b h u v],
-        %i[9 i j 0 m k o n],
-        %i[+ p l - . : @ ,],
-        %i[£ * ; clr_home rshift = up /],
-        %i[1 left control 2 space cbm q run_stop]
-      ]
+      @matrix = matrix
     end
 
     def press(key)
