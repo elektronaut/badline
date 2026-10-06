@@ -2,7 +2,7 @@
 
 module Badline
   # Observe-only PC trap on the KERNAL CHROUT routine ($FFD2). Records each
-  # character written while the KERNAL is banked in, then lets execution fall
+  # character written while the layout finds the KERNAL mapped in, then lets execution fall
   # through to the ROM, so the screen output is unaffected. Used for headless
   # capture of program output.
   class ChroutTrap
@@ -10,14 +10,15 @@ module Badline
 
     attr_reader :output
 
-    def initialize(cpu:, bus:)
+    def initialize(cpu:, bus:, layout:)
       @cpu = cpu
       @bus = bus
+      @layout = layout
       @output = +""
     end
 
     def call
-      @output << ascii(@cpu.a) if @bus.io_port.kernal?
+      @output << ascii(@cpu.a) if @layout.kernal_mapped?(@bus)
     end
 
     def inspect

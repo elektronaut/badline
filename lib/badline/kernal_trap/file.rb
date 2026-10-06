@@ -6,7 +6,7 @@ module Badline
       private
 
       def active?
-        kernal? && @bus.peek(0xba) == DEVICE
+        kernal_mapped? && @bus.peek(0xba) == DEVICE
       end
 
       def filename

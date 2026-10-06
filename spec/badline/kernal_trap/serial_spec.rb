@@ -23,7 +23,7 @@ describe Badline::KernalTrap::Serial do
     ram.poke(0x1235, 0xea) # NOP
     cpu.stack_pointer = 0xfd
     cpu.a = acc
-    cpu.program_counter = described_class::ROUTINES.key(routine)
+    cpu.program_counter = Badline::KernalTrap::C64_LAYOUT.to_h.fetch(routine)
     cpu.cycle!
     cpu.step!
   end
@@ -232,7 +232,7 @@ describe Badline::KernalTrap::Serial do
     before do
       computer.address_bus.poke(0x00, 0x2f)
       computer.address_bus.poke(0x01, 0x35)
-      ram.poke(described_class::ROUTINES.key(:listen), 0xea) # NOP
+      ram.poke(Badline::KernalTrap::C64_LAYOUT.listen, 0xea) # NOP
       call_routine(:listen, 8)
     end
 

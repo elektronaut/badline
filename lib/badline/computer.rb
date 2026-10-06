@@ -178,7 +178,7 @@ module Badline
     attr_reader :iec_bus
 
     def capture_output
-      @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus).tap do |trap|
+      @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus, layout: KernalTrap::C64_LAYOUT).tap do |trap|
         cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
       end
     end

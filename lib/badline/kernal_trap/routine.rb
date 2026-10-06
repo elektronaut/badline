@@ -3,8 +3,8 @@
 module Badline
   module KernalTrap
     # Base class for the PC traps on KERNAL routines. Holds the device
-    # number they answer for and the return that stands in for the trapped
-    # routine's RTS.
+    # number they answer for, the layout of the KERNAL they trap, and the
+    # return that stands in for the trapped routine's RTS.
     class Routine
       include IntegerHelper
 
@@ -16,15 +16,16 @@ module Badline
       ACPTR_TIMEOUT = 0x01
       TIMER_ONE_SHOT_START = 0x19
 
-      def initialize(cpu:, bus:)
+      def initialize(cpu:, bus:, layout:)
         @cpu = cpu
         @bus = bus
+        @layout = layout
       end
 
       private
 
-      def kernal?
-        @bus.io_port.kernal?
+      def kernal_mapped?
+        @layout.kernal_mapped?(@bus)
       end
 
       # The ROM times each byte on the serial bus with CIA 1's timer B,
@@ -33,20 +34,6 @@ module Badline
       def time_serial_byte(timer_high)
         @bus.poke(0xdc07, timer_high)
         @bus.poke(0xdc0f, TIMER_ONE_SHOT_START)
-      end
-
-      # The ROM's release of the serial bus ($EE03): ATN ($EDBE), then the
-      # clock ($EE85), then the data line ($EE97), each a read of CIA 2's
-      # port A, a mask and a write back, so the input bits written back
-      # follow the lines as each one is let go. Returns the last value
-      # written, which the ROM leaves in A.
-      def release_serial_lines
-        value = 0
-        [0xf7, 0xef, 0xdf].each do |mask|
-          value = @bus.peek(0xdd00) & mask
-          @bus.poke(0xdd00, value)
-        end
-        value
       end
 
       def return_to_caller

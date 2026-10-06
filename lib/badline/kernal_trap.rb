@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/kernal_trap/layout"
 require "badline/kernal_trap/routine"
 require "badline/kernal_trap/channel"
 require "badline/kernal_trap/drive"
