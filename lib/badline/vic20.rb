@@ -3,6 +3,7 @@
 require "badline/vic20/bus"
 require "badline/vic20/cpu"
 require "badline/vic20/vic"
+require "badline/vic20/sound"
 
 module Badline
   # The Commodore VIC-20 with the PAL 6561: a 6502 at the VIC's clock, the
@@ -17,7 +18,7 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :bus, :cpu, :vic, :via1, :via2, :cycles, :init_threshold
+    attr_reader :bus, :cpu, :vic, :via1, :via2, :cycles, :init_threshold, :sound
 
     def ram = @bus.ram
 
@@ -30,6 +31,8 @@ module Badline
       @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
+      @sound = Sound.new(self, @vic.profile.clock_hz)
+      @vic.sound = @sound
       @nmi_asserted = false
       @init_handlers = []
       @pending_keys = nil
@@ -81,6 +84,10 @@ module Badline
     # The chip whose #display a front end shows.
     def video = @vic
 
+    # What a front end plays: the VIC's sound, which answers #record and
+    # #drain_samples.
+    def sound_source = @sound
+
     # The PAL clock and raster, and the part of the display xvic shows: all
     # 284 pixels of a line, from line 28, below the VIC's vertical blank.
     def timing
@@ -115,6 +122,7 @@ module Badline
     def power_cycle!
       @bus.power_on!
       @vic.power_on!
+      @sound.power_on!
       reset!
     end
 

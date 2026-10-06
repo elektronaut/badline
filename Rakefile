@@ -461,6 +461,7 @@ namespace :spinel do
     SpinelCheck.check_boot(*media)
     SpinelCheck.check_cpu_tests
     SpinelCheck.check_vic20_boot
+    SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
   end
 
   desc "Run the Lorenz chain on the Spinel build, its stretches side by side ([1,2] picks some, " \

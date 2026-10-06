@@ -35,6 +35,7 @@ only catches the rows that happen to move.
 - [RAM power-on pattern](#ram-power-on-pattern)
 - [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
 - [VIC-I fetches and the V-bus](#vic-i-fetches-and-the-v-bus)
+- [VIC-I sound](#vic-i-sound)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1320,6 +1321,69 @@ and each was knocked out: removing it fails the rows named.
   pixel for pixel; no testprog or hardware capture checks them.
   - Spec guard: *a colour write* in
     [`vic20/vic_video_spec.rb`](../spec/badline/vic20/vic_video_spec.rb).
+
+## VIC-I sound
+
+No testprog checks the VIC-I's sound, so these rules are pinned by xvic
+(VICE 3.10) recordings, run as a black box: `-sounddev wav` at 44.1 kHz of
+programs that set the registers, the same programs run on badline, and
+the two compared by period, harmonics and spectrum. xvic's own source
+wasn't read.
+
+- A voice's counter comes round every 128 - ((value + 1) & 127) ticks of
+  16, 8, 4 and 2 cycles from bass to noise, and a tone voice's shift
+  register plays 16 shifts a period, as Marko Mäkelä's `VIC-I.txt`
+  (revision 1.2, Levente Hársfalvi's measurements) gives the frequencies.
+  - Pinned by xvic: `$900A` = `$FE`, `$80` and `$FF` measure 4329.70,
+    34.0922 and 33.8256 Hz, `$900B` = `$F0` 577.29 Hz, and `$900C` = `$F0`
+    and `$A0` 1154.59 and 182.30 Hz, each within 0.001 Hz of the formula
+    on the PAL clock.
+  - Spec guard: *a tone voice's counter* in
+    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+- A tone voice's shift register takes bit 7 back into bit 0 inverted while
+  the voice is on and a zero while it's off, and keeps shifting either way.
+  Bit 0 is the output, not gated by the enable bit. This is the die-shot
+  reading of the 6561 on the Denial forum (Lance Ewing: the feedback is a
+  NOR of bit 7 and the inverted enable bit, and the counter keeps shifting
+  a voice that's off).
+  - Pinned by xvic: a bass voice loaded with 10101010, 11000000, 10000000
+    and 11101000 by turning it on and off a shift at a time, then left
+    on, has the same harmonics in xvic's recording and badline's to
+    0.1 dB through the 12th. 10101010 puts the 7th and 9th harmonics
+    above the fundamental, which a register cleared while off couldn't.
+  - Spec guard: *a tone voice* in
+    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+- The noise voice's counter steps a 16-bit LFSR: bit 0 takes the XOR of
+  bits 3, 12, 14 and 15 while the voice is on and a one while it's off.
+  Each rise of the LFSR's bit 0 shifts the noise voice's own shift
+  register, bit 7 back into bit 0, inverted while the voice is on, and
+  its bit 0 is the output while the voice is on. These are the die-shot
+  readings on the Denial forum (Lance Ewing and nippur72), which also
+  say the voice is silent while off.
+  - Pinned by xvic: noise at `$FE` and `$FD` repeats every 0.11825 s and
+    0.2365 s (autocorrelation 0.98 at those lags, in both xvic's
+    recording and badline's), 65535 steps of 2 and 4 cycles. The octave
+    band levels of noise at `$FE`, `$FD`, `$F0`, `$C0` and `$80` match
+    xvic's within 0.5 dB up to 8 kHz.
+  - Spec guard: *the noise voice* in
+    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+- The output is the voices that are high plus 2/9 of a voice, times the
+  volume, so a volume write steps the output with every voice off, as
+  4-bit samples played through `$900E` need.
+  - Pinned by xvic: a volume step from 0 to 15 with every voice off peaks
+    at 0.218 of a voice turned on at volume 15.
+  - Spec guard: *the volume* in
+    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+  - Not pinned: the volume scales the output linearly. xvic's tone level
+    per volume step isn't linear (volume 1 is 0.099 of volume 15 and 14
+    is 1.015), and nothing here says whether the hardware is.
+- The output stage is a one-pole low-pass at 1,420 Hz and a one-pole
+  high-pass at 158 Hz.
+  - Pinned by xvic: a bass voice turned on at volume 15 fits those two RC
+    stages at 1,417 and 158.0 Hz, with an RMS error of 6 against a peak of
+    11,280. badline's own recording fits 1,420 and 157.6 Hz.
+  - Spec guard: *a step* in
+    [`vic20/sound/output_spec.rb`](../spec/badline/vic20/sound/output_spec.rb).
 
 ## 1541 serial port
 
