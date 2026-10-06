@@ -10,7 +10,7 @@ module Badline
       HEADER = 64
       SCALE = 2
       TITLE = "Badline"
-      BACKGROUND = Screen::COLORS[6]
+      BACKGROUND = VIC::PALETTE[6]
 
       attr_reader :buttons, :info
 

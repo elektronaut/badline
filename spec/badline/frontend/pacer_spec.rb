@@ -5,14 +5,16 @@ require "badline/ffi"
 require "badline/frontend"
 
 describe Badline::Frontend::Pacer do
-  subject(:pacer) { described_class.new(paced: true, vsync: true, verbose: false) }
+  subject(:pacer) { described_class.new(paced: true, vsync: true, verbose: false, timing:) }
+
+  let(:timing) { Badline::Computer.new.timing }
 
   let(:silent) { instance_double(Badline::Frontend::Sound, playing?: false) }
   let(:playing) { instance_double(Badline::Frontend::Sound, playing?: true, level: 0.04, wait: nil) }
 
   describe "#cycles" do
     it "clocks the machine's frame without vsync" do
-      expect(described_class.new(paced: true, vsync: false, verbose: false).cycles(playing)).to eq(19_656)
+      expect(described_class.new(paced: true, vsync: false, verbose: false, timing:).cycles(playing)).to eq(19_656)
     end
 
     it "clocks a display refresh with vsync" do
@@ -28,7 +30,7 @@ describe Badline::Frontend::Pacer do
 
   describe "#wait" do
     it "holds the frame while the sound plays down to the target" do
-      described_class.new(paced: true, vsync: false, verbose: false).wait(playing)
+      described_class.new(paced: true, vsync: false, verbose: false, timing:).wait(playing)
       expect(playing).to have_received(:wait).with(Badline::Frontend::Sound::AHEAD)
     end
 
@@ -38,13 +40,13 @@ describe Badline::Frontend::Pacer do
     end
 
     it "waits out the frame on the timer without vsync or sound" do
-      timer = described_class.new(paced: true, vsync: false, verbose: false)
+      timer = described_class.new(paced: true, vsync: false, verbose: false, timing:)
       timer.start(Process.clock_gettime(Process::CLOCK_MONOTONIC))
       expect { timer.wait(silent) }.to change { Process.clock_gettime(Process::CLOCK_MONOTONIC) }.by_at_least(0.019)
     end
 
     it "doesn't catch up on frames it ran behind on" do
-      timer = described_class.new(paced: true, vsync: false, verbose: false)
+      timer = described_class.new(paced: true, vsync: false, verbose: false, timing:)
       timer.start(Process.clock_gettime(Process::CLOCK_MONOTONIC) - 1.0)
       expect { timer.wait(silent) }.to change { Process.clock_gettime(Process::CLOCK_MONOTONIC) }.by_at_most(0.019)
     end
@@ -64,7 +66,7 @@ describe Badline::Frontend::Pacer do
     end
 
     it "says so with verbose" do
-      verbose = described_class.new(paced: true, vsync: true, verbose: true)
+      verbose = described_class.new(paced: true, vsync: true, verbose: true, timing:)
       expect { verbose.check(50, 0.2, 0.0) }.to output(/Vsync doesn't hold/).to_stdout
     end
   end

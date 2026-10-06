@@ -19,7 +19,7 @@ module SIDTests
     Badline::Media.attach(computer, path)
     register = ExitCode.new
     computer.install_debug_register { |value| register.code = value }
-    computer.cycle! until register.code || computer.cycles > timeout + BOOT_ALLOWANCE
+    computer.run_until(timeout + BOOT_ALLOWANCE) { register.code }
     verdict(register.code)
   end
 

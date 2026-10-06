@@ -44,8 +44,11 @@ started = 0.0
 i = 0
 while i < cycles
   started = Process.clock_gettime(Process::CLOCK_MONOTONIC) if i == timed_from
-  computer.cycle!
-  i += 1
+  stop = ((i / 1_000_000) + 1) * 1_000_000
+  stop = timed_from if i < timed_from && timed_from < stop
+  stop = cycles if cycles < stop
+  computer.run_cycles(stop - i)
+  i = stop
   puts Badline::Checkpoint.take(computer) if (i % 1_000_000).zero?
 end
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started

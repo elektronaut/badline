@@ -9,12 +9,12 @@ describe Badline::Frontend::FrameRate do
 
   describe ".machine" do
     it "clocks a PAL frame of 312 lines of 63 cycles at the PAL clock" do
-      rate = described_class.machine(Badline::Region::PAL)
+      rate = described_class.machine(Badline::Computer.new.timing)
       expect([rate.base_cycles, rate.seconds]).to eq([19_656, 19_656 / 985_248.0])
     end
 
     it "clocks an NTSC frame of 263 lines of 65 cycles at the NTSC clock" do
-      rate = described_class.machine(Badline::Region::NTSC)
+      rate = described_class.machine(Badline::Computer.new(region: Badline::Region::NTSC).timing)
       expect([rate.base_cycles, rate.seconds]).to eq([17_095, 17_095 / 1_022_727.0])
     end
   end

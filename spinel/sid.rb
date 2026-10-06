@@ -21,7 +21,7 @@ timed_from = ARGV[1] ? ARGV[1].to_i : 3_000_000
 
 computer = Badline::Computer.new
 Badline::Media.attach(computer, ARGV[2]) if ARGV[2]
-computer.sid.record(rate: 44_100)
+computer.sound_source.record(rate: 44_100)
 
 count = 0
 checksum = 0
@@ -29,11 +29,14 @@ started = 0.0
 i = 0
 while i < cycles
   started = Process.clock_gettime(Process::CLOCK_MONOTONIC) if i == timed_from
-  computer.cycle!
-  i += 1
+  stop = ((i / FRAME) + 1) * FRAME
+  stop = timed_from if i < timed_from && timed_from < stop
+  stop = cycles if cycles < stop
+  computer.run_cycles(stop - i)
+  i = stop
   next unless (i % FRAME).zero? || i == cycles
 
-  computer.sid.drain_samples.each do |sample|
+  computer.sound_source.drain_samples.each do |sample|
     checksum = ((checksum * 31) + (sample & 0xffff)) & 0xffffffff
     count += 1
   end

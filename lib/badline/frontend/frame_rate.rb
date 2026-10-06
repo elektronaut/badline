@@ -31,10 +31,10 @@ module Badline
 
       attr_reader :base_cycles, :seconds, :refresh, :trim
 
-      # One frame of the region's raster.
-      def self.machine(region)
-        cycles = region.cycles_per_line * region.lines_per_frame
-        new(cycles, cycles.to_f / region.clock_hz, 0, region.clock_hz)
+      # One frame of the machine's raster, from its Timing.
+      def self.machine(timing)
+        cycles = timing.cycles_per_line * timing.lines_per_frame
+        new(cycles, cycles.to_f / timing.clock_hz, 0, timing.clock_hz)
       end
 
       def self.display(refresh, clock_hz)

@@ -33,7 +33,7 @@ module Testbench
     computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
                                      reu: reu_size(expansion), region: region_profile(region))
     computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
-    Badline::Computer::INIT_THRESHOLD.times { computer.cycle! } unless cartridge
+    computer.run_cycles(computer.init_threshold) unless cartridge
     computer
   end
 
@@ -42,7 +42,7 @@ module Testbench
   def self.drive_machine(cia_model, vic_model)
     computer = Badline::Computer.new(cia_model:, vic_model:)
     computer.attach_drive1541(Badline::Drive1541.new)
-    Badline::Computer::INIT_THRESHOLD.times { computer.cycle! }
+    computer.run_cycles(computer.init_threshold)
     computer
   end
 
@@ -142,7 +142,7 @@ module Testbench
       else
         @computer.type_text("load\"#{@load_name}\",8\rrun\r")
       end
-      @computer.cycle! until @exit_code || @computer.cycles > budget
+      @computer.run_until(budget) { @exit_code }
       @exit_code
     end
 

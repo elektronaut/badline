@@ -171,7 +171,7 @@ describe Badline::Computer, "#snapshot" do
     end
 
     it "counts none once the saved machine has booted" do
-      booting.resume_at(described_class::INIT_THRESHOLD + 1)
+      booting.resume_at(booting.init_threshold + 1)
       expect(described_class.new.restore(booting.snapshot).init_handlers_lost).to eq(0)
     end
   end

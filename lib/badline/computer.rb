@@ -98,6 +98,39 @@ module Badline
       @cycles += 1
     end
 
+    # Runs `count` cycles, one #cycle! after another.
+    def run_cycles(count)
+      i = 0
+      while i < count
+        cycle!
+        i += 1
+      end
+    end
+
+    # Runs cycles until the block returns true or the cycle count passes
+    # `limit`, checking before each cycle.
+    def run_until(limit)
+      cycle! until yield || @cycles > limit
+    end
+
+    # The cycle at which #on_init's handlers run, once the KERNAL has booted.
+    def init_threshold
+      INIT_THRESHOLD
+    end
+
+    # The clock, the raster and the crop of the machine's region.
+    def timing
+      region = address_bus.region
+      Timing.new(clock_hz: region.clock_hz, cycles_per_line: region.cycles_per_line,
+                 lines_per_frame: region.lines_per_frame, crop: region.crop)
+    end
+
+    # The chip whose #display a front end shows.
+    def video = @vic
+
+    # The chip a front end records the machine's sound from.
+    def sound_source = @sid
+
     def load_prg(data)
       uint16(data[0], data[1]).tap do |load_addr|
         ram.write(load_addr, data[2..])
@@ -257,10 +290,6 @@ module Badline
 
     def handle_init
       @init_handlers.each(&:call)
-    end
-
-    def init_threshold
-      INIT_THRESHOLD
     end
   end
 end
