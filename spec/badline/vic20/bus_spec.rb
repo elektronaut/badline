@@ -23,6 +23,29 @@ describe Badline::Vic20::Bus do
     end
   end
 
+  # Pinned by VIC20/raminitpattern: ae.crt and jellymonsters.crt
+  describe "RAM at power-on" do
+    def bytes(addr) = bus.ram.read(addr, 4)
+
+    it "alternates $FF and $00 in the internal RAM" do
+      expect([bytes(0x0000), bytes(0x0288), bytes(0x1044)]).to all(eq([0xff, 0x00, 0xff, 0x00]))
+    end
+
+    it "alternates $FF and $00 in the expansion RAM" do
+      expect([bytes(0x0400), bytes(0x2000), bytes(0xbffc)]).to all(eq([0xff, 0x00, 0xff, 0x00]))
+    end
+
+    it "leaves colour RAM at zero" do
+      expect(bus.color_ram.nibble(0x0000)).to eq(0)
+    end
+
+    it "comes back after a power cycle" do
+      bus.poke(0x1046, 0x12)
+      bus.power_on!
+      expect(bus.ram.peek(0x1046)).to eq(0xff)
+    end
+  end
+
   describe "the ROMs" do
     it "puts the KERNAL's reset vector at $FFFC" do
       expect(bus.peek16(0xfffc)).to eq(0xfd22)
@@ -62,7 +85,7 @@ describe Badline::Vic20::Bus do
 
     it "ignores writes to the 3K hole" do
       bus.poke(0x0400, 0x99)
-      expect(bus.ram.peek(0x0400)).to eq(0)
+      expect(bus.ram.peek(0x0400)).to eq(0xff)
     end
 
     it "reads the CPU's last byte in the empty blocks" do

@@ -133,8 +133,8 @@ describe Badline::Vic20 do
       machine.power_cycle!
     end
 
-    it "clears RAM" do
-      expect(machine.ram.peek(0x1000)).to eq(0)
+    it "puts RAM back in its power-on pattern" do
+      expect(machine.ram.read(0x1000, 2)).to eq([0xff, 0x00])
     end
 
     it "puts the raster back at the top" do
