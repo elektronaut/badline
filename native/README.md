@@ -184,8 +184,10 @@ render a `.sid` tune without it, as described under
   (the 6567R56A), `drean` (the Drean C64, PAL-N with the 6572), `sx64`
   (the SX-64, with its own KERNAL and no datasette, so it refuses
   tapes), `pet64` (the PET 64 or Educator 64, with its own KERNAL and
-  a green monochrome monitor) or `c64gs` (the C64GS games console, with
-  its own BASIC and KERNAL, and no keyboard or datasette). `--sid` or a `.sid` tune's own SID takes the model's
+  a green monochrome monitor), `c64gs` (the C64GS games console, with
+  its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax`
+  (the MAX Machine, NTSC with 2K of RAM, one CIA and no ROMs, which runs
+  only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's
   place. An NTSC machine's lines sit in the middle of the window, which
   keeps PAL's 272, between black bands.
 - `--ntsc` runs an NTSC C64, as `--model ntsc` does.

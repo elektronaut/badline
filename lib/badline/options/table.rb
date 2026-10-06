@@ -5,7 +5,7 @@ module Badline
     DEFAULT_RATE = 44_100
 
     # The names Badline::Model builds, in the order the help lists them.
-    MODELS = %w[c64 c64c ntsc newntsc oldntsc drean sx64 pet64 c64gs].freeze
+    MODELS = %w[c64 c64c ntsc newntsc oldntsc drean sx64 pet64 c64gs ultimax].freeze
 
     # The VIC-20's models, as xvic names its video standards. Only PAL is
     # emulated.

@@ -110,7 +110,8 @@ module Badline
       private
 
       # In Ultimax mode the cartridge ROMH replaces the character ROM
-      # shadow, visible at $3000-$3FFF of the window.
+      # shadow, visible at $3000-$3FFF of the window. The MAX is in
+      # Ultimax mode with no cartridge too.
       def ultimax_peek(offset)
         romh = @romh
         if romh && offset.allbits?(0x3000)

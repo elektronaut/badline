@@ -47,6 +47,11 @@ describe Badline::Model do
       .to eq([:mos8565, :mos6526a, :mos8580, :pal, :gs, :gs, false])
   end
 
+  it "builds the MAX Machine on NTSC with its own board and a datasette" do
+    model = described_class.named("ultimax")
+    expect([*chips(model), model.board, model.datasette]).to eq([:mos6569, :mos6526, :mos6581, :ntscold, :max, true])
+  end
+
   it "fails on a name it doesn't know" do
     expect { described_class.named("vic20") }.to raise_error(ArgumentError, /vic20/)
   end

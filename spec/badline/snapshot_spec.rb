@@ -71,8 +71,7 @@ describe Badline::Snapshot do
   Badline::Model::ALL.reject { |model| model.region == Badline::Region::PAL }.each do |model|
     describe "the #{model.name}" do
       let(:computer) do
-        run(demo_machine(vic_model: model.vic_model, cia_model: model.cia_model, sid_model: model.sid_model,
-                         region: model.region), SnapshotScenarios::DEMO_CYCLES)
+        run(demo_machine(**model.to_h.except(:name)), SnapshotScenarios::DEMO_CYCLES)
       end
 
       before { computer.save_snapshot(path) }

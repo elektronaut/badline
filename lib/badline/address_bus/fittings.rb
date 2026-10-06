@@ -9,9 +9,10 @@ module Badline
       NAMES = %i[kernal datasette board].freeze
 
       # The C64's board and case, the PET 64's, whose built-in monitor
-      # shows the VIC's output in shades of green, or the C64GS's, which
-      # has no keyboard.
-      BOARDS = %i[c64 pet64 gs].freeze
+      # shows the VIC's output in shades of green, the C64GS's, which has
+      # no keyboard, or the MAX Machine's (:max): 2K of RAM, no ROMs, CIA 1
+      # alone at $DC00-$DFFF and the cartridge port in Ultimax mode.
+      BOARDS = %i[c64 pet64 gs max].freeze
 
       attr_reader :board
 
@@ -30,6 +31,7 @@ module Badline
         @board = name
         vic.palette = name == :pet64 ? VIC::GREEN_PALETTE : VIC::PALETTE
         keyboard.connected = name != :gs
+        update_overlays!
       end
     end
   end

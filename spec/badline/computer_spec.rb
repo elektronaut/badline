@@ -144,6 +144,38 @@ RSpec.describe Badline::Computer do
       expect(described_class.new(board: :gs).keyboard.connected?).to be(false)
     end
 
+    describe "of the MAX Machine" do
+      let(:bus) { described_class.new(board: :max).address_bus }
+
+      it "is in Ultimax mode without a cartridge" do
+        expect(bus.ultimax).to be(true)
+      end
+
+      it "keeps what is written to its 2K of RAM" do
+        bus.poke(0x07ff, 0x5a)
+        expect(bus.peek(0x07ff)).to eq(0x5a)
+      end
+
+      it "has no RAM above it" do
+        bus.poke(0x0800, 0x5a)
+        expect(bus.ram.peek(0x0800)).not_to eq(0x5a)
+      end
+
+      it "maps no KERNAL" do
+        expect(bus.peek(0xe000)).to eq(bus.vic.phi1_data)
+      end
+
+      it "has CIA 1 answer at CIA 2's page" do
+        bus.poke(0xdd02, 0x5a)
+        expect(bus.peek(0xdc02)).to eq(0x5a)
+      end
+
+      it "has CIA 1 answer at I/O 2's page" do
+        bus.poke(0xdf03, 0x5a)
+        expect(bus.peek(0xdc03)).to eq(0x5a)
+      end
+    end
+
     it "fails on a board it doesn't know" do
       expect { described_class.new(board: :c128) }.to raise_error(ArgumentError, /c128/)
     end

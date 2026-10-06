@@ -186,6 +186,11 @@ describe Badline::Computer, "#snapshot" do
       expect(described_class.setup(machine.snapshot).build.keyboard.connected?).to be(false)
     end
 
+    it "builds the MAX Machine's board" do
+      machine = described_class.new(board: :max)
+      expect(described_class.setup(machine.snapshot).build.address_bus.board).to eq(:max)
+    end
+
     it "builds a Drean machine" do
       machine = described_class.new(region: Badline::Region::DREAN)
       expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::DREAN)
