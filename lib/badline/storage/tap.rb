@@ -3,9 +3,9 @@
 module Badline
   module Storage
     # Raw datasette pulse stream. The header holds the signature, the
-    # version at $0c and the data size at $10; the data runs from $14, every
-    # byte the time to the next falling edge on the tape read line, in units
-    # of 8 cycles.
+    # version at $0c, the platform at $0d (0 C64, 1 VIC-20, 2 C16) and the
+    # data size at $10; the data runs from $14, every byte the time to the
+    # next falling edge on the tape read line, in units of 8 cycles.
     class TAP
       class FormatError < StandardError; end
 
@@ -14,7 +14,7 @@ module Badline
       OVERFLOW = 0x100 * 8
 
       # The file it was read from, expanded, and the file's bytes.
-      attr_reader :version, :path, :bytes
+      attr_reader :version, :platform, :path, :bytes
 
       # `bytes` stands in for the host file's contents, as a snapshot
       # restores the tape it holds.
@@ -25,6 +25,8 @@ module Badline
 
         @version = @bytes[0x0c].to_i
         raise FormatError, "Unsupported TAP version #{@version}" if @version > 1
+
+        @platform = @bytes[0x0d].to_i
 
         @end = tape_end
         rewind

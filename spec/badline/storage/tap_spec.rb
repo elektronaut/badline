@@ -10,6 +10,7 @@ describe Badline::Storage::TAP do
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "tape.tap") }
   let(:version) { 1 }
+  let(:platform) { 0 }
   let(:data) { [0x30, 0x42, 0x56] }
 
   before { write_tape(data) }
@@ -17,7 +18,7 @@ describe Badline::Storage::TAP do
   after { FileUtils.remove_entry(dir) }
 
   def write_tape(bytes, size: bytes.length)
-    header = "C64-TAPE-RAW".bytes + [version, 0, 0, 0] + [size].pack("V").bytes
+    header = "C64-TAPE-RAW".bytes + [version, platform, 0, 0] + [size].pack("V").bytes
     File.binwrite(path, (header + bytes).pack("C*"))
   end
 
@@ -103,6 +104,18 @@ describe Badline::Storage::TAP do
   describe ".new" do
     it "reads the version" do
       expect(tape.version).to eq(1)
+    end
+
+    it "reads the platform" do
+      expect(tape.platform).to eq(0)
+    end
+
+    context "with a VIC-20 tape" do
+      let(:platform) { 1 }
+
+      it "reads the VIC-20 platform" do
+        expect(tape.platform).to eq(1)
+      end
     end
 
     it "rejects a file without the signature" do
