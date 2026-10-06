@@ -2,6 +2,8 @@
 
 require "badline/vic20/bus"
 require "badline/vic20/cpu"
+require "badline/vic20/keyboard_via_ports"
+require "badline/vic20/user_via_ports"
 require "badline/vic20/vic"
 require "badline/vic20/sound"
 
@@ -11,22 +13,26 @@ module Badline
   # $9120, pulls IRQ. Nothing else interrupts the CPU, and nothing halts
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
-  # So far it runs headless, with the VIC's picture but no sound, and
-  # nothing plugged into the VIAs' ports: no keyboard, joystick, tape or
-  # serial bus.
+  # So far it runs headless, with the VIC's picture and sound. The
+  # keyboard, the joystick and RESTORE reach the VIAs; the datasette and
+  # the serial bus don't yet.
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
 
-    attr_reader :bus, :cpu, :vic, :via1, :via2, :cycles, :init_threshold, :sound
+    attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound
 
     def ram = @bus.ram
 
     # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS.
     def initialize(ram: :unexpanded, debug: false)
       @vic = VIC.new
-      @via1 = VIA.new(start: 0x9000)
-      @via2 = VIA.new(start: 0x9000)
+      @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
+      @joystick1 = Joystick.new
+      @via1 = VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1))
+      keyboard_ports = KeyboardVIAPorts.new(keyboard: @keyboard, joystick: @joystick1)
+      @via2 = VIA.new(start: 0x9000, peripheral: keyboard_ports)
+      keyboard_ports.connect(@via2)
       @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram))
       @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
@@ -97,6 +103,17 @@ module Badline
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
                  lines_per_frame: profile.lines_per_frame,
                  crop: [0, blanked, width, profile.lines_per_frame - blanked])
+    end
+
+    # The RESTORE key pulls VIA 1's CA1 low while it is held. The KERNAL
+    # sets CA1 to interrupt on that falling edge, and its NMI handler
+    # ($FEAD) warm-starts BASIC if RUN/STOP is down too.
+    def press_restore
+      @via1.ca1 = false
+    end
+
+    def release_restore
+      @via1.ca1 = true
     end
 
     # Calls the block with the exit code a VICE testprog writes to $910F.
