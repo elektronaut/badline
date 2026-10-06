@@ -104,4 +104,22 @@ describe Badline::Keyboard do
       expect(keyboard.read_b(row1, 0xff)).to eq(0b01111111)
     end
   end
+
+  describe "a matrix passed in" do
+    subject(:keyboard) { described_class.new(matrix: [%i[q w], %i[e a]]) }
+
+    it "scans the keys where that matrix wires them" do
+      keyboard.press(:a)
+      expect(keyboard.read_b(0b11111101, 0xff)).to eq(0b11111101)
+    end
+
+    it "ignores keys only the C64 matrix has" do
+      keyboard.press(:z)
+      expect(keyboard.keys).to be_empty
+    end
+  end
+
+  it "wires the C64 matrix by default" do
+    expect(keyboard.matrix).to eq(described_class::C64_MATRIX)
+  end
 end
