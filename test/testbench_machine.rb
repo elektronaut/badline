@@ -96,9 +96,9 @@ module Testbench
     Array.new(25) { |row| screen_line(ram, 0x0400 + (row * 40)) }
   end
 
-  def self.screen_line(ram, address)
+  def self.screen_line(ram, address, width = 40)
     line = +""
-    40.times { |col| line << screen_ascii(ram.peek(address + col)) }
+    width.times { |col| line << screen_ascii(ram.peek(address + col)) }
     line
   end
 

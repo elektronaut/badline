@@ -355,10 +355,11 @@ jobs:
             tasks: >-
               spinel:testbench[testbench-drive,via10,via11,via12,via13,via14,via20,via21]
           - shard: drive
-            harnesses: testbench drive_scenarios
+            harnesses: testbench drive_scenarios vic20_testbench
             tasks: >-
               spinel:testbench[testbench-drive,!viavarious]
               spinel:drive_scenarios
+              spinel:testbench[testbench-vic20]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies

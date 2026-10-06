@@ -6,7 +6,7 @@
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
-#                             [--drean]
+#                             [--drean] [--vic20]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -77,6 +77,16 @@
 # out until a testbench can run the 6572, so a commented-out row tagged
 # vicii-drean counts as a row.
 #
+# --vic20 runs the exitcode rows of vic20-testlist.in instead, each on a
+# PAL VIC-20 with the RAM its options ask for: none for vic20-unexp or no
+# option, BLK1 for vic20-8k and every block, xvic's -memory all, for
+# vic20-32k. Rows that ask for a GEO-RAM drop out. The program goes to the
+# start of BASIC, as xvic's -basicload puts it, and RUN is typed once the
+# machine has booted. A mountcrt row starts from power-on with the
+# cartridge's ROM in its block. Tests report through $910F, and a failure
+# keeps the VIC-20's 22-column text screen. Screenshot rows wait for the
+# VIC-I's video.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
@@ -92,7 +102,8 @@
 # forked over --shards processes (SHARDS in the environment, 4 by
 # default) and the per-test records merged back into testlist order.
 #
-# --engine runs the tests on a Spinel build of spinel/testbench.rb instead,
+# --engine runs the tests on a Spinel build of spinel/testbench.rb, or of
+# spinel/vic20_testbench.rb for --vic20, instead,
 # one build process per shard, each booting a fresh machine per test. The
 # build only emulates, and the rows are scored here as they are for a
 # test run in process (see Testbench::Engine in test/testbench_engine.rb).
@@ -105,6 +116,7 @@
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
+require "badline/vic20"
 require "chunky_png"
 require "etc"
 require "tmpdir"
@@ -114,6 +126,8 @@ require_relative "../test/testbench_machine"
 require_relative "../test/testbench_drive"
 require_relative "../test/testbench_region"
 require_relative "../test/testbench_engine"
+require_relative "../test/testbench_vic20"
+require_relative "../test/testbench_vic20_machine"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -189,7 +203,9 @@ module Testbench
     result == "PASS" ? "PASS\n" : "FAIL\t#{result}\n"
   end
 
-  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence, :disk) do
+  # family is :vic20 for a row of the VIC-20's testlist, and nil for the
+  # C64's.
+  TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence, :disk, :family) do
     def id
       "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
     end
@@ -215,6 +231,7 @@ module Testbench
 
     include DriveRow
     include RegionRow
+    include Vic20Row
 
     def name
       return cartridge if prg.empty?
@@ -683,12 +700,14 @@ module Testbench
     # one that loads a program boots in the child, with the cartridge in.
     # A drive test's machine boots with the drive. Each pair of CIA and
     # VIC-II models, each video standard and each expansion gets a machine
-    # of its own.
+    # of its own, and so does each VIC-20 RAM configuration.
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      key = [cartridge, test.drive?, *test.models, test.region, test.expansion]
+      key = [cartridge, test.drive?, *test.models, test.region, test.expansion, test.family, test.ram_configuration]
       @machines[key] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
+        next test.vic20_machine if test.vic20?
+
         if test.drive?
           Testbench.drive_machine(test.cia_model, test.vic_model)
         else
@@ -703,6 +722,8 @@ module Testbench
     end
 
     def run_test(test, computer)
+      return score(test, *test.run_vic20(computer)) if test.vic20?
+
       Dir.mktmpdir("testbench-disk") do |scratch|
         exitcode = test.type == "exitcode"
         cartridge = test.cartridge_path if test.cartridge
@@ -798,9 +819,14 @@ if $PROGRAM_NAME == __FILE__
              end
   rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
                              expansions: !ARGV.delete("--expansions").nil?, drive:, standard:)
+  vic20 = ARGV.delete("--vic20")
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
-  tests = Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
+  tests = if vic20
+            Testbench::Vic20Testlist.tests(ARGV, scope:, exclude:)
+          else
+            Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
+          end
 
   unmatched = Testbench::Testlist.unmatched(ARGV, tests)
   unless unmatched.empty?

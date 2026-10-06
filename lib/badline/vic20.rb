@@ -76,6 +76,9 @@ module Badline
       end
     end
 
+    # Calls the block with the exit code a VICE testprog writes to $910F.
+    def install_debug_register(&) = @bus.install_debug_register(&)
+
     # Writes a PRG's bytes to RAM at its load address, and returns that.
     def load_prg(data)
       uint16(data[0], data[1]).tap do |load_addr|

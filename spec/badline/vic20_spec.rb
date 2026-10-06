@@ -81,7 +81,8 @@ describe Badline::Vic20 do
 
   describe "#init_threshold" do
     {
-      unexpanded: 700_000, "3k": 700_000, "8k": 1_350_000, "16k": 2_000_000, "24k": 2_650_000, "32k": 2_650_000
+      unexpanded: 700_000, "3k": 700_000, "8k": 1_350_000, "16k": 2_000_000, "24k": 2_650_000, "32k": 2_650_000,
+      all: 2_650_000
     }.each do |ram, cycles|
       it "waits #{cycles} cycles with #{ram}" do
         expect(described_class.new(ram:).init_threshold).to eq(cycles)
@@ -95,6 +96,13 @@ describe Badline::Vic20 do
       machine.on_init { ran = true }
       expect(ran).to be(false)
     end
+  end
+
+  it "hands over the exit code written to $910F" do
+    codes = []
+    machine.install_debug_register { |code| codes << code }
+    machine.bus.poke(0x910f, 0x00)
+    expect(codes).to eq([0x00])
   end
 
   it "loads a PRG at its load address" do
