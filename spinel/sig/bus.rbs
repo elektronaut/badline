@@ -68,4 +68,39 @@ module Badline
       def poke: (Integer, Integer) -> void
     end
   end
+
+  class Vic20
+    class Bus
+      @data: Integer
+      @video_data: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class OpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class VideoOpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class ColorRAM
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+        def nibble: (Integer) -> Integer
+      end
+
+      class IO0
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class VIC
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+  end
 end
