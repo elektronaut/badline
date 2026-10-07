@@ -2,6 +2,7 @@
 
 require "badline/vic20/vic/painter"
 require "badline/vic20/vic/text_window"
+require "badline/vic20/vic/saved_state"
 
 module Badline
   class Vic20
@@ -40,6 +41,7 @@ module Badline
     # into the line lands 48 pixels in. Lines 0-27 are blanked.
     class VIC
       include TextWindow
+      include SavedState
 
       # What a VIC-I sets for the machine: the clock, the raster's cycles
       # per line and lines per frame, and how many lines at the top of the

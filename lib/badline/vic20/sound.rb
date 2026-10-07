@@ -115,6 +115,28 @@ module Badline
         @level = level_now
       end
 
+      # The registers and the voices as they last ran, for a snapshot.
+      # Recording is the host's, and starts the voices again from the
+      # cycle it starts at.
+      def save_state(out)
+        run_to(@clock.cycles)
+        out.marker("VIC20 SOUND").int(@volume).ints(@frequencies).booleans(@enabled)
+        out.ints(@shift_registers).ints(@next_shifts).int(@lfsr).int(@level).int(@time)
+      end
+
+      def load_state(input)
+        input.marker("VIC20 SOUND")
+        @volume = input.int
+        input.ints_into(@frequencies)
+        input.booleans_into(@enabled)
+        input.ints_into(@shift_registers)
+        input.ints_into(@next_shifts)
+        @lfsr = input.int
+        @level = input.int
+        @time = input.int
+        resume(@clock.cycles) if recording?
+      end
+
       # A voice's shift register as of the current cycle, while recording.
       def shift_register(voice)
         run_to(@clock.cycles)

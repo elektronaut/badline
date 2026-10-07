@@ -120,15 +120,23 @@ module Badline
       end
 
       # What a save of the machine is named after: the cartridge, the disk,
-      # the tape, or BASIC, without the bracketed parts of a file's name.
+      # the tape, or BASIC, without the bracketed parts of a file's name. A
+      # VIC-20's are named after its disk, or else the machine.
       def game_name
-        name = cartridge_name
+        vic20 = @computer.family == :vic20
+        name = vic20 ? "" : cartridge_name
         disk = disk_path
         name = File.basename(disk, File.extname(disk)) if name.empty? && !disk.empty?
-        tape = @computer.datasette.tape
-        name = File.basename(tape.path, File.extname(tape.path)) if name.empty? && !tape.nil?
+        name = tape_name if name.empty? && !vic20
         name = name.sub(/\s*[(\[].*\z/, "").strip
-        name.empty? ? "BASIC" : name
+        return name unless name.empty?
+
+        vic20 ? "VIC-20" : "BASIC"
+      end
+
+      def tape_name
+        tape = @computer.datasette.tape
+        tape.nil? ? "" : File.basename(tape.path, File.extname(tape.path))
       end
 
       # The name the cartridge in the expansion port gives itself, or an

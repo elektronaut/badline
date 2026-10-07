@@ -28,10 +28,15 @@ module Badline
       # modules badline reads. Yields a line for each thing left out, or
       # warns it without a block.
       def load(&)
+        return load_vic20(&) if vic20?
+
         computer = badline? ? opening { Computer.restored(state) } : Vice.setup(@container).build
         tell(badline? ? state_report(computer) : Vice::Restore.apply(@container, computer), &)
         computer
       end
+
+      # Whether the machine is a VIC-20, as the container names it.
+      def vic20? = @container.machine == Container::VIC20
 
       # Restores `computer` from the snapshot, and returns the Report. A
       # snapshot that fails leaves the machine as it was.
@@ -44,6 +49,16 @@ module Badline
       private
 
       def section = @container[MachineState::NAME]
+
+      # A VIC-20 restores from its BADLINE module alone. xvic's own modules
+      # aren't read.
+      def load_vic20(&)
+        raise FormatError, "badline reads only its own VIC-20 snapshots, not xvic's" unless badline?
+
+        machine = Vic20.restored(state)
+        tell(state_report(machine), &)
+        machine
+      end
 
       def tell(report)
         report.ignored.each { |line| block_given? ? yield(line) : warn("badline: #{line}") }

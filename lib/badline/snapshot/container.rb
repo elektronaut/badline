@@ -26,6 +26,8 @@ module Badline
       FORMAT_MINOR = 0
       # x64sc names its machine C64SC, and refuses a snapshot naming another.
       MACHINE = "C64SC"
+      # xvic names its machine VIC20.
+      VIC20 = "VIC20"
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version

@@ -154,8 +154,6 @@ module Badline
       # Saving now and by name, loading a named save, and the quicksaves
       # and autosaves, newest first, which a press loads.
       def draw_snapshots
-        return note unless @snapshots.available?
-
         row("QUICKSAVE", :quicksave_now)
         row("SAVE...", :save_as)
         row("LOAD...", :load_save)

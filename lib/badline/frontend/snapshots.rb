@@ -13,14 +13,9 @@ module Badline
       SLOTS = 5
       AUTOSAVES = 3
       AUTOSAVE_FRAMES = 6000
-      UNAVAILABLE = "The VIC-20 can't save or restore snapshots yet"
 
       # The machine running, which F12 replaces with the restored one.
       attr_accessor :computer
-
-      # Whether the machine running saves and restores snapshots, as the
-      # C64 does and the VIC-20 doesn't yet.
-      def available? = @computer.family == :c64
 
       def initialize(computer, options)
         @computer = computer
@@ -32,10 +27,6 @@ module Badline
       # Saves or restores for F11 or F12, and says whether a restored
       # machine now runs in place of the one before.
       def key(scancode)
-        unless available?
-          puts UNAVAILABLE
-          return false
-        end
         return restore if scancode == Keys::F12
 
         quicksave if scancode == Keys::F11
@@ -81,7 +72,7 @@ module Badline
       # last, quietly. A machine that can't be saved stops autosaving after
       # one warning.
       def tick(frames)
-        return unless @autosave && frames >= @autosave_at && available?
+        return unless @autosave && frames >= @autosave_at
 
         @autosave_at = frames + AUTOSAVE_FRAMES
         folder = Badline.data_folder("autosaves")

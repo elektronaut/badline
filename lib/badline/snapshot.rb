@@ -27,8 +27,12 @@ module Badline
       path
     end
 
+    # A VIC-20's snapshot holds the BADLINE module alone, in a container
+    # named as xvic names its machine.
     def dump(computer)
       state = computer.snapshot
+      return Container.new([MachineState.section(state)], machine: Container::VIC20).to_s if computer.family == :vic20
+
       Container.new(Vice.export(state) + [MachineState.section(state)]).to_s
     end
 
@@ -45,6 +49,12 @@ module Badline
   end
 
   class Computer
+    def save_snapshot(path) = Snapshot.save(self, path)
+
+    def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+  end
+
+  class Vic20
     def save_snapshot(path) = Snapshot.save(self, path)
 
     def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
