@@ -225,6 +225,8 @@ through the rows, Right goes into a page and Left back out, and Return or
 Space presses a row. A row with choices steps to the next. The mouse works
 too.
 
+![The pause menu's Drive 8 page, with a disk in](doc/images/pause-menu.png)
+
 | Page | What it holds |
 |------|---------------|
 | Snapshots | Quicksave, save under a name, load a named save, and the latest quicksaves and autosaves |
