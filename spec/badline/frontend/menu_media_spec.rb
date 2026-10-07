@@ -68,10 +68,37 @@ describe Badline::Frontend::MenuMedia do
   end
 
   it "starts on the command line's list" do
-    first
     File.write(File.join(dir, "game.vfl"), "UNIT 8\n#{second}\n#{first}\n")
-    media = described_class.new(File.join(dir, "game.vfl"), false)
+    media = described_class.new(File.join(dir, "game.vfl"), false).tap { |menu_media| menu_media.computer = computer }
+    Badline::Media.attach(computer, File.join(dir, "game.vfl"), autostart: false)
     expect([media.disk_path, media.disk_set]).to eq([second, [second, first]])
+  end
+
+  it "names the disk something else put in" do
+    media.insert(:disk, first)
+    Badline::Media.attach(computer, second, autostart: false)
+    expect(media.disk_path).to eq(second)
+  end
+
+  it "names no disk once something else took it out" do
+    media.insert(:disk, first)
+    computer.unmount
+    expect(media.disk_path).to eq("")
+  end
+
+  it "names the disk a restored snapshot put back" do
+    media.insert(:disk, first)
+    computer.save_snapshot(File.join(dir, "first.vsf"))
+    media.insert(:disk, second)
+    computer.restore_snapshot(File.join(dir, "first.vsf"))
+    expect(media.disk_path).to eq(first)
+  end
+
+  it "steps from the disk in a true drive through its set" do
+    second
+    Badline::Media::TrueDrive.insert(computer, first)
+    media.drive(:next_disk)
+    expect(media.disk_path).to eq(second)
   end
 
   it "keeps what went wrong with a list" do
@@ -117,6 +144,7 @@ describe Badline::Frontend::MenuMedia do
 
   it "starts a file in a new machine, as the command line does" do
     started = media.start(Badline::Options.parse([]), first)
+    media.computer = started
     expect([started.equal?(computer), started.mounted?, media.disk_path]).to eq([false, true, first])
   end
 
@@ -131,6 +159,12 @@ describe Badline::Frontend::MenuMedia do
     it "mounts a disk on device 8" do
       media.insert(:disk, first)
       expect(computer.mounted?).to be(true)
+    end
+
+    it "names the disk something else put in" do
+      media.insert(:disk, first)
+      Badline::Media.attach(computer, second, autostart: false)
+      expect(media.disk_path).to eq(second)
     end
 
     it "puts a tape in the datasette" do

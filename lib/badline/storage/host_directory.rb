@@ -10,6 +10,9 @@ module Badline
       NO_SYNC = 21
       ID = "DIR".bytes.freeze
 
+      # The directory's path, as it was opened.
+      attr_reader :path
+
       def initialize(path)
         @path = path
       end

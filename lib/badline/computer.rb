@@ -12,6 +12,10 @@ module Badline
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 
+    # The path of the disk or directory device 8 serves through the traps
+    # (Attachments), or an empty one.
+    def mounted_path = @drive.nil? ? "" : @drive.path
+
     def family = :c64
 
     def region = address_bus.region

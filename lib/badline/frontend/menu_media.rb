@@ -4,17 +4,17 @@ module Badline
   module Frontend
     # What the pause menu puts in the machine and takes out: disks, tapes
     # and cartridges, whether disks are writable, which carries over from
-    # one disk to the next, and the disk's set, which PREVIOUS and NEXT step
-    # through: the .m3u or .vfl list it came from, while that lists it, or
-    # the set DiskSet finds. It keeps what last went wrong for the page to
-    # show.
+    # one disk to the next, and the set of the disk in device 8, which
+    # PREVIOUS and NEXT step through: the .m3u or .vfl list it came from,
+    # while that lists it, or the set DiskSet finds. It keeps what last went
+    # wrong for the page to show.
     class MenuMedia
-      attr_reader :disk_path, :problem
+      attr_reader :problem
       attr_writer :computer
 
-      # Starts on the disk the command line's `media_path` put in.
+      # Takes the disk set from the command line's `media_path` when it's a
+      # list.
       def initialize(media_path, writable)
-        @disk_path = PauseMenu.disk_path(media_path)
         @list = Media::DiskList.list?(media_path) ? media_path : ""
         @writable = writable
         @set_path = ""
@@ -25,26 +25,40 @@ module Badline
 
       def writable? = @writable
 
+      # The expanded path of the disk in device 8, however it went in, or
+      # an empty one.
+      def disk_path
+        drive = @computer.drive1541
+        unless drive.nil?
+          disk = drive.disk
+          return disk.nil? ? "" : disk.path.to_s
+        end
+
+        path = @computer.mounted_path
+        path.empty? ? path : File.expand_path(path)
+      end
+
       def inserted?
         drive = @computer.drive1541
         drive.nil? ? @computer.mounted? : !drive.disk.nil?
       end
 
       # Puts a disk in device 8 or a tape in the datasette, `kind` :disk or
-      # :tape. A list puts its first disk in.
+      # :tape, and says whether it went in. A list puts its first disk in.
       def insert(kind, path)
         @problem = ""
         if kind == :disk
           disk = Media::DiskList.disk(path)
           Media.insert_disk(@computer, disk, read_only: !@writable)
           list(path)
-          @disk_path = disk
         else
           @computer.datasette.insert(Storage::TAP.new(path))
         end
+        true
       rescue ArgumentError, SystemCallError, Storage::TAP::FormatError, Storage::T64::FormatError,
              Storage::G64Image::FormatError => e
         @problem = e.message
+        false
       end
 
       # Does what the Drive page's :eject_disk, :previous_disk, :next_disk,
@@ -61,24 +75,25 @@ module Badline
       def eject_disk
         drive = @computer.drive1541
         drive.nil? ? @computer.unmount : drive.insert(nil)
-        @disk_path = ""
       end
 
       # Sets whether disks are writable, for the disk in the drive too,
       # which goes in again as the notch now says.
       def writable(writable)
         @writable = writable
-        insert(:disk, @disk_path) if inserted? && !@disk_path.empty?
+        path = disk_path
+        insert(:disk, path) if inserted? && !path.empty?
       end
 
       # The disks of the set the disk in the drive belongs to.
       def disk_set
-        return [] if @disk_path.empty?
+        path = disk_path
+        return [] if path.empty?
 
-        unless @set_path == @disk_path
-          listed = @list.empty? ? [] : Media::DiskList.disks(@list)
-          @set = listed.include?(@disk_path) ? listed : Media::DiskSet.around(@disk_path)
-          @set_path = @disk_path
+        unless @set_path == path
+          listed = @list.empty? ? [] : expanded(Media::DiskList.disks(@list))
+          @set = listed.include?(path) ? listed : expanded(Media::DiskSet.around(path))
+          @set_path = path
         end
         @set
       end
@@ -87,7 +102,7 @@ module Badline
       # drive, if there is one.
       def step_disk(step)
         set = disk_set
-        index = set.index(@disk_path)
+        index = set.index(disk_path)
         return if index.nil? || !(index + step).between?(0, set.size - 1)
 
         insert(:disk, set[index + step])
@@ -108,7 +123,8 @@ module Badline
       # the tape, or BASIC, without the bracketed parts of a file's name.
       def game_name
         name = cartridge_name
-        name = File.basename(@disk_path, File.extname(@disk_path)) if name.empty? && !@disk_path.empty?
+        disk = disk_path
+        name = File.basename(disk, File.extname(disk)) if name.empty? && !disk.empty?
         tape = @computer.datasette.tape
         name = File.basename(tape.path, File.extname(tape.path)) if name.empty? && !tape.nil?
         name = name.sub(/\s*[(\[].*\z/, "").strip
@@ -133,7 +149,6 @@ module Badline
       def start(options, path)
         @problem = ""
         computer = Frontend.start(options, path, @writable)
-        @disk_path = PauseMenu.disk_path(path)
         list(path)
         computer
       rescue ArgumentError, SystemCallError, Media::TrueDrive::Error, Storage::SIDFile::FormatError,
@@ -152,6 +167,8 @@ module Badline
         @list = path
         @set_path = ""
       end
+
+      def expanded(paths) = paths.map { |path| File.expand_path(path) }
     end
   end
 end
