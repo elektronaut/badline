@@ -224,7 +224,14 @@ The events:
 - `eject=disk`, `eject=tape` or `eject=cartridge` takes one out, or says
   there's none.
 - `screenshot=FILE` saves the frame, with the frame's number in place of
-  `%d`, or of `%05d` padded to five digits.
+  `%d`, or of `%05d` padded to five digits. With the pause menu open, it
+  saves the menu over the dimmed picture.
+- `menu` opens the pause menu on its first page, and `menu=PAGE` on
+  `snapshots`, `drive`, `datasette`, `expansion`, `ports`, `sound` or
+  `power`, or turns it to that page. The machine stands still, but the
+  frames still count towards the events after it and `--frames`.
+  `resume` closes it again. A page that isn't one ends the run before it
+  starts, with exit status 1.
 - `reset`, `freeze` (the cartridge's button) and `quit`.
 
 With `--unpaced`, both builds run the same frames, so they take the same

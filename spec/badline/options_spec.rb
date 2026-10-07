@@ -581,6 +581,14 @@ describe Badline::Options do
       end
     end
 
+    context "with the pause menu" do
+      let(:argv) { ["--at", "10:menu", "--at", "20:menu=sound", "--at", "30:resume"] }
+
+      it "takes it with or without a page, and resume" do
+        expect(events).to eq([[10, "menu", ""], [20, "menu", "sound"], [30, "resume", ""]])
+      end
+    end
+
     context "with media to insert" do
       let(:argv) { ["--at", "10:insert=#{dir}", "--at", "20:eject=tape"] }
 
@@ -604,7 +612,7 @@ describe Badline::Options do
       "frame 0" => "0:quit", "no frame" => "quit", "a frame that isn't a number" => "x:quit",
       "an unknown event" => "1:jump", "an argument to quit" => "1:quit=now", "a key without a name" => "1:key",
       "something that won't eject" => "1:eject=floppy", "a missing disk" => "1:insert=missing.d64",
-      "a program to insert" => "1:insert=PROGRAM"
+      "a program to insert" => "1:insert=PROGRAM", "an argument to resume" => "1:resume=now"
     }.each do |name, event|
       context "with #{name}" do
         let(:argv) { ["--at", event.sub("PROGRAM", program_path)] }

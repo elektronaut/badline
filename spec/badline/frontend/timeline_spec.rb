@@ -42,6 +42,14 @@ describe Badline::Frontend::Timeline do
     it "names the first key that names nothing" do
       expect(error("1:key=a", "2:key=joy3-up", "3:key=hyper")).to eq("no such key: joy3-up")
     end
+
+    it "takes the pause menu's pages, or none" do
+      expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
+    end
+
+    it "names a menu page that names nothing" do
+      expect(error("1:menu=drive", "2:menu=printer")).to eq("no such menu page: printer")
+    end
   end
 
   describe ".path" do
@@ -280,6 +288,22 @@ describe Badline::Frontend::Timeline do
 
     it "quits at quit's frame" do
       expect([timeline.quit?(6), timeline.quit?(7)]).to eq([false, true])
+    end
+  end
+
+  describe "the pause menu" do
+    let(:argv) { at("3:menu", "5:menu=sound", "8:resume") }
+
+    it "opens at menu's frames" do
+      expect([2, 3, 5].map { |frame| timeline.menu?(frame) }).to eq([false, true, true])
+    end
+
+    it "opens on the page it names, or on the first" do
+      expect([timeline.menu_section(3), timeline.menu_section(5)]).to eq([0, 5])
+    end
+
+    it "closes at resume's frame" do
+      expect([timeline.resume?(5), timeline.resume?(8)]).to eq([false, true])
     end
   end
 end

@@ -100,7 +100,7 @@ differences noted in the table. `--help` lists the options for either.
 | --- | --- |
 | `--frames N` | Quit after N frames |
 | `--unpaced` | Run as fast as it can, without vsync or pacing |
-| `--at FRAME:EVENT` | Press keys, type, swap media or take a screenshot once `FRAME` frames have run |
+| `--at FRAME:EVENT` | Press keys, type, swap media, open the pause menu or take a screenshot once `FRAME` frames have run |
 | `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |
 | `--screenshot FILE` | Save the last frame as a `.bmp` |
 | `--save-snapshot FILE` | Save the machine as a `.vsf` snapshot after the last frame |

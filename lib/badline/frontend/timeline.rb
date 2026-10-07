@@ -21,12 +21,19 @@ module Badline
         @failed = false
       end
 
-      # What's wrong with the events, the first key that names nothing,
-      # or an empty string.
+      # What's wrong with the events, the first key or menu page that
+      # names nothing, or an empty string.
       def self.error(events)
         event = events.find { |candidate| candidate.action == "key" && !key?(candidate.argument) }
-        event.nil? ? "" : "no such key: #{event.argument}"
+        return "no such key: #{event.argument}" unless event.nil?
+
+        event = events.find { |candidate| candidate.action == "menu" && !page?(candidate.argument) }
+        event.nil? ? "" : "no such menu page: #{event.argument}"
       end
+
+      # Whether the pause menu has a page of the name, such as drive or
+      # sound. An empty one is its first.
+      def self.page?(name) = name.empty? || PauseMenu::PAGES.any? { |page| page.to_s == name }
 
       def self.key?(name) = name == "restore" || !keyboard_key(name).nil? || !joystick_direction(name).nil?
 
@@ -66,6 +73,22 @@ module Badline
       # Presses the freeze button after `frame`, and lets go of it as the
       # events do.
       def press_freeze(computer, frame) = freeze(computer, Options::Event.new(frame, "freeze", ""))
+
+      # Whether the pause menu opens at the frame, or turns to another page.
+      def menu?(frame) = @events.any? { |event| event.frame == frame && event.action == "menu" }
+
+      # The index in PauseMenu::PAGES of the page the frame's menu event
+      # names, 0 for the first.
+      def menu_section(frame)
+        page = ""
+        @events.each { |event| page = event.argument if event.frame == frame && event.action == "menu" }
+        section = 0
+        PauseMenu::PAGES.each_with_index { |name, index| section = index if name.to_s == page }
+        section
+      end
+
+      # Whether the pause menu closes at the frame.
+      def resume?(frame) = @events.any? { |event| event.frame == frame && event.action == "resume" }
 
       # Whether the run ends at the frame: at a quit, or once an event failed.
       def quit?(frame) = @failed || @events.any? { |event| event.frame == frame && event.action == "quit" }
