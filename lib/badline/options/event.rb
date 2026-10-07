@@ -6,10 +6,11 @@ module Badline
     # `frame` frames have run. An event given at several frames becomes
     # one Event per frame.
     class Event
-      # The actions, and whether each takes an argument.
+      # The actions, and whether each takes an argument. menu's page may be
+      # left out.
       ACTIONS = {
-        "key" => true, "type" => true, "insert" => true, "eject" => true, "screenshot" => true,
-        "reset" => false, "freeze" => false, "quit" => false
+        "key" => true, "type" => true, "insert" => true, "eject" => true, "screenshot" => true, "menu" => true,
+        "reset" => false, "freeze" => false, "resume" => false, "quit" => false
       }.freeze
 
       # The frames a key or the freeze button is held for.
@@ -79,6 +80,7 @@ module Badline
 
       def self.valid?(action, argument)
         return false unless ACTIONS.key?(action)
+        return true if action == "menu"
         return argument.empty? unless ACTIONS[action]
         return EJECTABLE.include?(argument) if action == "eject"
         return insertable?(argument) if action == "insert"

@@ -28,6 +28,7 @@ module Badline
         @frame_report = FrameReport.new(@sound)
         @menu = PauseMenu.new(Painter.new(@window.renderer), options, @snapshots)
         @menu.center(@window.width, @window.height)
+        @scripted = false
       end
 
       def run
@@ -71,6 +72,20 @@ module Badline
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
         report(stamps.last) if (@frames % 50).zero?
+        menu_events
+      end
+
+      # Opens the menu at a menu event, on the page it names, and closes it
+      # at a resume. While the timeline holds it open, its frames count
+      # towards the events after it and --frames.
+      def menu_events
+        if @timeline.menu?(@frames)
+          @menu.section = @timeline.menu_section(@frames)
+          open_menu
+          @scripted = true
+        elsif @menu.open? && @timeline.resume?(@frames)
+          resume(false)
+        end
       end
 
       def handle_events
@@ -136,6 +151,7 @@ module Badline
       # pressing the cartridge's freeze button if asked.
       def resume(freeze)
         @menu.close
+        @scripted = false
         SDL.SDL_SetRelativeMouseMode(@controls.pot_device? ? 1 : 0)
         @timeline.press_freeze(@computer, @frames) if freeze
         @reported = now
@@ -144,15 +160,33 @@ module Badline
       end
 
       # Runs a frame of the menu, which has the keys and the mouse while the
-      # machine stands still.
+      # machine stands still. A menu the timeline opened counts its frames
+      # and takes their screenshots.
       def paused_frame
+        scripted = @scripted
         action = @menu.frame(@window.renderer, @window.texture, @controls)
+        present_menu(scripted)
         if action == :quit
           @running = false
         elsif !action.nil?
           swap(@menu.computer) if action == :swap
           resume(action == :freeze)
         end
+        finish_paused_frame if scripted && @running
+      end
+
+      def present_menu(scripted)
+        renderer = @window.renderer
+        @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(renderer, path) } if scripted
+        SDL.SDL_RenderPresent(renderer)
+        SDL.SDL_Delay(10)
+      end
+
+      def finish_paused_frame
+        @frames += 1
+        @timeline.run(@computer, @frames)
+        @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
+        menu_events
       end
 
       def update_title

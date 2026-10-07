@@ -63,6 +63,9 @@ module Badline
 
       def open? = @open
 
+      # The index in PAGES of the page #show opens on.
+      attr_writer :section
+
       # The machine Quick open started, which the app runs in place of the
       # one before once #frame returns :swap.
       def computer = @dialogs.computer
@@ -117,10 +120,10 @@ module Badline
       end
 
       # Handles the events that came in, draws the menu over the frozen
-      # picture, dimmed, and returns the action the app has to take on, if
-      # any, leaving the events after one for the machine. Key releases
-      # still reach the machine, so no key stays held down while it stands
-      # still.
+      # picture, dimmed, for the app to present, and returns the action the
+      # app has to take on, if any, leaving the events after one for the
+      # machine. Key releases still reach the machine, so no key stays held
+      # down while it stands still.
       def frame(renderer, texture, controls)
         action = nil
         action = event(SDL.event_type(SDL.event), controls) while action.nil? && SDL.SDL_PollEvent(SDL.event) != 0
@@ -130,8 +133,6 @@ module Badline
         SDL.SDL_SetTextureColorMod(texture, 255, 255, 255)
         draw
         SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)
-        SDL.SDL_RenderPresent(renderer)
-        SDL.SDL_Delay(10)
         action
       end
 

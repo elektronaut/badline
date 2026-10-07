@@ -114,6 +114,32 @@ describe Badline::Frontend::App do
       expect(computer.keyboard).not_to have_received(:press)
     end
 
+    it "opens at --at's menu and holds the machine" do
+      run(argv: %w[--frames 5 --at 2:menu])
+      expect(computer.cycles).to eq(2 * frame_cycles)
+    end
+
+    it "counts the frames it's open for towards --frames" do
+      allow(computer).to receive(:reset!)
+      run(argv: %w[--frames 6 --at 2:menu --at 4:reset])
+      expect(computer).to have_received(:reset!)
+    end
+
+    it "saves --at's screenshots of it" do
+      run(argv: %w[--frames 4 --at 2:menu=ports --at 3:screenshot=menu.bmp])
+      expect(File.binread("menu.bmp", 2)).to eq("BM")
+    end
+
+    it "draws it over the frozen picture in the screenshot" do
+      run(argv: %w[--frames 3 --at 2:screenshot=running.bmp --at 2:menu --at 3:screenshot=menu.bmp])
+      expect(File.binread("menu.bmp")).not_to eq(File.binread("running.bmp"))
+    end
+
+    it "runs the machine on at --at's resume" do
+      run(argv: %w[--frames 6 --at 2:menu --at 4:resume])
+      expect(computer.cycles).to eq(4 * frame_cycles)
+    end
+
     it "plugs a 1351 into port 1, whose button the mouse's presses" do
       keys = [81, 81, 81, 81, 79, 40, 41].map { |scancode| key(scancode) }
       run(f9, *keys, event(sdl::MOUSEBUTTONDOWN, [0, 1, 1].pack("LC2")))

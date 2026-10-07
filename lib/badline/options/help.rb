@@ -86,8 +86,10 @@ module Badline
         frames. type=TEXT types it, with \\n for RETURN. insert=FILE swaps
         in a disk, a list's first disk, a tape or a cartridge, and
         eject=disk, tape or cartridge takes one out. screenshot=FILE saves
-        the frame as a .bmp, with the frame's number in place of %d. reset,
-        freeze and quit take no argument.
+        the frame as a .bmp, with the frame's number in place of %d. menu
+        opens the pause menu, and menu=PAGE opens it on snapshots, drive,
+        datasette, expansion, ports, sound or power. Its frames still count,
+        and resume closes it. reset, freeze and quit take no argument.
       BANNER
     end
 

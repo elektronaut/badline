@@ -31,6 +31,12 @@ describe Badline::Frontend::PauseMenu do
     expect(focused).to eq(:ports)
   end
 
+  it "opens on the section it's given" do
+    menu.section = 2
+    menu.show(computer, controls, instance_double(Badline::Frontend::Sound, on?: false, muted?: false))
+    expect(focused).to eq(:datasette)
+  end
+
   it "reaches Quick open past the last section" do
     press(*[81] * 7)
     expect(focused).to eq(:quick_open)

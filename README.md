@@ -100,7 +100,7 @@ differences noted in the table. `--help` lists the options for either.
 | --- | --- |
 | `--frames N` | Quit after N frames |
 | `--unpaced` | Run as fast as it can, without vsync or pacing |
-| `--at FRAME:EVENT` | Press keys, type, swap media or take a screenshot once `FRAME` frames have run |
+| `--at FRAME:EVENT` | Press keys, type, swap media, open the pause menu or take a screenshot once `FRAME` frames have run |
 | `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |
 | `--screenshot FILE` | Save the last frame as a `.bmp` |
 | `--save-snapshot FILE` | Save the machine as a `.vsf` snapshot after the last frame |
@@ -224,6 +224,8 @@ function keys are set to work as standard function keys. Up and Down move
 through the rows, Right goes into a page and Left back out, and Return or
 Space presses a row. A row with choices steps to the next. The mouse works
 too.
+
+![The pause menu's Drive 8 page, with a disk in](doc/images/pause-menu.png)
 
 | Page | What it holds |
 |------|---------------|
