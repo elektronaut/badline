@@ -16,6 +16,13 @@ module Badline
       # The file it was read from, expanded, and the file's bytes.
       attr_reader :version, :platform, :path, :bytes
 
+      # A blank version 1 tape for `platform` (0 C64, 1 VIC-20) at `path`,
+      # written to the host file.
+      def self.create(path, platform:)
+        File.binwrite(path, (SIGNATURE + [1, platform, 0, 0, 0, 0, 0, 0]).pack("C*"))
+        new(path)
+      end
+
       # `bytes` stands in for the host file's contents, as a snapshot
       # restores the tape it holds.
       def initialize(path, bytes: nil)
@@ -44,6 +51,31 @@ module Badline
       end
 
       def end? = @pos >= @end
+
+      # Records a pulse `cycles` long at the position, in place of the rest
+      # of the tape: a byte of units of 8 cycles, or a zero and the 24-bit
+      # cycle count for a long one (a lone zero, an overflow, on a version 0
+      # tape).
+      def record_pulse(cycles)
+        units = (cycles + 4) / 8
+        encoded = if units.between?(1, 0xff) then [units]
+                  elsif version.zero? then [0]
+                  else
+                    count = [cycles, 0xffffff].min
+                    [0, count & 0xff, (count >> 8) & 0xff, count >> 16]
+                  end
+        @bytes.slice!(@pos..)
+        @bytes.concat(encoded)
+        @pos = @end = @bytes.length
+      end
+
+      # Writes the tape back to its host file, with the data size the
+      # header states.
+      def save
+        size = @bytes.length - HEADER_SIZE
+        @bytes[0x10, 4] = [size & 0xff, (size >> 8) & 0xff, (size >> 16) & 0xff, size >> 24]
+        File.binwrite(@path, @bytes.pack("C*"))
+      end
 
       # Cycles until the next falling edge, or nil once the tape has run out.
       def next_pulse

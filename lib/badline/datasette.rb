@@ -3,7 +3,8 @@
 module Badline
   # The 1530 datasette. Plays a pulse stream into CIA 1's FLAG pin while the
   # motor runs with a key pressed, and reports the keys through the cassette
-  # sense line on the $01 port.
+  # sense line on the $01 port. With RECORD down too, it records the
+  # machine's write line onto the tape instead.
   class Datasette
     # What inserting a tape raises on a machine without a cassette port.
     class Missing < ArgumentError; end
@@ -15,6 +16,9 @@ module Badline
       @tape = tape
       @connected = true
       @playing = false
+      @recording = false
+      @write_high = true
+      @since = 0
       @motor = false
       @countdown = 0
       @flag_handler = nil
@@ -60,6 +64,30 @@ module Badline
     def play! = press(true)
     def stop! = press(false)
 
+    # Presses RECORD and PLAY together.
+    def record!
+      return if !@connected || @tape.nil?
+
+      press(true)
+      @recording = true
+      @since = 0
+    end
+
+    def recording? = @recording
+
+    # The machine's tape write line. While the deck records with its motor
+    # running, each rising edge ends a pulse on the tape, as long as the
+    # time since the edge before, and plays back as a falling edge on the
+    # read line.
+    def write_line=(high)
+      rose = high && !@write_high
+      @write_high = high
+      return unless rose && @recording && running?
+
+      @tape.record_pulse(@since)
+      @since = 0
+    end
+
     def playing? = @playing
 
     # Sense reads low while a key is down on the deck.
@@ -98,6 +126,7 @@ module Badline
 
     def cycle!
       return unless running?
+      return @since += 1 if @recording
 
       @countdown = @tape.next_pulse.to_i if @countdown.zero?
       return if @countdown.zero?
@@ -116,8 +145,17 @@ module Badline
     def press(down)
       return if down == @playing || !@connected
 
+      finish_recording unless down
       @playing = down
       @sense_handler&.call
+    end
+
+    # Releasing the keys ends a recording, and writes the tape out.
+    def finish_recording
+      return unless @recording
+
+      @recording = false
+      @tape.save
     end
   end
 end

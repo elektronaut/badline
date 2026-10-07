@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
+require_relative "drive_scenarios_vic20"
+
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
-# idle loop, a write-protected disk and autostart. Each takes tens of
+# idle loop, a write-protected disk and autostart, and on the VIC-20's
+# serial bus a save, an autostart and the error channel
+# (drive_scenarios_vic20.rb). Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
 # `scenario/check<TAB>PASS`, or `scenario/check<TAB>FAIL<TAB>detail`.
@@ -15,9 +19,12 @@ module DriveScenarios
   CHECKS = {
     "format" => %w[no-error lists-new-disk name-and-id bam-free trap-readable],
     "save" => %w[no-error loads-back file-in-image trap-readable],
+    "vic20-write" => %w[no-error loads-back file-in-image],
     "read-only" => %w[saves image-unchanged],
     "autostart" => %w[loads-and-runs],
+    "vic20-autoboot" => %w[loads-and-runs],
     "error-channel" => %w[power-on-message],
+    "vic20-status" => %w[power-on-message],
     "idle" => %w[sleeps matches-stepping]
   }.freeze
 
@@ -39,6 +46,7 @@ module DriveScenarios
     when "idle" then Idle.run(report)
     when "read-only" then read_only(report, dir)
     when "autostart" then autostart(report, dir)
+    when "vic20-write", "vic20-autoboot", "vic20-status" then Vic20Runs.run(report, name, dir)
     else raise ArgumentError, "No drive scenario #{name}"
     end
     report.rows

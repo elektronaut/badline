@@ -4,6 +4,7 @@ require "badline/vic20/attachments"
 require "badline/vic20/bus"
 require "badline/vic20/cpu"
 require "badline/vic20/keyboard_via_ports"
+require "badline/vic20/port_wiring"
 require "badline/vic20/user_via_ports"
 require "badline/vic20/vic"
 require "badline/vic20/sound"
@@ -15,16 +16,17 @@ module Badline
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
   # So far it runs headless, with the VIC's picture and sound. The
-  # keyboard, the joystick and RESTORE reach the VIAs, and device 8 serves
-  # disks through the KERNAL traps; the datasette and the serial bus don't
-  # yet.
+  # keyboard, the joystick and RESTORE reach the VIAs, the datasette and
+  # the serial bus hang off them (PortWiring), and device 8 serves disks
+  # through the KERNAL traps or a true 1541.
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
     include Attachments
+    include PortWiring
 
     attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound,
-                :drive1541
+                :drive1541, :iec_bus, :datasette
 
     def ram = @bus.ram
 
@@ -33,7 +35,10 @@ module Badline
       @vic = VIC.new
       @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
       @joystick1 = Joystick.new
-      @via1 = VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1))
+      @iec_bus = IECBus.new
+      @datasette = Datasette.new
+      @via1 = VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1, serial_bus: @iec_bus,
+                                                                  datasette: @datasette))
       keyboard_ports = KeyboardVIAPorts.new(keyboard: @keyboard, joystick: @joystick1)
       @via2 = VIA.new(start: 0x9000, peripheral: keyboard_ports)
       keyboard_ports.connect(@via2)
@@ -52,6 +57,7 @@ module Badline
       @capture_output = nil
       @drive1541 = nil
       @init_threshold = boot_cycles
+      wire_ports
     end
 
     # The VIC and the VIAs clock ahead of the CPU, as the C64's chips do,
@@ -64,9 +70,11 @@ module Badline
       @vic.cycle!
       @via1.cycle!
       @via2.cycle!
+      @datasette.cycle!
       @cpu.irq = @via2.irq?
       drive_nmi
       @cpu.cycle!
+      @drive1541&.host_cycle!
 
       @cycles += 1
     end
@@ -143,7 +151,9 @@ module Badline
     def reset!
       @via1.reset!
       @via2.reset!
+      via_written
       @drive&.reset!
+      @drive1541&.reset!
       @nmi_asserted = false
       @cpu.reset!
     end

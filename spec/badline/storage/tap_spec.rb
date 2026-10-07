@@ -129,4 +129,53 @@ describe Badline::Storage::TAP do
       expect { tape }.to raise_error(described_class::FormatError, /version 2/)
     end
   end
+
+  describe ".create" do
+    subject(:blank) { described_class.create(File.join(dir, "blank.tap"), platform: 1) }
+
+    it "writes a version 1 tape for the platform, with no pulses" do
+      expect([blank.version, blank.platform, File.size(blank.path), blank.end?]).to eq([1, 1, 20, true])
+    end
+  end
+
+  describe "#record_pulse" do
+    before { tape.next_pulse }
+
+    it "records a short pulse as a byte of units of 8 cycles, in place of the rest of the tape" do
+      tape.record_pulse(363)
+      expect(tape.bytes.drop(20)).to eq([0x30, 0x2d])
+    end
+
+    it "records a long pulse as a zero and its cycle count on a version 1 tape" do
+      tape.record_pulse(0x12345)
+      expect(tape.bytes.drop(21)).to eq([0x00, 0x45, 0x23, 0x01])
+    end
+
+    it "leaves the tape at its end" do
+      tape.record_pulse(363)
+      expect(tape.end?).to be(true)
+    end
+
+    context "with a version 0 tape" do
+      let(:version) { 0 }
+
+      it "records a long pulse as an overflow" do
+        tape.record_pulse(0x12345)
+        expect(tape.bytes.drop(21)).to eq([0x00])
+      end
+    end
+  end
+
+  describe "#save" do
+    before do
+      tape.next_pulse
+      tape.record_pulse(363)
+      tape.record_pulse(363)
+      tape.save
+    end
+
+    it "writes the tape back with the data size it holds" do
+      expect(File.binread(path).bytes.drop(16)).to eq([3, 0, 0, 0, 0x30, 0x2d, 0x2d])
+    end
+  end
 end

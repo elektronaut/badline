@@ -166,4 +166,50 @@ describe Badline::Datasette do
       expect(datasette.tape).to be_nil
     end
   end
+
+  describe "recording" do
+    before do
+      allow(tape).to receive_messages(record_pulse: nil, save: nil)
+      datasette.record!
+      datasette.motor = true
+    end
+
+    # Drives the write line through a cycle: low, then high after +cycles+.
+    def write_cycle(cycles)
+      datasette.write_line = false
+      run(cycles)
+      datasette.write_line = true
+    end
+
+    it "holds the keys down" do
+      expect([datasette.playing?, datasette.recording?]).to eq([true, true])
+    end
+
+    it "records the time between rising edges on the write line" do
+      write_cycle(10)
+      write_cycle(360)
+      expect(tape).to have_received(:record_pulse).with(360)
+    end
+
+    it "plays nothing back while it records" do
+      run(20)
+      expect(edges).to be_empty
+    end
+
+    it "records nothing while the motor is off" do
+      datasette.motor = false
+      write_cycle(360)
+      expect(tape).not_to have_received(:record_pulse)
+    end
+
+    it "writes the tape out once the keys come up" do
+      datasette.stop!
+      expect(tape).to have_received(:save)
+    end
+
+    it "stops recording once the keys come up" do
+      datasette.stop!
+      expect(datasette.recording?).to be(false)
+    end
+  end
 end

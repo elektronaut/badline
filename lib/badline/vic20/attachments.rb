@@ -3,9 +3,14 @@
 module Badline
   class Vic20
     # What plugs into the VIC-20 besides its chips: cartridge ROM in the
-    # expansion blocks, and the disk device 8 serves through the KERNAL
-    # traps.
+    # expansion blocks, the disk device 8 serves through the KERNAL traps,
+    # and a true 1541 on the serial bus.
     module Attachments
+      # The cycle by which a 1541 switched on with the machine has run its
+      # DOS's reset, the RAM test and the ROM checksum, and waits on the
+      # bus, with a margin: about 1.1 million of the VIC-20's cycles.
+      DRIVE_BOOT_CYCLES = 1_300_000
+
       # Where BASIC's program starts, from TXTTAB, which the KERNAL sets at
       # boot by the RAM it finds: $1001 unexpanded, $0401 with the 3K
       # expansion and $1201 with 8K or more in BLK1.
@@ -30,7 +35,7 @@ module Badline
         layout = KernalTrap::VIC20_LAYOUT
         load_trap = KernalTrap::Load.new(cpu:, bus:, layout:, drive: @drive)
         cpu.install_trap(layout.load) { load_trap.call }
-        @serial_trap = KernalTrap::Serial.new(cpu:, bus:, layout:, drive: @drive).install
+        @serial_trap = KernalTrap::Serial.new(cpu:, bus:, layout:, drive: @drive, device: serial_trap_device).install
         save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus:, layout:, drive: @drive)
         cpu.install_trap(layout.save) { save_trap.call }
       end
@@ -52,11 +57,46 @@ module Badline
       # Whether device 8 serves a disk or directory through the traps.
       def mounted? = !@drive.nil?
 
+      # Plugs in a Drive1541, which then runs alongside the VIC-20 on its own
+      # clock and talks to it over the serial bus. The serial traps stop
+      # answering the drive's device number, so the KERNAL's TALK, LISTEN
+      # and byte transfers reach the drive. The LOAD and SAVE traps stay,
+      # and still serve a mounted image.
+      #
+      # A drive that powers on with the machine takes longer to boot than
+      # the KERNAL, and doesn't answer the bus until it has, so the
+      # machine's on_init handlers wait for it too.
+      def attach_drive1541(drive)
+        @init_threshold = [@init_threshold, DRIVE_BOOT_CYCLES].max if @cycles < @init_threshold
+        @iec_bus.detach(@drive1541) if @drive1541
+        drive.host_clock_hz = timing.clock_hz
+        @drive1541 = drive
+        drive.connect(@iec_bus)
+        @serial_trap&.device = serial_trap_device
+      end
+
+      # Unplugs the Drive1541, leaving the serial bus with nothing on it.
+      def detach_drive1541
+        return unless @drive1541
+
+        @iec_bus.detach(@drive1541)
+        @drive1541 = nil
+        @serial_trap&.device = serial_trap_device
+      end
+
       # Records what the KERNAL prints through CHROUT (ChroutTrap).
       def capture_output
         @capture_output ||= ChroutTrap.new(cpu:, bus:, layout: KernalTrap::VIC20_LAYOUT).tap do |trap|
           cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
         end
+      end
+
+      private
+
+      # The device number the serial traps answer: device 8, unless a true
+      # drive is on the bus as device 8.
+      def serial_trap_device
+        @drive1541&.device == KernalTrap::Routine::DEVICE ? nil : KernalTrap::Routine::DEVICE
       end
     end
   end
