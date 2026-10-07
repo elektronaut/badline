@@ -14,7 +14,7 @@ permissions:
 env:
   # The Spinel commit the suites and the native badline build with. Bumping
   # it rebuilds the cached compiler. release.yml reads it from here.
-  SPINEL_REF: 1b299741327a9b7d73e5cd5ea1e24056d172f601
+  SPINEL_REF: 43a757ab7cf3497d64218be75641e6f571223529
 jobs:
   # A pull request that changes only docs, or only what release-please
   # bumps for a release, can't move a spec or a suite, so the jobs after
