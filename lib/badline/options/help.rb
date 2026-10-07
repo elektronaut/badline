@@ -38,7 +38,7 @@ module Badline
     def banner
       <<~BANNER
         Usage: #{@program} [c64] [options] [media]
-               #{@program} vic20 [options] [program]
+               #{@program} vic20 [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
