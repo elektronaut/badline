@@ -3,6 +3,8 @@
 
 # Badline
 
+![Cybernoid's loading picture, running in badline](doc/images/cybernoid.png)
+
 Badline is a Commodore 64 emulator written in Ruby. It emulates a PAL
 or NTSC machine one clock cycle at a time, stepping the 6510, the VIC-II, both
 CIAs and the SID together, so raster timing, bad lines and sprite DMA
