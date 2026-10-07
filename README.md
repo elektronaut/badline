@@ -12,8 +12,8 @@ are modelled at the cycle level.
 
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
-paddles and a 1351 mouse. See [What's emulated](#whats-emulated) for the
-details.
+paddles and a 1351 mouse. It also runs a PAL VIC-20, as
+`badline vic20`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -68,8 +68,8 @@ a cartridge starts itself. A mounted directory waits for you to `LOAD`
 from it.
 
 The first argument can name the machine, as in `badline c64 game.prg`.
-The C64 is the default, and so far the only one. `--model` picks which
-C64.
+The C64 is the default, and `--model` picks which C64. See
+[The VIC-20](#the-vic-20) for `badline vic20`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -83,6 +83,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
+| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572) or `sx64` (the portable SX-64, with its own KERNAL and no datasette). `--sid` or a `.sid` tune's own SID takes the model's place |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
@@ -139,6 +140,28 @@ an emulated 1541 there, running its own DOS at a real 1541's speed. Its
 red LED lights in the bottom right corner of the border.
 [doc/media.md](doc/media.md) has the details, and how to attach media
 from Ruby.
+
+## The VIC-20
+
+`badline vic20` runs a PAL VIC-20, and takes the same media as the C64
+apart from SID tunes:
+
+```sh
+badline vic20             # READY.
+badline vic20 game.prg    # Load and run a program
+badline vic20 game.d64    # Mount a disk image as device 8 and load it
+badline vic20 game.tap    # Insert a tape and load it
+badline vic20 game.crt    # Attach a cartridge
+```
+
+Without `--ram`, it picks the RAM expansion from where the program, or
+the first program on a disk, loads: a BASIC program gets the expansion
+its start of BASIC comes with, and more of BLK1 to BLK3 when it runs
+past `$3FFF`. A program that loads at `$A000` is a cartridge's ROM, and
+goes in as a `.crt` does. Disks go through the KERNAL traps or, with
+`--true-drive`, a 1541, as on the C64. `F11`, `F12` and the pause menu
+save and load the VIC-20 too, in badline's own snapshots: xvic's `.vsf`
+files don't load.
 
 ## Snapshots
 
@@ -267,6 +290,10 @@ program or `.sid` dropped on it opens the menu to ask first.
 - **REU**: the 1700, 1764 and 1750 and bigger units up to 16M
   (`--reu`), with DMA timed against the VIC's bad lines and sprites.
 - **Datasette**: `.tap` playback.
+- **VIC-20**: the 6502, the PAL 6561 VIC-I with its picture and sound,
+  both 6522 VIAs, the keyboard, the joystick and RESTORE, RAM
+  expansions up to 35K (`--ram`), cartridges, the datasette and the
+  serial bus to device 8 (`badline vic20`).
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
