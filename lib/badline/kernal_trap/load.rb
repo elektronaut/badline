@@ -3,11 +3,12 @@
 module Badline
   module KernalTrap
     # PC trap on the KERNAL serial LOAD routine (the default ILOAD vector
-    # target, $F4A5 on the C64). Reads device 8 requests from the virtual drive's
-    # channel 0, then hands over to the ROM's own tail so it prints
-    # SEARCHING FOR and LOADING (or VERIFYING) in direct mode, reports
-    # errors and returns with the routine's register/zeropage contract;
-    # other devices fall through to the ROM. So does a load that reaches
+    # target, $F4A5 on the C64, $F549 on the VIC-20). Reads device 8
+    # requests from the virtual drive's channel 0, then hands over to the
+    # ROM's own tail so it prints SEARCHING FOR and LOADING (or VERIFYING)
+    # in direct mode, reports errors and returns with the routine's
+    # register/zeropage contract; other devices fall through to the ROM.
+    # So does a load that reaches
     # below $0334, into the zero page, the stack or the KERNAL vectors: the
     # ROM's byte loop then loads it through the serial traps, and a loader
     # that overwrites ISTOP takes over mid-load as it does on a real drive.
@@ -100,7 +101,7 @@ module Badline
         payload = data[2..] || []
         payload = payload[0, 0x10000 - addr] if addr + payload.length > 0x10000
         if load?
-          @bus.ram.write(addr, payload)
+          @layout.store_file(@bus, addr, payload)
           @bus.poke(0x90, EOI)
         else
           verify(addr, payload)

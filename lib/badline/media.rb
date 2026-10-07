@@ -4,6 +4,8 @@ require "badline/media/true_drive"
 require "badline/media/queue"
 require "badline/media/disk_set"
 require "badline/media/disk_list"
+require "badline/media/vic20_cartridge"
+require "badline/media/vic20_media"
 
 module Badline
   module Media
@@ -30,25 +32,13 @@ module Badline
       # autostart then loads through it.
       #
       # An .m3u or .vfl list of disks attaches the first disk it lists
-      # (DiskList).
-      def attach(computer, path, autostart: true, subtune: nil, **options)
+      # (DiskList). A machine other than the C64 takes its own media
+      # (Vic20Media).
+      def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
-        if TrueDrive.takes?(computer, path)
-          attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
-        elsif File.directory?(path)
-          computer.mount(Storage::HostDirectory.new(path))
-          "Mounted #{path} as device 8"
-        elsif File.extname(path).downcase == ".crt"
-          attach_cartridge(computer, path, options.fetch(:cartridge, {}))
-        elsif File.extname(path).downcase == ".sid"
-          attach_sid(computer, path, autostart:, subtune:)
-        elsif File.extname(path).downcase == ".tap"
-          attach_tape(computer, path, autostart:)
-        elsif MOUNT_TYPES.key?(File.extname(path).downcase)
-          attach_storage(computer, path, options.fetch(:disk, {}), autostart:)
-        else
-          attach_prg(computer, path, autostart:)
-        end
+        return Vic20Media.attach(computer, path, autostart:, **) unless computer.is_a?(Computer)
+
+        attach_c64(computer, path, autostart:, subtune:, **)
       end
 
       # Swaps the disk in device 8 for a disk image or a host directory,
@@ -69,6 +59,10 @@ module Badline
         "Inserted #{path} in device 8"
       end
 
+      # The RAM expansion a VIC-20 for `path` should be built with
+      # (Vic20Media.ram_for), a key of Vic20::Bus::RAM_CONFIGURATIONS.
+      def vic20_ram_for(path) = Vic20Media.ram_for(path)
+
       # The SID a machine for `path` should be built with. A .sid tune names
       # its own; everything else gets `otherwise`.
       def sid_model(path, otherwise: :mos6581)
@@ -78,6 +72,25 @@ module Badline
       end
 
       private
+
+      def attach_c64(computer, path, autostart:, subtune:, **options)
+        if TrueDrive.takes?(computer, path)
+          attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
+        elsif File.directory?(path)
+          computer.mount(Storage::HostDirectory.new(path))
+          "Mounted #{path} as device 8"
+        elsif File.extname(path).downcase == ".crt"
+          attach_cartridge(computer, path, options.fetch(:cartridge, {}))
+        elsif File.extname(path).downcase == ".sid"
+          attach_sid(computer, path, autostart:, subtune:)
+        elsif File.extname(path).downcase == ".tap"
+          attach_tape(computer, path, autostart:)
+        elsif MOUNT_TYPES.key?(File.extname(path).downcase)
+          attach_storage(computer, path, options.fetch(:disk, {}), autostart:)
+        else
+          attach_prg(computer, path, autostart:)
+        end
+      end
 
       def disk?(path)
         storage = MOUNT_TYPES[File.extname(path).downcase]

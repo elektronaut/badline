@@ -3,12 +3,13 @@
 module Badline
   module KernalTrap
     # PC trap on the KERNAL serial SAVE routine (the default ISAVE vector
-    # target, $F5ED on the C64). Hands device 8 saves to the virtual drive as a PRG
-    # (load address followed by the memory range); other devices fall
-    # through to the ROM, and so do saves to a disk that doesn't take them
-    # whole. The ROM prints SAVING in direct mode and returns
-    # into the trap, which then writes the file and leaves through the
-    # ROM's own tail with the registers its UNLISTEN and return leave. A
+    # target, $F5ED on the C64, $F685 on the VIC-20). Hands device 8 saves
+    # to the virtual drive as a PRG (load address followed by the memory
+    # range); other devices fall through to the ROM, and so do saves to a
+    # disk that doesn't take them whole. The ROM prints SAVING in direct
+    # mode and returns into the trap, which then writes the file and leaves
+    # through the ROM's own tail with the registers its UNLISTEN and return
+    # leave. A
     # write that fails, to a full disk, a name already on it or a host file
     # that can't be written, ends the way a 1541 ends a SAVE it can't
     # write: the drive stops listening, so ST reads DEVICE NOT PRESENT,
