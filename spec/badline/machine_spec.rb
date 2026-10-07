@@ -29,7 +29,20 @@ describe Badline::Machine do
     expect(described_class.build(:c64, model: "c64", reu: 512).reu).not_to be_nil
   end
 
+  it "builds a VIC-20 with the RAM expansion named" do
+    machine = described_class.build(:vic20, model: "pal", ram: :"16k")
+    expect([machine.class, machine.ram_configuration]).to eq([Badline::Vic20, :"16k"])
+  end
+
+  it "builds an unexpanded VIC-20 without RAM named" do
+    expect(described_class.build(:vic20, model: "pal").ram_configuration).to eq(:unexpanded)
+  end
+
+  it "refuses a VIC-20 model it can't build" do
+    expect { described_class.build(:vic20, model: "ntsc") }.to raise_error(ArgumentError, /ntsc/)
+  end
+
   it "refuses a family it can't build" do
-    expect { described_class.build(:vic20, model: "c64") }.to raise_error(ArgumentError, /vic20/)
+    expect { described_class.build(:pet, model: "c64") }.to raise_error(ArgumentError, /pet/)
   end
 end

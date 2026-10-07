@@ -124,4 +124,19 @@ describe Badline::Frontend::MenuMedia do
     File.write(File.join(dir, "bad.crt"), "junk")
     expect(media.start(Badline::Options.parse([]), File.join(dir, "bad.crt"))).to be_nil
   end
+
+  describe "on a VIC-20" do
+    let(:computer) { Badline::Vic20.new }
+
+    it "mounts a disk on device 8" do
+      media.insert(:disk, first)
+      expect(computer.mounted?).to be(true)
+    end
+
+    it "puts a tape in the datasette" do
+      File.binwrite(File.join(dir, "game.tap"), "C64-TAPE-RAW".b + [1, 0, 0, 0, 1].pack("C4V") + "\x30".b)
+      media.insert(:tape, File.join(dir, "game.tap"))
+      expect(computer.datasette.tape).not_to be_nil
+    end
+  end
 end

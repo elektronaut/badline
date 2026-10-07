@@ -25,11 +25,10 @@ module Badline
       DIM = 0x6b7489
       FILL = 0x343c50
 
-      LEFT = 16
-      TOP = 16
-      WIDTH = Screen::WIDTH - 32
-      HEIGHT = Screen::HEIGHT - 32
-      BODY = 154
+      MARGIN = 16
+      WIDTH = 352
+      HEIGHT = 240
+      BODY = 138
 
       ESCAPE = 41
       RETURN = 40
@@ -48,6 +47,8 @@ module Badline
         @dialogs = MenuDialogs.new(painter, @buttons, @pages.media, options, snapshots)
         @open = false
         @section = 0
+        @left = MARGIN
+        @top = MARGIN
       end
 
       # The path of the disk the command line puts in device 8, a list's
@@ -134,21 +135,27 @@ module Badline
         action
       end
 
+      # Centres the menu on a screen `width` by `height`.
+      def center(width, height)
+        @left = (width - WIDTH) / 2
+        @top = (height - HEIGHT) / 2
+      end
+
       def draw
         painter = @painter
         @buttons.forget
-        painter.box(LEFT, TOP, WIDTH, HEIGHT, PANEL)
-        painter.box(LEFT, TOP + 24, WIDTH, 1, EDGE)
-        painter.text(LEFT + 8, TOP + 9, "PAUSED", BRIGHT)
+        painter.box(@left, @top, WIDTH, HEIGHT, PANEL)
+        painter.box(@left, @top + 24, WIDTH, 1, EDGE)
+        painter.text(@left + 8, @top + 9, "PAUSED", BRIGHT)
         resume = "RESUME"
-        @buttons.plain(LEFT + WIDTH - 8 - Painter.width(resume) - (Buttons::PAD * 2), TOP + 7, resume, :resume)
-        return @dialogs.draw(LEFT + 8, TOP + 34, WIDTH - 16) if @dialogs.open?
+        @buttons.plain(@left + WIDTH - 8 - Painter.width(resume) - (Buttons::PAD * 2), @top + 7, resume, :resume)
+        return @dialogs.draw(@left + 8, @top + 34, WIDTH - 16) if @dialogs.open?
 
-        painter.box(BODY - 8, TOP + 32, 1, HEIGHT - 56, EDGE)
+        painter.box(@left + BODY - 8, @top + 32, 1, HEIGHT - 56, EDGE)
         draw_sections
-        @buttons.plain(LEFT + 6, TOP + HEIGHT - 28, "QUICK OPEN...", :quick_open)
-        painter.text(LEFT + 8, TOP + HEIGHT - 12, "F9/ESC: RESUME", DIM)
-        @pages.draw(PAGES[@section], BODY, TOP + 34)
+        @buttons.plain(@left + 6, @top + HEIGHT - 28, "QUICK OPEN...", :quick_open)
+        painter.text(@left + 8, @top + HEIGHT - 12, "F9/ESC: RESUME", DIM)
+        @pages.draw(PAGES[@section], @left + BODY, @top + 34)
       end
 
       private
@@ -253,9 +260,9 @@ module Badline
       end
 
       def draw_sections
-        top = TOP + 32
+        top = @top + 32
         SECTIONS.each_with_index do |name, index|
-          @buttons.plain(LEFT + 6, top, name.ljust(14), PAGES[index], on: index == @section)
+          @buttons.plain(@left + 6, top, name.ljust(14), PAGES[index], on: index == @section)
           top += Buttons::HEIGHT + 2
         end
       end

@@ -181,9 +181,21 @@ describe Badline::Vic20 do
     expect(machine.video).to be(machine.vic)
   end
 
-  it "shows xvic's view of the PAL frame, from line 28 on" do
+  it "is the VIC-20 family, unexpanded by default" do
+    expect([machine.family, machine.ram_configuration]).to eq(%i[vic20 unexpanded])
+  end
+
+  it "has one joystick, which both of the front end's drive" do
+    expect(machine.joystick2).to be(machine.joystick1)
+  end
+
+  it "has no pot ports or 1541 yet" do
+    expect([machine.control_ports, machine.drive1541]).to eq([nil, nil])
+  end
+
+  it "shows xvic's view of the PAL frame, from line 28 on, each pixel two wide" do
     expect(machine.timing.to_h).to eq(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312,
-                                      crop: [0, 28, 284, 284])
+                                      crop: [0, 28, 284, 284], pixel_width: 2)
   end
 
   describe "#reset!" do

@@ -4,11 +4,11 @@ module Badline
   module Frontend
     # Routes host input to the machine. Two settings decide where it goes:
     #
-    # - The keys: every host key goes to the C64 keyboard, or, as Tab
+    # - The keys: every host key goes to the machine's keyboard, or, as Tab
     #   switches, the arrow cluster and space drive one joystick and WASD
     #   and left shift the other. The arrows start on joystick 2, and
-    #   #swap_ports swaps them.
-    # - A pot device the pause menu plugs into a control port: a 1351
+    #   #swap_ports swaps them. The VIC-20's one joystick takes both.
+    # - A pot device the pause menu plugs into a C64 control port: a 1351
     #   mouse or a pair of paddles, which the host mouse drives. Motion
     #   turns the paddles or moves the mouse, and the host's left and right
     #   buttons go to whichever lines the device puts them on.
@@ -65,7 +65,7 @@ module Badline
       # The title bar's tag for the settings, empty for the keyboard alone.
       def tag
         tags = []
-        tags << "JOY #{@arrows_port}" if @joystick
+        tags << (@computer.family == :vic20 ? "JOY" : "JOY #{@arrows_port}") if @joystick
         tags << TAGS[POTS.index(@pot)] if pot_device?
         tags.join(", ")
       end
@@ -105,7 +105,7 @@ module Badline
       # RESTORE isn't in the key matrix, so it goes to the machine instead.
       def c64_key(key, down)
         if key == :restore
-          @computer.press_restore if down
+          down ? @computer.press_restore : @computer.release_restore
         else
           down ? @computer.keyboard.press(key) : @computer.keyboard.release(key)
         end
@@ -113,9 +113,15 @@ module Badline
 
       def paddles? = POTS.index(@pot) >= 3
 
-      # A fresh pot device on its port, and none on the other.
+      # A fresh pot device on its port, and none on the other. A machine
+      # without the ports takes none.
       def attach_pot_device
         ports = @computer.control_ports
+        if ports.nil?
+          @pot = :none
+          return
+        end
+
         ports.device1 = nil
         ports.device2 = nil
         return unless pot_device?

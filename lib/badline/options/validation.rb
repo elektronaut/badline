@@ -15,6 +15,12 @@ module Badline
         SID_MODELS[value]
       end
 
+      def ram_configuration(value)
+        raise Error, "invalid argument: --ram #{value}" unless RAM_CONFIGURATIONS.key?(value)
+
+        RAM_CONFIGURATIONS[value]
+      end
+
       def reu_size(value)
         raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
 
@@ -53,7 +59,22 @@ module Badline
       end
 
       def validate_family
-        raise Error, "the VIC-20 isn't emulated yet" if @family == :vic20
+        if @family == :vic20
+          validate_vic20
+        elsif !@ram.nil?
+          raise Error, "--ram needs vic20"
+        end
+      end
+
+      # The VIC-20 is a PAL one, in the window, without the C64's SID and
+      # REU.
+      def validate_vic20
+        raise Error, "the NTSC VIC-20 isn't emulated yet" if @models.include?("ntsc")
+
+        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the VIC-20 needs the window" if headless?
+        raise Error, "the VIC-20 can't save snapshots yet" unless @save_snapshot.empty?
       end
 
       # `sid` takes directories as well as tunes.
@@ -67,7 +88,8 @@ module Badline
       # --model and --ntsc may be given more than once, but only for one
       # model.
       def validate_models
-        unknown = @models.find { |name| !MODELS.include?(name) }
+        names = @family == :vic20 ? VIC20_MODELS : MODELS
+        unknown = @models.find { |name| !names.include?(name) }
         raise Error, "invalid argument: --model #{unknown}" unless unknown.nil?
         raise Error, "conflicting models: #{@models.uniq.join(' and ')}" unless @models.uniq.size <= 1
       end

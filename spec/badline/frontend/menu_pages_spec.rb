@@ -51,4 +51,38 @@ describe Badline::Frontend::MenuPages do
     pages.perform(:tape_down)
     expect(computer.datasette.playing?).to be(true)
   end
+
+  describe "with a VIC-20" do
+    subject(:pages) do
+      options = Badline::Options.parse(["vic20"])
+      described_class.new(painter, buttons, "", options, Badline::Frontend::Snapshots.new(computer, options))
+    end
+
+    let(:computer) { Badline::Vic20.new(ram: :"8k") }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+    let(:sound) { instance_double(Badline::Frontend::Sound, on?: true, muted?: false) }
+
+    before { pages.machine(computer, Badline::Frontend::Controls.new(computer), sound) }
+
+    it "leaves the SID's model out of the sound" do
+      pages.draw(:sound, 0, 0)
+      expect(buttons).to have_received(:toggle).once
+    end
+
+    it "shows the RAM expansion on the expansion port" do
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "8K", anything)
+    end
+
+    it "names its keyboard on the keys' toggle" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[VIC-20 JOYSTICK], anything, 0])
+    end
+
+    it "has no snapshot rows yet" do
+      pages.draw(:snapshots, 0, 0)
+      expect(buttons).not_to have_received(:row)
+    end
+  end
 end

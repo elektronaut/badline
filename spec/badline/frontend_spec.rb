@@ -71,6 +71,31 @@ describe Badline::Frontend do
       expect(built("--model", "c64c", "--sid", "6581")).to eq(%i[mos8565 mos6526a mos6581 pal])
     end
 
+    it "is a VIC-20 with the RAM --ram names with vic20" do
+      computer = machine("vic20", "--ram", "24k")
+      expect([computer.family, computer.ram_configuration]).to eq(%i[vic20 24k])
+    end
+
+    it "is an unexpanded VIC-20 for a program at $1001, which it says" do
+      File.binwrite("game.prg", "\x01\x10\x00\x00\x00")
+      expect { machine("vic20", "game.prg") }.to output(/RAM expansion: unexpanded/).to_stdout
+    end
+
+    it "is a VIC-20 with the RAM a program at $1201 needs" do
+      File.binwrite("game.prg", "\x01\x12\x00\x00\x00")
+      allow($stdout).to receive(:write)
+      expect(machine("vic20", "game.prg").ram_configuration).to eq(:"8k")
+    end
+
+    it "keeps --ram over what the program needs" do
+      File.binwrite("game.prg", "\x01\x12\x00\x00\x00")
+      expect(machine("vic20", "--ram", "3k", "game.prg").ram_configuration).to eq(:"3k")
+    end
+
+    it "plugs a true 1541 into a VIC-20 with --true-drive" do
+      expect(machine("vic20", "--true-drive").drive1541).not_to be_nil
+    end
+
     it "is an SX-64 with its KERNAL and no datasette with --model sx64" do
       computer = machine("--model", "sx64")
       expect([computer.address_bus.kernal, computer.datasette.connected?]).to eq([:sx64, false])
@@ -80,5 +105,10 @@ describe Badline::Frontend do
   it "warns that an SX-64 takes no tape and returns 1" do
     File.binwrite("game.tap", "C64-TAPE-RAW".b + [1, 0, 0, 0, 1].pack("C4V") + "\x30".b)
     expect { run("--model", "sx64", "game.tap") }.to output(/game.tap: this machine has no datasette/).to_stderr
+  end
+
+  it "warns that a VIC-20 takes no .sid tune and returns 1" do
+    File.binwrite("tune.sid", "PSID")
+    expect { run("vic20", "tune.sid") }.to output(/tune.sid: doesn't go in a VIC-20/).to_stderr
   end
 end

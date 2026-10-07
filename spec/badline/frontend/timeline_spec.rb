@@ -96,6 +96,12 @@ describe Badline::Frontend::Timeline do
       run_to(1)
       expect(computer).to have_received(:press_restore)
     end
+
+    it "is let go five frames later" do
+      allow(computer).to receive(:release_restore)
+      run_to(6)
+      expect(computer).to have_received(:release_restore)
+    end
   end
 
   describe "typing" do

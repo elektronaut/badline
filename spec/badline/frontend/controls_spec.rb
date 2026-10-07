@@ -147,6 +147,38 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a VIC-20" do
+    let(:computer) { Badline::Vic20.new }
+
+    it "drives its one joystick with the arrows" do
+      controls.toggle_keys
+      controls.key(82, true)
+      expect(computer.joystick1.port_bits & 0x1f).to eq(0b11110)
+    end
+
+    it "drives its one joystick with WASD too" do
+      controls.toggle_keys
+      controls.key(7, true)
+      expect(computer.joystick1.port_bits & 0x1f).to eq(0b10111)
+    end
+
+    it "names the joystick without a port" do
+      controls.toggle_keys
+      expect(controls.tag).to eq("JOY")
+    end
+
+    it "lets go of RESTORE as the key comes up" do
+      allow(computer).to receive(:release_restore)
+      controls.key(75, false)
+      expect(computer).to have_received(:release_restore)
+    end
+
+    it "plugs no pot device in" do
+      controls.plug(:mouse1)
+      expect([controls.pot, controls.pot_device?]).to eq([:none, false])
+    end
+  end
+
   describe "#computer=" do
     let(:other) { Badline::Computer.new }
 
@@ -154,6 +186,12 @@ describe Badline::Frontend::Controls do
       controls.plug(:paddles2)
       controls.computer = other
       expect(other.control_ports.device2.class).to eq(Badline::Input::Paddles)
+    end
+
+    it "takes the pot device out for a VIC-20" do
+      controls.plug(:paddles2)
+      controls.computer = Badline::Vic20.new
+      expect(controls.pot).to eq(:none)
     end
 
     it "sends the keys to the other machine" do

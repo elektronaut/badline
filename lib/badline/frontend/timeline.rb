@@ -98,7 +98,7 @@ module Badline
         name = event.argument
         if name == "restore"
           computer.press_restore
-          return
+          return hold(event)
         end
 
         direction = Timeline.joystick_direction(name)
@@ -110,7 +110,10 @@ module Badline
         hold(event)
       end
 
+      # The VIC-20 has no cartridge with a button yet.
       def freeze(computer, event)
+        return if computer.family == :vic20
+
         computer.press_cartridge_button
         hold(event)
       end
@@ -123,6 +126,8 @@ module Badline
         return computer.release_cartridge_button if event.action == "freeze"
 
         name = event.argument
+        return computer.release_restore if name == "restore"
+
         direction = Timeline.joystick_direction(name)
         if direction.nil?
           computer.keyboard.release(Timeline.keyboard_key(name))
@@ -141,7 +146,7 @@ module Badline
       end
 
       def eject(computer, what)
-        return puts "No #{what} to eject" unless inserted?(computer, what)
+        return puts "No #{what} to eject" unless ejectable?(computer, what)
 
         if what == "disk"
           eject_disk(computer)
@@ -153,6 +158,9 @@ module Badline
         end
         puts "Ejected the #{what}"
       end
+
+      # Whether there's one in to eject. A VIC-20 has no cartridge to take out yet.
+      def ejectable?(computer, what) = (computer.family == :c64 || what != "cartridge") && inserted?(computer, what)
 
       def inserted?(computer, what)
         return !computer.datasette.tape.nil? if what == "tape"

@@ -39,6 +39,13 @@ module Badline
 
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
 
+    # The VIC-20's RAM expansions as --ram names them (RAM_NAMES), and the
+    # names Vic20::Bus::RAM_CONFIGURATIONS gives them.
+    RAM_CONFIGURATIONS = {
+      "unexpanded" => :unexpanded, "3k" => :"3k", "8k" => :"8k", "16k" => :"16k", "24k" => :"24k",
+      "32k" => :"32k", "all" => :all
+    }.freeze
+
     # A Float as OptionParser took one: digits with an optional sign,
     # fraction and exponent.
     DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
@@ -50,6 +57,10 @@ module Badline
 
     # The machine family to build (Badline::Machine), :c64 or :vic20.
     attr_reader :family
+
+    # The VIC-20's RAM expansion --ram names, a key of
+    # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
+    attr_reader :ram
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
@@ -67,6 +78,7 @@ module Badline
       @sid_model = nil
       @models = []
       @reu = nil
+      @ram = nil
       @autostart = true
       @writable = false
       @sound = native
@@ -155,9 +167,9 @@ module Badline
 
     def jit? = @jit
 
-    # The name of the C64 to build (Badline::Model). --ntsc is short for
-    # --model ntsc.
-    def model = @models.empty? ? MODELS.first : @models.first
+    # The name of the model to build: a C64 Badline::Model names, or a
+    # VIC-20 of VIC20_MODELS. --ntsc is short for --model ntsc.
+    def model = @models.first || (@family == :vic20 ? VIC20_MODELS.first : MODELS.first)
 
     def help? = @help
 
@@ -185,7 +197,7 @@ module Badline
     # A .sid on its own plays in the SID player, as `sid` would, unless an
     # option of the emulator's window asks for the machine.
     def play_lone_tune
-      return if @sid_command || headless? || !@window_only.empty? || @media_path.nil?
+      return if @sid_command || @family == :vic20 || headless? || !@window_only.empty? || @media_path.nil?
 
       @sid_command = File.extname(@media_path).casecmp?(".sid")
     end
@@ -238,6 +250,7 @@ module Badline
       when "--sid" then @sid_model = sid_model_for(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
+      when "--ram" then @ram = ram_configuration(value)
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value
       when "--save-snapshot" then @save_snapshot = value

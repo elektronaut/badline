@@ -7,6 +7,14 @@ module Badline
     # The names Badline::Model builds, in the order the help lists them.
     MODELS = %w[c64 c64c ntsc newntsc oldntsc drean sx64].freeze
 
+    # The VIC-20's models, as xvic names its video standards. Only PAL is
+    # emulated.
+    VIC20_MODELS = %w[pal ntsc].freeze
+
+    # The VIC-20 RAM expansions --ram takes, in the order the help lists
+    # them.
+    RAM_NAMES = %w[unexpanded 3k 8k 16k 24k 32k all].freeze
+
     SECTIONS = ["Options", "Window options", "Options without the window", "Testing options"].freeze
 
     # Every option of both builds, in the order the help lists them.
@@ -28,9 +36,11 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),
-      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first})",
+      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
+      Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded)",
+                 section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",
                  section: "Window options", needs: :window),
       Option.new("--verbose", "Print the display, sound and gamepad setup and the frame timing",

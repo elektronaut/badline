@@ -369,8 +369,52 @@ describe Badline::Options do
     context "with vic20" do
       let(:argv) { ["vic20", program_path] }
 
-      it "is rejected" do
-        expect { options }.to raise_error(described_class::Error, "the VIC-20 isn't emulated yet")
+      it "runs a PAL VIC-20 on the program given, with the RAM left to it" do
+        expect([options.family, options.model, options.ram, options.media_path])
+          .to eq([:vic20, "pal", nil, program_path])
+      end
+    end
+
+    context "with vic20 and --ram" do
+      let(:argv) { %w[vic20 --ram 8k] }
+
+      it "takes the RAM expansion named" do
+        expect(options.ram).to eq(:"8k")
+      end
+    end
+
+    {
+      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20"],
+      "an unknown RAM expansion" => [%w[vic20 --ram 4k], "invalid argument: --ram 4k"],
+      "an NTSC VIC-20" => [%w[vic20 --ntsc], "the NTSC VIC-20 isn't emulated yet"],
+      "an NTSC VIC-20 by name" => [%w[vic20 --model ntsc], "the NTSC VIC-20 isn't emulated yet"],
+      "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
+      "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
+      "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
+      "a VIC-20 snapshot" => [%w[vic20 --frames 1 --save-snapshot x.vsf], "the VIC-20 can't save snapshots yet"]
+    }.each do |name, (args, message)|
+      context "with #{name}" do
+        let(:argv) { args }
+
+        it "raises" do
+          expect { options }.to raise_error(described_class::Error, message)
+        end
+      end
+    end
+
+    context "with a .sid tune for the VIC-20" do
+      let(:argv) { ["vic20", tune_path] }
+
+      it "takes it for the window, not the SID player" do
+        expect([options.sid_command?, options.window?]).to eq([false, true])
+      end
+    end
+
+    context "with vic20 and --headless" do
+      let(:argv) { ["vic20", "--headless", tune_path] }
+
+      it "raises" do
+        expect { options }.to raise_error(described_class::Error, "the VIC-20 needs the window")
       end
     end
 
@@ -388,7 +432,7 @@ describe Badline::Options do
       it "lists the subcommands" do
         expect(options.help.lines).to include(
           "    c64                              Run a C64, the one --model names (the default)\n",
-          "    vic20                            Run a VIC-20 (not emulated yet)\n",
+          "    vic20                            Run a PAL VIC-20, with the RAM --ram names\n",
           "    sid                              Play .sid tunes and directories of them\n"
         )
       end

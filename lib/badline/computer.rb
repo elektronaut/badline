@@ -12,6 +12,8 @@ module Badline
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 
+    def family = :c64
+
     def region = address_bus.region
 
     def vic = address_bus.vic
@@ -118,11 +120,12 @@ module Badline
       INIT_THRESHOLD
     end
 
-    # The clock, the raster and the crop of the machine's region.
+    # The clock, the raster and the crop of the machine's region, a pixel
+    # to a window pixel.
     def timing
       region = address_bus.region
       Timing.new(clock_hz: region.clock_hz, cycles_per_line: region.cycles_per_line,
-                 lines_per_frame: region.lines_per_frame, crop: region.crop)
+                 lines_per_frame: region.lines_per_frame, crop: region.crop, pixel_width: 1)
     end
 
     # The chip whose #display a front end shows.
@@ -191,6 +194,9 @@ module Badline
     def press_restore
       @restore_pulse = true
     end
+
+    # The one-shot has pulsed already, so letting go does nothing.
+    def release_restore; end
 
     def capture_output
       @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus, layout: KernalTrap::C64_LAYOUT).tap do |trap|

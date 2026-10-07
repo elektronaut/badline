@@ -15,10 +15,10 @@ module Badline
   # $9120, pulls IRQ. Nothing else interrupts the CPU, and nothing halts
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
-  # So far it runs headless, with the VIC's picture and sound. The
-  # keyboard, the joystick and RESTORE reach the VIAs, the datasette and
-  # the serial bus hang off them (PortWiring), and device 8 serves disks
-  # through the KERNAL traps or a true 1541.
+  # It runs in the window, as `badline vic20`, with the VIC's picture and
+  # sound. The keyboard, the joystick and RESTORE reach the VIAs, the
+  # datasette and the serial bus hang off them (PortWiring), and device 8
+  # serves disks through the KERNAL traps or a true 1541.
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
@@ -28,10 +28,23 @@ module Badline
     attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound,
                 :drive1541, :iec_bus, :datasette
 
+    # The RAM expansion it was built with, a key of Bus::RAM_CONFIGURATIONS.
+    attr_reader :ram_configuration
+
     def ram = @bus.ram
+
+    def family = :vic20
+
+    # The one control port's joystick, which the front end's second
+    # joystick drives too.
+    def joystick2 = @joystick1
+
+    # No pot device plugs in yet.
+    def control_ports = nil
 
     # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS.
     def initialize(ram: :unexpanded, debug: false)
+      @ram_configuration = ram
       @vic = VIC.new
       @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
       @joystick1 = Joystick.new
@@ -113,13 +126,16 @@ module Badline
 
     # The PAL clock and raster, and the part of the display xvic shows: all
     # 284 pixels of a line, from line 28, below the VIC's vertical blank.
+    # The VIC draws 4 pixels a cycle, half as many as the C64's VIC-II on
+    # about the same clock, so each pixel shows two window pixels wide, as
+    # xvic draws them.
     def timing
       profile = @vic.profile
       width = profile.cycles_per_line * VIC::PIXELS_PER_CYCLE
       blanked = profile.blanked_lines
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
                  lines_per_frame: profile.lines_per_frame,
-                 crop: [0, blanked, width, profile.lines_per_frame - blanked])
+                 crop: [0, blanked, width, profile.lines_per_frame - blanked], pixel_width: 2)
     end
 
     # The RESTORE key pulls VIA 1's CA1 low while it is held. The KERNAL
