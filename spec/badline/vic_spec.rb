@@ -15,6 +15,68 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  describe "the VIC-IIe registers" do
+    %i[mos8566 mos8564].each do |model|
+      context "with an #{model.to_s.delete_prefix('mos')}" do
+        let(:vic) { described_class.new(model:) }
+
+        before do
+          vic.poke(0xd02f, 0x05)
+          vic.poke(0xd030, 0x03)
+        end
+
+        it "reads $D02F as K0-K2 with bits 3-7 set" do
+          expect(vic.peek(0xd02f)).to eq(0xfd)
+        end
+
+        it "reads $D030 as FAST and TEST with bits 2-7 set" do
+          expect(vic.peek(0xd030)).to eq(0xff)
+        end
+
+        it "reads $D031-$D03F as $FF" do
+          expect((0xd031..0xd03f).map { |addr| vic.peek(addr) }).to all(eq(0xff))
+        end
+
+        it "gives the extra keyboard lines" do
+          expect(vic.extra_keyboard_lines).to eq(0x05)
+        end
+
+        it "gives FAST and TEST" do
+          expect([vic.fast?, vic.test?]).to eq([true, true])
+        end
+      end
+    end
+
+    context "with FAST alone written to $D030" do
+      let(:vic) { described_class.new(model: :mos8566) }
+
+      before { vic.poke(0xd030, 0xfd) }
+
+      it "is fast without TEST" do
+        expect([vic.peek(0xd030), vic.fast?, vic.test?]).to eq([0xfd, true, false])
+      end
+    end
+
+    %i[mos6569 mos8565].each do |model|
+      context "with an #{model.to_s.delete_prefix('mos')}" do
+        let(:vic) { described_class.new(model:) }
+
+        before do
+          vic.poke(0xd02f, 0x05)
+          vic.poke(0xd030, 0x03)
+        end
+
+        it "reads $D02F-$D03F as $FF" do
+          expect((0xd02f..0xd03f).map { |addr| vic.peek(addr) }).to all(eq(0xff))
+        end
+
+        it "drives no extra keyboard lines and stays at 1 MHz" do
+          expect([vic.extra_keyboard_lines, vic.fast?, vic.test?]).to eq([0x07, false, false])
+        end
+      end
+    end
+  end
+
   describe "the region" do
     it "is PAL unless given" do
       expect([vic.region, vic.width, vic.height]).to eq([Badline::Region::PAL, 504, 312])
@@ -502,6 +564,17 @@ RSpec.describe Badline::VIC do
       # Pinned by rmwtest and vicii_reg_timing: a write that leaves a color
       # register as it was still shows its grey dot.
       it "shows a grey dot for a background write of the same color" do
+        run_to(30)
+        vic.poke(0xd021, 6)
+        finish_line
+        expect(vic.display[(line * vic.width) + 239, 3]).to eq([6, 0x0f, 6])
+      end
+    end
+
+    context "with an 8566" do
+      let(:vic) { described_class.new(model: :mos8566) }
+
+      it "shows the 8565's grey dot" do
         run_to(30)
         vic.poke(0xd021, 6)
         finish_line

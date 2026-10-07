@@ -11,8 +11,10 @@ module Badline
     include Addressable
     include IntegerHelper
 
-    # The 6569 of the breadbin C64, and the HMOS 8565 of the C64C.
-    MODELS = %i[mos6569 mos8565].freeze
+    # The 6569 of the breadbin C64, the HMOS 8565 of the C64C, and the
+    # C128's VIC-IIe, the 8566 (PAL) and 8564 (NTSC). The VIC-IIe draws as
+    # the 8565 and adds the $D02F and $D030 registers.
+    MODELS = %i[mos6569 mos8565 mos8566 mos8564].freeze
 
     # The sixteen colours #display's palette indices stand for, as RGB.
     PALETTE = [
@@ -89,12 +91,14 @@ module Badline
 
       addressable_at(0xd000, length: 2**10)
       @model = model
+      @iie = %i[mos8566 mos8564].include?(model)
+      @core = model == :mos6569 ? :mos6569 : :mos8565
       @region = region
-      @lightpen_extra = model == :mos8565 ? 1 : 2
-      @grey_dots = model == :mos8565
-      @delayed_fetch = model == :mos8565
-      @dma_delay_idle = model == :mos6569
-      @bank_swaps = model == :mos8565
+      @lightpen_extra = @core == :mos8565 ? 1 : 2
+      @grey_dots = @core == :mos8565
+      @delayed_fetch = @core == :mos8565
+      @dma_delay_idle = @core == :mos6569
+      @bank_swaps = @core == :mos8565
       @address_bus = address_bus || AddressBus.new
       @vic_bank = VIC::Bank.new(@address_bus)
       @debug = debug
@@ -122,12 +126,12 @@ module Badline
     # registers, the raster position and the fetch and sprite state it
     # starts with. The display keeps its buffers, cleared to black.
     def power_on!
-      @registers = VIC::Registers.new
+      @registers = VIC::Registers.new(iie: @iie)
       @register_bytes = @registers.bytes
       @display_state = VIC::DisplayState.new(@registers, @last_column)
-      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @model, region: @region)
+      @sequencer = VIC::Sequencer.new(@width, @registers, @vic_bank, model: @core, region: @region)
       @sequencer.render = @render
-      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @model, region: @region)
+      @sprites = VIC::Sprites.new(@registers, @vic_bank, @width, model: @core, region: @region)
       @display.fill(0)
       @lines.each { |line| line.fill(0) }
       @dirty_lines.fill(true)
@@ -229,6 +233,12 @@ module Badline
     def interrupted?
       @registers.irq_line?
     end
+
+    # The VIC-IIe's $D02F lines K0-K2 and $D030 bits, for the machine to
+    # read. The 6569 and 8565 give 7, false and false.
+    def extra_keyboard_lines = @registers.extra_keyboard_lines
+    def fast? = @registers.fast?
+    def test? = @registers.test?
 
     def peek(addr)
       i = offset_of(addr) % (2**6)
