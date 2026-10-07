@@ -121,8 +121,11 @@ module Badline
 
         def poke(addr, value)
           @vic.poke(addr, value) if addr < 0x9100
+          return unless addr.anybits?(0x30)
+
           @via1.poke(addr, value) if addr.anybits?(0x10)
           @via2.poke(addr, value) if addr.anybits?(0x20)
+          @bus.via_written
         end
       end
 
@@ -173,6 +176,7 @@ module Badline
         @write_pages = Array.new(256, @open_bus)
         @roms = []
         @debug_register = nil
+        @via_write_handler = nil
         self.blocks = blocks
       end
 
@@ -182,6 +186,16 @@ module Badline
       def map_rom(address, bytes)
         @roms << ROM.new(bytes, length: bytes.length, start: address)
         map_pages
+      end
+
+      # Calls the block after each write to a VIA, which may have moved the
+      # lines its ports drive.
+      def on_via_write(&handler)
+        @via_write_handler = handler
+      end
+
+      def via_written
+        @via_write_handler&.call
       end
 
       # Calls the block with each byte written to $910F (DebugRegister).

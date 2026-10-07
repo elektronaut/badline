@@ -4,6 +4,7 @@ require "badline/media/true_drive"
 require "badline/media/queue"
 require "badline/media/disk_set"
 require "badline/media/disk_list"
+require "badline/media/vic20_basic"
 require "badline/media/vic20_cartridge"
 require "badline/media/vic20_media"
 

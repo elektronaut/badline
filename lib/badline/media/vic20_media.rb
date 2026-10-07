@@ -7,29 +7,33 @@ module Badline
     # RUNs. A program that loads into BLK5 at $A000 is a cartridge's ROM
     # instead, as are the parts of a set that includes one
     # (Vic20Cartridge), and goes in with a power cycle, as a .crt does.
-    # Disks mount on device 8 through the KERNAL traps.
+    # Disks mount on device 8 through the KERNAL traps, or go in a true
+    # 1541 (TrueDrive), and tapes play on the datasette.
     module Vic20Media
-      # Where BASIC starts with each RAM expansion it can start in, as
-      # TXTTAB holds it.
-      BASIC_STARTS = { 0x1001 => :unexpanded, 0x0401 => :"3k", 0x1201 => :"8k" }.freeze
-
       # The expansions that fill BLK1, BLK2 and BLK3 one block after
       # another, each with the last address it fills.
       BLOCK_EXPANSIONS = [[0x3fff, :"8k"], [0x5fff, :"16k"], [0x7fff, :"24k"]].freeze
 
-      # What a VIC-20 doesn't take yet.
-      UNSUPPORTED = %w[.sid .tap .g64].freeze
+      # What a VIC-20 doesn't take.
+      UNSUPPORTED = %w[.sid].freeze
+
+      # The platform byte of a VIC-20 tape (Storage::TAP#platform).
+      TAPE_PLATFORM = 1
 
       class << self
         def attach(machine, path, autostart:, **options)
           extension = File.extname(path).downcase
-          raise ArgumentError, "#{path} doesn't go in a VIC-20 yet" if UNSUPPORTED.include?(extension)
+          raise ArgumentError, "#{path} doesn't go in a VIC-20" if UNSUPPORTED.include?(extension)
 
-          if File.directory?(path)
+          if TrueDrive.takes?(machine, path)
+            attach_true_drive(machine, path, options.fetch(:disk, {}), autostart:)
+          elsif File.directory?(path)
             machine.mount(Storage::HostDirectory.new(path))
             "Mounted #{path} as device 8"
           elsif extension == ".crt"
             attach_cartridge(machine, path, Storage::CRTFile.new(path, machine: :vic20).chips)
+          elsif extension == ".tap"
+            attach_tape(machine, path, autostart:)
           elsif MOUNT_TYPES.key?(extension)
             attach_storage(machine, path, options.fetch(:disk, {}), autostart:)
           else
@@ -52,7 +56,7 @@ module Badline
           if load_addr == 0x1201 || load_addr.between?(0x2000, 0x7fff)
             expansion_reaching(load_addr + data.length - 3)
           else
-            BASIC_STARTS.fetch(load_addr, :unexpanded)
+            Vic20Basic::BASIC_STARTS.fetch(load_addr, :unexpanded)
           end
         end
 
@@ -67,7 +71,7 @@ module Badline
           extension = File.extname(path).downcase
           if File.directory?(path) || MOUNT_TYPES.key?(extension)
             open_storage(path).read_file("*")
-          elsif File.file?(path) && !UNSUPPORTED.include?(extension) && extension != ".crt"
+          elsif File.file?(path) && !%w[.sid .crt .tap .g64].include?(extension)
             Vic20Cartridge.program_bytes(path)
           end
         end
@@ -84,6 +88,22 @@ module Badline
           "Attached cartridge #{path}"
         end
 
+        # A tape made for another machine plays all the same, and says so.
+        def attach_tape(machine, path, autostart:)
+          tape = Storage::TAP.new(path)
+          machine.datasette.insert(tape)
+          machine.datasette.play!
+          machine.type_text(TAPE_AUTOSTART) if autostart
+          message = "Inserted #{path} in the datasette"
+          tape.platform == TAPE_PLATFORM ? message : "#{message}, a tape for another machine than the VIC-20"
+        end
+
+        def attach_true_drive(machine, path, disk, autostart:)
+          message = TrueDrive.insert(machine, path, read_only: disk.fetch(:read_only, false))
+          machine.type_text(disk_autostart(first_program(path))) if autostart
+          message
+        end
+
         def attach_storage(machine, path, disk, autostart:)
           storage = open_storage(path, disk)
           machine.mount(storage)
@@ -94,7 +114,7 @@ module Badline
         # A BASIC program loads relocated to the start of BASIC, and anything
         # else where it says.
         def disk_autostart(data)
-          basic = data && data.length > 2 && BASIC_STARTS.key?(data[0] | (data[1] << 8))
+          basic = data && data.length > 2 && Vic20Basic::BASIC_STARTS.key?(data[0] | (data[1] << 8))
           basic ? %(lO"*",8\rrun\r) : AUTOSTART
         end
 
@@ -103,46 +123,8 @@ module Badline
           chips = Vic20Cartridge.chips(path, bytes)
           return attach_cartridge(machine, path, chips) if chips
 
-          machine.on_init { start_prg(machine, bytes, autostart:) }
+          machine.on_init { Vic20Basic.load_program(machine, bytes, autostart:) }
           "Loading #{path}"
-        end
-
-        # A BASIC program, one that loads at a start of BASIC or a byte
-        # ahead of it, goes to this machine's start of BASIC. Anything else
-        # goes where it says, and doesn't RUN.
-        def start_prg(machine, data, autostart:)
-          load_addr = data[0] | (data[1] << 8)
-          start = machine.basic_start
-          ahead = [0, 1].find { |offset| BASIC_STARTS.key?(load_addr + offset) || load_addr + offset == start }
-          return machine.load_prg(data) unless ahead
-
-          load_basic(machine, data, start - ahead, load_addr)
-          machine.type_text("run\r") if autostart
-        end
-
-        # Puts a BASIC program at `address`, relinking its lines when that
-        # isn't where it was saved from, as BASIC's LOAD does, and sets the
-        # end of the program, where BASIC's variables start, and the end
-        # address the KERNAL's LOAD leaves.
-        def load_basic(machine, data, address, saved_at)
-          ram = machine.ram
-          ram.write(address, data[2..])
-          end_addr = address + data.length - 2
-          relink(ram, machine.basic_start, end_addr) unless address == saved_at
-          [0x2d, 0xae].each { |pointer| ram.write(pointer, [end_addr & 0xff, end_addr >> 8]) }
-        end
-
-        # Points each line's link at the line after it, as BASIC's LINKPRG
-        # does: past the zero that ends the line's text. A link with a zero
-        # high byte ends the program.
-        def relink(ram, line, end_addr)
-          while line + 4 < end_addr && ram.peek(line + 1).positive?
-            following = line + 4
-            following += 1 while following < end_addr && ram.peek(following).positive?
-            following += 1
-            ram.write(line, [following & 0xff, following >> 8])
-            line = following
-          end
         end
       end
     end

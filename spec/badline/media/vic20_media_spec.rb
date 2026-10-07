@@ -11,10 +11,11 @@ describe Badline::Media::Vic20Media do
 
   let(:dir) { Dir.mktmpdir }
   let(:ram) { Badline::Memory.new(length: 0xc000) }
-  let(:basic_start) { 0x1201 }
+  let(:datasette) { Badline::Datasette.new }
   let(:machine) do
-    instance_double(Badline::Vic20, ram:, basic_start:, type_text: nil, load_prg: nil, attach_cartridge: nil,
-                                    mount: nil).tap { |double| allow(double).to receive(:on_init).and_yield }
+    instance_double(Badline::Vic20, ram:, basic_start: 0x1201, type_text: nil, load_prg: nil, attach_cartridge: nil,
+                                    drive1541: nil, mount: nil, datasette:)
+      .tap { |double| allow(double).to receive(:on_init).and_yield }
   end
 
   after { FileUtils.remove_entry(dir) }
@@ -201,9 +202,35 @@ describe Badline::Media::Vic20Media do
       end
     end
 
-    context "with a tape" do
+    context "with a VIC-20 tape" do
+      let(:path) { Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 1).path }
+
+      it "plays it on the datasette" do
+        attach(path)
+        expect([datasette.tape.path, datasette.playing?]).to eq([path, true])
+      end
+
+      it "loads and runs from it" do
+        attach(path)
+        expect(machine).to have_received(:type_text).with("lO\rrun\r")
+      end
+
+      it "says where it went" do
+        expect(attach(path)).to eq("Inserted #{path} in the datasette")
+      end
+    end
+
+    context "with a C64 tape" do
+      let(:path) { Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 0).path }
+
+      it "plays it, and says it was made for another machine" do
+        expect(attach(path)).to include("another machine")
+      end
+    end
+
+    context "with a .sid tune" do
       it "refuses it" do
-        expect { attach(File.join(dir, "game.tap")) }.to raise_error(ArgumentError, /VIC-20/)
+        expect { attach(File.join(dir, "tune.sid")) }.to raise_error(ArgumentError, /VIC-20/)
       end
     end
   end

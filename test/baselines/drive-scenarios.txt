@@ -13,3 +13,8 @@ autostart/loads-and-runs	PASS
 error-channel/power-on-message	PASS
 idle/sleeps	PASS
 idle/matches-stepping	PASS
+vic20-write/no-error	PASS
+vic20-write/loads-back	PASS
+vic20-write/file-in-image	PASS
+vic20-autoboot/loads-and-runs	PASS
+vic20-status/power-on-message	PASS

@@ -70,6 +70,43 @@ describe Badline::Vic20::Attachments do
     end
   end
 
+  describe "#attach_drive1541" do
+    let(:drive) { Badline::Drive1541.new }
+
+    # Calls TALK for device 8 with a return address on the stack, and
+    # returns where the CPU went: back to the caller when a trap answers.
+    def talk_to_device8
+      machine.ram.write(0x01fe, [0x33, 0x12])
+      machine.cpu.stack_pointer = 0xfd
+      machine.cpu.a = 8
+      machine.cpu.program_counter = layout.talk
+      machine.cpu.cycle!
+      machine.cpu.program_counter
+    end
+
+    before do
+      machine.mount(Badline::Storage::HostDirectory.new(dir))
+      machine.attach_drive1541(drive)
+    end
+
+    it "puts the drive on the serial bus" do
+      expect(machine.iec_bus.drives).to eq([drive])
+    end
+
+    it "waits for the drive to boot before the on_init handlers" do
+      expect(machine.init_threshold).to eq(described_class::DRIVE_BOOT_CYCLES)
+    end
+
+    it "leaves device 8's serial traffic to the drive" do
+      expect(talk_to_device8).to eq(layout.talk + 1)
+    end
+
+    it "gives device 8 back to the traps once the drive is unplugged" do
+      machine.detach_drive1541
+      expect(talk_to_device8).to eq(0x1235)
+    end
+  end
+
   context "when BASIC loads and saves through device 8" do
     let(:output) { machine.capture_output.output }
 

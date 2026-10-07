@@ -125,7 +125,7 @@ describe Badline::Vic20 do
   describe "the joystick" do
     it "reaches VIA 1's port A" do
       machine.joystick1.press(:fire)
-      expect(machine.bus.peek(0x9111)).to eq(0b1101_1111)
+      expect(machine.bus.peek(0x9111) & 0x3c).to eq(0b0001_1100)
     end
 
     it "reaches VIA 2's port B" do
