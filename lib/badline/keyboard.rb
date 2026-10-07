@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Badline
-  # The 8x8 key matrix spanning CIA 1's two ports: rows on port A, columns on
-  # port B.
+  # The key matrix spanning CIA 1's two ports: rows on port A, columns on
+  # port B. Row lines beyond the eighth sit above port A's bits in +rows+.
   #
   # A pressed key shorts its row line to its column line, so whichever side is
   # pulled low drags the other down with it. Scanning works in either

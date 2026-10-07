@@ -119,6 +119,20 @@ describe Badline::Keyboard do
     end
   end
 
+  describe "a matrix with rows beyond the eighth" do
+    subject(:keyboard) { described_class.new(matrix: Array.new(8) { [] } + [%i[extra0], %i[extra1], %i[extra2]]) }
+
+    it "pulls the column of a key in a selected tenth row low" do
+      keyboard.press(:extra1)
+      expect(keyboard.scan(0b101_1111_1111, 0xff).last).to eq(0b11111110)
+    end
+
+    it "pulls a tenth row line low from a driven column" do
+      keyboard.press(:extra1)
+      expect(keyboard.scan(0x7ff, 0b11111110).first).to eq(0b101_1111_1111)
+    end
+  end
+
   it "wires the C64 matrix by default" do
     expect(keyboard.matrix).to eq(described_class::C64_MATRIX)
   end
