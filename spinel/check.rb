@@ -10,7 +10,7 @@ require_relative "../test/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests vic20_boot vic20_testbench c128_boot].freeze
+  HARNESSES = %w[boot cpu_tests vic20_boot vic20_testbench c128_boot c128_testbench].freeze
   CASES = "#{OUT}/cases.txt".freeze
 
   module_function

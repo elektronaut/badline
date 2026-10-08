@@ -169,6 +169,34 @@ Recorded output of the headless hardware suites, one file per suite:
   - `VIC20/via_sr`: shift register modes `04`, `08`, `14` and `18` in all
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
     plain and `exp` variants.
+- `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
+  curated part of the x128c64 testlist: the rows of `c64-testlist.in`
+  that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
+  swapped for `cpuport128.prg`. It takes the subtrees where a C128 in C64
+  mode can differ from a C64C: `VICII/`, `CPU/`, `interrupts/`, `C64/`,
+  `general/` and `selftest/`, less `CPU/decimalmode`, `interrupts/irqdma`
+  and the Lorenz suite, bar its `cpuport128` row. Rows that ask for the
+  6569, a memory expansion, a disk image or a cartridge without a mapper
+  drop out. `Testbench::C128C64_DIRS` in `test/testbench_c128.rb` holds
+  the rule. Each row runs on a `Badline::C128` powered on in C64 mode, as
+  x128's `-go64` starts it, or with its cartridge in: a `c128dcr` for
+  `cia-new`, a `c128` otherwise, and the NTSC board for `vicii-ntsc`. A
+  screenshot row compares against the program's 8565 reference, or its
+  8562 one on NTSC, where it has one, as a `vicii-new` row does on the
+  C64. One suite holds both standards, so a program listed for PAL and
+  NTSC keys its NTSC row `#2`. On Spinel the rows run on
+  `spinel/c128_testbench.rb`, so the C64's harness doesn't carry the
+  C128. A C64C, the 8565 or 8562 with the row's CIA, fails the same
+  rows, bar two that read `$01` with bit 6 set, since the 8502's P6
+  senses CAPS LOCK: `general/fuxxortest/ef2-inst4a` (`$75`) and
+  `C64/carts/ef-eapi/test-eapi.crt` (`$77`). x128 fails both as well.
+  The FAIL rows:
+  - `$ff`: `C64/autostart/defaults/test.prg` (the injected half of a row
+    the readme says to load from disk), `irq-ack-vicii`, `vsp-tester` and
+    `vsp-tester-ntsc`, and the two above
+  - screenshots: `fetchsplit` (16 px), `modesplit` on PAL (92 px) and
+    NTSC (`#2`, 64 px), `vicii_reg_timing-ff` (7 px), and seven
+    `videomode*_ntsc` rows
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
   `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
@@ -337,6 +365,7 @@ what the suite cost before it was sharded:
 | `testbench-ntsc-cia-new` | 1 | 0.5 min | 0.2 min | 0.2 min |
 | `testbench-drean` | 1 | 25 min | 1.7 min | 1.7 min |
 | `testbench-vic20` | 72 | — | 1.2 min | 0.4 min |
+| `testbench-c128c64` | 413 | — | 74 min | 30 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a
@@ -355,6 +384,11 @@ took 18 minutes. The two `-emd` rows are what no sharding shortens, so
 the suite takes about as long as the slower of them. The table's serial
 and four-shard figures add the two runs, and the worst case wasn't
 worked out.
+`testbench-c128c64` was measured on the laptop at a load average of
+about 25 from other workspaces' runs. The same rows on a C64C took 61
+minutes serial and 21 at four shards there. Its slowest rows are
+`CPU/ane` (about 100 s each), the `CPU/64doc` decimal rows and the
+`branchquirk` and `cia-int` pairs.
 `testbench-drive` was measured on that container too, without
 `drive/format`: its other 37 rows took 88 minutes serial and 24 at four
 shards. The 19 `viavarious` rows are 60 of those minutes, about three

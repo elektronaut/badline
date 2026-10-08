@@ -50,7 +50,7 @@ requires only the namespace file.
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, and the VIC-20 with `--vic20` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, and the C128 in C64 mode with `--c128c64` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
@@ -144,7 +144,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
-`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions` and under 1 for `testbench-vic20`. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions`, under 1 for `testbench-vic20` and about 30 for `testbench-c128c64`. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -196,7 +196,9 @@ the 6526A) for anything the interrupt register or the CIA model reaches; cartrid
 `testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K,
 +256K, the REU or the VIC's BA line the REU follows → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
 `testbench-drive` (`bin/testbench --drive`) and `drive-scenarios` (`bin/drive_scenarios <filter>`), plus `testbench-vic20` for the VIA; the VIC-20 (`vic20/`) →
-`testbench-vic20` (`bin/testbench --vic20`); SID → `sid`, plus `sid-8580` for anything the 8580
+`testbench-vic20` (`bin/testbench --vic20`); the C128 (`c128.rb`, `c128/`), or
+the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`
+(`bin/testbench --c128c64`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
