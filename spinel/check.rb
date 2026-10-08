@@ -10,8 +10,9 @@ require_relative "../test/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests vic20_boot vic20_testbench c128_boot c128_testbench].freeze
+  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench].freeze
   CASES = "#{OUT}/cases.txt".freeze
+  Z80_CASES = "#{OUT}/z80_cases.txt".freeze
 
   module_function
 
@@ -62,9 +63,18 @@ module SpinelCheck
     end
   end
 
-  def check_cpu_tests
-    convert_cases unless File.exist?(CASES)
-    compare("cpu_tests", [CASES]) { |out| out.grep(/^(FAIL|passed) /) }
+  def check_cpu_tests = check_cases("cpu_tests", "spinel/convert.rb", CASES)
+
+  def check_z80_tests = check_cases("z80_tests", "spinel/convert_z80.rb", Z80_CASES)
+
+  # Runs a SingleStepTests harness on 100 cases per opcode, which the
+  # converter samples into +cases+ the first time.
+  def check_cases(name, converter, cases)
+    unless File.exist?(cases) || system(RbConfig.ruby, "-Ilib", converter, "100", cases)
+      raise "Converting SingleStepTests with #{converter} failed"
+    end
+
+    compare(name, [cases]) { |out| out.grep(/^(FAIL|passed) /) }
   end
 
   def compare(name, args)
@@ -122,10 +132,6 @@ module SpinelCheck
     run = Lorenz::Run.parse(File.read("#{OUT}/#{name}.out"))
     File.write(results, "#{run.records.join("\n")}\n")
     results
-  end
-
-  def convert_cases
-    system(RbConfig.ruby, "-Ilib", "spinel/convert.rb", "100", CASES) || raise("Converting SingleStepTests failed")
   end
 
   def run(*command)

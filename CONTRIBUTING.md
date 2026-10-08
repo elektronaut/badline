@@ -68,9 +68,11 @@ boot the whole machine and are skipped by default. Run them with
 `bundle exec rspec --tag slow`.
 
 The CPU is verified separately against the
-[65x02 single step tests](https://github.com/SingleStepTests/65x02).
-`rake test` checks the fixtures out into `vendor/65x02` first, which
-takes a moment the first time:
+[65x02 single step tests](https://github.com/SingleStepTests/65x02), and
+the Z80 against the [Z80 ones](https://github.com/SingleStepTests/z80).
+`rake test` checks the fixtures out into `vendor/65x02` and `vendor/z80`
+first, which takes a moment the first time. It runs 100 cases per Z80
+opcode, and `Z80_SAMPLE=all` runs every one:
 
 ```sh
 bundle exec rake test

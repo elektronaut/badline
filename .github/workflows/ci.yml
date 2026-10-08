@@ -130,6 +130,11 @@ jobs:
         with:
           path: vendor/65x02
           key: 65x02-fixtures-6502-v1
+      - name: Cache Z80 test fixtures
+        uses: actions/cache@v6
+        with:
+          path: vendor/z80
+          key: z80-fixtures-v1
       - name: Run tests
         run: bundle exec rake test
 
@@ -395,7 +400,7 @@ jobs:
             harnesses: testbench
             tasks: spinel:testbench[testbench] spinel:testbench[testbench-cpu]
           - shard: sid-ntsc
-            harnesses: testbench sidtests boot cpu_tests vic20_boot c128_boot
+            harnesses: testbench sidtests boot cpu_tests z80_tests vic20_boot c128_boot
             tasks: >-
               spinel:sidtests[6581]
               spinel:sidtests[8580]
@@ -453,6 +458,12 @@ jobs:
         with:
           path: vendor/65x02
           key: 65x02-fixtures-6502-v1
+      - name: Cache Z80 test fixtures
+        if: contains(matrix.harnesses, 'z80_tests')
+        uses: actions/cache@v6
+        with:
+          path: vendor/z80
+          key: z80-fixtures-v1
       - name: Cache VICE-testprogs
         uses: actions/cache@v6
         with:

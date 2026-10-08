@@ -14,6 +14,10 @@ VENDORED_REPOS = {
     repo: "https://github.com/SingleStepTests/65x02",
     sparse: "6502/v1"
   },
+  "z80" => {
+    repo: "https://github.com/SingleStepTests/z80",
+    sparse: "v1"
+  },
   "VICE-testprogs" => {
     repo: "https://github.com/libsidplayfp/VICE-testprogs"
   }
@@ -465,10 +469,11 @@ namespace :spinel do
   end
 
   desc "Check the Spinel build against CRuby: boot, or media for cycles, SingleStepTests, the VIC-20's and C128's boots"
-  task :check, %i[media cycles] => %w[spinel:build vendor:65x02] do |_task, args|
+  task :check, %i[media cycles] => %w[spinel:build vendor:65x02 vendor:z80] do |_task, args|
     media = args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : []
     SpinelCheck.check_boot(*media)
     SpinelCheck.check_cpu_tests
+    SpinelCheck.check_z80_tests
     SpinelCheck.check_vic20_boot
     SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
     SpinelCheck.check_c128_boots
@@ -548,4 +553,4 @@ Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
 end
 
-Rake::Task["test"].enhance(["vendor:65x02"])
+Rake::Task["test"].enhance(%w[vendor:65x02 vendor:z80])
