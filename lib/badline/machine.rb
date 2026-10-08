@@ -4,7 +4,8 @@ module Badline
   # = Machine
   #
   # The machines badline builds by family, as the command line's
-  # subcommand names them: the C64, Computer, and the VIC-20, Vic20.
+  # subcommand names them: the C64, Computer, and the VIC-20, Vic20, and
+  # by Machine.build alone the C128 in C64 mode, C128.
   #
   # A machine answers what the front end, Media, the runners and the
   # snapshots call on it:
@@ -34,14 +35,19 @@ module Badline
   # +type_text+, +mount+, +unmount+, +mounted?+, +datasette+, +attach_cartridge+,
   # +attach_drive1541+, +drive1541+, +install_debug_register+ and
   # +capture_output+.
+  #
+  # The C128 answers all but the snapshots, and of the media all but the
+  # cartridge button.
   module Machine
-    # A new machine of `family`, :c64 or :vic20, the model of it `model`
-    # names. A C64's model is one of Model::ALL, with its SID `sid_model`
-    # when not nil and an REU of `reu` K when not nil. A VIC-20's is "pal",
-    # with the RAM expansion `ram` names (Vic20::Bus::RAM_CONFIGURATIONS),
-    # unexpanded when nil.
+    # A new machine of `family`, :c64, :vic20 or :c128, the model of it
+    # `model` names. A C64's model is one of Model::ALL, with its SID
+    # `sid_model` when not nil and an REU of `reu` K when not nil. A
+    # VIC-20's is "pal", with the RAM expansion `ram` names
+    # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
+    # one of C128::Model::ALL, with its SID `sid_model` when not nil.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
+      return C128.new(model:, sid_model:) if family == :c128
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)
