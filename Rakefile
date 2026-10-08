@@ -88,6 +88,10 @@ REGRESSION_SUITES = {
 # testbench-vic20 is the VIC-20 testlist's exitcode rows on a PAL VIC-20
 # with the RAM each asks for. Its Spinel build is spinel/vic20_testbench.rb,
 # which :engine names, so the C64's harness doesn't carry the VIC-20.
+# testbench-c128c64 is a curated part of the x128c64 testlist, the rows
+# where a C128 in C64 mode can differ from a C64C, on the C128 model each
+# asks for (Testbench::C128C64_DIRS has the rule). Its Spinel build is
+# spinel/c128_testbench.rb, so the C64's harness doesn't carry the C128.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -112,6 +116,7 @@ OPT_IN_SUITES = {
   "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
   "testbench-drean" => { runner: "bin/testbench", args: %w[--drean] },
   "testbench-vic20" => { runner: "bin/testbench", args: %w[--vic20], engine: "vic20_testbench" },
+  "testbench-c128c64" => { runner: "bin/testbench", args: %w[--c128c64], engine: "c128_testbench" },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
   "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze
