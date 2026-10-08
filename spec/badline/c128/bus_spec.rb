@@ -145,4 +145,122 @@ describe Badline::C128::Bus do
       expect(bus.peek(0xfffc)).to eq(bus.ram.peek(0xfffc))
     end
   end
+
+  describe "in C128 mode" do
+    subject(:bus) { described_class.new(Badline::C128::Model::C128, mode: :c128) }
+
+    it "starts in C128 mode" do
+      expect(bus.mmu.mode).to eq(:c128)
+    end
+
+    it "maps the C128 KERNAL at $E000 at reset" do
+      expect(bus.peek(0xfffc)).to eq(bus.c128_kernal_rom.peek(0xfffc))
+    end
+
+    it "maps the screen editor at $C000" do
+      expect(bus.peek(0xc000)).to eq(bus.editor_rom.peek(0xc000))
+    end
+
+    it "maps BASIC at $4000 and $8000" do
+      expect([bus.peek(0x4000), bus.peek(0x8000)]).to eq([bus.basic_low_rom.peek(0x4000),
+                                                          bus.basic_high_rom.peek(0x8000)])
+    end
+
+    it "maps the MMU at $D500" do
+      expect(bus.peek(0xd50b)).to eq(0x20)
+    end
+
+    it "maps the C128 character set at $D000 with I/O off" do
+      bus.poke(0xff00, 0x01)
+      expect(bus.peek(0xd008)).to eq(bus.c128_character_rom.peek(0xd008))
+    end
+
+    it "maps RAM everywhere on CR $3F, but for the configuration registers" do
+      bus.poke(0xff00, 0x3f)
+      bus.poke(0xd020, 0x12)
+      expect([bus.ram.peek(0xd020), bus.peek(0xff00)]).to eq([0x12, 0x3f])
+    end
+
+    it "writes the RAM under the ROMs" do
+      bus.poke(0x4000, 0x12)
+      expect(bus.ram.peek(0x4000)).to eq(0x12)
+    end
+
+    it "reads an empty function ROM socket as open bus" do
+      bus.poke(0xff00, 0x04)
+      expect(bus.peek(0x8000)).to eq(bus.vic.phi1_data)
+    end
+
+    it "shows the CPU bank 1 on CR bit 6" do
+      bus.poke(0xff00, 0x7f)
+      bus.poke(0x2000, 0x12)
+      expect(bus.ram.peek(0x12000)).to eq(0x12)
+    end
+
+    it "keeps common RAM in bank 0" do
+      bus.poke(0xd506, 0x04)
+      bus.poke(0xff00, 0x7f)
+      bus.poke(0x0200, 0x12)
+      expect(bus.ram.peek(0x0200)).to eq(0x12)
+    end
+
+    it "copies a PCR into CR on a write to its LCR" do
+      bus.poke(0xd501, 0x3f)
+      bus.poke(0xff01, 0x00)
+      expect(bus.peek(0xfffc)).to eq(bus.ram.peek(0xfffc))
+    end
+
+    describe "page relocation" do
+      before do
+        bus.poke(0xff00, 0x3e)
+        bus.ram.poke(0x0080, 0x55)
+        bus.ram.poke(0x3080, 0xaa)
+        bus.poke(0xd508, 0x00)
+        bus.poke(0xd507, 0x30)
+      end
+
+      it "moves page 0 to the page P0 names" do
+        expect(bus.peek(0x0080)).to eq(0xaa)
+      end
+
+      it "reaches page 0 from the page P0 names" do
+        expect(bus.peek(0x3080)).to eq(0x55)
+      end
+
+      it "stops reaching back once C64 mode leaves page 0 where it is" do
+        bus.poke(0xd505, 0xf7)
+        expect([bus.peek(0x0080), bus.peek(0x3080)]).to eq([0x55, 0x55])
+      end
+    end
+
+    describe "colour RAM" do
+      it "shows the CPU the bank P0 picks" do
+        bus.poke(0x00, 0x03)
+        bus.poke(0x01, 0x00)
+        bus.poke(0xd800, 0x05)
+        bus.poke(0x01, 0x01)
+        expect(bus.peek(0xd800) & 0x0f).not_to eq(0x05)
+      end
+
+      it "shows the VIC the bank P1 picks" do
+        bus.poke(0x00, 0x03)
+        bus.poke(0x01, 0x01)
+        bus.poke(0xd800, 0x05)
+        bus.poke(0x01, 0x02)
+        expect(bus.vic.vic_bank.peek_color(0)).to eq(0x05)
+      end
+    end
+
+    it "shows the VIC the character ROM's C128 set while P2 is low" do
+      bus.poke(0x00, 0x07)
+      bus.poke(0x01, 0x00)
+      expect(bus.vic.vic_bank.peek(0x1008)).to eq(bus.c128_character_rom.peek(0xd008))
+    end
+
+    it "shows the VIC the RAM bank RCR picks" do
+      bus.ram.poke(0x12000, 0x12)
+      bus.poke(0xd506, 0x40)
+      expect(bus.vic.vic_bank.peek(0x2000)).to eq(0x12)
+    end
+  end
 end

@@ -4,8 +4,8 @@ module Badline
   class C128
     MARKER = "C128"
 
-    # The model and the SID of the machine a State from #snapshot was taken
-    # of, the arguments C128.new takes.
+    # The model, the SID and the mode it resets into of the machine a State
+    # from #snapshot was taken of, the arguments C128.new takes.
     def self.setup(state)
       input = Snapshot::StateReader.new(state)
       input.marker(MARKER)
@@ -17,7 +17,7 @@ module Badline
     # at that state.
     def self.restored(state)
       setup = setup(state)
-      new(model: setup[0], sid_model: setup[1]).apply_state(state)
+      new(model: setup[0], sid_model: setup[1], mode: setup[2]).apply_state(state)
     end
 
     # The whole machine's state for a snapshot, as Computer's: the
@@ -29,16 +29,18 @@ module Badline
     # which chip renders.
     module SavedState
       SID_MODELS = %i[mos6581 mos8580].freeze
+      MODES = %i[c64 c128].freeze
 
-      # The model's name and the SID's model.
+      # The model's name, the SID's model and the mode.
       def self.read_setup(input)
         name = input.string
         known = Model::ALL.any? { |model| model.name == name }
         raise Snapshot::FormatError, "the state names a C128 model badline doesn't know" unless known
 
-        [name, SID_MODELS.fetch(input.int)]
+        sid_model = SID_MODELS.fetch(input.int)
+        [name, sid_model, MODES.fetch(input.int)]
       rescue IndexError
-        raise Snapshot::FormatError, "the state names a SID badline doesn't know"
+        raise Snapshot::FormatError, "the state names a SID or a mode badline doesn't know"
       end
 
       # How many more on_init handlers the machine a State was taken of had
@@ -71,7 +73,7 @@ module Badline
 
       def save_state(out)
         out.marker(MARKER).stamp
-        out.string(@model.name).int(SID_MODELS.index(@sid.model))
+        out.string(@model.name).int(SID_MODELS.index(@sid.model)).int(@c64_built ? 0 : 1)
         out.int(@cycles).int(@clock_bits).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse)
         out.boolean(!@pending_keys.nil?)
         out.ints(@pending_keys) if @pending_keys
@@ -106,7 +108,7 @@ module Badline
       private
 
       def check_setup(setup)
-        ours = [@model.name, @sid.model]
+        ours = [@model.name, @sid.model, @c64_built ? :c64 : :c128]
         return if setup == ours
 
         raise Snapshot::FormatError, "the state is of a #{setup.join(' with a ')}, not a #{ours.join(' with a ')}"

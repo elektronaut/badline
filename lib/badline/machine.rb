@@ -37,9 +37,10 @@ module Badline
   # +capture_output+.
   #
   # The C128 answers all but the cartridge button, and besides +mode+,
-  # :c64 so far, +vdc+, the VDC a front end can show in place of +video+
-  # once +vdc_shown=+ renders it, +press_caps_lock+, +release_caps_lock+,
-  # +press_display_key+ and +release_display_key+.
+  # :c64, as Machine.build builds it, or :c128, +vdc+, the VDC a front
+  # end can show in place of +video+ once +vdc_shown=+ renders it,
+  # +press_caps_lock+, +release_caps_lock+, +press_display_key+ and
+  # +release_display_key+.
   module Machine
     # A new machine of `family`, :c64, :vic20 or :c128, the model of it
     # `model` names. A C64's model is one of Model::ALL, with its SID

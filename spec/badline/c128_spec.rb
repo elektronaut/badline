@@ -140,4 +140,45 @@ describe Badline::C128 do
     machine.power_cycle!
     expect(machine.vdc.ram[0]).to eq(0)
   end
+
+  context "when built for C128 mode" do
+    subject(:machine) { described_class.new(mode: :c128) }
+
+    it "starts in C128 mode" do
+      expect(machine.mode).to eq(:c128)
+    end
+
+    it "starts the 8502 at the C128 KERNAL's reset vector" do
+      expect(machine.cpu.program_counter).to eq(machine.address_bus.c128_kernal_rom.peek16(0xfffc))
+    end
+
+    it "runs #on_init's handlers once BASIC 7.0 has booted" do
+      expect(machine.init_threshold).to eq(2_000_000)
+    end
+
+    it "comes back to C128 mode from a reset" do
+      machine.address_bus.poke(0xd505, 0xf7)
+      machine.reset!
+      expect(machine.mode).to eq(:c128)
+    end
+
+    it "reads the 40/80 key down through the MMU" do
+      machine.press_display_key
+      expect(machine.address_bus.peek(0xd505) & 0x80).to eq(0)
+    end
+
+    it "reads the 40/80 key up once it is let go" do
+      machine.press_display_key
+      machine.release_display_key
+      expect(machine.address_bus.peek(0xd505) & 0x80).to eq(0x80)
+    end
+
+    it "has no CHROUT trap" do
+      expect { machine.capture_output }.to raise_error(ArgumentError, /C128 mode/)
+    end
+  end
+
+  it "refuses a mode it doesn't have" do
+    expect { described_class.new(mode: :cpm) }.to raise_error(ArgumentError, /cpm/)
+  end
 end
