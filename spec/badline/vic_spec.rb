@@ -77,6 +77,18 @@ RSpec.describe Badline::VIC do
     end
   end
 
+  describe "the green palette" do
+    let(:greens) { described_class::GREEN_PALETTE.map { |rgb| (rgb >> 8) & 0xff } }
+
+    it "shows colours of one luminance as one shade" do
+      expect(greens.values_at(12, 14)).to eq([greens[12]] * 2)
+    end
+
+    it "runs from black to full green" do
+      expect(greens.minmax).to eq([greens[0], greens[1]])
+    end
+  end
+
   describe "the region" do
     it "is PAL unless given" do
       expect([vic.region, vic.width, vic.height]).to eq([Badline::Region::PAL, 504, 312])

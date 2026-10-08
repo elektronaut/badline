@@ -27,6 +27,18 @@ Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/kernal.sx.251104-04.bin
 SHA-1 aa136e91ecf3c5ac64f696b3dbcbfc5ba0871c98.
 
+kernal-pet64.rom
+----------------
+The KERNAL of the PET 64, 4064 and Educator 64, 901246-01. It boots
+with the "**** COMMODORE 4064  BASIC V2.0 ****" banner and a white
+cursor, and its interrupt routine keeps the border, background and
+sprite colours black unless bit 7 of $0286 is set. Computer.new(kernal:
+:pet64) fits it, as --model pet64 does.
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/kernal.4064.901246-01.bin
+MD5 da92801e3a03b005b746a4dd0b639c7c.
+
 dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01

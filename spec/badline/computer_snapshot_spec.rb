@@ -28,19 +28,39 @@ describe Badline::Computer, "#snapshot" do
     end
   end
 
-  # Layout 3 wrote the setup without the KERNAL and the datasette, the two
-  # values after the REU's size.
+  # Layout 3 wrote the setup without the KERNAL, the datasette and the
+  # board, the three values after the REU's size.
   describe "a state in layout 3" do
     let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
     let(:restored) do
       values = original.snapshot.values.dup
       values[0] = 3
-      values.slice!(7, 2)
+      values.slice!(7, 3)
       described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
     end
 
     it "builds a C64 with its KERNAL and a datasette" do
       expect([restored.address_bus.kernal, restored.datasette.connected?]).to eq([:c64, true])
+    end
+
+    it "runs on as the saved machine does" do
+      checkpoints(original, restored, 10_000).each { |ours, theirs| expect(theirs).to eq(ours) }
+    end
+  end
+
+  # Layout 5 wrote the setup without the board, the value after the
+  # datasette.
+  describe "a state in layout 5" do
+    let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
+    let(:restored) do
+      values = original.snapshot.values.dup
+      values[0] = 5
+      values.delete_at(9)
+      described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
+    end
+
+    it "builds a C64's board" do
+      expect(restored.address_bus.board).to eq(:c64)
     end
 
     it "runs on as the saved machine does" do
@@ -149,6 +169,16 @@ describe Badline::Computer, "#snapshot" do
     it "names the SX-64 when it fails" do
       sx64 = described_class.new(kernal: :sx64, datasette: false)
       expect { sx64.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /not sx64, /)
+    end
+
+    it "builds the PET 64's board" do
+      machine = described_class.new(board: :pet64)
+      expect(described_class.setup(machine.snapshot).build.address_bus.board).to eq(:pet64)
+    end
+
+    it "names the PET 64's board when it fails" do
+      expect { described_class.new(board: :pet64).restore(state) }
+        .to raise_error(Badline::Snapshot::FormatError, /not .*the pet64 board/)
     end
 
     it "builds a Drean machine" do

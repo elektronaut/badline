@@ -181,9 +181,10 @@ render a `.sid` tune without it, as described under
 - `--model NAME` runs another C64: `c64` (the default, PAL), `c64c` (the
   PAL C64C, with the 8565 VIC-II, 6526A CIAs and the 8580 SID), `ntsc`
   (the 6567R8), `newntsc` (the NTSC C64C, with the 8562), `oldntsc`
-  (the 6567R56A), `drean` (the Drean C64, PAL-N with the 6572) or `sx64`
+  (the 6567R56A), `drean` (the Drean C64, PAL-N with the 6572), `sx64`
   (the SX-64, with its own KERNAL and no datasette, so it refuses
-  tapes). `--sid` or a `.sid` tune's own SID takes the model's
+  tapes) or `pet64` (the PET 64 or Educator 64, with its own KERNAL and
+  a green monochrome monitor). `--sid` or a `.sid` tune's own SID takes the model's
   place. An NTSC machine's lines sit in the middle of the window, which
   keeps PAL's 272, between black bands.
 - `--ntsc` runs an NTSC C64, as `--model ntsc` does.

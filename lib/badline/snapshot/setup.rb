@@ -3,32 +3,36 @@
 module Badline
   module Snapshot
     # How a machine was built: its VIC, CIA and SID models, its region, its
-    # RAM expansion, the size of its REU, its KERNAL and whether it has a
-    # datasette, the arguments Computer.new takes. A State starts with them, so a machine to restore it into can
-    # be built first.
-    Setup = Data.define(:vic_model, :cia_model, :sid_model, :region, :ram_expansion, :reu, :kernal, :datasette)
+    # RAM expansion, the size of its REU, its KERNAL, whether it has a
+    # datasette and its board, the arguments Computer.new takes. A State
+    # starts with them, so a machine to restore it into can be built first.
+    Setup = Data.define(:vic_model, :cia_model, :sid_model, :region, :ram_expansion, :reu, :kernal, :datasette,
+                        :board)
 
     class Setup
       SID_MODELS = %i[mos6581 mos8580].freeze
       REGIONS = [Region::PAL, Region::NTSC, Region::NTSC_OLD, Region::DREAN].freeze
       RAM_EXPANSIONS = [:none, *RAMExpansion::TYPES.keys].freeze
       KERNALS = AddressBus::ROMs::KERNALS.keys.freeze
+      BOARDS = AddressBus::Fittings::BOARDS
 
       def self.of(address_bus)
         new(vic_model: address_bus.vic.model, cia_model: address_bus.cia1.model, sid_model: address_bus.sid.model,
             region: address_bus.region, ram_expansion: address_bus.ram_expansion.type, reu: address_bus.reu&.size_kb,
-            kernal: address_bus.kernal, datasette: address_bus.datasette.connected?)
+            kernal: address_bus.kernal, datasette: address_bus.datasette.connected?, board: address_bus.board)
       end
 
-      # Layout 3 has no KERNAL or datasette, and stands for the C64's.
+      # Layout 3 has no KERNAL or datasette, and stands for the C64's, and
+      # layouts before 6 have no board, and stand for the C64's.
       def self.read(input)
         new(vic_model: VIC::MODELS.fetch(input.int), cia_model: CIA::MODELS.fetch(input.int),
             sid_model: SID_MODELS.fetch(input.int), region: REGIONS.fetch(input.int),
             ram_expansion: ram_expansion(RAM_EXPANSIONS.fetch(input.int)), reu: reu(input.int),
             kernal: input.schema > 3 ? KERNALS.fetch(input.int) : :c64,
-            datasette: input.schema > 3 ? input.boolean? : true)
+            datasette: input.schema > 3 ? input.boolean? : true,
+            board: input.schema > 5 ? BOARDS.fetch(input.int) : :c64)
       rescue IndexError
-        raise FormatError, "the state names a chip model, region, RAM expansion or KERNAL badline doesn't know"
+        raise FormatError, "the state names a chip model, region, RAM expansion, KERNAL or board badline doesn't know"
       end
 
       def self.ram_expansion(name) = name == :none ? nil : name
@@ -45,12 +49,12 @@ module Badline
         out.int(VIC::MODELS.index(vic_model)).int(CIA::MODELS.index(cia_model))
         out.int(SID_MODELS.index(sid_model)).int(REGIONS.index(region))
         out.int(RAM_EXPANSIONS.index(ram_expansion || :none)).int(reu || 0)
-        out.int(KERNALS.index(kernal)).boolean(datasette)
+        out.int(KERNALS.index(kernal)).boolean(datasette).int(BOARDS.index(board))
       end
 
       # A machine built this way, at power-on.
       def build
-        Computer.new(vic_model:, cia_model:, sid_model:, region:, ram_expansion:, reu:, kernal:, datasette:)
+        Computer.new(vic_model:, cia_model:, sid_model:, region:, ram_expansion:, reu:, kernal:, datasette:, board:)
       end
 
       # The chips, led by the model's name when they make one of
@@ -63,6 +67,7 @@ module Badline
         parts << "a #{reu}K REU" if reu
         parts << "the #{kernal} KERNAL" unless kernal == :c64
         parts << "no datasette" unless datasette
+        parts << "the #{board} board" unless board == :c64
         parts.join(", ")
       end
     end

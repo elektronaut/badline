@@ -5,6 +5,7 @@ require "badline/address_bus/sid_slots"
 require "badline/address_bus/extra_sids"
 require "badline/address_bus/pla"
 require "badline/address_bus/roms"
+require "badline/address_bus/fittings"
 
 module Badline
   # Memory layout:
@@ -37,6 +38,7 @@ module Badline
     include PLA
     include ExtraSIDs
     include ROMs
+    include Fittings
 
     # I/O 1 and 2, and the Ultimax holes, with nothing on the bus. A read
     # picks up the byte the VIC fetched in the preceding phi1 half-cycle,
@@ -68,6 +70,7 @@ module Badline
     def initialize(sid_model: :mos6581, cia_model: :mos6526, vic_model: :mos6569, region: Region::PAL,
                    ram_expansion: nil)
       @region = region
+      @board = :c64
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
       @ram_expansion = RAMExpansion.build(ram_expansion, @ram) { update_overlays! }
       @cartridge = @reu = nil

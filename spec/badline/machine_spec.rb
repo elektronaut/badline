@@ -25,6 +25,10 @@ describe Badline::Machine do
     expect([machine.address_bus.kernal, machine.datasette.connected?]).to eq([:sx64, false])
   end
 
+  it "gives the model its board" do
+    expect(described_class.build(:c64, model: "pet64").address_bus.board).to eq(:pet64)
+  end
+
   it "plugs in an REU of the size given" do
     expect(described_class.build(:c64, model: "c64", reu: 512).reu).not_to be_nil
   end
