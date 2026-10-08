@@ -3,7 +3,7 @@
 require "badline/address_bus/saved_state"
 require "badline/address_bus/sid_slots"
 require "badline/address_bus/extra_sids"
-require "badline/address_bus/ultimax_pages"
+require "badline/address_bus/pla"
 require "badline/address_bus/roms"
 
 module Badline
@@ -34,7 +34,7 @@ module Badline
   # 0xE000-0xFFFF - KERNAL ROM / Cartridge ROM (high) - 8kb
   class AddressBus
     include Addressable
-    include UltimaxPages
+    include PLA
     include ExtraSIDs
     include ROMs
 
@@ -203,97 +203,15 @@ module Badline
     def update_overlays!
       @ultimax = @cartridge ? @cartridge.ultimax? : false
       @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
-      @ram_expansion.map(@read_pages, @write_pages)
       @video_ram = @ram_expansion.video_ram
       @vic.vic_bank.map(@video_ram, phi1_ultimax: @phi1_ultimax, ultimax: @ultimax, romh: @cartridge&.romh)
 
-      @ultimax ? map_ultimax_pages : map_banked_pages
+      map_pla_pages
       @write_pages[0xff] = @reu.trigger.wrap(@write_pages[0xff]) if @reu
     end
 
-    def map_banked_pages
-      map_rom_overlays
-      map_cartridge_ram
-      @write_pages.fill(@cartridge.romh_writes, 0xe0, 0x20) if @cartridge&.romh_writes
-
-      if io?
-        map_io_pages
-      elsif character?
-        @read_pages.fill(character_rom, 0xd0, 0x10)
-      end
-    end
-
-    # EXROM and GAME select the cartridge whether or not it has a chip
-    # there, and an empty socket leaves the bus floating.
-    def map_rom_overlays
-      @read_pages.fill(@cartridge.roml || @open_bus, 0x80, 0x20) if roml?
-      if romh?
-        @read_pages.fill(@cartridge.romh || @open_bus, 0xa0, 0x20)
-      elsif basic?
-        @read_pages.fill(basic_rom, 0xa0, 0x20)
-      end
-      @read_pages.fill(kernal_rom, 0xe0, 0x20) if kernal?
-    end
-
-    # Cartridge RAM in the ROML or ROMH window decodes writes itself,
-    # whatever the $01 lines say.
-    def map_cartridge_ram
-      return unless @cartridge&.exrom&.zero?
-
-      map_cartridge_ram_bank(@cartridge.roml, 0x80)
-      map_cartridge_ram_bank(@cartridge.romh, 0xa0) if @cartridge.game.zero?
-    end
-
-    def map_cartridge_ram_bank(bank, first_page)
-      @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
-    end
-
-    def map_io_pages
-      {
-        vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_bus => 0xde..0xdf
-      }.each do |chip, pages|
-        pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
-      end
-      @ram_expansion.map_io(@read_pages, @write_pages)
-      @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
-      @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
-      map_cartridge_io if @cartridge
-      map_extra_sids unless @sid_slots.empty?
-    end
-
-    def map_cartridge_io
-      @write_pages.fill(@cartridge, 0xde, 2)
-      @cartridge.readable_io_pages.each { |p| @read_pages[p] = @cartridge }
-    end
-
-    def basic?
-      io_port.kernal? && io_port.basic? && game_high?
-    end
-
-    def game_high?
-      @cartridge.nil? || @cartridge.game == 1
-    end
-
-    def roml?
-      @cartridge&.exrom&.zero? && io_port.kernal? && io_port.basic?
-    end
-
-    def romh?
-      @cartridge&.exrom&.zero? && @cartridge.game.zero? && io_port.kernal?
-    end
-
-    # In 16K mode LORAM alone leaves $d000 as RAM, where it still maps I/O.
-    def character?
-      (io_port.kernal? || (io_port.basic? && game_high?)) && !io_port.io?
-    end
-
-    def io?
-      (io_port.basic? || io_port.kernal?) && io_port.io?
-    end
-
-    def kernal?
-      io_port.kernal?
+    def map_ram_pages
+      @ram_expansion.map(@read_pages, @write_pages)
     end
   end
 end
