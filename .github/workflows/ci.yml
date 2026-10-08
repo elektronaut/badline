@@ -263,6 +263,62 @@ jobs:
                                    machine.drive1541.bus.ram.read(0, 0x800)] }
             abort "the restored native drive ran on differently" unless drive.call(saved) == drive.call(again)
             puts "restored mid-load and ran on to cycle #{again.cycles} with the drive as CRuby does"'
+      # The C128 typing print 6*7 on its VIC-IIe, then running a BASIC
+      # loop that sets up the VDC's raster with a solid cursor, and showing
+      # its 80 columns. Both builds must draw the same pictures.
+      - name: Run the C128 as badline-ruby does
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          cat > tmp/native/c128.script <<'SCRIPT'
+          130:type=print 6*7\n
+          150:screenshot=tmp/native/c128-vic.bmp
+          151:type=1 fori=0to12:readr,v:poke54784,r:poke54785,v:next\n
+          175:type=2 data0,126,1,80,2,102,3,72,4,38,6,25,7,32,9,7,22,120,25,7,26,240,10,0,11,8\n
+          200:type=run\n
+          215:display=vdc
+          225:screenshot=tmp/native/c128-vdc.bmp
+          SCRIPT
+          tmp/native/badline c128 --unpaced --no-sound --frames 225 --script tmp/native/c128.script
+          mv tmp/native/c128-vic.bmp tmp/native/c128-vic-native.bmp
+          mv tmp/native/c128-vdc.bmp tmp/native/c128-vdc-native.bmp
+          bundle exec ruby --yjit exe/badline-ruby c128 --unpaced --frames 225 --script tmp/native/c128.script
+          cmp tmp/native/c128-vic-native.bmp tmp/native/c128-vic.bmp
+          cmp tmp/native/c128-vdc-native.bmp tmp/native/c128-vdc.bmp
+      - name: Save and restore a C128 snapshot
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          tmp/native/badline c128 --model c128dcr --frames 150 --unpaced --at '130:type=poke53296,1\n' \
+            --save-snapshot tmp/native/c128.vsf 2> tmp/native/c128-save.err
+          tmp/native/badline tmp/native/c128.vsf --frames 50 --unpaced \
+            --save-snapshot tmp/native/c128-again.vsf 2> tmp/native/c128-restore.err
+          cat tmp/native/c128-save.err tmp/native/c128-restore.err
+          test ! -s tmp/native/c128-save.err && test ! -s tmp/native/c128-restore.err
+          bundle exec ruby --yjit -Ilib -e '
+            require "badline"
+            saved = Badline::Snapshot.load("tmp/native/c128.vsf")
+            again = Badline::Snapshot.load("tmp/native/c128-again.vsf")
+            abort "the snapshot is no C128DCR" unless saved.model.name == "c128dcr" && again.model.name == "c128dcr"
+            saved.run_cycles(again.cycles - saved.cycles)
+            ours = Badline::Checkpoint.take(saved)
+            theirs = Badline::Checkpoint.take(again)
+            abort "the restored native C128 ran on differently: #{ours.differences(theirs)}" unless ours == theirs
+            [saved, again].each do |machine|
+              machine.sid.catch_up!
+              machine.sid.voices.each { |voice| voice.waveform.output }
+            end
+            ours = saved.snapshot
+            theirs = again.snapshot
+            unless ours == theirs
+              first = ours.values.each_index.find { |i| ours.values[i] != theirs.values[i] }
+              abort "the restored native C128 holds another state than the CRuby one, from value #{first.inspect}"
+            end
+            puts "restored the C128 and ran on to cycle #{again.cycles} as CRuby does"'
       - name: Upload the screenshot
         uses: actions/upload-artifact@v7
         with:
@@ -270,6 +326,8 @@ jobs:
           path: |
             tmp/native/ready.bmp
             tmp/native/restored.bmp
+            tmp/native/c128-vic.bmp
+            tmp/native/c128-vdc.bmp
           if-no-files-found: ignore
       - name: Pack the native badline
         run: |
