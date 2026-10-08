@@ -66,6 +66,19 @@ expansion, REU, KERNAL and datasette. One saved before badline recorded
 the KERNAL and the datasette restores as a machine with the C64's KERNAL
 and a datasette.
 
+## The VIC-20
+
+`badline vic20` saves and restores the same way, with the same keys,
+slots and pause menu page. A VIC-20 snapshot holds its RAM and colour
+RAM, a cartridge's ROM, the VIC with its picture and sound, both VIAs,
+the CPU, the tape with its place on it, the disk or directory device 8
+serves through the traps and a true 1541, and restores into a VIC-20
+with the same RAM expansion. Its file names its machine `VIC20`, as
+xvic's do, and holds only the `BADLINE` module, so xvic doesn't open
+it, and badline doesn't open xvic's. Restoring a
+VIC-20 snapshot while a C64 runs, or a C64 one while a VIC-20 runs,
+swaps the machine in the window.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format. badline writes VICE's modules for

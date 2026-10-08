@@ -167,6 +167,10 @@ describe Badline::Frontend::MenuMedia do
       expect(media.disk_path).to eq(second)
     end
 
+    it "names a save after the machine without a disk" do
+      expect(media.game_name).to eq("VIC-20")
+    end
+
     it "puts a tape in the datasette" do
       File.binwrite(File.join(dir, "game.tap"), "C64-TAPE-RAW".b + [1, 0, 0, 0, 1].pack("C4V") + "\x30".b)
       media.insert(:tape, File.join(dir, "game.tap"))

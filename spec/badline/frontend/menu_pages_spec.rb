@@ -80,9 +80,9 @@ describe Badline::Frontend::MenuPages do
       expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[VIC-20 JOYSTICK], anything, 0])
     end
 
-    it "has no snapshot rows yet" do
+    it "saves and loads snapshots" do
       pages.draw(:snapshots, 0, 0)
-      expect(buttons).not_to have_received(:row)
+      expect(buttons).to have_received(:row).with(anything, "QUICKSAVE", :quicksave_now, anything)
     end
   end
 end

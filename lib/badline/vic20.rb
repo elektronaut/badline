@@ -8,6 +8,7 @@ require "badline/vic20/port_wiring"
 require "badline/vic20/user_via_ports"
 require "badline/vic20/vic"
 require "badline/vic20/sound"
+require "badline/vic20/saved_state"
 
 module Badline
   # The Commodore VIC-20 with the PAL 6561: a 6502 at the VIC's clock, the
@@ -24,6 +25,7 @@ module Badline
     include KeyboardBuffer
     include Attachments
     include PortWiring
+    include SavedState
 
     attr_reader :bus, :cpu, :vic, :via1, :via2, :keyboard, :joystick1, :cycles, :init_threshold, :sound,
                 :drive1541, :iec_bus, :datasette

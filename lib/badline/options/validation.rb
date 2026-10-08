@@ -74,7 +74,6 @@ module Badline
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the VIC-20 needs the window" if headless?
-        raise Error, "the VIC-20 can't save snapshots yet" unless @save_snapshot.empty?
       end
 
       # `sid` takes directories as well as tunes.

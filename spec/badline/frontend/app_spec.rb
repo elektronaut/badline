@@ -167,6 +167,12 @@ describe Badline::Frontend::App do
         .to output(/Restored quicksave 1 from /).to_stdout
     end
 
+    it "swaps in a VIC-20 F12 restores, in the VIC-20's window" do
+      Badline::Vic20.new.save_snapshot(File.join(Badline.data_folder("saves"), "vic20.vsf"))
+      run(key(Badline::Frontend::Keys::F12), argv: %w[--frames 2 --screenshot swapped.bmp])
+      expect(File.binread("swapped.bmp").unpack("@18l2")).to eq([284 * 2 * 2, 284 * 2])
+    end
+
     it "has nothing to restore before one is saved" do
       expect { run(key(Badline::Frontend::Keys::F12)) }.to output(/No quicksave to restore/).to_stdout
     end
@@ -212,8 +218,27 @@ describe Badline::Frontend::App do
       expect(computer.joystick1.port_bits & 0x1f).to eq(0b11100)
     end
 
-    it "says F11 can't save it" do
-      expect { run(key(Badline::Frontend::Keys::F11)) }.to output(/The VIC-20 can't save or restore/).to_stdout
+    describe "snapshots" do
+      around do |example|
+        Dir.mktmpdir do |dir|
+          Badline.data_path = dir
+          example.run
+        end
+      ensure
+        Badline.data_path = nil
+      end
+
+      def f11 = key(Badline::Frontend::Keys::F11)
+
+      it "quicksaves it with F11, as a VIC20 snapshot" do
+        run(f11)
+        quicksave = File.join(Badline.data_folder("quicksaves"), "quicksave-1.vsf")
+        expect(Badline::Snapshot.read(quicksave).container.machine).to eq("VIC20")
+      end
+
+      it "runs the one F12 restores in its place" do
+        expect { run(f11, key(Badline::Frontend::Keys::F12)) }.to output(/Restored quicksave 1 from /).to_stdout
+      end
     end
   end
 
