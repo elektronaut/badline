@@ -489,7 +489,6 @@ module Badline
       input.booleans_into(@sprite_ba)
     end
 
-    # The display is the finished lines one after another.
     # The VIC-IIe's display line and TEST wrap, which only its TEST bit
     # moves off the raster line.
     def load_test_state(input)
@@ -497,6 +496,7 @@ module Badline
       @test_wrap = input.boolean?
     end
 
+    # The display is the finished lines one after another.
     def load_lines(input)
       @lines.each_with_index do |line, number|
         input.blob_into(line)
