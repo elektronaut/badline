@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.0](https://github.com/elektronaut/badline/compare/v0.9.0...v0.10.0) (2026-10-08)
+
+
+### Features
+
+* add the VIC-20's bus and CPU ([184f4c2](https://github.com/elektronaut/badline/commit/184f4c28c609fe0d46358c0143fabe2beba2fa70))
+* name the machine family with a c64 or vic20 subcommand ([586a02f](https://github.com/elektronaut/badline/commit/586a02fbd80c6e6351d85c91263b5a39438ba13e))
+* open the pause menu from the timeline and screenshot it ([63dc744](https://github.com/elektronaut/badline/commit/63dc74468432397c1ec0273a64fcd28ff46008d2))
+* paint the VIC-20's display from the VIC-I's fetches ([76f67c3](https://github.com/elektronaut/badline/commit/76f67c3709363f682715681d17ea799441412f12))
+* play the VIC-20's sound from the VIC-I's voices ([c490a86](https://github.com/elektronaut/badline/commit/c490a86959e18e0fecdcf21bf0139b63be25d9a9))
+* read the VIC-20 .crt signature and the .tap platform byte ([fc0b130](https://github.com/elektronaut/badline/commit/fc0b130ad3a9481e7a9e61d909286281026797b1))
+* run the VIC-20 in the window, in both builds ([24c056c](https://github.com/elektronaut/badline/commit/24c056c531fb356d3d47a9aad94c50ba0a0b0031))
+* run the VIC-20 with its VIC-I registers and VIAs ([6089cee](https://github.com/elektronaut/badline/commit/6089ceee361e65d59c33a1eaeb3395f315eeed2d))
+* save and restore the VIC-20 in badline's own snapshots ([8620849](https://github.com/elektronaut/badline/commit/8620849be5177069e16a559a35b239d75d7cc82a))
+* serve the VIC-20's device 8 through the KERNAL traps and autostart its media ([356695e](https://github.com/elektronaut/badline/commit/356695e7529f999acf4bdc82951b107460ecdf39))
+* wire the VIC-20's datasette and serial bus to its VIAs, with a true 1541 ([2f06e88](https://github.com/elektronaut/badline/commit/2f06e88cf5276780cc03f7d8121480e95b05480f))
+* wire the VIC-20's keyboard, joystick and RESTORE to its VIAs ([32139f6](https://github.com/elektronaut/badline/commit/32139f647aeb3f5e7601928150b85973db6b9b5e))
+
+
+### Bug Fixes
+
+* show the disk device 8 holds on the menu's Drive page ([c8b0eaf](https://github.com/elektronaut/badline/commit/c8b0eaf05573246114af6b6f8404095424a1981c))
+* start the VIA shift register only when idle, on the 6522's clock ([bdcb1c8](https://github.com/elektronaut/badline/commit/bdcb1c88bb729e48ffdaaffd91e1274778c4ee29))
+
+
+### Performance Improvements
+
+* type Memory's storage as Array[Integer] for Spinel ([797c9b1](https://github.com/elektronaut/badline/commit/797c9b1cab26e6ace4f0d0a20011a3a084e73bc9))
+
 ## [0.9.0](https://github.com/elektronaut/badline/compare/v0.8.0...v0.9.0) (2026-10-05)
 
 
