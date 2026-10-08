@@ -10,7 +10,7 @@ require_relative "../test/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests vic20_boot vic20_testbench].freeze
+  HARNESSES = %w[boot cpu_tests vic20_boot vic20_testbench c128_boot].freeze
   CASES = "#{OUT}/cases.txt".freeze
 
   module_function
@@ -52,6 +52,14 @@ module SpinelCheck
 
   def check_vic20_boot(*args)
     compare("vic20_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
+  end
+
+  # The C128 typing print 6*7, then the C128DCR typing the line that
+  # writes the VDC's RAM in FAST mode.
+  def check_c128_boots
+    [[], %w[4000000 3000000 c128dcr fast]].each do |args|
+      compare("c128_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
+    end
   end
 
   def check_cpu_tests

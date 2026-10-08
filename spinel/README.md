@@ -16,6 +16,11 @@ CRuby.
   argument picks the RAM expansion, and another records the sound at a
   sample rate: the line typed then plays all four voices first, and the
   sample count and a checksum of the samples follow the registers.
+- `c128_boot.rb` boots the C128 headless in C64 mode and types `print
+  6*7`, or a line that writes the VDC's RAM in FAST mode. It prints a
+  `Badline::Checkpoint` every million cycles, then the screen, the counts,
+  the registers and a digest of the VDC's RAM. An argument picks the
+  model.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
   registers, cycle counts, the bus trace and RAM.
 - `convert.rb` samples the SingleStepTests JSON into the line format
@@ -45,9 +50,9 @@ CRuby.
 Every harness but `cpu_tests.rb` loads the emulator core with
 `require "badline/core"`, the list `lib/badline.rb` loads too, so a file
 the core comes to need goes into `lib/badline/core.rb` alone. The VIC-20
-isn't in the core, so the C64's harnesses never see a second machine:
-`vic20_boot.rb` and `vic20_testbench.rb` require `badline/vic20` on top
-of it. Spinel only
+is in the core, but the C128 isn't, so the C64's harnesses never see
+it: `c128_boot.rb` requires `badline/c128` on top of the core, as
+`lib/badline.rb` does. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.
 
@@ -60,7 +65,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `vic20_boot` and `vic20_testbench` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `vic20_boot`, `vic20_testbench` and `c128_boot` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -79,13 +84,15 @@ rake "spinel:check[vendor/OneLoad64-Games-Collection-v5/IK+.crt]"
 rake "spinel:check[path/to/game.crt,40000000]"
 ```
 
-`spinel:check` builds the three harnesses, then runs each compiled binary
+`spinel:check` builds the harnesses, then runs each compiled binary
 and the same harness on CRuby. It fails unless the outputs match: every
 checkpoint, the screen, the counts and the registers for both boots, and
 every SingleStepTests verdict. Without media the C64 boots for 6M cycles.
 With media it runs 23M cycles unless given a count. The VIC-20 boots
 unexpanded for 2M cycles either way, once silent and once recording its
-sound at 44.1 kHz. The first run converts 100
+sound at 44.1 kHz. The C128 boots its `c128` model for 6M cycles typing
+`print 6*7`, and its `c128dcr` for 4M typing the FAST line. The first
+run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, so it needs
 `vendor/65x02` (`rake vendor:65x02`).
 
