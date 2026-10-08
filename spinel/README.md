@@ -40,6 +40,9 @@ CRuby.
 - `vic20_testbench.rb` does the same for `bin/testbench --vic20`'s rows,
   with `test/testbench_vic20_machine.rb`, so `testbench.rb` stays
   C64-only.
+- `c128_testbench.rb` does the same for `bin/testbench --c128c64`'s rows,
+  with `test/testbench_c128_machine.rb` and the C64's
+  `Testbench::Execution`.
 - `drive_scenarios.rb` runs the true-drive scenarios with the same code
   as `bin/drive_scenarios` (`test/drive_scenarios.rb`) and prints a
   baseline row per check. See [The drive scenarios](#the-drive-scenarios)
@@ -51,7 +54,8 @@ Every harness but `cpu_tests.rb` loads the emulator core with
 `require "badline/core"`, the list `lib/badline.rb` loads too, so a file
 the core comes to need goes into `lib/badline/core.rb` alone. The VIC-20
 is in the core, but the C128 isn't, so the C64's harnesses never see
-it: `c128_boot.rb` requires `badline/c128` on top of the core, as
+it: `c128_boot.rb` and `c128_testbench.rb` require `badline/c128` on top
+of the core, as
 `lib/badline.rb` does. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.
@@ -65,7 +69,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `vic20_boot`, `vic20_testbench` and `c128_boot` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot` and `c128_testbench` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -216,7 +220,8 @@ against the suite's baseline in `test/baselines/` as
 `testbench-cpu`, `testbench-carts`, `testbench-cia-new`,
 `testbench-vicii-new`, `testbench-general`, `testbench-expansions`,
 `testbench-drive`, `testbench-ntsc`, `testbench-ntsc-vicii-new`,
-`testbench-ntsc-cia-new`, `testbench-drean` and `testbench-vic20` in turn, and fails at the end if any of them changed. Filters after a
+`testbench-ntsc-cia-new`, `testbench-drean`, `testbench-vic20` and
+`testbench-c128c64` in turn, and fails at the end if any of them changed. Filters after a
 suite's name run only the rows they match, as `bin/testbench`'s filters
 do, and compare only those rows. A filter led by `!` leaves out the rows
 it matches, as `[testbench-drive,!viavarious]` does. `SHARDS` and `RESUME=1` work as they do for
@@ -273,6 +278,11 @@ builds in place of `testbench`. Its lines are
 `Badline::Vic20::Bus::RAM_CONFIGURATIONS`, and its records carry the 23
 lines of the VIC-20's text screen. It runs each test with
 `Testbench::Vic20Execution` (`test/testbench_vic20_machine.rb`).
+
+`testbench-c128c64` runs on `c128_testbench` in the same way. Its lines
+are `KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY MODEL`, where MODEL
+names one of `Badline::C128::Model::ALL`, and its records are the C64's:
+a C128 in C64 mode runs each test with `Testbench::Execution`.
 
 `--engine` takes `bin/testbench`'s filters like any other run:
 

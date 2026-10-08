@@ -526,6 +526,82 @@ class TestTestbenchVic20 < Minitest::Test
   end
 end
 
+class TestTestbenchC128 < Minitest::Test
+  def parse(options, dir: "../VICII/border", prg: "t.prg", type: "screenshot")
+    Testbench::C128Testlist.parse("#{dir}/,#{prg},#{type},1000,#{options}")
+  end
+
+  def test_runs_a_row_on_the_c128
+    assert_predicate parse(""), :c128?
+    refute_predicate Testbench::Testlist.parse("../VICII/border/,t.prg,exitcode,1000"), :c128?
+  end
+
+  def test_picks_the_board_the_cias_and_the_video_standard_ask_for
+    models = ["", "cia-new", "vicii-ntsc", "vicii-ntsc,cia-new"].map { |options| parse(options).c128_model }
+
+    assert_equal %w[c128 c128dcr c128ntsc c128dcrntsc], models
+  end
+
+  def test_drops_the_rows_the_makefile_drops_for_x128
+    %w[vicii-ntscold vicii-drean plus60k plus256k].each { |option| assert_nil parse(option) }
+  end
+
+  def test_numbers_a_program_listed_for_pal_and_ntsc
+    tests = Testbench::C128Testlist.numbered([parse("vicii-new"), parse("vicii-ntsc")])
+
+    assert_equal ["VICII/border/t.prg", "VICII/border/t.prg#2"], tests.map(&:key)
+  end
+
+  def test_drops_a_row_that_asks_for_the_old_vicii
+    assert_nil parse("vicii-pal,vicii-old")
+  end
+
+  def test_compares_against_the_8565_reference_like_a_vicii_new_row
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "references"))
+      %w[t.prg.png t.prg-8565.png].each { |name| FileUtils.touch(File.join(dir, "references", name)) }
+      test = Testbench::TestCase.new(dir, "t.prg", "screenshot", 1000, [])
+      test.family = :c128
+
+      assert_equal File.join(dir, "references", "t.prg-8565.png"), test.reference
+    end
+  end
+
+  def test_takes_the_curated_subtrees
+    %w[VICII CPU interrupts C64 general].each { |subtree| refute_nil parse("", dir: "../#{subtree}/x") }
+    refute_nil parse("", dir: "./selftest", prg: "c64-pass.prg")
+  end
+
+  def test_leaves_the_subtrees_the_c64_suites_cover
+    %w[CIA SID REU drive CPU/decimalmode interrupts/irqdma].each do |subtree|
+      assert_nil parse("", dir: "../#{subtree}")
+    end
+  end
+
+  def test_takes_the_lorenz_cpuport_row_as_the_c128s_build
+    lorenz = "../general/Lorenz-2.15/src"
+
+    assert_equal "general/Lorenz-2.15/src/cpuport128.prg", parse("", dir: lorenz, prg: "cpuport.prg").id
+    assert_nil parse("", dir: lorenz, prg: "cia1ta.prg")
+  end
+
+  def test_drops_rows_that_ask_for_an_expansion_or_a_disk
+    assert_nil parse("reu512k")
+    assert_nil parse("geo512k")
+    assert_nil parse("mountd64:t.d64")
+  end
+
+  def test_hands_the_engine_its_model
+    assert Testbench::Engine.spec(parse("cia-new", type: "exitcode")).end_with?("\tc128dcr\n")
+  end
+
+  def test_boots_a_c128_in_c64_mode
+    machine = parse("", type: "exitcode").c128_machine
+
+    assert_equal "    **** commodore 64 basic v2 ****", Testbench.screen_text(machine.ram)[1].rstrip
+  end
+end
+
 class TestTestbenchExpectations < Minitest::Test
   def test_case(*options)
     Testbench::TestCase.new("../CPU/cpujam", "t.prg", "exitcode", 1000, options)
@@ -923,6 +999,7 @@ class TestTestbenchEngine < Minitest::Test
     def disk = nil
     def load_name = ""
     def vic20? = false
+    def c128? = false
   end
 
   def setup

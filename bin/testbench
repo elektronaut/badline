@@ -6,7 +6,7 @@
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
-#                             [--drean] [--vic20]
+#                             [--drean] [--vic20] [--c128c64]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -87,6 +87,16 @@
 # keeps the VIC-20's 22-column text screen. Screenshot rows wait for the
 # VIC-I's video.
 #
+# --c128c64 runs a curated part of the x128c64 testlist instead, the rows
+# of c64-testlist.in that VICE's Makefile keeps for x128 in C64 mode, with
+# cpuport.prg swapped for cpuport128.prg. Which subtrees and rows it takes
+# is written out at Testbench::C128C64_DIRS (test/testbench_c128.rb). Each
+# runs on a C128 that powers on in C64 mode, as x128's -go64 starts it, or
+# with its cartridge in: a C128DCR for cia-new's 6526As, a C128 otherwise,
+# the NTSC board for vicii-ntsc. Rows that ask for the 6569 drop out. A
+# screenshot row compares against the 8565's reference, or the 8562's on
+# NTSC, where the program has one, as a vicii-new row does on the C64.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
@@ -103,7 +113,8 @@
 # default) and the per-test records merged back into testlist order.
 #
 # --engine runs the tests on a Spinel build of spinel/testbench.rb, or of
-# spinel/vic20_testbench.rb for --vic20, instead,
+# spinel/vic20_testbench.rb for --vic20 or spinel/c128_testbench.rb for
+# --c128c64, instead,
 # one build process per shard, each booting a fresh machine per test. The
 # build only emulates, and the rows are scored here as they are for a
 # test run in process (see Testbench::Engine in test/testbench_engine.rb).
@@ -117,6 +128,7 @@ lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "badline/vic20"
+require "badline/c128"
 require "chunky_png"
 require "etc"
 require "tmpdir"
@@ -128,6 +140,8 @@ require_relative "../test/testbench_region"
 require_relative "../test/testbench_engine"
 require_relative "../test/testbench_vic20"
 require_relative "../test/testbench_vic20_machine"
+require_relative "../test/testbench_c128"
+require_relative "../test/testbench_c128_machine"
 
 module Testbench
   TESTBENCH_DIR = File.expand_path("../vendor/VICE-testprogs/testbench", __dir__)
@@ -203,8 +217,8 @@ module Testbench
     result == "PASS" ? "PASS\n" : "FAIL\t#{result}\n"
   end
 
-  # family is :vic20 for a row of the VIC-20's testlist, and nil for the
-  # C64's.
+  # family is :vic20 for a row of the VIC-20's testlist, :c128 for one of
+  # the x128c64 list, and nil for the C64's.
   TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence, :disk, :family) do
     def id
       "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
@@ -216,8 +230,10 @@ module Testbench
     end
 
     # The VIC-II the row asks for: the 8565 for vicii-new, else the 6569.
+    # A C128 row gets the 8565, which the VIC-IIe is apart from its
+    # registers.
     def vic_model
-      options.include?(VICII_NEW_OPTION) ? :mos8565 : :mos6569
+      options.include?(VICII_NEW_OPTION) || c128? ? :mos8565 : :mos6569
     end
 
     # The CIA and the VIC-II, the pair a suite's machine is built from.
@@ -232,6 +248,10 @@ module Testbench
     include DriveRow
     include RegionRow
     include Vic20Row
+    include C128Row
+
+    # The machine a VIC-20 or a C128 row forks from.
+    def family_machine = vic20? ? vic20_machine : c128_machine
 
     def name
       return cartridge if prg.empty?
@@ -706,7 +726,7 @@ module Testbench
       cartridge = !test.cartridge.nil?
       key = [cartridge, test.drive?, *test.models, test.region, test.expansion, test.family, test.ram_configuration]
       @machines[key] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
-        next test.vic20_machine if test.vic20?
+        next test.family_machine if test.family
 
         if test.drive?
           Testbench.drive_machine(test.cia_model, test.vic_model)
@@ -820,10 +840,13 @@ if $PROGRAM_NAME == __FILE__
   rows = Testbench::Rows.new(carts: !ARGV.delete("--carts").nil?, models:,
                              expansions: !ARGV.delete("--expansions").nil?, drive:, standard:)
   vic20 = ARGV.delete("--vic20")
+  c128c64 = ARGV.delete("--c128c64")
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
   tests = if vic20
             Testbench::Vic20Testlist.tests(ARGV, scope:, exclude:)
+          elsif c128c64
+            Testbench::C128Testlist.tests(ARGV, scope:, exclude:)
           else
             Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
           end
