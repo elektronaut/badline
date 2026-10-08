@@ -46,6 +46,15 @@ describe Badline::Machine do
     expect { described_class.build(:vic20, model: "ntsc") }.to raise_error(ArgumentError, /ntsc/)
   end
 
+  it "builds a C128 in C64 mode" do
+    machine = described_class.build(:c128, model: "c128dcr")
+    expect([machine.class, machine.mode, chips(machine)]).to eq([Badline::C128, :c64, %i[mos8566 mos6526a mos8580 pal]])
+  end
+
+  it "fits a C128 with the SID given over the model's" do
+    expect(described_class.build(:c128, model: "c128", sid_model: :mos8580).sound_source.model).to eq(:mos8580)
+  end
+
   it "refuses a family it can't build" do
     expect { described_class.build(:pet, model: "c64") }.to raise_error(ArgumentError, /pet/)
   end

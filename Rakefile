@@ -455,13 +455,14 @@ namespace :spinel do
     SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil))
   end
 
-  desc "Check the Spinel build against CRuby: boot, or boot media for cycles, SingleStepTests and the VIC-20's boot"
+  desc "Check the Spinel build against CRuby: boot, or media for cycles, SingleStepTests, the VIC-20's and C128's boots"
   task :check, %i[media cycles] => %w[spinel:build vendor:65x02] do |_task, args|
     media = args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : []
     SpinelCheck.check_boot(*media)
     SpinelCheck.check_cpu_tests
     SpinelCheck.check_vic20_boot
     SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
+    SpinelCheck.check_c128_boots
   end
 
   desc "Run the Lorenz chain on the Spinel build, its stretches side by side ([1,2] picks some, " \

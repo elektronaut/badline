@@ -134,4 +134,28 @@ module Badline
       end
     end
   end
+
+  class C128
+    class Bus
+      @port_ddr: Integer
+      @port_out: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class VICWrites
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class DebugPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class VDC
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+  end
 end

@@ -33,11 +33,11 @@ module Badline
       # autostart then loads through it.
       #
       # An .m3u or .vfl list of disks attaches the first disk it lists
-      # (DiskList). A machine other than the C64 takes its own media
-      # (Vic20Media).
+      # (DiskList). The VIC-20 takes its own media (Vic20Media), and the
+      # C128 in C64 mode a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
-        return Vic20Media.attach(computer, path, autostart:, **) unless computer.is_a?(Computer)
+        return Vic20Media.attach(computer, path, autostart:, **) if computer.family == :vic20
 
         attach_c64(computer, path, autostart:, subtune:, **)
       end

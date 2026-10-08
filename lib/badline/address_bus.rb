@@ -217,5 +217,19 @@ module Badline
     def map_ram_pages
       @ram_expansion.map(@read_pages, @write_pages)
     end
+
+    def map_io_pages
+      {
+        vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
+        cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_bus => 0xde..0xdf
+      }.each do |chip, pages|
+        pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
+      end
+      @ram_expansion.map_io(@read_pages, @write_pages)
+      @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
+      @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
+      map_cartridge_io if @cartridge
+      map_extra_sids unless @sid_slots.empty?
+    end
   end
 end
