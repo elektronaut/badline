@@ -6,7 +6,7 @@ RSpec.describe Badline::VIC::Sequencer do
   subject(:sequencer) { described_class.new(504, registers, bank) }
 
   let(:registers) { Badline::VIC::Registers.new }
-  let(:bank) { Badline::VIC::Bank.new }
+  let(:bank) { Badline::VIC.new.vic_bank }
   let(:col) { 10 }
   let(:x_pos) { (col + 16) * 8 }
 
@@ -17,7 +17,7 @@ RSpec.describe Badline::VIC::Sequencer do
   end
 
   def put_char(screencode, bits)
-    bank.address_bus.ram.poke(screencode * 8, bits)
+    bank.ram.poke(screencode * 8, bits)
   end
 
   # Hands the sequencer one g-access through its ring, as the VIC does, in

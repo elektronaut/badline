@@ -24,7 +24,7 @@ module Badline
       0x8a8a8a, 0xb3ec91, 0x867ade, 0xb3b3b3
     ].freeze
 
-    attr_reader :address_bus, :display, :width, :height, :vic_bank, :column,
+    attr_reader :display, :width, :height, :vic_bank, :column,
                 :rasterline, :dirty_lines, :model, :region
 
     # The parts a VICE snapshot reads and sets.
@@ -86,7 +86,7 @@ module Badline
     SPRITE_BA_FIRST = 54
     SPRITE_BA_LENGTH = 5
 
-    def initialize(address_bus = nil, debug: false, model: :mos6569, region: Region::PAL)
+    def initialize(debug: false, model: :mos6569, region: Region::PAL)
       raise ArgumentError, "unknown VIC-II model #{model}" unless MODELS.include?(model)
 
       addressable_at(0xd000, length: 2**10)
@@ -99,8 +99,7 @@ module Badline
       @delayed_fetch = @core == :mos8565
       @dma_delay_idle = @core == :mos6569
       @bank_swaps = @core == :mos8565
-      @address_bus = address_bus || AddressBus.new
-      @vic_bank = VIC::Bank.new(@address_bus)
+      @vic_bank = VIC::Bank.new(self)
       @debug = debug
 
       @columns_per_line = region.cycles_per_line

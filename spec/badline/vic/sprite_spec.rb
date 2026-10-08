@@ -8,8 +8,8 @@ RSpec.describe Badline::VIC::Sprite do
   let(:bus) { Badline::VIC::Sprite::InternalBus.new(bank, Badline::VIC::Sprite::Timing.new(Badline::Region::PAL)) }
 
   let(:registers) { Badline::VIC::Registers.new }
-  let(:bank) { Badline::VIC::Bank.new }
-  let(:ram) { bank.address_bus.ram }
+  let(:bank) { Badline::VIC.new.vic_bank }
+  let(:ram) { bank.ram }
 
   # $D018 default screen base is $0000, so sprite pointers live at $03f8.
   def point_sprite(index, ptr)

@@ -148,9 +148,9 @@ RSpec.describe Badline::VIC do
       ntsc = described_class.new(region:)
       ntsc.poke(0xd011, 0x1b)
       ntsc.poke(0xd018, 0x18)
-      ntsc.address_bus.ram.poke(0x3fff, 0xff)
-      ntsc.address_bus.ram.poke(0x07fb, 0x33)
-      ntsc.address_bus.ram.poke(0x07f8, 0x44)
+      ntsc.vic_bank.ram.poke(0x3fff, 0xff)
+      ntsc.vic_bank.ram.poke(0x07fb, 0x33)
+      ntsc.vic_bank.ram.poke(0x07f8, 0x44)
       ((60 * region.cycles_per_line) + column).times { ntsc.cycle! }
       ntsc.phi1_data
     end
@@ -370,10 +370,10 @@ RSpec.describe Badline::VIC do
     end
 
     def put_char(column, code, color, bits)
-      ram = vic.address_bus.ram
+      ram = vic.vic_bank.ram
       ram.poke(0x0400 + column, code)
       ram.poke(0x2000 + (code * 8) + 1, bits)
-      vic.address_bus.color_ram.poke(0xd800 + column, color)
+      vic.vic_bank.color_ram.poke(0xd800 + column, color)
     end
 
     def render_col(xscroll)
@@ -421,8 +421,8 @@ RSpec.describe Badline::VIC do
     end
 
     it "draws the high nibble for set bits and the low nibble for clear bits" do
-      vic.address_bus.ram.poke(0x0400 + col, 0x4a) # fg 4, bg 10
-      vic.address_bus.ram.poke(0x2000 + (col * 8) + 1, 0b1000_0001)
+      vic.vic_bank.ram.poke(0x0400 + col, 0x4a) # fg 4, bg 10
+      vic.vic_bank.ram.poke(0x2000 + (col * 8) + 1, 0b1000_0001)
       expect(render_col).to eq([4, 10, 10, 10, 10, 10, 10, 4])
     end
   end
@@ -445,9 +445,9 @@ RSpec.describe Badline::VIC do
 
     # pairs: 00->bg0(6) 01->matrix high(3) 10->matrix low(5) 11->colour RAM(9)
     it "decodes pairs from background, video-matrix nibbles and colour RAM" do
-      vic.address_bus.ram.poke(0x0400 + col, 0x35)
-      vic.address_bus.color_ram.poke(0xd800 + col, 9)
-      vic.address_bus.ram.poke(0x2000 + (col * 8) + 1, 0b00_01_10_11)
+      vic.vic_bank.ram.poke(0x0400 + col, 0x35)
+      vic.vic_bank.color_ram.poke(0xd800 + col, 9)
+      vic.vic_bank.ram.poke(0x2000 + (col * 8) + 1, 0b00_01_10_11)
       expect(render_col).to eq([6, 6, 3, 3, 5, 5, 9, 9])
     end
   end
@@ -456,7 +456,7 @@ RSpec.describe Badline::VIC do
   # 19 and it draws at column 21. A write made at `run_to(column)` lands in
   # the CPU cycle after column - 1.
   describe "g-access timing" do
-    let(:ram) { vic.address_bus.ram }
+    let(:ram) { vic.vic_bank.ram }
     let(:line) { 52 }
     let(:group) { vic.display[(line * vic.width) + (21 * 8), 8] }
 
@@ -465,7 +465,7 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd011, 0x1b)
       vic.poke(0xd021, 6)
       ram.poke(0x0400 + 5, 0x41)
-      vic.address_bus.color_ram.poke(0xd800 + 5, 1)
+      vic.vic_bank.color_ram.poke(0xd800 + 5, 1)
     end
 
     def run_to(column)
@@ -596,8 +596,8 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd001, line)
       vic.poke(0xd027, 5)    # sprite 0 colour
       vic.poke(0xd020, 14)   # border colour
-      vic.address_bus.ram.poke(0x07f8, 0x80)        # sprite 0 data @ $2000
-      vic.address_bus.ram.poke(0x2000, 0b1000_0000) # row 0, leftmost pixel set
+      vic.vic_bank.ram.poke(0x07f8, 0x80)        # sprite 0 data @ $2000
+      vic.vic_bank.ram.poke(0x2000, 0b1000_0000) # row 0, leftmost pixel set
     end
 
     def run_to(target)
@@ -635,7 +635,7 @@ RSpec.describe Badline::VIC do
       let(:vic) { described_class.new(model: :mos8565) }
 
       it "shows a grey dot on the pixel before a new sprite color" do
-        3.times { |byte| vic.address_bus.ram.poke(0x2000 + byte, 0xff) }
+        3.times { |byte| vic.vic_bank.ram.poke(0x2000 + byte, 0xff) }
         (((line + 1) * 63) + 26).times { vic.cycle! }
         vic.poke(0xd027, 9)
         (63 - vic.column).times { vic.cycle! }
@@ -656,9 +656,9 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd001, line)
       vic.poke(0xd002, 100)  # sprite 1 at the same position
       vic.poke(0xd003, line)
-      vic.address_bus.ram.poke(0x07f8, 0x80) # both point at $2000
-      vic.address_bus.ram.poke(0x07f9, 0x80)
-      vic.address_bus.ram.poke(0x2000, 0b1000_0000)
+      vic.vic_bank.ram.poke(0x07f8, 0x80) # both point at $2000
+      vic.vic_bank.ram.poke(0x07f9, 0x80)
+      vic.vic_bank.ram.poke(0x2000, 0b1000_0000)
     end
 
     it "raises a sprite-sprite collision and asserts the IRQ line" do
@@ -713,7 +713,7 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd015, 0x01)     # enable sprite 0
       vic.poke(0xd000, 24)       # sprite X 24 -> raster 128 (column 0)
       vic.poke(0xd001, line - 1) # Y match one line up; row 0 displays at line
-      ram = vic.address_bus.ram
+      ram = vic.vic_bank.ram
       ram.poke(0x0400, 1)              # column 0 shows character 1
       ram.poke(0x2000 + 8 + 1, 0x80)   # char 1, row 1: foreground at pixel 0
       ram.poke(0x07f8, 0x90)           # sprite 0 data @ $2400
@@ -742,7 +742,7 @@ RSpec.describe Badline::VIC do
         chip.poke(reg, value)
       end
       { 0x0400 => 1, 0x2009 => 0x80, 0x07f8 => 0x90, 0x2400 => 0x80 }.each do |addr, value|
-        chip.address_bus.ram.poke(addr, value)
+        chip.vic_bank.ram.poke(addr, value)
       end
       chip
     end
@@ -827,7 +827,7 @@ RSpec.describe Badline::VIC do
     before do
       vic.open_bus = -> { 0xa7 }
       vic.poke(0xd011, 0x1b)
-      vic.address_bus.color_ram.poke(0xd800 + 40 + 3, 0x05)
+      vic.vic_bank.color_ram.poke(0xd800 + 40 + 3, 0x05)
       ((58 * 63) + 60).times { vic.cycle! } # the row from line 51 ends on 58
       vic.poke(0xd011, 0x1c) # YSCROLL=4 keeps line 59 from matching
       16.times { vic.cycle! }
@@ -989,7 +989,7 @@ RSpec.describe Badline::VIC do
   describe "#phi1_data" do
     subject { vic.phi1_data }
 
-    let(:ram) { vic.address_bus.ram }
+    let(:ram) { vic.vic_bank.ram }
     let(:line) { 60 }
 
     before do
@@ -1063,10 +1063,10 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd018, 0x18) # screen @ $0400, char @ $2000
       vic.poke(0xd011, 0x1b) # DEN=1, RSEL=1, YSCROLL=3
       vic.poke(0xd021, bg)
-      ram = vic.address_bus.ram
+      ram = vic.vic_bank.ram
       256.times { |i| ram.poke(0x0400 + i, 1) }      # screen full of char 1
       8.times { |r| ram.poke(0x2000 + 8 + r, 0xff) } # char 1 solid in every row
-      vic.address_bus.color_ram.poke(0xd800 + cell, fg)
+      vic.vic_bank.color_ram.poke(0xd800 + cell, fg)
     end
 
     # Run normally up to the first bad line, then keep YSCROLL clear of both
@@ -1087,7 +1087,7 @@ RSpec.describe Badline::VIC do
     # Pinned by ss-pri*: idle state reads $3fff and paints it black on the
     # background, as if the video matrix held zero.
     it "renders the idle byte at $3fff in black" do
-      vic.address_bus.ram.poke(0x3fff, 0b1000_0001)
+      vic.vic_bank.ram.poke(0x3fff, 0b1000_0001)
       run_through_gap
       expect(vic.display[(gap_line * vic.width) + ((16 + cell) * 8), 8]).to eq([0, bg, bg, bg, bg, bg, bg, 0])
     end
@@ -1095,8 +1095,8 @@ RSpec.describe Badline::VIC do
     # Idle lines follow the gap up to the trigger line, where a bad line
     # starts in column 30. Returns the pixels of cell 16 on that line.
     def trigger_dma_delay(line)
-      vic.address_bus.ram.poke(0x3fff, 0b0001_1000)
-      vic.address_bus.ram.poke(0x38ff, 0b1000_0001)
+      vic.vic_bank.ram.poke(0x3fff, 0b0001_1000)
+      vic.vic_bank.ram.poke(0x38ff, 0b1000_0001)
       run_through_gap
       ((gap_line + 1)...line).each do |idle|
         vic.poke(0xd011, 0x18 | ((idle + 4) & 0b111))
@@ -1139,10 +1139,10 @@ RSpec.describe Badline::VIC do
       vic.poke(0xd018, 0x18)
       vic.poke(0xd020, border)
       vic.poke(0xd021, 6) # background, distinct from the border
-      ram = vic.address_bus.ram
+      ram = vic.vic_bank.ram
       256.times { |i| ram.poke(0x0400 + i, 1) }      # screen full of char 1
       8.times { |r| ram.poke(0x2000 + 8 + r, 0xff) } # char 1 solid in every row
-      vic.address_bus.color_ram.poke(0xd800 + 10, 1)
+      vic.vic_bank.color_ram.poke(0xd800 + 10, 1)
     end
 
     def run_to(line)

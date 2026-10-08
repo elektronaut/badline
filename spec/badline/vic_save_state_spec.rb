@@ -9,8 +9,8 @@ describe Badline::VIC, "#save_state" do
   # The VIC's view of memory is its machine's, and each VIC builds its own
   # frozen layout tables for its region.
   let(:wiring) do
-    { "Badline::VIC" => %i[@address_bus @sprite_ba_tail @sprite_ba_head @hook_columns @blank_columns @blank_lines],
-      "Badline::VIC::Bank" => %i[@address_bus], "Badline::VIC::Sequencer" => %i[@window_compares] }
+    { "Badline::VIC" => %i[@sprite_ba_tail @sprite_ba_head @hook_columns @blank_columns @blank_lines],
+      "Badline::VIC::Bank" => %i[@cia2], "Badline::VIC::Sequencer" => %i[@window_compares] }
   end
 
   %i[mos6569 mos8565].each do |model|

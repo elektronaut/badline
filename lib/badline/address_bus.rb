@@ -79,7 +79,7 @@ module Badline
       @joystick1 = Joystick.new
       @joystick2 = Joystick.new
       @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-      @vic  = VIC.new(self, model: vic_model, region:)
+      @vic  = VIC.new(model: vic_model, region:)
       @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model, region:)
       @cia2 = CIA.new(start: 0xdd00, model: cia_model, region:)
       @control_ports.port_a_source = @cia1
@@ -92,6 +92,8 @@ module Badline
       @datasette.on_sense_change { @io_port.value = port_value }
 
       @color_ram = ColorMemory.new(@vic)
+      @vic.vic_bank.connect(cia2: @cia2, color_ram: @color_ram)
+      @vic.vic_bank.map_character_rom(character_rom)
       @open_bus = OpenBus.new(@vic)
       @cpu_off_bus = false
 
@@ -203,6 +205,7 @@ module Badline
       @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
       @ram_expansion.map(@read_pages, @write_pages)
       @video_ram = @ram_expansion.video_ram
+      @vic.vic_bank.map(@video_ram, phi1_ultimax: @phi1_ultimax, ultimax: @ultimax, romh: @cartridge&.romh)
 
       @ultimax ? map_ultimax_pages : map_banked_pages
       @write_pages[0xff] = @reu.trigger.wrap(@write_pages[0xff]) if @reu
