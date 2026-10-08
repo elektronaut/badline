@@ -51,7 +51,13 @@ module Badline
     C64GS = Profile.new(name: "c64gs", vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580,
                         region: Region::PAL, kernal: :gs, datasette: false, board: :gs)
 
-    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC, DREAN, SX64, PET64, C64GS].freeze
+    # The MAX Machine, or Ultimax, of Japan: the 6566, an NTSC VIC-II
+    # for static RAM, which runs here as the first NTSC C64s' 6567R56A,
+    # one CIA, 2K of RAM and no ROMs, so it runs only a cartridge's.
+    ULTIMAX = Profile.new(name: "ultimax", vic_model: :mos6569, cia_model: :mos6526, sid_model: :mos6581,
+                          region: Region::NTSC_OLD, kernal: :c64, datasette: true, board: :max)
+
+    ALL = [C64, C64C, NTSC, NEW_NTSC, OLD_NTSC, DREAN, SX64, PET64, C64GS, ULTIMAX].freeze
 
     def self.named(name)
       model = ALL.find { |candidate| candidate.name == name }

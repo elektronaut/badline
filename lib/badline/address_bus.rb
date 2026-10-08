@@ -204,8 +204,9 @@ module Badline
     # so reads and writes dispatch through per-page handler tables instead
     # of range checks.
     def update_overlays!
-      @ultimax = @cartridge ? @cartridge.ultimax? : false
-      @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
+      max = @board == :max
+      @ultimax = max || (@cartridge ? @cartridge.ultimax? : false)
+      @phi1_ultimax = max || (@cartridge ? @cartridge.phi1_ultimax? : false)
       @video_ram = @ram_expansion.video_ram
       @vic.vic_bank.map(@video_ram, phi1_ultimax: @phi1_ultimax, ultimax: @ultimax, romh: @cartridge&.romh)
 

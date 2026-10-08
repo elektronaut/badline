@@ -8,6 +8,18 @@ module Badline
     # ROMs, the chips, and #map_ram_pages, which lays out the RAM that the
     # ROMs, the cartridge and I/O map over.
     module PLA
+      # A chip's registers seen at another page, which reads and writes
+      # them as at the page the chip starts at.
+      class Mirror
+        def initialize(chip, start)
+          @chip = chip
+          @start = start
+        end
+
+        def peek(addr) = @chip.peek(@start | (addr & 0xff))
+        def poke(addr, value) = @chip.poke(@start | (addr & 0xff), value)
+      end
+
       private
 
       def map_pla_pages
@@ -27,19 +39,26 @@ module Badline
         end
       end
 
-      # Ultimax cartridges ignore the $01 lines: 4K of RAM, ROML/ROMH windows,
+      # Ultimax mode ignores the $01 lines: 4K of RAM, ROML/ROMH windows,
       # I/O always visible and open address space everywhere else. The ROML
       # and ROMH selects fire on writes as well, so cartridge RAM or flash in
-      # either window takes the writes there.
+      # either window takes the writes there. The MAX has 2K of RAM, and is
+      # in Ultimax mode with no cartridge too.
       def map_ultimax_pages
-        @read_pages.fill(@open_bus, 0x10, 0xf0)
-        @write_pages.fill(@open_bus, 0x10, 0xf0)
+        first = @board == :max ? 0x08 : 0x10
+        @read_pages.fill(@open_bus, first, 0x100 - first)
+        @write_pages.fill(@open_bus, first, 0x100 - first)
+        map_ultimax_cartridge if @cartridge
+        map_io_pages
+        map_max_io if @board == :max
+      end
+
+      def map_ultimax_cartridge
         @read_pages.fill(@cartridge.roml, 0x80, 0x20) if @cartridge.roml
         map_ultimax_writes(@cartridge.roml, 0x80)
         @read_pages.fill(@cartridge.romh, 0xe0, 0x20) if @cartridge.romh
         map_ultimax_writes(@cartridge.romh, 0xe0)
         map_ultimax_a000
-        map_io_pages
       end
 
       def map_ultimax_writes(bank, first_page)
@@ -51,6 +70,17 @@ module Badline
 
         @read_pages.fill(window, 0xa0, 0x20)
         @write_pages.fill(window, 0xa0, 0x20)
+      end
+
+      # The MAX has no CIA 2 and no I/O 2: CIA 1 answers all through
+      # $DC00-$DFFF, but for the I/O 1 page a cartridge takes.
+      def map_max_io
+        @cia1_mirror ||= Mirror.new(cia1, 0xdc00)
+        (0xdd..0xdf).each { |page| @read_pages[page] = @write_pages[page] = @cia1_mirror }
+        return unless @cartridge
+
+        @write_pages[0xde] = @cartridge
+        @read_pages[0xde] = @cartridge if @cartridge.readable_io_pages.include?(0xde)
       end
 
       # EXROM and GAME select the cartridge whether or not it has a chip
