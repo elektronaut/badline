@@ -10,13 +10,16 @@ module Badline
       # left out.
       ACTIONS = {
         "key" => true, "type" => true, "insert" => true, "eject" => true, "screenshot" => true, "menu" => true,
-        "reset" => false, "freeze" => false, "resume" => false, "quit" => false
+        "display" => true, "reset" => false, "freeze" => false, "resume" => false, "quit" => false
       }.freeze
 
       # The frames a key or the freeze button is held for.
       HOLD = 5
 
       EJECTABLE = %w[disk tape cartridge].freeze
+
+      # The C128's screens display shows: the VIC-IIe's or the VDC's.
+      DISPLAYS = %w[vic vdc].freeze
 
       # What insert takes: disk images, tapes and cartridges, or an .m3u
       # or .vfl list of disks or a directory to mount as device 8.
@@ -83,6 +86,7 @@ module Badline
         return true if action == "menu"
         return argument.empty? unless ACTIONS[action]
         return EJECTABLE.include?(argument) if action == "eject"
+        return DISPLAYS.include?(argument) if action == "display"
         return insertable?(argument) if action == "insert"
 
         !argument.empty?

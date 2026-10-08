@@ -85,6 +85,9 @@ module Badline
         end
       end
 
+      # Whether the machine is a C128, whose F8 switches its screens.
+      def c128? = @computer.family == :c128
+
       private
 
       def vic20? = @computer.family == :vic20
@@ -131,7 +134,7 @@ module Badline
         info("CARTRIDGE", cartridge.nil? ? "" : cartridge.name)
         row("INSERT...", :insert_cartridge)
         row("REMOVE", :remove_cartridge)
-        row("FREEZE", :freeze) if !cartridge.nil? && cartridge.freezer?
+        row("FREEZE", :freeze) if !cartridge.nil? && cartridge.freezer? && @computer.family == :c64
         return if @reu_kb.nil?
 
         skip
@@ -166,7 +169,9 @@ module Badline
         end
       end
 
+      # The C128 names its model and the mode it runs in first.
       def draw_power
+        info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
         row("RESET", :reset)
         row("POWER CYCLE", :power_cycle)
         skip

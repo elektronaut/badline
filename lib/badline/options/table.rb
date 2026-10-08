@@ -11,6 +11,9 @@ module Badline
     # emulated.
     VIC20_MODELS = %w[pal ntsc].freeze
 
+    # The C128's models, as C128::Model names them.
+    C128_MODELS = %w[c128 c128ntsc c128dcr c128dcrntsc].freeze
+
     # The VIC-20 RAM expansions --ram takes, in the order the help lists
     # them.
     RAM_NAMES = %w[unexpanded 3k 8k 16k 24k 32k all].freeze
@@ -36,9 +39,12 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),
-      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal",
+      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal; " \
+                                 "C128: #{C128_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
+      Option.new("--c64", "Start the C128 in C64 mode, the only mode it runs in so far",
+                 section: "Window options", needs: :window),
       Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded)",
                  section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",

@@ -242,6 +242,69 @@ describe Badline::Frontend::App do
     end
   end
 
+  describe "with a C128" do
+    let(:computer) { Badline::C128.new }
+
+    def options(*argv) = Badline::Options.parse(["c128", "--unpaced", *argv])
+
+    def f8 = key(Badline::Frontend::Keys::F8)
+
+    def size(path) = File.binread(path).unpack("@18l2")
+
+    # The VDC programmed for one line of 80 characters of 8 dots, the
+    # horizontal sync 8 characters long, and 25 rows of 8 lines with 4
+    # lines of vertical sync, as the C128's editor sets it up.
+    def program_vdc
+      { 0 => 126, 1 => 80, 2 => 102, 3 => 0x48, 4 => 38, 6 => 25, 7 => 32, 9 => 7, 22 => 0x78 }.each do |reg, value|
+        computer.vdc.poke(0xd600, reg)
+        computer.vdc.poke(0xd601, value)
+      end
+    end
+
+    it "shows the VIC-IIe's screen" do
+      run(argv: %w[--frames 1 --screenshot vic.bmp])
+      expect(size("vic.bmp")).to eq([384 * 2, 272 * 2])
+    end
+
+    it "switches to the VDC with F8, rendering it in place of the VIC-IIe" do
+      run(f8)
+      expect([computer.vdc.render, computer.vic.render?]).to eq([true, false])
+    end
+
+    it "switches back to the VIC-IIe with F8 again" do
+      run(f8, f8)
+      expect([computer.vdc.render, computer.vic.render?]).to eq([false, true])
+    end
+
+    it "fits the window to the VDC's display at a display event, a dot a window pixel and its lines doubled" do
+      program_vdc
+      run(argv: %w[--frames 3 --at 1:display=vdc --screenshot vdc.bmp])
+      expect(size("vdc.bmp")).to eq([(127 - 8) * 8, 308 * 2])
+    end
+
+    it "presses the C128's keypad keys" do
+      run(key(89), argv: %w[--frames 1])
+      expect(computer.keyboard.keys).to eq([:keypad1])
+    end
+
+    describe "snapshots" do
+      around do |example|
+        Dir.mktmpdir do |dir|
+          Badline.data_path = dir
+          example.run
+        end
+      ensure
+        Badline.data_path = nil
+      end
+
+      it "quicksaves it with F11, as a C128 snapshot" do
+        run(key(Badline::Frontend::Keys::F11))
+        quicksave = File.join(Badline.data_folder("quicksaves"), "quicksave-1.vsf")
+        expect(Badline::Snapshot.read(quicksave).container.machine).to eq("C128")
+      end
+    end
+  end
+
   describe "a true drive" do
     it "draws its LED in the border, lit as the drive powers on" do
       Badline::Media::TrueDrive.plug(computer)

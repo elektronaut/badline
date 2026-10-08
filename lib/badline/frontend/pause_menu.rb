@@ -145,6 +145,7 @@ module Badline
         draw_sections
         @buttons.plain(@left + 6, @top + HEIGHT - 28, "QUICK OPEN...", :quick_open)
         painter.text(@left + 8, @top + HEIGHT - 12, "F9/ESC: RESUME", DIM)
+        painter.text(@left + BODY, @top + HEIGHT - 12, "F8: 40/80 SCREEN", DIM) if @pages.c128?
         @pages.draw(PAGES[@section], @left + BODY, @top + 34)
       end
 

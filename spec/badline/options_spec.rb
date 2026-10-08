@@ -417,6 +417,59 @@ describe Badline::Options do
       end
     end
 
+    context "with c128" do
+      let(:argv) { ["c128", "--model", "c128dcr", "--sid", "6581", program_path] }
+
+      it "runs the C128 model given, with the SID given, on the media given" do
+        expect([options.family, options.model, options.sid_model, options.media_path])
+          .to eq([:c128, "c128dcr", :mos6581, program_path])
+      end
+    end
+
+    context "with c128 alone" do
+      let(:argv) { %w[c128 --c64] }
+
+      it "runs the PAL C128, in C64 mode" do
+        expect([options.model, options.c64_mode?]).to eq(["c128", true])
+      end
+    end
+
+    context "with a program that loads where C128 BASIC starts" do
+      let(:argv) { [program_path] }
+
+      before { File.binwrite(program_path, "\x01\x1c") }
+
+      it "runs the C128" do
+        expect(options.family).to eq(:c128)
+      end
+    end
+
+    context "with c64 and a program that loads where C128 BASIC starts" do
+      let(:argv) { ["c64", program_path] }
+
+      before { File.binwrite(program_path, "\x01\x1c") }
+
+      it "runs the C64" do
+        expect(options.family).to eq(:c64)
+      end
+    end
+
+    {
+      "--c64 for the C64" => [%w[--c64], "--c64 needs c128"],
+      "an NTSC C128 by --ntsc" => [%w[c128 --ntsc], "--ntsc needs the C64; the NTSC C128 is --model c128ntsc"],
+      "a C64 model for the C128" => [%w[c128 --model c64c], "invalid argument: --model c64c"],
+      "an REU for the C128" => [%w[c128 --reu 512], "--reu needs the C64"],
+      "the C128 without the window" => [%w[c128 --headless tune.sid], "the C128 needs the window"]
+    }.each do |name, (args, message)|
+      context "with #{name}" do
+        let(:argv) { args }
+
+        it "raises" do
+          expect { options }.to raise_error(described_class::Error, message)
+        end
+      end
+    end
+
     context "with c64 after the media" do
       let(:argv) { [program_path, "c64"] }
 
@@ -429,11 +482,9 @@ describe Badline::Options do
       let(:argv) { ["--help"] }
 
       it "lists the subcommands" do
-        expect(options.help.lines).to include(
-          "    c64                              Run a C64, the one --model names (the default)\n",
-          "    vic20                            Run a PAL VIC-20, with the RAM --ram names\n",
-          "    sid                              Play .sid tunes and directories of them\n"
-        )
+        expect(options.help.lines.grep(/\A {4}(c64|vic20|c128|sid) /).map { |line| line.split(/ {2,}/).last.chomp })
+          .to eq(["Run a C64, the one --model names (the default)", "Run a PAL VIC-20, with the RAM --ram names",
+                  "Run a C128 in C64 mode, the one --model names", "Play .sid tunes and directories of them"])
       end
     end
   end

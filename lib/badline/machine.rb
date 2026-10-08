@@ -4,8 +4,8 @@ module Badline
   # = Machine
   #
   # The machines badline builds by family, as the command line's
-  # subcommand names them: the C64, Computer, and the VIC-20, Vic20, and
-  # by Machine.build alone the C128 in C64 mode, C128.
+  # subcommand names them: the C64, Computer, the VIC-20, Vic20, and the
+  # C128 in C64 mode, C128.
   #
   # A machine answers what the front end, Media, the runners and the
   # snapshots call on it:
@@ -36,8 +36,10 @@ module Badline
   # +attach_drive1541+, +drive1541+, +install_debug_register+ and
   # +capture_output+.
   #
-  # The C128 answers all but the snapshots, and of the media all but the
-  # cartridge button.
+  # The C128 answers all but the cartridge button, and besides +mode+,
+  # :c64 so far, +vdc+, the VDC a front end can show in place of +video+
+  # once +vdc_shown=+ renders it, +press_caps_lock+, +release_caps_lock+,
+  # +press_display_key+ and +release_display_key+.
   module Machine
     # A new machine of `family`, :c64, :vic20 or :c128, the model of it
     # `model` names. A C64's model is one of Model::ALL, with its SID

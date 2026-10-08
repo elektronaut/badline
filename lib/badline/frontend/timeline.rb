@@ -87,6 +87,17 @@ module Badline
         section
       end
 
+      # Whether the frame has a display event.
+      def display?(frame) = @events.any? { |event| event.frame == frame && event.action == "display" }
+
+      # The C128 screen the frame's display event shows, vic or vdc, or an
+      # empty string without one.
+      def display_at(frame)
+        chip = ""
+        @events.each { |event| chip = event.argument if event.frame == frame && event.action == "display" }
+        chip
+      end
+
       # Whether the pause menu closes at the frame.
       def resume?(frame) = @events.any? { |event| event.frame == frame && event.action == "resume" }
 
@@ -133,9 +144,9 @@ module Badline
         hold(event)
       end
 
-      # The VIC-20 has no cartridge with a button yet.
+      # The VIC-20 and the C128 have no cartridge with a button yet.
       def freeze(computer, event)
-        return if computer.family == :vic20
+        return unless computer.family == :c64
 
         computer.press_cartridge_button
         hold(event)
@@ -146,7 +157,7 @@ module Badline
       end
 
       def release(computer, event)
-        return computer.release_cartridge_button if event.action == "freeze"
+        return computer.release_cartridge_button if event.action == "freeze" && computer.family == :c64
 
         name = event.argument
         return computer.release_restore if name == "restore"
@@ -183,7 +194,7 @@ module Badline
       end
 
       # Whether there's one in to eject. A VIC-20 has no cartridge to take out yet.
-      def ejectable?(computer, what) = (computer.family == :c64 || what != "cartridge") && inserted?(computer, what)
+      def ejectable?(computer, what) = (computer.family != :vic20 || what != "cartridge") && inserted?(computer, what)
 
       def inserted?(computer, what)
         return !computer.datasette.tape.nil? if what == "tape"

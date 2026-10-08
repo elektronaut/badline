@@ -5,16 +5,17 @@ require "badline/options/event"
 require "badline/options/table"
 require "badline/options/help"
 require "badline/options/validation"
+require "badline/options/family"
 
 module Badline
   # The command line of both builds, badline-ruby and the native badline.
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. `sid`, given
   # first, plays .sid tunes and directories of them in the terminal.
-  # `c64` or `vic20`, given first, names the machine family, and without
-  # either the family is the C64. The
-  # native build adds --no-sound and --version, and badline-ruby adds
-  # --disable-jit.
+  # `c64`, `vic20` or `c128`, given first, names the machine family, and
+  # without one the family is the C64, or the C128 for a program that loads
+  # where C128 BASIC starts. The native build adds --no-sound and
+  # --version, and badline-ruby adds --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come
@@ -23,6 +24,7 @@ module Badline
   # arguments before paying for the emulator.
   class Options
     include Validation
+    include Family
 
     class Error < StandardError; end
 
@@ -55,7 +57,8 @@ module Badline
     attr_reader :program, :media_path, :tune_paths, :subtune, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
-    # The machine family to build (Badline::Machine), :c64 or :vic20.
+    # The machine family to build (Badline::Machine), :c64, :vic20 or
+    # :c128.
     attr_reader :family
 
     # The VIC-20's RAM expansion --ram names, a key of
@@ -72,6 +75,8 @@ module Badline
       @program = native ? "badline" : "badline-ruby"
       @media_path = nil
       @family = :c64
+      @family_named = false
+      @c64_mode = false
       @sid_command = false
       @tune_paths = []
       @subtune = nil
@@ -110,6 +115,7 @@ module Badline
       args = argv.dup
       subcommand(args)
       argument(args.shift, args) until args.empty?
+      pick_family
       play_lone_tune
       validate unless help? || version?
       self
@@ -167,9 +173,14 @@ module Badline
 
     def jit? = @jit
 
-    # The name of the model to build: a C64 Badline::Model names, or a
-    # VIC-20 of VIC20_MODELS. --ntsc is short for --model ntsc.
-    def model = @models.first || (@family == :vic20 ? VIC20_MODELS.first : MODELS.first)
+    # The name of the model to build: a C64 Badline::Model names, a VIC-20
+    # of VIC20_MODELS or a C128 of C128_MODELS. --ntsc is short for --model
+    # ntsc.
+    def model = @models.first || family_models.first
+
+    # Whether --c64 asks the C128 to start in C64 mode, the only mode it
+    # runs in so far.
+    def c64_mode? = @c64_mode
 
     def help? = @help
 
@@ -181,17 +192,6 @@ module Badline
       return false if @sid_command && (option.needs == :window || NOT_FOR_SID.include?(option.name))
 
       [:both, @native ? :native : :ruby].include?(option.build)
-    end
-
-    # Takes `sid`, `c64` or `vic20` when given first.
-    def subcommand(args)
-      case args.first
-      when "sid" then @sid_command = true
-      when "c64" then @family = :c64
-      when "vic20" then @family = :vic20
-      else return
-      end
-      args.shift
     end
 
     # A .sid on its own plays in the SID player, as `sid` would, unless an
@@ -273,6 +273,7 @@ module Badline
       when "--verbose" then @verbose = true
       when "--true-drive" then @true_drive = true
       when "--ntsc" then @models << "ntsc"
+      when "--c64" then @c64_mode = true
       when "--unpaced" then @paced = false
       when "--disable-jit" then @jit = false
       when "--help" then @help = true

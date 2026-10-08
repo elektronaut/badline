@@ -73,6 +73,8 @@ module Badline
       def key(scancode, down)
         if joystick_mode? && Keys.joystick?(scancode)
           joystick_key(scancode, down)
+        elsif @computer.family == :c128
+          c128_key(Keys.c128_key(scancode), down)
         else
           c64_key(Keys.c64_key(scancode), down)
         end
@@ -108,6 +110,15 @@ module Badline
           down ? @computer.press_restore : @computer.release_restore
         else
           down ? @computer.keyboard.press(key) : @computer.keyboard.release(key)
+        end
+      end
+
+      # CAPS LOCK and 40/80 DISPLAY aren't in the C128's matrix either.
+      def c128_key(key, down)
+        case key
+        when :caps_lock then down ? @computer.press_caps_lock : @computer.release_caps_lock
+        when :forty_eighty then down ? @computer.press_display_key : @computer.release_display_key
+        else c64_key(key, down)
         end
       end
 

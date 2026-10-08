@@ -29,6 +29,7 @@ module Badline
       # warns it without a block.
       def load(&)
         return load_vic20(&) if vic20?
+        return load_c128(&) if c128?
 
         computer = badline? ? opening { Computer.restored(state) } : Vice.setup(@container).build
         tell(badline? ? state_report(computer) : Vice::Restore.apply(@container, computer), &)
@@ -37,6 +38,9 @@ module Badline
 
       # Whether the machine is a VIC-20, as the container names it.
       def vic20? = @container.machine == Container::VIC20
+
+      # Whether the machine is a C128, as the container names it.
+      def c128? = @container.machine == Container::C128
 
       # Restores `computer` from the snapshot, and returns the Report. A
       # snapshot that fails leaves the machine as it was.
@@ -56,6 +60,16 @@ module Badline
         raise FormatError, "badline reads only its own VIC-20 snapshots, not xvic's" unless badline?
 
         machine = Vic20.restored(state)
+        tell(state_report(machine), &)
+        machine
+      end
+
+      # A C128 restores from its BADLINE module alone. x128's own modules
+      # aren't read.
+      def load_c128(&)
+        raise FormatError, "badline reads only its own C128 snapshots, not x128's" unless badline?
+
+        machine = C128.restored(state)
         tell(state_report(machine), &)
         machine
       end

@@ -5,6 +5,7 @@ require "badline/c128/mmu"
 require "badline/c128/vdc"
 require "badline/c128/bus"
 require "badline/c128/cpu"
+require "badline/c128/saved_state"
 
 module Badline
   # The Commodore 128 in C64 mode: the 8502 on the VIC-IIe's clock, two
@@ -169,6 +170,13 @@ module Badline
     # :vdc the VDC, whose display paints only while its #render is on.
     def video(chip = :vic) = chip == :vdc ? @vdc : @vic
 
+    # Renders the VDC's display, and not the VIC-IIe's, while a front end
+    # shows it, or with false the other way round.
+    def vdc_shown=(shown)
+      @vdc.render = shown
+      @vic.render = !shown
+    end
+
     # The chip a front end records the machine's sound from.
     def sound_source = @sid
 
@@ -222,6 +230,15 @@ module Badline
 
     def release_caps_lock
       @bus.caps_lock = false
+    end
+
+    # The 40/80 DISPLAY key locks down and up.
+    def press_display_key
+      @bus.mmu.display_key = true
+    end
+
+    def release_display_key
+      @bus.mmu.display_key = false
     end
 
     def capture_output

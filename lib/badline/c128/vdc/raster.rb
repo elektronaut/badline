@@ -30,6 +30,22 @@ module Badline
         # Outside the displayed rows, as status bit 5 reads.
         def vertical_blank? = @adjusting || @row >= @registers[6]
 
+        def save_state(out)
+          out.int(@frame).int(@row).int(@row_line).boolean(@adjusting).int(@frame_line).int(@frame_lines)
+          out.int(@sync_start).int(@sync_lines)
+        end
+
+        def load_state(input)
+          @frame = input.int
+          @row = input.int
+          @row_line = input.int
+          @adjusting = input.boolean?
+          @frame_line = input.int
+          @frame_lines = input.int
+          @sync_start = input.int
+          @sync_lines = input.int
+        end
+
         def end_line(render)
           paint_line if render
           @frame_line += 1

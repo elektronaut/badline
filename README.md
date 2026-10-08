@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, and the C128 in C64 mode, as `badline c128`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -69,7 +69,8 @@ from it.
 
 The first argument can name the machine, as in `badline c64 game.prg`.
 The C64 is the default, and `--model` picks which C64. See
-[The VIC-20](#the-vic-20) for `badline vic20`.
+[The VIC-20](#the-vic-20) for `badline vic20` and [The C128](#the-c128)
+for `badline c128`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -87,6 +88,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
+| `--c64` | Start a C128 in C64 mode, the only mode it runs in so far. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
 | `--no-vsync` | Pace the window by a timer, or by the sound while it plays, instead of the display's vsync |
@@ -162,6 +164,41 @@ goes in as a `.crt` does. Disks go through the KERNAL traps or, with
 `--true-drive`, a 1541, as on the C64. `F11`, `F12` and the pause menu
 save and load the VIC-20 too, in badline's own snapshots: xvic's `.vsf`
 files don't load.
+
+## The C128
+
+`badline c128` runs a C128 in C64 mode, the state it reaches when `C=`
+is held at power-on, and takes the same media as the C64:
+
+```sh
+badline c128              # READY., on the C128's C64 mode
+badline c128 game.prg     # Load and run a program
+badline c128 game.d64     # Mount a disk image as device 8 and load it
+badline c128 --model c128dcr game.crt
+```
+
+C128 mode, with BASIC 7.0, doesn't boot yet, so `--c64` changes nothing
+for now. `--model` picks the board: `c128` (the default, the flat C128
+and the plastic C128D, PAL, with the 6581 SID and a VDC with 16K of
+RAM), `c128dcr` (the metal C128DCR, with the 8580, 6526As and a VDC with
+64K), and `c128ntsc` and `c128dcrntsc` for their NTSC versions. `--sid`
+takes the model's place. Without `c128`, a program that loads at
+`$1C01`, where C128 BASIC starts, picks the C128 too, and a `.d71`
+stays on the C64.
+
+The window shows the VIC-IIe's 40 columns, and `F8` switches it to the
+VDC's 80 columns and back, as a monitor's 40/80 switch does. The window
+takes the VDC's size, which its registers set, a dot to a pixel with
+its lines doubled. Only the chip shown is drawn.
+
+Besides the C64's keys, the C128's own keys sit on their host keys: the
+keypad on the keypad, `HELP` on `Insert` (or `Help`), `ALT` on the right
+`Alt`, `NO SCROLL` on `Scroll Lock`, `CAPS LOCK` on `Caps Lock` and
+`40/80 DISPLAY` on `Pause`. In C64 mode only a program that scans them
+itself sees them. `ESC`, `TAB`, `LINE FEED` and the separate cursor keys
+have no host key yet: `Esc`, `Tab` and the arrows keep their C64 uses.
+`F11`, `F12` and the pause menu save and load the C128 in badline's own
+snapshots, and x128's `.vsf` files don't load.
 
 ## Snapshots
 
@@ -258,7 +295,7 @@ too.
 | Expansion port | The cartridge: insert, remove, and its freeze button if it has one |
 | Ports | The device in each control port, and where the keys go |
 | Sound | Mute, and the SID's model |
-| Power | Reset, power cycle and quit |
+| Power | Reset, power cycle and quit, and on a C128 its model and mode |
 
 INSERT opens a file browser. A disk's set is the `.m3u` or `.vfl` list it
 was opened from, or one in its folder that lists it. Without one, it comes
@@ -294,6 +331,11 @@ program or `.sid` dropped on it opens the menu to ask first.
   both 6522 VIAs, the keyboard, the joystick and RESTORE, RAM
   expansions up to 35K (`--ram`), cartridges, the datasette and the
   serial bus to device 8 (`badline vic20`).
+- **C128**: C64 mode on the 8502 with its port, FAST mode (roughly
+  timed), the VIC-IIe
+  with its extra keyboard lines, the MMU's state, the 8563 or 8568 VDC
+  with its 80 column display, and 128K of RAM (`badline c128`). C128
+  mode, the Z80 and the 1571 aren't emulated yet.
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
