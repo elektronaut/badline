@@ -46,6 +46,17 @@ describe Badline::RAMExpansion::Plus256k do
     expect(bus.video_ram.peek(0x2000)).to eq(0x13)
   end
 
+  it "points the VIC's fetches at the bank bits 2-3 select" do
+    select_banks(video: 3)
+    expect(bus.vic.vic_bank.peek(0x2000)).to eq(0x13)
+  end
+
+  it "points the VIC's fetches back at the first bank on reset" do
+    select_banks(video: 3)
+    computer.reset!
+    expect(bus.vic.vic_bank.peek(0x2000)).to eq(0x10)
+  end
+
   it "reads the register as $FF" do
     expect(bus[0xd100]).to eq(0xff)
   end

@@ -191,12 +191,12 @@ describe Badline::Cartridge do
     end
 
     it "exposes ROMH to the VIC at $3000-$3FFF" do
-      bank = Badline::VIC::Bank.new(address_bus)
+      bank = address_bus.vic.vic_bank
       expect(bank.peek(0x3000)).to eq(0x4c)
     end
 
     it "reads VIC fetches below $3000 from RAM" do
-      bank = Badline::VIC::Bank.new(address_bus)
+      bank = address_bus.vic.vic_bank
       expect(bank.peek(0x1000)).to eq(0x00)
     end
 

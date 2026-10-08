@@ -6,8 +6,8 @@ RSpec.describe Badline::VIC::Sprites do
   subject(:sprites) { described_class.new(registers, bank, 504) }
 
   let(:registers) { Badline::VIC::Registers.new }
-  let(:bank) { Badline::VIC::Bank.new }
-  let(:ram) { bank.address_bus.ram }
+  let(:bank) { Badline::VIC.new.vic_bank }
+  let(:ram) { bank.ram }
   let(:colors) { Array.new(504, 6) } # background
   let(:fg) { Array.new(504, false) }
 

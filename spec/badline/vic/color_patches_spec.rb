@@ -9,7 +9,7 @@ RSpec.describe Badline::VIC::ColorPatches do
   subject(:patches) { sequencer.color_patches }
 
   let(:registers) { Badline::VIC::Registers.new }
-  let(:bank) { Badline::VIC::Bank.new }
+  let(:bank) { Badline::VIC.new.vic_bank }
   let(:sequencer) { Badline::VIC::Sequencer.new(504, registers, bank) }
   let(:boundary) { (20 + 16) * 8 } # the first pixel of display column 20
 
@@ -18,7 +18,7 @@ RSpec.describe Badline::VIC::ColorPatches do
     registers.write(0x21, 6) # background
     registers.write(0x11, 0x1b) # DEN=1, RSEL=1
     registers.write(0x16, 0xc8) # CSEL=40
-    bank.address_bus.ram.poke(0, 0) # character 0, all background bits
+    bank.ram.poke(0, 0) # character 0, all background bits
     sequencer.new_line(51)
   end
 
@@ -64,7 +64,7 @@ RSpec.describe Badline::VIC::ColorPatches do
 
   describe "a background write over a foreground pixel" do
     before do
-      bank.address_bus.ram.poke(0, 0xff) # character 0, all foreground bits
+      bank.ram.poke(0, 0xff) # character 0, all foreground bits
       paint(0...20)
       registers.write(0x21, 9)
       patches.log(0x21, 6, 9, boundary)

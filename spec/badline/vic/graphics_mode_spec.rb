@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe Badline::VIC::GraphicsMode do
   let(:registers) { Badline::VIC::Registers.new }
-  let(:bank) { Badline::VIC::Bank.new }
+  let(:bank) { Badline::VIC.new.vic_bank }
   let(:sequencer) { Badline::VIC::Sequencer.new(504, registers, bank) }
 
   describe Badline::VIC::GraphicsMode::Text do

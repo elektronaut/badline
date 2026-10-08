@@ -215,7 +215,7 @@ describe Badline::Computer, "#snapshot" do
   describe "with a RAM expansion" do
     let(:machine) do
       described_class.new(ram_expansion: :plus256k).tap do |computer|
-        computer.address_bus.poke(0xd100, 0b0100_0001)
+        computer.address_bus.poke(0xd100, 0b0100_1001)
         computer.address_bus.poke(0x2000, 0x42)
       end
     end
