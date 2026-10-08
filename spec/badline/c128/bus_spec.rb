@@ -50,7 +50,7 @@ describe Badline::C128::Bus do
     end
 
     it "puts the VDC at $D600" do
-      expect(bus.peek(0xd600)).to eq(0x81)
+      expect(bus.peek(0xd600) & 0x87).to eq(0x81)
     end
 
     it "leaves $D700-$D7FF open" do

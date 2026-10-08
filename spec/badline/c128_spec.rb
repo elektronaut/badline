@@ -86,4 +86,24 @@ describe Badline::C128 do
     machine.power_cycle!
     expect(machine.control_ports.extra_rows).to eq(0xff)
   end
+
+  it "shows the VIC-IIe as its video" do
+    expect(machine.video).to be(machine.vic)
+  end
+
+  it "shows the VDC as its :vdc video" do
+    expect(machine.video(:vdc)).to be(machine.vdc)
+  end
+
+  it "clocks the VDC each cycle" do
+    machine.vdc.poke(0xd600, 4)
+    machine.vdc.poke(0xd601, 7)
+    expect { machine.run_cycles(20_000) }.to change(machine.vdc, :frame)
+  end
+
+  it "powers the VDC on again with a power cycle" do
+    machine.vdc.ram[0] = 1
+    machine.power_cycle!
+    expect(machine.vdc.ram[0]).to eq(0)
+  end
 end
