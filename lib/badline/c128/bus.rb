@@ -142,12 +142,12 @@ module Badline
         @io_port.value = port_value
       end
 
-      # The machine's memory and everything on the bus but the keyboard, the
-      # joysticks, the pot devices and CAPS LOCK, which the host holds. A
-      # cartridge is already in the port, built from its setup.
+      # The machine's memory, the last access and everything on the bus but
+      # the keyboard, the joysticks, the pot devices and CAPS LOCK, which the
+      # host holds. A cartridge is already in the port, built from its setup.
       def save_state(out)
         out.marker("C128 BUS")
-        out.int(@port_ddr).int(@port_out).int(@port_floating).ints(@mmu.registers)
+        out.int(@port_ddr).int(@port_out).int(@port_floating).ints(@mmu.registers).int(@address).int(@data)
         @ram.save_state(out)
         @color_ram.save_state(out)
         @cartridge&.save_state(out)
@@ -165,6 +165,8 @@ module Badline
         @port_out = input.int
         @port_floating = input.int
         input.ints_into(@mmu.registers)
+        @address = input.int
+        @data = input.int
         @ram.load_state(input)
         @color_ram.load_state(input)
         @cartridge&.load_state(input)

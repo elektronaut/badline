@@ -186,7 +186,8 @@ module Badline
 
     # Everything the VIC holds between cycles: the beam, the fetch and
     # g-access pipeline, the light pen and raster latches, the finished
-    # lines, the registers and the display, sequencer and sprite logic.
+    # lines, on the VIC-IIe the display line and the TEST bit's wrap, the
+    # registers and the display, sequencer and sprite logic.
     # Whether it renders is the host's, and every line comes back dirty so
     # a front end repaints.
     def save_state(out)
@@ -197,6 +198,7 @@ module Badline
       out.int(@vic_bank.lines)
       out.blob(@character_buffer).blob(@color_buffer).booleans(@sprite_ba)
       @lines.each { |line| out.blob(line) }
+      out.int(@output_line).boolean(@test_wrap) if @iie
       @registers.save_state(out)
       @display_state.save_state(out)
       @sequencer.save_state(out)
@@ -208,6 +210,7 @@ module Badline
       load_beam(input)
       load_buffers(input)
       load_lines(input)
+      load_test_state(input) if @iie
       @registers.load_state(input)
       @display_state.load_state(input)
       @sequencer.load_state(input)
@@ -487,6 +490,13 @@ module Badline
     end
 
     # The display is the finished lines one after another.
+    # The VIC-IIe's display line and TEST wrap, which only its TEST bit
+    # moves off the raster line.
+    def load_test_state(input)
+      @output_line = input.int
+      @test_wrap = input.boolean?
+    end
+
     def load_lines(input)
       @lines.each_with_index do |line, number|
         input.blob_into(line)

@@ -42,6 +42,14 @@ describe Badline::C128 do
       expect([digest(restored), restored.vdc.ram.hash]).to eq([digest(machine), machine.vdc.ram.hash])
     end
 
+    it "carries the TEST bit's raster and display line over, running on as the saved one" do
+      machine = saved.tap { |testing| write(testing, [[0xd030, 2]]) }
+      machine.run_cycles(30_001)
+      restored = described_class.restored(machine.snapshot)
+      run_on(machine, restored)
+      expect([digest(restored), restored.vic.output_line]).to eq([digest(machine), machine.vic.output_line])
+    end
+
     it "carries the VDC's display size over" do
       machine = saved.tap { |programmed| program_vdc(programmed) }
       machine.run_cycles(40_000)

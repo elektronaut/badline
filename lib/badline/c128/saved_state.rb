@@ -21,7 +21,7 @@ module Badline
     end
 
     # The whole machine's state for a snapshot, as Computer's: the
-    # machine's own latches, the bus with its RAM, the MMU, the chips and
+    # machine's own latches, FAST and TEST as they last took hold, the bus with its RAM, the MMU, the chips and
     # the VDC, the CPU, the cartridge, the disk device 8 serves through the
     # traps and a true 1541. The serial lines go back into the bus from the
     # restored CIA 2. What the host holds stays out: the keyboard, the
@@ -72,7 +72,7 @@ module Badline
       def save_state(out)
         out.marker(MARKER).stamp
         out.string(@model.name).int(SID_MODELS.index(@sid.model))
-        out.int(@cycles).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse)
+        out.int(@cycles).int(@clock_bits).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse)
         out.boolean(!@pending_keys.nil?)
         out.ints(@pending_keys) if @pending_keys
         out.int(@cycles <= init_threshold ? @init_handlers.length : 0)
@@ -88,6 +88,7 @@ module Badline
         input.check_stamp
         check_setup(SavedState.read_setup(input))
         @cycles = input.int
+        @clock_bits = input.int
         @nmi_asserted = input.boolean?
         @cartridge_nmi = input.boolean?
         @restore_pulse = input.boolean?
