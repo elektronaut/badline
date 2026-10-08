@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.1](https://github.com/elektronaut/badline/compare/v0.10.0...v0.10.1) (2026-10-08)
+
+
+### Features
+
+* add the C64GS as --model c64gs ([ea04c0d](https://github.com/elektronaut/badline/commit/ea04c0d03b3a8c34426ff68a80ae0fc36db8123b))
+* add the C64GS as --model c64gs ([e533932](https://github.com/elektronaut/badline/commit/e533932360befa88d05cf1369cc417f40cababa7))
+* add the MAX Machine as --model ultimax ([fc48c40](https://github.com/elektronaut/badline/commit/fc48c40035892409175bf3d8fd08add6af0bbac9))
+* add the MAX Machine as --model ultimax ([22aca64](https://github.com/elektronaut/badline/commit/22aca643abc0746e362209fb48977cee94c2b985))
+* add the PET 64 as --model pet64 ([e17c0bd](https://github.com/elektronaut/badline/commit/e17c0bd0d13d15caf6d0b5377a5ac0a5756847cf))
+* add the PET 64 as --model pet64 ([2320ac7](https://github.com/elektronaut/badline/commit/2320ac7cd41ef6a4865e56d433585ddebb7ef01f))
+* bundle the C64GS's ROM, 390852-01 ([e31b280](https://github.com/elektronaut/badline/commit/e31b280044c18e639cc65df62a8b39d97dd874be))
+* bundle the PET 64's KERNAL, 901246-01 ([9a029ec](https://github.com/elektronaut/badline/commit/9a029ecfe25c0d9a806d8858253c4c172e175b7f))
+
+
+### Miscellaneous Chores
+
+* release 0.10.1 ([9d6f6ba](https://github.com/elektronaut/badline/commit/9d6f6ba71a647f24f00a830fbc772531fbcb4d92))
+
 ## [0.10.0](https://github.com/elektronaut/badline/compare/v0.9.0...v0.10.0) (2026-10-08)
 
 
