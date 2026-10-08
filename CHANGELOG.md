@@ -5,52 +5,28 @@
 
 ### Features
 
-* add the VIC-20's bus and CPU ([a313be0](https://github.com/elektronaut/badline/commit/a313be0c4cf7b4a906a76b1c2cc64df0e86706c0))
 * add the VIC-20's bus and CPU ([184f4c2](https://github.com/elektronaut/badline/commit/184f4c28c609fe0d46358c0143fabe2beba2fa70))
-* check the VIC-20 boots to READY, on CRuby and Spinel ([1db072c](https://github.com/elektronaut/badline/commit/1db072c529360cdf24bbaa0befec140c19d6d799))
-* check the VIC-20 boots to READY, on CRuby and Spinel ([f6d235b](https://github.com/elektronaut/badline/commit/f6d235baf59244657d3f73c2a8e61d5d92681810))
-* name the machine family with a c64 or vic20 subcommand ([c16b34f](https://github.com/elektronaut/badline/commit/c16b34f6aaabd408e201a4407d9b980f40c1c95a))
 * name the machine family with a c64 or vic20 subcommand ([586a02f](https://github.com/elektronaut/badline/commit/586a02fbd80c6e6351d85c91263b5a39438ba13e))
-* open the pause menu from the timeline and screenshot it ([726fe6f](https://github.com/elektronaut/badline/commit/726fe6f9511073377e8a2c4ac160e3796e64a85e))
 * open the pause menu from the timeline and screenshot it ([63dc744](https://github.com/elektronaut/badline/commit/63dc74468432397c1ec0273a64fcd28ff46008d2))
-* paint the VIC-20's display from the VIC-I's fetches ([c2d5a4d](https://github.com/elektronaut/badline/commit/c2d5a4d45b5187556624b35dbaefdcec2a6b1f30))
 * paint the VIC-20's display from the VIC-I's fetches ([76f67c3](https://github.com/elektronaut/badline/commit/76f67c3709363f682715681d17ea799441412f12))
-* play the VIC-20's sound from the VIC-I's voices ([489cc9a](https://github.com/elektronaut/badline/commit/489cc9a9e3c4fbed5c07d89369c82ef97904d451))
 * play the VIC-20's sound from the VIC-I's voices ([c490a86](https://github.com/elektronaut/badline/commit/c490a86959e18e0fecdcf21bf0139b63be25d9a9))
-* read the VIC-20 .crt signature and the .tap platform byte ([36c472a](https://github.com/elektronaut/badline/commit/36c472af5ebc0a33c1f9f156a0d173c0db727ef2))
 * read the VIC-20 .crt signature and the .tap platform byte ([fc0b130](https://github.com/elektronaut/badline/commit/fc0b130ad3a9481e7a9e61d909286281026797b1))
-* run the VIC-20 in the window, in both builds ([8056f23](https://github.com/elektronaut/badline/commit/8056f2340886c8d255a3e3cc2bd2695411ca4a3d))
 * run the VIC-20 in the window, in both builds ([24c056c](https://github.com/elektronaut/badline/commit/24c056c531fb356d3d47a9aad94c50ba0a0b0031))
-* run the VIC-20 testbench's exitcode rows as testbench-vic20 ([fd0fb4a](https://github.com/elektronaut/badline/commit/fd0fb4ad9868f872bd0a01405a418a09456c877a))
-* run the VIC-20 testbench's exitcode rows as testbench-vic20 ([353b89b](https://github.com/elektronaut/badline/commit/353b89be79a2fba3ac3e2a53f92a6525991e90db))
-* run the VIC-20 with its VIC-I registers and VIAs ([4cd4559](https://github.com/elektronaut/badline/commit/4cd4559421d0b3aa6fb8b5fbcc010c10593142de))
 * run the VIC-20 with its VIC-I registers and VIAs ([6089cee](https://github.com/elektronaut/badline/commit/6089ceee361e65d59c33a1eaeb3395f315eeed2d))
-* save and restore the VIC-20 in badline's own snapshots ([3d38750](https://github.com/elektronaut/badline/commit/3d3875006bb4df18027f790495e4e486821d02a9))
 * save and restore the VIC-20 in badline's own snapshots ([8620849](https://github.com/elektronaut/badline/commit/8620849be5177069e16a559a35b239d75d7cc82a))
-* serve the VIC-20's device 8 through the KERNAL traps and autostart its media ([6e48625](https://github.com/elektronaut/badline/commit/6e48625fb2114a928dff90266255863b2cda05e9))
 * serve the VIC-20's device 8 through the KERNAL traps and autostart its media ([356695e](https://github.com/elektronaut/badline/commit/356695e7529f999acf4bdc82951b107460ecdf39))
-* wire the VIC-20's datasette and serial bus to its VIAs, with a true 1541 ([45b0eb8](https://github.com/elektronaut/badline/commit/45b0eb8881bc36328028638884005fe26219ff72))
 * wire the VIC-20's datasette and serial bus to its VIAs, with a true 1541 ([2f06e88](https://github.com/elektronaut/badline/commit/2f06e88cf5276780cc03f7d8121480e95b05480f))
-* wire the VIC-20's keyboard, joystick and RESTORE to its VIAs ([7f3d8d9](https://github.com/elektronaut/badline/commit/7f3d8d903937085a00562d27a13319d4d662656f))
 * wire the VIC-20's keyboard, joystick and RESTORE to its VIAs ([32139f6](https://github.com/elektronaut/badline/commit/32139f647aeb3f5e7601928150b85973db6b9b5e))
 
 
 ### Bug Fixes
 
-* name media, not just a program, in badline vic20's usage line ([c95e0cb](https://github.com/elektronaut/badline/commit/c95e0cb80058edac068bf4379c91842ed1541145))
-* name media, not just a program, in badline vic20's usage line ([c438724](https://github.com/elektronaut/badline/commit/c438724920a883a46f30d749ba237a7a63f73eb8))
-* power the VIC-20 RAM on in alternating $ff and $00 bytes ([4a7d650](https://github.com/elektronaut/badline/commit/4a7d650eae1426477c305aad3fb155290ef273d8))
-* power the VIC-20 RAM on in alternating $ff and $00 bytes ([dcefa99](https://github.com/elektronaut/badline/commit/dcefa99e4941eabdb4c3259f166bf6c65120e939))
-* read no VIC-20 text screen before the KERNAL has set its page ([a44b962](https://github.com/elektronaut/badline/commit/a44b9626a0e3d6fca394d32e367cc5a6d94e3029))
-* show the disk device 8 holds on the menu's Drive page ([eba0fd6](https://github.com/elektronaut/badline/commit/eba0fd67eb892c34df23110e37a7a1321fb9a3bc))
 * show the disk device 8 holds on the menu's Drive page ([c8b0eaf](https://github.com/elektronaut/badline/commit/c8b0eaf05573246114af6b6f8404095424a1981c))
-* start the VIA shift register only when idle, on the 6522's clock ([ac5bbb3](https://github.com/elektronaut/badline/commit/ac5bbb322217612b13356bc2e54444e7774d7b54))
 * start the VIA shift register only when idle, on the 6522's clock ([bdcb1c8](https://github.com/elektronaut/badline/commit/bdcb1c88bb729e48ffdaaffd91e1274778c4ee29))
 
 
 ### Performance Improvements
 
-* type Memory's storage as Array[Integer] for Spinel ([0c1338e](https://github.com/elektronaut/badline/commit/0c1338ed46d14624218a45b4e033f6b92c5a1440))
 * type Memory's storage as Array[Integer] for Spinel ([797c9b1](https://github.com/elektronaut/badline/commit/797c9b1cab26e6ace4f0d0a20011a3a084e73bc9))
 
 ## [0.9.0](https://github.com/elektronaut/badline/compare/v0.8.0...v0.9.0) (2026-10-05)
