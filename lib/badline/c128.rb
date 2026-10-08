@@ -18,8 +18,8 @@ module Badline
   #
   # Where a C64 program sees it differ from a C64C: the 8502's P6 senses CAPS
   # LOCK, $D02F drives the extra keyboard rows, $D030's FAST bit runs the
-  # CPU twice a cycle, the SID has no mirrors, and $D500-$D7FF holds the
-  # hidden MMU, the VDC and open bus.
+  # CPU at 2 MHz and its TEST bit races the raster counter, the SID has no
+  # mirrors, and $D500-$D7FF holds the hidden MMU, the VDC and open bus.
   class C128
     include IntegerHelper
     include KeyboardBuffer
@@ -87,6 +87,7 @@ module Badline
       @sid = @bus.sid
       @datasette = @bus.datasette
       @cycles = 0
+      @clock_bits = 0
       @nmi_asserted = false
       @cartridge_nmi = false
       @restore_pulse = false
@@ -101,12 +102,17 @@ module Badline
       enter_c64_mode
     end
 
-    # The chips clock ahead of the CPU, as on the C64. In FAST mode the CPU
-    # takes a second slot in the cycle, an approximation of the 8502 at
-    # 2 MHz that leaves out which half-cycles the VIC keeps.
+    # The chips clock ahead of the CPU, as on the C64. $D030's FAST and
+    # TEST bits take hold a cycle after the write that sets them: in FAST
+    # mode the CPU runs in both halves of the cycle (#clock_fast), and the
+    # TEST bit steps the raster counter in every cycle.
     def cycle!
       handle_init if @cycles == Computer::INIT_THRESHOLD
       feed_keyboard if @pending_keys
+
+      clock_bits = @clock_bits
+      @clock_bits = @vic.clock_bits
+      @vic.test_step! if clock_bits >= 0x02
 
       @vic.cycle!
       @cia1.cycle!
@@ -117,8 +123,7 @@ module Badline
       @cpu.irq = @cia1.interrupted? || @vic.interrupted?
 
       drive_nmi
-      clock_cpu
-      clock_cpu if @vic.fast?
+      clock_bits.odd? ? clock_fast : clock_cpu
       @drive1541&.host_cycle!
 
       @cycles += 1
@@ -246,6 +251,29 @@ module Badline
     # BA halts the CPU on a read cycle.
     def clock_cpu
       @cpu.pending_write? || !@vic.ba_low? ? @cpu.cycle! : @cpu.stall!
+    end
+
+    # The 8502 at 2 MHz takes both halves of the cycle, and BA no longer
+    # halts it. It leaves phi1 to the VIC in the refresh cycles, and an
+    # access to I/O, whose chips run at 1 MHz, waits for phi2. The VIC's
+    # fetches in the cycle see the bytes on the bus. In a phi1 the CPU
+    # spends waiting that is the byte it writes, or the last byte the bus
+    # held.
+    def clock_fast
+      phi1 = 0xff
+      unless @vic.refresh_cycle?
+        held = @bus.data
+        write = @cpu.pending_write?
+        @cpu.cycle!
+        if @bus.io_access?
+          data = @bus.data
+          return @vic.take_cpu_bus(write ? data : held, data, @bus.vic_access?)
+        end
+
+        phi1 = @bus.data
+      end
+      @cpu.cycle!
+      @vic.take_cpu_bus(phi1, @bus.data, @bus.vic_access?)
     end
 
     def handle_init

@@ -25,6 +25,7 @@ only catches the rows that happen to move.
 - [VIC phi1 bus](#vic-phi1-bus)
 - [VIC light pen](#vic-light-pen)
 - [VIC-II 8565](#vic-ii-8565)
+- [VIC-IIe 2 MHz and TEST bit](#vic-iie-2-mhz-and-test-bit)
 - [VIC-II NTSC](#vic-ii-ntsc)
 - [VIC-II 6572 (Drean)](#vic-ii-6572-drean)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
@@ -925,6 +926,80 @@ What the 8565 references don't settle, and so what stays as it is:
   before on the 8565. No testprog tells it apart, so the 8565 keeps the
   6569's idle access, without the 6569's `$38ff` read where a DMA delay
   starts.
+
+## VIC-IIe 2 MHz and TEST bit
+
+The C128's VIC-IIe (`:mos8566`, `:mos8564`) adds $D030: bit 0 (FAST)
+runs the 8502 at 2 MHz, and bit 1 (TEST) clocks the raster counter in
+every cycle. `C128#cycle!` and `#clock_fast` drive both, through
+`VIC#take_cpu_bus`, `#test_step!` and `#refresh_cycle?`. The oracles are
+the testprogs' own references for `c128/2mhzVIC` (3 rows, from the
+author's machine) and `c128/d030tester` (33 rows), and the real-machine
+photos in `c128/2mhztest`. Those are C128-mode programs that switch to C64
+mode as they start, so no testbench list runs them yet: `spec/badline/
+c128_2mhz_spec.rb` runs six d030tester builds from their machine code at
+$1C0E and checks the readings they print.
+
+- FAST and TEST take hold in the second cycle after the write that sets
+  or clears them. Pinned by d030tester's "Lines cut": STA/STX $D030 keeps
+  TEST on for 4 cycles, but for 3 when the STA also sets FAST, because
+  the STX then runs its operand fetches at 2 MHz. With the delay at 0
+  the FAST builds cut 2 lines, not 3. Spec guard: `c128_spec.rb`.
+- In FAST mode the CPU runs in both halves of every cycle but Bauer's
+  refresh cycles 11-15, whose phi1 stays with the VIC: 121 CPU cycles a
+  PAL line. BA doesn't halt it. Pinned by `2mhz-vic-hires`,
+  `-multicolor` and `-extended`, whose drawing code assumes 121 cycles a
+  line.
+- An access to $D000-$DFFF waits for phi2: one in phi1 takes the whole
+  cycle. Pinned by `timing-change0`, whose `INC $D020` takes 8 half
+  cycles (its comment says "6 cycles + 2"). The machine finds out after
+  the CPU's step that it reached I/O, so `CPU::Core` needn't say where
+  its next access goes.
+- The VIC's accesses in a FAST cycle latch the CPU's bytes: the g-access,
+  or idle access, the byte of phi1, and a c-access the byte of phi2, as
+  one made before AEC does on the C64: $FF for the video matrix and the
+  byte's low nibble for colour. Pinned by `2mhz-vic-*` (the operands are
+  the pixels and the opcodes' low nibbles the colours) and by the "VIC
+  internal data" row of d030tester, which shows char $FF's glyph in
+  slow-mode lines after a FAST bad line.
+- A c-access in a cycle where the CPU reads or writes a VIC register
+  takes that byte for the video matrix as well. Pinned by d030tester:
+  `STX $D030` with X=0 leaves an `@` (McCabe's readme: "the `@`
+  represents a 0 written to $D030"), and the `DEC $D030` build (2mhzdec)
+  leaves char $FD, the byte it reads.
+- In the phi1 an I/O access waits through, the VIC sees the byte the CPU
+  writes, or the last byte the bus held for a read. Pinned by d030tester
+  and 2mhzdec, whose g-access there shows $00 (X) and $D0 (the operand's
+  high byte).
+- AEC can't follow BA down in FAST mode, so on a bad line it falls three
+  cycles after the last FAST cycle, and the c-accesses before it read
+  $FF and the halted CPU's nibble (`DisplayState#keep_bus`). Pinned by
+  d030tester's "VIC internal data" row, where three cells after the FAST
+  cycles show colour 0 (the halted read's $D0) and the rest the screen.
+- The TEST bit steps the raster counter ahead of each cycle it is set
+  in, except the line's last cycle, which steps it anyway, and the step
+  from the frame's last line to line 0 takes two cycles. Pinned by
+  d030tester: TEST across the line end (`32c_02_00`, `32c_03_00`) cuts
+  one line fewer, and the frame it keeps 312 lines long with two TEST
+  windows of a whole frame each reads 19656 cycles ($4CC8) only with the
+  two-cycle wrap. A step into a bad line's raster halts the CPU through
+  BA for the one cycle the raster matches: `2ae_02_00` and `2ed_02_00`
+  cut 5 lines for 4 cycles. Spec guard: `vic_iie_spec.rb`.
+- The beam doesn't follow the raster counter's steps: it draws the next
+  display line after the last one (`VIC#output_line`), so the lines TEST
+  skips move the picture up, until a line that ends in the vertical sync
+  (PAL lines 303-305, three lines from the fourth blanked one) puts the
+  beam back on the raster line. A blanked line the beam draws off the
+  raster line shows black. Pinned by d030tester's `vadjust` builds, which
+  move the picture up a line per cycle of TEST, `vadjust1` included,
+  where the first window leaves the raster counter on line 304, and by
+  the colour bar that `173_02_00` draws four lines taller.
+- Not matched: the d030tester references come from an emulator that
+  models PAL decoding. A line cut an odd number of times flips the colour
+  phase, so every row below it shows other hues (all 11 builds whose cut
+  is odd), and lines drawn while TEST runs show alternating hues and
+  per-cycle blanking. Their 8566 shows no grey dots. The 2mhzVIC
+  references have none either.
 
 ## VIC-II NTSC
 

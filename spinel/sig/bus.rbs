@@ -139,6 +139,8 @@ module Badline
     class Bus
       @port_ddr: Integer
       @port_out: Integer
+      @address: Integer
+      @data: Integer
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
 

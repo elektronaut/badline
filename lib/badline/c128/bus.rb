@@ -104,6 +104,9 @@ module Badline
 
         @read_pages = Array.new(256)
         @write_pages = Array.new(256)
+        @address = 0
+        @data = 0
+        @io_mapped = false
         update_overlays!
       end
 
@@ -144,16 +147,32 @@ module Badline
         update_overlays!
       end
 
-      def peek(addr)
-        return @port_ddr if addr.zero?
-        return @io_port.value if addr == 0x01
+      # The address and the byte of the CPU's last access, which a VIC-IIe
+      # in FAST mode fetches in place of its own, and which tells the
+      # machine when an access reached I/O.
+      attr_reader :address, :data
 
-        @read_pages[addr >> 8].peek(addr)
+      def peek(addr)
+        @address = addr
+        @data = if addr > 0x01
+                  @read_pages[addr >> 8].peek(addr)
+                else
+                  addr.zero? ? @port_ddr : @io_port.value
+                end
       end
+
+      # Whether the last access went to a chip at $D000-$DFFF, which runs
+      # at 1 MHz.
+      def io_access? = @io_mapped && (@address & 0xf000) == 0xd000
+
+      # Whether the last access went to the VIC's registers.
+      def vic_access? = @io_mapped && (@address & 0xfc00) == 0xd000
 
       # A write to $00 or $01 goes to the port, and the RAM below takes the
       # byte the VIC fetched in the phi1 half of the cycle.
       def poke(addr, value)
+        @address = addr
+        @data = value
         if addr < 0x02
           @ram.poke(addr, @vic.phi1_data)
           addr.zero? ? @port_ddr = value : @port_out = value
@@ -209,11 +228,13 @@ module Badline
       end
 
       def map_ram_pages
+        @io_mapped = false
         @read_pages.fill(@ram)
         @write_pages.fill(@ram)
       end
 
       def map_io_pages
+        @io_mapped = true
         @read_pages.fill(@vic, 0xd0, 4)
         @write_pages.fill(@vic_writes, 0xd0, 4)
         @read_pages[0xd4] = @write_pages[0xd4] = @sid
