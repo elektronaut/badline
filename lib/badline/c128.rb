@@ -5,11 +5,13 @@ require "badline/c128/mmu"
 require "badline/c128/vdc"
 require "badline/c128/mmu_pages"
 require "badline/c128/color_lines"
+require "badline/c128/banks"
 require "badline/c128/bus_state"
 require "badline/c128/bus"
 require "badline/c128/cpu"
 require "badline/c128/saved_state"
 require "badline/c128/keys"
+require "badline/c128/modes"
 
 module Badline
   # The Commodore 128: the 8502 on the VIC-IIe's clock, two CIAs, the SID,
@@ -35,7 +37,9 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
     include Computer::Attachments
+    include Computer::KernalTraps
     include Keys
+    include Modes
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
@@ -104,8 +108,7 @@ module Badline
       @model = Model.named(model)
       @c64_built = mode == :c64
       @init_threshold = @c64_built ? Computer::INIT_THRESHOLD : C128_INIT_THRESHOLD
-      @keyboard_buffer = @c64_built ? KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER
-      @keyboard_count = @c64_built ? KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
+      @holding_commodore = false
       @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)
       @vic = @bus.vic
@@ -129,6 +132,7 @@ module Badline
       @capture_output = nil
       plug_serial_bus
       enter_c64_mode if @c64_built
+      @bus.on_mode_change { mode_changed }
     end
 
     # The chips clock ahead of the CPU, as on the C64. $D030's FAST and
@@ -239,10 +243,9 @@ module Badline
       @cpu.reset!
     end
 
+    # CHROUT is at $FFD2 in both KERNALs, and the trap follows the mode.
     def capture_output
-      raise ArgumentError, "C128 mode has no CHROUT trap" unless @c64_built
-
-      @capture_output ||= ChroutTrap.new(cpu:, bus: @bus, layout: KernalTrap::C64_LAYOUT).tap do |trap|
+      @capture_output ||= ChroutTrap.new(cpu:, bus: @bus, layout: trap_layout).tap do |trap|
         cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
       end
     end
@@ -301,13 +304,16 @@ module Badline
       @init_handlers.each(&:call)
     end
 
-    # The KERNAL's keyboard buffer: the C64's, or in C128 mode BASIC 7.0's.
+    # The keyboard buffer of the KERNAL the machine runs: the C64's, or in
+    # C128 mode BASIC 7.0's.
     def feed_keyboard
-      return unless ram.peek(@keyboard_count).zero?
+      c64 = mode == :c64
+      count = c64 ? KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
+      return unless ram.peek(count).zero?
 
       chunk = @pending_keys.shift(KeyboardBuffer::CAPACITY)
-      ram.write(@keyboard_buffer, chunk)
-      ram.poke(@keyboard_count, chunk.length)
+      ram.write(c64 ? KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER, chunk)
+      ram.poke(count, chunk.length)
       @pending_keys = nil if @pending_keys.empty?
     end
   end

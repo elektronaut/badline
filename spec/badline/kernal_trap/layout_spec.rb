@@ -143,4 +143,78 @@ describe Badline::KernalTrap::Layout do
       end
     end
   end
+
+  context "with the C128's" do
+    let(:layout) { Badline::KernalTrap::C128_LAYOUT }
+    let(:machine) { Badline::C128.new(mode: :c128) }
+    let(:bus) { machine.address_bus }
+    let(:kernal) { Badline::ROM.read("c128/kernal.rom") }
+
+    def rom(address, length) = kernal[address - 0xc000, length]
+
+    {
+      talk: 0xffb4, listen: 0xffb1, second: 0xff93, tksa: 0xff96,
+      ciout: 0xffa8, untalk: 0xffab, unlisten: 0xffae, acptr: 0xffa5
+    }.each do |entry, vector|
+      it "finds #{entry} where the jump table at $#{vector.to_s(16)} jumps" do
+        target = layout.public_send(entry)
+        expect(rom(vector, 3)).to eq([0x4c, target & 0xff, target >> 8])
+      end
+    end
+
+    it "points the default ILOAD and ISAVE vectors at LOAD and SAVE" do
+      vectors = [layout.load, layout.save].flat_map { |address| [address & 0xff, address >> 8] }
+      expect(rom(0xe08f, 4)).to eq(vectors)
+    end
+
+    {
+      load_done: [0x18, 0xa6, 0xae, 0xa4, 0xaf, 0x60], save_done: [0x18, 0x60],
+      loading_message: [0xa0, 0x49, 0xa5, 0x93], searching_message: [0xa5, 0x9d, 0x10],
+      saving_message: [0xa5, 0x9d, 0x10, 0x37, 0xa0, 0x51], file_not_found_exit: [0xa9, 0x04],
+      missing_file_name_exit: [0xa9, 0x08], load_byte_loop: [0xa9, 0xfd, 0x25, 0x90],
+      clock_release: [0xad, 0x00, 0xdd, 0x29, 0xef], data_release: [0xad, 0x00, 0xdd, 0x29, 0xdf]
+    }.each do |entry, code|
+      it "finds #{entry} in the ROM" do
+        expect(rom(layout.public_send(entry), code.length)).to eq(code)
+      end
+    end
+
+    describe "#kernal_mapped?" do
+      it "finds the KERNAL in the reset configuration" do
+        expect(layout.kernal_mapped?(bus)).to be(true)
+      end
+
+      it "finds RAM once CR maps it at $C000" do
+        bus.poke(0xff00, 0x3e)
+        expect(layout.kernal_mapped?(bus)).to be(false)
+      end
+
+      it "finds no C128 KERNAL in C64 mode" do
+        bus.poke(0xd505, 0xf7)
+        expect(layout.kernal_mapped?(bus)).to be(false)
+      end
+    end
+
+    describe "#time_serial_byte" do
+      it "leaves CIA 1's timer B alone, as the ROM's loops time the bytes" do
+        expect { layout.time_serial_byte(bus, 0x04) }.not_to(change { machine.cia1.peek(0xdc07) })
+      end
+    end
+
+    describe "#store_file" do
+      it "writes into the RAM bank BA names" do
+        bus.poke(0xc6, 1)
+        layout.store_file(bus, 0x2000, [0x12])
+        expect([bus.ram.peek(0x12000), bus.ram.peek(0x2000)]).to eq([0x12, Badline::C128::Bus::RAM_POWER_ON[0x2000]])
+      end
+    end
+
+    describe "#filename_byte" do
+      it "reads the file name from the RAM bank FNBANK names" do
+        bus.poke(0xc7, 1)
+        bus.ram.poke(0x13000, 0x41)
+        expect(layout.filename_byte(bus, 0x3000)).to eq(0x41)
+      end
+    end
+  end
 end

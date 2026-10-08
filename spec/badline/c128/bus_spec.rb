@@ -257,6 +257,38 @@ describe Badline::C128::Bus do
       expect(bus.vic.vic_bank.peek(0x1008)).to eq(bus.c128_character_rom.peek(0xd008))
     end
 
+    it "finds the system ROM at $C000 in the reset configuration" do
+      expect(bus.system_rom_mapped?).to be(true)
+    end
+
+    it "finds no system ROM once CR maps RAM at $C000" do
+      bus.poke(0xff00, 0x30)
+      expect(bus.system_rom_mapped?).to be(false)
+    end
+
+    it "reads the RAM a KERNAL bank number reaches" do
+      bus.ram.poke(0x14000, 0x12)
+      expect(bus.peek_bank(1, 0x4000)).to eq(0x12)
+    end
+
+    it "reads common RAM in bank 0 whatever the bank number" do
+      bus.poke(0xd506, 0x04)
+      bus.ram.poke(0x0300, 0x12)
+      expect(bus.peek_bank(1, 0x0300)).to eq(0x12)
+    end
+
+    it "writes the RAM a KERNAL bank number reaches" do
+      bus.write_bank(1, 0x4000, [0x12, 0x34])
+      expect([bus.ram.peek(0x14000), bus.ram.peek(0x14001)]).to eq([0x12, 0x34])
+    end
+
+    it "tells the machine when it goes to C64 mode" do
+      changes = []
+      bus.on_mode_change { changes << bus.mmu.mode }
+      bus.poke(0xd505, 0xf7)
+      expect(changes).to eq([:c64])
+    end
+
     it "shows the VIC the RAM bank RCR picks" do
       bus.ram.poke(0x12000, 0x12)
       bus.poke(0xd506, 0x40)

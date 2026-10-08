@@ -58,6 +58,11 @@ module Badline
         self
       end
 
+      # Takes the traps out again, so the KERNAL's own routines run.
+      def uninstall
+        routines.each_key { |address| @cpu.remove_trap(address) }
+      end
+
       private
 
       def routines

@@ -17,18 +17,13 @@ module Badline
 
       # Puts the storage in device 8. Mounting again swaps the disk at any
       # point while the machine runs: the drive keeps its RAM, which only a
-      # drive reset clears, and its status.
+      # drive reset clears, and its status. The traps go on the KERNAL the
+      # machine runs (#trap_layout).
       def mount(storage)
         return @drive.insert(storage) if @drive
 
         @drive = KernalTrap::Drive.new(storage)
-        layout = KernalTrap::C64_LAYOUT
-        load_trap = KernalTrap::Load.new(cpu:, bus: address_bus, layout:, drive: @drive)
-        cpu.install_trap(layout.load) { load_trap.call }
-        @serial_trap = KernalTrap::Serial.new(cpu:, bus: address_bus, layout:, drive: @drive,
-                                              device: serial_trap_device).install
-        save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: address_bus, layout:, drive: @drive)
-        cpu.install_trap(layout.save) { save_trap.call }
+        install_kernal_traps(trap_layout)
       end
 
       # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
@@ -37,11 +32,7 @@ module Badline
       def unmount
         return unless @drive
 
-        cpu.remove_trap(KernalTrap::C64_LAYOUT.load)
-        cpu.remove_trap(KernalTrap::C64_LAYOUT.save)
-        @serial_trap.device = nil
-        @serial_trap = nil
-        @save_trap = nil
+        remove_kernal_traps
         @drive = nil
       end
 
