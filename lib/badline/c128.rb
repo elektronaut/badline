@@ -8,9 +8,9 @@ require "badline/c128/cpu"
 
 module Badline
   # The Commodore 128 in C64 mode: the 8502 on the VIC-IIe's clock, two
-  # CIAs, the SID, the VDC's registers and RAM, and 128K of RAM, of which
-  # C64 mode sees bank 0 through the 8721 PLA. It runs the C64's BASIC and
-  # KERNAL, so the C64's KERNAL traps, the keyboard buffer and CHROUT
+  # CIAs, the SID, the VDC and its 80 column display, and 128K of RAM, of
+  # which C64 mode sees bank 0 through the 8721 PLA. It runs the C64's BASIC
+  # and KERNAL, so the C64's KERNAL traps, the keyboard buffer and CHROUT
   # capture work unchanged.
   #
   # It powers on in C64 mode, the state the C128 KERNAL reaches when C= is
@@ -85,6 +85,7 @@ module Badline
       @cia1 = @bus.cia1
       @cia2 = @bus.cia2
       @sid = @bus.sid
+      @vdc = @bus.vdc
       @datasette = @bus.datasette
       @cycles = 0
       @nmi_asserted = false
@@ -113,6 +114,7 @@ module Badline
       @cia2.cycle!
       @sid.cycle!
       @datasette.cycle!
+      @vdc.cycle!
 
       @cpu.irq = @cia1.interrupted? || @vic.interrupted?
 
@@ -158,8 +160,9 @@ module Badline
                  lines_per_frame: region.lines_per_frame, crop: region.crop, pixel_width: 1)
     end
 
-    # The chip whose #display a front end shows.
-    def video = @vic
+    # The chip whose #display a front end shows: the VIC-IIe, or with
+    # :vdc the VDC, whose display paints only while its #render is on.
+    def video(chip = :vic) = chip == :vdc ? @vdc : @vic
 
     # The chip a front end records the machine's sound from.
     def sound_source = @sid
@@ -176,10 +179,11 @@ module Badline
       power_cycle!
     end
 
-    # RAM and the VIC start from their power-on state, and the RES line
-    # resets everything else.
+    # RAM, the VIC and the VDC start from their power-on state, and the RES
+    # line resets everything else.
     def power_cycle!
       @vic.power_on!
+      @vdc.power_on!
       @bus.power_on!
       reset!
       enter_c64_mode

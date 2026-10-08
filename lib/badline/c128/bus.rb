@@ -182,7 +182,7 @@ module Badline
         @control_ports.port_a_source = @cia1
         @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
         @sid = SID.new(model: sid_model, pots: @control_ports)
-        @vdc = VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb)
+        @vdc = VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
       end
 
       def update_port!
