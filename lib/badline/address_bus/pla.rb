@@ -5,8 +5,9 @@ module Badline
     # The C64's PLA: what each page of the CPU's view maps to, from the
     # CPU port's LORAM, HIRAM and CHAREN lines and the cartridge's EXROM
     # and GAME. The bus that includes it supplies the page tables, the
-    # ROMs, the chips, and #map_ram_pages, which lays out the RAM that the
-    # ROMs, the cartridge and I/O map over.
+    # ROMs, the chips, #map_ram_pages, which lays out the RAM that the
+    # ROMs, the cartridge and I/O map over, and #map_io_pages, which lays
+    # out the chips at $D000-$DFFF, with #map_cartridge_io for I/O 1 and 2.
     module PLA
       # A chip's registers seen at another page, which reads and writes
       # them as at the page the chip starts at.
@@ -106,20 +107,6 @@ module Badline
 
       def map_cartridge_ram_bank(bank, first_page)
         @write_pages.fill(bank, first_page, 0x20) if bank.is_a?(Cartridge::RAMBank)
-      end
-
-      def map_io_pages
-        {
-          vic => 0xd0..0xd3, sid => 0xd4..0xd7, color_ram => 0xd8..0xdb,
-          cia1 => 0xdc..0xdc, cia2 => 0xdd..0xdd, @open_bus => 0xde..0xdf
-        }.each do |chip, pages|
-          pages.each { |p| @read_pages[p] = @write_pages[p] = chip }
-        end
-        @ram_expansion.map_io(@read_pages, @write_pages)
-        @read_pages[0xd7] = @write_pages[0xd7] = @debug_register if @debug_register
-        @read_pages[0xdf] = @write_pages[0xdf] = @reu if @reu
-        map_cartridge_io if @cartridge
-        map_extra_sids unless @sid_slots.empty?
       end
 
       def map_cartridge_io
