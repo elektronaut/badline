@@ -57,6 +57,27 @@ RSpec.describe Badline::VIC::Registers do
         expect(registers.read(0x3f)).to eq(0xff)
       end
     end
+
+    context "with $D02F-$D03F on a VIC-IIe" do
+      subject(:registers) { described_class.new(iie: true) }
+
+      before do
+        registers.write(0x2f, 0x12)
+        registers.write(0x30, 0x12)
+      end
+
+      it "reads $D02F's low 3 bits with bits 3-7 set" do
+        expect(registers.read(0x2f)).to eq(0xfa)
+      end
+
+      it "reads $D030's low 2 bits with bits 2-7 set" do
+        expect(registers.read(0x30)).to eq(0xfe)
+      end
+
+      it "reads 0xff from $D031" do
+        expect(registers.read(0x31)).to eq(0xff)
+      end
+    end
   end
 
   describe "#write" do

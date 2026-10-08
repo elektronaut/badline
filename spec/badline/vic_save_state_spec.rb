@@ -55,6 +55,14 @@ describe Badline::VIC, "#save_state" do
     end
   end
 
+  it "keeps a VIC-IIe's $D02F and $D030" do
+    vic = described_class.new(model: :mos8566)
+    vic.poke(0xd02f, 0x02)
+    vic.poke(0xd030, 0x01)
+    target = round_trip(vic, described_class.new(model: :mos8566))
+    expect([target.peek(0xd02f), target.peek(0xd030)]).to eq([0xfa, 0xfd])
+  end
+
   it "marks every line dirty for the front end" do
     computer = demo_machine
     target = demo_machine

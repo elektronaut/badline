@@ -69,7 +69,13 @@ module Badline
     #   $D02D: Sprite 6 color
     #   $D02E: Sprite 7 color
     #
-    # $D02F-$D03F: Not in use, always reads 0xff
+    # == VIC-IIe (8566 and 8564)
+    #
+    #   $D02F: Extra keyboard lines K0-K2 in bits 0-2, bits 3-7 read 1
+    #   $D030: FAST (2 MHz) in bit 0 and TEST in bit 1, bits 2-7 read 1
+    #
+    # $D02F-$D03F: Not in use on the 6569 and 8565, always reads 0xff,
+    # and $D031-$D03F on the VIC-IIe
     # $D040-$D3FF: Repeat $D0000 to $D03F every 64 bytes
     class Registers
       include IntegerHelper
@@ -77,10 +83,12 @@ module Badline
       # The raw register bytes, for the per-column reads on the hot path.
       attr_reader :bytes
 
-      # Every register powers on as zero, as in VICE.
-      def initialize
+      # Every register powers on as zero, as in VICE. A VIC-IIe reads
+      # $D02F and $D030 back as registers.
+      def initialize(iie: false)
         @bytes = Array.new(2**6, 0)
         @irq_line = false
+        @iie = iie
       end
 
       # True while any enabled latch bit is set in $D019/$D01A. Cached and
@@ -95,7 +103,9 @@ module Badline
         when 0x18 then @bytes[reg] | 0x01 # bit 0 unused, reads 1
         when 0x1a, 0x20..0x2e then @bytes[reg] | 0xf0
         when 0x1e, 0x1f then read_clear(reg) # collision registers clear on read
-        when 0x2f..0x3f then 0xff
+        when 0x2f then @iie ? @bytes[reg] | 0xf8 : 0xff
+        when 0x30 then @iie ? @bytes[reg] | 0xfc : 0xff
+        when 0x31..0x3f then 0xff
         else @bytes[reg]
         end
       end
@@ -133,6 +143,12 @@ module Badline
 
       def border = @bytes[0x20] & 0x0f
       def background(index = 0) = @bytes[0x21 + index] & 0x0f
+
+      # The VIC-IIe's $D02F and $D030 bits. The 6569 and 8565 drive no
+      # extra keyboard lines and run at 1 MHz.
+      def extra_keyboard_lines = @iie ? @bytes[0x2f] & 0x07 : 0x07
+      def fast? = @iie && @bytes[0x30].anybits?(0x01)
+      def test? = @iie && @bytes[0x30].anybits?(0x02)
 
       def raster_target = uint16(@bytes[0x12], (@bytes[0x11] & 0x80) >> 7)
 
