@@ -16,7 +16,6 @@ module Badline
     class PauseMenu
       SECTIONS = ["SNAPSHOTS", "DRIVE 8", "DATASETTE", "EXPANSION PORT", "PORTS", "SOUND", "POWER"].freeze
       PAGES = %i[snapshots drive datasette expansion ports sound power].freeze
-      DISKS = %w[.d64 .d71 .d81 .g64 .t64].freeze
 
       PANEL = 0x1d2230
       EDGE = 0x3a4256
@@ -49,16 +48,6 @@ module Badline
         @section = 0
         @left = MARGIN
         @top = MARGIN
-      end
-
-      # The path of the disk the command line puts in device 8, a list's
-      # first, or an empty one for other media.
-      def self.disk_path(path)
-        return "" if path.empty?
-        return path if File.directory?(path)
-        return Media::DiskList.disks(path).first.to_s if Media::DiskList.list?(path)
-
-        DISKS.include?(File.extname(path).downcase) ? path : ""
       end
 
       def open? = @open

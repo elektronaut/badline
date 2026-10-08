@@ -6,6 +6,8 @@ module Badline
     # (Snapshot::StateReader): it finds no files and refuses every write
     # as a write-protected disk does.
     class Unavailable
+      def path = ""
+
       def read_file(_name, **) = nil
 
       def write_file(_name, _bytes, **)

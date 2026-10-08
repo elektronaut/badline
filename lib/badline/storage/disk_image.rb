@@ -36,6 +36,9 @@ module Badline
         @errors = split_error_table
       end
 
+      # The host file's path, as it was opened.
+      attr_reader :path
+
       # Whether the image was opened write-protected.
       def read_only? = @read_only
 

@@ -31,6 +31,10 @@ module Badline
     # The RAM expansion it was built with, a key of Bus::RAM_CONFIGURATIONS.
     attr_reader :ram_configuration
 
+    # The path of the disk or directory device 8 serves through the traps
+    # (Attachments), or an empty one.
+    def mounted_path = @drive.nil? ? "" : @drive.path
+
     def ram = @bus.ram
 
     def family = :vic20

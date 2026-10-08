@@ -84,6 +84,9 @@ module Badline
         @memory.read_bam
       end
 
+      # The path of the disk or directory in the drive.
+      def path = @storage.path
+
       # Whether the disk takes a SAVE handed over whole.
       def saves? = @storage.respond_to?(:write_file)
 
