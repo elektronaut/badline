@@ -18,10 +18,10 @@ module Badline
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, timing:)
         @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
-        @screen = Screen.new(computer.video, timing.crop)
+        @screen = Screen.new(computer.video, timing.crop, pixel_width: timing.pixel_width)
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
-        @window = MachineWindow.new(@screen, timing.pixel_width, vsync: @pacer.vsync?)
+        @window = MachineWindow.new(@screen, vsync: @pacer.vsync?)
         @pacer.fit(@window.refresh_rate) if @pacer.vsync?
         @sound = Sound.new(computer.sound_source, timing.clock_hz, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
@@ -124,8 +124,8 @@ module Badline
       def swap(computer)
         @computer = computer
         timing = computer.timing
-        @screen = Screen.new(computer.video, timing.crop)
-        @window.fit(@screen, timing.pixel_width)
+        @screen = Screen.new(computer.video, timing.crop, pixel_width: timing.pixel_width)
+        @window.fit(@screen)
         @menu.center(@window.width, @window.height)
         @led = DriveLed.for(computer)
         @controls.computer = computer
