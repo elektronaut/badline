@@ -42,6 +42,11 @@ module Badline
     # GREEN_PALETTE on a monochrome monitor.
     attr_accessor :palette
 
+    # The line of #display the beam draws, which is the raster line unless
+    # the VIC-IIe's TEST bit has moved the raster counter on since the
+    # last vertical sync (#test_step!).
+    attr_reader :output_line
+
     # The parts a VICE snapshot reads and sets.
     attr_reader :registers, :display_state, :sequencer, :sprites, :character_buffer, :color_buffer,
                 :fetch_d011
@@ -86,6 +91,11 @@ module Badline
     HOOK_DISPLAY = 16
     HOOK_LAST = 32
 
+    # The vertical sync starts this many lines into the vertical blank,
+    # and lasts VSYNC_LINES.
+    VSYNC_DELAY = 3
+    VSYNC_LINES = 3
+
     # On the 6569 the DMA compares fall in columns 53 and 54 and the
     # display compare in column 57. A region whose sprite fetches run later
     # moves them with the fetches (Region::Profile#sprite_cycle).
@@ -125,6 +135,7 @@ module Badline
       @height = region.lines_per_frame
       @last_column = @columns_per_line - 1
       @last_line = @height - 1
+      @vsync_line = region.vblank[0] + VSYNC_DELAY
       layout_columns
       @blank_columns = Array.new(@columns_per_line) { |column| Region.blanked?(column, region.hblank) }.freeze
       @blank_lines = Array.new(@height) { |line| Region.blanked?(line, region.vblank) }.freeze
@@ -153,6 +164,7 @@ module Badline
 
       @column = 0
       @rasterline = 0
+      @output_line = 0
 
       @character_buffer = Array.new(40, 0)
       @color_buffer = Array.new(40, 0)
@@ -169,6 +181,7 @@ module Badline
       @lp_triggered = false
       @lp_low = false
       @raster_match = false
+      @test_wrap = false
     end
 
     # Everything the VIC holds between cycles: the beam, the fetch and
@@ -218,6 +231,7 @@ module Badline
       if @column == @columns_per_line
         finish_line!
         @column = 0
+        step_output_line
         @rasterline = @rasterline == @last_line ? 0 : @rasterline + 1
         check_raster_irq!(@rasterline.zero? ? @last_line : @rasterline)
       end
@@ -254,6 +268,57 @@ module Badline
     def extra_keyboard_lines = @registers.extra_keyboard_lines
     def fast? = @registers.fast?
     def test? = @registers.test?
+
+    # $D030's FAST and TEST bits as bits 0 and 1, which the C128 reads once
+    # a cycle.
+    def clock_bits = @registers.clock_bits
+
+    # Whether the cycle just run was one of the five refresh cycles, Bauer's
+    # 11-15, whose phi1 half the VIC keeps in the VIC-IIe's FAST mode.
+    # @column has already advanced, so it is the Bauer cycle less one.
+    def refresh_cycle? = @column.between?(10, 14)
+
+    # In the VIC-IIe's FAST mode the 8502 drives the bus in both halves of
+    # the cycle, and the VIC's accesses in the cycle just run latched what
+    # it put there. The g-access, or the idle access, took the byte of
+    # phi1. A c-access took the byte of phi2 as one made before AEC does
+    # (#fetch_character_data!): $ff for the video matrix, unless the CPU
+    # was reading or writing the VIC's own registers, and the byte's low
+    # nibble for colour. AEC can't follow BA down while the CPU runs at
+    # 2 MHz, so on a bad line it falls three cycles after FAST mode ends.
+    def take_cpu_bus(phi1, phi2, register_access)
+      slot = @g_tick
+      @g_data[slot] = phi1 unless @g_kind[slot] == G_BLANK
+      display_state = @display_state
+      display_state.keep_bus(@column)
+      return unless display_state.fetching?(@column.zero? ? @last_column : @column - 1)
+
+      vmli = display_state.vmli
+      @character_buffer[vmli] = register_access ? phi2 : 0xff
+      @color_buffer[vmli] = phi2 & 0x0f
+    end
+
+    # The VIC-IIe's TEST bit clocks the raster counter in every cycle, and
+    # the C128 calls this ahead of each cycle the bit is set in. The line's
+    # last cycle, whose own step it falls in with, adds nothing more. The
+    # counter takes two steps from the frame's last line to line 0, as line
+    # 0 reads the last line for its first cycle.
+    def test_step!
+      return if @column == @last_column
+
+      if @rasterline == @last_line
+        @test_wrap = !@test_wrap
+        return if @test_wrap
+
+        @rasterline = 0
+        @display_state.new_frame
+      else
+        @test_wrap = false
+        @rasterline += 1
+      end
+      @display_state.raster_step(@rasterline)
+      check_raster_irq!
+    end
 
     def peek(addr)
       i = offset_of(addr) % (2**6)
@@ -363,7 +428,7 @@ module Badline
 
     # Puts the beam at the start of `line`.
     def restore_line(line)
-      @rasterline = line
+      @rasterline = @output_line = line
       @column = 0
     end
 
@@ -400,7 +465,7 @@ module Badline
 
     def load_beam(input)
       @column = input.int
-      @rasterline = input.int
+      @rasterline = @output_line = input.int
       @cycles = input.int
       @pending_write = input.boolean?
       @g_tick = input.int
@@ -663,7 +728,7 @@ module Badline
     # or not there is a line to draw — then composite the active sprites
     # over the finished background and copy the line into the frame display.
     def finish_line!
-      return @sprites.finish_line(nil, @sequencer.fg) if vblank? || !@render
+      return finish_blank_line if vblank? || !@render
 
       composite = @sprites.active?
       @sequencer.apply_color_patches
@@ -672,12 +737,38 @@ module Badline
       @sequencer.apply_border if composite
 
       colors = @sequencer.colors
-      line = @lines[@rasterline]
+      output_line = @output_line
+      line = @lines[output_line]
       return if line == colors
 
       line[0, @width] = colors
-      @display[@rasterline * @width, @width] = colors
-      @dirty_lines[@rasterline] = true
+      @display[output_line * @width, @width] = colors
+      @dirty_lines[output_line] = true
+    end
+
+    # A blanked line paints nothing, and is never shown unless the TEST
+    # bit has moved the beam off the raster line, where it shows black.
+    def finish_blank_line
+      @sprites.finish_line(nil, @sequencer.fg)
+      return if @output_line == @rasterline || !@render
+
+      line = @output_line
+      @lines[line].fill(0)
+      @display.fill(0, line * @width, @width)
+      @dirty_lines[line] = true
+    end
+
+    # The display line the beam draws next follows the one before it, and
+    # a line that ends in the vertical sync puts it back on the raster
+    # line. Only the VIC-IIe's TEST bit moves the raster counter on between
+    # the two, so the lines it skips shift the picture up until the next
+    # sync.
+    def step_output_line
+      @output_line = if @rasterline.between?(@vsync_line, @vsync_line + VSYNC_LINES - 1)
+                       @rasterline + 1
+                     else
+                       @output_line == @last_line ? 0 : @output_line + 1
+                     end
     end
 
     def video_matrix(index)

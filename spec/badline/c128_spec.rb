@@ -53,17 +53,51 @@ describe Badline::C128 do
     expect([machine.cycles, machine.cpu.cycles]).to eq([1234, 1234])
   end
 
-  it "runs the CPU twice a cycle in FAST mode" do
-    machine.address_bus.poke(0xd030, 0x01)
-    machine.run_cycles(100)
-    expect(machine.cpu.cycles).to eq(200)
+  describe "in FAST mode" do
+    # The CPU on the first opcode of +code+ at $2000, with the screen
+    # blanked so that no bad line halts it, and FAST set from line 0's
+    # first cycle.
+    def run_fast(code, cycles)
+      machine.ram.write(0x2000, code)
+      machine.cpu.step! until machine.cpu.boundary?
+      machine.cpu.program_counter = 0x2000
+      machine.vic.poke(0xd011, 0x0b)
+      machine.address_bus.poke(0xd030, 0x01)
+      machine.run_cycles(cycles)
+      machine.cpu.cycles
+    end
+
+    let(:loop_code) { [0x4c, 0x00, 0x20] }
+
+    it "runs the CPU once in the cycle after the write" do
+      expect(run_fast(loop_code, 1)).to eq(1)
+    end
+
+    # Pinned by c128/2mhzVIC: each line of its drawing code is 121 CPU
+    # cycles long.
+    it "runs the CPU in both halves of every cycle but the five refresh cycles" do
+      expect(run_fast(loop_code, 1 + (10 * 63)) - 1).to eq(10 * 121)
+    end
+
+    # Pinned by c128/2mhzVIC/timing-change0, whose INC $D020 takes 8 half
+    # cycles.
+    it "lets each I/O access wait for phi2" do
+      expect(run_fast([0xee, 0x20, 0xd0], 5)).to eq(6)
+    end
+
+    it "runs the CPU once a cycle again from the cycle after FAST is cleared" do
+      run_fast(loop_code, 20)
+      machine.address_bus.poke(0xd030, 0x00)
+      expect { machine.run_cycles(11) }.to change(machine.cpu, :cycles).by(12)
+    end
   end
 
-  it "runs the CPU once a cycle again when FAST is cleared" do
-    machine.address_bus.poke(0xd030, 0x01)
-    machine.address_bus.poke(0xd030, 0x00)
-    machine.run_cycles(100)
-    expect(machine.cpu.cycles).to eq(100)
+  # Pinned by c128/d030tester's lines cut with the TEST bit on for four
+  # cycles and for three.
+  it "steps the raster counter in every cycle from the cycle after TEST is set" do
+    machine.address_bus.poke(0xd030, 0x02)
+    machine.run_cycles(4)
+    expect(machine.vic.rasterline).to eq(3)
   end
 
   it "holds P6 low while CAPS LOCK is down" do

@@ -27,6 +27,36 @@ describe Badline::C128::Bus do
     expect(bus.mmu.mode).to eq(:c64)
   end
 
+  describe "the CPU's last access" do
+    it "holds the address and the byte read" do
+      bus.ram.poke(0x2000, 0x42)
+      bus.peek(0x2000)
+      expect([bus.address, bus.data]).to eq([0x2000, 0x42])
+    end
+
+    it "holds the byte written" do
+      bus.poke(0x2000, 0x99)
+      expect(bus.data).to eq(0x99)
+    end
+
+    it "is an I/O access at $D000-$DFFF with I/O mapped" do
+      bus.peek(0xdc00)
+      expect([bus.io_access?, bus.vic_access?]).to eq([true, false])
+    end
+
+    it "is a VIC access at $D000-$D3FF" do
+      bus.poke(0xd3ff, 0)
+      expect(bus.vic_access?).to be(true)
+    end
+
+    it "is no I/O access with the character ROM at $D000" do
+      bus.poke(0x00, 0x2f)
+      bus.poke(0x01, 0x33)
+      bus.peek(0xd000)
+      expect(bus.io_access?).to be(false)
+    end
+  end
+
   describe "the I/O area" do
     before { bus.poke(0x01, 0x37) }
 

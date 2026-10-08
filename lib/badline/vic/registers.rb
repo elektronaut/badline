@@ -150,6 +150,9 @@ module Badline
       def fast? = @iie && @bytes[0x30].anybits?(0x01)
       def test? = @iie && @bytes[0x30].anybits?(0x02)
 
+      # FAST and TEST as bits 0 and 1.
+      def clock_bits = @iie ? @bytes[0x30] & 0x03 : 0
+
       def raster_target = uint16(@bytes[0x12], (@bytes[0x11] & 0x80) >> 7)
 
       def latch_irq!(bit)

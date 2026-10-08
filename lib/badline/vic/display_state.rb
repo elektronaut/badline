@@ -68,6 +68,12 @@ module Badline
       # True once AEC has followed BA down and the VIC owns the bus.
       def bus_taken?(column) = @ba ? column >= @ba + BA_DELAY : false
 
+      # The CPU kept the bus through the cycle before +column+, so on a bad
+      # line AEC falls BA_DELAY cycles after it at the earliest.
+      def keep_bus(column)
+        @ba &&= column
+      end
+
       def fetching?(column)
         @matched && column >= FETCH_FIRST && column <= DMA_LAST
       end
@@ -98,6 +104,12 @@ module Badline
 
       def new_line(line)
         @ba = nil
+        raster_step(line)
+      end
+
+      # The raster counter moved on to +line+, at the line's start or, under
+      # the VIC-IIe's TEST bit, within it.
+      def raster_step(line)
         @line_bits = line & 0b111
         @den_line = line == FIRST_LINE
         @in_window = line.between?(FIRST_LINE, LAST_LINE)

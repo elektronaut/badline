@@ -135,6 +135,23 @@ RSpec.describe Badline::VIC::DisplayState do
     end
   end
 
+  # Pinned by c128/d030tester: three c-accesses after FAST mode ends on
+  # a bad line read the halted CPU's bus.
+  describe "a bad line the CPU kept the bus through" do
+    before do
+      advance_to(51, 30)
+      state.keep_bus(31)
+    end
+
+    it "holds the bus off for three columns more" do
+      expect(state.bus_taken?(33)).to be(false)
+    end
+
+    it "takes the bus three columns after the CPU let it go" do
+      expect(state.bus_taken?(34)).to be(true)
+    end
+  end
+
   # Pinned by flibug/blackmail: its $d011 write lands in column 12
   # (Bauer cycle 14), so the match arrives in column 13 and the first three
   # c-accesses read the bus the CPU still drives.
