@@ -484,7 +484,7 @@ describe Badline::Options do
       it "lists the subcommands" do
         expect(options.help.lines.grep(/\A {4}(c64|vic20|c128|sid) /).map { |line| line.split(/ {2,}/).last.chomp })
           .to eq(["Run a C64, the one --model names (the default)", "Run a PAL VIC-20, with the RAM --ram names",
-                  "Run a C128 in C64 mode, the one --model names", "Play .sid tunes and directories of them"])
+                  "Run a C128 in C128 mode, the one --model names", "Play .sid tunes and directories of them"])
       end
     end
   end

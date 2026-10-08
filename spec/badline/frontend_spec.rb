@@ -73,7 +73,22 @@ describe Badline::Frontend do
 
     it "is the C128 --model names with c128" do
       computer = machine("c128", "--model", "c128dcrntsc")
-      expect([computer.family, computer.model.name, computer.mode]).to eq([:c128, "c128dcrntsc", :c64])
+      expect([computer.family, computer.model.name, computer.mode]).to eq([:c128, "c128dcrntsc", :c128])
+    end
+
+    it "holds C= through a C128's reset with --c64" do
+      computer = machine("c128", "--c64")
+      expect(computer.keyboard.keys).to include(:cbm)
+    end
+
+    it "boots a C128 in C128 mode, C= up" do
+      expect(machine("c128").keyboard.keys).not_to include(:cbm)
+    end
+
+    it "holds C= through a C128's reset for a program that loads at $0801" do
+      File.binwrite("game64.prg", "\x01\x08\x00\x00\x00")
+      allow($stdout).to receive(:write)
+      expect(machine("c128", "game64.prg").keyboard.keys).to include(:cbm)
     end
 
     it "fits the SID --sid names in a C128" do
