@@ -39,6 +39,18 @@ Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/kernal.4064.901246-01.bin
 MD5 da92801e3a03b005b746a4dd0b639c7c.
 
+c64gs.rom
+---------
+The C64GS's BASIC and KERNAL, 390852-01, 16 KB: BASIC for $A000-$BFFF
+followed by the KERNAL for $E000-$FFFF. Its BASIC is 901226-01's but
+for 30 unused bytes. Its KERNAL is 901227-03's with most changes in
+$F72C-$FC92, the cassette routines' place, and many jumps redirected to
+I/O error 5. Computer.new(kernal: :gs) fits both, as --model c64gs does.
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/64gs.390852-01.bin
+MD5 049e657afafbdd802e8c6a4f88f3d730.
+
 dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01

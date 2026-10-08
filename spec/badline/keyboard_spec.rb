@@ -133,6 +133,20 @@ describe Badline::Keyboard do
     end
   end
 
+  describe "on a machine without one" do
+    it "lets go of the keys that were down" do
+      keyboard.press(:a)
+      keyboard.connected = false
+      expect(keyboard.read_b(0xff ^ 0b10, 0xff)).to eq(0xff)
+    end
+
+    it "takes no keys" do
+      keyboard.connected = false
+      keyboard.press(:a)
+      expect(keyboard.keys).to be_empty
+    end
+  end
+
   it "wires the C64 matrix by default" do
     expect(keyboard.matrix).to eq(described_class::C64_MATRIX)
   end

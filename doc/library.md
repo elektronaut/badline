@@ -46,6 +46,9 @@ model (`Badline::Model::ALL`):
   green monochrome monitor: the VIC's `palette` is
   `Badline::VIC::GREEN_PALETTE`, each colour's luminance in green. The
   PET 64 has both.
+- `kernal: :gs` fits the C64GS's BASIC and KERNAL, and `board: :gs` its
+  case, which has no keyboard: `computer.keyboard` takes no keys. The
+  C64GS has both, and no datasette.
 
 ## Cartridges
 
@@ -67,8 +70,8 @@ Its contents are lost when the emulator quits.
 The KERNAL, BASIC and character ROMs come with the gem. To run other
 images, such as a patched KERNAL, point `BADLINE_ROM_PATH` at a
 directory that holds `kernal.rom`, `basic.rom` and `character.rom`, plus
-`kernal-sx64.rom` for the SX-64, `kernal-pet64.rom` for the PET 64 and
-`eapi/eapi-am29f040-14` if you
+`kernal-sx64.rom` for the SX-64, `kernal-pet64.rom` for the PET 64,
+`c64gs.rom` for the C64GS and `eapi/eapi-am29f040-14` if you
 attach EasyFlash cartridges.
 `Badline.rom_path = dir` does the same before a `Badline::Computer` is
 built, and `nil` restores the bundled set.

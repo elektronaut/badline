@@ -38,10 +38,21 @@ module Badline
       @keys = []
       @row_masks = nil
       @matrix = matrix
+      @connected = true
+    end
+
+    # Whether the machine has a keyboard. The C64GS has none: no key goes
+    # down on it.
+    def connected? = @connected
+
+    def connected=(connected)
+      @connected = connected
+      @keys.clear unless connected
+      @row_masks = nil
     end
 
     def press(key)
-      return unless valid_key?(key)
+      return unless @connected && valid_key?(key)
 
       @keys << key
       @row_masks = nil

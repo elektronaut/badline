@@ -194,8 +194,9 @@ module Badline
 
     # RESTORE isn't in the key matrix. It fires a one-shot that pulses the
     # NMI line however long the key is held, modelled here as one cycle.
+    # A machine without a keyboard has no RESTORE key either.
     def press_restore
-      @restore_pulse = true
+      @restore_pulse = true if keyboard.connected?
     end
 
     # The one-shot has pulsed already, so letting go does nothing.
