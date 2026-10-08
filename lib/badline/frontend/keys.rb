@@ -3,7 +3,8 @@
 module Badline
   module Frontend
     # SDL scancodes follow key positions on a US layout. They map onto the C64
-    # keys and, in joystick mode, the joystick directions.
+    # keys, the C128's own keys and, in joystick mode, the joystick
+    # directions.
     module Keys
       TAB = 43
 
@@ -20,6 +21,20 @@ module Badline
         224 => :control, 225 => :lshift, 226 => :cbm, 229 => :rshift
       }.freeze
 
+      # The C128's keys that have a host key of their own: the keypad, HELP
+      # on Insert or Help, ALT on the right Alt, NO SCROLL on Scroll Lock,
+      # and CAPS LOCK and 40/80 DISPLAY, which sit outside the matrix, on
+      # Caps Lock and Pause. ESC, TAB and the separate cursor keys stay
+      # with the C64's keys (RUN/STOP, the joystick toggle and the cursor
+      # combinations) while the C128 runs in C64 mode.
+      C128_OTHERS = {
+        89 => :keypad1, 90 => :keypad2, 91 => :keypad3, 92 => :keypad4, 93 => :keypad5, 94 => :keypad6,
+        95 => :keypad7, 96 => :keypad8, 97 => :keypad9, 98 => :keypad0, 99 => :keypad_period,
+        86 => :keypad_minus, 87 => :keypad_plus, 88 => :keypad_enter,
+        73 => :help, 117 => :help, 230 => :alt, 71 => :no_scroll, 57 => :caps_lock, 72 => :forty_eighty
+      }.freeze
+
+      F8 = 65
       F9 = 66
       F10 = 67
       F11 = 68
@@ -37,6 +52,9 @@ module Badline
           OTHERS[scancode] || :none
         end
       end
+
+      # The C128's key for the scancode: one of C128_OTHERS, or the C64's.
+      def self.c128_key(scancode) = C128_OTHERS[scancode] || c64_key(scancode)
 
       def self.arrows(scancode) = ARROWS[scancode] || :none
 

@@ -57,6 +57,15 @@ module Badline
           @attribute_start = (regs[20] << 8) | regs[21]
         end
 
+        def save_state(out)
+          out.int(@display_start).int(@attribute_start)
+        end
+
+        def load_state(input)
+          @display_start = input.int
+          @attribute_start = input.int
+        end
+
         def paint(line, row, row_line, frame)
           regs = @registers
           lay_out_cell

@@ -25,8 +25,13 @@ module Badline
       # The registers, CR first.
       attr_reader :registers
 
+      # Whether the 40/80 DISPLAY key is locked down, which MCR bit 7 reads
+      # in C128 mode.
+      attr_accessor :display_key
+
       def initialize
         @registers = Array.new(12, 0)
+        @display_key = false
         reset!
       end
 

@@ -64,6 +64,19 @@ module Badline
         elsif !@ram.nil?
           raise Error, "--ram needs vic20"
         end
+        if @family == :c128
+          validate_c128
+        elsif @c64_mode
+          raise Error, "--c64 needs c128"
+        end
+      end
+
+      # The C128 runs in the window, without an REU, and its NTSC models
+      # have names of their own.
+      def validate_c128
+        raise Error, "--ntsc needs the C64; the NTSC C128 is --model c128ntsc" if @models.include?("ntsc")
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the C128 needs the window" if headless?
       end
 
       # The VIC-20 is a PAL one, in the window, without the C64's SID and
@@ -87,7 +100,7 @@ module Badline
       # --model and --ntsc may be given more than once, but only for one
       # model.
       def validate_models
-        names = @family == :vic20 ? VIC20_MODELS : MODELS
+        names = family_models
         unknown = @models.find { |name| !names.include?(name) }
         raise Error, "invalid argument: --model #{unknown}" unless unknown.nil?
         raise Error, "conflicting models: #{@models.uniq.join(' and ')}" unless @models.uniq.size <= 1

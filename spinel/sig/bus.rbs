@@ -136,11 +136,15 @@ module Badline
   end
 
   class C128
+    @cycles: Integer
+    @pending_keys: Array[Integer]
+
     class Bus
       @port_ddr: Integer
       @port_out: Integer
       @address: Integer
       @data: Integer
+      @port_floating: Integer
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
 
@@ -156,8 +160,50 @@ module Badline
     end
 
     class VDC
+      @selected: Integer
+      @read_latch: Integer
+      @write_data: Integer
+      @busy_until: Integer
+      @phase: Integer
+      @line_units: Integer
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
+
+      class Painter
+        @width: Integer
+        @height: Integer
+        @line: Array[Integer]
+        @dirty_lines: Array[bool]
+        def paint: (Integer, Integer, Integer, bool, Integer) -> void
+      end
+
+      class Raster
+        @frame: Integer
+        @row: Integer
+        @row_line: Integer
+        @adjusting: bool
+        @frame_line: Integer
+        @frame_lines: Integer
+        @sync_start: Integer
+        @sync_lines: Integer
+      end
+
+      class Window
+        @display_start: Integer
+        @attribute_start: Integer
+        @gap_line: bool
+        @attributes_on: bool
+        @screen_reverse: bool
+        @underline: bool
+        @blink_on: bool
+        def paint: (Array[Integer], Integer, Integer, Integer) -> void
+        def paint_text: (Array[Integer], Integer, Integer, Integer) -> void
+        def paint_bitmap: (Array[Integer], Integer, Integer) -> void
+        def each_cell: (Array[Integer]) -> void
+        def paint_cell: (Array[Integer], Integer, Integer) -> void
+        def colours: (Integer, Integer, bool) -> void
+        def cursor_shown?: (Integer, Integer) -> bool
+      end
     end
   end
 end

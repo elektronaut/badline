@@ -5,6 +5,9 @@ module Badline
     # Opens the window, then runs the machine a frame at a time: poll
     # events, clock the frame's cycles, queue the sound's samples, upload the
     # changed lines, present and wait. Pacer decides the cycles and the wait.
+    #
+    # The window shows the machine's video chip, or on the C128 the VDC's 80
+    # columns once F8 switches to them, sized to the screen shown.
     class App
       DROPFILE = 0x1000
 
@@ -18,10 +21,10 @@ module Badline
         @pacer = Pacer.new(paced: options.paced?, vsync: options.vsync?, verbose: @verbose, timing:)
         @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
-        @screen = Screen.new(computer.video, timing.crop, pixel_width: timing.pixel_width)
+        @screens = Screens.new(computer)
         @led = DriveLed.for(computer)
         @controls = Controls.new(computer)
-        @window = MachineWindow.new(@screen, vsync: @pacer.vsync?)
+        @window = MachineWindow.new(@screens.screen, vsync: @pacer.vsync?)
         @pacer.fit(@window.refresh_rate) if @pacer.vsync?
         @sound = Sound.new(computer.sound_source, timing.clock_hz, options.sound?, @verbose)
         @gamepads = Gamepads.new(computer, @verbose)
@@ -68,6 +71,7 @@ module Badline
         @frame_report.add(stamps) if @verbose
         @frames += 1
         @timeline.run(@computer, @frames)
+        show_vdc(@timeline.display_at(@frames) == "vdc") if @timeline.display?(@frames)
         @snapshots.tick(@frames)
         @running = false if @frames == @frame_limit || @timeline.quit?(@frames)
         @pacer.check(Pacer::EARLY_CHECK, stamps.last - @started, stamps.last) if @frames == Pacer::EARLY_CHECK
@@ -109,7 +113,7 @@ module Badline
       end
 
       def handle_key(scancode, down)
-        if [Keys::TAB, Keys::F9, Keys::F10].include?(scancode)
+        if [Keys::TAB, Keys::F8, Keys::F9, Keys::F10].include?(scancode)
           handle_toggle(scancode) if down
         elsif down && @snapshots.key(scancode)
           swap(@snapshots.computer)
@@ -123,24 +127,21 @@ module Badline
       # it.
       def swap(computer)
         @computer = computer
-        timing = computer.timing
-        @screen = Screen.new(computer.video, timing.crop, pixel_width: timing.pixel_width)
-        @window.fit(@screen)
-        @menu.center(@window.width, @window.height)
+        @screens.computer = computer
+        fit_window
         @led = DriveLed.for(computer)
         @controls.computer = computer
         @gamepads.computer = computer
-        @sound.switch(computer.sound_source, timing.clock_hz)
+        @sound.switch(computer.sound_source, computer.timing.clock_hz)
         @snapshots.computer = computer
       end
 
       def handle_toggle(scancode)
-        if scancode == Keys::TAB
-          @controls.toggle_keys
-        elsif scancode == Keys::F9
-          return open_menu
-        else
-          @sound.toggle_mute
+        case scancode
+        when Keys::TAB then @controls.toggle_keys
+        when Keys::F8 then show_vdc(!@screens.vdc_shown?)
+        when Keys::F9 then return open_menu
+        else @sound.toggle_mute
         end
         update_title
       end
@@ -189,11 +190,19 @@ module Badline
         menu_events
       end
 
-      def update_title
-        tags = []
-        tags << @controls.tag unless @controls.tag.empty?
-        tags << "MUTED" if @sound.muted?
-        @window.title(tags)
+      def update_title = @window.title(@controls.tag, @sound.muted?)
+
+      # Shows the C128's VDC in the window, or with false its VIC-IIe.
+      def show_vdc(shown)
+        @screens.show_vdc(shown)
+        fit_window
+      end
+
+      # Builds the screen for the chip shown and fits the window to it.
+      def fit_window
+        @screens.build
+        @window.fit(@screens.screen)
+        @menu.center(@window.width, @window.height)
       end
 
       def emulate
@@ -201,8 +210,10 @@ module Badline
       end
 
       def upload
-        @screen.update
-        @window.upload(@screen)
+        fit_window if @screens.stale?
+        screen = @screens.screen
+        screen.update
+        @window.upload(screen)
       end
 
       def draw

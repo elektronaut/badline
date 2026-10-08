@@ -28,6 +28,8 @@ module Badline
       MACHINE = "C64SC"
       # xvic names its machine VIC20.
       VIC20 = "VIC20"
+      # x128 names its machine C128.
+      C128 = "C128"
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version

@@ -56,6 +56,18 @@ module Badline
           [0, 0, shown.clamp(1, @width), (frame_lines - sync_lines).clamp(1, @height)]
         end
 
+        # The display's size and the window's start addresses. The display
+        # starts again cleared, to be painted while the VDC renders.
+        def save_state(out)
+          out.int(@width).int(@height)
+          @window.save_state(out)
+        end
+
+        def load_state(input)
+          resize(input.int, input.int)
+          @window.load_state(input)
+        end
+
         def clear_dirty_lines!
           @dirty_lines.fill(false)
         end

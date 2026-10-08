@@ -56,9 +56,12 @@ module Badline
         SDL.SDL_UpdateTexture(@texture, nil, screen.pixels, screen.row_bytes)
       end
 
-      # Titles the window, TITLE followed by `tags` in brackets.
-      def title(tags)
-        SDL.SDL_SetWindowTitle(@window, ([TITLE] + tags.map { |tag| "[#{tag}]" }).join(" "))
+      # Titles the window, TITLE followed by the controls' `tag`, unless it's
+      # empty, and MUTED when `muted`, each in brackets.
+      def title(tag, muted)
+        tags = tag.empty? ? [] : [tag]
+        tags << "MUTED" if muted
+        SDL.SDL_SetWindowTitle(@window, ([TITLE] + tags.map { |name| "[#{name}]" }).join(" "))
       end
 
       def close

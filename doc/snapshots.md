@@ -80,6 +80,20 @@ it, and badline doesn't open xvic's. Restoring a
 VIC-20 snapshot while a C64 runs, or a C64 one while a VIC-20 runs,
 swaps the machine in the window.
 
+## The C128
+
+`badline c128` saves and restores the same way too. A C128 snapshot
+holds its 128K of RAM, colour RAM, the CPU port, the MMU's registers,
+the VIC-IIe, both CIAs, the SID, the VDC with its RAM and registers, the
+CPU, a cartridge, the tape, the disk device 8 serves through the traps
+and a true 1541, and restores into a C128 of the same model with the
+same SID. The VDC's picture is left out and painted again while the
+window shows it, and the window shows the VIC-IIe after a restore. Its
+file names its machine `C128`, as x128's do, and holds only the
+`BADLINE` module, so x128 doesn't open it, and badline doesn't open
+x128's. Restoring a C128 snapshot while another machine runs swaps the
+machine in the window, as for the VIC-20.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format. badline writes VICE's modules for

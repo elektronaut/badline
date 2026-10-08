@@ -179,6 +179,37 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a C128" do
+    let(:computer) { Badline::C128.new }
+
+    {
+      "the keypad's 7" => [95, :keypad7], "the keypad's Enter" => [88, :keypad_enter], "Insert" => [73, :help],
+      "the right Alt" => [230, :alt], "Scroll Lock" => [71, :no_scroll], "Esc" => [41, :run_stop],
+      "the up arrow" => [82, :cursor_up]
+    }.each do |name, (scancode, key)|
+      it "presses #{key} for #{name}" do
+        controls.key(scancode, true)
+        expect(computer.keyboard.keys).to eq([key])
+      end
+    end
+
+    it "locks CAPS LOCK down with Caps Lock, holding P6 low" do
+      controls.key(57, true)
+      expect(computer.address_bus.peek(0x01).anybits?(0x40)).to be(false)
+    end
+
+    it "lets CAPS LOCK up as Caps Lock comes up" do
+      controls.key(57, true)
+      controls.key(57, false)
+      expect(computer.address_bus.caps_lock).to be(false)
+    end
+
+    it "locks 40/80 DISPLAY down with Pause" do
+      controls.key(72, true)
+      expect(computer.mmu.display_key).to be(true)
+    end
+  end
+
   describe "#computer=" do
     let(:other) { Badline::Computer.new }
 

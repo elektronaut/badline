@@ -19,7 +19,7 @@ module Badline
 
         toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
         toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
-        return unless draw_keys("C64")
+        return unless draw_keys(@computer.family == :c128 ? "C128" : "C64")
 
         row("SWAP JOYSTICKS", :swap)
         skip

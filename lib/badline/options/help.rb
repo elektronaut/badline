@@ -39,6 +39,7 @@ module Badline
       <<~BANNER
         Usage: #{@program} [c64] [options] [media]
                #{@program} vic20 [options] [media]
+               #{@program} c128 [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -46,6 +47,7 @@ module Badline
         Commands:
             c64                              Run a C64, the one --model names (the default)
             vic20                            Run a PAL VIC-20, with the RAM --ram names
+            c128                             Run a C128 in C64 mode, the one --model names
             sid                              Play .sid tunes and directories of them
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
@@ -89,7 +91,9 @@ module Badline
         the frame as a .bmp, with the frame's number in place of %d. menu
         opens the pause menu, and menu=PAGE opens it on snapshots, drive,
         datasette, expansion, ports, sound or power. Its frames still count,
-        and resume closes it. reset, freeze and quit take no argument.
+        and resume closes it. display=vdc or display=vic shows the C128's
+        80 or 40 column screen, as F8 switches them. reset, freeze and quit
+        take no argument.
       BANNER
     end
 

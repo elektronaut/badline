@@ -49,7 +49,7 @@ module Badline
     # or --sid the SID. The VIC-20 raises Unsupported for a .sid
     # tune.
     def self.start(options, media, writable)
-      computer = options.family == :vic20 ? vic20(options, media) : c64(options, media)
+      computer = build(options, media)
       Media::TrueDrive.plug(computer) if options.true_drive?
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
@@ -58,9 +58,24 @@ module Badline
       computer
     end
 
+    def self.build(options, media)
+      case options.family
+      when :vic20 then vic20(options, media)
+      when :c128 then c128(options, media)
+      else c64(options, media)
+      end
+    end
+
     def self.c64(options, media)
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       Machine.build(:c64, model: options.model, sid_model:, reu: options.reu)
+    end
+
+    # A C128 in C64 mode, the only mode it runs in so far, with or without
+    # --c64.
+    def self.c128(options, media)
+      sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
+      Machine.build(:c128, model: options.model, sid_model:)
     end
 
     # A VIC-20 with the RAM --ram names, or else the RAM `media` needs

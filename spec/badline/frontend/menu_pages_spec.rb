@@ -52,6 +52,35 @@ describe Badline::Frontend::MenuPages do
     expect(computer.datasette.playing?).to be(true)
   end
 
+  describe "with a C128" do
+    subject(:pages) do
+      options = Badline::Options.parse(["c128"])
+      described_class.new(painter, buttons, "", options, Badline::Frontend::Snapshots.new(computer, options))
+    end
+
+    let(:computer) { Badline::C128.new(model: "c128dcr") }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    before { pages.machine(computer, Badline::Frontend::Controls.new(computer), sound) }
+
+    it "names the model and its mode on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "C128DCR, C64 MODE", anything)
+    end
+
+    it "names its keyboard on the keys' toggle" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[C128 JOYSTICK], anything, 0])
+    end
+
+    it "powers it off and on" do
+      computer.run_cycles(1_000)
+      pages.perform(:power_cycle)
+      expect(computer.cpu.program_counter).to eq(0xfce2)
+    end
+  end
+
   describe "with a VIC-20" do
     subject(:pages) do
       options = Badline::Options.parse(["vic20"])

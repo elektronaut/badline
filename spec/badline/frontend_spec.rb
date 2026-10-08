@@ -71,6 +71,27 @@ describe Badline::Frontend do
       expect(built("--model", "c64c", "--sid", "6581")).to eq(%i[mos8565 mos6526a mos6581 pal])
     end
 
+    it "is the C128 --model names with c128" do
+      computer = machine("c128", "--model", "c128dcrntsc")
+      expect([computer.family, computer.model.name, computer.mode]).to eq([:c128, "c128dcrntsc", :c64])
+    end
+
+    it "fits the SID --sid names in a C128" do
+      expect(built("c128", "--sid", "8580")).to eq(%i[mos8566 mos6526 mos8580 pal])
+    end
+
+    it "is a C128 for a program that loads at $1C01" do
+      File.binwrite("game.prg", "\x01\x1c\x00\x00\x00")
+      allow($stdout).to receive(:write)
+      expect(machine("game.prg").family).to eq(:c128)
+    end
+
+    it "restores a C128's .vsf" do
+      Badline::C128.new.save_snapshot("c128.vsf")
+      allow($stdout).to receive(:write)
+      expect(machine("c128.vsf").family).to eq(:c128)
+    end
+
     it "is a VIC-20 with the RAM --ram names with vic20" do
       computer = machine("vic20", "--ram", "24k")
       expect([computer.family, computer.ram_configuration]).to eq(%i[vic20 24k])
