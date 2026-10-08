@@ -87,3 +87,30 @@ vic20/character.rom
 -------------------
 The character generator ROM, 901460-03, for $8000-$8FFF.
 SHA-1 4fd85ab6647ee2ac7ba40f729323f2472d35b9b4.
+
+Commodore 128 ROMs
+==================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c128/
+C128::Bus maps them in C128 mode. C64 mode runs basic.rom, kernal.rom
+and character.rom above.
+
+c128/basic.rom
+--------------
+BASIC 7.0, 318022-02 (basic.318022-02.bin), 32 KB: the low half for
+$4000-$7FFF followed by the high half for $8000-$BFFF.
+SHA-1 953dcdf5784a6b39ef84dd6fd968c7a03d8d6816.
+
+c128/kernal.rom
+---------------
+318020-05 (kernal.318020-05.bin), 16 KB: the screen editor for
+$C000-$CFFF, the Z80 BIOS for $D000-$DFFF and the KERNAL for
+$E000-$FFFF.
+SHA-1 ceb6e1a1bf7e08eb9cbc651afa29e26adccf38ab.
+
+c128/character.rom
+------------------
+The character generator ROM, 390059-01 (characters.390059-01.bin),
+8 KB: the C64's set, the same as character.rom, followed by the C128's.
+SHA-1 29ed066d513f2d5c09ff26d9166ba23c2afb2b3f.

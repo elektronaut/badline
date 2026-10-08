@@ -54,4 +54,42 @@ describe Badline::C128, :slow do
       expect(screen).to include(" 6")
     end
   end
+
+  context "when built for C128 mode" do
+    subject(:machine) { described_class.new(mode: :c128) }
+
+    def vdc_screen(rows)
+      Array.new(rows) { |row| Array.new(80) { |col| character(machine.vdc.ram[(row * 80) + col]) }.join.rstrip }
+    end
+
+    it "boots to BASIC 7.0 on the 40 column screen" do
+      machine.run_cycles(machine.init_threshold)
+      expect(screen[1, 6]).to eq([" COMMODORE BASIC V7.0 122365 BYTES FREE", "   (C)1986 COMMODORE ELECTRONICS, LTD.",
+                                  "         (C)1977 MICROSOFT CORP.", "           ALL RIGHTS RESERVED", "", "READY."])
+    end
+
+    it "runs a line typed into BASIC 7.0's keyboard buffer" do
+      machine.type_text("print 6*7\r")
+      machine.run_cycles(2_500_000)
+      expect(screen[7, 2]).to eq(["PRINT 6*7", " 42"])
+    end
+
+    it "boots on the VDC's 80 columns with the 40/80 key down" do
+      machine.press_display_key
+      machine.run_cycles(machine.init_threshold)
+      expect(vdc_screen(7)[1].strip).to eq("COMMODORE BASIC V7.0 122365 BYTES FREE")
+    end
+
+    it "goes to C64 mode through the KERNAL with C= held at reset" do
+      machine.keyboard.press(:cbm)
+      machine.run_cycles(4_000_000)
+      expect([machine.mode, screen[1]]).to eq([:c64, "    **** COMMODORE 64 BASIC V2 ****"])
+    end
+
+    it "goes to C64 mode on GO64" do
+      machine.type_text("go64\ry\r")
+      machine.run_cycles(5_000_000)
+      expect([machine.mode, screen[1]]).to eq([:c64, "    **** COMMODORE 64 BASIC V2 ****"])
+    end
+  end
 end

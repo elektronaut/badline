@@ -2,13 +2,25 @@
 
 module Badline
   class C128
-    # The 8502's bus in C64 mode, where the 8721 PLA decodes $01's LORAM,
-    # HIRAM and CHAREN and the cartridge's EXROM and GAME as a C64's does
-    # (AddressBus::PLA), over bank 0 of the 128K of RAM:
+    # The 8502's bus over the 128K of RAM, as the MMU maps it.
+    #
+    # In C128 mode CR picks what the CPU sees: BASIC at $4000-$BFFF, the
+    # screen editor, the character ROM and the KERNAL at $C000-$FFFF, an
+    # empty function ROM socket, or RAM, and I/O at $D000-$DFFF. The MMU's
+    # registers sit at $D500 and its configuration registers at
+    # $FF00-$FF04.
+    #
+    # In C64 mode the 8721 PLA decodes $01's LORAM, HIRAM and CHAREN and the
+    # cartridge's EXROM and GAME as a C64's does (AddressBus::PLA), and the
+    # MMU answers nowhere.
+    #
+    # In both modes the RAM is the bank CR picks, with common RAM in bank 0,
+    # and a page that page 0 or page 1 moves to reaches page 0 or page 1 of
+    # that bank. C128 mode also moves page 0 and page 1 there. The I/O area:
     #
     # $D000-$D3FF - the VIC-IIe
     # $D400-$D4FF - the SID, with no mirrors above it
-    # $D500-$D5FF - nothing: the MMU is hidden in C64 mode
+    # $D500-$D5FF - the MMU in C128 mode, nothing in C64 mode
     # $D600-$D6FF - the VDC
     # $D700-$D7FF - nothing, but for VICE's debug register at $D7FF
     # $D800-$DBFF - colour RAM
@@ -18,10 +30,14 @@ module Badline
     #
     # An empty page reads the byte the VIC fetched in the preceding phi1
     # half-cycle, as I/O 1 and 2 do on the C64.
+    #
+    # Colour RAM has two 1K banks (ColorLines).
     class Bus
       include Addressable
       include AddressBus::PLA
       include AddressBus::ROMs
+      include MMUPages
+      include SavedState
 
       # The 8502's port has seven pins. P0-P5 are the 6510's, and P6 senses
       # the CAPS LOCK key, high while it is up. Bit 7 has no pin, and holds
@@ -68,34 +84,75 @@ module Badline
         end
       end
 
+      # RAM seen somewhere else: the address's bits in +mask+ from +base+
+      # on. Bank 1 is the whole 64K from $10000, and a relocated page the
+      # low byte from the page it moved to.
+      class RAMWindow
+        attr_accessor :base
+
+        def initialize(ram, base, mask)
+          @ram = ram
+          @base = base
+          @mask = mask
+        end
+
+        def peek(addr) = @ram.peek(@base | (addr & @mask))
+        def poke(addr, value) = @ram.poke(@base | (addr & @mask), value)
+      end
+
+      # The page at $FF00 in C128 mode: CR and the LCRs at $FF00-$FF04, and
+      # whatever CR maps there above them.
+      class ConfigurationPage
+        attr_accessor :below
+
+        def initialize(mmu, below)
+          @mmu = mmu
+          @below = below
+        end
+
+        def peek(addr) = addr < 0xff05 ? @mmu.peek_configuration(addr) : @below.peek(addr)
+
+        def poke(addr, value)
+          addr < 0xff05 ? @mmu.poke_configuration(addr, value) : @below.poke(addr, value)
+        end
+      end
+
       attr_reader :io_port, :ram, :mmu, :vic, :sid, :vdc, :color_ram, :cia1, :cia2, :keyboard, :joystick1,
                   :joystick2, :control_ports, :cartridge, :ultimax, :phi1_ultimax, :datasette, :region
+
+      # The C128 mode ROMs: BASIC's two halves, the screen editor, the
+      # KERNAL and the character ROM's C128 set.
+      attr_reader :basic_low_rom, :basic_high_rom, :editor_rom, :c128_kernal_rom, :c128_character_rom
 
       # Whether CAPS LOCK is down, holding P6 low.
       attr_reader :caps_lock
 
       # The chips +model+, a Model::Profile, names, with the SID
-      # +sid_model+.
-      def initialize(model, sid_model: model.sid_model)
+      # +sid_model+. +mode+ is the mode the MMU resets into.
+      def initialize(model, sid_model: model.sid_model, mode: :c64)
         @region = model.region
         @ram = Memory.new(RAM_POWER_ON, length: 2**17, start: 0)
-        @mmu = MMU.new
+        @bank1 = RAMWindow.new(@ram, 0x10000, 0xffff)
+        @relocated = Array.new(4) { RAMWindow.new(@ram, 0, 0xff) }
+        @mmu = MMU.new(mode)
         @cartridge = nil
         @debug_page = nil
         @caps_lock = false
 
         load_roms
+        load_c128_roms
         plug_chips(model, sid_model)
 
         @datasette = Datasette.new
         @datasette.on_flag { @cia1.flag! }
         @datasette.on_sense_change { @io_port.value = port_value }
 
-        @color_ram = ColorMemory.new(@vic)
-        @vic.vic_bank.connect(cia2: @cia2, color_ram: @color_ram)
-        @vic.vic_bank.map_character_rom(character_rom)
+        @color_lines = ColorLines.new(@vic, @cia2, character_rom, @c128_character_rom)
+        @color_ram = @color_lines.color_ram(1)
         @vic_writes = VICWrites.new(@vic, @control_ports)
         @open_bus = AddressBus::OpenBus.new(@vic)
+        @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
+        @configuration_writes = ConfigurationPage.new(@mmu, @open_bus)
 
         @port_ddr = 0x00
         @port_out = 0x00
@@ -107,6 +164,7 @@ module Badline
         @address = 0
         @data = 0
         @io_mapped = false
+        @mmu.on_change { update_overlays! }
         update_overlays!
       end
 
@@ -130,9 +188,9 @@ module Badline
       # The RES line clears the port's direction and output registers and
       # resets the MMU. The port's floating bit keeps its charge.
       def reset!
-        @mmu.reset!
         @port_ddr = 0x00
         @port_out = 0x00
+        @mmu.reset!
         update_port!
       end
 
@@ -140,45 +198,6 @@ module Badline
       def caps_lock=(down)
         @caps_lock = down
         @io_port.value = port_value
-      end
-
-      # The machine's memory, the last access and everything on the bus but
-      # the keyboard, the joysticks, the pot devices and CAPS LOCK, which the
-      # host holds. A cartridge is already in the port, built from its setup.
-      def save_state(out)
-        out.marker("C128 BUS")
-        out.int(@port_ddr).int(@port_out).int(@port_floating).ints(@mmu.registers).int(@address).int(@data)
-        @ram.save_state(out)
-        @color_ram.save_state(out)
-        @cartridge&.save_state(out)
-        @datasette.save_state(out)
-        @vic.save_state(out)
-        @cia1.save_state(out)
-        @cia2.save_state(out)
-        @sid.save_state(out)
-        @vdc.save_state(out)
-      end
-
-      def load_state(input)
-        input.marker("C128 BUS")
-        @port_ddr = input.int
-        @port_out = input.int
-        @port_floating = input.int
-        input.ints_into(@mmu.registers)
-        @address = input.int
-        @data = input.int
-        @ram.load_state(input)
-        @color_ram.load_state(input)
-        @cartridge&.load_state(input)
-        @datasette.load_state(input)
-        @io_port.value = port_value
-        update_overlays!
-        @vic.load_state(input)
-        @control_ports.extra_rows = 0xf8 | @vic.extra_keyboard_lines
-        @cia1.load_state(input)
-        @cia2.load_state(input)
-        @sid.load_state(input)
-        @vdc.load_state(input)
       end
 
       def install_debug_register(&)
@@ -213,7 +232,7 @@ module Badline
         @address = addr
         @data = value
         if addr < 0x02
-          @ram.poke(addr, @vic.phi1_data)
+          @write_pages[0].poke(addr, @vic.phi1_data)
           addr.zero? ? @port_ddr = value : @port_out = value
           update_port!
         else
@@ -222,12 +241,23 @@ module Badline
       end
 
       def inspect
-        "#<#{self.class.name} port=#{format('0x%02x', @io_port.value)} " \
+        "#<#{self.class.name} mode=#{@mmu.mode} port=#{format('0x%02x', @io_port.value)} " \
           "cartridge=#{@cartridge ? @cartridge.class.name : 'none'} " \
           "ultimax=#{@ultimax}>"
       end
 
       private
+
+      def load_c128_roms
+        basic = ROM.read("c128/basic.rom")
+        kernal = ROM.read("c128/kernal.rom")
+        @basic_low_rom = ROM.new(basic[0, 0x4000], length: 0x4000, start: 0x4000)
+        @basic_high_rom = ROM.new(basic[0x4000, 0x4000], length: 0x4000, start: 0x8000)
+        @editor_rom = ROM.new(kernal[0, 0x1000], length: 0x1000, start: 0xc000)
+        @c128_kernal_rom = ROM.new(kernal[0x2000, 0x2000], length: 0x2000, start: 0xe000)
+        characters = ROM.read("c128/character.rom")
+        @c128_character_rom = ROM.new(characters[0x1000, 0x1000], length: 0x1000, start: 0xd000)
+      end
 
       def plug_chips(model, sid_model)
         @keyboard = Keyboard.new(matrix: KEYBOARD_MATRIX)
@@ -261,15 +291,15 @@ module Badline
       def update_overlays!
         @ultimax = @cartridge ? @cartridge.ultimax? : false
         @phi1_ultimax = @cartridge ? @cartridge.phi1_ultimax? : false
+        @mmu.game = @cartridge ? @cartridge.game : 1
+        @mmu.exrom = @cartridge ? @cartridge.exrom : 1
+        c64_mode = @mmu.c64_mode?
+        port = @io_port.value
+        @color_lines.push(c64_mode, port)
         @vic.vic_bank.map(@ram, base: @mmu.vic_bank << 16, phi1_ultimax: @phi1_ultimax, ultimax: @ultimax,
                                 romh: @cartridge&.romh)
-        map_pla_pages
-      end
-
-      def map_ram_pages
-        @io_mapped = false
-        @read_pages.fill(@ram)
-        @write_pages.fill(@ram)
+        @color_ram = @color_lines.cpu_color_ram(c64_mode, port)
+        c64_mode ? map_pla_pages : map_c128_pages
       end
 
       def map_io_pages
@@ -277,7 +307,7 @@ module Badline
         @read_pages.fill(@vic, 0xd0, 4)
         @write_pages.fill(@vic_writes, 0xd0, 4)
         @read_pages[0xd4] = @write_pages[0xd4] = @sid
-        @read_pages[0xd5] = @write_pages[0xd5] = @open_bus
+        @read_pages[0xd5] = @write_pages[0xd5] = @mmu.c64_mode? ? @open_bus : @mmu
         @read_pages[0xd6] = @write_pages[0xd6] = @vdc
         @read_pages[0xd7] = @write_pages[0xd7] = @debug_page || @open_bus
         @read_pages.fill(@color_ram, 0xd8, 4)

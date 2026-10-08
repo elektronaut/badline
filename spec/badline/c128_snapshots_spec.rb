@@ -34,6 +34,26 @@ describe Badline::C128 do
       end
     end
 
+    it "restores a C128 built for C128 mode that runs on as the saved one" do
+      machine = described_class.new(mode: :c128).tap { |booting| booting.run_cycles(400_001) }
+      restored = described_class.restored(machine.snapshot)
+      run_on(machine, restored)
+      expect([digest(restored), restored.mode]).to eq([digest(machine), :c128])
+    end
+
+    it "carries the MMU's relocation, the P0H write it holds and both colour RAM banks over" do
+      machine = described_class.new(mode: :c128).tap { |booting| booting.run_cycles(400_001) }
+      write(machine, [[0xd50a, 0x01], [0xd509, 0x30], [0xd508, 0x01], [0x00, 0x03], [0x01, 0x00], [0xd800, 0x05]])
+      restored = described_class.restored(machine.snapshot)
+      [machine, restored].each { |both| write(both, [[0xd507, 0x40]]) }
+      expect(digest(restored)).to eq(digest(machine))
+    end
+
+    it "refuses a state of a C128 built for the other mode" do
+      state = described_class.new(mode: :c128).snapshot
+      expect { described_class.new.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /c128/)
+    end
+
     it "carries FAST mode and the VDC's RAM and registers over" do
       machine = saved("c128dcr")
       write(machine, [[0xd030, 1], [0xd600, 18], [0xd601, 0x12], [0xd600, 31], [0xd601, 42]])

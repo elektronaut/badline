@@ -54,10 +54,10 @@ module SpinelCheck
     compare("vic20_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
   end
 
-  # The C128 typing print 6*7, then the C128DCR typing the line that
-  # writes the VDC's RAM in FAST mode.
+  # The C128 typing print 6*7, the C128DCR typing the line that writes the
+  # VDC's RAM in FAST mode, and the C128 typing print 6*7 in C128 mode.
   def check_c128_boots
-    [[], %w[4000000 3000000 c128dcr fast]].each do |args|
+    [[], %w[4000000 3000000 c128dcr fast], %w[4000000 2000000 c128 basic7]].each do |args|
       compare("c128_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
     end
   end

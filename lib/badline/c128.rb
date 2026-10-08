@@ -3,19 +3,29 @@
 require "badline/c128/model"
 require "badline/c128/mmu"
 require "badline/c128/vdc"
+require "badline/c128/mmu_pages"
+require "badline/c128/color_lines"
+require "badline/c128/bus_state"
 require "badline/c128/bus"
 require "badline/c128/cpu"
 require "badline/c128/saved_state"
+require "badline/c128/keys"
 
 module Badline
-  # The Commodore 128 in C64 mode: the 8502 on the VIC-IIe's clock, two
-  # CIAs, the SID, the VDC and its 80 column display, and 128K of RAM, of
-  # which C64 mode sees bank 0 through the 8721 PLA. It runs the C64's BASIC
-  # and KERNAL, so the C64's KERNAL traps, the keyboard buffer and CHROUT
-  # capture work unchanged.
+  # The Commodore 128: the 8502 on the VIC-IIe's clock, two CIAs, the SID,
+  # the VDC and its 80 column display, and 128K of RAM, which the 8722 MMU
+  # maps (C128::Bus).
   #
-  # It powers on in C64 mode, the state the C128 KERNAL reaches when C= is
-  # held at power-on, without the Z80's boot or C128 mode (MMU).
+  # Built for C128 mode, it runs BASIC 7.0 and the C128 KERNAL from reset.
+  # The C128's Z80 runs first and hands the bus to the 8502, but here the
+  # 8502 starts at its reset vector, with the MMU as the Z80 leaves it.
+  # The KERNAL goes to C64 mode as on the C128, with C= held at reset, a
+  # C64 cartridge or GO64.
+  #
+  # Built for C64 mode, the default, it powers on in C64 mode, the state
+  # the C128 KERNAL reaches when C= is held at power-on, and a reset comes
+  # back there. It runs the C64's BASIC and KERNAL, so the C64's KERNAL
+  # traps, the keyboard buffer and CHROUT capture work unchanged.
   #
   # Where a C64 program sees it differ from a C64C: the 8502's P6 senses CAPS
   # LOCK, $D02F drives the extra keyboard rows, $D030's FAST bit runs the
@@ -25,6 +35,7 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
     include Computer::Attachments
+    include Keys
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
@@ -34,7 +45,16 @@ module Badline
       %i[alt keypad0 keypad_period crsr_up crsr_down crsr_left crsr_right no_scroll]
     ]).freeze
 
-    attr_reader :cpu, :cycles, :drive1541, :model
+    # The cycle at which #on_init's handlers run, once the KERNAL of the
+    # mode the machine is built for has booted: the C64's as on a C64, or
+    # BASIC 7.0's, which is READY by then.
+    C128_INIT_THRESHOLD = 2_000_000
+
+    # The C128 KERNAL's keyboard buffer and its count.
+    C128_KEYBOARD_BUFFER = 0x034a
+    C128_KEYBOARD_COUNT = 0xd0
+
+    attr_reader :cpu, :cycles, :drive1541, :model, :init_threshold
 
     # The path of the disk or directory device 8 serves through the traps
     # (Computer::Attachments), or an empty one.
@@ -70,16 +90,23 @@ module Badline
 
     def datasette = @bus.datasette
 
-    # :c64, until C128 mode boots.
+    # :c64 or :c128, the mode the MMU is in.
     def mode = @bus.mmu.mode
 
     def install_debug_register(&) = @bus.install_debug_register(&)
 
     # +model+ names one of Model::ALL, and +sid_model+, when not nil, the
-    # SID in place of the model's.
-    def initialize(model: "c128", sid_model: nil, debug: false)
+    # SID in place of the model's. +mode+, :c64 or :c128, is the mode it
+    # powers on and resets into.
+    def initialize(model: "c128", sid_model: nil, mode: :c64, debug: false)
+      raise ArgumentError, "no C128 mode named #{mode}" unless %i[c64 c128].include?(mode)
+
       @model = Model.named(model)
-      @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model)
+      @c64_built = mode == :c64
+      @init_threshold = @c64_built ? Computer::INIT_THRESHOLD : C128_INIT_THRESHOLD
+      @keyboard_buffer = @c64_built ? KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER
+      @keyboard_count = @c64_built ? KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
+      @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)
       @vic = @bus.vic
       @vic.open_bus = -> { @bus.ram.peek(@cpu.program_counter) }
@@ -101,7 +128,7 @@ module Badline
       @drive1541 = nil
       @capture_output = nil
       plug_serial_bus
-      enter_c64_mode
+      enter_c64_mode if @c64_built
     end
 
     # The chips clock ahead of the CPU, as on the C64. $D030's FAST and
@@ -109,7 +136,7 @@ module Badline
     # mode the CPU runs in both halves of the cycle (#clock_fast), and the
     # TEST bit steps the raster counter in every cycle.
     def cycle!
-      handle_init if @cycles == Computer::INIT_THRESHOLD
+      handle_init if @cycles == @init_threshold
       feed_keyboard if @pending_keys
 
       clock_bits = @clock_bits
@@ -146,10 +173,6 @@ module Badline
     def run_until(limit)
       cycle! until yield || @cycles > limit
     end
-
-    # The cycle at which #on_init's handlers run, once the C64 KERNAL has
-    # booted.
-    def init_threshold = Computer::INIT_THRESHOLD
 
     def on_init(&block)
       if @cycles < init_threshold
@@ -199,7 +222,7 @@ module Badline
       @vdc.power_on!
       @bus.power_on!
       reset!
-      enter_c64_mode
+      enter_c64_mode if @c64_built
     end
 
     # The RES line reaches the CPU and its port, the MMU, both CIAs, the
@@ -216,32 +239,9 @@ module Badline
       @cpu.reset!
     end
 
-    # RESTORE pulses NMI for a cycle, as on the C64.
-    def press_restore
-      @restore_pulse = true
-    end
-
-    def release_restore; end
-
-    # CAPS LOCK locks down and up, and holds the 8502's P6 low while down.
-    def press_caps_lock
-      @bus.caps_lock = true
-    end
-
-    def release_caps_lock
-      @bus.caps_lock = false
-    end
-
-    # The 40/80 DISPLAY key locks down and up.
-    def press_display_key
-      @bus.mmu.display_key = true
-    end
-
-    def release_display_key
-      @bus.mmu.display_key = false
-    end
-
     def capture_output
+      raise ArgumentError, "C128 mode has no CHROUT trap" unless @c64_built
+
       @capture_output ||= ChroutTrap.new(cpu:, bus: @bus, layout: KernalTrap::C64_LAYOUT).tap do |trap|
         cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
       end
@@ -299,6 +299,16 @@ module Badline
 
     def handle_init
       @init_handlers.each(&:call)
+    end
+
+    # The KERNAL's keyboard buffer: the C64's, or in C128 mode BASIC 7.0's.
+    def feed_keyboard
+      return unless ram.peek(@keyboard_count).zero?
+
+      chunk = @pending_keys.shift(KeyboardBuffer::CAPACITY)
+      ram.write(@keyboard_buffer, chunk)
+      ram.poke(@keyboard_count, chunk.length)
+      @pending_keys = nil if @pending_keys.empty?
     end
   end
 end

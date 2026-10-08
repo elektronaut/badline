@@ -12,43 +12,171 @@ module Badline
     #   $D507-$D50A P0L, P0H, P1L, P1H: page 0 and page 1 relocation
     #   $D50B VR: the version, 2 banks of version 0
     #
-    # The machine powers on in C64 mode with the 8502 running, the state the
-    # C128 KERNAL leaves when C= is held at power-on, and every other
-    # register at its reset value. In C64 mode the MMU answers nowhere, but
+    # The rest of the page reads $FF. $FF00 is CR again, and a write to
+    # $FF01-$FF04, the LCRs, copies PCRA-PCRD into CR. Those five answer in
+    # every configuration, whatever CR maps there.
+    #
+    # A write to P0H or P1H waits until the matching P0L or P1L write
+    # takes it.
+    #
+    # On the C128 the Z80 runs first and hands the bus to the 8502. Here the
+    # 8502 runs from reset, with MCR as the Z80 leaves it. A machine built
+    # for C64 mode resets into C64 mode, the state the C128 KERNAL leaves
+    # when C= is held at power-on. In C64 mode the MMU answers nowhere, but
     # the CPU's RAM bank, common RAM and the VIC's bank it holds stay in
-    # force. Until C128 mode boots, a reset comes back to C64 mode too.
+    # force.
     class MMU
+      CR = 0
+      MCR = 5
+      RCR = 6
+      P0L = 7
+      P0H = 8
+      P1L = 9
+      P1H = 10
+      VR = 11
+
       MCR_8502 = 0x01
       MCR_C64_MODE = 0x40
       VERSION = 0x20
+
+      # MCR's bits that read back what was written: the CPU, FSDIR and C64
+      # mode. Bits 1 and 2 have no pins and read 1.
+      MCR_WRITABLE = 0x49
+      MCR_UNUSED = 0x06
+      MCR_GAME = 0x10
+      MCR_EXROM = 0x20
+      MCR_DISPLAY_KEY = 0x80
+
+      # The common RAM sizes RCR bits 0-1 pick, in pages.
+      COMMON_PAGES = [4, 16, 32, 64].freeze
 
       # The registers, CR first.
       attr_reader :registers
 
       # Whether the 40/80 DISPLAY key is locked down, which MCR bit 7 reads
-      # in C128 mode.
+      # as 0 in C128 mode.
       attr_accessor :display_key
 
-      def initialize
+      # The cartridge's GAME and EXROM lines, which MCR bits 4 and 5 read.
+      attr_writer :game, :exrom
+
+      # +mode+ is the mode a reset leaves, :c128 or :c64.
+      def initialize(mode = :c64)
+        @reset_mode = mode
         @registers = Array.new(12, 0)
         @display_key = false
+        @game = 1
+        @exrom = 1
+        @on_change = nil
         reset!
+      end
+
+      # Calls the block whenever the mapping the registers ask for changes.
+      def on_change(&block)
+        @on_change = block
       end
 
       def reset!
         @registers.fill(0)
-        @registers[5] = MCR_C64_MODE | MCR_8502
-        @registers[9] = 0x01
-        @registers[11] = VERSION
+        @registers[MCR] = @reset_mode == :c64 ? MCR_C64_MODE | MCR_8502 : MCR_8502
+        @registers[P1L] = 0x01
+        @registers[VR] = VERSION
+        @p0h_latch = 0
+        @p1h_latch = 0
+        @on_change&.call
       end
 
-      def c64_mode? = @registers[5].anybits?(MCR_C64_MODE)
+      def c64_mode? = @registers[MCR].anybits?(MCR_C64_MODE)
 
       # :c64 or :c128, the mode MCR bit 6 selects.
       def mode = c64_mode? ? :c64 : :c128
 
-      # The 64K bank the VIC sees, RCR bits 6 and 7.
-      def vic_bank = @registers[6] >> 6
+      # The 64K bank the VIC sees, RCR bit 6. Bit 7 picks banks a 256K
+      # machine has.
+      def vic_bank = (@registers[RCR] >> 6) & 0x01
+
+      # The RAM bank the CPU sees, CR bit 6.
+      def cpu_bank = (@registers[CR] >> 6) & 0x01
+
+      def cr = @registers[CR]
+
+      # The pages from $0000 up that common RAM keeps in bank 0, or 0.
+      def common_low_pages = @registers[RCR].anybits?(0x04) ? common_pages : 0
+
+      # The first page of the common RAM below $FFFF, or 256 for none.
+      def common_high_start = @registers[RCR].anybits?(0x08) ? 256 - common_pages : 256
+
+      # The page and the bank page 0 moves to.
+      def p0_page = @registers[P0L]
+      def p0_bank = @registers[P0H] & 0x01
+
+      # The page and the bank page 1 moves to.
+      def p1_page = @registers[P1L]
+      def p1_bank = @registers[P1H] & 0x01
+
+      # The registers at $D500-$D5FF.
+      def peek(addr)
+        offset = addr & 0xff
+        case offset
+        when MCR then mcr
+        when P0H, P1H then 0xf0 | @registers[offset]
+        when 0..VR then @registers[offset]
+        else 0xff
+        end
+      end
+
+      def poke(addr, value)
+        offset = addr & 0xff
+        case offset
+        when P0H then @p0h_latch = value & 0x0f
+        when P1H then @p1h_latch = value & 0x0f
+        when P0L then relocate(P0L, P0H, @p0h_latch, value)
+        when P1L then relocate(P1L, P1H, @p1h_latch, value)
+        when CR..RCR then write(offset, value)
+        end
+      end
+
+      # The registers and the P0H and P1H writes waiting for P0L and P1L.
+      # The bus maps the restored registers once its own state is back.
+      def save_state(out)
+        out.ints(@registers).int(@p0h_latch).int(@p1h_latch)
+      end
+
+      def load_state(input)
+        input.ints_into(@registers)
+        @p0h_latch = input.int
+        @p1h_latch = input.int
+      end
+
+      # CR and the LCRs at $FF00-$FF04: an LCR reads its PCR.
+      def peek_configuration(addr) = @registers[addr & 0x07]
+
+      def poke_configuration(addr, value)
+        offset = addr & 0x07
+        write(CR, offset.zero? ? value : @registers[offset])
+      end
+
+      private
+
+      def common_pages = COMMON_PAGES[@registers[RCR] & 0x03]
+
+      def mcr
+        value = (@registers[MCR] & MCR_WRITABLE) | MCR_UNUSED
+        value |= MCR_GAME if @game == 1
+        value |= MCR_EXROM if @exrom == 1
+        value |= MCR_DISPLAY_KEY unless @display_key
+        value
+      end
+
+      def relocate(low, high, latch, value)
+        @registers[high] = latch
+        write(low, value)
+      end
+
+      def write(offset, value)
+        @registers[offset] = value
+        @on_change&.call
+      end
     end
   end
 end

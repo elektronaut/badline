@@ -157,6 +157,25 @@ module Badline
         def peek: (Integer) -> Integer
         def poke: (Integer, Integer) -> void
       end
+
+      class RAMWindow
+        @base: Integer
+        @mask: Integer
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class ConfigurationPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class MMU
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+      def peek_configuration: (Integer) -> Integer
+      def poke_configuration: (Integer, Integer) -> void
     end
 
     class VDC
