@@ -360,6 +360,9 @@ jobs:
               spinel:testbench[testbench-drive,!viavarious]
               spinel:drive_scenarios
               spinel:testbench[testbench-vic20]
+          - shard: c128c64
+            harnesses: c128_testbench
+            tasks: spinel:testbench[testbench-c128c64]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
