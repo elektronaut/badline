@@ -51,6 +51,30 @@ describe Badline::ControlPorts do
     end
   end
 
+  describe "extra rows" do
+    let(:keyboard) { Badline::Keyboard.new(matrix: Badline::Keyboard::C64_MATRIX + [%i[extra0], %i[extra1], %i[extra2]]) }
+
+    before { keyboard.press(:extra1) }
+
+    it "leaves every extra row unselected by default" do
+      expect(ports.read_b(0xff, 0xff)).to eq(0xff)
+    end
+
+    it "reads a key in an extra row on port B while its line is low" do
+      ports.extra_rows = 0xfd
+      expect(ports.read_b(0xff, 0xff)).to eq(0b11111110)
+    end
+
+    it "ignores a key in an extra row while another extra line is low" do
+      ports.extra_rows = 0xfe
+      expect(ports.read_b(0xff, 0xff)).to eq(0xff)
+    end
+
+    it "keeps the extra row lines off port A" do
+      expect(ports.read_a(0xff, 0b11111110)).to eq(0xff)
+    end
+  end
+
   describe "attached devices" do
     let(:device) { Badline::Input::Paddles.new }
 

@@ -16,13 +16,19 @@ module Badline
   # resistances; close neither and the lines float high. Reading a pot asks the
   # CIA for the current select lines, since a program sets them and then goes
   # straight to SID without touching the ports again.
+  #
+  # A matrix may have rows beyond port A's eight. Their select lines come from
+  # outside the CIA and are pushed into +extra_rows+, bit 0 for the ninth row
+  # upwards, active low like port A; idle, every line is high and none of
+  # those rows is selected. They settle with port A's lines as rows 8 and up,
+  # so their keys reach port B, but port A reads only its own eight.
   class ControlPorts
     PORT1_POTS = 0x40
     PORT2_POTS = 0x80
     FIRE = 0x10
 
     attr_reader :keyboard, :joystick1, :joystick2
-    attr_accessor :device1, :device2, :port_a_source
+    attr_accessor :device1, :device2, :port_a_source, :extra_rows
 
     def initialize(keyboard:, joystick1:, joystick2:)
       @keyboard = keyboard
@@ -31,9 +37,10 @@ module Badline
       @device1 = nil
       @device2 = nil
       @port_a_source = nil
+      @extra_rows = 0xff
     end
 
-    def read_a(port_a, port_b) = scan(port_a, port_b).first
+    def read_a(port_a, port_b) = scan(port_a, port_b).first & 0xff
 
     def read_b(port_a, port_b) = scan(port_a, port_b).last
 
@@ -58,7 +65,7 @@ module Badline
     end
 
     def scan(port_a, port_b)
-      keyboard.scan(port_a & port_bits(@joystick2, @device2),
+      keyboard.scan((port_a & port_bits(@joystick2, @device2)) | (@extra_rows << 8),
                     port_b & port_bits(@joystick1, @device1))
     end
 
