@@ -112,8 +112,8 @@ The front end in `lib/badline/frontend/` is the same for both builds:
 - `timeline.rb` (`Timeline`) runs the events of `--at` and `--script`,
   and takes `--screenshot`'s frame as one of them.
 - `screen.rb` (`Screen`) repacks the video chip's display for the
-  texture, `screens.rb` (`Screens`) picks the chip shown, the C128's VDC
-  once F8 switches to it, and `drive_led.rb` (`DriveLed`) places and colours the true drive's
+  texture, `screens.rb` (`Screens`) picks the chip shown, on the C128
+  the screen the machine prints to or the one F8 switches to, and `drive_led.rb` (`DriveLed`) places and colours the true drive's
   LED over it.
 - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue, and
   `audio_sink.rb` (`AudioSink`) is the audio device of `--headless`.
@@ -195,9 +195,10 @@ render a `.sid` tune without it, as described under
 - `badline vic20` runs a PAL VIC-20 and `badline c128` a C128 in C128
   mode, as in badline-ruby (see [The C128](../README.md#the-c128)).
   The C128's `--model` is `c128`, `c128ntsc`, `c128dcr` or
-  `c128dcrntsc`, and `--c64` holds `C=` at power-on to start C64 mode. `F8`
-  switches the C128's window between the VIC-IIe's 40 columns and the
-  VDC's 80, fitting the window to the screen shown.
+  `c128dcrntsc`, and `--c64` holds `C=` at power-on to start C64 mode. The C128's
+  window follows the machine between the VIC-IIe's 40 columns and the
+  VDC's 80, fitting the window to the screen shown, and `F8` switches
+  it until the machine next does.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
@@ -244,7 +245,7 @@ The events:
   `resume` closes it again. A page that isn't one ends the run before it
   starts, with exit status 1.
 - `display=vdc` or `display=vic` shows the C128's 80 or 40 column
-  screen, as `F8` switches them.
+  screen, as `F8` switches them, until the machine next moves.
 - `reset`, `freeze` (the cartridge's button) and `quit`.
 
 With `--unpaced`, both builds run the same frames, so they take the same
@@ -266,8 +267,8 @@ changed into a streaming texture, presents it and waits.
 - The host keyboard maps by position (SDL scancodes, US layout) onto the
   C64 keys. Esc is RUN/STOP and Page Up is RESTORE. On the C128 the
   keypad, Insert (HELP), the right Alt (ALT), Scroll Lock (NO SCROLL),
-  Caps Lock (CAPS LOCK) and Pause (40/80 DISPLAY) are the C128's own
-  keys.
+  Caps Lock (CAPS LOCK) and F6 or Pause (40/80 DISPLAY) are the C128's
+  own keys, and in C128 mode Esc is ESC and Page Down RUN/STOP.
 - Tab switches the keys between the keyboard and the joysticks. F9
   opens the pause menu, whose Ports page plugs a 1351 mouse or paddles
   into port 1 or 2. The title bar names both.

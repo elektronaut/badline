@@ -193,17 +193,24 @@ takes the model's place. Without `c128`, a program that loads at
 `$1C01`, where C128 BASIC starts, picks the C128 too, and a `.d71`
 stays on the C64.
 
-The window shows the VIC-IIe's 40 columns, and `F8` switches it to the
-VDC's 80 columns and back, as a monitor's 40/80 switch does. The window
-takes the VDC's size, which its registers set, a dot to a pixel with
-its lines doubled. Only the chip shown is drawn.
+The window shows the screen the C128 prints to, and follows it when
+it moves: to the VDC's 80 columns after `GRAPHIC 5`, `ESC X` or a reset
+with `40/80 DISPLAY` locked down, and back to the VIC-IIe's 40 columns
+after `GRAPHIC 0` or `ESC X` again. In C64 mode it shows the VIC-IIe.
+`F8` switches the window to the other screen, as a monitor's 40/80
+switch does, until the C128 next moves. The window takes the VDC's
+size, which its registers set, a dot to a pixel with its lines doubled.
+Only the chip shown is drawn.
 
 Besides the C64's keys, the C128's own keys sit on their host keys: the
 keypad on the keypad, `HELP` on `Insert` (or `Help`), `ALT` on the right
 `Alt`, `NO SCROLL` on `Scroll Lock`, `CAPS LOCK` on `Caps Lock` and
-`40/80 DISPLAY` on `Pause`. In C64 mode only a program that scans them
-itself sees them. `ESC`, `TAB`, `LINE FEED` and the separate cursor keys
-have no host key yet: `Esc`, `Tab` and the arrows keep their C64 uses.
+`40/80 DISPLAY` on `F6` or `Pause`, both of which lock it down and up
+like the real key. In C128 mode `Esc` is `ESC` and `RUN/STOP` is on
+`Page Down` (`Fn`-`Down` on a Mac), and in C64 mode `Esc` stays
+`RUN/STOP`. In C64 mode only a program that scans the C128's keys
+itself sees them. `TAB`, `LINE FEED` and the separate cursor keys have
+no host key yet: `Tab` and the arrows keep their C64 uses.
 `F11`, `F12` and the pause menu save and load the C128 in badline's own
 snapshots, and x128's `.vsf` files don't load.
 
@@ -244,7 +251,7 @@ types `"`. These keys have no same-named host key:
 
 | C64 | Host |
 |-----|------|
-| `RUN/STOP` | `Escape` |
+| `RUN/STOP` | `Escape`, or on the C128 `Page Down` (`Esc` is `ESC` in C128 mode) |
 | `CLR/HOME` | `Home` |
 | `INST/DEL` | `Backspace` |
 | `CRSR ⇔` / `CRSR ⇕` | `Right` / `Down`, and `Left` / `Up` for the shifted directions |

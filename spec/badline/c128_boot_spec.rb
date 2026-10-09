@@ -80,6 +80,29 @@ describe Badline::C128, :slow do
       expect(vdc_screen(7)[1].strip).to eq("COMMODORE BASIC V7.0 122365 BYTES FREE")
     end
 
+    it "prints to the VIC-IIe's screen once booted" do
+      machine.run_cycles(machine.init_threshold)
+      expect(machine.active_screen).to eq(:vic)
+    end
+
+    it "prints to the VDC's screen once booted with the 40/80 key down" do
+      machine.press_display_key
+      machine.run_cycles(machine.init_threshold)
+      expect(machine.active_screen).to eq(:vdc)
+    end
+
+    it "moves to the VDC's screen on GRAPHIC 5" do
+      machine.type_text("graphic5\r")
+      machine.run_cycles(2_500_000)
+      expect(machine.active_screen).to eq(:vdc)
+    end
+
+    it "moves back to the VIC-IIe's screen on ESC X" do
+      machine.type_text("graphic5\r\ex")
+      machine.run_cycles(2_500_000)
+      expect(machine.active_screen).to eq(:vic)
+    end
+
     it "goes to C64 mode through the KERNAL with C= held at reset" do
       machine.keyboard.press(:cbm)
       machine.run_cycles(4_000_000)

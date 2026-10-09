@@ -6,8 +6,9 @@ module Badline
     # events, clock the frame's cycles, queue the sound's samples, upload the
     # changed lines, present and wait. Pacer decides the cycles and the wait.
     #
-    # The window shows the machine's video chip, or on the C128 the VDC's 80
-    # columns once F8 switches to them, sized to the screen shown.
+    # The window shows the machine's video chip, sized to the screen shown.
+    # On the C128 it follows the machine between the VIC-IIe's 40 columns
+    # and the VDC's 80, and F8 switches them until the machine next does.
     class App
       DROPFILE = 0x1000
 
@@ -210,6 +211,7 @@ module Badline
       end
 
       def upload
+        @screens.follow
         fit_window if @screens.stale?
         screen = @screens.screen
         screen.update
