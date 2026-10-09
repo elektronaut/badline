@@ -86,8 +86,9 @@ jobs:
         include:
           - { kind: plain, shard: 1, shards: 2 }
           - { kind: plain, shard: 2, shards: 2 }
-          - { kind: slow, shard: 1, shards: 2 }
-          - { kind: slow, shard: 2, shards: 2 }
+          - { kind: slow, shard: 1, shards: 3 }
+          - { kind: slow, shard: 2, shards: 3 }
+          - { kind: slow, shard: 3, shards: 3 }
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
