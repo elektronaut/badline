@@ -41,8 +41,9 @@ describe Badline::Frontend::Pacer do
 
     it "waits out the frame on the timer without vsync or sound" do
       timer = described_class.new(paced: true, vsync: false, verbose: false, timing:)
-      timer.start(Process.clock_gettime(Process::CLOCK_MONOTONIC))
-      expect { timer.wait(silent) }.to change { Process.clock_gettime(Process::CLOCK_MONOTONIC) }.by_at_least(0.019)
+      timer.start(started = Process.clock_gettime(Process::CLOCK_MONOTONIC))
+      timer.wait(silent)
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.019
     end
 
     it "doesn't catch up on frames it ran behind on" do
