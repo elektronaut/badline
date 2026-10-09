@@ -2,42 +2,13 @@
 
 require "spec_helper"
 require "tmpdir"
-require_relative "../support/taken_once"
+require_relative "../support/c128_boot"
 
 # The C128 booted into C64 mode, as BASIC and the KERNAL's traps see it.
 describe Badline::C128, :slow do
+  include C128Boot
+
   subject(:machine) { booted }
-
-  # A machine built for +mode+, with the 40/80 key down when +display_key+,
-  # run to the cycle its KERNAL has booted by, once for every example that
-  # asks for it. Examples read it, and run on from a machine #booted
-  # restores.
-  def booted_once(mode = :c64, display_key: false)
-    TakenOnce.fetch([:c128_booted, mode, display_key]) do
-      described_class.new(mode:).tap do |booting|
-        booting.press_display_key if display_key
-        booting.run_cycles(booting.init_threshold)
-      end
-    end
-  end
-
-  # A new machine where #booted_once's machine stands.
-  def booted(mode = :c64) = described_class.restored(booted_once(mode).snapshot)
-
-  # Runs the machine on to +cycles+ since power-on.
-  def run_to(cycles) = machine.run_cycles(cycles - machine.cycles)
-
-  # The first +rows+ rows of the 40-column screen, as text.
-  def screen(rows = 25)
-    Array.new(rows) do |row|
-      Array.new(40) { |col| character(machine.ram.peek(0x0400 + (row * 40) + col)) }.join.rstrip
-    end
-  end
-
-  def character(code)
-    code &= 0x7f
-    code.between?(1, 26) ? (code + 64).chr : code.chr
-  end
 
   context "when booted" do
     subject(:machine) { booted_once }
@@ -61,12 +32,9 @@ describe Badline::C128, :slow do
   end
 
   describe "a directory mounted as device 8" do
-    # 10 PRINT 6
-    let(:program) { [0x01, 0x08, 0x09, 0x08, 0x0a, 0x00, 0x99, 0x36, 0x00, 0x00, 0x00].pack("C*") }
-
     before do
       Dir.mktmpdir do |dir|
-        File.binwrite(File.join(dir, "six.prg"), program)
+        File.binwrite(File.join(dir, "six.prg"), program(0x08, "6"))
         Badline::Media.attach(machine, dir)
         machine.type_text(%(load"six",8\rrun\r))
         run_to(4_000_000)
@@ -80,10 +48,6 @@ describe Badline::C128, :slow do
 
   context "when built for C128 mode" do
     subject(:machine) { booted(:c128) }
-
-    def vdc_screen(rows)
-      Array.new(rows) { |row| Array.new(80) { |col| character(machine.vdc.ram[(row * 80) + col]) }.join.rstrip }
-    end
 
     context "when booted" do
       subject(:machine) { booted_once(:c128) }
@@ -129,40 +93,11 @@ describe Badline::C128, :slow do
       expect(machine.active_screen).to eq(:vic)
     end
 
-    it "goes to C64 mode on GO64" do
-      machine.type_text("go64\ry\r")
-      run_to(5_000_000)
-      expect([machine.mode, screen[1]]).to eq([:c64, "    **** COMMODORE 64 BASIC V2 ****"])
-    end
-
-    context "when C= is held at reset" do
-      subject(:machine) { described_class.new(mode: :c128) }
-
-      it "goes to C64 mode through the KERNAL" do
-        machine.keyboard.press(:cbm)
-        machine.run_cycles(4_000_000)
-        expect([machine.mode, screen[1]]).to eq([:c64, "    **** COMMODORE 64 BASIC V2 ****"])
-      end
-
-      it "boots the C64 KERNAL, then types into its keyboard buffer" do
-        machine.hold_commodore_key
-        machine.type_text("print 6*7\r")
-        machine.run_cycles(4_000_000)
-        expect([machine.mode, screen]).to match([:c64, include(" 42")])
-      end
-    end
-
-    # 10 PRINT +digit+, for BASIC at $0801 or at $1C01.
-    def program(page, digit)
-      [0x01, page, 0x09, page, 0x0a, 0x00, 0x99, digit.ord, 0x00, 0x00, 0x00].pack("C*")
-    end
-
     describe "with a directory mounted as device 8" do
       let(:dir) { Dir.mktmpdir }
 
       before do
         File.binwrite(File.join(dir, "six.prg"), program(0x1c, "6"))
-        File.binwrite(File.join(dir, "c64.prg"), program(0x08, "7"))
         Badline::Media.attach(machine, dir)
       end
 
@@ -176,14 +111,6 @@ describe Badline::C128, :slow do
         machine.type_text(%(10 print 7\rdsave"seven"\r))
         run_to(3_500_000)
         expect(File.binread(File.join(dir, "seven.prg")).bytes.first(2)).to eq([0x01, 0x1c])
-      end
-
-      it "moves the traps to the C64 KERNAL after GO64" do
-        machine.type_text("go64\ry\r")
-        run_to(5_000_000)
-        machine.type_text(%(load"c64",8\rrun\r))
-        machine.run_cycles(2_000_000)
-        expect(screen).to include(" 7")
       end
     end
 
