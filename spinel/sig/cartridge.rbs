@@ -1,7 +1,0 @@
-module Badline
-  class Cartridge
-    class WriteOnlyRAM
-      def initialize: (Array[Integer], untyped) -> void
-    end
-  end
-end
