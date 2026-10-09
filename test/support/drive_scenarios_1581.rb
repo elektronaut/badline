@@ -5,7 +5,7 @@ require "badline/core"
 # The 1581's true-drive scenarios: the 3.5" drive running its own DOS on a
 # C64's serial bus, through a save, a format, the error channel, a
 # write-protected disk, an autostart and its idle loop, as the 1541's in
-# test/drive_scenarios.rb. A .d81 holds 3160 free blocks once formatted.
+# test/support/drive_scenarios.rb. A .d81 holds 3160 free blocks once formatted.
 module DriveScenarios
   module Runs1581
     D81_SIZE = 819_200

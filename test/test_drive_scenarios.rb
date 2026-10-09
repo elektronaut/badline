@@ -2,9 +2,7 @@
 
 require "minitest/autorun"
 require "tmpdir"
-
-DRIVE_SCENARIOS = File.expand_path("../bin/drive_scenarios", __dir__)
-load DRIVE_SCENARIOS unless defined?(DriveScenarios::Pool)
+require_relative "support/drive_scenarios_runner"
 require "badline"
 
 class TestDriveScenariosRunner < Minitest::Test

@@ -13,8 +13,8 @@
 
 require "badline/core"
 require "badline/c128"
-require_relative "../test/testbench_c128_machine"
-require_relative "../test/testbench_record"
+require_relative "../test/support/testbench_c128_machine"
+require_relative "../test/support/testbench_record"
 
 module Testbench
   # The mode a test's line names, :c128 or :c64.

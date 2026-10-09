@@ -12,8 +12,8 @@
 
 require "badline/core"
 require "badline/vic20"
-require_relative "../test/testbench_vic20_machine"
-require_relative "../test/testbench_record"
+require_relative "../test/support/testbench_vic20_machine"
+require_relative "../test/support/testbench_record"
 
 module Testbench
   # Runs one test on a fresh machine and returns what it left behind. The

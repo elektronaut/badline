@@ -3,12 +3,12 @@
 require "digest"
 
 # The reporting half of the Wolfgang Lorenz runner, on CRuby only: it turns
-# a run of the chain (Lorenz::Chain in test/lorenz_chain.rb) into one
+# a run of the chain (Lorenz::Chain in test/support/lorenz_chain.rb) into one
 # baseline row per test, whether bin/lorenz drove the chain in process or
 # a Spinel build of spinel/lorenz.rb drove it and printed what it recorded.
 module Lorenz
   DEFAULT_IMAGE = File.expand_path(
-    "../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81", __dir__
+    "../../vendor/VICE-testprogs/general/Lorenz-2.15/Lorenz.d81", __dir__
   )
 
   # A test that neither ends in the suite's "- ok" nor prints anything

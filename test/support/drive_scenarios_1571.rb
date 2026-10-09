@@ -5,7 +5,7 @@ require "badline/c128"
 
 # The 1571's true-drive scenarios: the C128D's built-in drive running DOS
 # 3.0 on the serial bus of a C128 in C64 mode. It stays in 1541 mode
-# there, as with a C64, so the C64's scenarios in test/drive_scenarios.rb
+# there, as with a C64, so the C64's scenarios in test/support/drive_scenarios.rb
 # run on it unchanged: a save, the error channel, a write-protected disk,
 # an autostart and the idle loop. A double-sided format puts it in 1571
 # mode first with U0>M1, which runs it at 2 MHz and writes both sides of

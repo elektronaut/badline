@@ -3,7 +3,7 @@
 require "fileutils"
 require "open3"
 require "rbconfig"
-require_relative "../test/lorenz_run"
+require_relative "../test/support/lorenz_run"
 
 # Builds the Spinel harnesses and checks each compiled binary against the
 # same harness on CRuby. Backs the spinel:build, spinel:check and

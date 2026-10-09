@@ -3,7 +3,7 @@
 require "minitest/autorun"
 require "tmpdir"
 require "fileutils"
-require_relative "regression"
+require_relative "support/regression"
 
 class TestRegression < Minitest::Test
   BASELINE = <<~ROWS
@@ -409,8 +409,8 @@ class TestRegressionSplice < Minitest::Test
   end
 end
 
-require_relative "lorenz_chain"
-require_relative "lorenz_run"
+require_relative "support/lorenz_chain"
+require_relative "support/lorenz_run"
 
 class TestLorenzSegments < Minitest::Test
   TRANSCRIPT = "ldab - ok\nldaz - ok\nldazx"

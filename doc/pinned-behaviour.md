@@ -1537,7 +1537,7 @@ wasn't read.
     [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
     and the `format/name-and-id`, `format/bam-free` and
     `format/trap-readable` rows of the `drive-scenarios` suite
-    ([`drive_scenarios.rb`](../test/drive_scenarios.rb)), which read the
+    ([`drive_scenarios.rb`](../test/support/drive_scenarios.rb)), which read the
     formatted disk back from its image.
 - The disk turns at 300 rpm whatever bit rate VIA 2's PB5-6 select: a
   turn is 200,000 drive cycles over every track and over a half track

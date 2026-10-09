@@ -12,8 +12,8 @@
 #   tmp/spinel/testbench tests.txt
 
 require "badline/core"
-require_relative "../test/testbench_machine"
-require_relative "../test/testbench_record"
+require_relative "../test/support/testbench_machine"
+require_relative "../test/support/testbench_record"
 
 module Testbench
   # The CIA and VIC-II models a test line names.

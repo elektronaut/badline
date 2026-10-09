@@ -12,7 +12,7 @@
 #   tmp/spinel/lorenz image [--resume NAME] [--stop-after NAME]
 
 require "badline/core"
-require_relative "../test/lorenz_chain"
+require_relative "../test/support/lorenz_chain"
 
 module Lorenz
   # Runs the chain on a fresh machine and returns what it recorded. An

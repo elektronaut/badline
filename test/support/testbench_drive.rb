@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Which of bin/testbench's rows run on the true drive, and with which disk.
-# The drive's machine is in test/testbench_machine.rb, which the Spinel
+# The drive's machine is in test/support/testbench_machine.rb, which the Spinel
 # build shares.
 module Testbench
   DOS_ROM = "dos1541.rom"

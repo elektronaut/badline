@@ -177,7 +177,7 @@ Recorded output of the headless hardware suites, one file per suite:
   `general/` and `selftest/`, less `CPU/decimalmode`, `interrupts/irqdma`
   and the Lorenz suite, bar its `cpuport128` row. Rows that ask for the
   6569, a memory expansion, a disk image or a cartridge without a mapper
-  drop out. `Testbench::C128C64_DIRS` in `test/testbench_c128.rb` holds
+  drop out. `Testbench::C128C64_DIRS` in `test/support/testbench_c128.rb` holds
   the rule. Each row runs on a `Badline::C128` powered on in C64 mode, as
   x128's `-go64` starts it, or with its cartridge in: a `c128dcr` for
   `cia-new`, a `c128` otherwise, and the NTSC board for `vicii-ntsc`. A
@@ -201,7 +201,7 @@ Recorded output of the headless hardware suites, one file per suite:
   the x128 testlist, `c128-testlist.in`, that need C128 mode alone:
   `selftest/` and `c128/`'s `mmu`, `c64modemmu`, `ram0001`,
   `ram0001mmu`, `vic-mmu`, `vdccrash`, `2mhzVIC` and `d030tester`.
-  `Testbench::C128_DIRS` in `test/testbench_c128.rb` holds the rule. The
+  `Testbench::C128_DIRS` in `test/support/testbench_c128.rb` holds the rule. The
   `c64modez80` and `c128modez80` programs beside `c64modemmu` need the
   Z80 and run in `testbench-c128-z80`, and the C128 cartridge rows of
   `selftest/` drop out. `VDC/vdcdump`, 1.75G cycles, is left out for CI
@@ -240,7 +240,7 @@ Recorded output of the headless hardware suites, one file per suite:
   Spinel build its 135 rows took 123 minutes at four shards, 490 serial,
   `alu8r` alone 105.
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
-  `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
+  `test/support/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
   scratch directory. A row per check, keyed `scenario/check`, `PASS` or
   `FAIL` with what the check found:
@@ -267,7 +267,7 @@ Recorded output of the headless hardware suites, one file per suite:
     (`matches-stepping`).
   - `1571-save`, `1571-read-only`, `1571-autostart`,
     `1571-error-channel` and `1571-idle` run the same checks on a C128 in
-    C64 mode with its 1571 (`test/drive_scenarios_1571.rb`), whose DOS
+    C64 mode with its 1571 (`test/support/drive_scenarios_1571.rb`), whose DOS
     3.0 stays in 1541 mode there. `1571-idle` starts its lines 4M cycles
     later, once the DOS has stopped the motor it spins from power-on.
   - `1571-format` puts the 1571 in 1571 mode with `U0>M1`, at 2 MHz, and
@@ -278,7 +278,7 @@ Recorded output of the headless hardware suites, one file per suite:
     (`trap-readable`).
   - `1581-save`, `1581-read-only`, `1581-autostart`,
     `1581-error-channel` and `1581-idle` run the same checks on a C64
-    with a true 1581 and a `.d81` (`test/drive_scenarios_1581.rb`).
+    with a true 1581 and a `.d81` (`test/support/drive_scenarios_1581.rb`).
     `1581-idle` boots two diskless drives and starts its lines 2M cycles
     later, once the DOS has booted.
   - `1581-format` sends `N:` to a `.d81` of zeros, writing and verifying
@@ -374,7 +374,7 @@ several workspaces share the machine.
 Every test starts from the same 2.5M cycles of KERNAL boot, so each
 `bin/testbench` shard, and `bin/sidtests` once per SID model, boots a
 machine to that point once and forks a child per test from it
-(`test/forked_boot.rb`). A `testbench-carts` shard forks its children
+(`test/support/forked_boot.rb`). A `testbench-carts` shard forks its children
 from a machine at power-on instead, never booted, and a child whose row
 loads a program boots it with the cartridge attached. The child attaches the program on the cycle a
 freshly booted machine would have loaded it, so its state matches the

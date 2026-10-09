@@ -3,8 +3,8 @@
 require "bundler/gem_tasks"
 require "rake/testtask"
 
-require_relative "test/regression"
-require_relative "test/z80_sample"
+require_relative "test/support/regression"
+require_relative "test/support/z80_sample"
 require_relative "spinel/check"
 require_relative "spinel/sidtests_check"
 require_relative "native/build"
@@ -521,7 +521,7 @@ end
 # takes, compared as regression:sid and regression:sid-8580 compare them.
 def spinel_sidtests(sid)
   suite = { "6581" => "sid", "8580" => "sid-8580" }.fetch(sid) { raise "No SID model #{sid}. Pick 6581 or 8580." }
-  load File.expand_path("bin/sidtests", __dir__)
+  require_relative "test/support/sidtests"
   SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[sidtests])
   tests = SIDTests.tests(SIDTests::SID_MODELS.fetch(sid))
   results = SpinelSIDTests.run("spinel-#{suite}", tests, sid, shards: Integer(ENV.fetch("SHARDS", "4")))

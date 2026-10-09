@@ -8,7 +8,7 @@
 # The registers are listed in Z80Tests::REGISTERS' order. Ports are
 # address, value and kind (0 read, 1 write), and the pins of each T-state
 # are the address, the data or -1, and the lines as a mask (Z80Tests::PINS).
-require_relative "../test/z80_single_step"
+require_relative "../test/support/z80_single_step"
 
 REGISTERS = %w[a f b c d e h l i r pc sp ix iy wz im q af_ bc_ de_ hl_ iff1 iff2 ei p].freeze
 PINS = { "r" => 1, "w" => 2, "m" => 4, "i" => 8 }.freeze

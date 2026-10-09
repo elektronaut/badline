@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require_relative "z80_single_step"
+require_relative "support/z80_single_step"
 
 # SingleStepTests' Z80 cases, the first 100 of each opcode's file, or
 # every case with Z80_SAMPLE=all.
