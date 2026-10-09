@@ -28,7 +28,7 @@
 # goes into the drive instead of Media.attach, and the machine types
 # LOAD"$",8 and LIST (or --text) once booted, so the directory comes off
 # the disk through the DOS. --no-idle-skip makes the drive run every
-# cycle of its idle loop (see Drive1541::Idle), so running the same tree
+# cycle of its idle loop (see Drive::Idle), so running the same tree
 # with and without it checks that skipping leaves the drive and the
 # machine alone:
 #

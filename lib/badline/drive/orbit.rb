@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class Drive1541
+  module Drive
     # Sleeping through the DOS's timer interrupts, exactly, once they come
     # round.
     #

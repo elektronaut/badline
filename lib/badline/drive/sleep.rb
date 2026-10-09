@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class Drive1541
+  module Drive
     # The drive asleep, as Idle and Orbit let it: host_cycle! counts the
     # host cycles that go by, and waking turns them into drive cycles
     # through the phase accumulator and runs them. Whole orbits and whole
@@ -62,12 +62,12 @@ module Badline
         return @wake_at = 0 if @orbit_cycles
 
         needed = ((@budget - @owed) * @host_clock_hz) - @phase
-        @wake_at = needed.positive? ? (needed + CLOCK_HZ - 1) / CLOCK_HZ : 1
+        @wake_at = needed.positive? ? (needed + @clock_hz - 1) / @clock_hz : 1
       end
 
       # Runs the cycles owed.
       def wake!
-        phase = @phase + (@slept * CLOCK_HZ)
+        phase = @phase + (@slept * @clock_hz)
         @phase = phase % @host_clock_hz
         owed = @owed + (phase / @host_clock_hz)
         @owed = 0

@@ -117,7 +117,7 @@ module Badline
       # LED, the zone and the clock's rate, the stepper, write mode and
       # where a write starts, and the track and cell under the head. The
       # rest moves only while the motor turns, or as a disk goes in (see
-      # Drive1541::Idle).
+      # Drive::Idle).
       def idle_state
         [@motor, @led, @zone, @clock, @half_track, @slip, @disk, @track, @index, @mask, @cell_end, @time,
          @writing, @write_index, @sync]
