@@ -18,7 +18,8 @@ class TestDriveScenariosRunner < Minitest::Test
   end
 
   def test_selects_scenarios_by_name_substring
-    assert_equal %w[save read-only 1571-save 1571-read-only], DriveScenarios.selected(%w[sav read])
+    assert_equal %w[1581-save 1581-read-only save read-only 1571-save 1571-read-only],
+                 DriveScenarios.selected(%w[sav read])
   end
 
   def test_names_a_filter_that_matches_nothing
@@ -96,6 +97,27 @@ class TestDriveScenarios < Minitest::Test
       DriveScenarios::Images.blank_d64(path, "SAVE TEST")
 
       assert_equal "SAVE TEST".bytes, Badline::Storage::D64Image.new(path).read_block(18, 0)[0x90, 9]
+    end
+  end
+
+  def test_blank_d81_carries_its_name_and_id
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "blank.d81")
+      DriveScenarios::Images1581.blank_d81(path, "SAVE TEST", "ST")
+
+      assert_equal DriveScenarios::Images1581.header("SAVE TEST", "ST"),
+                   Badline::Storage::D81Image.new(path).read_block(40, 0)[0, 32]
+    end
+  end
+
+  def test_blank_d81_has_every_block_free_but_track_40s_first_four
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "blank.d81")
+      DriveScenarios::Images1581.blank_d81(path, "BLANK", "BL")
+      image = Badline::Storage::D81Image.new(path)
+      free = (1..80).sum { |track| (0...40).count { |sector| image.block_free?(track, sector) } }
+
+      assert_equal 3196, free
     end
   end
 
