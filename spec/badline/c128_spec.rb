@@ -173,8 +173,28 @@ describe Badline::C128 do
       expect(machine.address_bus.peek(0xd505) & 0x80).to eq(0x80)
     end
 
-    it "has no CHROUT trap" do
-      expect { machine.capture_output }.to raise_error(ArgumentError, /C128 mode/)
+    it "traps the C128 KERNAL's CHROUT" do
+      out = machine.capture_output
+      machine.run_cycles(machine.init_threshold)
+      expect(out.output).to include("ready.")
+    end
+
+    it "holds C= until the KERNAL goes to C64 mode" do
+      machine.hold_commodore_key
+      expect(machine.keyboard.keys).to include(:cbm)
+    end
+
+    it "lets C= go once the machine is in C64 mode" do
+      machine.hold_commodore_key
+      machine.address_bus.poke(0xd505, 0xf7)
+      expect(machine.keyboard.keys).not_to include(:cbm)
+    end
+
+    it "waits for the C64 KERNAL's boot to run #on_init's handlers after C= takes it to C64 mode" do
+      machine.hold_commodore_key
+      machine.run_cycles(1000)
+      machine.address_bus.poke(0xd505, 0xf7)
+      expect(machine.init_threshold).to eq(1000 + Badline::Computer::INIT_THRESHOLD)
     end
   end
 

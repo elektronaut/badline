@@ -192,10 +192,10 @@ render a `.sid` tune without it, as described under
   place. An NTSC machine's lines sit in the middle of the window, which
   keeps PAL's 272, between black bands.
 - `--ntsc` runs an NTSC C64, as `--model ntsc` does.
-- `badline vic20` runs a PAL VIC-20 and `badline c128` a C128 in C64
+- `badline vic20` runs a PAL VIC-20 and `badline c128` a C128 in C128
   mode, as in badline-ruby (see [The C128](../README.md#the-c128)).
   The C128's `--model` is `c128`, `c128ntsc`, `c128dcr` or
-  `c128dcrntsc`, and `--c64`, its only mode so far, is accepted. `F8`
+  `c128dcrntsc`, and `--c64` holds `C=` at power-on to start C64 mode. `F8`
   switches the C128's window between the VIC-IIe's 40 columns and the
   VDC's 80, fitting the window to the screen shown.
 - The SID plays through the host's audio device, and F10 mutes and

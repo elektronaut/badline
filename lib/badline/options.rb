@@ -178,8 +178,8 @@ module Badline
     # ntsc.
     def model = @models.first || family_models.first
 
-    # Whether --c64 asks the C128 to start in C64 mode, the only mode it
-    # runs in so far.
+    # Whether --c64 asks the C128 to start in C64 mode, holding C= at
+    # power-on.
     def c64_mode? = @c64_mode
 
     def help? = @help

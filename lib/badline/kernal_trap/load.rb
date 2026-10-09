@@ -112,7 +112,7 @@ module Badline
       end
 
       def verify(addr, payload)
-        match = payload.each_with_index.all? { |byte, i| @bus.peek(addr + i) == byte }
+        match = payload.each_with_index.all? { |byte, i| @layout.file_byte(@bus, addr + i) == byte }
         @bus.poke(0x90, match ? EOI : EOI | VERIFY_MISMATCH)
       end
 

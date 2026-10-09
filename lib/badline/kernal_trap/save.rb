@@ -71,7 +71,7 @@ module Badline
         start = uint16(@bus.peek(0xc1), @bus.peek(0xc2))
         length = (uint16(@bus.peek(0xae), @bus.peek(0xaf)) - start) & 0xffff
         [low_byte(start), high_byte(start)] +
-          Array.new(length) { |i| @bus.peek((start + i) & 0xffff) }
+          Array.new(length) { |i| @layout.file_byte(@bus, (start + i) & 0xffff) }
       end
     end
   end

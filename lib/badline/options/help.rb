@@ -47,7 +47,7 @@ module Badline
         Commands:
             c64                              Run a C64, the one --model names (the default)
             vic20                            Run a PAL VIC-20, with the RAM --ram names
-            c128                             Run a C128 in C64 mode, the one --model names
+            c128                             Run a C128 in C128 mode, the one --model names
             sid                              Play .sid tunes and directories of them
 
         Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a

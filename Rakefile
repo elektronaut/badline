@@ -92,6 +92,9 @@ REGRESSION_SUITES = {
 # where a C128 in C64 mode can differ from a C64C, on the C128 model each
 # asks for (Testbench::C128C64_DIRS has the rule). Its Spinel build is
 # spinel/c128_testbench.rb, so the C64's harness doesn't carry the C128.
+# testbench-c128 is the x128 testlist's rows that need C128 mode alone, on
+# a C128 that powers on in C128 mode (Testbench::C128_DIRS has the rule),
+# on the same Spinel build.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -117,6 +120,7 @@ OPT_IN_SUITES = {
   "testbench-drean" => { runner: "bin/testbench", args: %w[--drean] },
   "testbench-vic20" => { runner: "bin/testbench", args: %w[--vic20], engine: "vic20_testbench" },
   "testbench-c128c64" => { runner: "bin/testbench", args: %w[--c128c64], engine: "c128_testbench" },
+  "testbench-c128" => { runner: "bin/testbench", args: %w[--c128], engine: "c128_testbench" },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
   "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze

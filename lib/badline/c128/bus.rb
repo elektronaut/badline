@@ -141,6 +141,9 @@ module Badline
 
         load_roms
         load_c128_roms
+        @banks = Banks.new(@ram, @mmu, @c128_kernal_rom)
+        @c64_mode = @mmu.c64_mode?
+        @on_mode_change = nil
         plug_chips(model, sid_model)
 
         @datasette = Datasette.new
@@ -199,6 +202,21 @@ module Badline
         @caps_lock = down
         @io_port.value = port_value
       end
+
+      # Calls the block whenever MCR bit 6 takes the machine into C64 mode or
+      # a reset brings it back to C128 mode.
+      def on_mode_change(&block)
+        @on_mode_change = block
+      end
+
+      # Whether the CPU sees the C128 KERNAL, in C128 mode with CR's system
+      # ROM at $C000-$FFFF.
+      def system_rom_mapped? = !@mmu.c64_mode? && @mmu.cr.nobits?(0x30)
+
+      # The RAM the C128 KERNAL's bank number +bank+ reaches (Banks).
+      def peek_bank(bank, addr) = @banks.peek(bank, addr)
+
+      def write_bank(bank, addr, bytes) = @banks.write(bank, addr, bytes)
 
       def install_debug_register(&)
         @debug_page = DebugPage.new(@open_bus, &)
@@ -300,6 +318,12 @@ module Badline
                                 romh: @cartridge&.romh)
         @color_ram = @color_lines.cpu_color_ram(c64_mode, port)
         c64_mode ? map_pla_pages : map_c128_pages
+        mode_changed if c64_mode != @c64_mode
+      end
+
+      def mode_changed
+        @c64_mode = !@c64_mode
+        @on_mode_change&.call
       end
 
       def map_io_pages

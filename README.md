@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`, and the C128 in C64 mode, as `badline c128`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, and the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -88,7 +88,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
-| `--c64` | Start a C128 in C64 mode, the only mode it runs in so far. See [The C128](#the-c128) |
+| `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
 | `--no-vsync` | Pace the window by a timer, or by the sound while it plays, instead of the display's vsync |
@@ -167,18 +167,25 @@ files don't load.
 
 ## The C128
 
-`badline c128` runs a C128 in C64 mode, the state it reaches when `C=`
-is held at power-on, and takes the same media as the C64:
+`badline c128` runs a C128 in C128 mode, with BASIC 7.0, and takes the
+same media as the C64:
 
 ```sh
-badline c128              # READY., on the C128's C64 mode
+badline c128              # READY., in BASIC 7.0
 badline c128 game.prg     # Load and run a program
-badline c128 game.d64     # Mount a disk image as device 8 and load it
+badline c128 game.d64     # Mount a disk image as device 8 and LOAD"*",8,1 it
+badline c128 --c64        # Hold C= at power-on to start in C64 mode
 badline c128 --model c128dcr game.crt
 ```
 
-C128 mode, with BASIC 7.0, doesn't boot yet, so `--c64` changes nothing
-for now. `--model` picks the board: `c128` (the default, the flat C128
+`--c64` holds `C=` down through the reset, so the C128 KERNAL starts C64
+mode, as on a real C128. A program that loads at `$0801`, where C64 BASIC
+starts, and a `.sid` tune start C64 mode the same way, and so does a C64
+cartridge, through the KERNAL. `GO64` gets there from BASIC 7.0. A
+program that loads at `$1C01`, where BASIC 7.0 starts, runs, and other
+programs load at their own address. The disk in device 8 is served
+through the KERNAL traps in either mode. The C128's Z80 isn't emulated:
+the 8502 starts the machine. `--model` picks the board: `c128` (the default, the flat C128
 and the plastic C128D, PAL, with the 6581 SID and a VDC with 16K of
 RAM), `c128dcr` (the metal C128DCR, with the 8580, 6526As and a VDC with
 64K), and `c128ntsc` and `c128dcrntsc` for their NTSC versions. `--sid`
@@ -331,11 +338,10 @@ program or `.sid` dropped on it opens the menu to ask first.
   both 6522 VIAs, the keyboard, the joystick and RESTORE, RAM
   expansions up to 35K (`--ram`), cartridges, the datasette and the
   serial bus to device 8 (`badline vic20`).
-- **C128**: C64 mode on the 8502 with its port, FAST mode (roughly
-  timed), the VIC-IIe
-  with its extra keyboard lines, the MMU's state, the 8563 or 8568 VDC
-  with its 80 column display, and 128K of RAM (`badline c128`). C128
-  mode, the Z80 and the 1571 aren't emulated yet.
+- **C128**: C128 mode with BASIC 7.0 and C64 mode, on the 8502 with its
+  port, FAST mode, the VIC-IIe with its extra keyboard lines, the 8722
+  MMU, the 8563 or 8568 VDC with its 80 column display, and 128K of RAM
+  (`badline c128`). The Z80 and the 1571 aren't emulated yet.
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann

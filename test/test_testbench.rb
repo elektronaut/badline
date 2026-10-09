@@ -592,13 +592,53 @@ class TestTestbenchC128 < Minitest::Test
   end
 
   def test_hands_the_engine_its_model
-    assert Testbench::Engine.spec(parse("cia-new", type: "exitcode")).end_with?("\tc128dcr\n")
+    assert Testbench::Engine.spec(parse("cia-new", type: "exitcode")).end_with?("\tc128dcr\tc64\n")
   end
 
   def test_boots_a_c128_in_c64_mode
     machine = parse("", type: "exitcode").c128_machine
 
     assert_equal "    **** commodore 64 basic v2 ****", Testbench.screen_text(machine.ram)[1].rstrip
+  end
+end
+
+class TestTestbenchC128Mode < Minitest::Test
+  def parse(dir, prg, options = "")
+    Testbench::C128ModeTestlist.parse("#{dir}/,#{prg},exitcode,1000,#{options}")
+  end
+
+  def test_runs_a_row_on_a_c128_in_c128_mode
+    test = parse("../c128/mmu", "mmuswap-00.prg")
+
+    assert_equal [true, :c128, "c128"], [test.c128?, test.c128_mode, test.c128_model]
+  end
+
+  def test_takes_the_rows_c128_mode_alone_runs
+    %w[mmu c64modemmu ram0001 ram0001mmu vic-mmu vdccrash 2mhzVIC d030tester].each do |dir|
+      refute_nil parse("../c128/#{dir}", "t.prg")
+    end
+    refute_nil parse("./selftest", "c128-pass.prg")
+  end
+
+  def test_drops_the_rows_that_need_the_z80_a_1571_or_an_expansion
+    assert_nil parse("../c128/c64modemmu", "c64modez80-00.prg")
+    assert_nil parse("../c128/z80/c128z80timing", "t.prg")
+    assert_nil parse("../c128/burstmode", "burstcheck1.prg", "mountd71:burstcheck.d71")
+    assert_nil parse("../memory-expansions", "c128-ram-emd.prg")
+  end
+
+  def test_drops_the_c128_cartridge_rows
+    assert_nil Testbench::C128ModeTestlist.parse("./selftest/,,exitcode,1000,mountcrt:c128-pass.crt")
+  end
+
+  def test_hands_the_engine_its_mode
+    assert Testbench::Engine.spec(parse("../c128/mmu", "mmuswap-00.prg")).end_with?("\tc128\tc128\n")
+  end
+
+  def test_boots_a_c128_in_c128_mode
+    machine = parse("../c128/mmu", "mmuswap-00.prg").c128_machine
+
+    assert_equal " commodore basic v7.0 122365 bytes free", Testbench.screen_text(machine.ram)[1].rstrip
   end
 end
 

@@ -197,6 +197,23 @@ Recorded output of the headless hardware suites, one file per suite:
   - screenshots: `fetchsplit` (16 px), `modesplit` on PAL (92 px) and
     NTSC (`#2`, 64 px), `vicii_reg_timing-ff` (7 px), and seven
     `videomode*_ntsc` rows
+- `testbench-c128.txt` — the same runner with `--c128`, over the rows of
+  the x128 testlist, `c128-testlist.in`, that need C128 mode alone:
+  `selftest/` and `c128/`'s `mmu`, `c64modemmu`, `ram0001`,
+  `ram0001mmu`, `vic-mmu`, `vdccrash`, `2mhzVIC` and `d030tester`.
+  `Testbench::C128_DIRS` in `test/testbench_c128.rb` holds the rule. The
+  `c64modez80` and `c128modez80` programs beside `c64modemmu` need the
+  Z80 and drop out, and so do the C128 cartridge rows of `selftest/`.
+  `VDC/vdcdump`, 1.75G cycles, is left out for CI time. Each row runs on
+  a PAL `c128` that powers on in C128 mode, its 8502 starting at the
+  reset vector without the Z80's boot, and loads its program through the
+  C128 KERNAL's traps. On Spinel the rows run on
+  `spinel/c128_testbench.rb`. The FAIL rows:
+  - `c128/ram0001mmu/c128modezp0001`: no exit code, as on x128 and z64k
+  - screenshots, the 2 MHz mode's timing: `2mhzVIC/timing-change0`
+    (1 px), and all 33 `d030tester` rows, by 330 to 540 px in the raster
+    bars, and by 28,000 px or so in the rows whose TEST bit cuts lines,
+    below the cut
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
   `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
@@ -366,6 +383,7 @@ what the suite cost before it was sharded:
 | `testbench-drean` | 1 | 25 min | 1.7 min | 1.7 min |
 | `testbench-vic20` | 72 | — | 1.2 min | 0.4 min |
 | `testbench-c128c64` | 413 | — | 74 min | 30 min |
+| `testbench-c128` | 97 | — | 4 min | 1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

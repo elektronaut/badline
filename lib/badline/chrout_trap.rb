@@ -10,6 +10,9 @@ module Badline
 
     attr_reader :output
 
+    # The KERNAL layout whose mapping the trap checks.
+    attr_writer :layout
+
     def initialize(cpu:, bus:, layout:)
       @cpu = cpu
       @bus = bus

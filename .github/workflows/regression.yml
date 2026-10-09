@@ -33,6 +33,7 @@ on:
           - testbench-drean
           - testbench-vic20
           - testbench-c128c64
+          - testbench-c128
           - sid-8580
           - drive-scenarios
 # No concurrency group: nothing here cancels anything, so two dispatched

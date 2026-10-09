@@ -91,5 +91,55 @@ describe Badline::C128, :slow do
       machine.run_cycles(5_000_000)
       expect([machine.mode, screen[1]]).to eq([:c64, "    **** COMMODORE 64 BASIC V2 ****"])
     end
+
+    # 10 PRINT +digit+, for BASIC at $0801 or at $1C01.
+    def program(page, digit)
+      [0x01, page, 0x09, page, 0x0a, 0x00, 0x99, digit.ord, 0x00, 0x00, 0x00].pack("C*")
+    end
+
+    describe "with a directory mounted as device 8" do
+      let(:dir) { Dir.mktmpdir }
+
+      before do
+        File.binwrite(File.join(dir, "six.prg"), program(0x1c, "6"))
+        File.binwrite(File.join(dir, "c64.prg"), program(0x08, "7"))
+        Badline::Media.attach(machine, dir)
+      end
+
+      it "loads and runs a BASIC 7.0 program through the C128 KERNAL's traps" do
+        machine.type_text(%(dload"six"\rrun\r))
+        machine.run_cycles(3_500_000)
+        expect(screen).to include(" 6")
+      end
+
+      it "saves through the traps" do
+        machine.type_text(%(10 print 7\rdsave"seven"\r))
+        machine.run_cycles(3_500_000)
+        expect(File.binread(File.join(dir, "seven.prg")).bytes.first(2)).to eq([0x01, 0x1c])
+      end
+
+      it "moves the traps to the C64 KERNAL after GO64" do
+        machine.type_text("go64\ry\r")
+        machine.run_cycles(5_000_000)
+        machine.type_text(%(load"c64",8\rrun\r))
+        machine.run_cycles(2_000_000)
+        expect(screen).to include(" 7")
+      end
+    end
+
+    it "runs a program that loads at $1C01" do
+      path = File.join(Dir.mktmpdir, "six.prg")
+      File.binwrite(path, program(0x1c, "6"))
+      Badline::Media.attach(machine, path)
+      machine.run_cycles(2_500_000)
+      expect(screen).to include(" 6")
+    end
+
+    it "boots the C64 KERNAL with C= held, then types into its keyboard buffer" do
+      machine.hold_commodore_key
+      machine.type_text("print 6*7\r")
+      machine.run_cycles(4_000_000)
+      expect([machine.mode, screen]).to match([:c64, include(" 42")])
+    end
   end
 end

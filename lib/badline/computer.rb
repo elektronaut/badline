@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/computer/attachments"
+require "badline/computer/kernal_traps"
 require "badline/computer/saved_state"
 
 module Badline
@@ -8,6 +9,7 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
     include Attachments
+    include KernalTraps
     include SavedState
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
@@ -221,6 +223,9 @@ module Badline
     end
 
     private
+
+    # The KERNAL the traps stand in for (Attachments#mount).
+    def trap_layout = KernalTrap::C64_LAYOUT
 
     # The NMI line is wired-OR between CIA 2, the cartridge and the RESTORE
     # key, and the CPU takes an interrupt on its falling edge.

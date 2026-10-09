@@ -17,7 +17,7 @@ module Badline
       def full_filename
         pointer = uint16(@bus.peek(0xbb), @bus.peek(0xbc))
         bytes = Array.new(@bus.peek(0xb7)) do |i|
-          @bus.peek((pointer + i) & 0xffff)
+          @layout.filename_byte(@bus, (pointer + i) & 0xffff)
         end
         Storage.ascii(bytes)
       end

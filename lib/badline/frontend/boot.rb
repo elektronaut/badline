@@ -71,11 +71,26 @@ module Badline
       Machine.build(:c64, model: options.model, sid_model:, reu: options.reu)
     end
 
-    # A C128 in C64 mode, the only mode it runs in so far, with or without
-    # --c64.
+    # A C128 in C128 mode. With --c64, or media only C64 mode runs, a .sid
+    # tune or a program that loads at the C64's BASIC start, C= is held
+    # through the reset, so the C128 KERNAL starts C64 mode.
     def self.c128(options, media)
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
-      Machine.build(:c128, model: options.model, sid_model:)
+      machine = C128.new(model: options.model, sid_model:, mode: :c128)
+      machine.hold_commodore_key if options.c64_mode? || c64_media?(media)
+      machine
+    end
+
+    def self.c64_media?(media)
+      return false if media.nil? || !File.file?(media)
+
+      extension = File.extname(media).downcase
+      return true if extension == ".sid"
+      return false unless %w[.prg .p00].include?(extension)
+
+      bytes = File.binread(media).bytes
+      bytes = Storage::P00.data(bytes) if Storage::P00.wraps?(bytes)
+      bytes.length >= 2 && [Media::BASIC_START, Media::BASIC_START - 1].include?(bytes[0] | (bytes[1] << 8))
     end
 
     # A VIC-20 with the RAM --ram names, or else the RAM `media` needs

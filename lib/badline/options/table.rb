@@ -43,7 +43,7 @@ module Badline
                                  "C128: #{C128_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
-      Option.new("--c64", "Start the C128 in C64 mode, the only mode it runs in so far",
+      Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
                  section: "Window options", needs: :window),
       Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded)",
                  section: "Window options", needs: :window),
