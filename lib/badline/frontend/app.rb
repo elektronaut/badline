@@ -10,8 +10,6 @@ module Badline
     # On the C128 it follows the machine between the VIC-IIe's 40 columns
     # and the VDC's 80, and F8 switches them until the machine next does.
     class App
-      DROPFILE = 0x1000
-
       # Takes the frame limit, the pacing, the snapshot path, the sound and
       # the verbosity from Options, and runs the timeline's events.
       def initialize(computer, options, timeline)
@@ -109,7 +107,7 @@ module Badline
           @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
         when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
           @gamepads.rescan
-        when DROPFILE then resume(false) unless @menu.drop(@computer, @controls, @sound)
+        when SDL::DROPFILE then resume(false) unless @menu.drop(@computer, @controls, @sound)
         end
       end
 

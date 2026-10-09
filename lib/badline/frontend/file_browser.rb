@@ -12,19 +12,6 @@ module Badline
       ROWS = 12
       COLUMNS = 40
 
-      RETURN = 40
-      ESCAPE = 41
-      BACKSPACE = 42
-      HOME = 74
-      PAGE_UP = 75
-      END_KEY = 77
-      PAGE_DOWN = 78
-      RIGHT = 79
-      LEFT = 80
-      DOWN = 81
-      UP = 82
-      DIGITS = "1234567890"
-
       attr_reader :directory
 
       def initialize(painter, buttons)
@@ -60,9 +47,9 @@ module Badline
       # Handles a key, and returns the path of a file picked, :cancel when
       # Esc leaves the browser, or nil.
       def key(scancode)
-        return :cancel if scancode == ESCAPE
-        return pick if [RETURN, RIGHT].include?(scancode)
-        return up if [LEFT, BACKSPACE].include?(scancode)
+        return :cancel if scancode == Keys::ESCAPE
+        return pick if [Keys::RETURN, Keys::RIGHT].include?(scancode)
+        return up if [Keys::LEFT, Keys::BACKSPACE].include?(scancode)
 
         select(@selected + step(scancode)) unless step(scancode).zero?
         jump(scancode)
@@ -133,12 +120,12 @@ module Badline
 
       def step(scancode)
         case scancode
-        when UP then -1
-        when DOWN then 1
-        when PAGE_UP then -ROWS
-        when PAGE_DOWN then ROWS
-        when HOME then -@names.size
-        when END_KEY then @names.size
+        when Keys::UP then -1
+        when Keys::DOWN then 1
+        when Keys::PAGE_UP then -ROWS
+        when Keys::PAGE_DOWN then ROWS
+        when Keys::HOME then -@names.size
+        when Keys::END_KEY then @names.size
         else 0
         end
       end
@@ -154,10 +141,7 @@ module Badline
       # Selects the next name after the one selected that starts with the
       # key's letter or digit.
       def jump(scancode)
-        char = if scancode.between?(4, 29) then (97 + scancode - 4).chr
-               elsif scancode.between?(30, 39) then DIGITS[scancode - 30]
-               else ""
-               end
+        char = Keys.character(scancode, false)
         return if char.empty? || @names.empty?
 
         @names.size.times do |offset|
