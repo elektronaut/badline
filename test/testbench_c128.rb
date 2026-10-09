@@ -33,9 +33,10 @@ module Testbench
 
   # The rows of the x128 testlist that need C128 mode, the MMU, the VDC or
   # the VIC-IIe's 2 MHz mode alone. The rest need the Z80 (c128/z80, and
-  # the c64modez80 and c128modez80 programs beside c64modemmu), a memory
-  # expansion or a C128 cartridge, or are interactive. VDC/vdcdump runs for
-  # 1.75G cycles, which is left out for CI time.
+  # the c64modez80 and c128modez80 programs beside c64modemmu, which
+  # --c128-z80 runs), a memory expansion or a C128 cartridge, or are
+  # interactive. VDC/vdcdump runs for 1.75G cycles, which is left out for
+  # CI time.
   C128_DIRS = %r{\A\.?\./(selftest|c128/(mmu|c64modemmu|ram0001|ram0001mmu|vic-mmu|vdccrash|2mhzVIC|d030tester))/?\z}
 
   # The rows that need a true drive, which run with the disk image they
@@ -78,28 +79,30 @@ module Testbench
     end
   end
 
-  # The rows of the x128 testlist for C128 mode (C128_DIRS), each on a C128
-  # that powers on in C128 mode, the 8502 starting at its reset vector
-  # without the Z80's boot.
+  # The rows of the x128 testlist for C128 mode (C128_DIRS), or those that
+  # need the Z80, each on a C128 that powers on in C128 mode, its Z80
+  # booting it.
   module C128ModeTestlist
     module_function
 
-    def tests(filters, scope: nil, exclude: nil)
+    # The rows that need C128 mode alone, or with +z80+ the rows that need
+    # the Z80.
+    def tests(filters, scope: nil, exclude: nil, z80: false)
       testlist = File.join(TESTBENCH_DIR, "c128-testlist.in")
-      C128Testlist.numbered(File.readlines(testlist).filter_map { |line| parse(line) })
+      C128Testlist.numbered(File.readlines(testlist).filter_map { |line| parse(line, z80:) })
                   .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end
 
-    def parse(line)
+    def parse(line, z80: false)
       line = line.strip
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless RUNNABLE_TYPES.include?(type) && !prg.match?(Z80_PROGRAM)
+      return unless RUNNABLE_TYPES.include?(type) && z80_row?(dir, prg) == z80
       return unless Testlist.cartridge(options).nil?
 
       disk = Testlist.disk(options)
-      return unless runnable_dir?(dir, disk)
+      return unless z80 || runnable_dir?(dir, disk)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, nil)
       test.disk = disk
@@ -111,6 +114,10 @@ module Testbench
     def runnable_dir?(dir, disk)
       dir.match?(C128_DIRS) || (!disk.nil? && dir.match?(C128_DRIVE_DIRS))
     end
+
+    # A row that needs the Z80: the c128/z80 programs, and the c64modez80
+    # and c128modez80 programs beside c64modemmu.
+    def z80_row?(dir, prg) = dir.include?("/z80/") || prg.match?(Z80_PROGRAM)
   end
 
   # The curated rows of the x128c64 testlist (C128C64_DIRS).

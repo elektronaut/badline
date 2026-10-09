@@ -100,6 +100,11 @@ REGRESSION_SUITES = {
 # testbench-c128 is the x128 testlist's rows that need C128 mode alone, on
 # a C128 that powers on in C128 mode (Testbench::C128_DIRS has the rule),
 # on the same Spinel build.
+# testbench-c128-z80 is the x128 testlist's rows that need the Z80
+# (bin/testbench --c128-z80), on the same machine and build: the per-opcode
+# timing in 1 MHz cycles, the OUTI and page relocation checks, and the Z80
+# side of c64modemmu. testbench-c128-zex is its zex128 rows, ZEXDOC and
+# ZEXALL, which run for 50 billion cycles in all, so CI leaves them out.
 # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
 # untagged programs; :args go to the runner as they are.
 # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -126,6 +131,10 @@ OPT_IN_SUITES = {
   "testbench-vic20" => { runner: "bin/testbench", args: %w[--vic20], engine: "vic20_testbench" },
   "testbench-c128c64" => { runner: "bin/testbench", args: %w[--c128c64], engine: "c128_testbench" },
   "testbench-c128" => { runner: "bin/testbench", args: %w[--c128], engine: "c128_testbench" },
+  "testbench-c128-z80" => { runner: "bin/testbench", args: %w[--c128-z80], exclude: "c128/z80/zex128/",
+                            engine: "c128_testbench" },
+  "testbench-c128-zex" => { runner: "bin/testbench", args: %w[--c128-z80], scope: "c128/z80/zex128/",
+                            engine: "c128_testbench" },
   "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
   "drive-scenarios" => { runner: "bin/drive_scenarios" }
 }.freeze

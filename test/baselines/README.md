@@ -203,11 +203,11 @@ Recorded output of the headless hardware suites, one file per suite:
   `ram0001mmu`, `vic-mmu`, `vdccrash`, `2mhzVIC` and `d030tester`.
   `Testbench::C128_DIRS` in `test/testbench_c128.rb` holds the rule. The
   `c64modez80` and `c128modez80` programs beside `c64modemmu` need the
-  Z80 and drop out, and so do the C128 cartridge rows of `selftest/`.
-  `VDC/vdcdump`, 1.75G cycles, is left out for CI time. Each row runs on
-  a PAL `c128` that powers on in C128 mode, its 8502 starting at the
-  reset vector without the Z80's boot, and loads its program through the
-  C128 KERNAL's traps. `c128/burstmode` and the `drive/scanner` 1571
+  Z80 and run in `testbench-c128-z80`, and the C128 cartridge rows of
+  `selftest/` drop out. `VDC/vdcdump`, 1.75G cycles, is left out for CI
+  time. Each row runs on a PAL `c128` that powers on in C128 mode, its
+  Z80 booting it and handing it to the 8502, and loads its program through
+  the C128 KERNAL's traps. `c128/burstmode` and the `drive/scanner` 1571
   rows (`Testbench::C128_DRIVE_DIRS`) run with the disk they mount in a
   true drive instead: the 1571 for a `.d71` or `.g71` and a 1541 for a
   `.d64`, as x128's hooks pick it, and load their program injected, so
@@ -224,6 +224,19 @@ Recorded output of the headless hardware suites, one file per suite:
     (1 px), and all 33 `d030tester` rows, by 330 to 540 px in the raster
     bars, and by 28,000 px or so in the rows whose TEST bit cuts lines,
     below the cut
+- `testbench-c128-z80.txt` — the same runner with `--c128-z80`, over the
+  rows of the x128 testlist that need the Z80, on the same machine and
+  Spinel build: `c128/z80/c128z80timing` (1,868 rows, each opcode's time
+  in 1 MHz cycles as a real C128 takes it), `c128/z80/outi` (2),
+  `c128/z80/mmu_zp_sp` (1), and the 33 `c64modez80` and `c128modez80`
+  programs beside `c64modemmu`. Its zex128 rows are a suite of their own,
+  so it excludes `c128/z80/zex128/`. Every row passes. CI runs it in two
+  shards, `c128-z80-1` taking the timing rows whose opcode starts `f`,
+  `c` or `0`-`4`, and `c128-z80-2` the rest.
+- `testbench-c128-zex.txt` — the same runner with `--c128-z80`, scoped
+  to `c128/z80/zex128/`: ZEXDOC, ZEXALL and prelim, ported to the C128,
+  135 rows. Their budgets come to 50 billion cycles, `alu8r` alone 10.6
+  billion, so CI leaves the suite out and it is run by hand.
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
   `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
@@ -405,6 +418,7 @@ what the suite cost before it was sharded:
 | `testbench-vic20` | 72 | — | 1.2 min | 0.4 min |
 | `testbench-c128c64` | 413 | — | 74 min | 30 min |
 | `testbench-c128` | 97 | — | 4 min | 1 min |
+| `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

@@ -51,7 +51,7 @@ requires only the namespace file.
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | SingleStepTests z80 | `rake test` (the first 100 cases per opcode, `Z80_SAMPLE=all` for all 1,604,000) | `Z80`: registers, flags, ports and the bus pins on every T-state |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, and the C128 in C64 mode with `--c128c64` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
@@ -216,7 +216,7 @@ the 6526A) for anything the interrupt register or the CIA model reaches; cartrid
 `testbench-drive` (`bin/testbench --drive`) and `drive-scenarios` (`bin/drive_scenarios <filter>`), plus `testbench-vic20` for the VIA; the VIC-20 (`vic20/`) →
 `testbench-vic20` (`bin/testbench --vic20`); the C128 (`c128.rb`, `c128/`), or
 the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`
-(`bin/testbench --c128c64`); SID → `sid`, plus `sid-8580` for anything the 8580
+(`bin/testbench --c128c64`); the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the

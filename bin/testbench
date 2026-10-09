@@ -6,7 +6,7 @@
 #   ruby --yjit bin/testbench [filter...] [--scope PREFIX] [--exclude PREFIX]
 #                             [--carts] [--drive] [--1541-testsuite]
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
-#                             [--drean] [--vic20] [--c128c64] [--c128]
+#                             [--drean] [--vic20] [--c128c64] [--c128] [--c128-z80]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -99,11 +99,14 @@
 #
 # --c128 runs the rows of the x128 testlist, c128-testlist.in, that need
 # C128 mode alone (Testbench::C128_DIRS has the rule), each on a PAL C128
-# that powers on in C128 mode, its 8502 starting at the reset vector
-# without the Z80's boot. Programs load through the C128 KERNAL's traps,
-# but for the rows of Testbench::C128_DRIVE_DIRS, which run with the disk
-# they mount in a true drive: the 1571 for a .d71 or .g71, a 1541 for a
-# .d64.
+# that powers on in C128 mode, its Z80 booting it and handing it to the
+# 8502. Programs load through the C128 KERNAL's traps, but for the rows of
+# Testbench::C128_DRIVE_DIRS, which run with the disk they mount in a true
+# drive: the 1571 for a .d71 or .g71, a 1541 for a .d64.
+#
+# --c128-z80 runs the rows of the same testlist that need the Z80, on the
+# same machine: the c128/z80 programs (the per-opcode timing, zex128, OUTI
+# and the page relocation) and the c64modez80 and c128modez80 programs.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -122,7 +125,7 @@
 #
 # --engine runs the tests on a Spinel build of spinel/testbench.rb, or of
 # spinel/vic20_testbench.rb for --vic20 or spinel/c128_testbench.rb for
-# --c128c64 and --c128, instead,
+# --c128c64, --c128 and --c128-z80, instead,
 # one build process per shard, each booting a fresh machine per test. The
 # build only emulates, and the rows are scored here as they are for a
 # test run in process (see Testbench::Engine in test/testbench_engine.rb).
@@ -853,6 +856,7 @@ if $PROGRAM_NAME == __FILE__
                              expansions: !ARGV.delete("--expansions").nil?, drive:, standard:)
   vic20 = ARGV.delete("--vic20")
   c128c64 = ARGV.delete("--c128c64")
+  c128_z80 = ARGV.delete("--c128-z80")
   c128 = ARGV.delete("--c128")
   engine = Testbench.take_option(ARGV, "--engine")
   shards = Testbench::Runner.shard_count(Testbench.take_option(ARGV, "--shards"))
@@ -860,8 +864,8 @@ if $PROGRAM_NAME == __FILE__
             Testbench::Vic20Testlist.tests(ARGV, scope:, exclude:)
           elsif c128c64
             Testbench::C128Testlist.tests(ARGV, scope:, exclude:)
-          elsif c128
-            Testbench::C128ModeTestlist.tests(ARGV, scope:, exclude:)
+          elsif c128 || c128_z80
+            Testbench::C128ModeTestlist.tests(ARGV, scope:, exclude:, z80: !c128_z80.nil?)
           else
             Testbench::Testlist.tests(ARGV, scope:, exclude:, rows:)
           end
