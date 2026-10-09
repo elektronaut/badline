@@ -16,18 +16,28 @@ module Badline
         return 1
       end
 
-      begin
-        computer = boot(options)
-      rescue Media::TrueDrive::Error, Storage::SIDFile::FormatError, Storage::T64::FormatError,
-             Storage::TAP::FormatError, Storage::CRTFile::FormatError, Storage::G64Image::FormatError,
-             Cartridge::UnsupportedTypeError, Snapshot::FormatError, Media::DiskList::Error,
-             Datasette::Missing, Unsupported => e
-        warn "#{options.program}: #{options.media_path}: #{e.message}"
+      computer = nil
+      problem = media_problem { computer = boot(options) }
+      unless problem.empty?
+        warn "#{options.program}: #{options.media_path}: #{problem}"
         return 1
       end
       timeline = Timeline.new(options)
       App.new(computer, options, timeline).run
       timeline.failed? ? 1 : 0
+    end
+
+    # Runs the block and returns the message of the error it raised over
+    # media that won't go in or start, or an empty string. Every
+    # ArgumentError counts, among them Unsupported, Media::TrueDrive::Error,
+    # Media::DiskList::Error and Datasette::Missing.
+    def self.media_problem
+      yield
+      ""
+    rescue ArgumentError, SystemCallError, Storage::SIDFile::FormatError, Storage::T64::FormatError,
+           Storage::TAP::FormatError, Storage::CRTFile::FormatError, Storage::G64Image::FormatError,
+           Cartridge::UnsupportedTypeError, Snapshot::FormatError => e
+      e.message
     end
 
     # The machine a .vsf snapshot holds, built as the saved one was, or a
@@ -88,9 +98,7 @@ module Badline
       return true if extension == ".sid"
       return false unless %w[.prg .p00].include?(extension)
 
-      bytes = File.binread(media).bytes
-      bytes = Storage::P00.data(bytes) if Storage::P00.wraps?(bytes)
-      bytes.length >= 2 && [Media::BASIC_START, Media::BASIC_START - 1].include?(bytes[0] | (bytes[1] << 8))
+      [Media::BASIC_START, Media::BASIC_START - 1].include?(Storage::P00.load_address(media))
     end
 
     # A VIC-20 with the RAM --ram names, or else the RAM `media` needs

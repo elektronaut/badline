@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/storage/p00"
+
 module Badline
   class Options
     # The machine family: the subcommand that names it, or else the media,
@@ -37,15 +39,7 @@ module Badline
         return if @family_named || @sid_command || @media_path.nil?
         return unless %w[.prg .p00].include?(File.extname(@media_path).downcase) && File.file?(@media_path)
 
-        @family = :c128 if load_address(@media_path) == C128_BASIC_START
-      end
-
-      # The load address of a .prg, or of the program a .p00 wraps after its
-      # 26-byte header.
-      def load_address(path)
-        offset = File.extname(path).casecmp?(".p00") ? 26 : 0
-        bytes = File.binread(path).bytes
-        bytes.size >= offset + 2 ? bytes[offset] | (bytes[offset + 1] << 8) : -1
+        @family = :c128 if Storage::P00.load_address(@media_path) == C128_BASIC_START
       end
     end
   end

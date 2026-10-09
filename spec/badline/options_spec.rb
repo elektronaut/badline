@@ -444,6 +444,17 @@ describe Badline::Options do
       end
     end
 
+    context "with a .p00 that wraps a program that loads where C128 BASIC starts" do
+      let(:p00_path) { program_path.sub(/\.prg\z/, ".p00") }
+      let(:argv) { [p00_path] }
+
+      before { File.binwrite(p00_path, "C64File#{"\x00" * 19}\x01\x1c") }
+
+      it "runs the C128" do
+        expect(options.family).to eq(:c128)
+      end
+    end
+
     context "with c64 and a program that loads where C128 BASIC starts" do
       let(:argv) { ["c64", program_path] }
 

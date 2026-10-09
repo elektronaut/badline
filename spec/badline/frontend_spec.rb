@@ -34,6 +34,21 @@ describe Badline::Frontend do
     end
   end
 
+  describe ".media_problem" do
+    it "is empty when the block raises nothing" do
+      expect(described_class.media_problem { nil }).to eq("")
+    end
+
+    it "gives the message of a media error the block raises" do
+      expect(described_class.media_problem { raise Badline::Storage::TAP::FormatError, "not a tape" })
+        .to eq("not a tape")
+    end
+
+    it "lets other errors through" do
+      expect { described_class.media_problem { raise IndexError } }.to raise_error(IndexError)
+    end
+  end
+
   it "restores a .vsf" do
     Badline::Computer.new.save_snapshot("saved.vsf")
     expect { run("saved.vsf", "--frames", "1", "--unpaced") }.to output(/Restored saved.vsf/).to_stdout
