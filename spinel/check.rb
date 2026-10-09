@@ -10,9 +10,10 @@ require_relative "../test/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench].freeze
+  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
+  SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
 
   module_function
 
@@ -47,21 +48,22 @@ module SpinelCheck
     names.uniq
   end
 
-  def check_boot(*args)
-    compare("boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
-  end
+  def check_boot(*args) = compare("boot", args)
 
-  def check_vic20_boot(*args)
-    compare("vic20_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
-  end
+  def check_vic20_boot(*args) = compare("vic20_boot", args)
 
   # The C128 typing print 6*7, the C128DCR typing the line that writes the
   # VDC's RAM in FAST mode, and the C128 typing print 6*7 in C128 mode.
   def check_c128_boots
     [[], %w[4000000 3000000 c128dcr fast], %w[4000000 2000000 c128 basic7]].each do |args|
-      compare("c128_boot", args) { |out| out.reject { |line| line.start_with?("timed ") } }
+      compare("c128_boot", args)
     end
   end
+
+  # The SID playing csid-light's filter and combined-waveform tunes, each
+  # autostarted from power-on and recorded at 44.1 kHz for 4M cycles,
+  # compared sample for sample.
+  def check_sid = SID_TUNES.each { |tune| compare("sid", ["4000000", "2500000", tune]) }
 
   def check_cpu_tests = check_cases("cpu_tests", "spinel/convert.rb", CASES)
 
@@ -76,9 +78,12 @@ module SpinelCheck
     compare(name, [cases]) { |out| out.grep(/^(FAIL|passed) /) }
   end
 
-  def compare(name, args)
-    spinel = yield run(binary(name), *args)
-    cruby = yield run(RbConfig.ruby, "--yjit", "-Ilib", "spinel/#{name}.rb", *args)
+  # Runs the compiled harness and the same harness on CRuby and compares
+  # the lines the filter keeps, every line but the timings by default.
+  def compare(name, args, &filter)
+    filter ||= ->(out) { out.reject { |line| line.start_with?("timed ") } }
+    spinel = filter.call(run(binary(name), *args))
+    cruby = filter.call(run(RbConfig.ruby, "--yjit", "-Ilib", "spinel/#{name}.rb", *args))
     puts spinel.last(3)
     raise "spinel/#{name}.rb differs between Spinel and CRuby:\n#{diff(spinel, cruby)}" unless spinel == cruby
 
