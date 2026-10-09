@@ -323,4 +323,34 @@ describe Badline::IECBus do
       end
     end
   end
+
+  describe "fast serial" do
+    subject(:bus) { described_class.new }
+
+    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub).tap { |drive| drive.connect(bus) } }
+
+    it "pulls SRQ and DATA with the host's fast serial pins" do
+      bus.host_fast_lines = described_class::SRQ | described_class::DATA
+      expect(bus.low_lines & 0x0c).to eq(0x0c)
+    end
+
+    it "reads DATA low on the C64's side while a fast serial pin pulls it" do
+      bus.host_fast_lines = described_class::DATA
+      expect(bus.read_a(0, 0) & described_class::HOST_DATA_IN).to eq(0)
+    end
+
+    it "tells the host when a drive's fast serial pins move" do
+      allow(drive).to receive(:serial_output).and_return(described_class::DRIVE_FAST_SRQ)
+      moved = []
+      bus.on_fast_change { moved << (bus.low_lines & described_class::SRQ) }
+      bus.drives_fast_moved!
+      expect(moved).to eq([described_class::SRQ])
+    end
+
+    it "tells the drives when the host's fast serial pins move" do
+      allow(drive).to receive(:fast_lines_moved)
+      bus.host_fast_lines = described_class::SRQ
+      expect(drive).to have_received(:fast_lines_moved)
+    end
+  end
 end

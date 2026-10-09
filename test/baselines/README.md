@@ -207,9 +207,19 @@ Recorded output of the headless hardware suites, one file per suite:
   `VDC/vdcdump`, 1.75G cycles, is left out for CI time. Each row runs on
   a PAL `c128` that powers on in C128 mode, its 8502 starting at the
   reset vector without the Z80's boot, and loads its program through the
-  C128 KERNAL's traps. On Spinel the rows run on
+  C128 KERNAL's traps. `c128/burstmode` and the `drive/scanner` 1571
+  rows (`Testbench::C128_DRIVE_DIRS`) run with the disk they mount in a
+  true drive instead: the 1571 for a `.d71` or `.g71` and a 1541 for a
+  `.d64`, as x128's hooks pick it, and load their program injected, so
+  device 8 is the drive alone. On Spinel the rows run on
   `spinel/c128_testbench.rb`. The FAIL rows:
   - `c128/ram0001mmu/c128modezp0001`: no exit code, as on x128 and z64k
+  - `drive/scanner/scanner1571-35` (`.d71`): no exit code, the scan
+    stalling at track 70 after 69 tracks, and `scanner1571-35e`: exit
+    `$ff`. Both send each block to the C128 with a cycle-counted 2 MHz
+    loop, which the testlist marks "not 100% stable" on VICE too. Other
+    emulators' results in `testbench/results` show ok, error and timeout
+    for these two rows. The `.g71` row (`#2`) passes
   - screenshots, the 2 MHz mode's timing: `2mhzVIC/timing-change0`
     (1 px), and all 33 `d030tester` rows, by 330 to 540 px in the raster
     bars, and by 28,000 px or so in the rows whose TEST bit cuts lines,

@@ -103,6 +103,7 @@ module Badline
         @cpu.load_state(input)
         load_trap_drive(input)
         load_serial_bus(input)
+        push_fast_serial
       end
 
       private

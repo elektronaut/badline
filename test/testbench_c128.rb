@@ -33,11 +33,15 @@ module Testbench
 
   # The rows of the x128 testlist that need C128 mode, the MMU, the VDC or
   # the VIC-IIe's 2 MHz mode alone. The rest need the Z80 (c128/z80, and
-  # the c64modez80 and c128modez80 programs beside c64modemmu), a true 1571
-  # (burstmode, drive/scanner), a memory expansion or a C128 cartridge, or
-  # are interactive. VDC/vdcdump runs for 1.75G cycles, which is left out
-  # for CI time.
+  # the c64modez80 and c128modez80 programs beside c64modemmu), a memory
+  # expansion or a C128 cartridge, or are interactive. VDC/vdcdump runs for
+  # 1.75G cycles, which is left out for CI time.
   C128_DIRS = %r{\A\.?\./(selftest|c128/(mmu|c64modemmu|ram0001|ram0001mmu|vic-mmu|vdccrash|2mhzVIC|d030tester))/?\z}
+
+  # The rows that need a true drive, which run with the disk image they
+  # mount in it: a 1571 for a .d71 or .g71 and a 1541 for a .d64 or .g64,
+  # as x128's hooks pick the drive.
+  C128_DRIVE_DIRS = %r{\A\.\./(c128/burstmode|drive/scanner)/?\z}
   Z80_PROGRAM = /z80/
 
   # A TestCase's C128: a row of the x128c64 list, in C64 mode, or of the
@@ -56,9 +60,22 @@ module Testbench
       ntsc? ? "#{board}ntsc" : board
     end
 
-    # The machine the row's tests fork from: booted, or at power-on for a
-    # cartridge.
-    def c128_machine = Testbench.c128_machine(c128_model, cartridge.nil?, c128_mode)
+    # The true drive a row of the x128 testlist runs with: "1571" for a
+    # .d71 or .g71, "1541" for a .d64 or .g64, and nil for none.
+    def c128_drive
+      return unless disk && family == :c128_mode
+
+      disk.end_with?("71") ? "1571" : "1541"
+    end
+
+    # The machine the row's tests fork from: booted, with its true drive
+    # when it has one, or at power-on for a cartridge.
+    def c128_machine
+      drive = c128_drive
+      return Testbench.c128_drive_machine(c128_model, c128_mode, drive) if drive
+
+      Testbench.c128_machine(c128_model, cartridge.nil?, c128_mode)
+    end
   end
 
   # The rows of the x128 testlist for C128 mode (C128_DIRS), each on a C128
@@ -78,12 +95,21 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless RUNNABLE_TYPES.include?(type) && dir.match?(C128_DIRS) && !prg.match?(Z80_PROGRAM)
+      return unless RUNNABLE_TYPES.include?(type) && !prg.match?(Z80_PROGRAM)
       return unless Testlist.cartridge(options).nil?
 
+      disk = Testlist.disk(options)
+      return unless runnable_dir?(dir, disk)
+
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, nil)
+      test.disk = disk
       test.family = :c128_mode
       test
+    end
+
+    # A row of C128_DIRS, or of C128_DRIVE_DIRS with a disk to mount.
+    def runnable_dir?(dir, disk)
+      dir.match?(C128_DIRS) || (!disk.nil? && dir.match?(C128_DRIVE_DIRS))
     end
   end
 

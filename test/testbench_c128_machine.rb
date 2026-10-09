@@ -18,4 +18,17 @@ module Testbench
     machine.run_cycles(machine.init_threshold) if boot
     machine
   end
+
+  # A C128 as c128_machine boots one, with a true drive on the serial bus
+  # that boots alongside it: +drive+ "1571" for the C128D's, or "1541".
+  def self.c128_drive_machine(model, mode, drive)
+    machine = Badline::C128.new(model:, mode:)
+    if drive == "1541"
+      machine.attach_drive1541(Badline::Drive1541.new)
+    else
+      machine.attach_drive1571(Badline::Drive1571.new)
+    end
+    machine.run_cycles(machine.init_threshold)
+    machine
+  end
 end

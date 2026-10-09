@@ -110,6 +110,59 @@ describe Badline::Drive1571 do
     end
   end
 
+  describe "fast serial" do
+    let(:bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
+
+    # VIA 1's port B lets CLK and DATA go, so only the fast serial pins
+    # pull them.
+    before do
+      drive.connect(bus)
+      drive.via1.poke(0x1802, 0x1a)
+      drive.via1.poke(0x1800, 0x00)
+    end
+
+    # The SRQ and DATA levels at each host cycle, for +cycles+ of them.
+    def lines(cycles)
+      Array.new(cycles) do
+        drive.host_cycle!
+        bus.low_lines & (Badline::IECBus::SRQ | Badline::IECBus::DATA)
+      end
+    end
+
+    # Clocks +byte+ in on SRQ and DATA as the host's CIA would, most
+    # significant bit first.
+    def clock_in(byte)
+      7.downto(0) do |bit|
+        data = byte[bit].zero? ? Badline::IECBus::DATA : 0
+        bus.host_fast_lines = data | Badline::IECBus::SRQ
+        4.times { drive.host_cycle! }
+        bus.host_fast_lines = data
+        4.times { drive.host_cycle! }
+      end
+    end
+
+    it "clocks a byte out on SRQ, its bits on DATA, with PA1 out" do
+      load([0x4c, 0x00, 0x03]) # JMP *
+      port_a(0x02)
+      [[0x4004, 4], [0x4005, 0], [0x400e, 0x51], [0x400c, 0xa5]].each { |addr, value| drive.bus.poke(addr, value) }
+      expect(lines(200).chunk_while { |a, b| a == b }.count { |run| run.first.anybits?(Badline::IECBus::SRQ) })
+        .to eq(8)
+    end
+
+    it "lets SRQ and DATA go with PA1 in" do
+      port_a(0x00)
+      drive.bus.poke(0x400e, 0x40)
+      expect(lines(10).uniq).to eq([0])
+    end
+
+    it "takes a byte in from SRQ and DATA with PA1 in" do
+      load([0x4c, 0x00, 0x03]) # JMP *
+      port_a(0x00)
+      clock_in(0x5a)
+      expect(drive.cia.peek(0x400c)).to eq(0x5a)
+    end
+  end
+
   describe "#save_state" do
     let(:target) { described_class.new(rom: stub_rom) }
 

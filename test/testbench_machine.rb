@@ -46,10 +46,11 @@ module Testbench
     computer
   end
 
-  # Puts a .d64 in the true drive, formatted as the DOS would have, or a
-  # .g64 as its tracks are. The drive writes back to the image at +path+.
+  # Puts a .d64 or .d71 in the true drive, formatted as the DOS would
+  # have, or a .g64 or .g71 as its tracks are. The drive writes back to
+  # the image at +path+.
   def self.insert_disk(computer, path)
-    computer.drive1541.insert(Badline::Drive1541::Disk.open(path))
+    computer.true_drive.insert(Badline::Drive1541::Disk.open(path))
   end
 
   # The RAM expansion an expansion option fits, if it names one.

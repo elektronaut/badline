@@ -19,7 +19,7 @@ module Testbench
 
     # A test as a line of the list the build reads. A VIC-20 row's build
     # takes its RAM configuration where a C64 row's takes its CIA, and a
-    # C128 row's its model and its mode.
+    # C128 row's its model, its mode, and its true drive and disk image.
     def self.spec(test)
       return vic20_spec(test) if test.vic20?
       return c128_spec(test) if test.c128?
@@ -36,8 +36,10 @@ module Testbench
     end
 
     def self.c128_spec(test)
-      [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.c128_model, test.c128_mode].join("\t") << "\n"
+      fields = [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
+                test.c128_model, test.c128_mode]
+      fields.push(test.c128_drive, test.disk_path) if test.c128_drive
+      fields.join("\t") << "\n"
     end
 
     # Reads one test's record from the build's output.

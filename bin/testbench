@@ -100,7 +100,10 @@
 # --c128 runs the rows of the x128 testlist, c128-testlist.in, that need
 # C128 mode alone (Testbench::C128_DIRS has the rule), each on a PAL C128
 # that powers on in C128 mode, its 8502 starting at the reset vector
-# without the Z80's boot. Programs load through the C128 KERNAL's traps.
+# without the Z80's boot. Programs load through the C128 KERNAL's traps,
+# but for the rows of Testbench::C128_DRIVE_DIRS, which run with the disk
+# they mount in a true drive: the 1571 for a .d71 or .g71, a 1541 for a
+# .d64.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
@@ -181,7 +184,7 @@ module Testbench
   # --drean.
   COMMENTED_DREAN_ROW = /\A#\s*(\S+,vicii-drean(?:,\S*)?)\z/
   CARTRIDGE_OPTION = "mountcrt:"
-  DISK_OPTION = /\Amount[dg]64:/
+  DISK_OPTION = /\Amount[dg](64|71):/
 
   # Rows that can't apply to badline. Both need a true 1541: they upload
   # code to the drive with M-W, start it with M-E and handshake with it
@@ -257,6 +260,10 @@ module Testbench
 
     # The machine a VIC-20 or a C128 row forks from.
     def family_machine = vic20? ? vic20_machine : c128_machine
+
+    # What tells a VIC-20 or C128 row's machine apart: the family, the
+    # VIC-20's RAM and the C128's true drive.
+    def family_key = [family, ram_configuration, c128_drive]
 
     def name
       return cartridge if prg.empty?
@@ -729,7 +736,7 @@ module Testbench
     def booted(test)
       @machines ||= {}
       cartridge = !test.cartridge.nil?
-      key = [cartridge, test.drive?, *test.models, test.region, test.expansion, test.family, test.ram_configuration]
+      key = [cartridge, test.drive?, *test.models, test.region, test.expansion, *test.family_key]
       @machines[key] ||= ForkedBoot.new(FORWARDED_SIGNALS) do
         next test.family_machine if test.family
 

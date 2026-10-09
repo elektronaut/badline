@@ -36,13 +36,15 @@ module Badline
 
       private
 
-      # No disk in device 8's traps and no true drive.
+      # The serial bus, with no disk in device 8's traps and no true drive.
       def init_drives
         @drive = nil
         @serial_trap = nil
         @save_trap = nil
         @drive1541 = nil
         @drive1571 = nil
+        plug_serial_bus
+        plug_fast_serial
       end
 
       # Device 8, unless a true drive is on the bus as device 8.
