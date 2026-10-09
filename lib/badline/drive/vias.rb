@@ -19,6 +19,12 @@ module Badline
         @via2
       end
 
+      # Puts in a Disk from the .d64, .g64, .d71 or .g71 image at +path+
+      # (Drive1541::Disk.open), write-protected with `read_only`.
+      def insert_image(path, read_only: false)
+        insert(Drive1541::Disk.open(path, read_only:))
+      end
+
       # VIA 1's port B as it drives the serial bus. It holds still while the
       # drive sleeps, so reading it leaves the drive asleep.
       def serial_output = @via1.port_b_output

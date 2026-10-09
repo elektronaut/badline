@@ -324,6 +324,28 @@ describe Badline::IECBus do
     end
   end
 
+  describe "a gated ATN acknowledge" do
+    subject(:bus) { described_class.new }
+
+    # A drive whose serial_output asks for the 1581's gate, with +ack+ in
+    # its ATNA bit.
+    def gated(ack)
+      output = described_class::DRIVE_ATN_GATED | (ack ? described_class::DRIVE_ATNA : 0)
+      bus.attach(instance_double(Badline::Drive1581, serial_output: output, host_written!: nil))
+    end
+
+    it "pulls DATA while ATN is low and ATNA differs" do
+      gated(false)
+      bus.host_lines = described_class::HOST_ATN_OUT
+      expect(bus.data_low?).to be(true)
+    end
+
+    it "lets DATA go while ATN is high" do
+      gated(true)
+      expect(bus.data_low?).to be(false)
+    end
+  end
+
   describe "fast serial" do
     subject(:bus) { described_class.new }
 

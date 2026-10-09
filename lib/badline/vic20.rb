@@ -75,6 +75,7 @@ module Badline
       @save_trap = nil
       @capture_output = nil
       @drive1541 = nil
+      @drive1581 = nil
       @init_threshold = boot_cycles
       wire_ports
     end
@@ -94,6 +95,7 @@ module Badline
       drive_nmi
       @cpu.cycle!
       @drive1541&.host_cycle!
+      @drive1581&.host_cycle!
 
       @cycles += 1
     end
@@ -176,6 +178,7 @@ module Badline
       via_written
       @drive&.reset!
       @drive1541&.reset!
+      @drive1581&.reset!
       @nmi_asserted = false
       @cpu.reset!
     end

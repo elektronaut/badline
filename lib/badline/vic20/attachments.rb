@@ -4,8 +4,10 @@ module Badline
   class Vic20
     # What plugs into the VIC-20 besides its chips: cartridge ROM in the
     # expansion blocks, the disk device 8 serves through the KERNAL traps,
-    # and a true 1541 on the serial bus.
+    # and a true 1541 or 1581 on the serial bus.
     module Attachments
+      include Drive1581::Slot
+
       # The cycle by which a 1541 switched on with the machine has run its
       # DOS's reset, the RAM test and the ROM checksum, and waits on the
       # bus, with a margin: about 1.1 million of the VIC-20's cycles.
@@ -75,11 +77,16 @@ module Badline
         @serial_trap&.device = serial_trap_device
       end
 
-      # The true drive on the serial bus: the Drive1541, or nil.
-      def true_drive = @drive1541
+      # The true drive on the serial bus: the Drive1581 ahead of the
+      # Drive1541, or nil.
+      def true_drive = @drive1581 || @drive1541
 
-      # Plugs a Drive1541 in as device 8, and returns it.
-      def plug_true_drive = Drive1541.new.tap { |drive| attach_drive1541(drive) }
+      # Plugs a Drive1541 in as device 8, in place of a 1581 there, and
+      # returns it.
+      def plug_true_drive
+        detach_drive1581 if drive1581_on_device8?
+        Drive1541.new.tap { |drive| attach_drive1541(drive) }
+      end
 
       # Unplugs the Drive1541, leaving the serial bus with nothing on it.
       def detach_drive1541
@@ -102,7 +109,14 @@ module Badline
       # The device number the serial traps answer: device 8, unless a true
       # drive is on the bus as device 8.
       def serial_trap_device
-        @drive1541&.device == KernalTrap::Routine::DEVICE ? nil : KernalTrap::Routine::DEVICE
+        device = KernalTrap::Routine::DEVICE
+        @drive1541&.device == device || drive1581_on_device8? ? nil : device
+      end
+
+      # A 1581 plugged in, as a 1541 does, holds the machine's on_init
+      # handlers back until its DOS has booted.
+      def drive1581_attached
+        @init_threshold = [@init_threshold, Drive1581::BOOT_CYCLES].max if @cycles < @init_threshold
       end
     end
   end

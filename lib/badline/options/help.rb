@@ -61,7 +61,8 @@ module Badline
         pause menu loads. Device 8 answers through traps on the KERNAL's
         disk routines, unless --true-drive puts an emulated 1541 there,
         which runs its own DOS and reads .d64 and .g64 images only, or on
-        the C128 the C128D's 1571, which reads .d71 and .g71 too. A .sid
+        the C128 the C128D's 1571, which reads .d71 and .g71 too. A .d81
+        then goes in an emulated 1581 in its place. A .sid
         tune opens in the SID player, as `sid` plays it, unless an option
         of the emulator's window asks for the machine.
 

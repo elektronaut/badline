@@ -30,13 +30,15 @@ describe Badline::Computer, "#snapshot" do
   end
 
   # Layout 3 wrote the setup without the KERNAL, the datasette and the
-  # board, the three values after the REU's size.
+  # board, the three values after the REU's size, and layouts before 8
+  # wrote no 1581, the flag before the REU's DMA line, the last value.
   describe "a state in layout 3" do
     let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
     let(:restored) do
       values = original.snapshot.values.dup
       values[0] = 3
       values.slice!(7, 3)
+      values.delete_at(-2)
       described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
     end
 
@@ -50,13 +52,14 @@ describe Badline::Computer, "#snapshot" do
   end
 
   # Layout 5 wrote the setup without the board, the value after the
-  # datasette.
+  # datasette, and no 1581.
   describe "a state in layout 5" do
     let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
     let(:restored) do
       values = original.snapshot.values.dup
       values[0] = 5
       values.delete_at(9)
+      values.delete_at(-2)
       described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
     end
 

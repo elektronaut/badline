@@ -16,9 +16,10 @@ module Badline
       # fails before anything is read into a machine. Layout 3, without the
       # KERNAL and datasette in the setup, layout 4, without the VIA shift
       # register's clock delay, layout 5, without the board in the setup,
-      # and layout 6, without the C128's Z80, still read.
-      SCHEMA = 7
-      READABLE = [3, 4, 5, 6, SCHEMA].freeze
+      # layout 6, without the C128's Z80, and layout 7, without a 1581 on the
+      # serial bus, still read.
+      SCHEMA = 8
+      READABLE = [3, 4, 5, 6, 7, SCHEMA].freeze
 
       attr_reader :values, :strings
 

@@ -250,6 +250,7 @@ module Badline
       @drive&.reset!
       @drive1541&.reset!
       @drive1571&.reset!
+      @drive1581&.reset!
       @nmi_asserted = false
       reset_z80
     end
