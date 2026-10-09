@@ -1,18 +1,19 @@
 # frozen_string_literal: true
 
 module Badline
-  class Drive1541
+  module Drive
     # Skipping the drive's cycles while the DOS idles, exactly.
     #
-    # With nothing to do, the DOS goes round its idle loop from $EBFF,
-    # 446 cycles a pass, until VIA 2's timer 1 interrupts it every 14,850
-    # cycles for the job loop, or ATN interrupts it through VIA 1's CA1. A
-    # pass writes RAM and VIA 2's port B, but puts back what it found, so
-    # the drive comes round to $EBFF as it left it. Only the timers'
-    # counters and the cycle counts move.
+    # With nothing to do, the DOS goes round its idle loop from the
+    # model's @idle_loop ($EBFF in the 1541, 446 cycles a pass), until VIA
+    # 2's timer 1 interrupts it every 14,850 cycles for the job loop, or
+    # ATN interrupts it through VIA 1's CA1. A pass writes RAM and VIA 2's
+    # port B, but puts back what it found, so the drive comes round to the
+    # loop's start as it left it. Only the timers' counters and the cycle
+    # counts move.
     #
-    # Each time the CPU comes to $EBFF, the drive records the pass that
-    # follows. At the next $EBFF it checks that the pass
+    # Each time the CPU comes to the loop's start, the drive records the
+    # pass that follows. At the next it checks that the pass
     #
     # - left the CPU, both VIAs but for their counters, the bus's last
     #   byte, the SO pin, the mechanism (Mechanism#idle_state) and what
@@ -30,7 +31,7 @@ module Badline
     # sleeps: host_cycle! only counts the host cycles that go by (see
     # Sleep). It wakes
     # when ATN moves, when a counter is due to set a flag, or when something
-    # outside reads or changes the drive (the readers in Drive1541 call
+    # outside reads or changes the drive (the readers in Core call
     # settle!). Waking counts off the whole passes it owes in bulk,
     # moving the counters on, and runs the rest cycle by cycle.
     #
@@ -39,16 +40,13 @@ module Badline
     # own lines hold still while it sleeps, so the C64 reads them without
     # waking it (serial_output).
     #
-    # A pass starts at $EBFF, where the CPU always comes from the loop's
-    # last instruction, a JMP, so what that leaves in the CPU's working
-    # registers is the same each time round.
+    # A pass starts at the loop's start, where the CPU always comes from
+    # the loop's last instruction, a JMP, so what that leaves in the CPU's
+    # working registers is the same each time round.
     #
     # The timer's interrupts come round too, and once they do, the drive
     # sleeps on through them (see Orbit).
     module Idle
-      # Where the DOS 2.6 idle loop starts over.
-      IDLE_LOOP = 0xebff
-
       # Whether the drive may sleep through its idle loop. On by default,
       # but for a drive whose CPU logs each instruction.
       attr_reader :idle_skip
@@ -69,8 +67,9 @@ module Badline
         init_orbits
       end
 
-      # The CPU is at $EBFF. At an instruction boundary, the drive sleeps if
-      # the pass it recorded can repeat, and otherwise records the next.
+      # The CPU is at the loop's start. At an instruction boundary, the
+      # drive sleeps if the pass it recorded can repeat, and otherwise
+      # records the next.
       def idle_loop_reached
         return unless @cpu.boundary?
 

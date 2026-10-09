@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Drive1541::Idle do
+describe Badline::Drive::Idle do
   # The C64's side of the bus, whose port A lines the spec pushes.
   let(:bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
   # INC $10; DEC $10; JMP $EBFF

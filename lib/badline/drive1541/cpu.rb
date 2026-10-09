@@ -8,7 +8,7 @@ module Badline
 
       # Everything the CPU holds but its cycle and instruction counts: the
       # registers, the interrupt lines and pipeline, and what the last
-      # instruction left in its working registers. Drive1541::Idle compares
+      # instruction left in its working registers. Drive::Idle compares
       # it at two instruction boundaries.
       def idle_state
         [@program_counter, @stack_pointer, @a, @x, @y, @status.value,

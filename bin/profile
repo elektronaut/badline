@@ -42,7 +42,7 @@
 # --true-drive plugs a Drive1541 into the serial bus before the machine
 # boots, with no disk in, so the workload runs with the drive idling
 # alongside. --no-idle-skip runs every one of its cycles (see
-# Drive1541::Idle). Both reach the fresh processes of --ceiling and
+# Drive::Idle). Both reach the fresh processes of --ceiling and
 # --compare, and a base revision whose drive always runs every cycle
 # ignores --no-idle-skip.
 #
