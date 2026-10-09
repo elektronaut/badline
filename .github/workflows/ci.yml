@@ -4,10 +4,12 @@ on:
     branches:
       - main
   pull_request:
-# A new push to a pull request cancels its run in progress. Each push to
-# main runs on its own, so release.yml sees every one.
+# A new push to a pull request cancels its run in progress. Pushes to main
+# queue instead: one runs, and only the newest waits behind it, so a burst
+# of merges runs twice rather than once each. release.yml finishes any
+# release from whichever run reaches the newest commit.
 concurrency:
-  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
@@ -18,8 +20,7 @@ env:
 jobs:
   # A pull request that changes only docs, or only what release-please
   # bumps for a release, can't move a spec or a suite, so the jobs after
-  # Rubocop skip it. Pushes to main always run everything, so release.yml
-  # sees every one.
+  # Rubocop skip it. Pushes to main always run everything.
   changes:
     name: Changes
     runs-on: ubuntu-latest
