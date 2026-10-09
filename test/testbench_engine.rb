@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
+require_relative "testbench_record"
+
 module Testbench
   # Runs a shard's tests on a Spinel build of spinel/testbench.rb, which
   # only emulates: it runs each test on a fresh machine and prints what the
-  # test left behind, which bin/testbench scores as it scores a test run in
-  # process. The tests go to the build as a list, one per line.
+  # test left behind as a Testbench::Record, which bin/testbench scores as
+  # it scores a test run in process. The tests go to the build as a list,
+  # one per line.
   #
   # A test that outlives its deadline is killed with the build running it,
   # and one the build dies on is reported as it died. Either gets a hung or
@@ -48,7 +51,7 @@ module Testbench
       raise ArgumentError, "Expected #{test.key}, the build reported #{header}" unless header == "test #{test.key}"
 
       code = exit_line.delete_prefix("exit ")
-      screen = kind == "screen" ? body.map { |row| row.chars.map { it.to_i(16) } } : body.first(25)
+      screen = kind == "screen" ? body.map { |row| row.chars.map { Record::HEX_DIGITS.index(it) } } : body.first(25)
       Outcome.new(code == "none" ? nil : code.to_i, screen)
     end
 

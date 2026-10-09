@@ -44,6 +44,7 @@ require "badline"
 require "fileutils"
 require_relative "../test/lorenz_chain"
 require_relative "../test/lorenz_run"
+require_relative "../test/testbench_machine"
 
 module Lorenz
   ARTIFACT_DIR = File.expand_path("../tmp/lorenz", __dir__)
@@ -56,16 +57,6 @@ module Lorenz
 
       arg = argv.delete_at(index)
       arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
-    end
-
-    def screen_ascii(code)
-      code &= 0x7f
-      case code
-      when 0x01..0x1a then (code + 0x60).chr
-      when 0x00, 0x1b..0x1f then (code + 0x40).chr
-      when 0x20..0x3f, 0x41..0x5a then code.chr
-      else " "
-      end
     end
 
     # Runs the chain, echoing the transcript as it grows.
@@ -96,10 +87,7 @@ module Lorenz
 
     def dump_screen(computer)
       warn "=== screen RAM ==="
-      25.times do |row|
-        warn computer.ram.read(0x0400 + (row * 40), 40)
-                     .map { |code| screen_ascii(code) }.join
-      end
+      Testbench.screen_text(computer.ram).each { |line| warn line }
     end
   end
 end

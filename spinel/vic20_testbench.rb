@@ -13,6 +13,7 @@
 require "badline/core"
 require "badline/vic20"
 require_relative "../test/testbench_vic20_machine"
+require_relative "../test/testbench_record"
 
 module Testbench
   # Runs one test on a fresh machine and returns what it left behind. The
@@ -26,12 +27,7 @@ module Testbench
     machine = vic20_machine(fields[6].to_sym, cartridge.nil?)
     exit_code = Vic20Execution.new(machine).run(cartridge, fields[5], fields[4], fields[2].to_i)
 
-    out = "test #{fields[0]}\n"
-    out << "exit #{exit_code.nil? ? 'none' : exit_code.to_s}\n"
-    out << "cycles #{machine.cycles}\n"
-    out << "text\n"
-    vic20_screen_text(machine).each { |line| out << line << "\n" }
-    out << "done\n"
+    Record.text(fields[0], exit_code, machine.cycles, vic20_screen_text(machine))
   end
 end
 

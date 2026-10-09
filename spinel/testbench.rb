@@ -13,10 +13,9 @@
 
 require "badline/core"
 require_relative "../test/testbench_machine"
+require_relative "../test/testbench_record"
 
 module Testbench
-  HEX_DIGITS = "0123456789abcdef"
-
   # The CIA and VIC-II models a test line names.
   def self.cia_model(name) = name == "mos6526a" ? :mos6526a : :mos6526
   def self.vic_model(name) = name == "mos8565" ? :mos8565 : :mos6569
@@ -80,20 +79,11 @@ module Testbench
     execution = Execution.new(computer, mount: !drive?(fields), load_name: load_name(fields))
     exit_code = execution.run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
-    out = "test #{fields[0]}\n"
-    out << "exit #{exit_code.nil? ? 'none' : exit_code.to_s}\n"
-    out << "cycles #{computer.cycles}\n"
     if type == "exitcode"
-      out << "text\n"
-      screen_text(computer.ram).each { |line| out << line << "\n" }
+      Record.text(fields[0], exit_code, computer.cycles, screen_text(computer.ram))
     else
-      out << "screen\n"
-      screenshot(computer.vic).each do |row|
-        row.each { |index| out << HEX_DIGITS[index] }
-        out << "\n"
-      end
+      Record.screen(fields[0], exit_code, computer.cycles, screenshot(computer.vic))
     end
-    out << "done\n"
   end
 end
 

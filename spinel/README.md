@@ -24,6 +24,9 @@ CRuby.
   `Badline::Checkpoint` every million cycles, then the screen, the counts,
   the registers and a digest of the VDC's RAM. An argument picks the
   model.
+- `boot_support.rb` holds what the three boots share: the loop that runs
+  the machine between checkpoints, and the trailer of the screen, the
+  counts, the registers and the speed.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
   registers, cycle counts, the bus trace and RAM.
 - `convert.rb` samples the SingleStepTests JSON into the line format
@@ -272,7 +275,8 @@ gets a copy of the row's disk image at `<results>.engine-N.disk.d64` or
 `.g64`, since the drive writes back to it, and nothing is mounted through
 the LOAD trap. The build runs the test with `Testbench::Execution` from
 `test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
-process. It prints what the test left behind, which `Testbench::Engine`
+process. It prints what the test left behind as a `Testbench::Record`
+(`test/testbench_record.rb`), which `Testbench::Engine`
 (`test/testbench_engine.rb`) reads and hands to the same scoring:
 
 ```

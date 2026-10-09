@@ -14,10 +14,9 @@
 require "badline/core"
 require "badline/c128"
 require_relative "../test/testbench_c128_machine"
+require_relative "../test/testbench_record"
 
 module Testbench
-  HEX_DIGITS = "0123456789abcdef"
-
   # The mode a test's line names, :c128 or :c64.
   def self.mode_named(name) = name == "c128" ? :c128 : :c64
 
@@ -53,20 +52,11 @@ module Testbench
     execution = Execution.new(machine, mount: drive(fields).empty?)
     exit_code = execution.run(type != "exitcode", cartridge, fields[5], fields[4], fields[2].to_i)
 
-    out = "test #{fields[0]}\n"
-    out << "exit #{exit_code.nil? ? 'none' : exit_code.to_s}\n"
-    out << "cycles #{machine.cycles}\n"
     if type == "exitcode"
-      out << "text\n"
-      screen_text(machine.ram).each { |line| out << line << "\n" }
+      Record.text(fields[0], exit_code, machine.cycles, screen_text(machine.ram))
     else
-      out << "screen\n"
-      screenshot(machine.vic).each do |row|
-        row.each { |index| out << HEX_DIGITS[index] }
-        out << "\n"
-      end
+      Record.screen(fields[0], exit_code, machine.cycles, screenshot(machine.vic))
     end
-    out << "done\n"
   end
 end
 
