@@ -1,7 +1,13 @@
 # frozen_string_literal: true
 
 require "simplecov"
-SimpleCov.start
+
+# parallel_rspec runs the whole suite, :slow examples included, in a
+# process per core. SimpleCov merges the processes' coverage in the first
+# one once the others are done, keeping the results of a process that
+# finished up to an hour before the slowest.
+parallel = ENV.key?("PARALLEL_TEST_GROUPS")
+SimpleCov.start { merge_timeout 3600 if parallel }
 
 require "badline"
 require "timecop"
@@ -33,11 +39,6 @@ def file_permissions_enforced?
 end
 
 RSpec.configure do |config|
-  # parallel_rspec runs the whole suite, :slow examples included, in a
-  # process per core, and SimpleCov merges the processes' coverage in the
-  # first one once the others are done.
-  parallel = ENV.key?("PARALLEL_TEST_GROUPS")
-
   # Examples tagged :slow boot the whole machine and are skipped by a plain
   # `rspec`. Run them with `bundle exec rspec --tag slow`.
   config.filter_run_excluding :slow unless parallel
