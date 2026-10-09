@@ -47,6 +47,11 @@ describe Badline::Frontend::Screen do
       pair = Badline::VIC::PALETTE[1] * 0x1_0000_0001
       expect(built.pixels[(125 * 384) + 141, 102]).to eq([0] + ([pair] * 100) + [0])
     end
+
+    it "starts with what the chip drew before it was built, without an update" do
+      pair = Badline::VIC::PALETTE[1] * 0x1_0000_0001
+      expect(built.pixels[(125 * 384) + 142, 100]).to eq([pair] * 100)
+    end
   end
 
   describe "a VIC-20 frame" do
