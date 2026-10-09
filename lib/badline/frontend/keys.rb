@@ -6,7 +6,27 @@ module Badline
     # keys, the C128's own keys and, in joystick mode, the joystick
     # directions.
     module Keys
+      RETURN = 40
+      ESCAPE = 41
+      BACKSPACE = 42
       TAB = 43
+      SPACE = 44
+      F8 = 65
+      F9 = 66
+      F10 = 67
+      F11 = 68
+      F12 = 69
+      HOME = 74
+      PAGE_UP = 75
+      END_KEY = 77
+      PAGE_DOWN = 78
+      RIGHT = 79
+      LEFT = 80
+      DOWN = 81
+      UP = 82
+
+      # The arrow keys, which move through the menus.
+      DIRECTIONS = { RIGHT => :right, LEFT => :left, DOWN => :down, UP => :up }.freeze
 
       LETTERS = %i[a b c d e f g h i j k l m n o p q r s t u v w x y z].freeze
       DIGITS = %i[1 2 3 4 5 6 7 8 9 0].freeze
@@ -36,14 +56,6 @@ module Badline
         63 => :forty_eighty, 72 => :forty_eighty, 78 => :run_stop
       }.freeze
 
-      ESCAPE = 41
-
-      F8 = 65
-      F9 = 66
-      F10 = 67
-      F11 = 68
-      F12 = 69
-
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze
 
@@ -63,6 +75,19 @@ module Badline
         return :esc if scancode == ESCAPE && mode == :c128
 
         C128_OTHERS[scancode] || c64_key(scancode)
+      end
+
+      # The character the key types on a US layout: a letter, a capital
+      # with `shift`, or a digit, and "" for any other key.
+      def self.character(scancode, shift)
+        if scancode.between?(4, 29)
+          letter = (97 + scancode - 4).chr
+          shift ? letter.upcase : letter
+        elsif scancode.between?(30, 39)
+          "1234567890"[scancode - 30]
+        else
+          ""
+        end
       end
 
       def self.arrows(scancode) = ARROWS[scancode] || :none

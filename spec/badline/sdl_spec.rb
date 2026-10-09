@@ -52,6 +52,20 @@ describe Badline::SDL do
       expect(fields(described_class.event))
         .to eq([described_class::KEYDOWN, 43, described_class::KEY_TAB, described_class::KMOD_SHIFT, 1])
     end
+
+    # A drop event's file, which SDL leaves to the receiver to free, put
+    # where SDL_PollEvent leaves it. The queue can't carry one pushed by
+    # hand: sdl2-compat drops the path on the way through.
+    def dropped(path)
+      file = Badline::LibC.malloc(path.bytesize + 1)
+      file[0, path.bytesize + 1] = "#{path}\0"
+      described_class.event[8, 8] = [file.to_i].pack("J")
+    end
+
+    it "reads the path of the file dropped" do
+      dropped("game.d64")
+      expect(described_class.dropped_file).to eq("game.d64")
+    end
   end
 
   describe "the window" do

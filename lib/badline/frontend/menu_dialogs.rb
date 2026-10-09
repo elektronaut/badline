@@ -14,10 +14,6 @@ module Badline
       TITLES = { disk: "INSERT A DISK", tape: "INSERT A TAPE", cartridge: "INSERT A CARTRIDGE",
                  program: "QUICK OPEN", snapshot: "LOAD A SAVE" }.freeze
 
-      ESCAPE = 41
-      RETURN = 40
-      SPACE = 44
-
       # The machine Quick open started or a save loaded.
       attr_reader :computer
 
@@ -78,10 +74,10 @@ module Badline
         if @name_field.open? && !@confirmation.open?
           return named(@name_field.key(scancode, SDL.event_mod(SDL.event).anybits?(SDL::KMOD_SHIFT)))
         end
-        return answer(:cancel) if scancode == ESCAPE
-        return answer(@buttons.focus) if [RETURN, SPACE].include?(scancode)
+        return answer(:cancel) if scancode == Keys::ESCAPE
+        return answer(@buttons.focus) if [Keys::RETURN, Keys::SPACE].include?(scancode)
 
-        direction = PauseMenu::ARROWS[scancode]
+        direction = Keys::DIRECTIONS[scancode]
         @buttons.shift(direction == :up ? -1 : 1, 1) if %i[up down].include?(direction)
         nil
       end

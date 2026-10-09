@@ -29,12 +29,7 @@ module Badline
       HEIGHT = 240
       BODY = 138
 
-      ESCAPE = 41
-      RETURN = 40
-      SPACE = 44
       SNAPSHOT_ACTIONS = %i[quicksave_now save_as load_save].freeze
-      ARROWS = { 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
-      MOUSEWHEEL = 0x403
 
       # Takes the media, the REU and whether disks are writable from Options.
       def initialize(painter, options, snapshots)
@@ -76,10 +71,7 @@ module Badline
       # goes straight in, and anything else asks first.
       def drop(computer, controls, sound)
         show(computer, controls, sound)
-        file = SDL.event_file(SDL.event)
-        asks = @dialogs.drop(LibC.strstr(file, ""))
-        LibC.free(file)
-        asks
+        @dialogs.drop(SDL.dropped_file)
       end
 
       # Handles a key pressed while the menu is open: the arrows move
@@ -91,10 +83,10 @@ module Badline
       def key(scancode)
         return :resume if scancode == Keys::F9
         return @dialogs.key(scancode) if @dialogs.open?
-        return :resume if scancode == ESCAPE
-        return choose(@buttons.focus) if [RETURN, SPACE].include?(scancode)
+        return :resume if scancode == Keys::ESCAPE
+        return choose(@buttons.focus) if [Keys::RETURN, Keys::SPACE].include?(scancode)
 
-        direction = ARROWS[scancode]
+        direction = Keys::DIRECTIONS[scancode]
         move(direction) unless direction.nil?
         nil
       end
@@ -241,13 +233,13 @@ module Badline
         when SDL::MOUSEMOTION then @buttons.point(SDL.event_x(event), SDL.event_y(event)) && nil
         when SDL::MOUSEBUTTONDOWN
           SDL.event_button(event) == 1 ? click(SDL.event_x(event), SDL.event_y(event)) : nil
-        when MOUSEWHEEL then @dialogs.scroll(-3 * SDL.event_x(event)) && nil
+        when SDL::MOUSEWHEEL then @dialogs.scroll(-3 * SDL.event_x(event)) && nil
         end
       end
 
       # A key held down repeats only the arrows.
       def key_down(scancode, repeat)
-        repeat.zero? || ARROWS.key?(scancode) ? key(scancode) : nil
+        repeat.zero? || Keys::DIRECTIONS.key?(scancode) ? key(scancode) : nil
       end
 
       def draw_sections

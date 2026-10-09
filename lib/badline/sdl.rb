@@ -59,23 +59,6 @@ module Badline
     ffi_func :SDL_PushEvent, [:ptr], :int
     ffi_func :SDL_GetKeyName, [:int], :str
 
-    ffi_buffer :event, 56
-    ffi_read_u32 :event_type, 0
-    ffi_read_u8 :event_repeat, 13
-    ffi_read_i32 :event_scancode, 16
-    ffi_read_i32 :event_sym, 20
-    ffi_read_u16 :event_mod, 24
-    # SDL_MouseMotionEvent's xrel and yrel, and SDL_MouseButtonEvent's
-    # button.
-    ffi_read_i32 :event_xrel, 28
-    ffi_read_i32 :event_yrel, 32
-    ffi_read_u8 :event_button, 16
-    # Where the pointer is, in a motion or button event.
-    ffi_read_i32 :event_x, 20
-    ffi_read_i32 :event_y, 24
-    # SDL_DropEvent's file, which the receiver frees.
-    ffi_read_ptr :event_file, 8
-
     ffi_buffer :rect, 16
     ffi_write_i32 :rect_x, 0
     ffi_write_i32 :rect_y, 4
@@ -115,19 +98,53 @@ module Badline
     ffi_const :PIXELFORMAT_ARGB8888, 0x16362004
     ffi_const :BLENDMODE_BLEND, 0x01
     ffi_const :TEXTUREACCESS_STREAMING, 1
+    ffi_const :AUDIO_S16LSB, 0x8010
+    ffi_const :ALLOW_FREQUENCY_CHANGE, 0x01
+  end
+
+  # The events: the SDL_Event that SDL_PollEvent fills, the fields the
+  # front end reads from it, the event types, the key modifier and
+  # keycodes, and the dropped file's path.
+  module SDL
+    ffi_buffer :event, 56
+    ffi_read_u32 :event_type, 0
+    ffi_read_u8 :event_repeat, 13
+    ffi_read_i32 :event_scancode, 16
+    ffi_read_i32 :event_sym, 20
+    ffi_read_u16 :event_mod, 24
+    # SDL_MouseMotionEvent's xrel and yrel, and SDL_MouseButtonEvent's
+    # button.
+    ffi_read_i32 :event_xrel, 28
+    ffi_read_i32 :event_yrel, 32
+    ffi_read_u8 :event_button, 16
+    # Where the pointer is, in a motion or button event.
+    ffi_read_i32 :event_x, 20
+    ffi_read_i32 :event_y, 24
+    # SDL_DropEvent's file, which the receiver frees.
+    ffi_read_ptr :event_file, 8
+
     ffi_const :QUIT, 0x100
     ffi_const :KEYDOWN, 0x300
     ffi_const :KEYUP, 0x301
     ffi_const :MOUSEMOTION, 0x400
     ffi_const :MOUSEBUTTONDOWN, 0x401
     ffi_const :MOUSEBUTTONUP, 0x402
-    ffi_const :KMOD_SHIFT, 0x0003
+    ffi_const :MOUSEWHEEL, 0x403
     ffi_const :CONTROLLERDEVICEADDED, 0x653
     ffi_const :CONTROLLERDEVICEREMOVED, 0x654
-    ffi_const :AUDIO_S16LSB, 0x8010
-    ffi_const :ALLOW_FREQUENCY_CHANGE, 0x01
+    ffi_const :DROPFILE, 0x1000
+    ffi_const :KMOD_SHIFT, 0x0003
     ffi_const :KEY_TAB, 0x09
     ffi_const :KEY_F10, 0x4000_0043
+
+    # The path of the file the DROPFILE event in SDL.event carries, as a
+    # String, freeing SDL's copy.
+    def self.dropped_file
+      file = SDL.event_file(SDL.event)
+      path = LibC.strstr(file, "")
+      LibC.free(file)
+      path
+    end
   end
 
   # The few C library calls the native front end makes.

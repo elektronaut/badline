@@ -18,22 +18,17 @@ module Badline
     class PlayerWindow < Audio::Terminal
       FRAME = 1.0 / 50
 
-      MOUSEWHEEL = 0x403
-      DROPFILE = 0x1000
-      UP = 82
-      DOWN = 81
-
       WARNING = VIC::PALETTE[10]
 
       CHIPS = PlayerHeader::CHIPS
 
       KEYS = {
         17 => :next, 19 => :previous,
-        79 => :next_subtune, 80 => :previous_subtune,
-        44 => :pause, 22 => :shuffle, 15 => :loop, 4 => :all_subtunes,
-        20 => :quit, 41 => :quit,
+        Keys::RIGHT => :next_subtune, Keys::LEFT => :previous_subtune,
+        Keys::SPACE => :pause, 22 => :shuffle, 15 => :loop, 4 => :all_subtunes,
+        20 => :quit, Keys::ESCAPE => :quit,
         54 => :back, 55 => :forward,
-        43 => :view, 6 => :chip
+        Keys::TAB => :view, 6 => :chip
       }.freeze
 
       def initialize(input:, output:)
@@ -143,17 +138,15 @@ module Badline
           when SDL::MOUSEMOTION then point
           when SDL::MOUSEBUTTONDOWN then click(actions) if SDL.event_button(SDL.event) == 1
           when SDL::MOUSEBUTTONUP then @scrolling = false
-          when MOUSEWHEEL then @screen.info.scroll(-3 * SDL.event_x(SDL.event))
-          when DROPFILE then drop(actions)
+          when SDL::MOUSEWHEEL then @screen.info.scroll(-3 * SDL.event_x(SDL.event))
+          when SDL::DROPFILE then drop(actions)
           end
         end
         actions
       end
 
       def drop(actions)
-        file = SDL.event_file(SDL.event)
-        @dropped << LibC.strstr(file, "")
-        LibC.free(file)
+        @dropped << SDL.dropped_file
         actions << :drop unless actions.include?(:drop)
       end
 
@@ -164,7 +157,7 @@ module Badline
       end
 
       def key(scancode, actions)
-        return @screen.info.scroll(scancode == UP ? -1 : 1) if [UP, DOWN].include?(scancode)
+        return @screen.info.scroll(scancode == Keys::UP ? -1 : 1) if [Keys::UP, Keys::DOWN].include?(scancode)
 
         action = KEYS[scancode]
         command(action, actions) unless action.nil?

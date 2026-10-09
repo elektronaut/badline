@@ -8,13 +8,7 @@ module Badline
     # name and Esc leaves it.
     class NameField
       COLUMNS = 30
-      LETTERS = "abcdefghijklmnopqrstuvwxyz"
-      DIGITS = "1234567890"
       OTHERS = { 44 => [" ", " "], 45 => ["-", "_"], 55 => [".", "."] }.freeze
-
-      RETURN = 40
-      ESCAPE = 41
-      BACKSPACE = 42
 
       attr_reader :text
 
@@ -47,11 +41,11 @@ module Badline
       # Handles a key, and returns :done for Return, :cancel for Esc, or
       # nil.
       def key(scancode, shift)
-        return :done if scancode == RETURN
-        return :cancel if scancode == ESCAPE
+        return :done if scancode == Keys::RETURN
+        return :cancel if scancode == Keys::ESCAPE
 
         @problem = ""
-        if scancode == BACKSPACE
+        if scancode == Keys::BACKSPACE
           @text = @text[0, @text.length - 1].to_s
         else
           char = character(scancode, shift)
@@ -72,16 +66,9 @@ module Badline
       private
 
       def character(scancode, shift)
-        if scancode.between?(4, 29)
-          letter = LETTERS[scancode - 4]
-          shift ? letter.upcase : letter
-        elsif scancode.between?(30, 39)
-          DIGITS[scancode - 30]
-        elsif OTHERS.key?(scancode)
-          OTHERS[scancode][shift ? 1 : 0]
-        else
-          ""
-        end
+        return OTHERS[scancode][shift ? 1 : 0] if OTHERS.key?(scancode)
+
+        Keys.character(scancode, shift)
       end
     end
   end
