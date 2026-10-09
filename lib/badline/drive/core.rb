@@ -142,6 +142,9 @@ module Badline
         @host_still = false
       end
 
+      # The host moved its fast serial pins, which a 1541 has none to hear.
+      def fast_lines_moved = nil
+
       # Runs one drive cycle, catching up first on any the drive owes (see
       # step).
       def cycle!

@@ -620,11 +620,32 @@ class TestTestbenchC128Mode < Minitest::Test
     refute_nil parse("./selftest", "c128-pass.prg")
   end
 
-  def test_drops_the_rows_that_need_the_z80_a_1571_or_an_expansion
+  def test_drops_the_rows_that_need_the_z80_or_an_expansion
     assert_nil parse("../c128/c64modemmu", "c64modez80-00.prg")
     assert_nil parse("../c128/z80/c128z80timing", "t.prg")
-    assert_nil parse("../c128/burstmode", "burstcheck1.prg", "mountd71:burstcheck.d71")
     assert_nil parse("../memory-expansions", "c128-ram-emd.prg")
+  end
+
+  def test_runs_a_d71_row_with_the_drive1571
+    assert_equal "1571", parse("../c128/burstmode", "burstcheck1.prg", "mountd71:burstcheck.d71").c128_drive
+  end
+
+  def test_runs_a_d64_row_with_a_drive1541
+    assert_equal "1541", parse("../c128/burstmode", "burstcheck0.prg", "mountd64:burstcheck.d64").c128_drive
+  end
+
+  def test_runs_a_g71_row_with_the_drive1571
+    assert_equal "1571", parse("../drive/scanner", "scanner1571-35.prg", "mountg71:scan35.g71").c128_drive
+  end
+
+  def test_drops_a_drive_row_without_a_disk
+    assert_nil parse("../drive/scanner", "scanner1571-35.prg")
+  end
+
+  def test_hands_the_engine_its_drive_and_disk
+    test = parse("../c128/burstmode", "burstcheck1.prg", "mountd71:burstcheck.d71")
+
+    assert Testbench::Engine.spec(test).end_with?("\tc128\tc128\t1571\t#{test.disk_path}\n")
   end
 
   def test_drops_the_c128_cartridge_rows

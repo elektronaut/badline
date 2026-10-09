@@ -36,6 +36,7 @@ module Badline
       VR = 11
 
       MCR_8502 = 0x01
+      MCR_FSDIR = 0x08
       MCR_C64_MODE = 0x40
       VERSION = 0x20
 
@@ -68,6 +69,7 @@ module Badline
         @game = 1
         @exrom = 1
         @on_change = nil
+        @on_fast_serial_change = nil
         reset!
       end
 
@@ -76,7 +78,13 @@ module Badline
         @on_change = block
       end
 
+      # Calls the block whenever FSDIR turns the fast serial buffers round.
+      def on_fast_serial_change(&block)
+        @on_fast_serial_change = block
+      end
+
       def reset!
+        fast_serial_out = fast_serial_out?
         @registers.fill(0)
         @registers[MCR] = @reset_mode == :c64 ? MCR_C64_MODE | MCR_8502 : MCR_8502
         @registers[P1L] = 0x01
@@ -84,9 +92,14 @@ module Badline
         @p0h_latch = 0
         @p1h_latch = 0
         @on_change&.call
+        @on_fast_serial_change&.call if fast_serial_out
       end
 
       def c64_mode? = @registers[MCR].anybits?(MCR_C64_MODE)
+
+      # Whether MCR bit 3, FSDIR, turns the fast serial buffers outwards, so
+      # CIA 1's CNT and SP drive SRQ and DATA.
+      def fast_serial_out? = @registers[MCR].anybits?(MCR_FSDIR)
 
       # :c64 or :c128, the mode MCR bit 6 selects.
       def mode = c64_mode? ? :c64 : :c128
@@ -174,8 +187,10 @@ module Badline
       end
 
       def write(offset, value)
+        fast_serial_out = fast_serial_out?
         @registers[offset] = value
         @on_change&.call
+        @on_fast_serial_change&.call if fast_serial_out? != fast_serial_out
       end
     end
   end

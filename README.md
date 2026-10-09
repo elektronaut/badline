@@ -351,9 +351,9 @@ program or `.sid` dropped on it opens the menu to ask first.
   MMU, the 8563 or 8568 VDC with its 80 column display, and 128K of RAM
   (`badline c128`). The Z80 isn't emulated yet.
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
-- **1571**: the C128D's drive running DOS 3.0, in 1541 mode and, after
-  `U0>M1`, in 1571 mode at 2 MHz with both sides of a `.d71` or `.g71`
-  (`badline c128 --true-drive`). Fast serial isn't emulated yet.
+- **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
+  mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial
+  (burst) to a C128 in C128 mode (`badline c128 --true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
   Learning, Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon /

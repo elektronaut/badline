@@ -13,6 +13,7 @@ require "badline/c128/saved_state"
 require "badline/c128/keys"
 require "badline/c128/modes"
 require "badline/c128/drives"
+require "badline/c128/fast_serial"
 require "badline/drive1571"
 
 module Badline
@@ -43,6 +44,7 @@ module Badline
     include Keys
     include Modes
     include Drives
+    include FastSerial
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
@@ -128,9 +130,8 @@ module Badline
       @restore_pulse = false
       @init_handlers = []
       @pending_keys = nil
-      init_drives
       @capture_output = nil
-      plug_serial_bus
+      init_drives
       enter_c64_mode if @c64_built
       @bus.on_mode_change { mode_changed }
     end
@@ -158,8 +159,7 @@ module Badline
 
       drive_nmi
       clock_bits.odd? ? clock_fast : clock_cpu
-      @drive1541&.host_cycle!
-      @drive1571&.host_cycle!
+      clock_serial_bus
 
       @cycles += 1
     end

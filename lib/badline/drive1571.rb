@@ -19,10 +19,13 @@ module Badline
   # same speed either way (Drive1541::Mechanism#clock_hz=).
   #
   # The CIA sits at $4000, on the IRQ line with both VIAs. Only its serial
-  # port is wired, to the serial bus's DATA and SRQ lines through the
-  # buffers PA1 turns round. It takes no part in a pass of the idle loop:
-  # the drive sleeps only while the CIA is quiet (CIA#quiet?), and any
-  # access to it wakes the drive.
+  # port is wired: through buffers PA1 turns round, its CNT drives SRQ and
+  # its SP DATA, or it hears them. The drive pushes its pins into the bus
+  # as they move, and hears the host's as the host pushes them, pin by
+  # pin, so each byte goes through both shift registers bit by bit. The
+  # CIA takes no part in a pass of the idle loop: the drive sleeps only
+  # while the CIA is quiet (CIA#quiet?), and any access to it, or the
+  # host moving its fast serial pins, wakes the drive.
   class Drive1571
     include Drive::Core
 
@@ -60,6 +63,7 @@ module Badline
       @device = device
       @clock_hz = CLOCK_HZ
       @fast_serial_out = false
+      @fast_output = 0
       @mechanism = Drive1541::Mechanism.new(slip: 2)
       @serial_port = SerialPort.new(@mechanism, device:)
       @via1 = SerialVIA.new(start: 0x1800, peripheral: @serial_port, drive: self)
@@ -94,7 +98,8 @@ module Badline
     # serial direction follow it.
     def port_a_written(lines)
       @mechanism.side = lines.anybits?(SIDE) ? 1 : 0
-      @fast_serial_out = lines.anybits?(FAST_SERIAL_OUT)
+      fast_serial_out = lines.anybits?(FAST_SERIAL_OUT)
+      turn_fast_serial(fast_serial_out) if fast_serial_out != @fast_serial_out
       clock_hz = lines.anybits?(FAST) ? FAST_CLOCK_HZ : CLOCK_HZ
       return if clock_hz == @clock_hz
 
@@ -104,6 +109,17 @@ module Badline
 
     # Whether the drive runs at 2 MHz.
     def fast? = @clock_hz == FAST_CLOCK_HZ
+
+    # VIA 1's port B, with the fast serial pins pulling DATA and SRQ
+    # (IECBus::DRIVE_FAST_DATA and DRIVE_FAST_SRQ) above it.
+    def serial_output = @via1.port_b_output | @fast_output
+
+    # The host moved its fast serial pins: the CIA hears SRQ on CNT and
+    # DATA on SP while PA1 turns the buffers inwards.
+    def fast_lines_moved
+      settle!
+      hear_fast_serial unless @fast_serial_out
+    end
 
     # The drive's whole state, as the 1541's (Drive1541#save_state), with
     # the CIA and the WD1770's registers. The clock rate, the side and the
@@ -136,7 +152,9 @@ module Badline
       @bus.load_state(input)
       @cpu.load_state(input)
       @mechanism.load_state(input)
+      @fast_serial_out = @via1.port_a_output.anybits?(FAST_SERIAL_OUT)
       port_a_written(@via1.port_a_output)
+      push_fast_output(@fast_serial_out ? fast_pins : 0)
       forget_orbits
     end
 
@@ -151,6 +169,7 @@ module Badline
       @via1.cycle!
       @via2.cycle!
       @cia.cycle!
+      drive_fast_serial if @fast_serial_out
       @cpu.irq = @via1.irq? || @via2.irq? || @cia.interrupted?
       @cpu.so! if so
       @cpu.cycle!
@@ -164,6 +183,43 @@ module Badline
 
     def fast_forward_chips(cycles)
       @cia.fast_forward(cycles)
+    end
+
+    # PA1 turned the buffers round: outwards the CIA's pins drive the
+    # lines, and inwards they let go and hear them.
+    def turn_fast_serial(out)
+      @fast_serial_out = out
+      return unless @serial_bus
+
+      push_fast_output(out ? fast_pins : 0)
+      hear_fast_serial unless out
+    end
+
+    def drive_fast_serial
+      low = fast_pins
+      push_fast_output(low) if low != @fast_output
+    end
+
+    # The lines the CIA's CNT and SP pull while its serial port drives
+    # them.
+    def fast_pins
+      serial = @cia.serial
+      return 0 unless serial.output?
+
+      low = serial.cnt ? 0 : IECBus::DRIVE_FAST_SRQ
+      serial.sp_out ? low : low | IECBus::DRIVE_FAST_DATA
+    end
+
+    def push_fast_output(low)
+      @fast_output = low
+      @serial_bus&.drives_fast_moved!
+    end
+
+    def hear_fast_serial
+      low = @serial_bus.low_lines
+      serial = @cia.serial
+      serial.cnt_in = low.nobits?(IECBus::SRQ)
+      serial.sp_in = low.nobits?(IECBus::DATA)
     end
   end
 end

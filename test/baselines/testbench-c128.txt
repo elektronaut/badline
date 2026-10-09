@@ -95,3 +95,8 @@ c128/vdccrash/crash.prg	PASS
 c128/vdccrash/nocrash.prg	PASS
 c128/vic-mmu/b1c64victest.prg	PASS
 c128/vic-mmu/b1c128victest.prg	PASS
+c128/burstmode/burstcheck0.prg	PASS
+c128/burstmode/burstcheck1.prg	PASS
+drive/scanner/scanner1571-35.prg	FAIL	exit=none
+drive/scanner/scanner1571-35e.prg	FAIL	exit=$ff
+drive/scanner/scanner1571-35.prg#2	PASS
