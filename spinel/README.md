@@ -10,6 +10,9 @@ CRuby.
   and autostarts a media file. It prints a `Badline::Checkpoint` every
   million cycles, then the screen, the cycle and instruction counts and
   the registers.
+- `sid.rb` boots the machine headless with the SID recording at 44.1 kHz,
+  or attaches and autostarts a media file, and prints the sample count
+  and a checksum of the samples, then the speed.
 - `vic20_boot.rb` boots the VIC-20 headless and types `print 6*7`. It
   prints digests of the CPU, RAM, colour RAM, VIC and both VIAs every
   250,000 cycles, then the screen, the counts and the registers. An
@@ -74,7 +77,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot` and `c128_testbench` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -105,6 +108,16 @@ run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, and 100 per
 Z80 opcode file into `tmp/spinel/z80_cases.txt`, so it needs
 `vendor/65x02` and `vendor/z80-sample` (`rake vendor:65x02 vendor:z80-sample`).
+
+```sh
+rake spinel:check_sid
+```
+
+`spinel:check_sid` builds `sid` and runs it on csid-light's `filtertest`
+and `combwformtst` tunes from `vendor/VICE-testprogs/SID`, each
+autostarted from power-on and recorded at 44.1 kHz for 4M cycles, on the
+build and on CRuby. It fails unless the sample count and the checksum of
+the samples match for both.
 
 The checkpoint lines are the ones `bin/machine_diff` prints, so it can
 name the first component that differs. Save the compiled build's
