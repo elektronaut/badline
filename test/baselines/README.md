@@ -236,7 +236,9 @@ Recorded output of the headless hardware suites, one file per suite:
 - `testbench-c128-zex.txt` — the same runner with `--c128-z80`, scoped
   to `c128/z80/zex128/`: ZEXDOC, ZEXALL and prelim, ported to the C128,
   135 rows. Their budgets come to 50 billion cycles, `alu8r` alone 10.6
-  billion, so CI leaves the suite out and it is run by hand.
+  billion, so CI leaves the suite out and it is run by hand. On the
+  Spinel build its 135 rows took 123 minutes at four shards, 490 serial,
+  `alu8r` alone 105.
 - `drive-scenarios.txt` — `bin/drive_scenarios` over the scenarios in
   `test/drive_scenarios.rb`: a C64 and a true 1541 running the DOS ROM,
   each run from power-on on fresh machines with the disk images in a
