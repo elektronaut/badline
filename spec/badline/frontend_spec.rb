@@ -44,8 +44,12 @@ describe Badline::Frontend do
         .to eq("not a tape")
     end
 
-    it "lets other errors through" do
-      expect { described_class.media_problem { raise IndexError } }.to raise_error(IndexError)
+    it "gives the message of a disk list's error" do
+      expect(described_class.media_problem { raise Badline::Media::DiskList::Error, "no disks" }).to eq("no disks")
+    end
+
+    it "lets a bare ArgumentError through" do
+      expect { described_class.media_problem { raise ArgumentError } }.to raise_error(ArgumentError)
     end
   end
 

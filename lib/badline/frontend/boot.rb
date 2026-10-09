@@ -28,15 +28,15 @@ module Badline
     end
 
     # Runs the block and returns the message of the error it raised over
-    # media that won't go in or start, or an empty string. Every
-    # ArgumentError counts, among them Unsupported, Media::TrueDrive::Error,
-    # Media::DiskList::Error and Datasette::Missing.
+    # media that won't go in or start, or an empty string. Other errors,
+    # a bare ArgumentError among them, go through.
     def self.media_problem
       yield
       ""
-    rescue ArgumentError, SystemCallError, Storage::SIDFile::FormatError, Storage::T64::FormatError,
-           Storage::TAP::FormatError, Storage::CRTFile::FormatError, Storage::G64Image::FormatError,
-           Cartridge::UnsupportedTypeError, Snapshot::FormatError => e
+    rescue Unsupported, Media::TrueDrive::Error, Media::DiskList::Error, Media::NotDisk, Datasette::Missing,
+           SystemCallError, Storage::SIDFile::FormatError, Storage::T64::FormatError, Storage::TAP::FormatError,
+           Storage::CRTFile::FormatError, Storage::G64Image::FormatError, Cartridge::UnsupportedTypeError,
+           Snapshot::FormatError => e
       e.message
     end
 
