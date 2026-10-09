@@ -24,6 +24,8 @@ GEM
       prism (~> 1.5)
     ostruct (0.6.3)
     parallel (2.2.0)
+    parallel_tests (5.8.0)
+      parallel
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
@@ -94,6 +96,7 @@ DEPENDENCIES
   badline!
   chunky_png
   minitest
+  parallel_tests
   pry
   rake
   rspec

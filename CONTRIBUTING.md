@@ -55,17 +55,18 @@ brew install sdl2           # macOS
 apt install libsdl2-2.0-0   # Debian/Ubuntu
 ```
 
-Install the dependencies and run the specs:
+Install the dependencies and run the whole suite, a process per core, as
+CI does:
 
 ```sh
 bundle install
-bundle exec rspec
+bundle exec parallel_rspec
 ```
 
-A run of the whole suite fails if line coverage drops below 90%. Runs of
-single files or filtered examples skip that check. Specs tagged `:slow`
-boot the whole machine and are skipped by default. Run them with
-`bundle exec rspec --tag slow`.
+A run of the whole suite fails if line coverage drops below 90%. Run
+single files or filtered examples with `bundle exec rspec`, which skips
+that check. Specs tagged `:slow` boot the whole machine, and a plain
+`bundle exec rspec` skips them. Run them with `bundle exec rspec --tag slow`.
 
 The CPU is verified separately against the
 [65x02 single step tests](https://github.com/SingleStepTests/65x02), and

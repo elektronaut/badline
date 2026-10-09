@@ -136,10 +136,11 @@ worktree and owns a different set of files.
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
   by default: run them with `bundle exec rspec --tag slow`
-- CI splits the spec files into shards, plain and `:slow`, by the run times
-  in `test/spec_times.json` (`bin/spec_shard`), and holds the plain shards'
-  merged coverage to the same 90%. After adding or moving expensive specs,
-  re-record the times with `bin/spec_shard --record` (its header says how)
+- `bundle exec parallel_rspec` is the whole run, `:slow` specs included,
+  in a process per core, held to the same 90% over the merged coverage.
+  CI runs it as two jobs, the plain examples (with the floor) and the
+  `:slow` ones. Agents run only the spec files they touch, with
+  plain `bundle exec rspec`, and leave whole runs to CI
 - Keep each plain example to a few hundred ms. A million cycles of a C64 or
   a C128 cost 3 to 5 s of CPU, and about three times that under coverage,
   so an example that boots a machine or runs more than about a million
