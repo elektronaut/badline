@@ -17,21 +17,18 @@ module Badline
       # In both modes the chips at $D000-$DFFF answer IN and OUT whether
       # I/O is mapped in or not. The MMU's registers at $D500 take an OUT
       # either way in C128 mode, but answer an IN only with CR's I/O bit
-      # on, memory answering it otherwise. While I/O is mapped in, the colour RAM
-      # the 8502 sees also answers at $1000-$13FF. An IN or OUT anywhere
-      # else reaches what memory has there.
+      # on, memory answering it otherwise. While I/O is mapped in, the
+      # colour RAM the 8502 sees also answers at $1000-$13FF. An IN or OUT
+      # anywhere else reaches what memory has there.
       module Z80Pages
-        # A page seen at another address: the address's bits in +mask+ from
-        # +base+ on.
-        class Window
-          def initialize(target, base, mask)
-            @target = target
-            @base = base
-            @mask = mask
+        # A colour RAM bank seen at $1000-$13FF.
+        class ColorWindow
+          def initialize(color_ram)
+            @color_ram = color_ram
           end
 
-          def peek(addr) = @target.peek(@base | (addr & @mask))
-          def poke(addr, value) = @target.poke(@base | (addr & @mask), value)
+          def peek(addr) = @color_ram.peek(0xd800 | (addr & 0x3ff))
+          def poke(addr, value) = @color_ram.poke(0xd800 | (addr & 0x3ff), value)
         end
 
         # The Z80's memory and I/O pages, each 256 entries.
@@ -64,9 +61,8 @@ module Badline
           @z80_write_pages = Array.new(256)
           @z80_input_pages = Array.new(256)
           @z80_output_pages = Array.new(256)
-          @z80_color_ram = [Window.new(@color_lines.color_ram(0), 0xd800, 0x3ff),
-                            Window.new(@color_lines.color_ram(1), 0xd800, 0x3ff)]
-          @z80_translated = Window.new(@ram, 0xd000, 0xfff)
+          @z80_color_ram = [ColorWindow.new(@color_lines.color_ram(0)), ColorWindow.new(@color_lines.color_ram(1))]
+          @z80_translated = RAMWindow.new(@ram, 0xd000, 0xfff)
           @z80 = @mmu.z80?
           @on_processor_change = nil
         end
