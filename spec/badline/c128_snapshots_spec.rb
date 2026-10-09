@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require_relative "../support/blank_disk"
+require_relative "../support/taken_once"
 
 describe Badline::C128 do
   include BlankDisk
@@ -11,7 +12,15 @@ describe Badline::C128 do
     let(:path) { File.join(Dir.mktmpdir, "c128.vsf") }
 
     # A machine run to the middle of its boot.
-    def saved(model = "c128") = described_class.new(model:).tap { |machine| machine.run_cycles(400_001) }
+    def booting(model = "c128", mode: :c64)
+      described_class.new(model:, mode:).tap { |machine| machine.run_cycles(400_001) }
+    end
+
+    # A machine in the middle of its boot, restored from a State taken once
+    # for each model and mode.
+    def saved(model = "c128", mode: :c64)
+      described_class.restored(TakenOnce.fetch([:c128_booting, model, mode]) { booting(model, mode:).snapshot })
+    end
 
     def digest(machine) = [machine.snapshot, Badline::Checkpoint.take(machine).to_s]
 
@@ -27,7 +36,7 @@ describe Badline::C128 do
 
     described_class::Model::ALL.each do |model|
       it "restores a #{model.name} that runs on as the saved one" do
-        machine = saved(model.name)
+        machine = booting(model.name)
         restored = described_class.restored(machine.snapshot)
         run_on(machine, restored)
         expect(digest(restored)).to eq(digest(machine))
@@ -35,14 +44,14 @@ describe Badline::C128 do
     end
 
     it "restores a C128 built for C128 mode that runs on as the saved one" do
-      machine = described_class.new(mode: :c128).tap { |booting| booting.run_cycles(400_001) }
+      machine = booting(mode: :c128)
       restored = described_class.restored(machine.snapshot)
       run_on(machine, restored)
       expect([digest(restored), restored.mode]).to eq([digest(machine), :c128])
     end
 
     it "carries the MMU's relocation, the P0H write it holds and both colour RAM banks over" do
-      machine = described_class.new(mode: :c128).tap { |booting| booting.run_cycles(400_001) }
+      machine = saved(mode: :c128)
       write(machine, [[0xd50a, 0x01], [0xd509, 0x30], [0xd508, 0x01], [0x00, 0x03], [0x01, 0x00], [0xd800, 0x05]])
       restored = described_class.restored(machine.snapshot)
       [machine, restored].each { |both| write(both, [[0xd507, 0x40]]) }
@@ -113,7 +122,8 @@ describe Badline::C128 do
     end
 
     it "refuses a state of another model" do
-      expect { saved.restore(saved("c128dcr").snapshot) }.to raise_error(Badline::Snapshot::FormatError, /c128dcr/)
+      state = described_class.new(model: "c128dcr").snapshot
+      expect { described_class.new.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /c128dcr/)
     end
 
     it "refuses a C64's state" do
