@@ -9,6 +9,7 @@ module Badline
     class DiskVIA < VIA
       def initialize(start:, mechanism:)
         @mechanism = mechanism
+        mechanism.via = self
         super(start:, peripheral: mechanism)
       end
 

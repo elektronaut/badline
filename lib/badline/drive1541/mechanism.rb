@@ -26,7 +26,7 @@ module Badline
     # reads it, and it holds the bit counter at zero, so the first 0 bit
     # after it starts a byte. Every eighth bit after that is BYTE READY,
     # which pulls VIA 2's CA1 low until the next bit and reaches the CPU's
-    # SO pin (see Drive1541#byte_ready!).
+    # SO pin (see byte_ready!).
     #
     # CB2 low selects write mode, where SYNC detection and the flux are
     # off and the clock runs on at the selected rate. At each BYTE READY
@@ -81,8 +81,16 @@ module Badline
 
       attr_reader :disk, :half_track, :zone
 
-      def initialize(drive)
-        @drive = drive
+      # VIA 2, which DiskVIA plugs in.
+      attr_writer :via
+
+      # Whether BYTE READY reached SO for the CPU to sample on the drive's
+      # next cycle.
+      attr_accessor :so_pending
+
+      def initialize
+        @via = nil
+        @so_pending = false
         @disk = nil
         @half_track = START_HALF_TRACK
         @slip = 0
@@ -112,6 +120,28 @@ module Badline
       def sync? = @sync
 
       def writing? = @writing
+
+      # Whether SO is pending, which the drive's cycle samples and clears.
+      def take_so
+        so = @so_pending
+        @so_pending = false
+        so
+      end
+
+      # The read electronics signal a whole GCR byte. BYTE READY pulls VIA
+      # 2's CA1 low, a falling edge that sets its flag and, with latching
+      # on, latches port A. It reaches the CPU's SO pin while VIA 2's CA2
+      # (SOE) is high, which lets the DOS spin on BVC for each byte. The CPU
+      # samples SO on the next cycle.
+      def byte_ready!
+        @via.ca1 = false
+        @so_pending = true if @via.ca2_output
+      end
+
+      # BYTE READY lets go of CA1 with the next bit.
+      def byte_ready_ended!
+        @via.ca1 = true
+      end
 
       # What port B and CB2 can change with the motor off: the motor, the
       # LED, the zone and the clock's rate, the stepper, write mode and
@@ -178,7 +208,7 @@ module Badline
       def read_bit(one)
         if @byte_ready
           @byte_ready = false
-          @drive.byte_ready_ended!
+          byte_ready_ended!
         end
         @shift = ((@shift << 1) & 0x3fe) | (one ? 1 : 0)
         if one
@@ -197,7 +227,7 @@ module Badline
       def write_bit(at)
         if @byte_ready
           @byte_ready = false
-          @drive.byte_ready_ended!
+          byte_ready_ended!
         end
         one = @write_shift.anybits?(0x80)
         @write_shift = (@write_shift << 1) & 0xff
@@ -246,9 +276,9 @@ module Badline
         return unless @bits == 8
 
         @bits = 0
-        @write_shift = @writing ? @drive.via2.port_a_output : @shift & 0xff
+        @write_shift = @writing ? @via.port_a_output : @shift & 0xff
         @byte_ready = true
-        @drive.byte_ready!
+        byte_ready!
       end
 
       # The stepper's rotor turns with the head, a phase to each half

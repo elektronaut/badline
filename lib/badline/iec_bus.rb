@@ -59,7 +59,7 @@ module Badline
 
     # One pass over everything on the bus, for a reader that wants more
     # than one line. +host+ is the C64's port A lines as the reader sees
-    # them, which a drive takes a cycle late (see Drive1541::SerialPort).
+    # them, which a drive takes a cycle late (see Drive::SerialLines).
     def low_lines(host = @host_lines)
       atn = host.anybits?(HOST_ATN_OUT)
       low = atn ? ATN : 0
