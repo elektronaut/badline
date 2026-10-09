@@ -55,6 +55,14 @@ module Badline
 
       private
 
+      def save_mapper(out)
+        out.blob(@io_ram)
+      end
+
+      def load_mapper(input)
+        input.blob_into(@io_ram)
+      end
+
       def switch(mode)
         self.mode = mode
         changed!
