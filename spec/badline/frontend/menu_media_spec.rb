@@ -153,6 +153,12 @@ describe Badline::Frontend::MenuMedia do
     expect(media.start(Badline::Options.parse([]), File.join(dir, "bad.crt"))).to be_nil
   end
 
+  it "keeps the problem with a .t64, which doesn't go in as a disk" do
+    tape = File.join(dir, "game.t64")
+    File.binwrite(tape, "junk")
+    expect([media.insert(:disk, tape), media.problem]).to eq([false, "#{tape} is not a disk image or a directory"])
+  end
+
   describe "on a VIC-20" do
     let(:computer) { Badline::Vic20.new }
 

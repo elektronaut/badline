@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/media/true_drive"
+require "badline/media/not_disk"
 require "badline/media/queue"
 require "badline/media/disk_set"
 require "badline/media/disk_list"
@@ -50,11 +51,12 @@ module Badline
       # A .g64 goes in a true 1541, which is plugged in as device 8 when
       # there's none yet (TrueDrive). Once a true 1541 is device 8, a .d64
       # goes in its drive as well, and other disks, which a 1541 can't
-      # read, raise TrueDrive::Error, an ArgumentError.
+      # read, raise TrueDrive::Error, an ArgumentError. Anything else
+      # raises NotDisk.
       def insert_disk(computer, path, read_only: false)
         return TrueDrive.insert(computer, path, read_only:) if TrueDrive.takes?(computer, path)
 
-        raise ArgumentError, "#{path} is not a disk image or a directory" unless disk?(path)
+        raise NotDisk, "#{path} is not a disk image or a directory" unless disk?(path)
 
         computer.mount(open_storage(path, { read_only: }))
         "Inserted #{path} in device 8"

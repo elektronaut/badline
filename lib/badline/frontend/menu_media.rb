@@ -25,40 +25,22 @@ module Badline
 
       def writable? = @writable
 
-      # The expanded path of the disk in device 8, however it went in, or
-      # an empty one.
-      def disk_path
-        drive = @computer.true_drive
-        unless drive.nil?
-          disk = drive.disk
-          return disk.nil? ? "" : disk.path.to_s
-        end
+      def disk_path = MediaSlots.disk_path(@computer)
 
-        path = @computer.mounted_path
-        path.empty? ? path : File.expand_path(path)
-      end
-
-      def inserted?
-        drive = @computer.true_drive
-        drive.nil? ? @computer.mounted? : !drive.disk.nil?
-      end
+      def inserted? = MediaSlots.disk?(@computer)
 
       # Puts a disk in device 8 or a tape in the datasette, `kind` :disk or
       # :tape, and says whether it went in. A list puts its first disk in.
       def insert(kind, path)
-        @problem = ""
-        if kind == :disk
-          disk = Media::DiskList.disk(path)
-          Media.insert_disk(@computer, disk, read_only: !@writable)
-          list(path)
-        else
-          @computer.datasette.insert(Storage::TAP.new(path))
+        succeeds? do
+          if kind == :disk
+            disk = Media::DiskList.disk(path)
+            Media.insert_disk(@computer, disk, read_only: !@writable)
+            list(path)
+          else
+            @computer.datasette.insert(Storage::TAP.new(path))
+          end
         end
-        true
-      rescue ArgumentError, SystemCallError, Storage::TAP::FormatError, Storage::T64::FormatError,
-             Storage::G64Image::FormatError => e
-        @problem = e.message
-        false
       end
 
       # Does what the Drive page's :eject_disk, :previous_disk, :next_disk,
@@ -72,10 +54,7 @@ module Badline
         end
       end
 
-      def eject_disk
-        drive = @computer.true_drive
-        drive.nil? ? @computer.unmount : drive.insert(nil)
-      end
+      def eject_disk = MediaSlots.eject_disk(@computer)
 
       # Sets whether disks are writable, for the disk in the drive too,
       # which goes in again as the notch now says.
@@ -111,12 +90,7 @@ module Badline
       # Swaps the cartridge for the one at `path`, which power cycles the
       # machine, and says whether it went in.
       def attach_cartridge(path)
-        @problem = ""
-        Media.attach(@computer, path)
-        true
-      rescue ArgumentError, SystemCallError, Storage::CRTFile::FormatError, Cartridge::UnsupportedTypeError => e
-        @problem = e.message
-        false
+        succeeds? { Media.attach(@computer, path) }
       end
 
       # What a save of the machine is named after: the cartridge, the disk,
@@ -147,26 +121,27 @@ module Badline
       end
 
       # Takes the cartridge out with the power off.
-      def remove_cartridge
-        @computer.address_bus.detach_cartridge
-        @computer.power_cycle!
-      end
+      def remove_cartridge = MediaSlots.remove_cartridge(@computer)
 
       # A new machine started on `path`, as the command line would, or nil
       # when it won't start.
       def start(options, path)
-        @problem = ""
-        computer = Frontend.start(options, path, @writable)
-        list(path)
-        computer
-      rescue ArgumentError, SystemCallError, Media::TrueDrive::Error, Storage::SIDFile::FormatError,
-             Storage::T64::FormatError, Storage::TAP::FormatError, Storage::CRTFile::FormatError,
-             Storage::G64Image::FormatError, Cartridge::UnsupportedTypeError => e
-        @problem = e.message
-        nil
+        computer = nil
+        started = succeeds? do
+          computer = Frontend.start(options, path, @writable)
+          list(path)
+        end
+        started ? computer : nil
       end
 
       private
+
+      # Runs the block, keeps the media error it raised as the problem, and
+      # says whether there was none.
+      def succeeds?(&)
+        @problem = Frontend.media_problem(&)
+        @problem.empty?
+      end
 
       # Keeps `path` as the list the set comes from, if it's a list.
       def list(path)

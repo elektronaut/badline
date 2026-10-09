@@ -18,6 +18,14 @@ module Badline
         def data(bytes)
           bytes[HEADER_SIZE..]
         end
+
+        # The load address of the program in a .prg file, or wrapped in a
+        # .p00 one, or -1 when the file is too short to have one.
+        def load_address(path)
+          bytes = File.binread(path).bytes
+          offset = wraps?(bytes) ? HEADER_SIZE : 0
+          bytes.size >= offset + 2 ? bytes[offset] | (bytes[offset + 1] << 8) : -1
+        end
       end
     end
   end

@@ -183,12 +183,11 @@ module Badline
         return puts "No #{what} to eject" unless ejectable?(computer, what)
 
         if what == "disk"
-          eject_disk(computer)
+          MediaSlots.eject_disk(computer)
         elsif what == "tape"
           computer.datasette.eject
         else
-          computer.address_bus.detach_cartridge
-          computer.power_cycle!
+          MediaSlots.remove_cartridge(computer)
         end
         puts "Ejected the #{what}"
       end
@@ -200,17 +199,7 @@ module Badline
         return !computer.datasette.tape.nil? if what == "tape"
         return !computer.address_bus.cartridge.nil? if what == "cartridge"
 
-        drive = Media::TrueDrive.drive(computer)
-        drive.nil? ? computer.mounted? : !drive.disk.nil?
-      end
-
-      def eject_disk(computer)
-        drive = Media::TrueDrive.drive(computer)
-        if drive.nil?
-          computer.unmount
-        else
-          drive.insert(nil)
-        end
+        MediaSlots.disk?(computer)
       end
     end
   end
