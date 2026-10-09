@@ -42,11 +42,13 @@ RSpec.configure do |config|
   config.filter_run_excluding :file_permissions unless file_permissions_enforced?
 
   # The 90% coverage floor only applies when every spec file ran unfiltered,
-  # so single-file and focused runs aren't failed by it.
+  # so single-file and focused runs aren't failed by it. Under parallel_rspec
+  # each process runs a part of the files, and SimpleCov holds their merged
+  # coverage to the floor in the first process once the others are done.
   config.before(:suite) do
     all_specs = Dir[File.join(__dir__, "**/*_spec.rb")].map { |f| File.expand_path(f) }
-    full_run = config.inclusion_filter.empty? && config.files_to_run.sort == all_specs.sort
-    SimpleCov.minimum_coverage 90 if full_run
+    whole_run = ENV.key?("PARALLEL_TEST_GROUPS") || config.files_to_run.sort == all_specs.sort
+    SimpleCov.minimum_coverage 90 if config.inclusion_filter.empty? && whole_run
   end
 
   config.after(:suite) { FileUtils.rm_rf(spec_data_path) }

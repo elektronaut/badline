@@ -7,6 +7,7 @@ gemspec
 group :development, :test do
   gem "chunky_png"
   gem "minitest"
+  gem "parallel_tests"
   gem "pry"
   gem "rake"
   gem "rspec"
