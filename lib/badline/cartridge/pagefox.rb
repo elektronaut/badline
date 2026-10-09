@@ -30,12 +30,12 @@ module Badline
       private
 
       def save_mapper(out)
-        save_windows(out, windows)
+        super
         @ram_banks.each { |ram| out.blob(ram.data) }
       end
 
       def load_mapper(input)
-        load_windows(input, windows)
+        super
         @ram_banks.each { |ram| input.blob_into(ram.data) }
       end
 

@@ -26,7 +26,7 @@ module Badline
 
       def peek(addr)
         if addr < 0xdf00
-          switch(addr.anybits?(0x02) ? :off : :rom8k)
+          select_mode(addr.anybits?(0x02) ? :off : :rom8k)
           @roml.peek(IO1_ROM_PAGE | (addr & 0xff))
         elsif addr.anybits?(0x80)
           (@exrom << 7) | (@game << 6) | (open_bus(addr) & 0x3f)
@@ -37,7 +37,7 @@ module Badline
 
       def poke(addr, value)
         if addr < 0xdf00
-          switch(addr.anybits?(0x02) ? :ultimax : :rom16k)
+          select_mode(addr.anybits?(0x02) ? :ultimax : :rom16k)
         elsif addr.nobits?(0x80)
           @io_ram[addr & 0x7f] = value
         end
@@ -45,12 +45,12 @@ module Badline
 
       def reset
         self.nmi = false
-        switch(:rom16k)
+        select_mode(:rom16k)
       end
 
       def freeze!
         self.nmi = false
-        switch(:ultimax)
+        select_mode(:ultimax)
       end
 
       private
@@ -61,11 +61,6 @@ module Badline
 
       def load_mapper(input)
         input.blob_into(@io_ram)
-      end
-
-      def switch(mode)
-        self.mode = mode
-        changed!
       end
 
       def install_chips(chips)

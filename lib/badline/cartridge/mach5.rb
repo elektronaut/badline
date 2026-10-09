@@ -14,13 +14,11 @@ module Badline
       end
 
       def poke(addr, _value)
-        self.mode = addr < 0xdf00 ? :rom8k : :off
-        changed!
+        select_mode(addr < 0xdf00 ? :rom8k : :off)
       end
 
       def reset
-        self.mode = :rom8k
-        changed!
+        select_mode(:rom8k)
       end
 
       private

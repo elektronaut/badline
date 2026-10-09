@@ -49,30 +49,30 @@ module Badline
         @phi1_ultimax = false
         self.nmi = false
         select(0)
-        self.mode = :rom16k
-        changed!
+        select_mode(:rom16k)
       end
 
       def freeze!
         @register_visible = true
         @phi1_ultimax = false
-        self.mode = :ultimax
-        changed!
+        select_mode(:ultimax)
       end
 
       private
 
       def save_mapper(out)
-        save_windows(out, [*@roml_banks, *@romh_banks, EMPTY_BANK])
+        super
         out.boolean(@register_visible).boolean(@phi1_ultimax)
       end
 
       def load_mapper(input)
-        load_windows(input, [*@roml_banks, *@romh_banks, EMPTY_BANK])
+        super
         @io_bank = @roml
         @register_visible = input.boolean?
         @phi1_ultimax = input.boolean?
       end
+
+      def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
       def select(number)
         @io_bank = @roml = bank(@roml_banks, number)

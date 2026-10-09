@@ -65,12 +65,12 @@ module Badline
       private
 
       def save_mapper(out)
-        save_windows(out, windows)
+        super
         out.int(window_index(@rom, windows)).boolean(@active).boolean(@io2_ram).blob(@ram_data)
       end
 
       def load_mapper(input)
-        load_windows(input, windows)
+        super
         @rom = window_at(input.int, windows)
         @active = input.boolean?
         @io2_ram = input.boolean?
