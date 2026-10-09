@@ -178,7 +178,7 @@ describe Badline::Frontend::App do
     end
   end
 
-  describe "with --verbose" do
+  describe "with --verbose", :slow do
     it "reports the frame rate and the sound every 50 frames" do
       expect { run(argv: %w[--frames 50 --verbose --sound]) }
         .to output(%r{fps, per frame ms: events .*\n  sound \d+ samples/s}).to_stdout

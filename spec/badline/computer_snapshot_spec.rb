@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require_relative "../support/snapshot_scenarios"
+require_relative "../support/taken_once"
 
 describe Badline::Computer, "#snapshot" do
   include SnapshotScenarios
@@ -127,7 +128,9 @@ describe Badline::Computer, "#snapshot" do
       values.delete_at(values.length * 3 / 4)
       Badline::Snapshot::State.new(values, state.strings)
     end
-    let(:target) { run(described_class.new, 500_001) }
+    let(:target) do
+      described_class.restored(TakenOnce.fetch([:c64_running, 500_001]) { run(described_class.new, 500_001).snapshot })
+    end
 
     def attempt(machine, state)
       machine.restore(state)
