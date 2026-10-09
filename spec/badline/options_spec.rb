@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
+require "open3"
 
 describe Badline::Options do
   subject(:options) { described_class.parse(argv) }
@@ -670,6 +671,16 @@ describe Badline::Options do
         it "raises" do
           expect { options }.to raise_error(described_class::Error, /invalid argument: --at/)
         end
+      end
+    end
+
+    context "with a list of disks to insert and only badline/options loaded" do
+      it "parses the event" do
+        list = File.join(dir, "disks.m3u")
+        File.write(list, "disk1.d64\n")
+        script = "require 'badline/options'; print Badline::Options.parse(['--at', '10:insert=#{list}']).timeline.size"
+        output, status = Open3.capture2e(RbConfig.ruby, "-I#{File.expand_path('../../lib', __dir__)}", "-e", script)
+        expect([status.success?, output]).to eq([true, "1"])
       end
     end
 
