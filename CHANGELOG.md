@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.1](https://github.com/elektronaut/badline/compare/v0.11.0...v0.11.1) (2026-10-09)
+
+
+### Features
+
+* emulate the C128D's 1571 drive in 1541 and 1571 mode ([2c32d99](https://github.com/elektronaut/badline/commit/2c32d993a0449b4b537d5f82e9711b0e14604f95))
+* fast serial between the C128 and its 1571 ([34fe02f](https://github.com/elektronaut/badline/commit/34fe02f2098664c94233da9e40828b40e41b6b1a))
+
 ## [0.11.0](https://github.com/elektronaut/badline/compare/v0.10.1...v0.11.0) (2026-10-09)
 
 
