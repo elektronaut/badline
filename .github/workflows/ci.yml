@@ -104,16 +104,16 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: ${{ matrix.shards }}
         run: |
-          report="--format progress --format json --out tmp/rspec-$KIND-$SHARD.json"
           if [ "$KIND" = slow ]; then
-            files=$(bin/spec_shard --slow "$SHARD" "$SHARDS")
-            echo "$files"
-            bundle exec rspec --tag slow $report $files
+            mapfile -t files < <(bin/spec_shard --slow "$SHARD" "$SHARDS")
+            options=(--tag slow)
           else
-            files=$(bin/spec_shard "$SHARD" "$SHARDS")
-            echo "$files"
-            bundle exec rspec $report $files
+            mapfile -t files < <(bin/spec_shard "$SHARD" "$SHARDS")
+            options=()
           fi
+          printf '%s\n' "${files[@]}"
+          bundle exec rspec "${options[@]}" --format progress --format json --out "tmp/rspec-$KIND-$SHARD.json" \
+            "${files[@]}"
       # The times `bin/spec_shard --record` takes, from every shard of a run.
       - name: Keep the run times
         uses: actions/upload-artifact@v7
@@ -547,7 +547,7 @@ jobs:
   # have to follow the shards as they are rebalanced.
   ci:
     name: CI
-    needs: [changes, rubocop, rspec, rspec-slow, minitest, compiler, native, suites]
+    needs: [changes, rubocop, rspec, coverage, minitest, compiler, native, suites]
     if: always()
     runs-on: ubuntu-latest
     steps:
