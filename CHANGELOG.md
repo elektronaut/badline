@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.11.0](https://github.com/elektronaut/badline/compare/v0.10.1...v0.11.0) (2026-10-09)
+
+
+### Features
+
+* add the C128 in C64 mode, headless ([d7a1d30](https://github.com/elektronaut/badline/commit/d7a1d3000589ac2472961fe4ba982c4cd75889e5))
+* add the C128 in C64 mode, headless ([17462eb](https://github.com/elektronaut/badline/commit/17462ebb94b27fe59c7cee8c51e82be340158979))
+* boot badline c128 in C128 mode, with --c64 holding C= through the reset ([fbb57e5](https://github.com/elektronaut/badline/commit/fbb57e5e46bd1178bb63b2feedee6776a5e4cc57))
+* boot the C128 in C128 mode on 40 columns ([7b6fe4c](https://github.com/elektronaut/badline/commit/7b6fe4c2cdbdd46b95bf3a2b56c6ff96d6894893))
+* boot the C128 in C128 mode through its own MMU and KERNAL ([8bdd810](https://github.com/elektronaut/badline/commit/8bdd810c03cb916b3484fabbf84172098af26835))
+* bundle the C128's BASIC 7.0, KERNAL and character ROMs ([25329f8](https://github.com/elektronaut/badline/commit/25329f83e7a5e07c4df3ea49b85528184fd7f313))
+* carry the C128's FAST and TEST state, and its last bus access, in its snapshots ([23bcabd](https://github.com/elektronaut/badline/commit/23bcabd48ff33aeef40490e895a14dc62c58a7e3))
+* follow the C128 between its 40 and 80 column screens, with 40/80 DISPLAY on F6 and ESC on Esc ([174e455](https://github.com/elektronaut/badline/commit/174e455a0aace6b0c4f40dc721c0cfa54b57d829))
+* follow the C128 between its 40 and 80 column screens, with 40/80 DISPLAY on F6 and ESC on Esc ([4099600](https://github.com/elektronaut/badline/commit/4099600d413fa617dc7cea63ac80302b759c9f08))
+* give the C128's VDC its 80 column display ([7a7880d](https://github.com/elektronaut/badline/commit/7a7880d973dd62049390bda56749490eb71e384a))
+* give the C128's VDC its 80 column display ([80b0831](https://github.com/elektronaut/badline/commit/80b083138629c6410c18a55b48f3e59d22d466f1))
+* load, save and autostart in the C128's C128 mode, and boot badline c128 there ([d88faed](https://github.com/elektronaut/badline/commit/d88faed9a8fb33cee54b39e0d0213b572c94e3bd))
+* run the C128 in the window as badline c128, in both builds ([af4a54a](https://github.com/elektronaut/badline/commit/af4a54a45ddfbb206fa9fae414dd04bd804bbc4c))
+* run the C128 in the window as badline c128, in both builds, with its VDC, keys and snapshots ([d58eaf6](https://github.com/elektronaut/badline/commit/d58eaf606932527fda9fd5de308c4010bd9fc4cf))
+* run the C128's 2 MHz mode and TEST bit cycle by cycle ([b5faa78](https://github.com/elektronaut/badline/commit/b5faa78d7493aa8f4ed4c9bd1547acb59235d06b))
+* run the C128's 2 MHz mode and TEST bit cycle by cycle ([9a0a483](https://github.com/elektronaut/badline/commit/9a0a483f775b2d06fabb32bd99988c1976753fa3))
+* run the C128's C64-mode testbench rows (testbench-c128c64) ([d16f7d3](https://github.com/elektronaut/badline/commit/d16f7d31a55ccc8c11430c55d77cb3c8afe72e30))
+* run the x128c64 testlist's curated rows on the C128 with bin/testbench --c128c64 ([fe3d801](https://github.com/elektronaut/badline/commit/fe3d8012a7cb92963b139dc486e1741ee34b5075))
+* serve device 8 and CHROUT through the C128 KERNAL's traps in C128 mode ([76c1764](https://github.com/elektronaut/badline/commit/76c1764a54d68960194126e50d228a979ace93a2))
+
+
+### Bug Fixes
+
+* show the whole picture after switching between the C128's screens ([aa5f571](https://github.com/elektronaut/badline/commit/aa5f571ff83a275b04e6c05b0f259b924413de46))
+* show the whole picture after switching between the C128's screens ([9c8756e](https://github.com/elektronaut/badline/commit/9c8756e07c3e622edac584d60a4b45dcd634a5af))
+* show the whole picture after switching between the C128's screens ([384f056](https://github.com/elektronaut/badline/commit/384f05621c3956ad5b4082af92d22d469b1f5c8c))
+
 ## [0.10.1](https://github.com/elektronaut/badline/compare/v0.10.0...v0.10.1) (2026-10-08)
 
 
