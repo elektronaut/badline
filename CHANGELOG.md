@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.1](https://github.com/elektronaut/badline/compare/v0.11.0...v0.11.1) (2026-10-09)
+
+
+### Features
+
+* add a Z80 core for the C128 ([b27332c](https://github.com/elektronaut/badline/commit/b27332c60ddc9386581e244b82126671e184240f))
+* add a Z80 core for the C128 ([9663779](https://github.com/elektronaut/badline/commit/966377951f86cadeab3367c901edfd45bee464fb))
+* emulate the C128D's 1571 drive in 1541 and 1571 mode ([fa32d1c](https://github.com/elektronaut/badline/commit/fa32d1c79e15490041e882d03aae41c94ba544f7))
+* emulate the C128D's 1571 drive in 1541 and 1571 mode ([2c32d99](https://github.com/elektronaut/badline/commit/2c32d993a0449b4b537d5f82e9711b0e14604f95))
+* fast serial between the C128 and its 1571 ([bcba869](https://github.com/elektronaut/badline/commit/bcba869c5a4879b8da59ed911deba72027b6a43b))
+* fast serial between the C128 and its 1571 ([34fe02f](https://github.com/elektronaut/badline/commit/34fe02f2098664c94233da9e40828b40e41b6b1a))
+
+
+### Miscellaneous Chores
+
+* release 0.11.1 ([35140d7](https://github.com/elektronaut/badline/commit/35140d7fe5c2f59e2d89d7f4783a37a52b641896))
+
 ## [0.11.0](https://github.com/elektronaut/badline/compare/v0.10.1...v0.11.0) (2026-10-09)
 
 
