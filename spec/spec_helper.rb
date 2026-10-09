@@ -33,21 +33,24 @@ def file_permissions_enforced?
 end
 
 RSpec.configure do |config|
-  # Examples tagged :slow boot the whole machine and are skipped by default.
-  # Run them with `bundle exec rspec --tag slow`.
-  config.filter_run_excluding :slow
+  # parallel_rspec runs the whole suite, :slow examples included, in a
+  # process per core, and SimpleCov merges the processes' coverage in the
+  # first one once the others are done.
+  parallel = ENV.key?("PARALLEL_TEST_GROUPS")
+
+  # Examples tagged :slow boot the whole machine and are skipped by a plain
+  # `rspec`. Run them with `bundle exec rspec --tag slow`.
+  config.filter_run_excluding :slow unless parallel
 
   # Examples tagged :file_permissions chmod a file away from the host and
   # expect the failure, so they're skipped where the mode isn't enforced.
   config.filter_run_excluding :file_permissions unless file_permissions_enforced?
 
   # The 90% coverage floor only applies when every spec file ran unfiltered,
-  # so single-file and focused runs aren't failed by it. Under parallel_rspec
-  # each process runs a part of the files, and SimpleCov holds their merged
-  # coverage to the floor in the first process once the others are done.
+  # so single-file and focused runs aren't failed by it.
   config.before(:suite) do
     all_specs = Dir[File.join(__dir__, "**/*_spec.rb")].map { |f| File.expand_path(f) }
-    whole_run = ENV.key?("PARALLEL_TEST_GROUPS") || config.files_to_run.sort == all_specs.sort
+    whole_run = parallel || config.files_to_run.sort == all_specs.sort
     SimpleCov.minimum_coverage 90 if config.inclusion_filter.empty? && whole_run
   end
 

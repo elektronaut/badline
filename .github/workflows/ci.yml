@@ -69,21 +69,15 @@ jobs:
       - name: Check the Spinel subset
         run: bundle exec rspec spec/spinel_subset_spec.rb
 
-  # parallel_rspec runs the specs in a process per core, plain and :slow
-  # each in a job of its own. The :slow examples are left out of a plain
-  # `rspec` to keep the local loop fast. SimpleCov merges the plain
-  # processes' coverage and holds it to the 90% floor a whole
-  # `bundle exec rspec` run is held to.
+  # The whole suite, :slow examples included, in a process per core, as
+  # `bundle exec parallel_rspec` runs it locally. SimpleCov merges the
+  # processes' coverage and holds it to the 90% floor.
   rspec:
-    name: ${{ matrix.kind == 'slow' && 'RSpec (slow)' || 'RSpec' }}
+    name: RSpec
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        kind: [plain, slow]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -95,9 +89,7 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
       - name: Run tests
-        env:
-          OPTIONS: ${{ matrix.kind == 'slow' && '--tag slow' || '' }}
-        run: bundle exec parallel_rspec --serialize-stdout --combine-stderr --test-options "$OPTIONS"
+        run: bundle exec parallel_rspec --serialize-stdout --combine-stderr
 
   minitest:
     name: Minitest
