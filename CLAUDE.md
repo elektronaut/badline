@@ -138,7 +138,8 @@ worktree and owns a different set of files.
   by default: run them with `bundle exec rspec --tag slow`
 - `bundle exec parallel_rspec` is the whole run, `:slow` specs included,
   in a process per core, held to the same 90% over the merged coverage.
-  CI's RSpec job runs it. Agents run only the spec files they touch, with
+  CI runs it as two jobs, the plain examples (with the floor) and the
+  `:slow` ones. Agents run only the spec files they touch, with
   plain `bundle exec rspec`, and leave whole runs to CI
 - Keep each plain example to a few hundred ms. A million cycles of a C64 or
   a C128 cost 3 to 5 s of CPU, and about three times that under coverage,
