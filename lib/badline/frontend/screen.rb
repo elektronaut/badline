@@ -40,6 +40,7 @@ module Badline
         palette = video.palette
         @pairs = Array.new(256) { |pair| palette[pair & 0x0f] | (palette[pair >> 4] << 32) }
         @pixels = Array.new(@height * @row_words, 0)
+        pack_all
       end
 
       # The width in the window's square pixels.
@@ -62,6 +63,17 @@ module Badline
       end
 
       private
+
+      # Repacks every line, as a screen built for a display the chip has
+      # already drawn starts with all of it.
+      def pack_all
+        display = @video.display
+        row = 0
+        while row < @lines
+          pack_row(display, row)
+          row += 1
+        end
+      end
 
       def pack_row(display, row)
         pixels = @pixels
