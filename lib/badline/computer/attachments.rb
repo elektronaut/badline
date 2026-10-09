@@ -57,6 +57,12 @@ module Badline
         @serial_trap&.device = serial_trap_device
       end
 
+      # The true drive on the serial bus: the Drive1541, or nil.
+      def true_drive = @drive1541
+
+      # Plugs a Drive1541 in as device 8, and returns it.
+      def plug_true_drive = Drive1541.new.tap { |drive| attach_drive1541(drive) }
+
       # Unplugs the Drive1541, leaving the serial bus with nothing on it.
       def detach_drive1541
         return unless @drive1541

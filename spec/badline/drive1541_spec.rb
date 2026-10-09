@@ -77,14 +77,14 @@ describe Badline::Drive1541 do
 
     it "leaves the loop once a byte is ready and SOE is high" do
       drive.via2.poke(0x1c0c, 0x0e) # CA2 held high
-      drive.byte_ready!
+      drive.mechanism.byte_ready!
       run(20)
       expect(drive.ram.peek(0x10)).to eq(1)
     end
 
     it "ignores a ready byte while SOE is low" do
       drive.via2.poke(0x1c0c, 0x0c) # CA2 held low
-      drive.byte_ready!
+      drive.mechanism.byte_ready!
       run(20)
       expect(drive.ram.peek(0x10)).to eq(0)
     end

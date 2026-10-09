@@ -112,7 +112,8 @@ module Badline
         end
         toggle("WRITABLE", :writable, [%w[OFF ON], %i[protect unprotect], media.writable? ? 1 : 0])
         skip
-        info("DEVICE", @computer.drive1541.nil? ? "FAST LOADING" : "1541, TRUE DRIVE")
+        drive = @computer.true_drive
+        info("DEVICE", drive.nil? ? "FAST LOADING" : "#{drive.model_name}, TRUE DRIVE")
       end
 
       def draw_datasette

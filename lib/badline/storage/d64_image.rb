@@ -17,6 +17,9 @@ module Badline
 
       def storage_kind = D64
 
+      # The sides of a disk the image's tracks fill.
+      def sides = 1
+
       def sectors_in(track)
         case track
         when 1..17 then 21

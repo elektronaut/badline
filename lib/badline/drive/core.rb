@@ -153,22 +153,11 @@ module Badline
         "#<#{self.class.name} cycles=#{cycles} cpu=(#{cpu.inspect})>"
       end
 
-      # The read electronics signal a whole GCR byte. BYTE READY pulls VIA 2's
-      # CA1 low, a falling edge that sets its flag and, with latching on,
-      # latches port A. It reaches the CPU's SO pin while VIA 2's CA2 (SOE)
-      # is high, which lets the DOS spin on BVC for each byte. The CPU
-      # samples SO on the next cycle (see step).
-      def byte_ready!
-        @via2.ca1 = false
-        @so_pending = true if @via2.ca2_output
-      end
-
-      # BYTE READY lets go of CA1 with the next bit.
-      def byte_ready_ended!
-        @via2.ca1 = true
-      end
-
       private
+
+      # Runs the model's chips beyond the VIAs +cycles+ quiet cycles at once
+      # (see quiet_cycles). The 1541 has none.
+      def fast_forward_chips(_cycles) = nil
 
       # A drive cycle from host_cycle!, which may find the idle loop.
       def run_cycle

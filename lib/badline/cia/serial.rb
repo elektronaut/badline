@@ -79,6 +79,18 @@ module Badline
         @control.serial_mode?
       end
 
+      # Whether nothing is counting down or in the delay lines, so only
+      # timer A's underflows reach the register.
+      def drained? = idle?
+
+      # Takes timer A's underflow line as cycle! would have left it, with
+      # +underflowed+ its level on the last cycle, for a CIA run without
+      # the register in use (CIA#fast_forward).
+      def follow_underflow(underflowed)
+        @underflow_high = underflowed
+        @idle = !underflowed
+      end
+
       def cnt_in=(level)
         @cnt_in = level
         @cnt = level unless output?

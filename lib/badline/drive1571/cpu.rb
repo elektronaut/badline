@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class Drive1541
+  class Drive1571
     # The drive's 6502, on the drive's Bus.
     class CPU
       include Badline::CPU::Core

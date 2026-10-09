@@ -82,7 +82,7 @@ describe Badline::Storage::G64Image do
   end
 
   it "refuses a file without the signature" do
-    File.binwrite(path, "GCR-1571".b + ("\x00" * 700))
+    File.binwrite(path, "GCR-1581".b + ("\x00" * 700))
     expect { image }.to raise_error(described_class::FormatError)
   end
 

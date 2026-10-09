@@ -10,11 +10,10 @@ module Badline
       def save_state(out)
         out.boolean(!@disk.nil?)
         @disk&.save_state(out)
-        [@half_track, @slip, @zone, @clock, @time, @clock_at, @clocks, @shift, @ones, @bits, @write_shift,
+        [@half_track, @slip, @side_base, @zone, @clock, @time, @clock_at, @clocks, @shift, @ones, @bits, @write_shift,
          @index, @mask, @cell_end, @width, @next].each { |value| out.int(value) }
-        [@motor, @led, @sync, @byte_ready, @writing, @write_gate, @protected, @track_written].each do |flag|
-          out.boolean(flag)
-        end
+        [@motor, @led, @sync, @byte_ready, @byte_latched, @writing, @write_gate, @protected,
+         @track_written].each { |flag| out.boolean(flag) }
         out.optional_int(@write_index)
       end
 
@@ -36,6 +35,7 @@ module Badline
       def load_head(input)
         @half_track = input.int
         @slip = input.int
+        @side_base = input.int
         @zone = input.int
         @clock = input.int
         @time = input.int
@@ -57,6 +57,7 @@ module Badline
         @led = input.boolean?
         @sync = input.boolean?
         @byte_ready = input.boolean?
+        @byte_latched = input.boolean?
         @writing = input.boolean?
         @write_gate = input.boolean?
         @protected = input.boolean?

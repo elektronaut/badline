@@ -184,7 +184,8 @@ starts, and a `.sid` tune start C64 mode the same way, and so does a C64
 cartridge, through the KERNAL. `GO64` gets there from BASIC 7.0. A
 program that loads at `$1C01`, where BASIC 7.0 starts, runs, and other
 programs load at their own address. The disk in device 8 is served
-through the KERNAL traps in either mode. The C128's Z80 isn't emulated:
+through the KERNAL traps in either mode, or with `--true-drive` by the
+C128D's 1571. The C128's Z80 isn't emulated:
 the 8502 starts the machine. `--model` picks the board: `c128` (the default, the flat C128
 and the plastic C128D, PAL, with the 6581 SID and a VDC with 16K of
 RAM), `c128dcr` (the metal C128DCR, with the 8580, 6526As and a VDC with
@@ -348,8 +349,11 @@ program or `.sid` dropped on it opens the menu to ask first.
 - **C128**: C128 mode with BASIC 7.0 and C64 mode, on the 8502 with its
   port, FAST mode, the VIC-IIe with its extra keyboard lines, the 8722
   MMU, the 8563 or 8568 VDC with its 80 column display, and 128K of RAM
-  (`badline c128`). The Z80 and the 1571 aren't emulated yet.
+  (`badline c128`). The Z80 isn't emulated yet.
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
+- **1571**: the C128D's drive running DOS 3.0, in 1541 mode and, after
+  `U0>M1`, in 1571 mode at 2 MHz with both sides of a `.d71` or `.g71`
+  (`badline c128 --true-drive`). Fast serial isn't emulated yet.
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
   Learning, Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon /

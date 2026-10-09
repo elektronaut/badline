@@ -7,6 +7,15 @@ module Badline
 
       def storage_kind = D71
 
+      # Tracks 1-35 on the first side and 36-70 on the second.
+      def track_count = 70
+
+      def sides = 2
+
+      def sectors_in(track)
+        track > 35 ? super(track - 35) : super
+      end
+
       private
 
       def error_tables = ERROR_TABLES
@@ -22,10 +31,6 @@ module Badline
       def bam_bitmap(track) = track > 35 ? [53, 0, 3 * (track - 36)] : super
 
       def double_sided? = @bytes[sector_offset(18, 0) + 3].anybits?(0x80)
-
-      def sectors_in(track)
-        track > 35 ? super(track - 35) : super
-      end
     end
   end
 end

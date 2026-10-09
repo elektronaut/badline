@@ -22,6 +22,8 @@ module Badline
     # Where the DOS 2.6 idle loop starts over (see Drive::Idle).
     IDLE_LOOP = 0xebff
 
+    def model_name = "1541"
+
     # +rom+ covers $C000-$FFFF, and defaults to the DOS image in the ROM
     # path. +device+ is the number the jumpers on VIA 1's PB5 and PB6 set,
     # 8 to 11.
@@ -29,7 +31,7 @@ module Badline
       @device = device
       @serial_port = SerialPort.new(device:)
       @via1 = VIA.new(start: 0x1800, peripheral: @serial_port)
-      @mechanism = Mechanism.new(self)
+      @mechanism = Mechanism.new
       @via2 = DiskVIA.new(start: 0x1c00, mechanism: @mechanism)
       @bus = Bus.new(rom: rom || ROM.load("dos1541.rom", 0xc000), via1: @via1, via2: @via2)
       @cpu = CPU.new(@bus, debug:)
@@ -38,7 +40,6 @@ module Badline
       @host_clock_hz = host_clock_hz
       @phase = 0
       @cycles = 0
-      @so_pending = false
       @serial_bus = nil
       init_idle(debug)
       # CA1 powers up at the level of a released ATN, without an edge.
@@ -57,7 +58,7 @@ module Badline
     def save_state(out)
       settle!
       out.marker("DRIVE1541")
-      out.int(@phase).int(@cycles).boolean(@so_pending)
+      out.int(@phase).int(@cycles).boolean(@mechanism.so_pending)
       @serial_port.save_state(out)
       @via1.save_state(out)
       @via2.save_state(out)
@@ -71,7 +72,7 @@ module Badline
       input.marker("DRIVE1541")
       @phase = input.int
       @cycles = input.int
-      @so_pending = input.boolean?
+      @mechanism.so_pending = input.boolean?
       @serial_port.load_state(input)
       @via1.load_state(input)
       @via2.load_state(input)
@@ -95,8 +96,7 @@ module Badline
     # high as the C64 asserts ATN, as the serial port sees it: from the
     # host cycle after the one that asserts it.
     def step
-      so = @so_pending
-      @so_pending = false
+      so = @mechanism.take_so
       @mechanism.cycle!
       @via1.ca1 = @serial_port.atn_low?
       @via1.cycle!

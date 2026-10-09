@@ -12,13 +12,18 @@ module Badline
         # for a disk from Disk.open. Nil for a disk made another way.
         attr_reader :path, :read_only
 
-        # A .g64 image by its name, and anything else a .d64.
-        def self.g64?(path) = File.extname(path).casecmp?(".g64")
+        # A .g64 or .g71 image by its name, a .d71 by its name, and anything
+        # else a .d64.
+        def self.g64?(path) = %w[.g64 .g71].include?(File.extname(path).downcase)
+
+        def self.d71?(path) = File.extname(path).casecmp?(".d71")
 
         # A disk for the image at the path, its tracks left for the state.
         def self.reopen(path, read_only)
           if g64?(path)
             Disk.new(Storage::G64Image.new(path, read_only:)).opened(path, read_only)
+          elsif d71?(path)
+            Disk.new(Storage::D71Image.new(path, read_only:)).opened(path, read_only)
           else
             Disk.new(Storage::D64Image.new(path, read_only:)).opened(path, read_only)
           end

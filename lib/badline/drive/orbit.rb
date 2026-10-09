@@ -65,6 +65,7 @@ module Badline
         @cpu.fast_forward(cycles, orbits * @orbit_instructions)
         @via1.skip_orbits(cycles, touched & 0x03)
         @via2.skip_orbits(cycles, touched >> 2)
+        fast_forward_chips(cycles)
         @cycles += cycles
         cycles
       end

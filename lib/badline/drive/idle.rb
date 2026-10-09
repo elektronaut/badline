@@ -127,7 +127,7 @@ module Badline
 
       def idle_state
         mechanism = @mechanism
-        [*@cpu.idle_state, *@via1.idle_state, *@via2.idle_state, @bus.data, @so_pending,
+        [*@cpu.idle_state, *@via1.idle_state, *@via2.idle_state, @bus.data, mechanism.so_pending,
          *mechanism.idle_state, mechanism.read_a(0xff), mechanism.read_b(0xff)]
       end
     end

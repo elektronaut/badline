@@ -93,12 +93,20 @@ describe Badline::C128 do
       expect(described_class.restored(machine.snapshot).mounted?).to be(true)
     end
 
-    it "carries a true 1541 over, running on as the saved one" do
+    it "carries a true 1571 over, running on as the saved one" do
       machine = described_class.new.tap { |with_drive| Badline::Media::TrueDrive.plug(with_drive) }
       machine.run_cycles(400_001)
       restored = described_class.restored(machine.snapshot)
       run_on(machine, restored)
-      expect(digest(restored)).to eq(digest(machine))
+      expect([digest(restored), restored.drive1571.nil?]).to eq([digest(machine), false])
+    end
+
+    it "carries a true 1541 over, running on as the saved one" do
+      machine = described_class.new.tap { |with_drive| with_drive.attach_drive1541(Badline::Drive1541.new) }
+      machine.run_cycles(400_001)
+      restored = described_class.restored(machine.snapshot)
+      run_on(machine, restored)
+      expect([digest(restored), restored.drive1541.nil?]).to eq([digest(machine), false])
     end
 
     it "saves to a .vsf whose machine is C128, with the BADLINE module alone" do

@@ -28,7 +28,7 @@ module Badline
       # The expanded path of the disk in device 8, however it went in, or
       # an empty one.
       def disk_path
-        drive = @computer.drive1541
+        drive = @computer.true_drive
         unless drive.nil?
           disk = drive.disk
           return disk.nil? ? "" : disk.path.to_s
@@ -39,7 +39,7 @@ module Badline
       end
 
       def inserted?
-        drive = @computer.drive1541
+        drive = @computer.true_drive
         drive.nil? ? @computer.mounted? : !drive.disk.nil?
       end
 
@@ -73,7 +73,7 @@ module Badline
       end
 
       def eject_disk
-        drive = @computer.drive1541
+        drive = @computer.true_drive
         drive.nil? ? @computer.unmount : drive.insert(nil)
       end
 

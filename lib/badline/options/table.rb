@@ -35,7 +35,7 @@ module Badline
       Option.new("--sound", "Play the SID through the host's audio device (F10 mutes)",
                  section: "Window options", needs: :window),
       Option.new("--no-sound", "Don't play the SID", section: "Window options", needs: :window, build: :native),
-      Option.new("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps",
+      Option.new("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps, a 1571 on the C128",
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),

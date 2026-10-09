@@ -18,3 +18,16 @@ vic20-write/loads-back	PASS
 vic20-write/file-in-image	PASS
 vic20-autoboot/loads-and-runs	PASS
 vic20-status/power-on-message	PASS
+1571-format/no-error	PASS
+1571-format/lists-new-disk	PASS
+1571-format/second-side	PASS
+1571-format/trap-readable	PASS
+1571-save/no-error	PASS
+1571-save/loads-back	PASS
+1571-save/file-in-image	PASS
+1571-read-only/saves	PASS
+1571-read-only/image-unchanged	PASS
+1571-autostart/loads-and-runs	PASS
+1571-error-channel/power-on-message	PASS
+1571-idle/sleeps	PASS
+1571-idle/matches-stepping	PASS
