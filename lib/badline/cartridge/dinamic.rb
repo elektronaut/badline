@@ -24,14 +24,6 @@ module Badline
 
       private
 
-      def save_mapper(out)
-        save_windows(out, [*@banks, EMPTY_BANK])
-      end
-
-      def load_mapper(input)
-        load_windows(input, [*@banks, EMPTY_BANK])
-      end
-
       def install_chips(chips)
         @banks = banks_from(chips).first
         self.mode = :rom8k

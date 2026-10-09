@@ -10,16 +10,12 @@ module Badline
       end
 
       def peek(addr)
-        if addr >= 0xdf00
-          self.mode = (addr & 0xff) < 0xc0 ? :off : :rom8k
-          changed!
-        end
+        select_mode((addr & 0xff) < 0xc0 ? :off : :rom8k) if addr >= 0xdf00
         open_bus(addr)
       end
 
       def reset
-        self.mode = :rom8k
-        changed!
+        select_mode(:rom8k)
       end
 
       private

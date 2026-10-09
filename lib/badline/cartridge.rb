@@ -63,11 +63,7 @@ module Badline
       end
 
       def from_crt(crt, **)
-        mapper = HARDWARE_TYPES.fetch(crt.hardware_type) do
-          raise UnsupportedTypeError,
-                "Unsupported cartridge hardware type #{crt.hardware_type}"
-        end
-        mapper.new(crt, **)
+        mapper_for(crt).new(crt, **)
       end
 
       # A cartridge built afresh from what save_setup wrote, before
@@ -76,9 +72,21 @@ module Badline
         return GeoRAM.new(size: input.int) if input.int == GEO_RAM_SETUP
 
         crt = Storage::CRTFile.new(bytes: input.string)
-        return RetroReplay.new(crt, flash_jumper: input.boolean?, bank_jumper: input.boolean?) if input.boolean?
+        mapper_for(crt).from_jumpers(crt, input)
+      end
 
-        from_crt(crt)
+      # A cartridge from its image and what save_jumpers wrote: whether
+      # there are jumpers, then their settings on a mapper that has them.
+      def from_jumpers(crt, input)
+        input.boolean?
+        new(crt)
+      end
+
+      def mapper_for(crt)
+        HARDWARE_TYPES.fetch(crt.hardware_type) do
+          raise UnsupportedTypeError,
+                "Unsupported cartridge hardware type #{crt.hardware_type}"
+        end
       end
     end
 
@@ -95,6 +103,7 @@ module Badline
       @exrom = crt.exrom
       @game = crt.game
       @roml = @romh = nil
+      @banks = nil
       @on_change = nil
       @on_nmi_change = nil
       @nmi = false
@@ -193,9 +202,22 @@ module Badline
       out.boolean(false)
     end
 
-    def save_mapper(_out); end
+    # The mapper's own state: where its windows point, for a mapper that
+    # moves them, and whatever a mapper adds after calling super.
+    def save_mapper(out)
+      save_windows(out, windows) if windows
+    end
 
-    def load_mapper(_input); end
+    def load_mapper(input)
+      load_windows(input, windows) if windows
+    end
+
+    # The banks and views ROML and ROMH can point at, which a snapshot
+    # names them by: the mapper's banks, or nothing for a mapper whose
+    # windows stay where install_chips put them.
+    def windows
+      [*@banks, EMPTY_BANK] if @banks
+    end
 
     # Where the ROML and ROMH windows point, as their places in `windows`,
     # the banks and views the mapper picks them from, or -1 for none.
@@ -230,6 +252,12 @@ module Badline
 
     def mode=(mode)
       @exrom, @game = MODES.fetch(mode)
+    end
+
+    # Sets the lines and tells the machine to map the cartridge again.
+    def select_mode(mode)
+      self.mode = mode
+      changed!
     end
 
     def open_bus(addr)

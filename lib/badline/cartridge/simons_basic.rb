@@ -24,11 +24,6 @@ module Badline
 
       private
 
-      def select_mode(mode)
-        self.mode = mode
-        changed!
-      end
-
       def install_chips(chips)
         roml, romh = banks_from(chips)
         @roml = bank(roml, 0)

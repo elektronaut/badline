@@ -90,6 +90,11 @@ module Badline
 
       attr_reader :flash
 
+      def self.from_jumpers(crt, input)
+        input.boolean?
+        new(crt, flash_jumper: input.boolean?, bank_jumper: input.boolean?)
+      end
+
       def initialize(crt, flash_jumper: false, bank_jumper: false)
         @nordic = crt.subtype == 1
         @flash_jumper = flash_jumper
@@ -131,9 +136,7 @@ module Badline
         end
       end
 
-      def phi1_ultimax?
-        @phi1_ultimax
-      end
+      def phi1_ultimax? = @phi1_ultimax
 
       def ultimax_a000
         @isolated[ram_view_bank] if @nordic && @ram_at_a000 && @frozen
@@ -157,9 +160,7 @@ module Badline
 
       private
 
-      def freeze_allowed?
-        !@no_freeze && !@flash_jumper
-      end
+      def freeze_allowed? = !@no_freeze && !@flash_jumper
 
       def status
         ((@bank & 0x03) << 3) | ((@bank & 0x04) << 5) | ((@bank & 0x08) << 2) | (@flash_jumper ? 0x01 : 0) |
