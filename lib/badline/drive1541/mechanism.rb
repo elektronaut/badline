@@ -2,6 +2,7 @@
 
 require "badline/drive1541/rotation"
 require "badline/drive1541/mechanism_state"
+require "badline/drive1541/byte_ready"
 
 module Badline
   class Drive1541
@@ -64,9 +65,13 @@ module Badline
     # becomes track 1's, so the DOS's bump leaves the head on track 1 in
     # line with the phase it ends on, and its first step in reaches the
     # half track after it.
+    #
+    # The 1571's stepper is lined up so that phase 0 holds track 1, where
+    # its track 0 sensor looks for the head (Mechanism.new's +slip+).
     class Mechanism
       include Rotation
       include MechanismState
+      include ByteReady
 
       MOTOR = 0x04
       LED = 0x08
@@ -81,19 +86,15 @@ module Badline
 
       attr_reader :disk, :half_track, :zone
 
-      # VIA 2, which DiskVIA plugs in.
-      attr_writer :via
-
-      # Whether BYTE READY reached SO for the CPU to sample on the drive's
-      # next cycle.
-      attr_accessor :so_pending
-
-      def initialize
+      # +slip+ is the stepper's phase offset at power-on: 0, where each half
+      # track's phase is the low two bits of its number, or 2 for track 1
+      # on phase 0.
+      def initialize(slip: 0)
         @via = nil
         @so_pending = false
         @disk = nil
         @half_track = START_HALF_TRACK
-        @slip = 0
+        @slip = slip
         @motor = false
         @led = false
         @zone = 0
@@ -106,10 +107,30 @@ module Badline
         @bits = 0
         @sync = false
         @byte_ready = false
+        @byte_latched = false
         @writing = false
         @write_shift = 0
         @write_gate = false
         @protected = false
+        @side_base = 0
+        @cycle_ticks = CYCLE
+        load_track
+      end
+
+      # The drive's clock rate: the disk turns on by fewer ticks each
+      # cycle at 2 MHz.
+      def clock_hz=(clock_hz)
+        @cycle_ticks = CYCLE * Drive1541::CLOCK_HZ / clock_hz
+      end
+
+      # The head that reads, 0 or 1, on a drive with two (Disk::SIDE).
+      def side = @side_base.zero? ? 0 : 1
+
+      def side=(side)
+        side_base = side * Disk::SIDE
+        return if side_base == @side_base
+
+        @side_base = side_base
         load_track
       end
 
@@ -121,36 +142,14 @@ module Badline
 
       def writing? = @writing
 
-      # Whether SO is pending, which the drive's cycle samples and clears.
-      def take_so
-        so = @so_pending
-        @so_pending = false
-        so
-      end
-
-      # The read electronics signal a whole GCR byte. BYTE READY pulls VIA
-      # 2's CA1 low, a falling edge that sets its flag and, with latching
-      # on, latches port A. It reaches the CPU's SO pin while VIA 2's CA2
-      # (SOE) is high, which lets the DOS spin on BVC for each byte. The CPU
-      # samples SO on the next cycle.
-      def byte_ready!
-        @via.ca1 = false
-        @so_pending = true if @via.ca2_output
-      end
-
-      # BYTE READY lets go of CA1 with the next bit.
-      def byte_ready_ended!
-        @via.ca1 = true
-      end
-
       # What port B and CB2 can change with the motor off: the motor, the
       # LED, the zone and the clock's rate, the stepper, write mode and
       # where a write starts, and the track and cell under the head. The
       # rest moves only while the motor turns, or as a disk goes in (see
       # Drive::Idle).
       def idle_state
-        [@motor, @led, @zone, @clock, @half_track, @slip, @disk, @track, @index, @mask, @cell_end, @time,
-         @writing, @write_index, @sync]
+        [@motor, @led, @zone, @clock, @half_track, @slip, @side_base, @disk, @track, @index, @mask, @cell_end,
+         @time, @writing, @write_index, @sync, @byte_latched]
       end
 
       # Puts a Disk in, or takes it out with nil, flushing the disk that
@@ -257,10 +256,11 @@ module Badline
       # changed: a half track without data gets a blank track, and a track
       # written at another rate is laid out again at this one.
       def track_written(at)
-        track = @disk.writable_track(@half_track, @zone)
-        @disk.write(@half_track, track.relaid(@zone)) unless track.written_at?(@zone)
+        surface = self.surface
+        track = @disk.writable_track(surface, @zone)
+        @disk.write(surface, track.relaid(@zone)) unless track.written_at?(@zone)
         load_track(at)
-        @disk.written(@half_track)
+        @disk.written(surface)
         @track_written = true
       end
 
@@ -296,6 +296,10 @@ module Badline
           seek(@half_track - 1)
         end
       end
+
+      # The half track under the head that reads, numbered on the disk
+      # (see Disk::SIDE).
+      def surface = @half_track + @side_base
 
       def seek(half_track)
         half_track = half_track.clamp(MIN_HALF_TRACK, Disk::MAX_HALF_TRACK)

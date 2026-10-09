@@ -24,7 +24,8 @@ module Badline
   # - Media: +ram+, +load_prg+, +type_text+, +mount+, +unmount+,
   #   +mounted?+, +datasette+, +attach_cartridge+,
   #   +press_cartridge_button+, +release_cartridge_button+,
-  #   +attach_drive1541+, +drive1541+, and +address_bus+ for its
+  #   +attach_drive1541+, +drive1541+, +true_drive+ and +plug_true_drive+
+  #   for the drive Media::TrueDrive plugs in, and +address_bus+ for its
   #   +cartridge+ and +detach_cartridge+.
   # - Snapshots and tests: +snapshot+, +restore+, +save_snapshot+,
   #   +install_debug_register+ and +capture_output+.
@@ -33,14 +34,15 @@ module Badline
   # input parts, with its one joystick as both +joystick1+ and +joystick2+
   # and nil for +control_ports+, and of the rest +ram+, +load_prg+,
   # +type_text+, +mount+, +unmount+, +mounted?+, +datasette+, +attach_cartridge+,
-  # +attach_drive1541+, +drive1541+, +install_debug_register+ and
-  # +capture_output+.
+  # +attach_drive1541+, +drive1541+, +true_drive+, +plug_true_drive+,
+  # +install_debug_register+ and +capture_output+.
   #
   # The C128 answers all but the cartridge button, and besides +mode+,
   # :c64, as Machine.build builds it, or :c128, +vdc+, the VDC a front
   # end can show in place of +video+ once +vdc_shown=+ renders it,
-  # +press_caps_lock+, +release_caps_lock+, +press_display_key+ and
-  # +release_display_key+.
+  # +press_caps_lock+, +release_caps_lock+, +press_display_key+,
+  # +release_display_key+, and +attach_drive1571+ and +drive1571+ for the
+  # C128D's 1571, its true drive.
   module Machine
     # A new machine of `family`, :c64, :vic20 or :c128, the model of it
     # `model` names. A C64's model is one of Model::ALL, with its SID

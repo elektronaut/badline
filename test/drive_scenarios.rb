@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 require_relative "drive_scenarios_vic20"
+require_relative "drive_scenarios_1571"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
-# idle loop, a write-protected disk and autostart, and on the VIC-20's
+# idle loop, a write-protected disk and autostart, on the VIC-20's
 # serial bus a save, an autostart and the error channel
-# (drive_scenarios_vic20.rb). Each takes tens of
+# (drive_scenarios_vic20.rb), and the same on the C128's 1571, with a
+# double-sided format (drive_scenarios_1571.rb). Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
 # `scenario/check<TAB>PASS`, or `scenario/check<TAB>FAIL<TAB>detail`.
@@ -17,6 +19,7 @@ require_relative "drive_scenarios_vic20"
 module DriveScenarios
   # The scenarios and the checks each makes, the longest-running first.
   CHECKS = {
+    "1571-format" => %w[no-error lists-new-disk second-side trap-readable],
     "format" => %w[no-error lists-new-disk name-and-id bam-free trap-readable],
     "save" => %w[no-error loads-back file-in-image trap-readable],
     "vic20-write" => %w[no-error loads-back file-in-image],
@@ -25,7 +28,12 @@ module DriveScenarios
     "vic20-autoboot" => %w[loads-and-runs],
     "error-channel" => %w[power-on-message],
     "vic20-status" => %w[power-on-message],
-    "idle" => %w[sleeps matches-stepping]
+    "idle" => %w[sleeps matches-stepping],
+    "1571-save" => %w[no-error loads-back file-in-image],
+    "1571-read-only" => %w[saves image-unchanged],
+    "1571-autostart" => %w[loads-and-runs],
+    "1571-error-channel" => %w[power-on-message],
+    "1571-idle" => %w[sleeps matches-stepping]
   }.freeze
 
   # 10 PRINT"HELLO", as SAVE writes it.
@@ -47,6 +55,8 @@ module DriveScenarios
     when "read-only" then read_only(report, dir)
     when "autostart" then autostart(report, dir)
     when "vic20-write", "vic20-autoboot", "vic20-status" then Vic20Runs.run(report, name, dir)
+    when "1571-save", "1571-format", "1571-read-only", "1571-autostart", "1571-error-channel", "1571-idle"
+      C128Runs.run(report, name, dir)
     else raise ArgumentError, "No drive scenario #{name}"
     end
     report.rows

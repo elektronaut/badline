@@ -14,7 +14,7 @@ module Badline
 
       # The LED of the machine's true drive, or nil without one.
       def self.for(computer)
-        drive = computer.drive1541
+        drive = computer.true_drive
         drive ? new(drive) : nil
       end
 

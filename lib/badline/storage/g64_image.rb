@@ -5,7 +5,9 @@ module Badline
     # A .g64 image: a 1541 disk's flux as raw GCR, track by track, for the
     # true drive to read the way it reads a real disk, copy protection and
     # all. It has no file system of its own, so only the true drive
-    # (Drive1541::Disk.from_g64) can use it.
+    # (Drive1541::Disk.from_g64) can use it. A .g71 holds a 1571 disk the
+    # same way, with "GCR-1571" for its signature and 168 half tracks,
+    # the first side's 84 and then the second's.
     #
     # The header is the signature "GCR-1541", a version byte ($00), the
     # number of half tracks the tables cover (84, tracks 1 to 42.5) and
@@ -36,6 +38,7 @@ module Badline
       class FormatError < StandardError; end
 
       SIGNATURE = "GCR-1541"
+      SIGNATURE_1571 = "GCR-1571"
       HEADER_SIZE = 12
       HALF_TRACKS = 84
       MAX_TRACK_SIZE = 7928
@@ -124,7 +127,9 @@ module Badline
       private
 
       def parse
-        raise FormatError, "Missing G64 signature" unless @data.start_with?(SIGNATURE)
+        unless @data.start_with?(SIGNATURE) || @data.start_with?(SIGNATURE_1571)
+          raise FormatError, "Missing G64 signature"
+        end
         raise FormatError, "G64 header is cut short" if @data.bytesize < HEADER_SIZE
 
         version, @half_tracks, @max_track_size = @data.byteslice(8, 4).unpack("CCv")

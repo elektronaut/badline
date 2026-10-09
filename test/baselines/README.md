@@ -240,8 +240,19 @@ Recorded output of the headless hardware suites, one file per suite:
     one not, while the C64's lines move: the first sleeps through most of
     the loop (`sleeps`), and both hold the same state at each checkpoint
     (`matches-stepping`).
+  - `1571-save`, `1571-read-only`, `1571-autostart`,
+    `1571-error-channel` and `1571-idle` run the same checks on a C128 in
+    C64 mode with its 1571 (`test/drive_scenarios_1571.rb`), whose DOS
+    3.0 stays in 1541 mode there. `1571-idle` starts its lines 4M cycles
+    later, once the DOS has stopped the motor it spins from power-on.
+  - `1571-format` puts the 1571 in 1571 mode with `U0>M1`, at 2 MHz, and
+    sends `N:` to a `.d71` of zeros: `0, OK` (`no-error`), the listing
+    with 1327 blocks free beside the program (`lists-new-disk`), 18/0
+    flagging a second side and counting its tracks' free blocks
+    (`second-side`), and the program through the traps
+    (`trap-readable`).
   Each scenario runs in a process of its own, up to four at once. The
-  runner needs `dos1541.rom` in the ROM path.
+  runner needs `dos1541.rom` and `dos1571.rom` in the ROM path.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner

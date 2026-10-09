@@ -10,6 +10,11 @@ module Badline
     # nothing between them. A .d64 image fills the whole tracks; a .g64
     # can fill any of them, with tracks of any length.
     #
+    # The disk has a second side, for the 1571's second head, its half
+    # tracks numbered from SIDE on. A .d71 fills both sides, its tracks
+    # 36-70 being tracks 1-35 of the second, and a .g71 holds 84 half
+    # tracks a side. A 1541 reads the first side only.
+    #
     # The head writes into the tracks' bytes, and a write to a half track
     # without data gives it a blank Track first. A disk made from an image
     # remembers it: flush reads the sectors back off the tracks written
@@ -20,6 +25,15 @@ module Badline
       include State
 
       MAX_HALF_TRACK = 84
+
+      # Where the second side's half tracks start: its track 1 is SIDE + 2.
+      SIDE = MAX_HALF_TRACK + 1
+
+      # The tracks a side of a .d71 holds.
+      D71_SIDE_TRACKS = 35
+
+      # The half track entries a side of a .g71 holds.
+      G71_SIDE_ENTRIES = 84
 
       # GCR bytes around a track in each speed zone: 200 ms of rotation at
       # 300 rpm, in bytes of 32, 30, 28 and 26 µs.
@@ -51,25 +65,61 @@ module Badline
       # the 325-byte GCR data block. The gap after it takes up the rest.
       SECTOR_LENGTH = SYNC_LENGTH + 10 + HEADER_GAP + SYNC_LENGTH + 325
 
-      # A disk from the image at +path+: a .g64 as its tracks are, and
-      # anything else as a .d64, formatted. `read_only` opens the image
-      # write-protected.
+      # A disk from the image at +path+: a .g64 or .g71 as its tracks are,
+      # a .d71 formatted on both sides, and anything else as a .d64,
+      # formatted. `read_only` opens the image write-protected.
       def self.open(path, read_only: false)
         return from_g64(Storage::G64Image.new(path, read_only:)).opened(path, read_only) if State.g64?(path)
+        return from_d64(Storage::D71Image.new(path, read_only:)).opened(path, read_only) if State.d71?(path)
 
         from_d64(Storage::D64Image.new(path, read_only:)).opened(path, read_only)
       end
 
-      # A disk from a G64 image, each half track as the image stores it,
-      # with its speed map. Flushing it writes the tracks back as they are.
+      # A disk from a G64 or G71 image, each half track as the image stores
+      # it, with its speed map. Flushing it writes the tracks back as they
+      # are.
       def self.from_g64(image)
         disk = new(image)
-        (Mechanism::MIN_HALF_TRACK..MAX_HALF_TRACK).each do |half_track|
-          entry = half_track - Mechanism::MIN_HALF_TRACK
+        image.half_tracks.times do |entry|
           track = image.track(entry)
-          disk.write(half_track, Track.new(*track, image.speeds(entry))) if track
+          disk.write(half_track_of(entry), Track.new(*track, image.speeds(entry))) if track
         end
         disk
+      end
+
+      # The half track a G64 or G71 table entry holds: entry 0 is track 1,
+      # and a .g71's entries from G71_SIDE_ENTRIES on are the second
+      # side's.
+      def self.half_track_of(entry)
+        side = entry / G71_SIDE_ENTRIES
+        (side * SIDE) + (entry % G71_SIDE_ENTRIES) + Mechanism::MIN_HALF_TRACK
+      end
+
+      # The table entry of a half track, or nil for one a G64 or G71 has
+      # no entry for.
+      def self.entry_of(half_track)
+        side = half_track / SIDE
+        entry = (half_track % SIDE) - Mechanism::MIN_HALF_TRACK
+        (side * G71_SIDE_ENTRIES) + entry if entry.between?(0, G71_SIDE_ENTRIES - 1)
+      end
+
+      # The half track an image's track number is on: a .d71's tracks past
+      # D71_SIDE_TRACKS are on the second side.
+      def self.d64_half_track(image, track)
+        return track * 2 unless image.sides == 2 && track > D71_SIDE_TRACKS
+
+        SIDE + ((track - D71_SIDE_TRACKS) * 2)
+      end
+
+      # The image's track number a half track holds, or nil for a half
+      # track or one past the image's last.
+      def self.d64_track(image, half_track)
+        side = half_track / SIDE
+        return unless (half_track % SIDE).even?
+
+        track = (half_track % SIDE) / 2
+        track += D71_SIDE_TRACKS if side == 1
+        track if track.positive? && track <= image.track_count && side < image.sides
       end
 
       # A disk formatted from a D64 image, each sector laid out as the DOS
@@ -81,7 +131,8 @@ module Badline
       #
       # Each track starts sector 0 at the angle the DOS's N: leaves it: track
       # 1 at the index angle, and each track after it SKEWS[zone] of a turn
-      # round from the last.
+      # round from the last. A .d71's second side starts over at the index
+      # angle.
       def self.from_d64(image)
         track, sector = image.header_block
         header = image.read_block(track, sector)
@@ -89,16 +140,18 @@ module Badline
         disk = new(image)
         angle = 0
         (1..image.track_count).each do |track|
-          angle = (angle + SKEWS[zone(track)]) % SKEW_TURN if track > 1
-          bytes = format_track(image, track, id)
-          disk.write(track * 2, Track.new(bytes.rotate(-(bytes.length * angle / SKEW_TURN)), zone(track)))
+          half_track = d64_half_track(image, track)
+          zone = zone((half_track % SIDE) / 2)
+          angle = half_track == SIDE + 2 ? 0 : (angle + SKEWS[zone]) % SKEW_TURN if track > 1
+          bytes = format_track(image, track, id, zone)
+          disk.write(half_track, Track.new(bytes.rotate(-(bytes.length * angle / SKEW_TURN)), zone))
         end
         disk
       end
 
-      def self.format_track(image, track, id)
+      def self.format_track(image, track, id, zone = zone(track))
         sectors = image.sectors_in(track)
-        length = TRACK_LENGTHS[zone(track)]
+        length = TRACK_LENGTHS[zone]
         gap = (length - (sectors * SECTOR_LENGTH)) / sectors
         bytes = []
         sectors.times do |sector|
@@ -146,7 +199,7 @@ module Badline
 
       def initialize(image = nil)
         @image = image
-        @tracks = Array.new(MAX_HALF_TRACK + 1)
+        @tracks = Array.new(SIDE * 2)
         @written = {}
         @path = nil
         @read_only = false
@@ -188,11 +241,14 @@ module Badline
       def flush
         return flush_tracks if @image.respond_to?(:store_tracks)
 
-        tracks = @written.keys.select { |half| half.even? && (1..@image&.track_count.to_i).cover?(half / 2) }
+        tracks = @written.keys.filter_map do |half|
+          track = @image && Disk.d64_track(@image, half)
+          [half, track] if track
+        end
         @written.clear
         return if tracks.empty?
 
-        sectors = tracks.to_h { |half| [half / 2, SectorReader.read(@tracks[half].bytes, half / 2)] }
+        sectors = tracks.to_h { |half, track| [track, SectorReader.read(@tracks[half].bytes, track)] }
         id = disk_id(sectors)
         warn_lost(sectors)
         @image.store_blocks(sectors.flat_map do |track, found|
@@ -203,9 +259,10 @@ module Badline
       private
 
       def flush_tracks
-        tracks = @written.keys.sort.to_h do |half|
-          [half - Mechanism::MIN_HALF_TRACK, [@tracks[half].bytes, @tracks[half].zone]]
-        end
+        tracks = @written.keys.sort.filter_map do |half|
+          entry = Disk.entry_of(half)
+          [entry, [@tracks[half].bytes, @tracks[half].zone]] if entry
+        end.to_h
         @written.clear
         @image.store_tracks(tracks) unless tracks.empty?
       end

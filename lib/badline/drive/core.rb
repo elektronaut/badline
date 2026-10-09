@@ -155,6 +155,10 @@ module Badline
 
       private
 
+      # Runs the model's chips beyond the VIAs +cycles+ quiet cycles at once
+      # (see quiet_cycles). The 1541 has none.
+      def fast_forward_chips(_cycles) = nil
+
       # A drive cycle from host_cycle!, which may find the idle loop.
       def run_cycle
         step

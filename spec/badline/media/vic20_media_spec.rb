@@ -14,7 +14,7 @@ describe Badline::Media::Vic20Media do
   let(:datasette) { Badline::Datasette.new }
   let(:machine) do
     instance_double(Badline::Vic20, family: :vic20, ram:, basic_start: 0x1201, type_text: nil, load_prg: nil,
-                                    attach_cartridge: nil, drive1541: nil, mount: nil, datasette:)
+                                    attach_cartridge: nil, drive1541: nil, true_drive: nil, mount: nil, datasette:)
       .tap { |double| allow(double).to receive(:on_init).and_yield }
   end
 

@@ -42,7 +42,7 @@ module Badline
         @pacer.start(@started)
         @menu.open? ? paused_frame : frame while @running
         @snapshots.finish
-        @computer.drive1541&.flush
+        @computer.true_drive&.flush
         @gamepads.close
         @sound.close
         @window.close

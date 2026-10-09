@@ -30,12 +30,12 @@ module Badline
       BLANK = Track.new(Array.new(Disk::TRACK_LENGTHS[0], 0).freeze, 0)
 
       # One drive cycle: nothing with the motor off, and otherwise the
-      # disk turns on by 16 ticks, through whatever cells and clocks fall
-      # in them.
+      # disk turns on by a cycle's ticks, 16 at 1 MHz and 8 at 2 MHz,
+      # through whatever cells and clocks fall in them.
       def cycle!
         return unless @motor
 
-        @time += CYCLE
+        @time += @cycle_ticks
         pass_time if @time >= @next
       end
 
@@ -95,7 +95,7 @@ module Badline
       # The track under the head and its layout, leaving the head's place
       # on it as it stands.
       def head_on_track
-        @track = @disk&.track(@half_track) || BLANK
+        @track = @disk&.track(surface) || BLANK
         @bytes = @track.bytes
         @widths = @track.widths
         @length = @track.length
@@ -105,7 +105,7 @@ module Badline
       # The track under the head, from the cell that's under it +time+
       # into the turn.
       def load_track(time = @time)
-        @track = @disk&.track(@half_track) || BLANK
+        @track = @disk&.track(surface) || BLANK
         @bytes = @track.bytes
         @widths = @track.widths
         @length = @track.length

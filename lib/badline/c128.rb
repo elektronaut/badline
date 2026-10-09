@@ -12,6 +12,8 @@ require "badline/c128/cpu"
 require "badline/c128/saved_state"
 require "badline/c128/keys"
 require "badline/c128/modes"
+require "badline/c128/drives"
+require "badline/drive1571"
 
 module Badline
   # The Commodore 128: the 8502 on the VIC-IIe's clock, two CIAs, the SID,
@@ -40,6 +42,7 @@ module Badline
     include Computer::KernalTraps
     include Keys
     include Modes
+    include Drives
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
@@ -125,10 +128,7 @@ module Badline
       @restore_pulse = false
       @init_handlers = []
       @pending_keys = nil
-      @drive = nil
-      @serial_trap = nil
-      @save_trap = nil
-      @drive1541 = nil
+      init_drives
       @capture_output = nil
       plug_serial_bus
       enter_c64_mode if @c64_built
@@ -159,6 +159,7 @@ module Badline
       drive_nmi
       clock_bits.odd? ? clock_fast : clock_cpu
       @drive1541&.host_cycle!
+      @drive1571&.host_cycle!
 
       @cycles += 1
     end
@@ -230,7 +231,7 @@ module Badline
     end
 
     # The RES line reaches the CPU and its port, the MMU, both CIAs, the
-    # SID, the cartridge port and, through the serial bus, the drive.
+    # SID, the cartridge port and, through the serial bus, the drives.
     def reset!
       @bus.reset!
       @cia1.reset!
@@ -239,6 +240,7 @@ module Badline
       @bus.cartridge&.reset
       @drive&.reset!
       @drive1541&.reset!
+      @drive1571&.reset!
       @nmi_asserted = false
       @cpu.reset!
     end

@@ -22,6 +22,8 @@ module Badline
     # Where the DOS 2.6 idle loop starts over (see Drive::Idle).
     IDLE_LOOP = 0xebff
 
+    def model_name = "1541"
+
     # +rom+ covers $C000-$FFFF, and defaults to the DOS image in the ROM
     # path. +device+ is the number the jumpers on VIA 1's PB5 and PB6 set,
     # 8 to 11.

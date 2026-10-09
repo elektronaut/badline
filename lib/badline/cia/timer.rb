@@ -24,6 +24,32 @@ module Badline
         control.out_mode? ? @toggle : @underflowed
       end
 
+      # Whether the timer is stopped with nothing in its pipeline, so a
+      # cycle changes nothing.
+      def idle? = @empty && !started?
+
+      # Whether the timer counts ø2 in continuous mode with nothing pending
+      # but the reload after an underflow, so fast_forward can run it. A
+      # latch below 2 is left out.
+      def free_running?
+        started? && !@control.run_mode? && @control.value.nobits?(0x20) && @latch >= 2 && @pipe == 0b11 &&
+          (@load_delay | @oneshot_linger).zero? && (@settled || @reload)
+      end
+
+      # Runs a free-running timer +cycles+ cycles at once, as cycle! would:
+      # an underflow every latch + 1 cycles, each one followed by the
+      # reload. Returns the underflows.
+      def fast_forward(cycles)
+        return 0 if cycles.zero?
+        return after_underflow(cycles, 0) unless @settled
+
+        if cycles < @counter
+          @counter -= cycles
+          return 0
+        end
+        after_underflow(cycles - @counter, 1)
+      end
+
       def cycle!(feed)
         feed &&= @control.value & 0x01 != 0
         if @settled
@@ -96,6 +122,19 @@ module Badline
 
       def started?
         @control.value & 0x01 != 0
+      end
+
+      # Where fast_forward lands +cycles+ after an underflow, with
+      # +underflows+ underflows counted so far.
+      def after_underflow(cycles, underflows)
+        periods, rest = cycles.divmod(@latch + 1)
+        underflows += periods
+        @toggle = !@toggle if underflows.odd?
+        @underflowed = rest.zero?
+        @reload = rest.zero?
+        @counter = @latch - (rest.zero? ? 0 : rest - 1)
+        settle
+        underflows
       end
 
       def enter

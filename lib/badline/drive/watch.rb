@@ -77,6 +77,14 @@ module Badline
         @watching = @recording || @guarding
       end
 
+      # An access to a chip beyond the VIAs, as the 1571's CIA and floppy
+      # controller are: it makes the stretch volatile and taints the
+      # drive.
+      def watch_chip
+        volatile! if @recording
+        taint! if @guarding
+      end
+
       def touch(addr)
         @touched[addr] = @ram.peek(addr) unless @touched.key?(addr)
       end

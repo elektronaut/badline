@@ -7,6 +7,8 @@ module Badline
     # hears both after every write and reset, since ORB, DDRB, the ACR and
     # the PCR can all change them.
     class DiskVIA < VIA
+      attr_reader :mechanism
+
       def initialize(start:, mechanism:)
         @mechanism = mechanism
         mechanism.via = self
