@@ -48,7 +48,7 @@ module Badline
 
         cpu.remove_trap(KernalTrap::VIC20_LAYOUT.load)
         cpu.remove_trap(KernalTrap::VIC20_LAYOUT.save)
-        @serial_trap.device = nil
+        @serial_trap.uninstall
         @serial_trap = nil
         @save_trap = nil
         @drive = nil

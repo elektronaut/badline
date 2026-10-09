@@ -60,6 +60,7 @@ describe Badline::Vic20::Attachments do
   describe "#unmount" do
     before do
       machine.mount(Badline::Storage::HostDirectory.new(dir))
+      allow(machine.cpu).to receive(:remove_trap).and_call_original
       machine.unmount
     end
 
@@ -67,6 +68,10 @@ describe Badline::Vic20::Attachments do
 
     it "leaves LOAD to the ROM" do
       expect(load_without_a_name).to eq(layout.load + 1)
+    end
+
+    it "takes the serial traps out" do
+      expect(machine.cpu).to have_received(:remove_trap).with(layout.talk)
     end
   end
 
