@@ -72,6 +72,11 @@ describe Badline::Cartridge, "#save_state" do
     expect(state_differences(replay, rebuilt(replay))).to be_empty
   end
 
+  it "keeps a KCS Power frozen, with its I/O RAM" do
+    kcs = pokes(cartridge(2), [[0xdf00, 0x5a], [0xdf7f, 0x33]]).tap(&:press_button).tap(&:freeze!)
+    expect(state_differences(kcs, rebuilt(kcs))).to be_empty
+  end
+
   it "keeps a GEO-RAM's RAM and registers" do
     geo = pokes(attach(described_class::GeoRAM.new(size: 64)), [[0xdfff, 2], [0xdffe, 5], [0xde10, 0x99]])
     expect(state_differences(geo, rebuilt(geo))).to be_empty
