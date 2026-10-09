@@ -49,6 +49,7 @@ requires only the namespace file.
 | --- | --- | --- |
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
+| SingleStepTests z80 | `rake test` (the first 100 cases per opcode, `Z80_SAMPLE=all` for all 1,604,000) | `Z80`: registers, flags, ports and the bus pins on every T-state |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, and the C128 in C64 mode with `--c128c64` |
 | VICE SID testprogs | `bin/sidtests` | SID |
@@ -103,7 +104,7 @@ worktree and owns a different set of files.
 - The external suites under `vendor/` are gitignored, so a new worktree has
   only `vendor/.gitkeep`. From the worktree root, symlink the main
   checkout's suites into it:
-  `for d in 65x02 VICE-testprogs; do ln -sfn ../../../../vendor/$d vendor/$d; done`.
+  `for d in 65x02 z80-sample VICE-testprogs; do ln -sfn ../../../../vendor/$d vendor/$d; done`.
   The main checkout also has `vendor/OneLoad64-Games-Collection-v5`, which
   `rake vendor:checkout` doesn't fetch. Link it the same way only for
   `.sid` or media work. Don't re-run `rake vendor:checkout` there, and
@@ -129,8 +130,8 @@ worktree and owns a different set of files.
 
 ## Testing and baselines
 
-- `rake vendor:checkout` fetches SingleStepTests and VICE-testprogs into
-  `vendor/`
+- `rake vendor:checkout` fetches SingleStepTests 65x02, the Z80 sample
+  and VICE-testprogs into `vendor/`
 - `bundle exec rspec`: line coverage is about 97%. `spec/spec_helper.rb`
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
