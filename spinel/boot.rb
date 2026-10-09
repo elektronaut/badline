@@ -14,21 +14,10 @@
 # its type scenario, and with media those for the same media.
 
 require "badline/core"
+require_relative "boot_support"
 
 CLOCK_HZ = 985_248
-
-def screen_char(code)
-  code &= 0x7f
-  if code.zero?
-    "@"
-  elsif code < 27
-    (code + 96).chr
-  elsif code < 64
-    code.chr
-  else
-    "."
-  end
-end
+CHECKPOINT = 1_000_000
 
 cycles = ARGV[0] ? ARGV[0].to_i : 6_000_000
 timed_from = ARGV[1] ? ARGV[1].to_i : 3_000_000
@@ -40,34 +29,10 @@ else
   computer.on_init { computer.type_text("print 6*7\r") }
 end
 
-started = 0.0
-i = 0
-while i < cycles
-  started = Process.clock_gettime(Process::CLOCK_MONOTONIC) if i == timed_from
-  stop = ((i / 1_000_000) + 1) * 1_000_000
-  stop = timed_from if i < timed_from && timed_from < stop
-  stop = cycles if cycles < stop
-  computer.run_cycles(stop - i)
-  i = stop
-  puts Badline::Checkpoint.take(computer) if (i % 1_000_000).zero?
-end
-elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-
-ram = computer.ram
-row = 0
-while row < 25
-  line = +""
-  col = 0
-  while col < 40
-    line << screen_char(ram.peek(0x0400 + (row * 40) + col))
-    col += 1
-  end
-  puts line.rstrip
-  row += 1
+elapsed = BootSupport.run(computer, cycles, timed_from, CHECKPOINT) do |i|
+  puts Badline::Checkpoint.take(computer) if (i % CHECKPOINT).zero?
 end
 
-puts "cycles #{computer.cycles} instructions #{computer.cpu.instructions}"
-cpu = computer.cpu
-puts "pc #{cpu.program_counter} a #{cpu.a} x #{cpu.x} y #{cpu.y} p #{cpu.p}"
-timed = cycles - timed_from
-puts "timed #{timed} cycles in #{(elapsed * 1000).round} ms, #{(timed / elapsed / CLOCK_HZ).round(3)}x real time"
+BootSupport.print_screen(computer.ram, 0x0400, 25, 40)
+BootSupport.print_state(computer)
+BootSupport.print_speed(cycles - timed_from, elapsed, CLOCK_HZ)

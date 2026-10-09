@@ -1144,3 +1144,35 @@ class TestTestbenchEngine < Minitest::Test
     results
   end
 end
+
+# The record a Spinel build writes for a test parses back on CRuby to what
+# the test left behind.
+class TestTestbenchRecord < Minitest::Test
+  def parse(record, type)
+    Testbench::Engine.parse(record, TestTestbenchEngine::Test.new("t", type))
+  end
+
+  def test_a_text_record_reads_back_as_the_text_screen
+    lines = Array.new(25) { |row| "line #{row}" }
+
+    assert_equal lines, parse(Testbench::Record.text("t", 0, 1, lines), "exitcode").screen
+  end
+
+  def test_a_screen_record_reads_back_as_the_rows_of_palette_indices
+    rows = Array.new(272) { |row| Array.new(384) { |col| (row + col) & 0xf } }
+
+    assert_equal rows, parse(Testbench::Record.screen("t", 0, 1, rows), "screenshot").screen
+  end
+
+  def test_a_record_carries_the_exit_code
+    assert_equal 255, parse(Testbench::Record.text("t", 255, 1, []), "exitcode").exit_code
+  end
+
+  def test_a_test_that_never_reported_has_no_exit_code
+    assert_nil parse(Testbench::Record.text("t", nil, 1, []), "exitcode").exit_code
+  end
+
+  def test_a_record_ends_where_the_engine_cuts_it
+    assert Testbench::Record.screen("t", 0, 1, []).end_with?(Testbench::Engine::RECORD_END)
+  end
+end
