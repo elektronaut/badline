@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require_relative "../support/blank_disk"
+require_relative "../support/taken_once"
 
 describe Badline::Vic20 do
   include BlankDisk
@@ -11,13 +12,17 @@ describe Badline::Vic20 do
     let(:path) { File.join(Dir.mktmpdir, "vic20.vsf") }
 
     # A machine run to the middle of its boot.
-    def saved(ram) = described_class.new(ram:).tap { |machine| machine.run_cycles(400_001) }
+    def booting(ram) = described_class.new(ram:).tap { |machine| machine.run_cycles(400_001) }
+
+    # A machine in the middle of its boot, restored from a State taken once
+    # for each RAM configuration.
+    def saved(ram) = described_class.restored(TakenOnce.fetch([:vic20_booting, ram]) { booting(ram).snapshot })
 
     def digest(machine) = [machine.snapshot, machine.video.display.hash]
 
     described_class::Bus::RAM_CONFIGURATIONS.each_key do |ram|
       it "restores a machine with #{ram} RAM that runs on as the saved one" do
-        machine = saved(ram)
+        machine = booting(ram)
         restored = described_class.restored(machine.snapshot)
         [machine, restored].each { |each_machine| each_machine.run_cycles(60_000) }
         expect(digest(restored)).to eq(digest(machine))
@@ -87,14 +92,14 @@ describe Badline::Vic20 do
     end
 
     it "refuses a state with other RAM" do
-      expect { saved(:unexpanded).restore(saved(:"8k").snapshot) }
+      expect { described_class.new.restore(described_class.new(ram: :"8k").snapshot) }
         .to raise_error(Badline::Snapshot::FormatError, /8k/)
     end
 
     it "leaves the machine as it was when it refuses a state" do
       machine = saved(:unexpanded)
       before = machine.snapshot
-      refused { machine.restore(saved(:"8k").snapshot) }
+      refused { machine.restore(described_class.new(ram: :"8k").snapshot) }
       expect(machine.snapshot).to eq(before)
     end
 

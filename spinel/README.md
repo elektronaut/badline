@@ -26,6 +26,11 @@ CRuby.
 - `convert.rb` samples the SingleStepTests JSON into the line format
   `cpu_tests.rb` reads, since the Spinel build has no JSON library. It runs
   on CRuby only.
+- `z80_tests.rb` runs SingleStepTests' Z80 cases against `Badline::Z80`
+  and checks registers, T-states, the bus pins on every T-state, the ports
+  and RAM. `convert_z80.rb` samples them into its line format. The Z80
+  isn't in the core, so `z80_tests.rb` requires `badline/z80/core` alone
+  and no other harness carries it.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
   `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See
@@ -69,7 +74,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot` and `c128_testbench` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot` and `c128_testbench` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -88,7 +93,7 @@ rake "spinel:check[vendor/OneLoad64-Games-Collection-v5/IK+.crt]"
 rake "spinel:check[path/to/game.crt,40000000]"
 ```
 
-`spinel:check` builds the harnesses, then runs each compiled binary
+`spinel:check` builds its harnesses, then runs each compiled binary
 and the same harness on CRuby. It fails unless the outputs match: every
 checkpoint, the screen, the counts and the registers for both boots, and
 every SingleStepTests verdict. Without media the C64 boots for 6M cycles.
@@ -97,8 +102,9 @@ unexpanded for 2M cycles either way, once silent and once recording its
 sound at 44.1 kHz. The C128 boots its `c128` model for 6M cycles typing
 `print 6*7`, and its `c128dcr` for 4M typing the FAST line. The first
 run converts 100
-SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, so it needs
-`vendor/65x02` (`rake vendor:65x02`).
+SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, and 100 per
+Z80 opcode file into `tmp/spinel/z80_cases.txt`, so it needs
+`vendor/65x02` and `vendor/z80-sample` (`rake vendor:65x02 vendor:z80-sample`).
 
 The checkpoint lines are the ones `bin/machine_diff` prints, so it can
 name the first component that differs. Save the compiled build's
