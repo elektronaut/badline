@@ -149,6 +149,46 @@ describe Badline::C128 do
   context "when built for C128 mode" do
     subject(:machine) { described_class.new(mode: :c128) }
 
+    def reset_vector = machine.address_bus.peek(0xfffc) | (machine.address_bus.peek(0xfffd) << 8)
+
+    def write(addr, bytes) = bytes.each_with_index { |byte, i| machine.address_bus.poke(addr + i, byte) }
+
+    # Runs until the Z80 has booted and handed the 8502 the bus.
+    def boot_z80 = machine.run_until(5000) { !machine.address_bus.z80? }
+
+    # Gives the Z80 the bus again, at a JR to itself at $3000, through the
+    # JP at $FFEE its BIOS runs once the 8502 hands it the bus back.
+    def loop_z80
+      write(0x3000, [0x18, 0xfe])
+      boot_z80
+      write(0xffee, [0xc3, 0x00, 0x30])
+      machine.address_bus.poke(0xd505, 0xb0)
+    end
+
+    it "gives the Z80 the bus at power-on" do
+      expect([machine.address_bus.z80?, machine.z80.pc]).to eq([true, 0])
+    end
+
+    it "starts the 8502 at its reset vector once the Z80 has booted and handed it the bus" do
+      boot_z80
+      expect(machine.cpu.program_counter).to eq(reset_vector)
+    end
+
+    it "leaves the 8502 where it was while the Z80 has the bus" do
+      loop_z80
+      pc = machine.cpu.program_counter
+      machine.run_cycles(10)
+      expect(machine.cpu.program_counter).to eq(pc)
+    end
+
+    it "runs the Z80 2 T-states a cycle" do
+      loop_z80
+      machine.run_cycles(2)
+      t_states = machine.z80.cycles
+      machine.run_cycles(60)
+      expect(machine.z80.cycles - t_states).to be_within(12).of(120)
+    end
+
     it "prints to the VDC's screen while the editor's 40/80 flag is set" do
       machine.ram.poke(0xd7, 0x80)
       expect(machine.active_screen).to eq(:vdc)
@@ -207,9 +247,8 @@ describe Badline::C128 do
 
     it "waits for the C64 KERNAL's boot to run #on_init's handlers after C= takes it to C64 mode" do
       machine.hold_commodore_key
-      machine.run_cycles(1000)
-      machine.address_bus.poke(0xd505, 0xf7)
-      expect(machine.init_threshold).to eq(1000 + Badline::Computer::INIT_THRESHOLD)
+      machine.run_until(2000) { machine.mode == :c64 }
+      expect(machine.init_threshold).to eq(machine.cycles + Badline::Computer::INIT_THRESHOLD)
     end
   end
 

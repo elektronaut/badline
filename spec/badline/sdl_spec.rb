@@ -15,10 +15,19 @@ describe Badline::SDL do
   end
 
   describe "the events" do
-    before { described_class.SDL_InitSubSystem(described_class::INIT_EVENTS) }
+    def drain
+      nil while described_class.SDL_PollEvent(described_class.event) == 1
+    end
+
+    # Each example starts from an empty queue, whatever another spec's
+    # subsystems left in it, such as the audio's device events.
+    before do
+      described_class.SDL_InitSubSystem(described_class::INIT_EVENTS)
+      drain
+    end
 
     after do
-      nil while described_class.SDL_PollEvent(described_class.event) == 1
+      drain
       described_class.SDL_QuitSubSystem(described_class::INIT_EVENTS)
     end
 

@@ -26,6 +26,7 @@ only catches the rows that happen to move.
 - [VIC light pen](#vic-light-pen)
 - [VIC-II 8565](#vic-ii-8565)
 - [VIC-IIe 2 MHz and TEST bit](#vic-iie-2-mhz-and-test-bit)
+- [C128 Z80 bus](#c128-z80-bus)
 - [VIC-II NTSC](#vic-ii-ntsc)
 - [VIC-II 6572 (Drean)](#vic-ii-6572-drean)
 - [CIA 6526 timer pipeline](#cia-6526-timer-pipeline)
@@ -1000,6 +1001,35 @@ $1C0E and checks the readings they print.
   is odd), and lines drawn while TEST runs show alternating hues and
   per-cycle blanking. Their 8566 shows no grey dots. The 2mhzVIC
   references have none either.
+
+## C128 Z80 bus
+
+- The Z80 gets 2 T-states in every cycle BA leaves it the bus, with no
+  wait states for memory or I/O: each of the 1,868 `c128z80timing`
+  programs measures `T-states / 2` 1 MHz cycles with the screen blanked.
+  Pinned by `c128/z80/c128z80timing`. The timing rows can't pin where in
+  an I/O machine cycle the chips see an IN or OUT, since the timer starts
+  and stops through the same OUT: `Z80Turns::IO_DELAY` is 2 because
+  `c128modez80-23`'s IN at `$D700`, which reads open bus, passes at 1 or 2
+  and fails at 0, 3 and 4.
+- In C128 mode with CR bits 6-7 both 0, `$0000-$0FFF` reads the BIOS
+  (`$D000-$DFFF` of the KERNAL ROM), and a write, IN or OUT there reaches
+  the RAM at `$Dxxx` of bank 0. CR `$BF` (bank 2, which is bank 0 on a
+  128K machine) leaves the BIOS out, as does bank 1: `$0xxx` is RAM, common
+  RAM's or the bank's. `$D000-$DFFF` is RAM to the Z80's memory accesses.
+  Pinned by `c128modez80-15` to `-22` and `-25`, `outi/tstouti2` and
+  `mmu_zp_sp/tstz80bk` (x128 fails the last).
+- IN and OUT reach the chips at `$D000-$DFFF` whatever CR's I/O bit says,
+  in both modes. The MMU at `$D500` takes an OUT either way in C128 mode,
+  but answers an IN only with I/O on. Pinned by `c128modez80-10` (the IN)
+  and `tstz80bk`, which programs page relocation through OUT with CR
+  `$BF`.
+- While I/O is mapped in, the colour RAM the 8502 sees also answers at
+  `$1000-$13FF`, in memory and through IN and OUT. Pinned by
+  `c128modez80-02` to `-09` and `c64modez80-03` and `-05`.
+- In C64 mode the Z80's memory accesses decode as the 8502's do through
+  the PLA, with no BIOS. Pinned by `c64modez80-00` to `-06`.
+- Spec guard: [`z80_bus_spec.rb`](../spec/badline/c128/z80_bus_spec.rb).
 
 ## VIC-II NTSC
 

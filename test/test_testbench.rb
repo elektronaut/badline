@@ -648,6 +648,19 @@ class TestTestbenchC128Mode < Minitest::Test
     assert Testbench::Engine.spec(test).end_with?("\tc128\tc128\t1571\t#{test.disk_path}\n")
   end
 
+  def test_takes_only_the_rows_that_need_the_z80_with_z80
+    z80 = lambda do |dir, prg|
+      Testbench::C128ModeTestlist.parse("#{dir}/,#{prg},exitcode,1000", z80: true)
+    end
+
+    assert_equal([true, true, true, false, false],
+                 [z80.call("../c128/c64modemmu", "c128modez80-00.prg"),
+                  z80.call("../c128/z80/c128z80timing", "00-nop.prg"),
+                  z80.call("../c128/z80/zex128", "prelim.prg"),
+                  z80.call("../c128/c64modemmu", "c64modemmu-00.prg"),
+                  z80.call("../c128/mmu", "mmuswap-00.prg")].map { |test| !test.nil? })
+  end
+
   def test_drops_the_c128_cartridge_rows
     assert_nil Testbench::C128ModeTestlist.parse("./selftest/,,exitcode,1000,mountcrt:c128-pass.crt")
   end

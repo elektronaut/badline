@@ -8,13 +8,13 @@ opcodes = Badline::Instruction.map.keys
 
 TEST_CYCLES = true
 
-# Set to nil to run all tests
+# The first cases of each opcode's file, or nil to run all of them
 SAMPLE_SIZE = 100
 
 TESTS = opcodes.flat_map do |opcode|
   name = opcode.to_s(16).rjust(2, "0")
   tests = JSON.parse(File.read("vendor/65x02/6502/v1/#{name}.json"))
-  tests = tests.sample(SAMPLE_SIZE) if SAMPLE_SIZE
+  tests = tests.first(SAMPLE_SIZE) if SAMPLE_SIZE
   tests
 end
 

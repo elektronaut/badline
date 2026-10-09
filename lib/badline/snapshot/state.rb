@@ -15,10 +15,10 @@ module Badline
       # save_state writes something else, so a State in another layout
       # fails before anything is read into a machine. Layout 3, without the
       # KERNAL and datasette in the setup, layout 4, without the VIA shift
-      # register's clock delay, and layout 5, without the board in the
-      # setup, still read.
-      SCHEMA = 6
-      READABLE = [3, 4, 5, SCHEMA].freeze
+      # register's clock delay, layout 5, without the board in the setup,
+      # and layout 6, without the C128's Z80, still read.
+      SCHEMA = 7
+      READABLE = [3, 4, 5, 6, SCHEMA].freeze
 
       attr_reader :values, :strings
 

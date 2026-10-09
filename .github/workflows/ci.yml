@@ -421,6 +421,14 @@ jobs:
           - shard: c128
             harnesses: c128_testbench
             tasks: spinel:testbench[testbench-c128]
+          - shard: c128-z80-1
+            harnesses: c128_testbench
+            tasks: >-
+              spinel:testbench[testbench-c128-z80,c128z80timing/f,c128z80timing/c,c128z80timing/0,c128z80timing/1,c128z80timing/2,c128z80timing/3,c128z80timing/4]
+          - shard: c128-z80-2
+            harnesses: c128_testbench
+            tasks: >-
+              spinel:testbench[testbench-c128-z80,!c128z80timing/f,!c128z80timing/c,!c128z80timing/0,!c128z80timing/1,!c128z80timing/2,!c128z80timing/3,!c128z80timing/4]
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies

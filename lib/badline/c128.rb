@@ -4,11 +4,15 @@ require "badline/c128/model"
 require "badline/c128/mmu"
 require "badline/c128/vdc"
 require "badline/c128/mmu_pages"
+require "badline/c128/io_pages"
+require "badline/c128/z80_pages"
 require "badline/c128/color_lines"
 require "badline/c128/banks"
 require "badline/c128/bus_state"
 require "badline/c128/bus"
 require "badline/c128/cpu"
+require "badline/c128/z80"
+require "badline/c128/z80_turns"
 require "badline/c128/saved_state"
 require "badline/c128/keys"
 require "badline/c128/modes"
@@ -21,11 +25,12 @@ module Badline
   # the VDC and its 80 column display, and 128K of RAM, which the 8722 MMU
   # maps (C128::Bus).
   #
-  # Built for C128 mode, it runs BASIC 7.0 and the C128 KERNAL from reset.
-  # The C128's Z80 runs first and hands the bus to the 8502, but here the
-  # 8502 starts at its reset vector, with the MMU as the Z80 leaves it.
-  # The KERNAL goes to C64 mode as on the C128, with C= held at reset, a
-  # C64 cartridge or GO64.
+  # Built for C128 mode, it powers on as the C128 does: the Z80 runs the
+  # boot code in its BIOS and hands the bus to the 8502, which then runs
+  # its reset vector into BASIC 7.0 and the C128 KERNAL. The KERNAL goes
+  # to C64 mode as on the C128, with C= held at reset, a C64 cartridge or
+  # GO64. MCR bit 0 hands the bus back and forth from then on, and the
+  # Z80 runs 2 T-states in each cycle the VIC leaves it the bus.
   #
   # Built for C64 mode, the default, it powers on in C64 mode, the state
   # the C128 KERNAL reaches when C= is held at power-on, and a reset comes
@@ -45,6 +50,7 @@ module Badline
     include Modes
     include Drives
     include FastSerial
+    include Z80Turns
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
@@ -116,6 +122,7 @@ module Badline
       @holding_commodore = false
       @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)
+      build_z80
       @vic = @bus.vic
       @vic.open_bus = -> { @bus.ram.peek(@cpu.program_counter) }
       @cia1 = @bus.cia1
@@ -141,6 +148,8 @@ module Badline
     # mode the CPU runs in both halves of the cycle (#clock_fast), and the
     # TEST bit steps the raster counter in every cycle.
     def cycle!
+      return z80_cycle! if @z80_turn
+
       handle_init if @cycles == @init_threshold
       feed_keyboard if @pending_keys
 
@@ -242,7 +251,7 @@ module Badline
       @drive1541&.reset!
       @drive1571&.reset!
       @nmi_asserted = false
-      @cpu.reset!
+      reset_z80
     end
 
     # CHROUT is at $FFD2 in both KERNALs, and the trap follows the mode.
@@ -304,19 +313,6 @@ module Badline
 
     def handle_init
       @init_handlers.each(&:call)
-    end
-
-    # The keyboard buffer of the KERNAL the machine runs: the C64's, or in
-    # C128 mode BASIC 7.0's.
-    def feed_keyboard
-      c64 = mode == :c64
-      count = c64 ? KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
-      return unless ram.peek(count).zero?
-
-      chunk = @pending_keys.shift(KeyboardBuffer::CAPACITY)
-      ram.write(c64 ? KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER, chunk)
-      ram.poke(count, chunk.length)
-      @pending_keys = nil if @pending_keys.empty?
     end
   end
 end

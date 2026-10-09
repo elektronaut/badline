@@ -30,8 +30,8 @@ describe Badline::C128::MMU do
 
     before { mmu.on_change { changes << mmu.cr } }
 
-    it "resets into C128 mode with the 8502 selected" do
-      expect([mmu.mode, mmu.peek(0xd505) & 0x41]).to eq([:c128, 0x01])
+    it "resets into C128 mode with the Z80 selected" do
+      expect([mmu.mode, mmu.peek(0xd505) & 0x41, mmu.z80?]).to eq([:c128, 0x00, true])
     end
 
     it "comes back to C128 mode on a reset" do

@@ -43,6 +43,18 @@ describe Badline::C128 do
       end
     end
 
+    it "restores a C128 whose Z80 is booting, which runs on as the saved one" do
+      machine = described_class.new(mode: :c128).tap { |booting| booting.run_cycles(301) }
+      restored = described_class.restored(machine.snapshot)
+      run_on(machine, restored, cycles: 2000)
+      expect([restored.z80.inspect, digest(restored)]).to eq([machine.z80.inspect, digest(machine)])
+    end
+
+    it "restores a C128 the Z80 has handed to the 8502 as it was" do
+      machine = described_class.new(mode: :c128).tap { |booted| booted.run_cycles(2000) }
+      expect(described_class.restored(machine.snapshot).snapshot).to eq(machine.snapshot)
+    end
+
     it "restores a C128 built for C128 mode that runs on as the saved one" do
       machine = booting(mode: :c128)
       restored = described_class.restored(machine.snapshot)
