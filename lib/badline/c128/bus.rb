@@ -37,6 +37,8 @@ module Badline
       include AddressBus::PLA
       include AddressBus::ROMs
       include MMUPages
+      include IOPages
+      include Z80Pages
       include SavedState
 
       # The 8502's port has seven pins. P0-P5 are the 6510's, and P6 senses
@@ -152,6 +154,7 @@ module Badline
 
         @color_lines = ColorLines.new(@vic, @cia2, character_rom, @c128_character_rom)
         @color_ram = @color_lines.color_ram(1)
+        build_z80_pages
         @vic_writes = VICWrites.new(@vic, @control_ports)
         @open_bus = AddressBus::OpenBus.new(@vic)
         @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
@@ -318,29 +321,13 @@ module Badline
                                 romh: @cartridge&.romh)
         @color_ram = @color_lines.cpu_color_ram(c64_mode, port)
         c64_mode ? map_pla_pages : map_c128_pages
+        update_z80!
         mode_changed if c64_mode != @c64_mode
       end
 
       def mode_changed
         @c64_mode = !@c64_mode
         @on_mode_change&.call
-      end
-
-      def map_io_pages
-        @io_mapped = true
-        @read_pages.fill(@vic, 0xd0, 4)
-        @write_pages.fill(@vic_writes, 0xd0, 4)
-        @read_pages[0xd4] = @write_pages[0xd4] = @sid
-        @read_pages[0xd5] = @write_pages[0xd5] = @mmu.c64_mode? ? @open_bus : @mmu
-        @read_pages[0xd6] = @write_pages[0xd6] = @vdc
-        @read_pages[0xd7] = @write_pages[0xd7] = @debug_page || @open_bus
-        @read_pages.fill(@color_ram, 0xd8, 4)
-        @write_pages.fill(@color_ram, 0xd8, 4)
-        @read_pages[0xdc] = @write_pages[0xdc] = @cia1
-        @read_pages[0xdd] = @write_pages[0xdd] = @cia2
-        @read_pages.fill(@open_bus, 0xde, 2)
-        @write_pages.fill(@open_bus, 0xde, 2)
-        map_cartridge_io if @cartridge
       end
     end
   end

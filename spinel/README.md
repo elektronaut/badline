@@ -29,8 +29,8 @@ CRuby.
 - `z80_tests.rb` runs SingleStepTests' Z80 cases against `Badline::Z80`
   and checks registers, T-states, the bus pins on every T-state, the ports
   and RAM. `convert_z80.rb` samples them into its line format. The Z80
-  isn't in the core, so `z80_tests.rb` requires `badline/z80/core` alone
-  and no other harness carries it.
+  isn't in the core, so `z80_tests.rb` requires `badline/z80/core` alone,
+  and of the other harnesses only the C128's carry it, as `C128::Z80`.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
   `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See

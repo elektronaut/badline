@@ -14,6 +14,7 @@ require "badline/z80/extended_page"
 require "badline/z80/block_transfers"
 require "badline/z80/block_io"
 require "badline/z80/interrupt_acceptance"
+require "badline/z80/saved_state"
 
 module Badline
   class Z80
@@ -42,6 +43,7 @@ module Badline
       include BlockTransfers
       include BlockIO
       include InterruptAcceptance
+      include SavedState
 
       attr_reader :bus, :cycles, :nmi
       attr_accessor :int

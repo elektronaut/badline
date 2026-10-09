@@ -81,6 +81,8 @@ module Badline
         save_cartridge(out)
         @bus.save_state(out)
         @cpu.save_state(out)
+        @z80.save_state(out)
+        out.int(@z80_due).int(@chips_ahead).boolean(@cpu_reset_pending)
         save_trap_drive(out)
         save_serial_bus(out)
       end
@@ -98,15 +100,35 @@ module Badline
         @pending_keys = input.ints if input.boolean?
         @init_handlers_lost = [input.int - @init_handlers.length, 0].max
         load_cartridge(input)
+        @cpu_reset_pending = false
         @bus.load_state(input)
         push_serial_lines
         @cpu.load_state(input)
+        load_z80(input)
         load_trap_drive(input)
         load_serial_bus(input)
         push_fast_serial
       end
 
       private
+
+      # The Z80 and which CPU has the bus, which a state from before the
+      # Z80 leaves to the 8502. The bus, restored before it, hands the bus
+      # to its CPU without resetting the 8502.
+      def load_z80(input)
+        @z80_running = @bus.z80?
+        @z80_turn = @z80_running
+        @z80_due = @z80.cycles
+        @chips_ahead = 0
+        @cpu_reset_pending = false
+        return unless input.schema > 6
+
+        @z80.load_state(input)
+        @z80_due = input.int
+        @chips_ahead = input.int
+        @cpu_reset_pending = input.boolean?
+        @z80_turn = @z80_running || @chips_ahead.positive?
+      end
 
       def check_setup(setup)
         ours = [@model.name, @sid.model, @c64_built ? :c64 : :c128]

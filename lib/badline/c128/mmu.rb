@@ -19,12 +19,11 @@ module Badline
     # A write to P0H or P1H waits until the matching P0L or P1L write
     # takes it.
     #
-    # On the C128 the Z80 runs first and hands the bus to the 8502. Here the
-    # 8502 runs from reset, with MCR as the Z80 leaves it. A machine built
-    # for C64 mode resets into C64 mode, the state the C128 KERNAL leaves
-    # when C= is held at power-on. In C64 mode the MMU answers nowhere, but
-    # the CPU's RAM bank, common RAM and the VIC's bank it holds stay in
-    # force.
+    # A reset clears MCR bit 0, so the Z80 runs first, boots and hands the
+    # bus to the 8502. A machine built for C64 mode resets into C64 mode
+    # instead, with the 8502 running, the state the C128 KERNAL leaves when
+    # C= is held at power-on. In C64 mode the MMU answers nowhere, but the
+    # CPU's RAM bank, common RAM and the VIC's bank it holds stay in force.
     class MMU
       CR = 0
       MCR = 5
@@ -86,7 +85,7 @@ module Badline
       def reset!
         fast_serial_out = fast_serial_out?
         @registers.fill(0)
-        @registers[MCR] = @reset_mode == :c64 ? MCR_C64_MODE | MCR_8502 : MCR_8502
+        @registers[MCR] = @reset_mode == :c64 ? MCR_C64_MODE | MCR_8502 : 0
         @registers[P1L] = 0x01
         @registers[VR] = VERSION
         @p0h_latch = 0
@@ -100,6 +99,9 @@ module Badline
       # Whether MCR bit 3, FSDIR, turns the fast serial buffers outwards, so
       # CIA 1's CNT and SP drive SRQ and DATA.
       def fast_serial_out? = @registers[MCR].anybits?(MCR_FSDIR)
+
+      # Whether MCR bit 0 gives the bus to the Z80.
+      def z80? = @registers[MCR].nobits?(MCR_8502)
 
       # :c64 or :c128, the mode MCR bit 6 selects.
       def mode = c64_mode? ? :c64 : :c128
