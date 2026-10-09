@@ -19,15 +19,13 @@ module Badline
   # same speed either way (Drive1541::Mechanism#clock_hz=).
   #
   # The CIA sits at $4000, on the IRQ line with both VIAs. Only its serial
-  # port is wired: through buffers PA1 turns round, its CNT drives SRQ and
-  # its SP DATA, or it hears them. The drive pushes its pins into the bus
-  # as they move, and hears the host's as the host pushes them, pin by
-  # pin, so each byte goes through both shift registers bit by bit. The
-  # CIA takes no part in a pass of the idle loop: the drive sleeps only
-  # while the CIA is quiet (CIA#quiet?), and any access to it, or the
-  # host moving its fast serial pins, wakes the drive.
+  # port is wired, for fast serial through buffers PA1 turns round
+  # (Drive::FastSerial). The drive sleeps only while the CIA is quiet
+  # (CIA#quiet?).
   class Drive1571
     include Drive::Core
+    include Drive::VIAs
+    include Drive::FastSerial
 
     CLOCK_HZ = 1_000_000
     FAST_CLOCK_HZ = 2_000_000
@@ -39,10 +37,6 @@ module Badline
     FAST_SERIAL_OUT = 0x02
     SIDE = 0x04
     FAST = 0x20
-
-    # Whether PA1 turns the fast serial buffers outwards, the drive's CIA
-    # driving DATA and SRQ.
-    attr_reader :fast_serial_out
 
     def cia
       settle!
@@ -62,8 +56,7 @@ module Badline
     def initialize(rom: nil, host_clock_hz: CLOCK_HZ, device: 8, debug: false)
       @device = device
       @clock_hz = CLOCK_HZ
-      @fast_serial_out = false
-      @fast_output = 0
+      init_fast_serial
       @mechanism = Drive1541::Mechanism.new(slip: 2)
       @serial_port = SerialPort.new(@mechanism, device:)
       @via1 = SerialVIA.new(start: 0x1800, peripheral: @serial_port, drive: self)
@@ -113,13 +106,6 @@ module Badline
     # VIA 1's port B, with the fast serial pins pulling DATA and SRQ
     # (IECBus::DRIVE_FAST_DATA and DRIVE_FAST_SRQ) above it.
     def serial_output = @via1.port_b_output | @fast_output
-
-    # The host moved its fast serial pins: the CIA hears SRQ on CNT and
-    # DATA on SP while PA1 turns the buffers inwards.
-    def fast_lines_moved
-      settle!
-      hear_fast_serial unless @fast_serial_out
-    end
 
     # The drive's whole state, as the 1541's (Drive1541#save_state), with
     # the CIA and the WD1770's registers. The clock rate, the side and the
@@ -181,45 +167,8 @@ module Badline
       @cia.quiet? ? [@via1.quiet_cycles, @via2.quiet_cycles].min : 0
     end
 
-    def fast_forward_chips(cycles)
+    def fast_forward_more(cycles)
       @cia.fast_forward(cycles)
-    end
-
-    # PA1 turned the buffers round: outwards the CIA's pins drive the
-    # lines, and inwards they let go and hear them.
-    def turn_fast_serial(out)
-      @fast_serial_out = out
-      return unless @serial_bus
-
-      push_fast_output(out ? fast_pins : 0)
-      hear_fast_serial unless out
-    end
-
-    def drive_fast_serial
-      low = fast_pins
-      push_fast_output(low) if low != @fast_output
-    end
-
-    # The lines the CIA's CNT and SP pull while its serial port drives
-    # them.
-    def fast_pins
-      serial = @cia.serial
-      return 0 unless serial.output?
-
-      low = serial.cnt ? 0 : IECBus::DRIVE_FAST_SRQ
-      serial.sp_out ? low : low | IECBus::DRIVE_FAST_DATA
-    end
-
-    def push_fast_output(low)
-      @fast_output = low
-      @serial_bus&.drives_fast_moved!
-    end
-
-    def hear_fast_serial
-      low = @serial_bus.low_lines
-      serial = @cia.serial
-      serial.cnt_in = low.nobits?(IECBus::SRQ)
-      serial.sp_in = low.nobits?(IECBus::DATA)
     end
   end
 end

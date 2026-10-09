@@ -63,9 +63,7 @@ module Badline
         cycles = orbits * @orbit_cycles
         touched = @bus.touched_timers
         @cpu.fast_forward(cycles, orbits * @orbit_instructions)
-        @via1.skip_orbits(cycles, touched & 0x03)
-        @via2.skip_orbits(cycles, touched >> 2)
-        fast_forward_chips(cycles)
+        skip_chip_orbits(cycles, touched)
         @cycles += cycles
         cycles
       end
@@ -74,8 +72,7 @@ module Badline
       # the unarmed timers it hasn't touched since it was last tainted.
       def anchor_state
         touched = @bus.touched_timers
-        [*idle_state, *@via1.counter_state(touched & 0x03), *@via2.counter_state(touched >> 2),
-         @bus.ram.snapshot]
+        [*idle_state, *counter_state(touched), @bus.ram.snapshot]
       end
     end
   end

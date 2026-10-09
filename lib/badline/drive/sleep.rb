@@ -102,8 +102,6 @@ module Badline
       def skip_passes(passes)
         cycles = passes * @pass_cycles
         @cpu.fast_forward(cycles, passes * @pass_instructions)
-        @via1.fast_forward(cycles)
-        @via2.fast_forward(cycles)
         fast_forward_chips(cycles)
         @cycles += cycles
         @budget -= cycles

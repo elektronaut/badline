@@ -81,7 +81,7 @@ module Badline
       end
 
       def start_recording
-        return if @mechanism.motor_on? || @via1.irq? || @via2.irq? || @cpu.trapped?
+        return if busy_for_pass? || @cpu.trapped?
 
         @recording = true
         @record_state = idle_state
@@ -116,19 +116,9 @@ module Badline
         anchor
       end
 
-      def quiet_cycles
-        [@via1.quiet_cycles, @via2.quiet_cycles].min
-      end
-
       def ram_as_found?
         ram = @bus.ram
         @bus.touched.all? { |addr, value| ram.peek(addr) == value }
-      end
-
-      def idle_state
-        mechanism = @mechanism
-        [*@cpu.idle_state, *@via1.idle_state, *@via2.idle_state, @bus.data, mechanism.so_pending,
-         *mechanism.idle_state, mechanism.read_a(0xff), mechanism.read_b(0xff)]
       end
     end
   end
