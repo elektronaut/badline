@@ -70,12 +70,15 @@ boot the whole machine and are skipped by default. Run them with
 The CPU is verified separately against the
 [65x02 single step tests](https://github.com/SingleStepTests/65x02), and
 the Z80 against the [Z80 ones](https://github.com/SingleStepTests/z80).
-`rake test` checks the fixtures out into `vendor/65x02` and `vendor/z80`
-first, which takes a moment the first time. It runs 100 cases per Z80
-opcode, and `Z80_SAMPLE=all` runs every one:
+`rake test` checks the 65x02 fixtures out into `vendor/65x02` first,
+which takes a moment the first time. For the Z80 it fetches only the
+first 100 cases of each opcode's file into `vendor/z80-sample`.
+`Z80_SAMPLE=all` checks the whole Z80 suite out into `vendor/z80`
+(about 1.5 GB) and runs every case:
 
 ```sh
 bundle exec rake test
+Z80_SAMPLE=all bundle exec rake test
 ```
 
 Check style before pushing:

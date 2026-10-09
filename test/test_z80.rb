@@ -3,16 +3,16 @@
 require "minitest/autorun"
 require_relative "z80_single_step"
 
-# SingleStepTests' Z80 cases, a sample of each opcode's file: 100 cases
-# unless Z80_SAMPLE names another count, or "all" for every case.
+# SingleStepTests' Z80 cases, the first 100 of each opcode's file, or
+# every case with Z80_SAMPLE=all.
 class TestZ80 < Minitest::Test
-  SAMPLE = ENV.fetch("Z80_SAMPLE", "100")
+  DIR = ENV["Z80_SAMPLE"] == "all" ? Z80SingleStep::FULL_DIR : Z80SingleStep::SAMPLE_DIR
 
-  Z80SingleStep.files.each do |path|
+  Z80SingleStep.files(DIR).each do |path|
     name = File.basename(path, ".json")
 
     define_method("test_#{name.tr(' ', '_')}") do
-      tests = Z80SingleStep.cases(path, sample: SAMPLE == "all" ? nil : Integer(SAMPLE))
+      tests = Z80SingleStep.cases(path)
       failures = tests.filter_map do |test|
         errors = Z80SingleStep.run(test)
         "#{test['name']}: #{errors.join('; ')}" unless errors.empty?

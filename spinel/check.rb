@@ -70,9 +70,8 @@ module SpinelCheck
   # Runs a SingleStepTests harness on 100 cases per opcode, which the
   # converter samples into +cases+ the first time.
   def check_cases(name, converter, cases)
-    unless File.exist?(cases) || system(RbConfig.ruby, "-Ilib", converter, "100", cases)
-      raise "Converting SingleStepTests with #{converter} failed"
-    end
+    converted = File.exist?(cases) || system(RbConfig.ruby, "-Ilib", converter, "100", cases)
+    raise "Converting SingleStepTests with #{converter} failed" unless converted
 
     compare(name, [cases]) { |out| out.grep(/^(FAIL|passed) /) }
   end

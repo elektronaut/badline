@@ -104,7 +104,7 @@ sound at 44.1 kHz. The C128 boots its `c128` model for 6M cycles typing
 run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, and 100 per
 Z80 opcode file into `tmp/spinel/z80_cases.txt`, so it needs
-`vendor/65x02` and `vendor/z80` (`rake vendor:65x02 vendor:z80`).
+`vendor/65x02` and `vendor/z80-sample` (`rake vendor:65x02 vendor:z80-sample`).
 
 The checkpoint lines are the ones `bin/machine_diff` prints, so it can
 name the first component that differs. Save the compiled build's

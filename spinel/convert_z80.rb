@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Converts a sample of SingleStepTests' Z80 JSON into a line format the
-# Spinel harness can parse without a JSON library:
+# Converts the first cases of each SingleStepTests Z80 file into a line
+# format the Spinel harness can parse without a JSON library:
 #
 #   ruby -Ilib spinel/convert_z80.rb [cases_per_file] [out]
 #
@@ -20,10 +20,9 @@ def pins(cycles)
 end
 
 per = (ARGV[0] || 20).to_i
-rng = Random.new(1)
 File.open(ARGV[1] || "tmp/spinel/z80_cases.txt", "w") do |out|
   Z80SingleStep.files.sort.each do |path|
-    Z80SingleStep.cases(path, sample: per, random: rng).each do |t|
+    Z80SingleStep.cases(path).first(per).each do |t|
       out.puts "T #{t['name']}"
       out.puts "I #{REGISTERS.map { |k| t['initial'][k] }.join(' ')}"
       out.puts "R #{t['initial']['ram'].flatten.join(' ')}"

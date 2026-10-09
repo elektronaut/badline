@@ -4,6 +4,7 @@ require "bundler/gem_tasks"
 require "rake/testtask"
 
 require_relative "test/regression"
+require_relative "test/z80_sample"
 require_relative "spinel/check"
 require_relative "spinel/sidtests_check"
 require_relative "native/build"
@@ -394,6 +395,15 @@ def spinel_testbench_suites(suite)
   [suite]
 end
 
+def spinel_check(media)
+  SpinelCheck.check_boot(*media)
+  SpinelCheck.check_cpu_tests
+  SpinelCheck.check_z80_tests
+  SpinelCheck.check_vic20_boot
+  SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
+  SpinelCheck.check_c128_boots
+end
+
 # Runs each suite and compares it against its baseline, going on to the
 # next when one changed, and fails once they have all run. Filters bound a
 # single suite's run to the rows they match.
@@ -423,8 +433,13 @@ namespace :vendor do
     end
   end
 
-  desc "Check out all vendored test repositories"
-  task checkout: VENDORED_REPOS.keys
+  desc "Fetch the first #{Z80Sample::CASES} cases of each SingleStepTests Z80 file into #{Z80Sample::DIR}"
+  task "z80-sample" do
+    Dir.exist?(Z80Sample::DIR) ? puts("z80-sample already present.") : Z80Sample.fetch
+  end
+
+  desc "Check out the vendored test repositories, with the Z80 sample in place of the whole Z80 suite"
+  task checkout: VENDORED_REPOS.keys - ["z80"] + ["z80-sample"]
 end
 
 namespace :regression do
@@ -469,14 +484,8 @@ namespace :spinel do
   end
 
   desc "Check the Spinel build against CRuby: boot, or media for cycles, SingleStepTests, the VIC-20's and C128's boots"
-  task :check, %i[media cycles] => %w[spinel:build vendor:65x02 vendor:z80] do |_task, args|
-    media = args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : []
-    SpinelCheck.check_boot(*media)
-    SpinelCheck.check_cpu_tests
-    SpinelCheck.check_z80_tests
-    SpinelCheck.check_vic20_boot
-    SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
-    SpinelCheck.check_c128_boots
+  task :check, %i[media cycles] => %w[spinel:build vendor:65x02 vendor:z80-sample] do |_task, args|
+    spinel_check(args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : [])
   end
 
   desc "Run the Lorenz chain on the Spinel build, its stretches side by side ([1,2] picks some, " \
@@ -553,4 +562,4 @@ Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
 end
 
-Rake::Task["test"].enhance(%w[vendor:65x02 vendor:z80])
+Rake::Task["test"].enhance(["vendor:65x02", ENV["Z80_SAMPLE"] == "all" ? "vendor:z80" : "vendor:z80-sample"])

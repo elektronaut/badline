@@ -3,11 +3,14 @@
 require "json"
 require "badline/z80"
 
-# Runs SingleStepTests' Z80 cases (vendor/z80/v1) against Badline::Z80:
-# one instruction from the initial state, then the registers, RAM, the
-# port accesses and the bus pins on every T-state against the final state.
+# Runs SingleStepTests' Z80 cases against Badline::Z80: one instruction
+# from the initial state, then the registers, RAM, the port accesses and
+# the bus pins on every T-state against the final state. The cases come
+# from the first 100 of each file (rake vendor:z80-sample), or from the
+# whole suite (rake vendor:z80).
 module Z80SingleStep
-  DIR = "vendor/z80/v1"
+  SAMPLE_DIR = "vendor/z80-sample/v1"
+  FULL_DIR = "vendor/z80/v1"
 
   REGISTERS = %w[a b c d e f h l i r pc sp ix iy wz im q].freeze
   ALTERNATES = { "af_" => :af_alt, "bc_" => :bc_alt, "de_" => :de_alt, "hl_" => :hl_alt }.freeze
@@ -99,13 +102,9 @@ module Z80SingleStep
 
   module_function
 
-  def files = Dir.glob(File.join(DIR, "*.json"))
+  def files(dir = SAMPLE_DIR) = Dir.glob(File.join(dir, "*.json"))
 
-  # The file's cases, or +sample+ of them picked by +random+.
-  def cases(path, sample: nil, random: Random.new(1))
-    tests = JSON.parse(File.read(path))
-    sample ? tests.sample(sample, random:) : tests
-  end
+  def cases(path) = JSON.parse(File.read(path))
 
   def start(test)
     initial = test["initial"]
