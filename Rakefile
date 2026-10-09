@@ -488,6 +488,12 @@ namespace :spinel do
     spinel_check(args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : [])
   end
 
+  desc "Check the Spinel build's SID against CRuby's, sample for sample, on two csid-light tunes"
+  task check_sid: "vendor:VICE-testprogs" do
+    SpinelCheck.build(ENV.fetch("SPINEL", "spinel"), cc: ENV.fetch("SPINEL_CC", nil), harnesses: %w[sid])
+    SpinelCheck.check_sid
+  end
+
   desc "Run the Lorenz chain on the Spinel build, its stretches side by side ([1,2] picks some, " \
        "[whole] runs it in one), and compare it against #{BASELINE_DIR}/lorenz.txt"
   task :lorenz, [:stretch] => "vendor:VICE-testprogs" do |_task, args|

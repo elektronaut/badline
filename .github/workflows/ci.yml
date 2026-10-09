@@ -391,11 +391,12 @@ jobs:
             harnesses: testbench
             tasks: spinel:testbench[testbench] spinel:testbench[testbench-cpu]
           - shard: sid-ntsc
-            harnesses: testbench sidtests boot cpu_tests z80_tests vic20_boot c128_boot
+            harnesses: testbench sidtests boot cpu_tests z80_tests vic20_boot c128_boot sid
             tasks: >-
               spinel:sidtests[6581]
               spinel:sidtests[8580]
               spinel:check
+              spinel:check_sid
               spinel:testbench[testbench-ntsc]
               spinel:testbench[testbench-ntsc-vicii-new]
               spinel:testbench[testbench-drean]
