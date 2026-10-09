@@ -465,7 +465,7 @@ each, since a second CPU runs alongside the machine.
 slowest suite whole: about two and a half hours on CI. It can also run as
 four stretches side by side, `rake regression:lorenz-1` to `lorenz-4`, each
 about a quarter of that.
-The Rakefile's `cuts` for `lorenz` end each stretch. A stretch resumes at
+The `cuts` for `lorenz` in `test/support/suites.rb` end each stretch. A stretch resumes at
 the previous cut on a fresh machine, stops after its own, and compares only
 its rows, and the last one runs to the end of the chain and carries the
 `(suite)` row. A stretch that stops short of its last test, or reports a

@@ -222,7 +222,7 @@ unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
 tests that rule names, one at a time, with
 `ruby --yjit bin/lorenz --resume <test> --stop-after <test>`. A stretch
-resumes on a fresh machine, so its cuts in the Rakefile have to stay before
+resumes on a fresh machine, so its cuts in `test/support/suites.rb` have to stay before
 `trap1`, where the tests start carrying state from one to the next. Both Lorenz
 and testbench load through the LOAD trap and type through the keyboard
 buffer, so storage, IEC and keyboard changes can move them too. A broken
