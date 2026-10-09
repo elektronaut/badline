@@ -4,7 +4,8 @@ module Badline
   class C128
     class Bus
       # What the Z80 sees, in memory and through IN and OUT, laid over the
-      # 8502's map whenever the MMU, the port or a cartridge changes it.
+      # 8502's map whenever the MMU, the port or a cartridge changes it
+      # while the Z80 has the bus.
       #
       # In C128 mode, with CR's RAM bank 0, the MMU translates $0000-$0FFF
       # to $D000-$DFFF of bank 0: a read gets the Z80 BIOS, which the
@@ -46,13 +47,14 @@ module Badline
 
         private
 
-        # Lays out the Z80's pages again, and tells the machine if MCR bit 0
-        # handed the bus over.
+        # Lays out the Z80's pages again while it has the bus, and tells the
+        # machine if MCR bit 0 handed the bus over.
         def update_z80!
-          map_z80_pages
-          return if @mmu.z80? == @z80
+          z80 = @mmu.z80?
+          map_z80_pages if z80
+          return if z80 == @z80
 
-          @z80 = !@z80
+          @z80 = z80
           @on_processor_change&.call
         end
 

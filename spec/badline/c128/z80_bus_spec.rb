@@ -92,6 +92,8 @@ describe Badline::C128::Z80Bus do
   context "when in C64 mode" do
     let(:mode) { :c64 }
 
+    before { bus.mmu.poke(0xd505, 0x40) }
+
     # Pinned by c64modez80-01.
     it "reaches the VIC through memory, as the PLA decodes it" do
       z80_bus.write(0xd020, 0x05)
