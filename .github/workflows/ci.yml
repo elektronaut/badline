@@ -69,9 +69,10 @@ jobs:
       - name: Check the Spinel subset
         run: bundle exec rspec spec/spinel_subset_spec.rb
 
-  # The whole suite, :slow examples included, in a process per core, as
-  # `bundle exec parallel_rspec` runs it locally. SimpleCov merges the
-  # processes' coverage and holds it to the 90% floor.
+  # The whole suite, :slow examples included, as `bundle exec parallel_rspec`
+  # runs it locally, but in two processes per core: the runner's four cores
+  # are two with two threads each, and finer groups balance better.
+  # SimpleCov merges the processes' coverage and holds it to the 90% floor.
   rspec:
     name: RSpec
     needs: changes
@@ -89,7 +90,7 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
       - name: Run tests
-        run: bundle exec parallel_rspec --serialize-stdout --combine-stderr
+        run: bundle exec parallel_rspec --multiply-processes 2 --serialize-stdout --combine-stderr
 
   minitest:
     name: Minitest
