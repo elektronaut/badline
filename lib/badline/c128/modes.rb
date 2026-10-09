@@ -3,8 +3,9 @@
 module Badline
   class C128
     # Following the MMU between C128 and C64 mode: the KERNAL traps go to
-    # the KERNAL the machine runs, and C= held from power-on starts it in C64
-    # mode through the C128 KERNAL.
+    # the KERNAL the machine runs, C= held from power-on starts it in C64
+    # mode through the C128 KERNAL, and #active_screen tells a front end
+    # which screen the mode's editor prints to.
     module Modes
       # Holds C= down from power-on until the C128 KERNAL has taken the
       # machine to C64 mode, as a user does to start a C128 in C64 mode.
@@ -13,6 +14,12 @@ module Badline
         keyboard.press(:cbm)
         @holding_commodore = true
       end
+
+      # The screen the machine prints to: in C128 mode the screen editor's,
+      # :vdc while bit 7 of its 40/80 flag at $D7 is set, as GRAPHIC 5,
+      # ESC X and a reset with 40/80 DISPLAY down leave it, or :vic. C64
+      # mode has the VIC-IIe's alone.
+      def active_screen = mode == :c128 && ram.peek(0xd7).anybits?(0x80) ? :vdc : :vic
 
       private
 

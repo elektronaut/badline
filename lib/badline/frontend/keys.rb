@@ -24,15 +24,19 @@ module Badline
       # The C128's keys that have a host key of their own: the keypad, HELP
       # on Insert or Help, ALT on the right Alt, NO SCROLL on Scroll Lock,
       # and CAPS LOCK and 40/80 DISPLAY, which sit outside the matrix, on
-      # Caps Lock and Pause. ESC, TAB and the separate cursor keys stay
-      # with the C64's keys (RUN/STOP, the joystick toggle and the cursor
-      # combinations) while the C128 runs in C64 mode.
+      # Caps Lock and F6 or Pause. In C128 mode Esc is ESC, and RUN/STOP
+      # moves to Page Down. TAB and the separate cursor keys stay with the
+      # C64's keys (the joystick toggle and the cursor combinations), and in
+      # C64 mode Esc stays RUN/STOP.
       C128_OTHERS = {
         89 => :keypad1, 90 => :keypad2, 91 => :keypad3, 92 => :keypad4, 93 => :keypad5, 94 => :keypad6,
         95 => :keypad7, 96 => :keypad8, 97 => :keypad9, 98 => :keypad0, 99 => :keypad_period,
         86 => :keypad_minus, 87 => :keypad_plus, 88 => :keypad_enter,
-        73 => :help, 117 => :help, 230 => :alt, 71 => :no_scroll, 57 => :caps_lock, 72 => :forty_eighty
+        73 => :help, 117 => :help, 230 => :alt, 71 => :no_scroll, 57 => :caps_lock,
+        63 => :forty_eighty, 72 => :forty_eighty, 78 => :run_stop
       }.freeze
+
+      ESCAPE = 41
 
       F8 = 65
       F9 = 66
@@ -53,8 +57,13 @@ module Badline
         end
       end
 
-      # The C128's key for the scancode: one of C128_OTHERS, or the C64's.
-      def self.c128_key(scancode) = C128_OTHERS[scancode] || c64_key(scancode)
+      # The C128's key for the scancode in the C128's +mode+, :c128 or
+      # :c64: one of C128_OTHERS, ESC, or the C64's.
+      def self.c128_key(scancode, mode)
+        return :esc if scancode == ESCAPE && mode == :c128
+
+        C128_OTHERS[scancode] || c64_key(scancode)
+      end
 
       def self.arrows(scancode) = ARROWS[scancode] || :none
 

@@ -276,6 +276,12 @@ describe Badline::Frontend::App do
       expect([computer.vdc.render, computer.vic.render?]).to eq([false, true])
     end
 
+    it "switches to the VDC once the machine prints there" do
+      allow(computer).to receive(:active_screen).and_return(:vdc)
+      run(argv: %w[--frames 4])
+      expect(computer.vdc.render).to be(true)
+    end
+
     it "fits the window to the VDC's display at a display event, a dot a window pixel and its lines doubled" do
       program_vdc
       run(argv: %w[--frames 3 --at 1:display=vdc --screenshot vdc.bmp])

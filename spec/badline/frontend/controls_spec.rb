@@ -185,7 +185,7 @@ describe Badline::Frontend::Controls do
     {
       "the keypad's 7" => [95, :keypad7], "the keypad's Enter" => [88, :keypad_enter], "Insert" => [73, :help],
       "the right Alt" => [230, :alt], "Scroll Lock" => [71, :no_scroll], "Esc" => [41, :run_stop],
-      "the up arrow" => [82, :cursor_up]
+      "Page Down" => [78, :run_stop], "the up arrow" => [82, :cursor_up]
     }.each do |name, (scancode, key)|
       it "presses #{key} for #{name}" do
         controls.key(scancode, true)
@@ -207,6 +207,25 @@ describe Badline::Frontend::Controls do
     it "locks 40/80 DISPLAY down with Pause" do
       controls.key(72, true)
       expect(computer.mmu.display_key).to be(true)
+    end
+
+    it "locks 40/80 DISPLAY down with F6" do
+      controls.key(63, true)
+      expect(computer.mmu.display_key).to be(true)
+    end
+
+    context "when in C128 mode" do
+      let(:computer) { Badline::C128.new(mode: :c128) }
+
+      it "presses ESC for Esc" do
+        controls.key(41, true)
+        expect(computer.keyboard.keys).to eq([:esc])
+      end
+
+      it "presses RUN/STOP for Page Down" do
+        controls.key(78, true)
+        expect(computer.keyboard.keys).to eq([:run_stop])
+      end
     end
   end
 

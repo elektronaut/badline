@@ -141,8 +141,23 @@ describe Badline::C128 do
     expect(machine.vdc.ram[0]).to eq(0)
   end
 
+  it "prints to the VIC-IIe's screen in C64 mode whatever $D7 holds" do
+    machine.ram.poke(0xd7, 0x80)
+    expect(machine.active_screen).to eq(:vic)
+  end
+
   context "when built for C128 mode" do
     subject(:machine) { described_class.new(mode: :c128) }
+
+    it "prints to the VDC's screen while the editor's 40/80 flag is set" do
+      machine.ram.poke(0xd7, 0x80)
+      expect(machine.active_screen).to eq(:vdc)
+    end
+
+    it "prints to the VIC-IIe's screen while the editor's 40/80 flag is clear" do
+      machine.ram.poke(0xd7, 0x7f)
+      expect(machine.active_screen).to eq(:vic)
+    end
 
     it "starts in C128 mode" do
       expect(machine.mode).to eq(:c128)

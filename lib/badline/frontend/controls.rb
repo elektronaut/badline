@@ -74,7 +74,7 @@ module Badline
         if joystick_mode? && Keys.joystick?(scancode)
           joystick_key(scancode, down)
         elsif @computer.family == :c128
-          c128_key(Keys.c128_key(scancode), down)
+          c128_key(Keys.c128_key(scancode, @computer.mode), down)
         else
           c64_key(Keys.c64_key(scancode), down)
         end
