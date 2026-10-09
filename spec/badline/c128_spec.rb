@@ -188,7 +188,7 @@ describe Badline::C128 do
       expect(machine.address_bus.peek(0xd505) & 0x80).to eq(0x80)
     end
 
-    it "traps the C128 KERNAL's CHROUT" do
+    it "traps the C128 KERNAL's CHROUT", :slow do
       out = machine.capture_output
       machine.run_cycles(machine.init_threshold)
       expect(out.output).to include("ready.")

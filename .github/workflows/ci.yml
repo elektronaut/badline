@@ -69,12 +69,26 @@ jobs:
       - name: Check the Spinel subset
         run: bundle exec rspec spec/spinel_subset_spec.rb
 
+  # The spec files split into shards by their recorded run times
+  # (bin/spec_shard), plain and :slow, each shard a job of its own. The
+  # :slow examples are left out of a plain `rspec` to keep the local loop
+  # fast. A sharded run skips spec_helper's coverage floor, so each plain
+  # shard keeps its SimpleCov results for the Coverage job.
   rspec:
-    name: RSpec
+    name: "RSpec (${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.shards }})"
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { kind: plain, shard: 1, shards: 2 }
+          - { kind: plain, shard: 2, shards: 2 }
+          - { kind: slow, shard: 1, shards: 3 }
+          - { kind: slow, shard: 2, shards: 3 }
+          - { kind: slow, shard: 3, shards: 3 }
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -86,28 +100,59 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
       - name: Run tests
-        run: bundle exec rspec
+        env:
+          KIND: ${{ matrix.kind }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: |
+          if [ "$KIND" = slow ]; then
+            mapfile -t files < <(bin/spec_shard --slow "$SHARD" "$SHARDS")
+            options=(--tag slow)
+          else
+            mapfile -t files < <(bin/spec_shard "$SHARD" "$SHARDS")
+            options=()
+          fi
+          printf '%s\n' "${files[@]}"
+          bundle exec rspec "${options[@]}" --format progress --format json --out "tmp/rspec-$KIND-$SHARD.json" \
+            "${files[@]}"
+      # The times `bin/spec_shard --record` takes, from every shard of a run.
+      - name: Keep the run times
+        uses: actions/upload-artifact@v7
+        with:
+          name: spec-times-${{ matrix.kind }}-${{ matrix.shard }}
+          path: tmp/rspec-${{ matrix.kind }}-${{ matrix.shard }}.json
+          if-no-files-found: error
+      - name: Keep the coverage
+        if: matrix.kind == 'plain'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: coverage/.resultset.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
-  # The :slow examples are left out of a plain `rspec` to keep the local
-  # loop fast. Here they run beside the main job.
-  rspec-slow:
-    name: RSpec (slow)
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+  # The plain shards' coverage merged, held to the 90% floor a whole
+  # `bundle exec rspec` run is held to.
+  coverage:
+    name: Coverage
+    needs: rspec
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
       - uses: ruby/setup-ruby@v1.327.0
         with:
           ruby-version: "4.0"
           bundler-cache: true
-      - name: Run slow tests
-        run: bundle exec rspec --tag slow
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          path: tmp/coverage
+      - name: Check the coverage
+        run: |
+          bundle exec ruby -e 'require "simplecov"
+            SimpleCov.collate(Dir["tmp/coverage/*/.resultset.json"]) { minimum_coverage 90 }'
 
   minitest:
     name: Minitest
@@ -514,7 +559,7 @@ jobs:
   # have to follow the shards as they are rebalanced.
   ci:
     name: CI
-    needs: [changes, rubocop, rspec, rspec-slow, minitest, compiler, native, suites]
+    needs: [changes, rubocop, rspec, coverage, minitest, compiler, native, suites]
     if: always()
     runs-on: ubuntu-latest
     steps:

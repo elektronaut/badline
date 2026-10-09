@@ -136,6 +136,22 @@ worktree and owns a different set of files.
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
   by default: run them with `bundle exec rspec --tag slow`
+- CI splits the spec files into shards, plain and `:slow`, by the run times
+  in `test/spec_times.json` (`bin/spec_shard`), and holds the plain shards'
+  merged coverage to the same 90%. After adding or moving expensive specs,
+  re-record the times with `bin/spec_shard --record` (its header says how)
+- Keep each plain example to a few hundred ms. A million cycles of a C64 or
+  a C128 cost 3 to 5 s of CPU, and about three times that under coverage,
+  so an example that boots a machine or runs more than about a million
+  cycles goes under `:slow`
+- Don't boot per example. Restore a machine from a State taken once
+  (`spec/support/taken_once.rb`), and share one machine between examples
+  that only read it. Assert on the cheapest oracle that proves the point: a
+  register or a RAM byte over a booted screen, a bare chip over a whole
+  machine, and the fewest cycles that reach the state
+- Before opening a pull request, run `bundle exec rspec --profile 10` (with
+  `--tag slow` for `:slow` ones) on the spec files you added or changed,
+  and hold them to that budget
 - `rake test`: SingleStepTests, plus the Minitest tests for the regression
   runners in `test/`. Run it for any CPU change
 

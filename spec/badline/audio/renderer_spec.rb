@@ -4,6 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 require_relative "../../support/tiny_sid"
+require_relative "../../support/taken_once"
 
 describe Badline::Audio::Renderer do
   subject(:renderer) do
@@ -248,15 +249,24 @@ describe Badline::Audio::Renderer do
   end
 
   describe "seeking through checkpoints" do
-    def checkpoints = @checkpoints ||= Badline::Audio::Checkpoints.new(every: 0.03)
+    def checkpoints = played_straight.first
 
-    def straight = @straight ||= heard(0.0)
+    def straight = played_straight.last
+
+    # The checkpoints kept playing the tune straight through, and what it
+    # heard, once for every example with the same tune.
+    def played_straight
+      TakenOnce.fetch([:straight, File.binread(tune_path)]) do
+        kept = Badline::Audio::Checkpoints.new(every: 0.03)
+        [kept, heard(0.0, kept)]
+      end
+    end
 
     # The samples of each frame heard, by the seconds rendered at its end,
     # with the frames yielded without samples under nil.
-    def heard(from)
+    def heard(from, kept = checkpoints)
       made = described_class.new(tune, seconds: 0.2, rate: 8000, subtune: 2)
-      made.checkpoints = checkpoints
+      made.checkpoints = kept
       made.from = from
       frames = {}
       made.stream { |samples, rendered| frames[samples.empty? ? nil : rendered] ||= samples }
@@ -315,7 +325,7 @@ describe Badline::Audio::Renderer do
       it_behaves_like "a seek"
     end
 
-    context "with a tune on the whole machine" do
+    context "with a tune on the whole machine", :slow do
       let(:signature) { "RSID" }
 
       it_behaves_like "a seek"
@@ -327,7 +337,7 @@ describe Badline::Audio::Renderer do
       it_behaves_like "a seek"
     end
 
-    context "with a tune on two SIDs on the whole machine" do
+    context "with a tune on two SIDs on the whole machine", :slow do
       let(:signature) { "RSID" }
 
       def sids = [0x42]
