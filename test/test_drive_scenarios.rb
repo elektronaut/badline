@@ -18,7 +18,7 @@ class TestDriveScenariosRunner < Minitest::Test
   end
 
   def test_selects_scenarios_by_name_substring
-    assert_equal %w[save read-only], DriveScenarios.selected(%w[sav read])
+    assert_equal %w[save read-only 1571-save 1571-read-only], DriveScenarios.selected(%w[sav read])
   end
 
   def test_names_a_filter_that_matches_nothing
