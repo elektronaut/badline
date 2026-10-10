@@ -119,7 +119,7 @@ module Badline
     # second, for #drain_samples. `filter_chunk` overrides the one the SID
     # was built with, for a machine that built its own. `clock_hz` is the
     # rate the SID's cycles are taken to run at.
-    def record(rate:, filter_chunk: @filter_chunk, clock_hz: TimeOfDay::CLOCK_HZ)
+    def record(rate:, filter_chunk: @filter_chunk, clock_hz: Region::PAL.clock_hz)
       synthesize!
       catch_up
       @filter_chunk = filter_chunk

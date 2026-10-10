@@ -287,7 +287,7 @@ describe Badline::SID do
       subject(:sid) { described_class.new(filter_chunk: 1) }
 
       let(:stepped) { described_class.new }
-      let(:decimator) { described_class::Decimator.new(clock_hz: Badline::TimeOfDay::CLOCK_HZ, rate: 44_100) }
+      let(:decimator) { described_class::Decimator.new(clock_hz: Badline::Region::PAL.clock_hz, rate: 44_100) }
 
       def play(chip, cycles)
         [[0x18, 0x1f], [0x17, 0xf1], [0x01, 0x20], [0x04, 0x41]].each { |reg, value| chip[0xd400 + reg] = value }

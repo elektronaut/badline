@@ -116,7 +116,7 @@ module Badline
         cycles
       end
 
-      def clock_hz = @tune.ntsc? ? NTSC_CLOCK_HZ : TimeOfDay::CLOCK_HZ
+      def clock_hz = @tune.ntsc? ? NTSC_CLOCK_HZ : Region::PAL.clock_hz
 
       private
 
