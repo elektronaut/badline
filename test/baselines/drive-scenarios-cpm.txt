@@ -1,0 +1,4 @@
+cpm-zexall/completes	PASS
+cpm-zexall/all-ok	PASS
+cpm-zexdoc/completes	PASS
+cpm-zexdoc/all-ok	PASS
