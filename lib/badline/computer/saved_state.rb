@@ -4,12 +4,7 @@ module Badline
   class Computer
     # The keyword arguments Computer.new takes to build the machine a
     # State from #snapshot was taken of.
-    def self.setup(state)
-      input = Snapshot::StateReader.new(state)
-      input.marker("COMPUTER")
-      input.check_stamp
-      Snapshot::Setup.read(input)
-    end
+    def self.setup(state) = Snapshot::C64Setup.from(state)
 
     # A new machine, built as the one a State from #snapshot was taken of,
     # at that state. `detached` builds it without the host's files
@@ -68,8 +63,8 @@ module Badline
       end
 
       def save_state(out)
-        out.marker("COMPUTER").stamp
-        Snapshot::Setup.of(address_bus).write(out)
+        out.marker(Snapshot::C64Setup::MARKER).stamp
+        Snapshot::C64Setup.of(address_bus).write(out)
         out.int(@cycles).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse).boolean(@freezing)
         out.int(@freeze_writes).boolean(!@pending_keys.nil?)
         out.ints(@pending_keys) if @pending_keys
@@ -83,9 +78,9 @@ module Badline
       end
 
       def load_state(input)
-        input.marker("COMPUTER")
+        input.marker(Snapshot::C64Setup::MARKER)
         input.check_stamp
-        check_setup(Snapshot::Setup.read(input))
+        check_setup(Snapshot::C64Setup.read(input))
         @cycles = input.int
         @nmi_asserted = input.boolean?
         @cartridge_nmi = input.boolean?
@@ -107,7 +102,7 @@ module Badline
       private
 
       def check_setup(setup)
-        ours = Snapshot::Setup.of(address_bus)
+        ours = Snapshot::C64Setup.of(address_bus)
         return if setup == ours
 
         raise Snapshot::FormatError, "the state is of a machine with #{setup}, not #{ours}"

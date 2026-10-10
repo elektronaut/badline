@@ -31,7 +31,7 @@ describe Badline::Snapshot, ".load" do
       let(:machine) { described_class.load(fixture("x64sc310-raster-#{name}.vsf.gz")) { nil } }
 
       it "builds the #{name}" do
-        expect(Badline::Model.of(Badline::Snapshot::Setup.of(machine.address_bus))).to eq(Badline::Model.named(name))
+        expect(Badline::Model.of(Badline::Snapshot::C64Setup.of(machine.address_bus))).to eq(Badline::Model.named(name))
       end
 
       it "reads the raster as x64sc did, cycle for cycle" do

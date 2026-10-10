@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require "badline/snapshot/vice/fields"
 require "badline/snapshot/vice/main_cpu"
 require "badline/snapshot/vice/c64_mem"
 require "badline/snapshot/vice/cias"
 require "badline/snapshot/vice/cias_import"
 require "badline/snapshot/vice/sid_registers"
 require "badline/snapshot/vice/sid_extended"
+require "badline/snapshot/vice/reu_fields"
 require "badline/snapshot/vice/reu1764"
 require "badline/snapshot/vice/peripherals"
 require "badline/snapshot/vice/vicii"
@@ -67,10 +69,10 @@ module Badline
         sid = container[SIDRegisters::NAME] ? SIDRegisters.model(container[SIDRegisters::NAME]) : :mos6581
         reu = container[REU1764::NAME]
         reu = nil unless reu && REU1764.reads?(reu)
-        Setup.new(vic_model: model, cia_model: model == :mos8565 ? :mos6526a : :mos6526, sid_model: sid,
-                  region: vic ? VICII.region(vic) : Region::PAL, ram_expansion: nil,
-                  reu: reu ? REU1764.size_kb(reu) : nil, kernal: :c64, datasette: true,
-                  board: :c64)
+        C64Setup.new(vic_model: model, cia_model: model == :mos8565 ? :mos6526a : :mos6526, sid_model: sid,
+                     region: vic ? VICII.region(vic) : Region::PAL, ram_expansion: nil,
+                     reu: reu ? REU1764.size_kb(reu) : nil, kernal: :c64, datasette: true,
+                     board: :c64)
       end
     end
   end

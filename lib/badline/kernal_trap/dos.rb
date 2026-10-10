@@ -147,10 +147,10 @@ module Badline
       # vector, as U: does.
       def reset! = reset(cold: true)
 
-      # The mounted storage's setup, for Storage.reopen, then the drive's
+      # The mounted storage's setup (Snapshot::StorageSetup), then the drive's
       # RAM, its status and its open channels.
       def save_state(out)
-        @storage.save_setup(out)
+        Snapshot::StorageSetup.write(@storage, out)
         out.marker("TRAP DRIVE")
         @memory.save_state(out)
         @status.save_state(out)

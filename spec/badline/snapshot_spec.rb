@@ -77,7 +77,7 @@ describe Badline::Snapshot do
       before { computer.save_snapshot(path) }
 
       it "is built again as it was" do
-        expect(Badline::Model.of(Badline::Snapshot::Setup.of(described_class.load(path).address_bus))).to eq(model)
+        expect(Badline::Model.of(Badline::Snapshot::C64Setup.of(described_class.load(path).address_bus))).to eq(model)
       end
 
       it "runs on as the saved machine does" do

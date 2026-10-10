@@ -77,7 +77,7 @@ module Badline
       def load_trap_dos(input)
         return unmount unless input.boolean?
 
-        storage = Storage.reopen(input)
+        storage = Snapshot::StorageSetup.read(input)
         unmount
         mount(storage)
         @dos.load_state(input)

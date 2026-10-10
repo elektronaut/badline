@@ -162,7 +162,7 @@ module Badline
       def resume(input)
         sids = player.stereo.sids
         chosen = sids.map(&:model)
-        sids.each { |sid| refit(sid, Snapshot::Setup::SID_MODELS.fetch(input.int)) }
+        sids.each { |sid| refit(sid, Snapshot::C64Setup::SID_MODELS.fetch(input.int)) }
         player.load_state(input)
         sids.each_with_index { |sid, index| refit(sid, chosen[index]) }
       end
@@ -178,7 +178,7 @@ module Badline
         sids = player.stereo.sids
         out = Snapshot::StateWriter.new
         out.int(played)
-        sids.each { |sid| out.int(Snapshot::Setup::SID_MODELS.index(sid.model) || 0) }
+        sids.each { |sid| out.int(Snapshot::C64Setup::SID_MODELS.index(sid.model) || 0) }
         player.save_state(out)
         sids.each { |sid| sid.save_recording(out) }
         out.int(@level).int(@still)

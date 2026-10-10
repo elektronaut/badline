@@ -1,24 +1,15 @@
 # frozen_string_literal: true
 
+require "badline/snapshot/c128_setup"
+
 module Badline
   class C128
-    MARKER = "C128"
-
-    # The model, the SID and the mode it resets into of the machine a State
-    # from #snapshot was taken of, the arguments C128.new takes.
-    def self.setup(state)
-      input = Snapshot::StateReader.new(state)
-      input.marker(MARKER)
-      input.check_stamp
-      SavedState.read_setup(input)
-    end
+    # How the machine a State from #snapshot was taken of was built.
+    def self.setup(state) = Snapshot::C128Setup.from(state)
 
     # A new machine, built as the one a State from #snapshot was taken of,
     # at that state.
-    def self.restored(state)
-      setup = setup(state)
-      new(model: setup[0], sid_model: setup[1], mode: setup[2]).apply_state(state)
-    end
+    def self.restored(state) = setup(state).build.apply_state(state)
 
     # The whole machine's state for a snapshot, as Computer's: the
     # machine's own latches, FAST and TEST as they last took hold, the bus with its RAM, the MMU, the chips and
@@ -28,21 +19,6 @@ module Badline
     # joysticks, CAPS LOCK and 40/80 DISPLAY, the traps and callbacks, and
     # which chip renders.
     module SavedState
-      SID_MODELS = %i[mos6581 mos8580].freeze
-      MODES = %i[c64 c128].freeze
-
-      # The model's name, the SID's model and the mode.
-      def self.read_setup(input)
-        name = input.string
-        known = Model::ALL.any? { |model| model.name == name }
-        raise Snapshot::FormatError, "the state names a C128 model badline doesn't know" unless known
-
-        sid_model = SID_MODELS.fetch(input.int)
-        [name, sid_model, MODES.fetch(input.int)]
-      rescue IndexError
-        raise Snapshot::FormatError, "the state names a SID or a mode badline doesn't know"
-      end
-
       # How many more on_init handlers the machine a State was taken of had
       # yet to run than this one has. Nil until the machine is restored.
       attr_reader :init_handlers_lost
@@ -72,8 +48,8 @@ module Badline
       end
 
       def save_state(out)
-        out.marker(MARKER).stamp
-        out.string(@model.name).int(SID_MODELS.index(@sid.model)).int(@c64_built ? 0 : 1)
+        out.marker(Snapshot::C128Setup::MARKER).stamp
+        snapshot_setup.write(out)
         out.int(@cycles).int(@clock_bits).boolean(@nmi_asserted).boolean(@cartridge_nmi).boolean(@restore_pulse)
         out.boolean(!@pending_keys.nil?)
         out.ints(@pending_keys) if @pending_keys
@@ -88,9 +64,9 @@ module Badline
       end
 
       def load_state(input)
-        input.marker(MARKER)
+        input.marker(Snapshot::C128Setup::MARKER)
         input.check_stamp
-        check_setup(SavedState.read_setup(input))
+        check_setup(Snapshot::C128Setup.read(input))
         @cycles = input.int
         @clock_bits = input.int
         @nmi_asserted = input.boolean?
@@ -123,11 +99,16 @@ module Badline
         @z80_turn = @z80_running || @chips_ahead.positive?
       end
 
+      # How this machine was built.
+      def snapshot_setup
+        Snapshot::C128Setup.new(model: @model.name, sid_model: @sid.model, mode: @c64_built ? :c64 : :c128)
+      end
+
       def check_setup(setup)
-        ours = [@model.name, @sid.model, @c64_built ? :c64 : :c128]
+        ours = snapshot_setup
         return if setup == ours
 
-        raise Snapshot::FormatError, "the state is of a #{setup.join(' with a ')}, not a #{ours.join(' with a ')}"
+        raise Snapshot::FormatError, "the state is of a #{setup}, not a #{ours}"
       end
     end
 

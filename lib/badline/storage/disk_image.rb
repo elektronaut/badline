@@ -42,12 +42,9 @@ module Badline
       # Whether the image was opened write-protected.
       def read_only? = @read_only
 
-      # What Storage.reopen needs to open the image again as it stands: its
-      # path, whether it is write-protected, and its bytes with the error
-      # table after them.
-      def save_setup(out)
-        out.int(storage_kind).string(File.expand_path(@path)).boolean(@read_only).blob(@bytes + @errors.to_a)
-      end
+      # The image as its file holds it, with its error table after the
+      # blocks.
+      def contents = @bytes + @errors.to_a
 
       # A LOAD reads only PRG files. An OPEN names the type it wants, or
       # takes the first file of any type with a nil `type`.

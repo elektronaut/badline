@@ -3,7 +3,7 @@
 module Badline
   module Storage
     # Stands in for a directory a detached restore leaves out
-    # (Snapshot::StateReader): it finds no files and refuses every write
+    # (Snapshot::StorageSetup): it finds no files and refuses every write
     # as a write-protected disk does.
     class Unavailable
       def path = ""

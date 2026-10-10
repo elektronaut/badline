@@ -5,8 +5,6 @@ module Badline
     class D71Image < D64Image
       ERROR_TABLES = { 351_062 => 1366 }.freeze
 
-      def storage_kind = D71
-
       # Tracks 1-35 on the first side and 36-70 on the second.
       def track_count = 70
 
