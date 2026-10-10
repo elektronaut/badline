@@ -2,9 +2,9 @@
 
 module Badline
   class Computer
-    # What plugs into the machine besides its chips, the cartridge, the
-    # disk device 8 serves through the traps, its true drives (TrueDrives)
-    # and an REU, and their state for a snapshot.
+    # What plugs into the machine besides its chips, the cartridge, its
+    # true drives (TrueDrives) and an REU, and their state for a snapshot.
+    # The disk device 8 serves through the traps is KernalTraps'.
     module Attachments
       include TrueDrives
 
@@ -16,30 +16,6 @@ module Badline
         cartridge.on_nmi_change { |level| @cartridge_nmi = level }
         address_bus.attach_cartridge(cartridge)
       end
-
-      # Puts the storage in device 8. Mounting again swaps the disk at any
-      # point while the machine runs: the drive keeps its RAM, which only a
-      # drive reset clears, and its status. The traps go on the KERNAL the
-      # machine runs (#trap_layout).
-      def mount(storage)
-        return @drive.insert(storage) if @drive
-
-        @drive = KernalTrap::Drive.new(storage)
-        install_kernal_traps(trap_layout)
-      end
-
-      # Takes device 8's mounted storage out, and with it the LOAD, SAVE and
-      # serial traps, so the KERNAL's routines go out over the serial bus.
-      # Mounting again starts a new drive, with its RAM cleared.
-      def unmount
-        return unless @drive
-
-        remove_kernal_traps
-        @drive = nil
-      end
-
-      # Whether device 8 serves a disk or directory through the traps.
-      def mounted? = !@drive.nil?
 
       # The serial bus, which CIA 2's port A drives through the C64's own
       # inverters and reads back on PA6 and PA7, with or without a drive on
@@ -78,26 +54,21 @@ module Badline
         end
       end
 
-      # The disk device 8 serves through the traps, with the traps' own
-      # state: open channels, the drive's status and RAM, a SAVE under way.
-      def save_trap_drive(out)
-        out.boolean(!@drive.nil?)
-        return unless @drive
-
-        @drive.save_state(out)
-        @serial_trap.save_state(out)
-        @save_trap.save_state(out)
+      # A true 1541 on the serial bus, then a 1581. The leading flag is the
+      # bus itself, which every machine now has.
+      def save_serial_bus(out)
+        out.boolean(true).boolean(!@drive1541.nil?)
+        if @drive1541
+          out.int(@drive1541.device)
+          @drive1541.save_state(out)
+        end
+        save_drive1581(out)
       end
 
-      def load_trap_drive(input)
-        return unmount unless input.boolean?
-
-        storage = Storage.reopen(input)
-        unmount
-        mount(storage)
-        @drive.load_state(input)
-        @serial_trap.load_state(input)
-        @save_trap.load_state(input)
+      def load_serial_bus(input)
+        input.boolean?
+        load_drive1541(input)
+        load_drive1581(input)
       end
 
       # The REU, which the setup says the machine has, and whether it has
