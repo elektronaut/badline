@@ -73,7 +73,7 @@ module Badline
       @freeze_writes = 0
       @init_handlers = []
       @pending_keys = nil
-      @drive = nil
+      @dos = nil
       @serial_trap = nil
       @save_trap = nil
       @drive1541 = nil
@@ -145,7 +145,7 @@ module Badline
       address_bus.cartridge&.reset
       @reu&.reset!
       @dma = false
-      @drive&.reset!
+      @dos&.reset!
       @drive1541&.reset!
       @drive1581&.reset!
       @freezing = false

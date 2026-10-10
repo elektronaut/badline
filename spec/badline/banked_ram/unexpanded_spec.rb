@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::RAMExpansion::Unexpanded do
+describe Badline::BankedRAM::Unexpanded do
   let(:bus) { Badline::AddressBus.new }
 
   it "leaves $D100 to the VIC" do

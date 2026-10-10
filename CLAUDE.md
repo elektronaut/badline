@@ -11,7 +11,9 @@ live in subdirectories:
 
 - **Machine**: `computer.rb` clocks everything once per cycle (`cycle!`:
   VIC, both CIAs, SID and the datasette, then the CPU unless the VIC holds
-  BA low). `address_bus.rb` handles banking and page-table dispatch
+  BA low). `address_bus.rb` handles banking and page-table dispatch, and
+  `banked_ram.rb` and `banked_ram/` the +60K and +256K boards that bank in
+  extra RAM through `$D100`
 - **CPU**: `cpu.rb`, `instruction.rb` and `instruction_set/`, plus
   `interrupts.rb`
 - **VIC-II**: `vic.rb` and `vic/`, covering the sequencer, sprites, graphics
@@ -24,7 +26,8 @@ live in subdirectories:
   `badline-ruby --headless` and `--audio-out`
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
-  traps that stand in for a drive), `media.rb` (attach and autostart),
+  traps, and `kernal_trap/dos/`, the virtual DOS that stands in for a
+  drive), `media.rb` (attach and autostart),
   `datasette.rb`, and `input/` (the mouse and paddles)
 - **Front end**: `frontend/`, the SDL window both builds run (app loop,
   screen, pacer, sound, controls, gamepads, snapshots), in Spinel's

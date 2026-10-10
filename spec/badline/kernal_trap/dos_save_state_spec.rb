@@ -5,7 +5,7 @@ require "tmpdir"
 require_relative "../../support/blank_disk"
 require_relative "../../support/snapshot_scenarios"
 
-describe Badline::KernalTrap::Drive, "#save_state" do
+describe Badline::KernalTrap::DOS, "#save_state" do
   include BlankDisk
   include SnapshotScenarios
 
@@ -73,9 +73,9 @@ describe Badline::KernalTrap::Drive, "#save_state" do
         .each { |name, value| serial.instance_variable_set(name, value) }
       computer.instance_variable_get(:@save_trap).instance_variable_set(:@saving, true)
       out = Badline::Snapshot::StateWriter.new
-      computer.send(:save_trap_drive, out)
+      computer.send(:save_trap_dos, out)
       target = Badline::Computer.new
-      target.send(:load_trap_drive, Badline::Snapshot::StateReader.new(out.state))
+      target.send(:load_trap_dos, Badline::Snapshot::StateReader.new(out.state))
       [computer, target]
     end
 

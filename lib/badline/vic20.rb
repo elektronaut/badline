@@ -67,7 +67,7 @@ module Badline
       @nmi_asserted = false
       @init_handlers = []
       @pending_keys = nil
-      @drive = nil
+      @dos = nil
       @serial_trap = nil
       @save_trap = nil
       @capture_output = nil
@@ -148,7 +148,7 @@ module Badline
       @via1.reset!
       @via2.reset!
       via_written
-      @drive&.reset!
+      @dos&.reset!
       @drive1541&.reset!
       @drive1581&.reset!
       @nmi_asserted = false

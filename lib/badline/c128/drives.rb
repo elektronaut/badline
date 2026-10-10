@@ -42,7 +42,7 @@ module Badline
 
       # The serial bus, with no disk in device 8's traps and no true drive.
       def init_drives
-        @drive = nil
+        @dos = nil
         @serial_trap = nil
         @save_trap = nil
         @drive1541 = nil

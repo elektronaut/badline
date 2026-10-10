@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module RAMExpansion
+  module BankedRAM
     # The +256K: four 64K banks, the first of them the machine's own RAM.
     # $D100 picks one for $0000-$0FFF (bits 0-1), one for the VIC (bits 2-3)
     # and one for $1000-$FFFF (bits 6-7). Setting bit 4 locks the register

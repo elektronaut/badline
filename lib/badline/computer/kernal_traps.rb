@@ -13,9 +13,9 @@ module Badline
       # drive reset clears, and its status. The traps go on the KERNAL the
       # machine runs (#trap_layout).
       def mount(storage)
-        return @drive.insert(storage) if @drive
+        return @dos.insert(storage) if @dos
 
-        @drive = KernalTrap::Drive.new(storage)
+        @dos = KernalTrap::DOS.new(storage)
         install_kernal_traps(trap_layout)
       end
 
@@ -23,18 +23,18 @@ module Badline
       # serial traps, so the KERNAL's routines go out over the serial bus.
       # Mounting again starts a new drive, with its RAM cleared.
       def unmount
-        return unless @drive
+        return unless @dos
 
         remove_kernal_traps
-        @drive = nil
+        @dos = nil
       end
 
       # Whether device 8 serves a disk or directory through the traps.
-      def mounted? = !@drive.nil?
+      def mounted? = !@dos.nil?
 
       # The path of the disk or directory device 8 serves through the
       # traps, or an empty one.
-      def mounted_path = @drive.nil? ? "" : @drive.path
+      def mounted_path = @dos.nil? ? "" : @dos.path
 
       # Records what the KERNAL prints through CHROUT (ChroutTrap).
       def capture_output
@@ -47,11 +47,11 @@ module Badline
 
       def install_kernal_traps(layout)
         @trap_layout = layout
-        load_trap = KernalTrap::Load.new(cpu:, bus: trap_bus, layout:, drive: @drive)
+        load_trap = KernalTrap::Load.new(cpu:, bus: trap_bus, layout:, dos: @dos)
         cpu.install_trap(layout.load) { load_trap.call }
-        @serial_trap = KernalTrap::Serial.new(cpu:, bus: trap_bus, layout:, drive: @drive,
+        @serial_trap = KernalTrap::Serial.new(cpu:, bus: trap_bus, layout:, dos: @dos,
                                               device: serial_trap_device).install
-        save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: trap_bus, layout:, drive: @drive)
+        save_trap = @save_trap = KernalTrap::Save.new(cpu:, bus: trap_bus, layout:, dos: @dos)
         cpu.install_trap(layout.save) { save_trap.call }
       end
 
@@ -65,22 +65,22 @@ module Badline
 
       # The disk device 8 serves through the traps, with the traps' own
       # state: open channels, the drive's status and RAM, a SAVE under way.
-      def save_trap_drive(out)
-        out.boolean(!@drive.nil?)
-        return unless @drive
+      def save_trap_dos(out)
+        out.boolean(!@dos.nil?)
+        return unless @dos
 
-        @drive.save_state(out)
+        @dos.save_state(out)
         @serial_trap.save_state(out)
         @save_trap.save_state(out)
       end
 
-      def load_trap_drive(input)
+      def load_trap_dos(input)
         return unmount unless input.boolean?
 
         storage = Storage.reopen(input)
         unmount
         mount(storage)
-        @drive.load_state(input)
+        @dos.load_state(input)
         @serial_trap.load_state(input)
         @save_trap.load_state(input)
       end

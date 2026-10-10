@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # The drive's 2K of RAM, as M-W and M-R reach it, with the job queue
       # that runs a read job written into it: a job code for each of five
       # buffers at $00, their track and sector pairs from $06, and the

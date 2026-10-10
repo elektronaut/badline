@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # The commands that read and write a block through a buffer channel,
       # and B-P, which moves its pointer.
       module BlockCommands

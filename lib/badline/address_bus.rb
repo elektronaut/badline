@@ -72,7 +72,7 @@ module Badline
       @region = region
       @board = :c64
       @ram = Memory.new(RAM_POWER_ON, length: 2**16, start: 0)
-      @ram_expansion = RAMExpansion.build(ram_expansion, @ram) { update_overlays! }
+      @ram_expansion = BankedRAM.build(ram_expansion, @ram) { update_overlays! }
       @cartridge = @reu = nil
       @debug_register = nil
 

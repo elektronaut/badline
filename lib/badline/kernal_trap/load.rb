@@ -23,9 +23,9 @@ module Badline
       # address even when the first one relocated.
       LOAD_SECONDARY = 0x60
 
-      def initialize(cpu:, bus:, layout:, drive:)
+      def initialize(cpu:, bus:, layout:, dos:)
         super(cpu:, bus:, layout:)
-        @drive = drive
+        @dos = dos
       end
 
       def call
@@ -38,7 +38,7 @@ module Badline
 
         data, complete = receive(name)
         if low_memory?(data)
-          @drive.close(0)
+          @dos.close(0)
         else
           finish(data, complete)
         end
@@ -50,10 +50,10 @@ module Badline
       # flagged EOI. A read error in the file's chain stops the bytes early,
       # with no EOI.
       def receive(name)
-        @drive.open(0, name)
+        @dos.open(0, name)
         data = []
         loop do
-          byte, eoi = @drive.read(0)
+          byte, eoi = @dos.read(0)
           return [data, false] unless byte
 
           data << byte

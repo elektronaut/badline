@@ -23,9 +23,9 @@ module Badline
 
       NO_DATA = [0x0d, EOI | READ_TIMEOUT].freeze
 
-      def initialize(cpu:, bus:, layout:, drive:, device: DEVICE)
+      def initialize(cpu:, bus:, layout:, dos:, device: DEVICE)
         super(cpu:, bus:, layout:)
-        @drive = drive
+        @dos = dos
         @device = device
         @listening = false
         @talking = false
@@ -144,7 +144,7 @@ module Badline
       # takes data only on a channel it has open. Otherwise nothing holds
       # the data line when a byte starts, so the KERNAL finds no device.
       def accepted?
-        [OPEN, CLOSE].include?(@frame) || @drive.listening?(@listen_channel)
+        [OPEN, CLOSE].include?(@frame) || @dos.listening?(@listen_channel)
       end
 
       def unlisten
@@ -188,15 +188,15 @@ module Badline
         return unless @listen_channel
 
         case @frame
-        when OPEN then @drive.open(@listen_channel, @buffer.pack("C*"))
-        when CLOSE then @drive.close(@listen_channel)
-        else @drive.write(@listen_channel, @buffer)
+        when OPEN then @dos.open(@listen_channel, @buffer.pack("C*"))
+        when CLOSE then @dos.close(@listen_channel)
+        else @dos.write(@listen_channel, @buffer)
         end
         @buffer = []
       end
 
       def received
-        byte, eoi = @drive.read(@talk_channel)
+        byte, eoi = @dos.read(@talk_channel)
         return NO_DATA unless byte
 
         [byte, eoi ? EOI : 0]

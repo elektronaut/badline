@@ -83,7 +83,7 @@ module Badline
         @cpu.save_state(out)
         @z80.save_state(out)
         out.int(@z80_due).int(@chips_ahead).boolean(@cpu_reset_pending)
-        save_trap_drive(out)
+        save_trap_dos(out)
         save_serial_bus(out)
       end
 
@@ -105,7 +105,7 @@ module Badline
         push_serial_lines
         @cpu.load_state(input)
         load_z80(input)
-        load_trap_drive(input)
+        load_trap_dos(input)
         load_serial_bus(input)
         push_fast_serial
       end

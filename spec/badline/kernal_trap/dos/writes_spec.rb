@@ -5,10 +5,10 @@ require "tmpdir"
 require "fileutils"
 require_relative "../../../support/blank_disk"
 
-describe Badline::KernalTrap::Drive::Writes do
+describe Badline::KernalTrap::DOS::Writes do
   include BlankDisk
 
-  subject(:drive) { Badline::KernalTrap::Drive.new(Badline::Storage::D64Image.new(path)) }
+  subject(:drive) { Badline::KernalTrap::DOS.new(Badline::Storage::D64Image.new(path)) }
 
   let(:dir) { Dir.mktmpdir }
   let(:path) { blank_d64(File.join(dir, "blank.d64")) }
@@ -276,7 +276,7 @@ describe Badline::KernalTrap::Drive::Writes do
   end
 
   describe "a disk that can't be written" do
-    subject(:drive) { Badline::KernalTrap::Drive.new(image) }
+    subject(:drive) { Badline::KernalTrap::DOS.new(image) }
 
     let(:image) { Badline::Storage::D64Image.new(path) }
 
@@ -304,7 +304,7 @@ describe Badline::KernalTrap::Drive::Writes do
   end
 
   describe "a disk image mounted read-only" do
-    subject(:drive) { Badline::KernalTrap::Drive.new(Badline::Storage::D64Image.new(path, read_only: true)) }
+    subject(:drive) { Badline::KernalTrap::DOS.new(Badline::Storage::D64Image.new(path, read_only: true)) }
 
     let(:path) do
       blank_d64(File.join(dir, "blank.d64")).tap do |blank|

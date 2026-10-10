@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-require "badline/kernal_trap/drive/block_commands"
-require "badline/kernal_trap/drive/channels"
-require "badline/kernal_trap/drive/memory"
-require "badline/kernal_trap/drive/parameters"
-require "badline/kernal_trap/drive/status"
-require "badline/kernal_trap/drive/writes"
-require "badline/kernal_trap/drive/write_file"
+require "badline/kernal_trap/dos/block_commands"
+require "badline/kernal_trap/dos/channel"
+require "badline/kernal_trap/dos/channels"
+require "badline/kernal_trap/dos/memory"
+require "badline/kernal_trap/dos/parameters"
+require "badline/kernal_trap/dos/status"
+require "badline/kernal_trap/dos/writes"
+require "badline/kernal_trap/dos/write_file"
 
 module Badline
   module KernalTrap
@@ -16,7 +17,7 @@ module Badline
     # LOAD. A disk image whose host file takes writes takes files, blocks
     # and BAM changes too. Other disks are write-protected, though storage
     # that can write files still takes a SAVE handed over whole.
-    class Drive
+    class DOS
       include BlockCommands
       include Writes
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module RAMExpansion
+  module BankedRAM
     # The register and page mapping the expansions share. #map lays the
     # selected banks out in the address bus's page tables, and #map_io puts
     # the register over the VIC's I/O page at $D100.

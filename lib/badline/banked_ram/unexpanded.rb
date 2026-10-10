@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module RAMExpansion
+  module BankedRAM
     # The machine with no expansion fitted: its own RAM everywhere, and
     # $D100 left to the VIC.
     class Unexpanded

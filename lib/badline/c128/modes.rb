@@ -33,7 +33,7 @@ module Badline
       def mode_changed
         layout = trap_layout
         @capture_output&.layout = layout
-        if @drive
+        if @dos
           remove_kernal_traps
           install_kernal_traps(layout)
         end

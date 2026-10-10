@@ -2,8 +2,7 @@
 
 require "badline/kernal_trap/layout"
 require "badline/kernal_trap/routine"
-require "badline/kernal_trap/channel"
-require "badline/kernal_trap/drive"
+require "badline/kernal_trap/dos"
 require "badline/kernal_trap/file_routine"
 require "badline/kernal_trap/load"
 require "badline/kernal_trap/save"

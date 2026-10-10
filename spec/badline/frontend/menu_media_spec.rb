@@ -27,7 +27,7 @@ describe Badline::Frontend::MenuMedia do
     end
   end
 
-  def storage = computer.instance_variable_get(:@drive).instance_variable_get(:@storage)
+  def storage = computer.instance_variable_get(:@dos).instance_variable_get(:@storage)
 
   it "puts a disk in write-protected unless told otherwise" do
     media.insert(:disk, first)

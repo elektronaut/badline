@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module RAMExpansion
+  module BankedRAM
     # The +60K: a second bank of RAM behind $1000-$FFFF, selected by bit 7
     # of $D100. $0000-$0FFF stays the machine's own RAM, and so does all of
     # what the VIC sees.

@@ -76,7 +76,7 @@ module Badline
         @via2.save_state(out)
         @cpu.save_state(out)
         @datasette.save_state(out)
-        save_trap_drive(out)
+        save_trap_dos(out)
         save_drive1541(out)
         save_drive1581(out)
       end
@@ -98,7 +98,7 @@ module Badline
         @cpu.load_state(input)
         via_written
         @datasette.load_state(input)
-        load_trap_drive(input)
+        load_trap_dos(input)
         load_drive1541(input)
         load_drive1581(input)
       end
