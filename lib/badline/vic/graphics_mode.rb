@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     module GraphicsMode
       # Foreground masks depend only on the data byte, so each byte maps to a
       # precomputed frozen pattern shared by reference instead of being

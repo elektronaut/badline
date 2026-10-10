@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     class Sequencer
       # The sequencer's save_state and load_state.
       module SavedState

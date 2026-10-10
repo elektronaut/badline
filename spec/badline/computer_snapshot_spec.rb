@@ -29,13 +29,24 @@ describe Badline::Computer, "#snapshot" do
     end
   end
 
+  # Layouts before 9 wrote the VIC's unused cycle count and pending-write
+  # flag after its raster line.
+  def old_vic_values(machine)
+    index = nil
+    allow(machine.vic).to receive(:save_state).and_wrap_original do |save, out|
+      index = out.state.values.length + 2
+      save.call(out)
+    end
+    machine.snapshot.values.dup.insert(index, 0, 0)
+  end
+
   # Layout 3 wrote the setup without the KERNAL, the datasette and the
   # board, the three values after the REU's size, and layouts before 8
   # wrote no 1581, the flag before the REU's DMA line, the last value.
   describe "a state in layout 3" do
     let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
     let(:restored) do
-      values = original.snapshot.values.dup
+      values = old_vic_values(original)
       values[0] = 3
       values.slice!(7, 3)
       values.delete_at(-2)
@@ -56,7 +67,7 @@ describe Badline::Computer, "#snapshot" do
   describe "a state in layout 5" do
     let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
     let(:restored) do
-      values = original.snapshot.values.dup
+      values = old_vic_values(original)
       values[0] = 5
       values.delete_at(9)
       values.delete_at(-2)
@@ -65,6 +76,19 @@ describe Badline::Computer, "#snapshot" do
 
     it "builds a C64's board" do
       expect(restored.address_bus.board).to eq(:c64)
+    end
+
+    it "runs on as the saved machine does" do
+      checkpoints(original, restored, 10_000).each { |ours, theirs| expect(theirs).to eq(ours) }
+    end
+  end
+
+  describe "a state in layout 8" do
+    let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
+    let(:restored) do
+      values = old_vic_values(original)
+      values[0] = 8
+      described_class.restored(Badline::Snapshot::State.new(values, original.snapshot.strings))
     end
 
     it "runs on as the saved machine does" do

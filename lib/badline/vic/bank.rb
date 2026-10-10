@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # The 16K window the VIC sees into RAM, selected by CIA2 $DD00, in the
     # bank a +256K picks for it. Character
     # ROM shadows $1000-$1FFF in banks 0 and 2.

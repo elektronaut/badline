@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     class Sprite
       # The X comparator and the 24-bit shift register behind it: where a
       # line fires the sprite, and the pixels each firing shifts out.

@@ -7,7 +7,7 @@ require "badline/vic/sequencer"
 require "badline/vic/sprites"
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     include Addressable
     include IntegerHelper
 
@@ -145,7 +145,6 @@ module Badline
       @render = true
 
       power_on!
-      super()
     end
 
     # The VIC has no reset pin, so only a power cycle brings back the
@@ -192,7 +191,7 @@ module Badline
     # a front end repaints.
     def save_state(out)
       out.marker("VIC")
-      out.int(@column).int(@rasterline).int(@cycles).boolean(@pending_write)
+      out.int(@column).int(@rasterline)
       out.int(@g_tick).ints(@g_kind).int(@g_kept_char).int(@g_kept_color).boolean(@g_display)
       out.int(@fetch_d011).boolean(@lp_triggered).boolean(@lp_low).boolean(@raster_match)
       out.int(@vic_bank.lines)
@@ -469,8 +468,10 @@ module Badline
     def load_beam(input)
       @column = input.int
       @rasterline = @output_line = input.int
-      @cycles = input.int
-      @pending_write = input.boolean?
+      if input.schema < 9
+        input.int
+        input.boolean?
+      end
       @g_tick = input.int
       input.ints_into(@g_kind)
       @g_kept_char = input.int

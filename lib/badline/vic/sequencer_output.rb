@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     class Sequencer
       # Writes a column's 8-pixel group into the line buffers, through the
       # main border flip-flop and XSCROLL.

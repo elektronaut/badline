@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # Mid-line writes to the sprite registers, keyed by the pixel at which
     # they become visible. Compositing replays the line through the log, so
     # each pixel is drawn with the register values that were in effect when

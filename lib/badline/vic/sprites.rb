@@ -6,7 +6,7 @@ require "badline/vic/sprite"
 require "badline/vic/sprites_state"
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     class Sprites
       include SavedState
 

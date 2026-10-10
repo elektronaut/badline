@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # Border coverage per 8-pixel group, tracked as the sequencer outputs
     # a line.
     #
