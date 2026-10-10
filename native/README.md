@@ -127,7 +127,9 @@ The front end in `lib/badline/frontend/` is the same for both builds:
   cycles a frame clocks and how long it waits.
 - `menu/` holds the pause menu F9 opens (`PauseMenu`), its pages and the
   dialogs they open: the file browser, the confirmations and the name
-  field. `painter.rb` (`Painter`) and `buttons.rb` (`Buttons`) draw it and
+  field.
+- `player/` holds the SID player's window that `sid` plays in
+  (`PlayerWindow`, drawn by `PlayerScreen`) and its views. `painter.rb` (`Painter`) and `buttons.rb` (`Buttons`) draw it and
   the SID player.
 
 The front end and the files under `native/` stay inside the subset of
