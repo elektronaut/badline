@@ -27,6 +27,7 @@ on:
           - testbench-vicii-new
           - testbench-general
           - testbench-expansions
+          - testbench-drive
           - testbench-ntsc
           - testbench-ntsc-vicii-new
           - testbench-ntsc-cia-new
@@ -34,6 +35,8 @@ on:
           - testbench-vic20
           - testbench-c128c64
           - testbench-c128
+          - testbench-c128-z80
+          - testbench-c128-zex
           - sid-8580
           - drive-scenarios
 # No concurrency group: nothing here cancels anything, so two dispatched
