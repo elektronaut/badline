@@ -21,7 +21,7 @@ module Badline
       end
 
       def draw(history, played, channel, rgb)
-        @painter.box(@left, @top, @width, @height, SIDView::BOX)
+        @painter.box(@left, @top, @width, @height, PlayerTheme::BOX)
         span = @span
         range = @range
         start = history.scope_start(played, span, channel)

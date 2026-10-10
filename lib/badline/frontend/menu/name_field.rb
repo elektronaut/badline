@@ -56,11 +56,11 @@ module Badline
 
       def draw(left, top, width)
         painter = @painter
-        painter.text(left, top, @title, PauseMenu::BRIGHT)
-        painter.box(left, top + 18, width, Buttons::HEIGHT + 4, PauseMenu::FILL)
-        painter.text(left + 4, top + 22, "#{@text}_", PauseMenu::TEXT)
-        painter.text(left, top + 42, @problem, MenuPages::WARNING) unless @problem.empty?
-        painter.text(left, top + 60, "RETURN: SAVE  ESC: CANCEL", PauseMenu::DIM)
+        painter.text(left, top, @title, MenuTheme::BRIGHT)
+        painter.box(left, top + 18, width, Buttons::HEIGHT + 4, MenuTheme::FILL)
+        painter.text(left + 4, top + 22, "#{@text}_", MenuTheme::TEXT)
+        painter.text(left, top + 42, @problem, MenuTheme::WARNING) unless @problem.empty?
+        painter.text(left, top + 60, "RETURN: SAVE  ESC: CANCEL", MenuTheme::DIM)
       end
 
       private

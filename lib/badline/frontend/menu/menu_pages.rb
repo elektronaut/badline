@@ -9,13 +9,10 @@ module Badline
     class MenuPages
       include MenuPorts
 
-      TEXT = PauseMenu::TEXT
-      DIM = PauseMenu::DIM
       LINE = 12
       COLUMNS = 25
       ROW_WIDTH = 200
 
-      WARNING = 0xff7a6b
       RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
       SID_MODELS = %i[mos6581 mos8580].freeze
@@ -51,7 +48,7 @@ module Badline
 
       def draw(page, left, top)
         problem = @media.problem
-        @painter.text(left, top + 186, problem[0, COLUMNS], WARNING) unless problem.empty?
+        @painter.text(left, top + 186, problem[0, COLUMNS], MenuTheme::WARNING) unless problem.empty?
         @left = left
         @top = top
         case page
@@ -95,7 +92,7 @@ module Badline
       # Says in the dim colour that the VIC-20 hasn't got what the page
       # shows.
       def note
-        @painter.text(@left, @top, "NOT ON THE VIC-20 YET", DIM)
+        @painter.text(@left, @top, "NOT ON THE VIC-20 YET", MenuTheme::DIM)
       end
 
       def draw_drive
@@ -182,11 +179,11 @@ module Badline
       # A label, and its value under it, or NONE in the dim colour when the
       # value is empty.
       def info(label, value)
-        @painter.text(@left, @top, label, DIM)
+        @painter.text(@left, @top, label, MenuTheme::DIM)
         if value.empty?
-          @painter.text(@left, @top + LINE, "NONE", DIM)
+          @painter.text(@left, @top + LINE, "NONE", MenuTheme::DIM)
         else
-          @painter.text(@left, @top + LINE, Painter.fit(value, COLUMNS), TEXT)
+          @painter.text(@left, @top + LINE, Painter.fit(value, COLUMNS), MenuTheme::TEXT)
         end
         @top += (LINE * 2) + 6
       end

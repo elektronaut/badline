@@ -17,13 +17,6 @@ module Badline
       SECTIONS = ["SNAPSHOTS", "DRIVE 8", "DATASETTE", "EXPANSION PORT", "PORTS", "SOUND", "POWER"].freeze
       PAGES = %i[snapshots drive datasette expansion ports sound power].freeze
 
-      PANEL = 0x1d2230
-      EDGE = 0x3a4256
-      TEXT = 0xc9d1e0
-      BRIGHT = 0xffc66d
-      DIM = 0x6b7489
-      FILL = 0x343c50
-
       MARGIN = 16
       WIDTH = 352
       HEIGHT = 240
@@ -35,7 +28,7 @@ module Badline
       def initialize(painter, options, snapshots)
         media_path = options.media_path.to_s
         @painter = painter
-        @buttons = Buttons.new(painter, [TEXT, BRIGHT, PANEL, FILL])
+        @buttons = Buttons.new(painter, [MenuTheme::TEXT, MenuTheme::BRIGHT, MenuTheme::PANEL, MenuTheme::FILL])
         @pages = MenuPages.new(painter, @buttons, media_path, options, snapshots)
         @snapshots = snapshots
         @dialogs = MenuDialogs.new(painter, @buttons, @pages.media, options, snapshots)
@@ -126,18 +119,18 @@ module Badline
       def draw
         painter = @painter
         @buttons.forget
-        painter.box(@left, @top, WIDTH, HEIGHT, PANEL)
-        painter.box(@left, @top + 24, WIDTH, 1, EDGE)
-        painter.text(@left + 8, @top + 9, "PAUSED", BRIGHT)
+        painter.box(@left, @top, WIDTH, HEIGHT, MenuTheme::PANEL)
+        painter.box(@left, @top + 24, WIDTH, 1, MenuTheme::EDGE)
+        painter.text(@left + 8, @top + 9, "PAUSED", MenuTheme::BRIGHT)
         resume = "RESUME"
         @buttons.plain(@left + WIDTH - 8 - Painter.width(resume) - (Buttons::PAD * 2), @top + 7, resume, :resume)
         return @dialogs.draw(@left + 8, @top + 34, WIDTH - 16) if @dialogs.open?
 
-        painter.box(@left + BODY - 8, @top + 32, 1, HEIGHT - 56, EDGE)
+        painter.box(@left + BODY - 8, @top + 32, 1, HEIGHT - 56, MenuTheme::EDGE)
         draw_sections
         @buttons.plain(@left + 6, @top + HEIGHT - 28, "QUICK OPEN...", :quick_open)
-        painter.text(@left + 8, @top + HEIGHT - 12, "F9/ESC: RESUME", DIM)
-        painter.text(@left + BODY, @top + HEIGHT - 12, "F6: 40/80 KEY  F8: SCREEN", DIM) if @pages.c128?
+        painter.text(@left + 8, @top + HEIGHT - 12, "F9/ESC: RESUME", MenuTheme::DIM)
+        painter.text(@left + BODY, @top + HEIGHT - 12, "F6: 40/80 KEY  F8: SCREEN", MenuTheme::DIM) if @pages.c128?
         @pages.draw(PAGES[@section], @left + BODY, @top + 34)
       end
 

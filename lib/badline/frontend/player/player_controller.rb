@@ -19,8 +19,6 @@ module Badline
     class PlayerController < Audio::Terminal
       FRAME = 1.0 / 50
 
-      WARNING = VIC::PALETTE[10]
-
       CHIPS = PlayerHeader::CHIPS
 
       KEYS = {
