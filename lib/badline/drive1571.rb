@@ -65,6 +65,7 @@ module Badline
       @fdc = WD1770.new
       @bus = Bus.new(rom: rom || ROM.load("dos1571.rom", 0x8000), via1: @via1, via2: @via2, cia: @cia, fdc: @fdc)
       @cpu = CPU.new(@bus, debug:)
+      @fdc.cpu = @cpu
       @idle_loop = IDLE_LOOP
       @host_clock_hz = host_clock_hz
       @phase = 0
