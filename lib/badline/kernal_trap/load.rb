@@ -12,7 +12,7 @@ module Badline
     # below $0334, into the zero page, the stack or the KERNAL vectors: the
     # ROM's byte loop then loads it through the serial traps, and a loader
     # that overwrites ISTOP takes over mid-load as it does on a real drive.
-    class Load < File
+    class Load < FileRoutine
       # ST bits at $90
       EOI = 0x40
       VERIFY_MISMATCH = 0x10

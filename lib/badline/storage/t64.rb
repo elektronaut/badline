@@ -26,7 +26,7 @@ module Badline
       # What Storage.reopen needs to open the archive again: its path and
       # its bytes.
       def save_setup(out)
-        out.int(T64_ARCHIVE).string(::File.expand_path(@path)).blob(@bytes)
+        out.int(T64_ARCHIVE).string(File.expand_path(@path)).blob(@bytes)
       end
 
       def read_file(name, **)

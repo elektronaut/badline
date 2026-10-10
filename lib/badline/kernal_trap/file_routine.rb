@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class File < Routine
+    class FileRoutine < Routine
       private
 
       def active?

@@ -46,7 +46,7 @@ module Badline
       # path, whether it is write-protected, and its bytes with the error
       # table after them.
       def save_setup(out)
-        out.int(storage_kind).string(::File.expand_path(@path)).boolean(@read_only).blob(@bytes + @errors.to_a)
+        out.int(storage_kind).string(File.expand_path(@path)).boolean(@read_only).blob(@bytes + @errors.to_a)
       end
 
       # A LOAD reads only PRG files. An OPEN names the type it wants, or

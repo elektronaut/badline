@@ -19,7 +19,7 @@ module Badline
 
       # What Storage.reopen needs to open the directory again.
       def save_setup(out)
-        out.int(HOST_DIRECTORY).string(::File.expand_path(@path))
+        out.int(HOST_DIRECTORY).string(File.expand_path(@path))
       end
 
       def read_file(name, **)
