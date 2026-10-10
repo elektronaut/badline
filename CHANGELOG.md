@@ -5,30 +5,18 @@
 
 ### Features
 
-* add the 1581's WD1772 and its .d81 disks at sector level ([4d7199e](https://github.com/elektronaut/badline/commit/4d7199ea73fc3d65c35df7e46c90da693db8bbec))
 * add the 1581's WD1772 and its .d81 disks at sector level ([b834218](https://github.com/elektronaut/badline/commit/b834218bb686ceef295f2aafada86910fe8b61a2))
-* boot C128 boot disks such as CP/M at power-on ([1987c0c](https://github.com/elektronaut/badline/commit/1987c0cac8847139c270875a94513485aa4eef57))
 * boot C128 boot disks such as CP/M at power-on ([69359b6](https://github.com/elektronaut/badline/commit/69359b60bfe91ec0d9634e3dec4e4039044814e7))
-* emulate the 1581 drive on the C64, the VIC-20 and the C128 ([acf0ac2](https://github.com/elektronaut/badline/commit/acf0ac2e6effa743ca0844acdb303981f6c85ff2))
 * emulate the 1581 drive on the C64, the VIC-20 and the C128 ([4696c5b](https://github.com/elektronaut/badline/commit/4696c5b205689b2a86f91503ce153a63ff0f6816))
-* put the C128's Z80 on its bus and boot the C128 through it ([893d399](https://github.com/elektronaut/badline/commit/893d39995575b8f0ae8332784f4a6c49ab184bec))
 * put the C128's Z80 on its bus and boot the C128 through it ([b3d0e60](https://github.com/elektronaut/badline/commit/b3d0e603a8dc606d090917a67a52c4f31854f307))
 
 
 ### Bug Fixes
 
 * let the 1571's WD1770 run its commands, so CP/M's disk BIOS finds no MFM disk ([a380768](https://github.com/elektronaut/badline/commit/a380768ae02ce5da33e73dc23147b4edb72c72ff))
-* parse --at insert of a disk list without the rest of badline ([c494d8e](https://github.com/elektronaut/badline/commit/c494d8e710e6e726beec9ed9715470019abca3c4))
 * parse --at insert of a disk list without the rest of badline ([5d6b93a](https://github.com/elektronaut/badline/commit/5d6b93a86cf4b57be3312bfb7da32980d38f2800))
-* save the KCS Power cartridge's I/O RAM in snapshots ([62dd62f](https://github.com/elektronaut/badline/commit/62dd62f11c4dd2929458ef221193855c2d02a8b9))
 * save the KCS Power cartridge's I/O RAM in snapshots ([54fab40](https://github.com/elektronaut/badline/commit/54fab408d0d7447d5b7b977905aa7aaabf8ad92a))
-* uninstall the serial traps when the VIC-20 unmounts ([1478db3](https://github.com/elektronaut/badline/commit/1478db368e6f7862a7ffae52d04468e5a45b1109))
 * uninstall the serial traps when the VIC-20 unmounts ([b2acc3f](https://github.com/elektronaut/badline/commit/b2acc3ff495f10ec5bff3b56aae0e89b2741bd34))
-
-
-### Performance Improvements
-
-* lay out the Z80's pages only while it has the bus ([74824dc](https://github.com/elektronaut/badline/commit/74824dc7ac340b9eabadf745df1dd1a4ac69ab76))
 
 ## [0.11.1](https://github.com/elektronaut/badline/compare/v0.11.0...v0.11.1) (2026-10-09)
 
