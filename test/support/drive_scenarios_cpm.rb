@@ -3,8 +3,9 @@
 require "badline/core"
 require "badline/c128"
 
-# CP/M 3.0 on the C128, booted from VICE-testprogs' c128-cpm/cpm3.d81 in a
-# true 1581. The C128 KERNAL reads the boot sector over the fast serial bus,
+# CP/M 3.0 on the C128, booted from VICE-testprogs' c128-cpm/cpm3.d81,
+# attached as the command line attaches it, which puts a boot disk in a
+# true 1581 (Media::BootDisk). The C128 KERNAL reads the boot sector over the fast serial bus,
 # and its boot code hands the bus to the Z80, which loads CP/M through the
 # 8502's disk BIOS. Keys go in through the keyboard matrix, which CP/M scans
 # itself, and the 40-column screen, wherever the VIC-IIe shows it, is what
@@ -80,14 +81,14 @@ module DriveScenarios
 
     def complete?(log) = log.any? { |line| line.upcase.include?("TESTS COMPLETE") }
 
-    # A C128 in C128 mode with the 1581 as device 8 and the image in it,
-    # run until CP/M shows its A> prompt.
+    # A C128 in C128 mode with the image attached, run until CP/M shows its
+    # A> prompt.
     def boot(dir)
       path = File.join(dir, "cpm3.d81")
       File.binwrite(path, File.binread(IMAGE))
       machine = Badline::C128.new(mode: :c128)
       machine.vic.render = false
-      Badline::Media::TrueDrive.insert(machine, path)
+      Badline::Media.attach(machine, path)
       machine.run_cycles(1_000_000) until prompt?(screen(machine)) || machine.cycles > 60_000_000
       machine
     end

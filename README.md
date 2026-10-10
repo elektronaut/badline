@@ -125,7 +125,7 @@ library, are covered in [doc/library.md](doc/library.md).
 | Format | Handling |
 |--------|----------|
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
-| `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. Write-protected unless `--writable` |
+| `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. On a C128 in C128 mode a boot disk goes in a true drive instead and boots at power-on. See [Media](doc/media.md#c128-boot-disks). Write-protected unless `--writable` |
 | `.g64` | Put in a true 1541, then `LOAD"*",8,1` and `RUN`. It holds the disk's raw GCR, so copy protection that reads it works. Write-protected unless `--writable` |
 | `.m3u`, `.vfl` | A list of disk images, one path a line, relative to the list: an `.m3u` playlist, or a VICE flip list, which only unit 8's entries are taken from. Its first disk goes in as above, and the list is its set for the pause menu |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
@@ -186,7 +186,10 @@ cartridge, through the KERNAL. `GO64` gets there from BASIC 7.0. A
 program that loads at `$1C01`, where BASIC 7.0 starts, runs, and other
 programs load at their own address. The disk in device 8 is served
 through the KERNAL traps in either mode, or with `--true-drive` by the
-C128D's 1571. The Z80 starts the machine, as on a real C128, and hands
+C128D's 1571. A boot disk boots in C128 mode, as on a real C128: CP/M's
+system disks, a `.d81` such as VICE-testprogs' `c128-cpm/cpm3.d81` on a
+1581 among them, and boot games. `badline c128 cpm3.d81` comes up at
+CP/M's `A>` prompt. The Z80 starts the machine, as on a real C128, and hands
 it to the 8502. `--model` picks the board: `c128` (the default, the flat C128
 and the plastic C128D, PAL, with the 6581 SID and a VDC with 16K of
 RAM), `c128dcr` (the metal C128DCR, with the 8580, 6526As and a VDC with

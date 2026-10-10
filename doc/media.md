@@ -44,6 +44,23 @@ and writing the image's sectors and its 8520 on the serial bus. Another
 disk image swaps the 1541 (or on the C128 the 1571) back in. On the
 C128 in C128 mode the 1581 talks fast serial (burst), as the 1571 does.
 
+## C128 boot disks
+
+At power-on the C128 KERNAL reads track 1, sector 0 of the disk in
+device 8, and when the block starts with `CBM` it loads and runs it.
+CP/M's system disks and boot games boot that way. A 1581 first loads and
+runs a `USR` file named `COPYRIGHT CBM 86` when the disk has one, which
+is how CP/M's 1581 disks hand the KERNAL their boot block.
+
+On a C128 in C128 mode, a `.d64`, `.d71` or `.d81` that boots, with that
+block or that file, goes in a true drive as device 8, a 1581 for a
+`.d81` and the C128D's 1571 otherwise, and nothing is typed, so the
+KERNAL boots it. `badline c128 cpm3.d81` comes up at CP/M's `A>`
+prompt. Other disks keep the traps and `LOAD"*",8,1`, `--true-drive`
+puts any disk in a true drive, and on the C64, the VIC-20 and a C128 in
+C64 mode nothing changes. A boot disk inserted while the machine runs
+boots at the next reset.
+
 ## Write protection
 
 Disks given on the command line, inserted from the pause menu or by an
@@ -65,7 +82,8 @@ another disk. Both write to disk images unless told otherwise:
 `.g64` goes in the true 1541, and takes out a disk mounted through the
 traps, so `LOAD` and `SAVE` reach the 1541 too. With the 1541 in device
 8, a `.d64` goes in its drive as well, and a `.d81` in a 1581 that takes
-the 1541's place.
+the 1541's place. On a C128 in C128 mode, `attach` puts a boot disk in a
+true drive and types nothing (`Badline::Media::BootDisk`).
 
 `Badline::Media::DiskSet.around(path)` lists the disks of the set a disk
 image belongs to, which the pause menu's PREVIOUS DISK and NEXT DISK step
