@@ -20,14 +20,22 @@ module Badline
       # The sides of a disk the image's tracks fill.
       def sides = 1
 
-      def sectors_in(track)
-        case track
-        when 1..17 then 21
-        when 18..24 then 19
-        when 25..30 then 18
-        else 17
-        end
+      # The last track of each of the 1541's speed zones but the innermost,
+      # from the outermost, zone 3, in: tracks 1-17, 18-24 and 25-30, and
+      # zone 0 from 31 on.
+      ZONE_LAST_TRACKS = [17, 24, 30].freeze
+
+      # The sectors a track holds in each zone, by its number.
+      ZONE_SECTORS = [17, 18, 19, 21].freeze
+
+      # The speed zone a track is written in, 3 for the outermost.
+      def self.zone(track)
+        zone = 3
+        zone -= 1 while zone.positive? && track > ZONE_LAST_TRACKS[3 - zone]
+        zone
       end
+
+      def sectors_in(track) = ZONE_SECTORS[D64Image.zone(track)]
 
       private
 

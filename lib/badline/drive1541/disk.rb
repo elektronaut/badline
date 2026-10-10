@@ -35,19 +35,9 @@ module Badline
       # The half track entries a side of a .g71 holds.
       G71_SIDE_ENTRIES = 84
 
-      # GCR bytes around a track in each speed zone: 200 ms of rotation at
-      # 300 rpm, in bytes of 32, 30, 28 and 26 µs.
+      # GCR bytes around a track in each speed zone (Storage::D64Image.zone):
+      # 200 ms of rotation at 300 rpm, in bytes of 32, 30, 28 and 26 µs.
       TRACK_LENGTHS = [6250, 6666, 7142, 7692].freeze
-
-      # The speed zone each track is written in: 3 for the 21 sectors of
-      # tracks 1-17, 2 for 18-24, 1 for 25-30 and 0 from 31 on.
-      def self.zone(track)
-        if track <= 17 then 3
-        elsif track <= 24 then 2
-        elsif track <= 30 then 1
-        else 0
-        end
-      end
 
       # How far round the DOS's N: starts each track from the one before,
       # in each zone, in 1/10000 of a turn: it steps in and starts writing
@@ -69,10 +59,17 @@ module Badline
       # a .d71 formatted on both sides, and anything else as a .d64,
       # formatted. `read_only` opens the image write-protected.
       def self.open(path, read_only: false)
-        return from_g64(Storage::G64Image.new(path, read_only:)).opened(path, read_only) if State.g64?(path)
-        return from_d64(Storage::D71Image.new(path, read_only:)).opened(path, read_only) if State.d71?(path)
+        image = image_for(path, read_only)
+        (State.g64?(path) ? from_g64(image) : from_d64(image)).opened(path, read_only)
+      end
 
-        from_d64(Storage::D64Image.new(path, read_only:)).opened(path, read_only)
+      # The image at +path+, by its name: a .g64 or .g71, a .d71, and
+      # anything else a .d64.
+      def self.image_for(path, read_only)
+        return Storage::G64Image.new(path, read_only:) if State.g64?(path)
+        return Storage::D71Image.new(path, read_only:) if File.extname(path).casecmp?(".d71")
+
+        Storage::D64Image.new(path, read_only:)
       end
 
       # A disk from a G64 or G71 image, each half track as the image stores
@@ -141,7 +138,7 @@ module Badline
         angle = 0
         (1..image.track_count).each do |track|
           half_track = d64_half_track(image, track)
-          zone = zone((half_track % SIDE) / 2)
+          zone = Storage::D64Image.zone((half_track % SIDE) / 2)
           angle = half_track == SIDE + 2 ? 0 : (angle + SKEWS[zone]) % SKEW_TURN if track > 1
           bytes = format_track(image, track, id, zone)
           disk.write(half_track, Track.new(bytes.rotate(-(bytes.length * angle / SKEW_TURN)), zone))
@@ -149,7 +146,7 @@ module Badline
         disk
       end
 
-      def self.format_track(image, track, id, zone = zone(track))
+      def self.format_track(image, track, id, zone = Storage::D64Image.zone(track))
         sectors = image.sectors_in(track)
         length = TRACK_LENGTHS[zone]
         gap = (length - (sectors * SECTOR_LENGTH)) / sectors

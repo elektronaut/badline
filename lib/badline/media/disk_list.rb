@@ -11,9 +11,9 @@ module Badline
       # A list naming no disk image that's there.
       class Error < ArgumentError; end
 
-      EXTENSIONS = %w[.m3u .vfl].freeze
+      EXTENSIONS = Extensions.of(%i[disk_list])
 
-      def self.list?(path) = EXTENSIONS.include?(File.extname(path).downcase)
+      def self.list?(path) = Extensions.kind(path) == :disk_list
 
       # The disk `path` puts in the drive: a list's first disk, or the
       # path itself.
@@ -32,7 +32,7 @@ module Badline
         found = []
         entries(list).each do |entry|
           disk = entry.start_with?("/") ? entry : File.join(directory, entry)
-          found << disk if DiskSet::EXTENSIONS.include?(File.extname(disk).downcase) && File.file?(disk)
+          found << disk if Extensions::DISKS.include?(File.extname(disk).downcase) && File.file?(disk)
         end
         found
       end

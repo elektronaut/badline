@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/media/extensions"
+
 module Badline
   class Options
     # One event of --at or --script: what to do, with its argument, once
@@ -23,7 +25,7 @@ module Badline
 
       # What insert takes: disk images, tapes and cartridges, or an .m3u
       # or .vfl list of disks or a directory to mount as device 8.
-      INSERTABLE = %w[.d64 .d71 .d81 .g64 .t64 .tap .crt .m3u .vfl].freeze
+      INSERTABLE = Media::Extensions.of(%i[disk gcr archive tape cartridge disk_list])
 
       attr_reader :frame, :action, :argument
 

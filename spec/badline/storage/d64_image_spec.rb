@@ -38,6 +38,20 @@ describe Badline::Storage::D64Image do
     bytes[data_offset + (5 * 256), 4] = [0, 3, 0x33, 0x44]
   end
 
+  describe ".zone" do
+    it "puts tracks 1-17 in zone 3, 18-24 in 2, 25-30 in 1 and the rest in 0" do
+      zones = [1, 17, 18, 24, 25, 30, 31, 42].map { |track| described_class.zone(track) }
+      expect(zones).to eq([3, 3, 2, 2, 1, 1, 0, 0])
+    end
+  end
+
+  describe "#sectors_in" do
+    it "has the sectors of each track's zone" do
+      sectors = [1, 17, 18, 24, 25, 30, 31, 42].map { |track| image.sectors_in(track) }
+      expect(sectors).to eq([21, 21, 19, 19, 18, 18, 17, 17])
+    end
+  end
+
   describe "#read_file" do
     it "follows the sector chain" do
       expect(image.read_file("data").length).to eq(258)

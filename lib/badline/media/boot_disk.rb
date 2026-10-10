@@ -15,7 +15,7 @@ module Badline
     module BootDisk
       SIGNATURE = "CBM".bytes.freeze
       AUTO_BOOT = "copyright cbm 86"
-      TYPES = %w[.d64 .d71 .d81].freeze
+      TYPES = Extensions.of(%i[disk])
 
       class << self
         def takes?(computer, path)
@@ -38,7 +38,7 @@ module Badline
           type = File.extname(path).downcase
           return false unless TYPES.include?(type) && File.file?(path)
 
-          image = MOUNT_TYPES.fetch(type).new(path, read_only: true)
+          image = Media.open_storage(path, { read_only: true })
           block = image.read_block(1, 0)
           return true if block && block[0, 3] == SIGNATURE
 

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/media/extensions"
 require "badline/media/true_drive"
 require "badline/media/boot_disk"
 require "badline/media/not_disk"
@@ -9,6 +10,8 @@ require "badline/media/disk_list"
 require "badline/media/vic20_basic"
 require "badline/media/vic20_cartridge"
 require "badline/media/vic20_media"
+require "badline/media/tune"
+require "badline/media/program"
 
 module Badline
   module Media
@@ -16,6 +19,7 @@ module Badline
     TAPE_AUTOSTART = %(lO\rrun\r)
     BASIC_START = 0x0801
 
+    # The storage that opens each of Extensions::MOUNTABLE.
     MOUNT_TYPES = {
       ".d64" => Storage::D64Image,
       ".d71" => Storage::D71Image,
@@ -38,13 +42,17 @@ module Badline
       # KERNAL to boot at power-on, with nothing typed (BootDisk).
       #
       # An .m3u or .vfl list of disks attaches the first disk it lists
-      # (DiskList). The VIC-20 takes its own media (Vic20Media), and the
-      # C128 in C64 mode a C64's.
+      # (DiskList). Every machine takes each kind of medium the same way,
+      # except that the VIC-20 (Vic20Media) has cartridges, programs and a
+      # disk autostart of its own, and takes no .sid tunes. The C128 in C64
+      # mode takes a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
-        return Vic20Media.attach(computer, path, autostart:, **) if computer.family == :vic20
+        if computer.family == :vic20 && Vic20Media::UNSUPPORTED.include?(File.extname(path).downcase)
+          raise ArgumentError, "#{path} doesn't go in a VIC-20"
+        end
 
-        BootDisk.attach(computer, path, **) || attach_c64(computer, path, autostart:, subtune:, **)
+        BootDisk.attach(computer, path, **) || attach_kind(computer, path, autostart:, subtune:, **)
       end
 
       # Swaps the disk in device 8 for a disk image or a host directory,
@@ -73,109 +81,104 @@ module Badline
       # The SID a machine for `path` should be built with. A .sid tune names
       # its own; everything else gets `otherwise`.
       def sid_model(path, otherwise: :mos6581)
-        return otherwise unless path && File.extname(path).downcase == ".sid"
+        return otherwise unless path && Extensions.kind(path) == :tune
 
         Storage::SIDFile.new(path).sid_model
       end
 
-      private
+      # What the medium at `path` is to `computer`, which attach goes by:
+      # :true_drive for a disk that goes in a true drive (TrueDrive),
+      # :directory, :storage for a disk image or a .t64 that the traps
+      # mount, and otherwise its kind by its extension (Extensions).
+      def kind(computer, path)
+        return :true_drive if TrueDrive.takes?(computer, path)
+        return :directory if File.directory?(path)
 
-      def attach_c64(computer, path, autostart:, subtune:, **options)
-        if TrueDrive.takes?(computer, path)
-          attach_true_drive(computer, path, options.fetch(:disk, {}), autostart:)
-        elsif File.directory?(path)
-          computer.mount(Storage::HostDirectory.new(path))
-          "Mounted #{path} as device 8"
-        elsif File.extname(path).downcase == ".crt"
-          attach_cartridge(computer, path, options.fetch(:cartridge, {}))
-        elsif File.extname(path).downcase == ".sid"
-          attach_sid(computer, path, autostart:, subtune:)
-        elsif File.extname(path).downcase == ".tap"
-          attach_tape(computer, path, autostart:)
-        elsif MOUNT_TYPES.key?(File.extname(path).downcase)
-          attach_storage(computer, path, options.fetch(:disk, {}), autostart:)
-        else
-          attach_prg(computer, path, autostart:)
-        end
+        kind = Extensions.kind(path)
+        %i[disk archive].include?(kind) ? :storage : kind
       end
 
-      def disk?(path)
-        storage = MOUNT_TYPES[File.extname(path).downcase]
-        File.directory?(path) || (!storage.nil? && storage < Storage::DiskImage)
-      end
-
-      # Disk images take the `disk` options. A .t64 is read-only whatever
-      # it's given.
-      def open_storage(path, disk)
+      # What device 8 serves through the traps for a host directory, a disk
+      # image or a .t64. Disk images take the `disk` options. A .t64 is
+      # read-only whatever it's given.
+      def open_storage(path, disk = {})
         return Storage::HostDirectory.new(path) if File.directory?(path)
 
-        storage = MOUNT_TYPES[File.extname(path).downcase]
+        storage = MOUNT_TYPES.fetch(File.extname(path).downcase)
         storage < Storage::DiskImage ? storage.new(path, **disk) : storage.new(path)
       end
 
-      def attach_cartridge(computer, path, options)
-        computer.attach_cartridge(Cartridge.from_file(path, **options))
-        "Attached cartridge #{path}"
+      # A program file's bytes, unwrapped from a .p00.
+      def program_bytes(path)
+        bytes = File.binread(path).bytes
+        Storage::P00.wraps?(bytes) ? Storage::P00.data(bytes) : bytes
       end
 
-      def attach_sid(computer, path, autostart:, subtune:)
-        tune = Storage::SIDFile.new(path)
-        if tune.sids > 1
-          raise Storage::SIDFile::FormatError, "Written for #{tune.sids} SIDs, which only the SID player plays"
+      private
+
+      def attach_kind(computer, path, autostart:, subtune:, **options)
+        disk = options.fetch(:disk, {})
+        case kind(computer, path)
+        when :true_drive then attach_true_drive(computer, path, disk, autostart:)
+        when :directory then mount(computer, path, disk, autostart: false)
+        when :storage then mount(computer, path, disk, autostart:)
+        when :cartridge then attach_cartridge(computer, path, options.fetch(:cartridge, {}))
+        when :tune then Tune.attach(computer, path, autostart:, subtune:)
+        when :tape then attach_tape(computer, path, autostart:)
+        else attach_prg(computer, path, autostart:)
         end
-
-        subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes)
-        computer.on_init { start_tune(computer, tune, autostart:, subtune:) }
-        title = tune.name.empty? ? path : tune.name
-        title += " (subtune #{subtune})" if tune.subtunes > 1
-        autostart ? "Playing #{title}" : "Loaded #{title}"
       end
 
-      def start_tune(computer, tune, autostart:, subtune:)
-        computer.ram.write(tune.load_address, tune.data)
-        tune.boot_memory(subtune:).each { |address, bytes| computer.ram.write(address, bytes) }
-        computer.type_text(tune.boot_command) if autostart
-      end
-
-      def attach_tape(computer, path, autostart:)
-        computer.datasette.insert(Storage::TAP.new(path))
-        computer.datasette.play!
-        computer.type_text(TAPE_AUTOSTART) if autostart
-        "Inserted #{path} in the datasette"
-      end
+      def disk?(path) = File.directory?(path) || Extensions.kind(path) == :disk
 
       def attach_true_drive(computer, path, disk, autostart:)
         message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
-        computer.type_text(AUTOSTART) if autostart
+        computer.type_text(disk_autostart(computer) { Vic20Media.first_program(path) }) if autostart
         message
       end
 
-      def attach_storage(computer, path, disk, autostart:)
-        computer.mount(open_storage(path, disk))
-        computer.type_text(AUTOSTART) if autostart
+      def mount(computer, path, disk, autostart:)
+        storage = open_storage(path, disk)
+        computer.mount(storage)
+        computer.type_text(disk_autostart(computer) { storage.read_file("*") }) if autostart
         "Mounted #{path} as device 8"
       end
 
-      def attach_prg(computer, path, autostart:)
-        bytes = File.binread(path).bytes
-        bytes = Storage::P00.data(bytes) if Storage::P00.wraps?(bytes)
-        computer.on_init { start_prg(computer, bytes, autostart:) }
-        "Loading #{path}"
+      # What loads and runs the first program on the disk in device 8. A
+      # VIC-20 goes by that program, which the block gives
+      # (Vic20Media.disk_autostart).
+      def disk_autostart(computer)
+        computer.family == :vic20 ? Vic20Media.disk_autostart(yield) : AUTOSTART
       end
 
-      def start_prg(computer, data, autostart:)
-        load_addr = computer.load_prg(data)
-        # Run only makes sense for programs at BASIC start, or a byte ahead
-        # of it, where BASIC keeps the zero before its first line. BASIC 7.0
-        # starts at $1C01 and keeps the end of its text at $1210.
-        start, text_end = computer.family == :c128 && computer.mode == :c128 ? [0x1c01, 0x1210] : [BASIC_START, 0x2d]
-        return unless autostart && (load_addr == start || load_addr == start - 1)
+      # A VIC-20 cartridge is its ROM chips.
+      def attach_cartridge(computer, path, options)
+        if computer.family == :vic20
+          computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
+        else
+          computer.attach_cartridge(Cartridge.from_file(path, **options))
+        end
+        "Attached cartridge #{path}"
+      end
 
-        # The end of the program, where BASIC's variables start, and where
-        # the KERNAL's LOAD leaves its end address.
-        end_addr = load_addr + data.length - 2
-        [text_end, 0xae].each { |pointer| computer.ram.write(pointer, [end_addr & 0xff, end_addr >> 8]) }
-        computer.type_text("run\r")
+      # A VIC-20 says when the tape was made for another machine
+      # (Vic20Media.tape_message).
+      def attach_tape(computer, path, autostart:)
+        tape = Storage::TAP.new(path)
+        computer.datasette.insert(tape)
+        computer.datasette.play!
+        computer.type_text(TAPE_AUTOSTART) if autostart
+        message = "Inserted #{path} in the datasette"
+        computer.family == :vic20 ? Vic20Media.tape_message(tape, message) : message
+      end
+
+      # A VIC-20 has programs of its own (Vic20Media.attach_program).
+      def attach_prg(computer, path, autostart:)
+        bytes = program_bytes(path)
+        return Vic20Media.attach_program(computer, path, bytes, autostart:) if computer.family == :vic20
+
+        computer.on_init { Program.load(computer, bytes, autostart:) }
+        "Loading #{path}"
       end
     end
   end

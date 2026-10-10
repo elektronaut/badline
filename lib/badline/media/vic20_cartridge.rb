@@ -26,12 +26,6 @@ module Badline
           parts.map { |part| rom_chip(part) }
         end
 
-        # A program's bytes, unwrapped from a .p00.
-        def program_bytes(path)
-          bytes = File.binread(path).bytes
-          Storage::P00.wraps?(bytes) ? Storage::P00.data(bytes) : bytes
-        end
-
         private
 
         def load_address(data)
@@ -42,7 +36,7 @@ module Badline
           name = part_names(path, own, address).find { |candidate| File.file?(candidate) }
           return unless name
 
-          part = program_bytes(name)
+          part = Media.program_bytes(name)
           part if load_address(part) == address
         end
 
