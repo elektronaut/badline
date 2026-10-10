@@ -39,6 +39,7 @@ on:
           - testbench-c128-zex
           - sid-8580
           - drive-scenarios
+          - drive-scenarios-cpm
 # No concurrency group: nothing here cancels anything, so two dispatched
 # runs never touch each other.
 permissions:

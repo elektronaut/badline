@@ -3,14 +3,16 @@
 require_relative "drive_scenarios_vic20"
 require_relative "drive_scenarios_1571"
 require_relative "drive_scenarios_1581"
+require_relative "drive_scenarios_cpm"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
 # idle loop, a write-protected disk and autostart, on the VIC-20's
 # serial bus a save, an autostart and the error channel
 # (drive_scenarios_vic20.rb), the same on the C128's 1571, with a
-# double-sided format (drive_scenarios_1571.rb), and on a C64's 1581
-# (drive_scenarios_1581.rb). Each takes tens of
+# double-sided format (drive_scenarios_1571.rb), on a C64's 1581
+# (drive_scenarios_1581.rb), and CP/M 3.0 booting on a C128 from a 1581
+# (drive_scenarios_cpm.rb). Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
 # `scenario/check<TAB>PASS`, or `scenario/check<TAB>FAIL<TAB>detail`.
@@ -20,7 +22,7 @@ require_relative "drive_scenarios_1581"
 # the same way.
 module DriveScenarios
   # The scenarios and the checks each makes, the longest-running first.
-  CHECKS = Runs1581::CHECKS.merge(
+  CHECKS = Runs1581::CHECKS.merge(CpmRuns::CHECKS).merge(
     "1571-format" => %w[no-error lists-new-disk second-side trap-readable],
     "format" => %w[no-error lists-new-disk name-and-id bam-free trap-readable],
     "save" => %w[no-error loads-back file-in-image trap-readable],
@@ -37,6 +39,9 @@ module DriveScenarios
     "1571-error-channel" => %w[power-on-message],
     "1571-idle" => %w[sleeps matches-stepping]
   ).freeze
+
+  # The scenarios that run only when a filter names them.
+  LONG_CHECKS = CpmRuns::LONG_CHECKS
 
   # 10 PRINT"HELLO", as SAVE writes it.
   SAVED = [0x01, 0x08, 0x0e, 0x08, 0x0a, 0x00, 0x99, 0x22, *"HELLO".bytes, 0x22, 0x00, 0x00, 0x00].freeze
@@ -59,6 +64,7 @@ module DriveScenarios
     when "vic20-write", "vic20-autoboot", "vic20-status" then Vic20Runs.run(report, name, dir)
     when "1571-save", "1571-format", "1571-read-only", "1571-autostart", "1571-error-channel", "1571-idle"
       C128Runs.run(report, name, dir)
+    when "cpm-boot", "cpm-zexdoc", "cpm-zexall" then CpmRuns.run(report, name, dir)
     else
       raise ArgumentError, "No drive scenario #{name}" unless Runs1581::CHECKS.key?(name)
 

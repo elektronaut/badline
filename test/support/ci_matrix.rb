@@ -44,7 +44,8 @@ module CIMatrix
 
   # Suites CI leaves out, and why.
   EXCLUDED = {
-    "testbench-c128-zex" => "ZEXDOC and ZEXALL run for 50 billion cycles"
+    "testbench-c128-zex" => "ZEXDOC and ZEXALL run for 50 billion cycles",
+    "drive-scenarios-cpm" => "ZEXDOC and ZEXALL under CP/M run for 60 billion cycles"
   }.freeze
 
   SID_MODELS = { "sid" => "6581", "sid-8580" => "8580" }.freeze

@@ -45,3 +45,5 @@ vic20-status/power-on-message	PASS
 1581-error-channel/power-on-message	PASS
 1581-idle/sleeps	PASS
 1581-idle/matches-stepping	PASS
+cpm-boot/boots-to-prompt	PASS
+cpm-boot/lists-disk	PASS

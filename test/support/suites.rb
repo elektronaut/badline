@@ -93,8 +93,10 @@ module Suites
   # untagged programs; :args go to the runner as they are.
   # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
   # the DOS ROM through a save, a format, the error channel, the idle loop, a
-  # write-protected disk and an autostart, a row per check. Its filters are
-  # scenario names.
+  # write-protected disk and an autostart, a row per check, and CP/M 3.0
+  # booting on a C128 from a true 1581. Its filters are scenario names.
+  # drive-scenarios-cpm is ZEXDOC and ZEXALL run under that CP/M, which
+  # bin/drive_scenarios runs only when named, for their billions of cycles.
   OPT_IN_SUITES = {
     "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
     "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
@@ -120,7 +122,8 @@ module Suites
     "testbench-c128-zex" => { runner: "bin/testbench", args: %w[--c128-z80], scope: "c128/z80/zex128/",
                               engine: "c128_testbench" },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
-    "drive-scenarios" => { runner: "bin/drive_scenarios" }
+    "drive-scenarios" => { runner: "bin/drive_scenarios" },
+    "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] }
   }.freeze
 
   ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze

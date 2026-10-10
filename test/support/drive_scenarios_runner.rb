@@ -15,15 +15,19 @@ module DriveScenarios
 
   module_function
 
+  # The scenarios a run takes: every one of CHECKS without filters, or
+  # those of CHECKS and LONG_CHECKS the filters match.
   def selected(filters)
     return CHECKS.keys if filters.empty?
 
-    CHECKS.keys.select { |name| filters.any? { |filter| name.include?(filter) } }
+    names.select { |name| filters.any? { |filter| name.include?(filter) } }
   end
 
   def unmatched(filters)
-    filters.reject { |filter| CHECKS.keys.any? { |name| name.include?(filter) } }
+    filters.reject { |filter| names.any? { |name| name.include?(filter) } }
   end
+
+  def names = CHECKS.keys + LONG_CHECKS.keys
 
   def command(engine, dir, name)
     return [engine, dir, name] if engine
@@ -98,7 +102,7 @@ module DriveScenarios
   # report.
   def finish(name, output, status)
     reported = output.lines.to_h { |line| [line.split("\t", 2).first, line] }
-    lines = CHECKS.fetch(name).map do |check|
+    lines = CHECKS.merge(LONG_CHECKS).fetch(name).map do |check|
       id = "#{name}/#{check}"
       reported.fetch(id) { "#{id}\tFAIL\tcrashed: #{status}\n" }
     end
