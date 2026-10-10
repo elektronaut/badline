@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.2](https://github.com/elektronaut/badline/compare/v0.12.1...v0.12.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* take dead keys such as ´ on a Mac as key presses ([ab0025e](https://github.com/elektronaut/badline/commit/ab0025e9f6515cdc145271a6bb0ef1daf3f87a77))
+* take dead keys such as ´ on a Mac as key presses ([44bc087](https://github.com/elektronaut/badline/commit/44bc087a0def79a3d1f8837d7e479297aca7094f))
+
+
+### Performance Improvements
+
+* type the values a snapshot restores ([71e6e62](https://github.com/elektronaut/badline/commit/71e6e6229880d413adf2071a69263f7930536157))
+
 ## [0.12.1](https://github.com/elektronaut/badline/compare/v0.12.0...v0.12.1) (2026-10-10)
 
 
