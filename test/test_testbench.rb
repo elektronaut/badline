@@ -2,9 +2,7 @@
 
 require "minitest/autorun"
 require "tmpdir"
-
-TESTBENCH = File.expand_path("../bin/testbench", __dir__)
-load TESTBENCH unless defined?(Testbench)
+require_relative "support/testbench"
 
 class TestTestbenchTestlist < Minitest::Test
   def parse(line)
@@ -802,7 +800,7 @@ class TestTestbenchSharding < Minitest::Test
   end
 
   def test_shard_count_falls_back_to_the_default
-    assert_equal [Testbench::Runner::DEFAULT_SHARDS, Etc.nprocessors].min,
+    assert_equal [CLI::DEFAULT_SHARDS, Etc.nprocessors].min,
                  with_env(nil) { Testbench::Runner.shard_count(nil) }
   end
 

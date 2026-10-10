@@ -54,7 +54,7 @@ require "English"
 require "fileutils"
 require "optparse"
 require "rbconfig"
-require_relative "../test/jit"
+require_relative "../test/support/jit"
 
 module Profiler
   WORKLOADS = %w[idle text game synth].freeze

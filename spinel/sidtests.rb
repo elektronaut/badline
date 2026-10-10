@@ -18,7 +18,7 @@
 #   tmp/spinel/sidtests list
 
 require "badline/core"
-require_relative "../test/sidtests_machine"
+require_relative "../test/support/sidtests_machine"
 
 module SIDTests
   # Runs every test in the list, each on a fresh machine, and returns their

@@ -52,8 +52,8 @@ require "fileutils"
 require "optparse"
 require "rbconfig"
 require "tmpdir"
-require_relative "../test/jit"
-require_relative "../test/true_drive"
+require_relative "../test/support/jit"
+require_relative "../test/support/true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
 DEMO_PRG = [

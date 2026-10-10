@@ -35,30 +35,22 @@
 # in test/baselines/, and `rake "regression:record:lorenz[first,last]"`
 # for re-recording a stretch of the chain.
 #
-# The machine-driving half lives in test/lorenz_chain.rb, which Spinel
-# compiles too (spinel/lorenz.rb), and the rows come from test/lorenz_run.rb.
+# The machine-driving half lives in test/support/lorenz_chain.rb, which Spinel
+# compiles too (spinel/lorenz.rb), and the rows come from test/support/lorenz_run.rb.
 
 lib = File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "fileutils"
-require_relative "../test/lorenz_chain"
-require_relative "../test/lorenz_run"
-require_relative "../test/testbench_machine"
+require_relative "../test/support/cli"
+require_relative "../test/support/lorenz_chain"
+require_relative "../test/support/lorenz_run"
+require_relative "../test/support/testbench_machine"
 
 module Lorenz
   ARTIFACT_DIR = File.expand_path("../tmp/lorenz", __dir__)
 
   class << self
-    # Removes "--name value" or "--name=value" from argv, returning the value.
-    def take_option(argv, name)
-      index = argv.index { |arg| arg == name || arg.start_with?("#{name}=") }
-      return unless index
-
-      arg = argv.delete_at(index)
-      arg.start_with?("#{name}=") ? arg.split("=", 2).last : argv.delete_at(index)
-    end
-
     # Runs the chain, echoing the transcript as it grows.
     def drive(chain)
       until chain.result
@@ -93,9 +85,9 @@ module Lorenz
 end
 
 if $PROGRAM_NAME == __FILE__
-  results_path = Lorenz.take_option(ARGV, "--results")
-  resume = Lorenz.take_option(ARGV, "--resume")
-  stop_after = Lorenz.take_option(ARGV, "--stop-after")
+  results_path = CLI.take_option(ARGV, "--results")
+  resume = CLI.take_option(ARGV, "--resume")
+  stop_after = CLI.take_option(ARGV, "--stop-after")
   image = ARGV[0] || Lorenz::DEFAULT_IMAGE
   start_test = resume || ARGV[1]
   max_cycles = (ARGV[2] || 10_000_000_000).to_i

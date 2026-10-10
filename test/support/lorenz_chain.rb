@@ -4,7 +4,7 @@
 # suite's disks, injecting keys and telling when the chain has ended. It
 # stays inside the Ruby subset Spinel compiles, so bin/lorenz on CRuby and
 # spinel/lorenz.rb on a Spinel build drive the chain the same way.
-# Lorenz::Run in test/lorenz_run.rb turns what it records into rows.
+# Lorenz::Run in test/support/lorenz_run.rb turns what it records into rows.
 module Lorenz
   GETIN_LIMIT = 100
   GETIN_GRACE = -200

@@ -10,7 +10,7 @@
 #   tmp/spinel/drive_scenarios DIR save format
 
 require "badline/core"
-require_relative "../test/drive_scenarios"
+require_relative "../test/support/drive_scenarios"
 
 raise "Usage: drive_scenarios DIR SCENARIO..." if ARGV.length < 2
 

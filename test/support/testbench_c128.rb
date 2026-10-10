@@ -2,7 +2,7 @@
 
 # Which rows bin/testbench --c128c64 runs, from the x128c64 testlist, and
 # the C128 each asks for. The machine-driving half is in
-# test/testbench_c128_machine.rb, which the Spinel build shares.
+# test/support/testbench_c128_machine.rb, which the Spinel build shares.
 module Testbench
   # VICE-testprogs generates x128c64-testlist.txt from c64-testlist.in: its
   # Makefile drops the rows with these options, which x128 has no machine

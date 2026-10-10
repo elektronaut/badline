@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require_relative "forked_boot"
+require_relative "support/forked_boot"
 
 class TestForkedBoot < Minitest::Test
   def setup

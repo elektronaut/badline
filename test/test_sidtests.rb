@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-
-SIDTESTS = File.expand_path("../bin/sidtests", __dir__)
-load SIDTESTS unless defined?(SIDTests)
+require_relative "support/sidtests"
 
 class TestSIDTestsTestlist < Minitest::Test
   def parse(line, sid_model = :mos8580)

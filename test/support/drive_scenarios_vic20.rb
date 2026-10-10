@@ -6,7 +6,7 @@ require "badline/vic20"
 # The VIC-20's true-drive scenarios: the same 1541 and DOS ROM on the
 # VIC-20's serial bus, which the KERNAL drives from its VIAs. They save and
 # load a program, autostart a disk and read the error channel, as the C64's
-# scenarios in test/drive_scenarios.rb do.
+# scenarios in test/support/drive_scenarios.rb do.
 module DriveScenarios
   module Vic20Runs
     # 10 PRINT"HELLO", as an unexpanded VIC-20's SAVE writes it.

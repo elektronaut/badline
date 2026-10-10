@@ -2,9 +2,9 @@
 
 # Which rows bin/testbench --vic20 runs, from vic20-testlist.in, and the
 # machine each asks for. The machine-driving half is in
-# test/testbench_vic20_machine.rb, which the Spinel build shares.
+# test/support/testbench_vic20_machine.rb, which the Spinel build shares.
 module Testbench
-  VIC20_TESTLIST = File.expand_path("../vendor/VICE-testprogs/testbench/vic20-testlist.in", __dir__)
+  VIC20_TESTLIST = File.expand_path("../../vendor/VICE-testprogs/testbench/vic20-testlist.in", __dir__)
 
   # The RAM configuration each memory option asks for, as xvic's -memory
   # fits it: BLK1 for vic20-8k, and every block for vic20-32k, which xvic

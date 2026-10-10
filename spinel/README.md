@@ -38,24 +38,24 @@ CRuby.
   isn't in the core, so `z80_tests.rb` requires `badline/z80/core` alone,
   and of the other harnesses only the C128's carry it, as `C128::Z80`.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
-  `bin/lorenz` (`test/lorenz_chain.rb`) and prints what the run recorded,
+  `bin/lorenz` (`test/support/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See
   [The Lorenz chain](#the-lorenz-chain) below.
 - `sidtests.rb` runs a list of SID testprogs with the same code as
-  `bin/sidtests` (`test/sidtests_machine.rb`) and prints a baseline row per
+  `bin/sidtests` (`test/support/sidtests_machine.rb`) and prints a baseline row per
   test. See [The SID testprogs](#the-sid-testprogs) below.
 - `testbench.rb` runs VICE testbench tests with the same code as
-  `bin/testbench` (`test/testbench_machine.rb`) and prints what each test
+  `bin/testbench` (`test/support/testbench_machine.rb`) and prints what each test
   left behind, for `bin/testbench` to score. See
   [The testbench](#the-testbench) below.
 - `vic20_testbench.rb` does the same for `bin/testbench --vic20`'s rows,
-  with `test/testbench_vic20_machine.rb`, so `testbench.rb` stays
+  with `test/support/testbench_vic20_machine.rb`, so `testbench.rb` stays
   C64-only.
 - `c128_testbench.rb` does the same for `bin/testbench --c128c64`'s rows,
-  with `test/testbench_c128_machine.rb` and the C64's
+  with `test/support/testbench_c128_machine.rb` and the C64's
   `Testbench::Execution`.
 - `drive_scenarios.rb` runs the true-drive scenarios with the same code
-  as `bin/drive_scenarios` (`test/drive_scenarios.rb`) and prints a
+  as `bin/drive_scenarios` (`test/support/drive_scenarios.rb`) and prints a
   baseline row per check. See [The drive scenarios](#the-drive-scenarios)
   below.
 - `sig/` holds RBS seeds for types Spinel can't infer on its own.
@@ -154,7 +154,7 @@ any row that differs from the baseline, and on a stretch that ends short
 or reports a different set of rows.
 
 The compiled binary only emulates. It drives the chain with
-`Lorenz::Chain` and `Lorenz::Disk` from `test/lorenz_chain.rb`, the same
+`Lorenz::Chain` and `Lorenz::Disk` from `test/support/lorenz_chain.rb`, the same
 code `bin/lorenz` drives it with: the LOAD log, the swap to `Disk4.d64`,
 the space typed when a test halts for a key, and the checks for the end
 of the chain. What it records goes to stdout, which the task keeps in
@@ -168,7 +168,7 @@ transcript LENGTH
 ...the transcript
 ```
 
-`Lorenz::Run` in `test/lorenz_run.rb` turns that into rows on CRuby, where
+`Lorenz::Run` in `test/support/lorenz_run.rb` turns that into rows on CRuby, where
 the digests and the regexps are, and writes them beside the output as
 `lorenz-N.txt`. `Lorenz.run_chain` does the work between the arguments and
 that text, so it can be compiled as an extension later.
@@ -208,7 +208,7 @@ test CYCLES NAME    one per test, in the order to run them
 The compiled binary only emulates. For each test it builds a fresh
 machine, attaches the program and runs it until it reports through
 `$D7FF` or runs out of its budget, with `SIDTests.exit_code` from
-`test/sidtests_machine.rb`, the code `bin/sidtests` scores a test with. It
+`test/support/sidtests_machine.rb`, the code `bin/sidtests` scores a test with. It
 prints each test's row in the baseline format, which the task keeps in
 `tmp/spinel/spinel-sid-N.out` and gathers into `spinel-sid.txt` in test
 order. `bin/sidtests` boots once and forks each test from the booted
@@ -274,10 +274,10 @@ from a cartridge. A drive row's machine boots with the true drive, which
 gets a copy of the row's disk image at `<results>.engine-N.disk.d64` or
 `.g64`, since the drive writes back to it, and nothing is mounted through
 the LOAD trap. The build runs the test with `Testbench::Execution` from
-`test/testbench_machine.rb`, the code `bin/testbench` runs a test with in
+`test/support/testbench_machine.rb`, the code `bin/testbench` runs a test with in
 process. It prints what the test left behind as a `Testbench::Record`
-(`test/testbench_record.rb`), which `Testbench::Engine`
-(`test/testbench_engine.rb`) reads and hands to the same scoring:
+(`test/support/testbench_record.rb`), which `Testbench::Engine`
+(`test/support/testbench_engine.rb`) reads and hands to the same scoring:
 
 ```
 test KEY
@@ -300,7 +300,7 @@ builds in place of `testbench`. Its lines are
 `KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY RAM`, where RAM names one of
 `Badline::Vic20::Bus::RAM_CONFIGURATIONS`, and its records carry the 23
 lines of the VIC-20's text screen. It runs each test with
-`Testbench::Vic20Execution` (`test/testbench_vic20_machine.rb`).
+`Testbench::Vic20Execution` (`test/support/testbench_vic20_machine.rb`).
 
 `testbench-c128c64` runs on `c128_testbench` in the same way. Its lines
 are `KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY MODEL`, where MODEL
@@ -338,7 +338,7 @@ drive_scenarios DIR SCENARIO...
 ```
 
 The compiled binary runs each scenario with `DriveScenarios.run` from
-`test/drive_scenarios.rb`, the code `bin/drive_scenarios` runs on CRuby, and
+`test/support/drive_scenarios.rb`, the code `bin/drive_scenarios` runs on CRuby, and
 prints its rows in the baseline format, one per check. `bin/drive_scenarios`
 puts them in scenario order and gives a scenario whose process fails a
 `crashed` row for each check it didn't report.
