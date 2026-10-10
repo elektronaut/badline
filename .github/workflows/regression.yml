@@ -73,14 +73,7 @@ jobs:
         suite: ${{ fromJSON(needs.select.outputs.suites) }}
     steps:
       - uses: actions/checkout@v6.1.0
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
+      - uses: ./.github/actions/setup
       - name: Cache VICE-testprogs
         uses: actions/cache@v6
         with:

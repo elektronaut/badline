@@ -50,7 +50,7 @@ module CIMatrix
 
   SID_MODELS = { "sid" => "6581", "sid-8580" => "8580" }.freeze
 
-  # The matrix as ci.yml's include list types it, from SHARDS.
+  # The include list of ci.yml's suites matrix, from SHARDS.
   module Derive
     def matrix
       SHARDS.map do |shard, entries|

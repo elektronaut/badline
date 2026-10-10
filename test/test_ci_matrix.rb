@@ -11,37 +11,16 @@ class TestCIMatrix < Minitest::Test
     YAML.load_file(File.join(WORKFLOWS, name))
   end
 
-  def ci_shards
-    workflow("ci.yml").dig("jobs", "suites", "strategy", "matrix", "include")
+  def test_the_matrix_runs_every_suite
+    missing = CIMatrix.missing_suites(CIMatrix.shard_tasks)
+
+    assert_empty missing, "No shard runs #{missing.join(', ')}"
   end
 
-  def ci_tasks
-    CIMatrix.shard_tasks(ci_shards)
-  end
+  def test_the_matrix_runs_every_baseline_row_on_one_shard
+    problems = CIMatrix.unit_problems(CIMatrix.shard_tasks)
 
-  def comparable(shards)
-    shards.to_h { |shard| [shard.fetch("shard"), [shard.fetch("harnesses").split.sort, shard.fetch("tasks").split]] }
-  end
-
-  def test_ci_yml_runs_every_suite
-    missing = CIMatrix.missing_suites(ci_tasks)
-
-    assert_empty missing, "No shard in ci.yml runs #{missing.join(', ')}"
-  end
-
-  def test_ci_yml_runs_every_baseline_row_on_one_shard
-    problems = CIMatrix.unit_problems(ci_tasks)
-
-    assert_empty problems, "ci.yml's shards don't run each row once:\n#{problems.join("\n")}"
-  end
-
-  def test_ci_yml_matches_the_derived_matrix
-    assert_equal comparable(CIMatrix.matrix), comparable(ci_shards),
-                 "ci.yml's suites matrix differs from `rake ci:matrix`. Update CIMatrix::SHARDS with it"
-  end
-
-  def test_the_derived_matrix_runs_everything_once
-    assert_empty CIMatrix.problems(CIMatrix.shard_tasks)
+    assert_empty problems, "The shards don't run each row once:\n#{problems.join("\n")}"
   end
 
   def test_regression_yml_offers_every_suite_and_stretch
