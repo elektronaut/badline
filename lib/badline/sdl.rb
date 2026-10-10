@@ -58,6 +58,7 @@ module Badline
     ffi_func :SDL_ClearQueuedAudio, [:uint32], :void
     ffi_func :SDL_PushEvent, [:ptr], :int
     ffi_func :SDL_GetKeyName, [:int], :str
+    ffi_func :SDL_StopTextInput, [], :void
 
     ffi_buffer :rect, 16
     ffi_write_i32 :rect_x, 0

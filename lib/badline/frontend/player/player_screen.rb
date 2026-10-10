@@ -31,6 +31,7 @@ module Badline
         SDL.SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "0")
         @window = SDL.SDL_CreateWindow(TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED,
                                        WIDTH * SCALE, height(view) * SCALE, SDL::WINDOW_RESIZABLE)
+        SDL.SDL_StopTextInput
         @renderer = SDL.SDL_CreateRenderer(@window, -1, SDL::RENDERER_ACCELERATED)
         SDL.SDL_RenderSetLogicalSize(@renderer, WIDTH, height(view))
         build
