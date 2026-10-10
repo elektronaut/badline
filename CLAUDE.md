@@ -67,9 +67,11 @@ documents the baseline format, the suites and how rows are compared.
 
 `bin/machine_diff <scenario|media> --against <rev>` checks that a change
 leaves emulation alone. It runs the scenario on this tree and on `<rev>`'s
-`lib/` side by side, digests the CPU, RAM, VIC, CIAs and SID every million
-cycles, and names the first component that differs. Use it for refactors
-and speed work.
+`lib/` side by side, digests each chip every million cycles (the CPU, RAM,
+VIC, CIAs and SID, the VIC-20's VIAs and sound, the C128's VDC, MMU and
+Z80), and names the first component that differs. It builds a C64 unless
+`--family vic20` or `--family c128` (with `--mode c64|c128`) says
+otherwise. Use it for refactors and speed work.
 
 ## Driving the emulator headlessly
 
