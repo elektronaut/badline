@@ -11,7 +11,7 @@ module Badline
       module Writing
         # Whether the disk takes writes: the image wasn't opened read-only
         # and the host file takes them.
-        def writable? = !read_only? && ::File.writable?(@path)
+        def writable? = !read_only? && File.writable?(@path)
 
         # Writes a new file, or with `replace` writes over the one of the
         # same name in its directory entry. A name already on the disk
@@ -87,7 +87,7 @@ module Badline
           saved = [@bytes.dup, @errors&.dup]
           begin
             yield
-            ::File.binwrite(@path, (@bytes + @errors.to_a).pack("C*"))
+            File.binwrite(@path, (@bytes + @errors.to_a).pack("C*"))
           rescue WriteError, SystemCallError => e
             @bytes, @errors = saved
             raise e.is_a?(WriteError) ? e : WriteError.new(WriteError::WRITE_PROTECT_ON)

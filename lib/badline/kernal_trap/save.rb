@@ -15,7 +15,7 @@ module Badline
     # write: the drive stops listening, so ST reads DEVICE NOT PRESENT,
     # and the ROM returns without an error. A "@" before the drive prefix
     # writes over a file of the same name.
-    class Save < File
+    class Save < FileRoutine
       SECONDARY = 0x61
 
       # ST bit at $90

@@ -48,11 +48,11 @@ describe Badline::SID::Decimator do
 
     context "with the PAL clock and CD rate" do
       subject(:decimator) do
-        described_class.new(clock_hz: Badline::TimeOfDay::CLOCK_HZ, rate: 44_100)
+        described_class.new(clock_hz: Badline::Region::PAL.clock_hz, rate: 44_100)
       end
 
       it "emits the output rate over a second of cycles" do
-        expect(push([0] * Badline::TimeOfDay::CLOCK_HZ).length).to eq(44_100)
+        expect(push([0] * Badline::Region::PAL.clock_hz).length).to eq(44_100)
       end
     end
   end
