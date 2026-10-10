@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # = Sprite collisions
     #
     # The $D01E/$D01F latches and the per-pixel sprite coverage that feeds

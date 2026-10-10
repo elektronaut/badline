@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # The graphics shift register, pixel by pixel, for the groups where a
     # mode or XSCROLL change lands (VICE x64sc `draw_graphics`). The
     # sequencer paints whole bytes everywhere else, which comes to the same

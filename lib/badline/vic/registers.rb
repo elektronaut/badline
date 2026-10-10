@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # = VIC-II Registers
     #
     # == Sprite positions

@@ -8,7 +8,7 @@ require "badline/vic/sequencer_output"
 require "badline/vic/sequencer_state"
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # = VIC-II Sequencer
     #
     # Turns fetched graphics data into output pixels.

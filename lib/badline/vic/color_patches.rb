@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # A mid-line color register write becomes visible one pixel into the
     # column emitted the cycle after the write. That emit paints the whole
     # column with the new color, so the boundary pixel is patched back to

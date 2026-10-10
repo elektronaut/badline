@@ -6,7 +6,7 @@ require "badline/vic/sprite/saved_state"
 require "badline/vic/sprite/timing"
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     # = Sprite
     #
     # The DMA/display state machine and the pixel sequencer for one sprite.

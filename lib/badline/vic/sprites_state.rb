@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC < Cycleable
+  class VIC
     class Sprites
       # The sprites' save_state and load_state.
       module SavedState
