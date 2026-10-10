@@ -20,6 +20,18 @@ class TestDriveScenariosRunner < Minitest::Test
                  DriveScenarios.selected(%w[sav read])
   end
 
+  def test_runs_the_long_scenarios_only_when_named
+    assert_equal [false, %w[cpm-zexall cpm-zexdoc]],
+                 [DriveScenarios.selected([]).include?("cpm-zexdoc"), DriveScenarios.selected(%w[cpm-zex])]
+  end
+
+  def test_fails_each_check_of_a_crashed_long_scenario
+    lines, = finish("", "cpm-zexdoc")
+
+    assert_equal ["cpm-zexdoc/completes\tFAIL\tcrashed: pid 1 exit 1\n",
+                  "cpm-zexdoc/all-ok\tFAIL\tcrashed: pid 1 exit 1\n"], lines
+  end
+
   def test_names_a_filter_that_matches_nothing
     assert_equal %w[nope], DriveScenarios.unmatched(%w[idle nope])
   end

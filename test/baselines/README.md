@@ -287,9 +287,21 @@ Recorded output of the headless hardware suites, one file per suite:
     (`lists-new-disk`), 40/0 holding the new name and ID as x64sc's 1581
     writes them (`header`), and the program through the traps
     (`trap-readable`).
+  - `cpm-boot` boots CP/M 3.0 on a C128 in C128 mode from VICE-testprogs'
+    `c128-cpm/cpm3.d81` in a true 1581 (`test/support/drive_scenarios_cpm.rb`):
+    the banner and the `A>` prompt on the 40-column screen
+    (`boots-to-prompt`), and `DIR` typed through the keyboard matrix
+    listing `CCP.COM` and `ZEXDOC` (`lists-disk`).
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1571.rom` and `dos1581.rom` in the ROM
   path.
+- `drive-scenarios-cpm.txt` — `bin/drive_scenarios cpm-zex`: ZEXDOC and
+  ZEXALL run from the same disk under that CP/M, each until it reports
+  its tests complete. `cpm-zexdoc` and `cpm-zexall` check that it got
+  there (`completes`) and that all 67 tests said OK with no `ERROR`
+  (`all-ok`). bin/drive_scenarios runs them only when a filter names
+  them, for their 30 billion or so cycles each, so CI leaves the suite
+  out.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
