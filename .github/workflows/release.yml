@@ -119,14 +119,7 @@ jobs:
       - uses: actions/checkout@v6.1.0
         with:
           ref: ${{ needs.check.outputs.tag }}
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-2.0-0
-      - uses: ruby/setup-ruby@v1.327.0
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
+      - uses: ./.github/actions/setup
       - uses: rubygems/release-gem@v1
 
   # Packs the native badline at the release tag, checks that the pack builds
@@ -148,10 +141,9 @@ jobs:
         with:
           ref: ${{ needs.check.outputs.tag }}
           fetch-depth: 0
-      - uses: ruby/setup-ruby@v1.327.0
+      - uses: ./.github/actions/setup
         with:
-          ruby-version: "4.0"
-          bundler-cache: true
+          apt-packages: ""
       - name: Install SDL2
         run: brew install sdl2
       # The same Spinel commit CI tests with.
