@@ -424,5 +424,11 @@ describe Badline::Drive1581::WD1772 do
       copy = snapshot
       expect(read_all(chip: copy)).to eq(read_all)
     end
+
+    it "fits a native build's integers with nothing due" do
+      out = Badline::Snapshot::StateWriter.new
+      fdc.save_state(out)
+      expect { Badline::Snapshot::MachineState.encode(out.state) }.not_to raise_error
+    end
   end
 end

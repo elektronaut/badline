@@ -51,7 +51,7 @@ module Badline
       STEP_RATES = [12_000, 24_000, 4_000, 6_000].freeze
       SETTLE = 30_000
 
-      NEVER = 1 << 62
+      NEVER = 1 << 60
 
       # Status bits. Bits 1 and 2 report the index pulse and track 0 after
       # a type I command, and DRQ and lost data after the others; bit 5
