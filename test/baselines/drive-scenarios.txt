@@ -31,3 +31,17 @@ vic20-status/power-on-message	PASS
 1571-error-channel/power-on-message	PASS
 1571-idle/sleeps	PASS
 1571-idle/matches-stepping	PASS
+1581-format/no-error	PASS
+1581-format/lists-new-disk	PASS
+1581-format/header	PASS
+1581-format/trap-readable	PASS
+1581-save/no-error	PASS
+1581-save/loads-back	PASS
+1581-save/file-in-image	PASS
+1581-save/trap-readable	PASS
+1581-read-only/saves	PASS
+1581-read-only/image-unchanged	PASS
+1581-autostart/loads-and-runs	PASS
+1581-error-channel/power-on-message	PASS
+1581-idle/sleeps	PASS
+1581-idle/matches-stepping	PASS

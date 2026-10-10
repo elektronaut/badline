@@ -276,8 +276,20 @@ Recorded output of the headless hardware suites, one file per suite:
     flagging a second side and counting its tracks' free blocks
     (`second-side`), and the program through the traps
     (`trap-readable`).
+  - `1581-save`, `1581-read-only`, `1581-autostart`,
+    `1581-error-channel` and `1581-idle` run the same checks on a C64
+    with a true 1581 and a `.d81` (`test/drive_scenarios_1581.rb`).
+    `1581-idle` boots two diskless drives and starts its lines 2M cycles
+    later, once the DOS has booted.
+  - `1581-format` sends `N:` to a `.d81` of zeros, writing and verifying
+    all 80 cylinders on both sides: `0, OK`
+    (`no-error`), the listing with 3159 blocks free beside the program
+    (`lists-new-disk`), 40/0 holding the new name and ID as x64sc's 1581
+    writes them (`header`), and the program through the traps
+    (`trap-readable`).
   Each scenario runs in a process of its own, up to four at once. The
-  runner needs `dos1541.rom` and `dos1571.rom` in the ROM path.
+  runner needs `dos1541.rom`, `dos1571.rom` and `dos1581.rom` in the ROM
+  path.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner
