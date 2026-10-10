@@ -141,7 +141,7 @@ module Badline
 
         input = Snapshot::StateReader.new(state)
         played = input.int
-        resume(input)
+        restore_player(input)
         record
         player.stereo.sids.each { |sid| sid.load_recording(input) }
         @level = input.int
@@ -159,7 +159,7 @@ module Badline
 
       # Restores the player as it was, then puts back the SID models chosen
       # for this renderer.
-      def resume(input)
+      def restore_player(input)
         sids = player.stereo.sids
         chosen = sids.map(&:model)
         sids.each { |sid| refit(sid, Snapshot::C64Setup::SID_MODELS.fetch(input.int)) }
