@@ -345,6 +345,34 @@ jobs:
           ./badline --version
           ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
 
+  # The suites job's matrix, which `rake ci:matrix` derives from
+  # CIMatrix::SHARDS in test/support/ci_matrix.rb. The task fails when the
+  # shards leave a suite or a baseline row out, or run one twice.
+  shards:
+    name: Suites matrix
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.derive.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-2.0-0
+      - uses: ruby/setup-ruby@v1.327.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Derive the matrix
+        id: derive
+        run: |
+          matrix=$(bundle exec rake "ci:matrix[compact]")
+          echo "$matrix"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   # Every regression suite on the Spinel build, each compared against its
   # baseline in test/baselines/. The shards are balanced by recent run
   # times to about 10 minutes each. testbench-irqdma is split by filter,
@@ -354,82 +382,12 @@ jobs:
   # three.
   suites:
     name: "Suites (${{ matrix.shard }})"
-    needs: compiler
+    needs: [compiler, shards]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - shard: lorenz-1-2
-            harnesses: lorenz
-            tasks: spinel:lorenz[1,2]
-          - shard: lorenz-3-4
-            harnesses: lorenz
-            tasks: spinel:lorenz[3,4]
-          - shard: irqdma-1
-            harnesses: testbench
-            tasks: spinel:testbench[testbench-irqdma,b.prg]
-          - shard: irqdma-2
-            harnesses: testbench
-            tasks: >-
-              spinel:testbench[testbench-irqdma,test1.prg,test2.prg,test3.prg,test4.prg,test5.prg,test6.prg,test7.prg]
-          - shard: cia
-            harnesses: testbench
-            tasks: spinel:testbench[testbench-cia]
-          - shard: cia-new
-            harnesses: testbench
-            tasks: spinel:testbench[testbench-cia-new]
-          - shard: expansions
-            harnesses: testbench
-            tasks: >-
-              spinel:testbench[testbench-expansions]
-              spinel:testbench[testbench-vicii-new]
-              spinel:testbench[testbench-general]
-              spinel:testbench[testbench-interrupts]
-              spinel:testbench[testbench-ntsc-cia-new]
-          - shard: vicii-cpu
-            harnesses: testbench
-            tasks: spinel:testbench[testbench] spinel:testbench[testbench-cpu]
-          - shard: sid-ntsc
-            harnesses: testbench sidtests boot cpu_tests z80_tests vic20_boot c128_boot sid
-            tasks: >-
-              spinel:sidtests[6581]
-              spinel:sidtests[8580]
-              spinel:check
-              spinel:check_sid
-              spinel:testbench[testbench-ntsc]
-              spinel:testbench[testbench-ntsc-vicii-new]
-              spinel:testbench[testbench-drean]
-              spinel:testbench[testbench-carts]
-          - shard: drive-via-1
-            harnesses: testbench
-            tasks: >-
-              spinel:testbench[testbench-drive,via1.prg,via2.prg,via3,via4.prg,via5.prg,via9.prg]
-          - shard: drive-via-2
-            harnesses: testbench
-            tasks: >-
-              spinel:testbench[testbench-drive,via10,via11,via12,via13,via14,via20,via21]
-          - shard: drive
-            harnesses: testbench drive_scenarios vic20_testbench
-            tasks: >-
-              spinel:testbench[testbench-drive,!viavarious]
-              spinel:drive_scenarios
-              spinel:testbench[testbench-vic20]
-          - shard: c128c64
-            harnesses: c128_testbench
-            tasks: spinel:testbench[testbench-c128c64]
-          - shard: c128
-            harnesses: c128_testbench
-            tasks: spinel:testbench[testbench-c128]
-          - shard: c128-z80-1
-            harnesses: c128_testbench
-            tasks: >-
-              spinel:testbench[testbench-c128-z80,c128z80timing/f,c128z80timing/c,c128z80timing/0,c128z80timing/1,c128z80timing/2,c128z80timing/3,c128z80timing/4]
-          - shard: c128-z80-2
-            harnesses: c128_testbench
-            tasks: >-
-              spinel:testbench[testbench-c128-z80,!c128z80timing/f,!c128z80timing/c,!c128z80timing/0,!c128z80timing/1,!c128z80timing/2,!c128z80timing/3,!c128z80timing/4]
+      matrix: ${{ fromJSON(needs.shards.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v6.1.0
       - name: Install system dependencies
@@ -515,7 +473,7 @@ jobs:
   # have to follow the shards as they are rebalanced.
   ci:
     name: CI
-    needs: [changes, rubocop, rspec, minitest, compiler, native, suites]
+    needs: [changes, rubocop, rspec, minitest, compiler, native, shards, suites]
     if: always()
     runs-on: ubuntu-latest
     steps:

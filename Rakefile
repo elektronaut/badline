@@ -186,13 +186,14 @@ end
 
 namespace :ci do
   desc "Print the suites matrix for .github/workflows/ci.yml as JSON, derived from the suite table, " \
-       "once it runs every suite and baseline row on exactly one shard"
-  task :matrix do
+       "once it runs every suite and baseline row on exactly one shard ([compact] prints it on one line)"
+  task :matrix, [:format] do |_task, args|
     require "json"
     problems = CIMatrix.problems(CIMatrix.shard_tasks)
     raise problems.join("\n") if problems.any?
 
-    puts JSON.pretty_generate("include" => CIMatrix.matrix)
+    matrix = { "include" => CIMatrix.matrix }
+    puts args[:format] == "compact" ? JSON.generate(matrix) : JSON.pretty_generate(matrix)
   end
 end
 
