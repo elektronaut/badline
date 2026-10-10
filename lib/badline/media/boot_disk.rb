@@ -38,7 +38,7 @@ module Badline
           type = File.extname(path).downcase
           return false unless TYPES.include?(type) && File.file?(path)
 
-          image = MOUNT_TYPES.fetch(type).new(path, read_only: true)
+          image = Media.open_storage(path, { read_only: true })
           block = image.read_block(1, 0)
           return true if block && block[0, 3] == SIGNATURE
 

@@ -50,6 +50,27 @@ describe Badline::Media do
     end
   end
 
+  describe ".kind" do
+    {
+      "game.prg" => :program, "game.p00" => :program, "game.crt" => :cartridge, "tune.sid" => :tune,
+      "game.tap" => :tape, "game.d64" => :storage, "game.D81" => :storage, "game.t64" => :storage,
+      "game.g64" => :true_drive
+    }.each do |name, kind|
+      it "takes #{name} for #{kind}" do
+        expect(described_class.kind(computer, File.join(dir, name))).to eq(kind)
+      end
+    end
+
+    it "takes a directory for a directory" do
+      expect(described_class.kind(computer, dir)).to eq(:directory)
+    end
+
+    it "takes a .d64 for the true drive when there is one" do
+      computer.plug_true_drive
+      expect(described_class.kind(computer, File.join(dir, "game.d64"))).to eq(:true_drive)
+    end
+  end
+
   describe ".attach" do
     context "with a directory" do
       it "mounts it as device 8" do
