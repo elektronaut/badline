@@ -253,6 +253,13 @@ you change code a pinned rule governs, re-derive the rule against its test
 and update the doc if the rule moves. A green suite alone isn't enough,
 because the suite can stay green while the rule breaks.
 
+## Rubocop
+
+The Metrics limits in `.rubocop.yml` are house limits, set with headroom
+above the largest class, module and method in the tree. A change that needs
+more should raise the limit in the same pull request and say why, rather
+than split a class or shorten an unrelated method to fit.
+
 ## Issues and pull requests
 
 Before filing an issue or opening a pull request, read CONTRIBUTING.md and follow it. Use the exact headings from its skeletons. Report only what you observed or verified, and don't include hypotheses about causes. Open an issue before writing non-trivial code; only changes with one obvious fix (typos, broken links, clear-cut fixes) go straight to a pull request.
