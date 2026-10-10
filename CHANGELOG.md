@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.1](https://github.com/elektronaut/badline/compare/v0.12.0...v0.12.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* keep the 1581's idle deadline within a native build's integers ([9d80c6d](https://github.com/elektronaut/badline/commit/9d80c6d3376113d4b8ea6f72b3b7ef30e92a475d))
+* keep the 1581's idle deadline within a native build's integers ([a98848f](https://github.com/elektronaut/badline/commit/a98848f0889ca7ad4c12007976b63d54bbbf122b))
+* refuse snapshot values a native build can't hold, on CRuby too ([5ec51e8](https://github.com/elektronaut/badline/commit/5ec51e81cfabfdb585367bb2f8183516ac64d2b0))
+
 ## [0.12.0](https://github.com/elektronaut/badline/compare/v0.11.1...v0.12.0) (2026-10-10)
 
 
