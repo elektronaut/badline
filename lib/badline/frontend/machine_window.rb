@@ -17,7 +17,8 @@ module Badline
       attr_reader :renderer, :texture
 
       # Opens the window for `screen`, presenting in step with the display
-      # when `vsync`.
+      # when `vsync`. Text input stays off, so a dead key such as ´ on a Mac
+      # arrives as a key press, as every other key does.
       def initialize(screen, vsync:)
         abort "SDL_Init: #{SDL.SDL_GetError}" unless SDL.SDL_Init(SDL::INIT_VIDEO | SDL::INIT_EVENTS).zero?
 
@@ -28,6 +29,7 @@ module Badline
           TITLE, SDL::WINDOWPOS_CENTERED, SDL::WINDOWPOS_CENTERED, @width * SCALE, @height * SCALE,
           SDL::WINDOW_RESIZABLE
         )
+        SDL.SDL_StopTextInput
         flags = SDL::RENDERER_ACCELERATED
         flags |= SDL::RENDERER_PRESENTVSYNC if vsync
         @renderer = SDL.SDL_CreateRenderer(@window, -1, flags)
