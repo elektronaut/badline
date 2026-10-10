@@ -112,17 +112,10 @@ module Badline
 
       private
 
-      # The Z80 and which CPU has the bus, which a state from before the
-      # Z80 leaves to the 8502. The bus, restored before it, hands the bus
-      # to its CPU without resetting the 8502.
+      # The Z80 and which CPU has the bus. The bus, restored before it,
+      # hands the bus to its CPU without resetting the 8502.
       def load_z80(input)
         @z80_running = @bus.z80?
-        @z80_turn = @z80_running
-        @z80_due = @z80.cycles
-        @chips_ahead = 0
-        @cpu_reset_pending = false
-        return unless input.schema > 6
-
         @z80.load_state(input)
         @z80_due = input.int
         @chips_ahead = input.int

@@ -62,10 +62,7 @@ Every model saves this way, PAL, NTSC, old NTSC and Drean alike, and so
 does a machine with an REU, with its RAM, its registers and a transfer
 part way through. A snapshot only restores in the badline version that
 wrote it, into a machine with the same chip models, region, RAM
-expansion, REU, KERNAL, datasette and board. One saved before badline
-recorded the KERNAL and the datasette restores as a machine with the
-C64's KERNAL and a datasette, and one saved before it recorded the board
-restores on a C64's.
+expansion, REU, KERNAL, datasette and board.
 
 ## The VIC-20
 

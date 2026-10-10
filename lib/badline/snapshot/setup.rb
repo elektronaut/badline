@@ -22,15 +22,11 @@ module Badline
             kernal: address_bus.kernal, datasette: address_bus.datasette.connected?, board: address_bus.board)
       end
 
-      # Layout 3 has no KERNAL or datasette, and stands for the C64's, and
-      # layouts before 6 have no board, and stand for the C64's.
       def self.read(input)
         new(vic_model: VIC::MODELS.fetch(input.int), cia_model: CIA::MODELS.fetch(input.int),
             sid_model: SID_MODELS.fetch(input.int), region: REGIONS.fetch(input.int),
             ram_expansion: ram_expansion(RAM_EXPANSIONS.fetch(input.int)), reu: reu(input.int),
-            kernal: input.schema > 3 ? KERNALS.fetch(input.int) : :c64,
-            datasette: input.schema > 3 ? input.boolean? : true,
-            board: input.schema > 5 ? BOARDS.fetch(input.int) : :c64)
+            kernal: KERNALS.fetch(input.int), datasette: input.boolean?, board: BOARDS.fetch(input.int))
       rescue IndexError
         raise FormatError, "the state names a chip model, region, RAM expansion, KERNAL or board badline doesn't know"
       end

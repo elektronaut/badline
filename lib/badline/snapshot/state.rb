@@ -13,14 +13,9 @@ module Badline
     class State
       # The layout the chips write their fields in. It goes up whenever a
       # save_state writes something else, so a State in another layout
-      # fails before anything is read into a machine. Layout 3, without the
-      # KERNAL and datasette in the setup, layout 4, without the VIA shift
-      # register's clock delay, layout 5, without the board in the setup,
-      # layout 6, without the C128's Z80, layout 7, without a 1581 on the
-      # serial bus, and layout 8, with the VIC's unused cycle count and
-      # pending-write flag, still read.
-      SCHEMA = 9
-      READABLE = [3, 4, 5, 6, 7, 8, SCHEMA].freeze
+      # fails before anything is read into a machine. A State only reads in
+      # the layout and the badline version that wrote it.
+      SCHEMA = 10
 
       attr_reader :values, :strings
 
@@ -110,16 +105,12 @@ module Badline
     # device 8 serves is left out, and a true drive's disk keeps the
     # state's tracks without its image file.
     class StateReader
-      # The layout check_stamp found.
-      attr_reader :schema
-
       def initialize(state, detached: false)
         @values = state.values
         @strings = state.strings
         @value = 0
         @string = 0
         @detached = detached
-        @schema = State::SCHEMA
       end
 
       def detached? = @detached
@@ -170,13 +161,12 @@ module Badline
         raise FormatError, "expected #{name} in the state, found #{found[0, 20].inspect}" unless found == name
       end
 
-      # Fails unless the State was written in a layout this badline reads
-      # (State::READABLE) by this badline version.
+      # Fails unless the State was written in this layout by this badline
+      # version.
       def check_stamp
         schema = int
         version = string
-        @schema = schema
-        return if State::READABLE.include?(schema) && version == VERSION
+        return if schema == State::SCHEMA && version == VERSION
 
         raise FormatError, "the state was written by badline #{version.inspect} in layout #{schema}, " \
                            "and this is badline #{VERSION}, layout #{State::SCHEMA}"

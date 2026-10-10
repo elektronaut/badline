@@ -468,10 +468,6 @@ module Badline
     def load_beam(input)
       @column = input.int
       @rasterline = @output_line = input.int
-      if input.schema < 9
-        input.int
-        input.boolean?
-      end
       @g_tick = input.int
       input.ints_into(@g_kind)
       @g_kept_char = input.int
