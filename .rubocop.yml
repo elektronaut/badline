@@ -4,14 +4,12 @@ plugins:
   - rubocop-rake
   - rubocop-rspec
 
-inherit_from:
-  - .rubocop_todo.yml
-
 AllCops:
   NewCops: enable
   TargetRubyVersion: 4.0
 
 Metrics/AbcSize:
+  Max: 60
   Exclude:
     - "lib/badline/instruction.rb"
 
@@ -20,13 +18,28 @@ Metrics/BlockLength:
     - "spec/**/*.rb"
 
 Metrics/ClassLength:
+  Max: 240
   Exclude:
     - "lib/badline/instruction.rb"
     - "lib/badline/vic.rb"
 
-Metrics/MethodLength:
+Metrics/CollectionLiteralLength:
   Exclude:
     - "lib/badline/instruction.rb"
+
+Metrics/CyclomaticComplexity:
+  Max: 20
+
+Metrics/MethodLength:
+  Max: 48
+  Exclude:
+    - "lib/badline/instruction.rb"
+
+Metrics/ModuleLength:
+  Max: 130
+
+Metrics/PerceivedComplexity:
+  Max: 10
 
 RSpec/IndexedLet:
   # joystick1/joystick2 are the hardware's own names for the control ports.
