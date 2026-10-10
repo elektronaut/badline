@@ -19,6 +19,10 @@ module Badline
       MAJOR = 2
       MINOR = 0
 
+      # The values a 64-bit integer holds once encode doubles them, which a
+      # native build's integers can't exceed.
+      VALUES = (-(1 << 62))..((1 << 62) - 1)
+
       module_function
 
       def section(state)
@@ -41,7 +45,11 @@ module Badline
         strings = state.strings
         numbers = [values.length, strings.length]
         strings.each { |string| numbers << string.bytesize }
-        values.each { |value| numbers << (value.negative? ? (-2 * value) - 1 : 2 * value) }
+        values.each do |value|
+          raise RangeError, "#{value} is too large for a snapshot" unless VALUES.cover?(value)
+
+          numbers << (value.negative? ? (-2 * value) - 1 : 2 * value)
+        end
         index = numbers.pack("w*")
         [index.bytesize].pack("V") + index + strings.join
       end
