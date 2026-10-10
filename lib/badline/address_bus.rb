@@ -52,9 +52,9 @@ module Badline
       def poke(_addr, _value); end
     end
 
+    # The 6510's port pins with pull-ups, and the floating ones (CPUPort).
     PORT_PULLUPS  = 0b0001_0111
     PORT_FLOATING = 0b1100_1000
-    TAPE_SENSE    = 0b0001_0000
 
     # RAM powers on in runs of $00 $00 $FF $FF $FF $FF $00 $00, inverted in
     # the second and fourth 16K: a C64C (ASSY 250469 R4) from
@@ -92,7 +92,7 @@ module Badline
 
       @datasette = Datasette.new
       @datasette.on_flag { @cia1.flag! }
-      @datasette.on_sense_change { @io_port.value = port_value }
+      @datasette.on_sense_change { @cpu_port.refresh }
 
       @color_ram = ColorMemory.new(@vic)
       @vic.vic_bank.connect(cia2: @cia2, color_ram: @color_ram)
@@ -100,10 +100,9 @@ module Badline
       @open_bus = OpenBus.new(@vic)
       @cpu_off_bus = false
 
-      @port_ddr = 0x00
-      @port_out = 0x00
-      @port_floating = 0x00
-      @io_port = PortStatus.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
+      @cpu_port = CPUPort.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING)
+      @cpu_port.on_change { update_overlays! }
+      @io_port = @cpu_port.status
 
       @read_pages = Array.new(256)
       @write_pages = Array.new(256)
@@ -134,9 +133,7 @@ module Badline
     # their charge.
     def reset!
       @ram_expansion.reset!
-      @port_ddr = 0x00
-      @port_out = 0x00
-      update_port!
+      @cpu_port.reset!
     end
 
     def disable_overlays!
@@ -150,7 +147,7 @@ module Badline
     end
 
     def peek(addr)
-      return @port_ddr if addr.zero?
+      return @cpu_port.ddr if addr.zero?
       return @io_port.value if addr == 0x01
 
       @read_pages[addr >> 8].peek(addr)
@@ -162,8 +159,7 @@ module Badline
     def poke(addr, value)
       if addr < 0x02
         @ram.poke(addr, @vic.phi1_data)
-        addr.zero? ? @port_ddr = value : @port_out = value
-        update_port!
+        addr.zero? ? @cpu_port.write_ddr(value) : @cpu_port.write_data(value)
       elsif !@cpu_off_bus
         @write_pages[addr >> 8].poke(addr, value)
       end
@@ -184,21 +180,6 @@ module Badline
     end
 
     private
-
-    def update_port!
-      driven = @port_ddr & PORT_FLOATING
-      @port_floating = (@port_floating & ~driven) | (@port_out & driven)
-      @io_port.value = port_value
-      # $01 bit 5 drives the motor through an inverter: low runs it.
-      @datasette.motor = !@io_port.tape_motor?
-      update_overlays!
-    end
-
-    def port_value
-      input = PORT_PULLUPS | (@port_floating & PORT_FLOATING)
-      input &= ~TAPE_SENSE if @datasette.sense_low?
-      (@port_out & @port_ddr) | (input & ~@port_ddr & 0xff)
-    end
 
     # Banking changes only on $01 writes and cartridge line/bank changes,
     # so reads and writes dispatch through per-page handler tables instead

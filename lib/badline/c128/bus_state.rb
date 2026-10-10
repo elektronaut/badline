@@ -11,7 +11,7 @@ module Badline
         # host holds. A cartridge is already in the port, built from its setup.
         def save_state(out)
           out.marker("C128 BUS")
-          out.int(@port_ddr).int(@port_out).int(@port_floating).int(@address).int(@data)
+          out.int(@cpu_port.ddr).int(@cpu_port.data).int(@cpu_port.floating).int(@address).int(@data)
           @mmu.save_state(out)
           @ram.save_state(out)
           @color_lines.color_ram(0).save_state(out)
@@ -27,9 +27,9 @@ module Badline
 
         def load_state(input)
           input.marker("C128 BUS")
-          @port_ddr = input.int
-          @port_out = input.int
-          @port_floating = input.int
+          ddr = input.int
+          data = input.int
+          floating = input.int
           @address = input.int
           @data = input.int
           @mmu.load_state(input)
@@ -38,7 +38,7 @@ module Badline
           @color_lines.color_ram(1).load_state(input)
           @cartridge&.load_state(input)
           @datasette.load_state(input)
-          @io_port.value = port_value
+          @cpu_port.load(ddr, data, floating)
           update_overlays!
           @vic.load_state(input)
           @control_ports.extra_rows = 0xf8 | @vic.extra_keyboard_lines

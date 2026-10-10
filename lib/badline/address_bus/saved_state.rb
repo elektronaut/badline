@@ -17,15 +17,12 @@ module Badline
 
       # The 6510 port's direction and output registers, and the charge left
       # on its floating bits.
-      def port_state = [@port_ddr, @port_out, @port_floating]
+      def port_state = [@cpu_port.ddr, @cpu_port.data, @cpu_port.floating]
 
       # Sets the port as port_state reads it, as a snapshot restores it,
       # leaving the RAM under $00 and $01 alone.
       def restore_port(ddr, out, floating)
-        @port_ddr = ddr
-        @port_out = out
-        @port_floating = floating
-        update_port!
+        @cpu_port.restore(ddr, out, floating)
       end
 
       # The machine's memory and everything on the bus but the keyboard, the
@@ -33,7 +30,7 @@ module Badline
       # already in the port, built from its setup (Computer#load_state).
       def save_state(out)
         out.marker("BUS")
-        out.int(@port_ddr).int(@port_out).int(@port_floating)
+        out.int(@cpu_port.ddr).int(@cpu_port.data).int(@cpu_port.floating)
         @ram.save_state(out)
         @color_ram.save_state(out)
         @ram_expansion.save_state(out)
@@ -55,10 +52,7 @@ module Badline
         @ram_expansion.load_state(input)
         @cartridge&.load_state(input)
         @datasette.load_state(input)
-        @port_ddr = ddr
-        @port_out = port_out
-        @port_floating = floating
-        @io_port.value = port_value
+        @cpu_port.load(ddr, port_out, floating)
         update_overlays!
         @vic.load_state(input)
         @cia1.load_state(input)
