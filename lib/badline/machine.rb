@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/machine/clocking"
+
 module Badline
   # = Machine
   #

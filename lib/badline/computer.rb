@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/computer/common"
 require "badline/computer/true_drives"
 require "badline/computer/attachments"
 require "badline/computer/kernal_traps"
@@ -9,6 +10,8 @@ module Badline
   class Computer
     include IntegerHelper
     include KeyboardBuffer
+    include Machine::Clocking
+    include Common
     include Attachments
     include KernalTraps
     include SavedState
@@ -108,32 +111,9 @@ module Badline
       @cycles += 1
     end
 
-    # Runs `count` cycles, one #cycle! after another.
-    def run_cycles(count)
-      i = 0
-      while i < count
-        cycle!
-        i += 1
-      end
-    end
-
-    # Runs cycles until the block returns true or the cycle count passes
-    # `limit`, checking before each cycle.
-    def run_until(limit)
-      cycle! until yield || @cycles > limit
-    end
-
     # The cycle at which #on_init's handlers run, once the KERNAL has booted.
     def init_threshold
       INIT_THRESHOLD
-    end
-
-    # The clock, the raster and the crop of the machine's region, a pixel
-    # to a window pixel.
-    def timing
-      region = address_bus.region
-      Timing.new(clock_hz: region.clock_hz, cycles_per_line: region.cycles_per_line,
-                 lines_per_frame: region.lines_per_frame, crop: region.crop, pixel_width: 1)
     end
 
     # The chip whose #display a front end shows.
@@ -141,12 +121,6 @@ module Badline
 
     # The chip a front end records the machine's sound from.
     def sound_source = @sid
-
-    def load_prg(data)
-      uint16(data[0], data[1]).tap do |load_addr|
-        ram.write(load_addr, data[2..])
-      end
-    end
 
     def attach_cartridge(cartridge)
       connect_cartridge(cartridge)
@@ -214,31 +188,10 @@ module Badline
       end
     end
 
-    def inspect
-      "#<#{self.class.name} cycles=#{@cycles} cpu=(#{@cpu.inspect})>"
-    end
-
-    def on_init(&block)
-      if booting?
-        @init_handlers << block
-      else
-        block.call
-      end
-    end
-
     private
 
     # The KERNAL the traps stand in for (Attachments#mount).
     def trap_layout = KernalTrap::C64_LAYOUT
-
-    # The NMI line is wired-OR between CIA 2, the cartridge and the RESTORE
-    # key, and the CPU takes an interrupt on its falling edge.
-    def drive_nmi
-      nmi = @cia2.interrupted? || @cartridge_nmi || @restore_pulse
-      @restore_pulse = false
-      @cpu.nmi = true if nmi && !@nmi_asserted
-      @nmi_asserted = nmi
-    end
 
     def plug_reu(size_kb)
       reu = REU.new(size_kb, bus: @address_bus, vic: @vic)
@@ -277,14 +230,6 @@ module Badline
 
       @freezing = false
       address_bus.cartridge.freeze!
-    end
-
-    def booting?
-      @cycles < init_threshold
-    end
-
-    def handle_init
-      @init_handlers.each(&:call)
     end
   end
 end

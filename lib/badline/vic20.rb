@@ -23,6 +23,7 @@ module Badline
   class Vic20
     include IntegerHelper
     include KeyboardBuffer
+    include Machine::Clocking
     include Attachments
     include PortWiring
     include SavedState
@@ -100,31 +101,6 @@ module Badline
       @cycles += 1
     end
 
-    # Runs `count` cycles, one #cycle! after another.
-    def run_cycles(count)
-      i = 0
-      while i < count
-        cycle!
-        i += 1
-      end
-    end
-
-    # Runs cycles until the block returns true or the cycle count passes
-    # `limit`, checking before each cycle.
-    def run_until(limit)
-      cycle! until yield || @cycles > limit
-    end
-
-    # Runs the block once the KERNAL has booted (see init_threshold), or
-    # now if it has.
-    def on_init(&block)
-      if @cycles < @init_threshold
-        @init_handlers << block
-      else
-        block.call
-      end
-    end
-
     # The chip whose #display a front end shows.
     def video = @vic
 
@@ -192,10 +168,6 @@ module Badline
       reset!
     end
 
-    def inspect
-      "#<#{self.class.name} cycles=#{@cycles} cpu=(#{@cpu.inspect})>"
-    end
-
     private
 
     # The cycle by which the KERNAL has booted and BASIC printed READY,
@@ -214,10 +186,6 @@ module Badline
       nmi = @via1.irq?
       @cpu.nmi = true if nmi && !@nmi_asserted
       @nmi_asserted = nmi
-    end
-
-    def handle_init
-      @init_handlers.each(&:call)
     end
   end
 end

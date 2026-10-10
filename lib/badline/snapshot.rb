@@ -47,23 +47,25 @@ module Badline
     # applied and left out, yielding a line for each thing left out. A
     # snapshot that fails leaves the machine as it was.
     def restore(computer, path, &) = read(path).restore(computer, &)
+
+    # A machine's snapshots as .vsf files. Computer, Vic20 and C128 each
+    # include it.
+    module Files
+      def save_snapshot(path) = Snapshot.save(self, path)
+
+      def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+    end
   end
 
   class Computer
-    def save_snapshot(path) = Snapshot.save(self, path)
-
-    def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+    include Snapshot::Files
   end
 
   class Vic20
-    def save_snapshot(path) = Snapshot.save(self, path)
-
-    def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+    include Snapshot::Files
   end
 
   class C128
-    def save_snapshot(path) = Snapshot.save(self, path)
-
-    def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+    include Snapshot::Files
   end
 end
