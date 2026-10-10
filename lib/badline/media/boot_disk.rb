@@ -15,7 +15,7 @@ module Badline
     module BootDisk
       SIGNATURE = "CBM".bytes.freeze
       AUTO_BOOT = "copyright cbm 86"
-      TYPES = %w[.d64 .d71 .d81].freeze
+      TYPES = Extensions.of(%i[disk])
 
       class << self
         def takes?(computer, path)

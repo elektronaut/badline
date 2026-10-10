@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/media/extensions"
 require "badline/media/true_drive"
 require "badline/media/boot_disk"
 require "badline/media/not_disk"
@@ -18,6 +19,7 @@ module Badline
     TAPE_AUTOSTART = %(lO\rrun\r)
     BASIC_START = 0x0801
 
+    # The storage that opens each of Extensions::MOUNTABLE.
     MOUNT_TYPES = {
       ".d64" => Storage::D64Image,
       ".d71" => Storage::D71Image,
@@ -79,7 +81,7 @@ module Badline
       # The SID a machine for `path` should be built with. A .sid tune names
       # its own; everything else gets `otherwise`.
       def sid_model(path, otherwise: :mos6581)
-        return otherwise unless path && File.extname(path).downcase == ".sid"
+        return otherwise unless path && Extensions.kind(path) == :tune
 
         Storage::SIDFile.new(path).sid_model
       end
@@ -87,20 +89,13 @@ module Badline
       # What the medium at `path` is to `computer`, which attach goes by:
       # :true_drive for a disk that goes in a true drive (TrueDrive),
       # :directory, :storage for a disk image or a .t64 that the traps
-      # mount, :cartridge, :tune, :tape, and :program for anything else.
+      # mount, and otherwise its kind by its extension (Extensions).
       def kind(computer, path)
         return :true_drive if TrueDrive.takes?(computer, path)
         return :directory if File.directory?(path)
 
-        extension = File.extname(path).downcase
-        return :storage if MOUNT_TYPES.key?(extension)
-
-        case extension
-        when ".crt" then :cartridge
-        when ".sid" then :tune
-        when ".tap" then :tape
-        else :program
-        end
+        kind = Extensions.kind(path)
+        %i[disk archive].include?(kind) ? :storage : kind
       end
 
       # What device 8 serves through the traps for a host directory, a disk
@@ -134,10 +129,7 @@ module Badline
         end
       end
 
-      def disk?(path)
-        storage = MOUNT_TYPES[File.extname(path).downcase]
-        File.directory?(path) || (!storage.nil? && storage < Storage::DiskImage)
-      end
+      def disk?(path) = File.directory?(path) || Extensions.kind(path) == :disk
 
       def attach_true_drive(computer, path, disk, autostart:)
         message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))

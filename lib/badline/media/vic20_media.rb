@@ -15,7 +15,7 @@ module Badline
       BLOCK_EXPANSIONS = [[0x3fff, :"8k"], [0x5fff, :"16k"], [0x7fff, :"24k"]].freeze
 
       # What a VIC-20 doesn't take.
-      UNSUPPORTED = %w[.sid].freeze
+      UNSUPPORTED = Extensions.of(%i[tune])
 
       # The platform byte of a VIC-20 tape (Storage::TAP#platform).
       TAPE_PLATFORM = 1
@@ -43,10 +43,10 @@ module Badline
         # The program at `path`, or the first on the disk or in the
         # directory there, or nil.
         def first_program(path)
-          extension = File.extname(path).downcase
-          if File.directory?(path) || MOUNT_TYPES.key?(extension)
+          kind = Extensions.kind(path)
+          if File.directory?(path) || %i[disk archive].include?(kind)
             Media.open_storage(path).read_file("*")
-          elsif File.file?(path) && !%w[.sid .crt .tap .g64].include?(extension)
+          elsif File.file?(path) && !%i[tune cartridge tape gcr].include?(kind)
             Media.program_bytes(path)
           end
         end

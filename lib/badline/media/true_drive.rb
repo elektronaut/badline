@@ -32,9 +32,10 @@ module Badline
         # other disk media, which the traps would mount, when a true drive
         # is device 8.
         def takes?(computer, path)
-          return true if %w[.g64 .g71].include?(File.extname(path).downcase)
+          kind = Extensions.kind(path)
+          return true if kind == :gcr
 
-          !drive(computer).nil? && (File.directory?(path) || MOUNT_TYPES.key?(File.extname(path).downcase))
+          !drive(computer).nil? && (File.directory?(path) || %i[disk archive].include?(kind))
         end
 
         # Puts the image in the drive on device 8, plugging one in that

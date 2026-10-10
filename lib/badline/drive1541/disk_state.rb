@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/media/extensions"
+
 module Badline
   class Drive1541
     class Disk
@@ -14,7 +16,7 @@ module Badline
 
         # A .g64 or .g71 image by its name, a .d71 by its name, and anything
         # else a .d64.
-        def self.g64?(path) = %w[.g64 .g71].include?(File.extname(path).downcase)
+        def self.g64?(path) = Media::Extensions.kind(path) == :gcr
 
         def self.d71?(path) = File.extname(path).casecmp?(".d71")
 

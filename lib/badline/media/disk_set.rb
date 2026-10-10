@@ -13,7 +13,7 @@ module Badline
     # ahead of the names.
     module DiskSet
       KINDS = %w[disk disc side part].freeze
-      EXTENSIONS = %w[.d64 .d71 .d81 .g64].freeze
+      EXTENSIONS = Extensions::DISKS
 
       # The paths of the set's disks in order, or just `path` when it
       # belongs to none. A list's set is the disks it lists.
