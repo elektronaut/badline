@@ -82,6 +82,11 @@ describe Badline::Checkpoint do
     it "rejects a line with a component missing" do
       expect { described_class.parse("100 cpu=00000000") }.to raise_error(ArgumentError, /ram/)
     end
+
+    it "reads the components it is given" do
+      expect(described_class.parse("7 sound=0000000c via1=0000000b", %w[via1 sound]))
+        .to eq(described_class.new(7, [0x0b, 0x0c], %w[via1 sound]))
+    end
   end
 
   describe "#to_s" do
@@ -97,6 +102,17 @@ describe Badline::Checkpoint do
       ours = described_class.new(5, [1, 2, 3, 4, 5, 6, 7, 8])
       theirs = described_class.new(5, [1, 0, 3, 4, 0, 6, 7, 8])
       expect(ours.differences(theirs)).to eq(%w[ram vic])
+    end
+
+    it "names the components of its own list" do
+      ours = described_class.new(5, [1, 2], %w[via1 via2])
+      expect(ours.differences(described_class.new(5, [1, 0], %w[via1 via2]))).to eq(%w[via2])
+    end
+  end
+
+  describe "#==" do
+    it "tells checkpoints of different components apart" do
+      expect(described_class.new(5, [1, 2], %w[via1 via2])).not_to eq(described_class.new(5, [1, 2], %w[vic sid]))
     end
   end
 end
