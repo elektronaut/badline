@@ -105,27 +105,6 @@ module Badline
 
       private
 
-      # The disk device 8 serves through the traps, with its channels.
-      def save_trap_drive(out)
-        out.boolean(!@drive.nil?)
-        return unless @drive
-
-        @drive.save_state(out)
-        @serial_trap.save_state(out)
-        @save_trap.save_state(out)
-      end
-
-      def load_trap_drive(input)
-        return unmount unless input.boolean?
-
-        storage = Storage.reopen(input)
-        unmount
-        mount(storage)
-        @drive.load_state(input)
-        @serial_trap.load_state(input)
-        @save_trap.load_state(input)
-      end
-
       # A true 1541 on the serial bus, with its device number.
       def save_drive1541(out)
         out.boolean(!@drive1541.nil?)
@@ -133,15 +112,6 @@ module Badline
 
         out.int(@drive1541.device)
         @drive1541.save_state(out)
-      end
-
-      def load_drive1541(input)
-        return detach_drive1541 unless input.boolean?
-
-        device = input.int
-        detach_drive1541 if @drive1541 && @drive1541.device != device
-        attach_drive1541(Drive1541.new(device:)) unless @drive1541
-        @drive1541.load_state(input)
       end
 
       def check_ram(ram)

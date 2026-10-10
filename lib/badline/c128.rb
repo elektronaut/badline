@@ -73,10 +73,6 @@ module Badline
 
     attr_reader :cpu, :cycles, :drive1541, :model, :init_threshold
 
-    # The path of the disk or directory device 8 serves through the traps
-    # (Computer::Attachments), or an empty one.
-    def mounted_path = @drive.nil? ? "" : @drive.path
-
     def family = :c128
 
     def address_bus = @bus
@@ -221,14 +217,10 @@ module Badline
       reset_z80
     end
 
-    # CHROUT is at $FFD2 in both KERNALs, and the trap follows the mode.
-    def capture_output
-      @capture_output ||= ChroutTrap.new(cpu:, bus: @bus, layout: trap_layout).tap do |trap|
-        cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
-      end
-    end
-
     private
+
+    # The bus the KERNAL traps read and write through.
+    def trap_bus = @bus
 
     # The C128 KERNAL leaves $D02F at $FF, every extra keyboard row
     # deselected, before it jumps to the C64's reset.

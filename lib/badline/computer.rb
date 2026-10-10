@@ -18,10 +18,6 @@ module Badline
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 
-    # The path of the disk or directory device 8 serves through the traps
-    # (Attachments), or an empty one.
-    def mounted_path = @drive.nil? ? "" : @drive.path
-
     def family = :c64
 
     def region = address_bus.region
@@ -182,16 +178,12 @@ module Badline
     # The one-shot has pulsed already, so letting go does nothing.
     def release_restore; end
 
-    def capture_output
-      @capture_output ||= ChroutTrap.new(cpu:, bus: address_bus, layout: KernalTrap::C64_LAYOUT).tap do |trap|
-        cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
-      end
-    end
-
     private
 
-    # The KERNAL the traps stand in for (Attachments#mount).
+    # The KERNAL the traps stand in for (KernalTraps#mount).
     def trap_layout = KernalTrap::C64_LAYOUT
+
+    def trap_bus = address_bus
 
     def plug_reu(size_kb)
       reu = REU.new(size_kb, bus: @address_bus, vic: @vic)

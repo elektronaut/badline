@@ -2,23 +2,24 @@
 
 module Badline
   class Computer
-    # The true drives on the C64's serial bus: a Drive1541, and a Drive1581
-    # (Drive1581::Slot), each in a field of its own, and their state for a
-    # snapshot.
+    # The true drives on the machine's serial bus: a Drive1541, and a
+    # Drive1581 (Drive1581::Slot), each in a field of its own. Computer,
+    # Vic20 and C128 each include it.
     module TrueDrives
       include Drive1581::Slot
 
-      # Plugs in a Drive1541, which then runs alongside the C64 on its own
-      # clock and talks to it over the serial bus. The serial traps stop
+      # Plugs in a Drive1541, which then runs alongside the machine on its
+      # own clock and talks to it over the serial bus. The serial traps stop
       # answering the drive's device number, so the KERNAL's TALK, LISTEN and
       # byte transfers reach the drive. The LOAD and SAVE traps stay, and
       # still serve a mounted image.
       def attach_drive1541(drive)
         @iec_bus.detach(@drive1541) if @drive1541
-        drive.host_clock_hz = region.clock_hz
+        drive.host_clock_hz = timing.clock_hz
         @drive1541 = drive
-        drive.connect(iec_bus)
+        drive.connect(@iec_bus)
         @serial_trap&.device = serial_trap_device
+        drive1541_attached
       end
 
       # The true drive on the serial bus: the Drive1581 ahead of the
@@ -50,23 +51,11 @@ module Badline
         @drive1541&.device == device || drive1581_on_device8? ? nil : device
       end
 
-      # A true 1541 on the serial bus, then a 1581. The leading flag is the
-      # bus itself, which every machine now has.
-      def save_serial_bus(out)
-        out.boolean(true).boolean(!@drive1541.nil?)
-        if @drive1541
-          out.int(@drive1541.device)
-          @drive1541.save_state(out)
-        end
-        save_drive1581(out)
-      end
+      # What the machine does as a 1541 goes on its bus. The VIC-20 waits
+      # for its DOS to boot before typing.
+      def drive1541_attached = nil
 
-      def load_serial_bus(input)
-        input.boolean?
-        load_drive1541(input)
-        load_drive1581(input)
-      end
-
+      # A true 1541 on the serial bus, with its device number.
       def load_drive1541(input)
         return detach_drive1541 unless input.boolean?
 
