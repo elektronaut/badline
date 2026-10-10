@@ -58,4 +58,29 @@ describe Badline::Machine do
   it "refuses a family it can't build" do
     expect { described_class.build(:pet, model: "c64") }.to raise_error(ArgumentError, /pet/)
   end
+
+  describe ".for_options" do
+    def options(*argv) = Badline::Options.parse(argv)
+
+    it "builds a C128 in C128 mode" do
+      expect(described_class.for_options(options("c128"), nil).mode).to eq(:c128)
+    end
+
+    it "holds C= through a C128's reset with --c64" do
+      expect(described_class.for_options(options("c128", "--c64"), nil).keyboard.keys).to include(:cbm)
+    end
+
+    it "yields the RAM expansion it gives a VIC-20 for a program" do
+      program = Tempfile.create(["game", ".prg"]).tap { |file| file.write("\x01\x12\x00\x00\x00") }.tap(&:close)
+      expect { |line| described_class.for_options(options("vic20"), program.path, &line) }
+        .to yield_with_args("RAM expansion: 8k")
+    ensure
+      File.delete(program.path)
+    end
+
+    it "refuses media a VIC-20 doesn't take" do
+      expect { described_class.for_options(options("vic20"), "tune.sid") }
+        .to raise_error(Badline::Machine::Unsupported, /VIC-20/)
+    end
+  end
 end
