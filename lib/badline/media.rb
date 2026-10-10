@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/media/true_drive"
+require "badline/media/boot_disk"
 require "badline/media/not_disk"
 require "badline/media/queue"
 require "badline/media/disk_set"
@@ -33,6 +34,9 @@ module Badline
       # there, a .d64 goes into it instead of the KERNAL traps too. The
       # autostart then loads through it.
       #
+      # On a C128 in C128 mode, a boot disk goes in a true drive for the
+      # KERNAL to boot at power-on, with nothing typed (BootDisk).
+      #
       # An .m3u or .vfl list of disks attaches the first disk it lists
       # (DiskList). The VIC-20 takes its own media (Vic20Media), and the
       # C128 in C64 mode a C64's.
@@ -40,7 +44,7 @@ module Badline
         path = DiskList.disk(path)
         return Vic20Media.attach(computer, path, autostart:, **) if computer.family == :vic20
 
-        attach_c64(computer, path, autostart:, subtune:, **)
+        BootDisk.attach(computer, path, **) || attach_c64(computer, path, autostart:, subtune:, **)
       end
 
       # Swaps the disk in device 8 for a disk image or a host directory,
