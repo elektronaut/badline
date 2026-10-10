@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/sid/filter/saved_state"
+
 module Badline
   class SID
     # The SID's multimode filter: a state-variable design integrating low-,
@@ -10,6 +12,8 @@ module Badline
     # and the outputs selected by MODE/VOL are summed back together with the
     # unfiltered ones.
     class Filter
+      include SavedState
+
       # Cutoff frequency in Hz at each chip's breakpoints. The 6581 curve was
       # sampled from a real chip by reSID and bends sharply around $300; the
       # 8580's is close to a straight line from 0 to 12.5 kHz. The curve
@@ -146,25 +150,6 @@ module Badline
         @input = @unfiltered = 0
       end
 
-      # The registers as the filter decoded them and its integrators. The
-      # W0 table is the model's.
-      def save_state(out)
-        out.int(@cutoff).int(@routing).int(@mode).int(@volume).boolean(@voice3_off).int(@w0).int(@resonance)
-        [@highpass, @bandpass, @lowpass, @unfiltered, @input].each { |value| out.int(value) }
-        @external.save_state(out)
-      end
-
-      def load_state(input)
-        @cutoff = input.int
-        @routing = input.int
-        @mode = input.int
-        @volume = input.int
-        @voice3_off = input.boolean?
-        @w0 = input.int
-        @resonance = input.int
-        load_integrators(input)
-      end
-
       def write(reg, value)
         case reg
         when 0x15 then self.cutoff = (@cutoff & 0x7f8) | (value & 0x07)
@@ -203,15 +188,6 @@ module Badline
       def output = @external.output
 
       private
-
-      def load_integrators(input)
-        @highpass = input.int
-        @bandpass = input.int
-        @lowpass = input.int
-        @unfiltered = input.int
-        @input = input.int
-        @external.load_state(input)
-      end
 
       def write_resonance(value)
         @routing = value & 0x0f

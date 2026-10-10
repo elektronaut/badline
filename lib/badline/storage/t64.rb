@@ -20,14 +20,8 @@ module Badline
         raise FormatError, "Missing T64 signature" unless @bytes[0, 3] == SIGNATURE
       end
 
-      # The host file's path, as it was opened.
-      attr_reader :path
-
-      # What Storage.reopen needs to open the archive again: its path and
-      # its bytes.
-      def save_setup(out)
-        out.int(T64_ARCHIVE).string(File.expand_path(@path)).blob(@bytes)
-      end
+      # The host file's path, as it was opened, and its bytes.
+      attr_reader :path, :bytes
 
       def read_file(name, **)
         pattern = Storage.matcher(name)

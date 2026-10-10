@@ -1,21 +1,15 @@
 # frozen_string_literal: true
 
+require "badline/snapshot/vic20_setup"
+
 module Badline
   class Vic20
-    MARKER = "VIC20"
-
-    # The RAM expansion of the machine a State from #snapshot was taken
-    # of, a key of Bus::RAM_CONFIGURATIONS.
-    def self.setup(state)
-      input = Snapshot::StateReader.new(state)
-      input.marker(MARKER)
-      input.check_stamp
-      SavedState.read_ram(input)
-    end
+    # How the machine a State from #snapshot was taken of was built.
+    def self.setup(state) = Snapshot::Vic20Setup.from(state)
 
     # A new machine, built as the one a State from #snapshot was taken of,
     # at that state.
-    def self.restored(state) = new(ram: setup(state)).apply_state(state)
+    def self.restored(state) = setup(state).build.apply_state(state)
 
     # The whole machine's state for a snapshot, as Computer's: the
     # machine's own latches, the bus with its RAM and cartridge ROM, the
@@ -26,14 +20,6 @@ module Badline
     # and callbacks, whether the display renders, whether the sound
     # records, and whether the datasette records.
     module SavedState
-      RAM_CONFIGURATIONS = Bus::RAM_CONFIGURATIONS.keys.freeze
-
-      def self.read_ram(input)
-        RAM_CONFIGURATIONS.fetch(input.int)
-      rescue IndexError
-        raise Snapshot::FormatError, "the state names a VIC-20 RAM expansion badline doesn't know"
-      end
-
       # How many more on_init handlers the machine a State was taken of had
       # yet to run than this one has. Nil until the machine is restored.
       attr_reader :init_handlers_lost
@@ -49,7 +35,7 @@ module Badline
       # Raises Snapshot::FormatError for a state of another machine or RAM
       # expansion.
       def restore(state)
-        check_ram(Vic20.setup(state))
+        check_setup(Vic20.setup(state))
         Vic20.restored(state)
         apply_state(state)
       end
@@ -64,8 +50,8 @@ module Badline
       end
 
       def save_state(out)
-        out.marker(MARKER).stamp
-        out.int(RAM_CONFIGURATIONS.index(@ram_configuration))
+        out.marker(Snapshot::Vic20Setup::MARKER).stamp
+        Snapshot::Vic20Setup.new(ram: @ram_configuration).write(out)
         out.int(@cycles).boolean(@nmi_asserted).boolean(!@pending_keys.nil?)
         out.ints(@pending_keys) if @pending_keys
         out.int(@cycles <= @init_threshold ? @init_handlers.length : 0)
@@ -82,9 +68,9 @@ module Badline
       end
 
       def load_state(input)
-        input.marker(MARKER)
+        input.marker(Snapshot::Vic20Setup::MARKER)
         input.check_stamp
-        check_ram(SavedState.read_ram(input))
+        check_setup(Snapshot::Vic20Setup.read(input))
         @cycles = input.int
         @nmi_asserted = input.boolean?
         @pending_keys = nil
@@ -114,10 +100,10 @@ module Badline
         @drive1541.save_state(out)
       end
 
-      def check_ram(ram)
-        return if ram == @ram_configuration
+      def check_setup(setup)
+        return if setup.ram == @ram_configuration
 
-        raise Snapshot::FormatError, "the state is of a VIC-20 with #{ram} RAM, not #{@ram_configuration}"
+        raise Snapshot::FormatError, "the state is of a VIC-20 with #{setup.ram} RAM, not #{@ram_configuration}"
       end
     end
   end

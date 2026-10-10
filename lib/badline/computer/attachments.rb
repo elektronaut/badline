@@ -54,10 +54,9 @@ module Badline
         end
       end
 
-      # A true 1541 on the serial bus, then a 1581. The leading flag is the
-      # bus itself, which every machine now has.
+      # A true 1541 on the serial bus, then a 1581.
       def save_serial_bus(out)
-        out.boolean(true).boolean(!@drive1541.nil?)
+        out.boolean(!@drive1541.nil?)
         if @drive1541
           out.int(@drive1541.device)
           @drive1541.save_state(out)
@@ -66,7 +65,6 @@ module Badline
       end
 
       def load_serial_bus(input)
-        input.boolean?
         load_drive1541(input)
         load_drive1581(input)
       end

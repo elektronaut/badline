@@ -6,7 +6,7 @@ module Badline
       # A snapshot of an envelope: its rates, the gate, the state and the
       # counters and pipelines between them, and the same fields as reSID
       # keeps them, for VICE's SIDEXTENDED module.
-      module State
+      module SavedState
         # The fields reSID keeps for an envelope between cycles: the rate and
         # exponential counters, the level, the state as an index into STATES,
         # whether it holds at zero, the two periods and the pipeline.

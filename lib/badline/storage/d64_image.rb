@@ -15,8 +15,6 @@ module Badline
         count
       end
 
-      def storage_kind = D64
-
       # The sides of a disk the image's tracks fill.
       def sides = 1
 

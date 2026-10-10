@@ -25,7 +25,7 @@ describe Badline::KernalTrap::DOS, "#save_state" do
     out = Badline::Snapshot::StateWriter.new
     drive.save_state(out)
     input = Badline::Snapshot::StateReader.new(out.state)
-    described_class.new(Badline::Storage.reopen(input)).tap do |copy|
+    described_class.new(Badline::Snapshot::StorageSetup.read(input)).tap do |copy|
       copy.load_state(input)
       raise "state left unread" unless input.finished?
     end

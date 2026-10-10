@@ -5,8 +5,6 @@ module Badline
     class D81Image < DiskImage
       ERROR_TABLES = { 822_400 => 3200 }.freeze
 
-      def storage_kind = D81
-
       private
 
       def error_tables = ERROR_TABLES

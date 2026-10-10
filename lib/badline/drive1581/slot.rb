@@ -64,9 +64,8 @@ module Badline
         @drive1581.save_state(out)
       end
 
-      # Layouts before 8 have no 1581.
       def load_drive1581(input)
-        return detach_drive1581 if input.schema < 8 || !input.boolean?
+        return detach_drive1581 unless input.boolean?
 
         device = input.int
         detach_drive1581 if @drive1581 && @drive1581.device != device

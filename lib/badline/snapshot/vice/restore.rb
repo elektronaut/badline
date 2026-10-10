@@ -25,7 +25,7 @@ module Badline
         # so nothing it was doing carries into the snapshot's machine.
         def import(container, computer)
           setup = Vice.setup(container)
-          ours = Setup.of(computer.address_bus)
+          ours = C64Setup.of(computer.address_bus)
           raise FormatError, "the snapshot is of a machine with #{setup}, not #{ours}" unless setup == ours
 
           apply(container, setup.build)

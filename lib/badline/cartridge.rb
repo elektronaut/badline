@@ -27,9 +27,12 @@ require "badline/cartridge/final_cartridge3"
 require "badline/cartridge/retro_replay"
 require "badline/cartridge/kcs_power"
 require "badline/cartridge/geo_ram"
+require "badline/cartridge/saved_state"
 
 module Badline
   class Cartridge
+    include SavedState
+
     class UnsupportedTypeError < StandardError; end
 
     ROMH_START = 0xa000
@@ -116,31 +119,6 @@ module Badline
       @on_change = block
     end
 
-    # What builds the same cartridge afresh (Cartridge.from_setup): the CRT
-    # image it was built from, and the jumpers of a mapper that has them.
-    def save_setup(out)
-      out.int(CRT_SETUP).string(Storage::CRTFile.encode(@crt))
-      save_jumpers(out)
-    end
-
-    # The lines, the pull on NMI, the button and the mapper's own state.
-    # Loading sets them without calling back into the machine, which maps
-    # the cartridge again afterwards.
-    def save_state(out)
-      out.marker("CARTRIDGE")
-      out.int(@exrom).int(@game).boolean(@nmi).boolean(@button == true)
-      save_mapper(out)
-    end
-
-    def load_state(input)
-      input.marker("CARTRIDGE")
-      @exrom = input.int
-      @game = input.int
-      @nmi = input.boolean?
-      @button = input.boolean?
-      load_mapper(input)
-    end
-
     # Called with the level of the cartridge's pull on the NMI line when it
     # changes. The line is wired-OR with CIA 2's.
     def on_nmi_change(&block)
@@ -198,36 +176,11 @@ module Badline
 
     private
 
-    def save_jumpers(out)
-      out.boolean(false)
-    end
-
-    # The mapper's own state: where its windows point, for a mapper that
-    # moves them, and whatever a mapper adds after calling super.
-    def save_mapper(out)
-      save_windows(out, windows) if windows
-    end
-
-    def load_mapper(input)
-      load_windows(input, windows) if windows
-    end
-
     # The banks and views ROML and ROMH can point at, which a snapshot
     # names them by: the mapper's banks, or nothing for a mapper whose
     # windows stay where install_chips put them.
     def windows
       [*@banks, EMPTY_BANK] if @banks
-    end
-
-    # Where the ROML and ROMH windows point, as their places in `windows`,
-    # the banks and views the mapper picks them from, or -1 for none.
-    def save_windows(out, windows)
-      out.int(window_index(@roml, windows)).int(window_index(@romh, windows))
-    end
-
-    def load_windows(input, windows)
-      @roml = window_at(input.int, windows)
-      @romh = window_at(input.int, windows)
     end
 
     def window_index(window, windows)

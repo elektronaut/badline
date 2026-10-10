@@ -5,7 +5,7 @@ require "spec_helper"
 describe Badline::Model do
   def chips(model) = [model.vic_model, model.cia_model, model.sid_model, model.region.name]
 
-  def setup(sid_model) = Badline::Snapshot::Setup.of(Badline::AddressBus.new(sid_model:))
+  def setup(sid_model) = Badline::Snapshot::C64Setup.of(Badline::AddressBus.new(sid_model:))
 
   it "builds the C64 by default" do
     expect(chips(described_class.named("c64"))).to eq(%i[mos6569 mos6526 mos6581 pal])

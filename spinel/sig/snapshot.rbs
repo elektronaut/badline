@@ -1,0 +1,13 @@
+module Badline
+  module Snapshot
+    class State
+      @values: Array[Integer]
+      @strings: Array[String]
+    end
+
+    class StateReader
+      @values: Array[Integer]
+      @strings: Array[String]
+    end
+  end
+end

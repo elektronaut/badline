@@ -3,9 +3,9 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../support/blank_disk"
+require_relative "../../support/blank_disk"
 
-describe Badline::Storage, ".reopen" do
+describe Badline::Snapshot::StorageSetup do
   include BlankDisk
 
   let(:dir) { Dir.mktmpdir }
@@ -17,8 +17,8 @@ describe Badline::Storage, ".reopen" do
 
   def reopened(storage, detached:)
     out = Badline::Snapshot::StateWriter.new
-    storage.save_setup(out)
-    described_class.reopen(Badline::Snapshot::StateReader.new(out.state, detached:))
+    described_class.write(storage, out)
+    described_class.read(Badline::Snapshot::StateReader.new(out.state, detached:))
   end
 
   it "opens a disk image as it was" do
@@ -40,9 +40,9 @@ describe Badline::Storage, ".reopen" do
 
     def reopened_without_file(detached:)
       out = Badline::Snapshot::StateWriter.new
-      Badline::Storage::T64.new(archive).save_setup(out)
+      described_class.write(Badline::Storage::T64.new(archive), out)
       File.delete(archive)
-      described_class.reopen(Badline::Snapshot::StateReader.new(out.state, detached:))
+      described_class.read(Badline::Snapshot::StateReader.new(out.state, detached:))
     end
 
     it "serves its files once the archive's file is gone" do

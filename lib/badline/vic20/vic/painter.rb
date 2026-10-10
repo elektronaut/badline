@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/vic20/vic/painter/saved_state"
+
 module Badline
   class Vic20
     class VIC
@@ -26,6 +28,8 @@ module Badline
       # nibble's low three bits) and 11 the auxiliary colour, whatever
       # $900F bit 3 says (MOS 6560/6561 datasheet, "Color operating modes").
       class Painter
+        include SavedState
+
         # The characters a line holds room for. A line fetches at most 34.
         SLOTS = 40
 
@@ -68,34 +72,6 @@ module Badline
 
         def clear_dirty_lines!
           @dirty_lines.fill(false)
-        end
-
-        # The colours, the line being painted and how far, what each line
-        # fetched, and the display, for a snapshot. Whether it renders is
-        # the host's, and a restored display is all changed.
-        def save_state(out)
-          out.int(@border).int(@background).int(@aux).boolean(@reverse)
-          out.int(@row).int(@painted).boolean(@written)
-          out.blob(@display).blob(@patterns).blob(@colors)
-          out.ints(@counts).ints(@starts).booleans(@stale).ints(@memo_keys)
-        end
-
-        def load_state(input)
-          @border = input.int
-          @background = input.int
-          @aux = input.int
-          @reverse = input.boolean?
-          @row = input.int
-          @painted = input.int
-          @written = input.boolean?
-          input.blob_into(@display)
-          input.blob_into(@patterns)
-          input.blob_into(@colors)
-          input.ints_into(@counts)
-          input.ints_into(@starts)
-          input.booleans_into(@stale)
-          input.ints_into(@memo_keys)
-          @dirty_lines.fill(true)
         end
 
         # Painting can be turned off, and once it's back on every line is

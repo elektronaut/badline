@@ -100,9 +100,9 @@ module Badline
       end
 
       # Puts the state back, reusing the disk in when it's the one the state
-      # names (Disk::State.load). A disk taken out is flushed.
+      # names (Disk::SavedState.load). A disk taken out is flushed.
       def load_state(input)
-        disk = input.boolean? ? Disk::State.load(input, @disk) : nil
+        disk = input.boolean? ? Disk::SavedState.load(input, @disk) : nil
         flush unless disk.equal?(@disk)
         @disk = disk
         @cylinder = input.int

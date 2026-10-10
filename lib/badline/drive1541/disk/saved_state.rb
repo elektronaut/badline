@@ -9,7 +9,7 @@ module Badline
       # and every half track as the head sees it, with those written since
       # the last flush. The image itself is read again from its host file,
       # where there still is one.
-      module State
+      module SavedState
         # The image's path, expanded, and whether it was opened read-only,
         # for a disk from Disk.open. Nil for a disk made another way.
         attr_reader :path, :read_only

@@ -5,6 +5,7 @@ require "badline/drive1571/wd1770"
 require "badline/drive1571/serial_port"
 require "badline/drive1571/serial_via"
 require "badline/drive1571/bus"
+require "badline/drive1571/saved_state"
 
 module Badline
   # The 1571 disk drive, the C128D's built-in one: the 1541's 6502, two
@@ -26,6 +27,7 @@ module Badline
     include Drive::Core
     include Drive::VIAs
     include Drive::FastSerial
+    include SavedState
 
     CLOCK_HZ = 1_000_000
     FAST_CLOCK_HZ = 2_000_000
@@ -107,43 +109,6 @@ module Badline
     # VIA 1's port B, with the fast serial pins pulling DATA and SRQ
     # (IECBus::DRIVE_FAST_DATA and DRIVE_FAST_SRQ) above it.
     def serial_output = @via1.port_b_output | @fast_output
-
-    # The drive's whole state, as the 1541's (Drive1541#save_state), with
-    # the CIA and the WD1770's registers. The clock rate, the side and the
-    # fast serial direction follow from VIA 1's port A.
-    def save_state(out)
-      settle!
-      out.marker("DRIVE1571")
-      out.int(@phase).int(@cycles).boolean(@mechanism.so_pending)
-      @serial_port.save_state(out)
-      @via1.save_state(out)
-      @via2.save_state(out)
-      @cia.save_state(out)
-      @fdc.save_state(out)
-      @bus.save_state(out)
-      @cpu.save_state(out)
-      @mechanism.save_state(out)
-    end
-
-    def load_state(input)
-      settle!
-      input.marker("DRIVE1571")
-      @phase = input.int
-      @cycles = input.int
-      @mechanism.so_pending = input.boolean?
-      @serial_port.load_state(input)
-      @via1.load_state(input)
-      @via2.load_state(input)
-      @cia.load_state(input)
-      @fdc.load_state(input)
-      @bus.load_state(input)
-      @cpu.load_state(input)
-      @mechanism.load_state(input)
-      @fast_serial_out = @via1.port_a_output.anybits?(FAST_SERIAL_OUT)
-      port_a_written(@via1.port_a_output)
-      push_fast_output(@fast_serial_out ? fast_pins : 0)
-      forget_orbits
-    end
 
     private
 

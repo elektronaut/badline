@@ -5,7 +5,7 @@ module Badline
     class WD1772
       # Saving and restoring the WD1772 for a snapshot: its registers and
       # lines, and the command running, down to the byte it is at.
-      module State
+      module SavedState
         def save_state(out)
           [@now, @due, @phase, @command, @track, @sector, @data, @status, @steps, @count, @after_spin_up, @mode,
            @deadline, @id_at, @found, @index, @crc, @write_id, @size].each { |value| out.int(value) }

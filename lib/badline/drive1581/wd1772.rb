@@ -6,7 +6,7 @@ require "badline/drive1581/wd1772/stepping"
 require "badline/drive1581/wd1772/sectors"
 require "badline/drive1581/wd1772/sector_writes"
 require "badline/drive1581/wd1772/tracks"
-require "badline/drive1581/wd1772/state"
+require "badline/drive1581/wd1772/saved_state"
 
 module Badline
   class Drive1581
@@ -44,7 +44,7 @@ module Badline
       include Sectors
       include SectorWrites
       include Tracks
-      include State
+      include SavedState
 
       BYTE = 64
       START = 32

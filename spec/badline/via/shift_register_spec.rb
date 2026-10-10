@@ -331,20 +331,6 @@ describe Badline::VIA::ShiftRegister do
     end
   end
 
-  describe "a snapshot in layout 4" do
-    # A byte under way in mode 6, written before the clock delay was saved.
-    let(:layout4) do
-      out = Badline::Snapshot::StateWriter.new.int(4).string(Badline::VERSION)
-      out.int(6).int(0xb4).int(8).boolean(true).boolean(true).boolean(true)
-      Badline::Snapshot::StateReader.new(out.state).tap(&:check_stamp)
-    end
-
-    it "restores the byte with its clock delay cleared" do
-      sr.load_state(layout4)
-      expect([sr.mode, sr.data, run(40)]).to eq([6, 0xb4, [17]])
-    end
-  end
-
   describe "mode changes" do
     it "keeps only the mode bits" do
       sr.mode = 0x0e

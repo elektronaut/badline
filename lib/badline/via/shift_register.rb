@@ -88,7 +88,7 @@ module Badline
         @mode = input.int
         @data = input.int
         @bits = input.int
-        @delay = input.schema > 4 ? input.int : 0
+        @delay = input.int
         @clock = input.boolean?
         @cb2 = input.boolean?
         @cb2_input = input.boolean?

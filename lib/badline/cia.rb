@@ -3,14 +3,14 @@
 require "badline/cia/interrupt_register"
 require "badline/cia/serial"
 require "badline/cia/timer"
-require "badline/cia/state"
+require "badline/cia/saved_state"
 require "badline/cia/fast_forward"
 
 module Badline
   # CIA (Complex Interface Adapter) chip
   class CIA
     include Addressable
-    include State
+    include SavedState
     include FastForward
 
     # The original NMOS 6526 of the breadbin C64, and the HMOS 6526A of the

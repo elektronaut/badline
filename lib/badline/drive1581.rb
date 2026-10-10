@@ -9,6 +9,7 @@ require "badline/drive1581/wd1772"
 require "badline/drive1581/cpu"
 require "badline/drive1581/serial_port"
 require "badline/drive1581/bus"
+require "badline/drive1581/saved_state"
 
 module Badline
   # The 1581 3.5" disk drive: a 6502 at 2 MHz with 8 KB of RAM, an 8520
@@ -37,6 +38,7 @@ module Badline
   class Drive1581
     include Drive::Core
     include Drive::FastSerial
+    include SavedState
 
     CLOCK_HZ = 2_000_000
 
@@ -150,38 +152,6 @@ module Badline
 
       @mechanism.motor(motor, @fdc.now)
       @fdc.spin_changed
-    end
-
-    # The drive's whole state, as the 1541's (Drive1541#save_state), with
-    # the 8520 and the WD1772 in place of the VIAs.
-    def save_state(out)
-      settle!
-      out.marker("DRIVE1581")
-      out.int(@phase).int(@cycles).boolean(@atn)
-      @serial_port.save_state(out)
-      @cia.save_state(out)
-      @fdc.save_state(out)
-      @bus.save_state(out)
-      @cpu.save_state(out)
-      @mechanism.save_state(out)
-    end
-
-    def load_state(input)
-      settle!
-      input.marker("DRIVE1581")
-      @phase = input.int
-      @cycles = input.int
-      @atn = input.boolean?
-      @serial_port.load_state(input)
-      @cia.load_state(input)
-      @fdc.load_state(input)
-      @bus.load_state(input)
-      @cpu.load_state(input)
-      @mechanism.load_state(input)
-      @fast_serial_out = @cia.port_b_lines.anybits?(FAST_SERIAL_OUT)
-      ports_written
-      push_fast_output(@fast_serial_out ? fast_pins : 0)
-      forget_orbits
     end
 
     private
