@@ -5,7 +5,7 @@ module Badline
     # A snapshot of the chip: everything it holds but its wiring, the ports,
     # the PB4 and CNT levels, the timers, the interrupt register, the serial
     # port and the TOD clock.
-    module State
+    module SavedState
       def save_state(out)
         out.marker("CIA")
         out.int(@data_port_a).int(@data_port_b).int(@data_dir_a).int(@data_dir_b)

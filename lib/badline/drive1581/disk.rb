@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/drive1581/disk_state"
+require "badline/drive1581/disk/saved_state"
 
 module Badline
   class Drive1581
@@ -23,7 +23,7 @@ module Badline
     # file. A track formatted another way stays on the disk alone. The disk
     # is write-protected when the image won't take writes.
     class Disk
-      include State
+      include SavedState
 
       CYLINDERS = 80
       SIDES = 2

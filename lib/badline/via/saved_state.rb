@@ -3,7 +3,7 @@
 module Badline
   class VIA
     # Saving and restoring a VIA for a snapshot.
-    module State
+    module SavedState
       # The registers, the timers, the shift register, the interrupt flags
       # and the control lines. The peripheral is the drive's wiring.
       def save_state(out)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drive1541/sector_reader"
-require "badline/drive1541/disk_state"
+require "badline/drive1541/disk/saved_state"
 
 module Badline
   class Drive1541
@@ -22,7 +22,7 @@ module Badline
     # host file. The disk is write-protected when the image won't take
     # writes.
     class Disk
-      include State
+      include SavedState
 
       MAX_HALF_TRACK = 84
 
@@ -60,13 +60,13 @@ module Badline
       # formatted. `read_only` opens the image write-protected.
       def self.open(path, read_only: false)
         image = image_for(path, read_only)
-        (State.g64?(path) ? from_g64(image) : from_d64(image)).opened(path, read_only)
+        (SavedState.g64?(path) ? from_g64(image) : from_d64(image)).opened(path, read_only)
       end
 
       # The image at +path+, by its name: a .g64 or .g71, a .d71, and
       # anything else a .d64.
       def self.image_for(path, read_only)
-        return Storage::G64Image.new(path, read_only:) if State.g64?(path)
+        return Storage::G64Image.new(path, read_only:) if SavedState.g64?(path)
         return Storage::D71Image.new(path, read_only:) if File.extname(path).casecmp?(".d71")
 
         Storage::D64Image.new(path, read_only:)

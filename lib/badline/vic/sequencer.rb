@@ -5,7 +5,7 @@ require "badline/vic/color_patches"
 require "badline/vic/graphics_mode"
 require "badline/vic/graphics_shifter"
 require "badline/vic/sequencer_output"
-require "badline/vic/sequencer_state"
+require "badline/vic/sequencer/saved_state"
 
 module Badline
   class VIC

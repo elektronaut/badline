@@ -3,7 +3,7 @@
 require "badline/vic/collisions"
 require "badline/vic/register_log"
 require "badline/vic/sprite"
-require "badline/vic/sprites_state"
+require "badline/vic/sprites/saved_state"
 
 module Badline
   class VIC

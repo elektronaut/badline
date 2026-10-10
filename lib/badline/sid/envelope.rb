@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/sid/envelope/state"
+require "badline/sid/envelope/saved_state"
 
 module Badline
   class SID
@@ -30,7 +30,7 @@ module Badline
       # The states a snapshot names by index.
       STATES = %i[attack decay_sustain release].freeze
 
-      include State
+      include SavedState
 
       attr_reader :state, :counter, :env3
 

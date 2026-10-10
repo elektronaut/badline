@@ -7,7 +7,7 @@ module Badline
       # output latch, and the same fields as reSID keeps them, for VICE's
       # SIDEXTENDED module. The model's tables and the voices it syncs with
       # are the SID's wiring.
-      module State
+      module SavedState
         # The fields reSID keeps for an oscillator between cycles: the phase,
         # the noise register, its shift pipeline and reset countdown, the
         # floating output's countdown and the pulse level.

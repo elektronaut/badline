@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drive1541/rotation"
-require "badline/drive1541/mechanism_state"
+require "badline/drive1541/mechanism/saved_state"
 require "badline/drive1541/byte_ready"
 
 module Badline
@@ -70,7 +70,7 @@ module Badline
     # its track 0 sensor looks for the head (Mechanism.new's +slip+).
     class Mechanism
       include Rotation
-      include MechanismState
+      include SavedState
       include ByteReady
 
       MOTOR = 0x04

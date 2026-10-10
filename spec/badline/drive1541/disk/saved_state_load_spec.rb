@@ -4,7 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Drive1541::Disk::State, ".load" do
+describe Badline::Drive1541::Disk::SavedState, ".load" do
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "disk.g64") }
   let(:tracks) { { 0 => [Array.new(7000) { |i| i & 0xff }, 3], 34 => [Array.new(6500, 0x55), 2] } }

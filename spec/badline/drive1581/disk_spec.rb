@@ -125,7 +125,7 @@ describe Badline::Drive1581::Disk do
     def round_trip(current)
       out = Badline::Snapshot::StateWriter.new
       disk.save_state(out)
-      Badline::Drive1581::Disk::State.load(Badline::Snapshot::StateReader.new(out.state), current)
+      Badline::Drive1581::Disk::SavedState.load(Badline::Snapshot::StateReader.new(out.state), current)
     end
 
     before do
