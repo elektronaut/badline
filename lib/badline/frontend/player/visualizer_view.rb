@@ -69,10 +69,10 @@ module Badline
         top = row_top(count, sid)
         scopes = @voices[count - 1]
         3.times do |voice|
-          color = SIDView::VOICE_COLORS[voice]
+          color = PlayerTheme::VOICE_COLORS[voice]
           note = SIDView.note(history.hertz(frame, voice, clock_hz))
           silent = history.level(frame, voice).zero?
-          @painter.text(left(voice), top, note, silent ? SIDView::DIM : color, scale: count == 1 ? 2 : 1)
+          @painter.text(left(voice), top, note, silent ? PlayerTheme::DIM : color, scale: count == 1 ? 2 : 1)
           scopes[(sid * 3) + voice].draw(history, played, (sid * 4) + voice, color)
         end
         draw_label(top, sid) if count > 1
@@ -80,21 +80,21 @@ module Badline
 
       def draw_label(top, sid)
         label = "SID #{sid + 1}"
-        @painter.text(SIDView::LEFT + MIX_WIDTH - Painter.width(label), top, label, SIDView::TEXT)
+        @painter.text(SIDView::LEFT + MIX_WIDTH - Painter.width(label), top, label, PlayerTheme::TEXT)
       end
 
       def draw_mix(history, played, count)
         if count == 1
-          @mix.draw(history, played, SIDHistory::MIX, SIDView::BRIGHT)
+          @mix.draw(history, played, SIDHistory::MIX, PlayerTheme::BRIGHT)
           return
         end
 
         sides = @sides[count - 2]
-        sides[0].draw(history, played, history.left, SIDView::BRIGHT)
-        sides[1].draw(history, played, history.right, SIDView::BRIGHT)
+        sides[0].draw(history, played, history.left, PlayerTheme::BRIGHT)
+        sides[1].draw(history, played, history.right, PlayerTheme::BRIGHT)
         top = mix_top(count) + 2
-        @painter.text(SIDView::LEFT + 2, top, "L", SIDView::DIM)
-        @painter.text(SIDView::LEFT + MIX_WIDTH - 10, top, "R", SIDView::DIM)
+        @painter.text(SIDView::LEFT + 2, top, "L", PlayerTheme::DIM)
+        @painter.text(SIDView::LEFT + MIX_WIDTH - 10, top, "R", PlayerTheme::DIM)
       end
     end
   end

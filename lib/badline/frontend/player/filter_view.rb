@@ -6,10 +6,10 @@ module Badline
     # resonance and volume, and its response across the audible range on
     # the chip playing, whose cutoff curve the two models don't share.
     class FilterView
-      TEXT = SIDView::TEXT
-      BRIGHT = SIDView::BRIGHT
-      DIM = SIDView::DIM
-      BOX = SIDView::BOX
+      TEXT = PlayerTheme::TEXT
+      BRIGHT = PlayerTheme::BRIGHT
+      DIM = PlayerTheme::DIM
+      BOX = PlayerTheme::BOX
 
       MODES = ["LP", "BP", "HP", "3 OFF"].freeze
 

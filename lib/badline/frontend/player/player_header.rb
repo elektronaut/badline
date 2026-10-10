@@ -21,10 +21,10 @@ module Badline
       # Underlines the models playing while AUTO picks them.
       def draw(state, tune, playing_models, credit)
         unless tune.nil?
-          @painter.text(16, 8, fit(tune.name, 26), SIDView::BRIGHT, scale: 2)
-          @painter.text(16, 28, fit([tune.author, tune.released].reject(&:empty?).join(" - "), 50), SIDView::TEXT)
-          @painter.text(16, 40, fit(credit, 76), SIDView::BRIGHT)
-          @painter.text(16, 52, warning(state), PlayerWindow::WARNING)
+          @painter.text(16, 8, fit(tune.name, 26), PlayerTheme::BRIGHT, scale: 2)
+          @painter.text(16, 28, fit([tune.author, tune.released].reject(&:empty?).join(" - "), 50), PlayerTheme::TEXT)
+          @painter.text(16, 40, fit(credit, 76), PlayerTheme::BRIGHT)
+          @painter.text(16, 52, warning(state), PlayerTheme::WARNING)
         end
         draw_views(state)
         draw_chips(state, playing_models)
@@ -48,7 +48,7 @@ module Badline
         CHIP_NAMES.each_with_index do |name, chip|
           width = @buttons.text(x, 24, name, CHIPS[chip], on: chip == state.chip)
           if state.chip.zero? && playing_models.include?(CHIPS[chip])
-            @painter.box(x + 2, 37, width - 4, 1, SIDView::BRIGHT)
+            @painter.box(x + 2, 37, width - 4, 1, PlayerTheme::BRIGHT)
           end
           x += width + 4
         end

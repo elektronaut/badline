@@ -29,7 +29,7 @@ module Badline
         x += @buttons.icon(x, row, state.paused? ? :play : :pause, :pause, scale: 2) + 4
         x += @buttons.icon(x, row, :next, :next, scale: 2) + 8
         unless state.tunes.zero?
-          x += @painter.text(x, row + 6, "TUNE #{state.tune}/#{state.tunes}", SIDView::BRIGHT) + 24
+          x += @painter.text(x, row + 6, "TUNE #{state.tune}/#{state.tunes}", PlayerTheme::BRIGHT) + 24
           draw_subtunes(state, x, row + 4)
         end
         draw_toggles(state, row + 4)
@@ -41,9 +41,9 @@ module Badline
       private
 
       def draw_subtunes(state, left, row)
-        x = left + @painter.text(left, row + 2, "SUBTUNE", SIDView::TEXT) + 4
+        x = left + @painter.text(left, row + 2, "SUBTUNE", PlayerTheme::TEXT) + 4
         x += @buttons.icon(x, row, :left, :previous_subtune)
-        x += @painter.text(x + 2, row + 2, "#{state.subtune}/#{state.subtunes}", SIDView::BRIGHT) + 4
+        x += @painter.text(x + 2, row + 2, "#{state.subtune}/#{state.subtunes}", PlayerTheme::BRIGHT) + 4
         @buttons.icon(x, row, :right, :next_subtune)
       end
 
@@ -51,17 +51,17 @@ module Badline
         played = state.played
         width = BAR_WIDTH
         @buttons.area([BAR_LEFT, top - 2, width, 12], :seek)
-        @painter.box(BAR_LEFT, top + 2, width, 4, SIDView::BOX)
+        @painter.box(BAR_LEFT, top + 2, width, 4, PlayerTheme::BOX)
         draw_target(state, top) if state.seeking?
-        @painter.box(BAR_LEFT, top + 2, along(state, played), 4, SIDView::BRIGHT)
+        @painter.box(BAR_LEFT, top + 2, along(state, played), 4, PlayerTheme::BRIGHT)
         @painter.text(WIDTH - 16 - Painter.width(CLOCK), top, "#{clock(played)} / #{clock(state.length)}",
-                      SIDView::TEXT)
+                      PlayerTheme::TEXT)
       end
 
       def draw_target(state, top)
         target = along(state, state.target)
-        @painter.box(BAR_LEFT, top + 2, target, 4, SIDView::DIM)
-        @painter.box(BAR_LEFT + [target, BAR_WIDTH - 1].min, top - 1, 1, 10, SIDView::BRIGHT)
+        @painter.box(BAR_LEFT, top + 2, target, 4, PlayerTheme::DIM)
+        @painter.box(BAR_LEFT + [target, BAR_WIDTH - 1].min, top - 1, 1, 10, PlayerTheme::BRIGHT)
       end
 
       # How far along the bar `seconds` into the subtune is.

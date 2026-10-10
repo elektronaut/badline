@@ -6,8 +6,9 @@ require "badline/frontend"
 
 describe Badline::Frontend::Buttons do
   context "with the SID player's buttons" do
-    subject(:buttons) { described_class.new(painter) }
+    subject(:buttons) { described_class.new(painter, [theme::TEXT, theme::BRIGHT, theme::BACKGROUND]) }
 
+    let(:theme) { Badline::Frontend::PlayerTheme }
     let(:painter) { instance_double(Badline::Frontend::Painter, text: 0, icon: nil, box: nil) }
 
     before do
@@ -31,7 +32,7 @@ describe Badline::Frontend::Buttons do
     it "lights the button under the pointer" do
       buttons.point(12, 25)
       buttons.text(10, 20, "LOOP", :loop)
-      expect(painter).to have_received(:text).with(12, 22, "LOOP", Badline::Frontend::SIDView::BRIGHT)
+      expect(painter).to have_received(:text).with(12, 22, "LOOP", theme::BRIGHT)
     end
   end
 

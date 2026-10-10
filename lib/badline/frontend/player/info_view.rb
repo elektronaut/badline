@@ -52,7 +52,7 @@ module Badline
       def draw
         index = 0
         while index < ROWS && @offset + index < @lines.size
-          @painter.text(LEFT, @top + (index * LINE), @lines[@offset + index], SIDView::TEXT)
+          @painter.text(LEFT, @top + (index * LINE), @lines[@offset + index], PlayerTheme::TEXT)
           index += 1
         end
         draw_bar if @lines.size > ROWS
@@ -110,10 +110,10 @@ module Badline
 
       def draw_bar
         @buttons.area([BAR_LEFT, @top, BAR, HEIGHT], :scroll)
-        @painter.box(BAR_LEFT, @top, BAR, HEIGHT, SIDView::BOX)
+        @painter.box(BAR_LEFT, @top, BAR, HEIGHT, PlayerTheme::BOX)
         thumb = [HEIGHT * ROWS / @lines.size, 8].max
         place = (HEIGHT - thumb) * @offset / [last_offset, 1].max
-        @painter.box(BAR_LEFT, @top + place, BAR, thumb, SIDView::TEXT)
+        @painter.box(BAR_LEFT, @top + place, BAR, thumb, PlayerTheme::TEXT)
       end
     end
   end

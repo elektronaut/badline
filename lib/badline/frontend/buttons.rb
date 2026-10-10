@@ -2,17 +2,17 @@
 
 module Badline
   module Frontend
-    # The SID player's buttons: each is drawn where it goes on every frame,
-    # and remembers its place, so a click finds the action under it. The
-    # one under the pointer lights up, and one that's on is drawn reversed.
-    # They take the player's colours unless given others: the text, the text
-    # under the pointer, the background and, if any, a fill behind each
-    # button.
+    # The buttons of the SID player and the pause menu: each is drawn where
+    # it goes on every frame, and remembers its place, so a click finds the
+    # action under it. The one under the pointer lights up, and one that's
+    # on is drawn reversed. They take their colours from the caller: the
+    # text, the text under the pointer, the background and, if any, a fill
+    # behind each button.
     class Buttons
       PAD = 2
       HEIGHT = Painter::GLYPH + (PAD * 2)
 
-      def initialize(painter, colors = [SIDView::TEXT, SIDView::BRIGHT, PlayerScreen::BACKGROUND])
+      def initialize(painter, colors)
         @painter = painter
         @text = colors[0]
         @bright = colors[1]

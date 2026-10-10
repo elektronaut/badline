@@ -70,14 +70,14 @@ module Badline
       end
 
       def draw(left, top, width, title)
-        @painter.text(left, top, title, PauseMenu::BRIGHT)
-        @painter.text(left, top + ROW + 2, shown_directory, PauseMenu::DIM)
+        @painter.text(left, top, title, MenuTheme::BRIGHT)
+        @painter.text(left, top + ROW + 2, shown_directory, MenuTheme::DIM)
         @list_top = top + (ROW * 2) + 8
         @buttons.area([left, @list_top, width, ROW * ROWS], :browse)
         draw_rows(left, width)
         draw_bar(left + width - 2) if @names.size > ROWS
         @painter.text(left, @list_top + (ROW * ROWS) + 6, "RETURN: OPEN  LEFT: BACK  ESC: CANCEL",
-                      PauseMenu::DIM)
+                      MenuTheme::DIM)
       end
 
       private
@@ -96,10 +96,10 @@ module Badline
           name = label(index)
           top = @list_top + (row * ROW)
           if index == @selected
-            @painter.box(left - 2, top - 2, width - 4, ROW, PauseMenu::TEXT)
-            @painter.text(left, top, name, PauseMenu::PANEL)
+            @painter.box(left - 2, top - 2, width - 4, ROW, MenuTheme::TEXT)
+            @painter.text(left, top, name, MenuTheme::PANEL)
           else
-            @painter.text(left, top, name, index < @folders ? PauseMenu::BRIGHT : PauseMenu::TEXT)
+            @painter.text(left, top, name, index < @folders ? MenuTheme::BRIGHT : MenuTheme::TEXT)
           end
         end
       end
@@ -108,8 +108,8 @@ module Badline
         height = ROW * ROWS
         size = [(height * ROWS) / @names.size, 4].max
         offset = ((height - size) * @top) / [@names.size - ROWS, 1].max
-        @painter.box(left, @list_top - 2, 2, height, PauseMenu::EDGE)
-        @painter.box(left, @list_top - 2 + offset, 2, size, PauseMenu::TEXT)
+        @painter.box(left, @list_top - 2, 2, height, MenuTheme::EDGE)
+        @painter.box(left, @list_top - 2 + offset, 2, size, MenuTheme::TEXT)
       end
 
       def label(index)

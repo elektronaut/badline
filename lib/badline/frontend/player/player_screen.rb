@@ -10,7 +10,6 @@ module Badline
       HEADER = 64
       SCALE = 2
       TITLE = "Badline"
-      BACKGROUND = VIC::PALETTE[6]
 
       attr_reader :buttons, :info
 
@@ -72,8 +71,8 @@ module Badline
       def draw(state, player, history, tune, credit)
         return unless open?
 
-        SDL.SDL_SetRenderDrawColor(@renderer, (BACKGROUND >> 16) & 0xff, (BACKGROUND >> 8) & 0xff,
-                                   BACKGROUND & 0xff, 255)
+        back = PlayerTheme::BACKGROUND
+        SDL.SDL_SetRenderDrawColor(@renderer, (back >> 16) & 0xff, (back >> 8) & 0xff, back & 0xff, 255)
         SDL.SDL_RenderClear(@renderer)
         @buttons.forget
         @top.draw(state, tune, player.nil? ? [] : player.stereo.models, credit)
@@ -90,7 +89,7 @@ module Badline
 
       def build
         @painter = Painter.new(@renderer)
-        @buttons = Buttons.new(@painter)
+        @buttons = Buttons.new(@painter, [PlayerTheme::TEXT, PlayerTheme::BRIGHT, PlayerTheme::BACKGROUND])
         @top = PlayerHeader.new(@painter, @buttons)
         @bottom = PlayerFooter.new(@painter, @buttons)
         @visualizer = VisualizerView.new(@painter, HEADER + 4)
@@ -117,7 +116,7 @@ module Badline
       def draw_empty(view)
         hint = "Drop .sid files or folders here"
         @painter.text((WIDTH - Painter.width(hint, scale: 2)) / 2, HEADER + (body_height(view) / 2) - 8, hint,
-                      SIDView::TEXT, scale: 2)
+                      PlayerTheme::TEXT, scale: 2)
       end
     end
   end

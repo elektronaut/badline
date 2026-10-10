@@ -125,6 +125,14 @@ The front end in `lib/badline/frontend/` is the same for both builds:
   `pad_port.rb` (`PadPort`) maps each one onto a joystick.
 - `pacer.rb` (`Pacer`) and `frame_rate.rb` (`FrameRate`) decide how many
   cycles a frame clocks and how long it waits.
+- `menu/` holds the pause menu F9 opens (`PauseMenu`), its pages and the
+  dialogs they open: the file browser, the confirmations and the name
+  field.
+- `player/` holds the SID player `sid` plays in: `PlayerController` runs
+  it in place of the terminal of `--headless`, and `PlayerScreen` is its
+  window, which draws the header, the footer and the views.
+- `painter.rb` (`Painter`) and `buttons.rb` (`Buttons`) draw the menu and
+  the player.
 
 The front end and the files under `native/` stay inside the subset of
 Ruby Spinel compiles, which `spec/spinel_subset_spec.rb` enforces. On

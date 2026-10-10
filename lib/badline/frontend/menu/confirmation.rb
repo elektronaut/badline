@@ -43,11 +43,11 @@ module Badline
 
       def draw(left, top)
         painter = @painter
-        painter.text(left, top, TITLES.fetch(@kind), PauseMenu::BRIGHT)
-        painter.text(left, top + 20, Painter.fit(File.basename(@path), 40), PauseMenu::TEXT) unless @path.empty?
+        painter.text(left, top, TITLES.fetch(@kind), MenuTheme::BRIGHT)
+        painter.text(left, top + 20, Painter.fit(File.basename(@path), 40), MenuTheme::TEXT) unless @path.empty?
         warning = WARNINGS.fetch(@kind)
-        painter.text(left, top + 44, warning[0], PauseMenu::TEXT)
-        painter.text(left, top + 56, warning[1], PauseMenu::TEXT) unless warning[1].empty?
+        painter.text(left, top + 44, warning[0], MenuTheme::TEXT)
+        painter.text(left, top + 56, warning[1], MenuTheme::TEXT) unless warning[1].empty?
         @buttons.row([left, top + 80, MenuPages::ROW_WIDTH], "CANCEL", :cancel)
         @buttons.row([left, top + 80 + Buttons::HEIGHT + 2, MenuPages::ROW_WIDTH], ANSWERS.fetch(@kind), :confirm)
       end
