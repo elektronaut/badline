@@ -4,6 +4,7 @@ require "bundler/gem_tasks"
 require "rake/testtask"
 
 require_relative "test/support/suites"
+require_relative "test/support/ci_matrix"
 require_relative "test/support/z80_sample"
 require_relative "spinel/check"
 require_relative "native/build"
@@ -181,6 +182,18 @@ task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
   harnesses = suites.map { |suite| Suites.spinel_testbench_engine(suite) }.uniq
   Suites.spinel_build(harnesses:)
   Suites.run_spinel_testbench(suites, filters)
+end
+
+namespace :ci do
+  desc "Print the suites matrix for .github/workflows/ci.yml as JSON, derived from the suite table, " \
+       "once it runs every suite and baseline row on exactly one shard"
+  task :matrix do
+    require "json"
+    problems = CIMatrix.problems(CIMatrix.shard_tasks)
+    raise problems.join("\n") if problems.any?
+
+    puts JSON.pretty_generate("include" => CIMatrix.matrix)
+  end
 end
 
 namespace :native do
