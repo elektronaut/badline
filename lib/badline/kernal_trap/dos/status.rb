@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # The command channel's side of the drive: the last DOS error with the
       # track and sector it happened at, or the bytes an M-R read. Once its
       # last byte has been read, it holds OK again.

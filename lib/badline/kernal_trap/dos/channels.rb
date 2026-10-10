@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # The drive's open data channels by secondary address, and the five
       # buffers they hold. The DOS hands out the highest free buffer.
       # Reading the BAM when it initializes the disk takes buffer 4, so

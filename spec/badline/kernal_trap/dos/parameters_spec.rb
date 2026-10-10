@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::KernalTrap::Drive::Parameters do
+describe Badline::KernalTrap::DOS::Parameters do
   it "reads parameters separated by spaces, commas and cursor-rights" do
     expect(described_class.parse("2 0,18\x1d1")).to eq([2, 0, 18, 1])
   end

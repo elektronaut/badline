@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # The numbers a DOS command takes. The DOS skips spaces, commas and
       # cursor-rights before a parameter, reads it from the characters $30
       # to $3F that follow, the low nibble of each, and skips whatever

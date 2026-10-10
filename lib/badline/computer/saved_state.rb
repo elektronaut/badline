@@ -77,7 +77,7 @@ module Badline
         save_cartridge(out)
         address_bus.save_state(out)
         @cpu.save_state(out)
-        save_trap_drive(out)
+        save_trap_dos(out)
         save_serial_bus(out)
         save_reu(out)
       end
@@ -99,7 +99,7 @@ module Badline
         address_bus.load_state(input)
         push_serial_lines
         @cpu.load_state(input)
-        load_trap_drive(input)
+        load_trap_dos(input)
         load_serial_bus(input)
         load_reu(input)
       end

@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # Opens for writing, the S command and the reports a write makes. A
       # file open for writing takes the type its name asks for, or SEQ on a
       # data channel. On a write-protected disk, or storage that doesn't

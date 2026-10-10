@@ -21,9 +21,9 @@ module Badline
       # ST bit at $90
       DEVICE_NOT_PRESENT = 0x80
 
-      def initialize(cpu:, bus:, layout:, drive:)
+      def initialize(cpu:, bus:, layout:, dos:)
         super(cpu:, bus:, layout:)
-        @drive = drive
+        @dos = dos
         @saving = false
       end
 
@@ -38,7 +38,7 @@ module Badline
       def call
         return unless active?
         return finish if @saving
-        return unless @drive.saves?
+        return unless @dos.saves?
 
         @bus.poke(0xb9, SECONDARY)
         return @cpu.program_counter = @layout.missing_file_name_exit if name.empty?
@@ -56,7 +56,7 @@ module Badline
 
       def finish
         @saving = false
-        saved = @drive.save(name, payload, replace: full_filename.start_with?("@"))
+        saved = @dos.save(name, payload, replace: full_filename.start_with?("@"))
         @bus.poke(0x90, DEVICE_NOT_PRESENT) unless saved
         @bus.poke(0xac, @bus.peek(0xae))
         @bus.poke(0xad, @bus.peek(0xaf))

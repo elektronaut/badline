@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::KernalTrap::Drive do
+describe Badline::KernalTrap::DOS do
   subject(:drive) { described_class.new(storage) }
 
   let(:storage) do
@@ -952,7 +952,7 @@ describe Badline::KernalTrap::Drive do
   describe "a disk change" do
     subject(:swapped) { described_class.new(other_disk, memory) }
 
-    let(:memory) { Badline::KernalTrap::Drive::Memory.new }
+    let(:memory) { Badline::KernalTrap::DOS::Memory.new }
     let(:drive) { described_class.new(storage, memory) }
     let(:other_disk) { instance_double(Badline::Storage::D64Image, read_block: Array.new(256, 0xee), block_error: nil) }
 

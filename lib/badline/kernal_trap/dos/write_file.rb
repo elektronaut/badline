@@ -2,7 +2,7 @@
 
 module Badline
   module KernalTrap
-    class Drive
+    class DOS
       # A channel open for writing a file. It gathers the bytes sent to it,
       # and the drive writes the file to the disk when the channel closes.
       # An append starts from the file's end, a replace writes over the

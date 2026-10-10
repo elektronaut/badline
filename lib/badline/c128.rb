@@ -209,7 +209,7 @@ module Badline
       @cia2.reset!
       @sid.reset!
       @bus.cartridge&.reset
-      @drive&.reset!
+      @dos&.reset!
       @drive1541&.reset!
       @drive1571&.reset!
       @drive1581&.reset!

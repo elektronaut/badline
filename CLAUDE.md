@@ -24,7 +24,8 @@ live in subdirectories:
   `badline-ruby --headless` and `--audio-out`
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
   formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
-  traps that stand in for a drive), `media.rb` (attach and autostart),
+  traps, and `kernal_trap/dos/`, the virtual DOS that stands in for a
+  drive), `media.rb` (attach and autostart),
   `datasette.rb`, and `input/` (the mouse and paddles)
 - **Front end**: `frontend/`, the SDL window both builds run (app loop,
   screen, pacer, sound, controls, gamepads, snapshots), in Spinel's

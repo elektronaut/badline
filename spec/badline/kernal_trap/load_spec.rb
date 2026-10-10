@@ -280,7 +280,7 @@ describe Badline::KernalTrap::Load do
   end
 
   describe "a file on a disk image with an error table" do
-    let(:drive) { Badline::KernalTrap::Drive.new(Badline::Storage::D64Image.new(image_path)) }
+    let(:dos) { Badline::KernalTrap::DOS.new(Badline::Storage::D64Image.new(image_path)) }
 
     def write_image(bad_sector)
       bytes = Array.new(174_848, 0)
@@ -301,14 +301,14 @@ describe Badline::KernalTrap::Load do
     def mount_image(bad_sector)
       write_image(bad_sector)
       layout = Badline::KernalTrap::C64_LAYOUT
-      trap = described_class.new(cpu: computer.cpu, bus: computer.address_bus, layout:, drive:)
+      trap = described_class.new(cpu: computer.cpu, bus: computer.address_bus, layout:, dos:)
       computer.cpu.install_trap(layout.load) { trap.call }
     end
 
     def status
       message = []
       loop do
-        byte, eoi = drive.read(15)
+        byte, eoi = dos.read(15)
         message << byte
         break if eoi
       end
