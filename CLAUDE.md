@@ -11,7 +11,9 @@ live in subdirectories:
 
 - **Machine**: `computer.rb` clocks everything once per cycle (`cycle!`:
   VIC, both CIAs, SID and the datasette, then the CPU unless the VIC holds
-  BA low). `address_bus.rb` handles banking and page-table dispatch
+  BA low). `address_bus.rb` handles banking and page-table dispatch, and
+  `banked_ram.rb` and `banked_ram/` the +60K and +256K boards that bank in
+  extra RAM through `$D100`
 - **CPU**: `cpu.rb`, `instruction.rb` and `instruction_set/`, plus
   `interrupts.rb`
 - **VIC-II**: `vic.rb` and `vic/`, covering the sequencer, sprites, graphics

@@ -3,7 +3,7 @@
 require "spec_helper"
 
 # Pinned by plus256k/test.prg
-describe Badline::RAMExpansion::Plus256k do
+describe Badline::BankedRAM::Plus256k do
   let(:computer) { Badline::Computer.new(ram_expansion: :plus256k) }
   let(:bus) { computer.address_bus }
 
