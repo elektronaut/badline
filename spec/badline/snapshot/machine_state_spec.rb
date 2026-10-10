@@ -9,6 +9,16 @@ describe Badline::Snapshot::MachineState do
     expect(described_class.decode(described_class.encode(state))).to eq(state)
   end
 
+  it "reads back the largest values a native build can hold" do
+    edges = Badline::Snapshot::State.new([(2**62) - 1, -(2**62)], [])
+    expect(described_class.decode(described_class.encode(edges))).to eq(edges)
+  end
+
+  it "refuses a value a native build can't hold, as the native build does" do
+    too_large = Badline::Snapshot::State.new([2**62], [])
+    expect { described_class.encode(too_large) }.to raise_error(RangeError, /too large/)
+  end
+
   it "reads back the State a BADLINE module holds" do
     expect(described_class.state(described_class.section(state))).to eq(state)
   end
