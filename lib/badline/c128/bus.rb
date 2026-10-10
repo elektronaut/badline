@@ -47,7 +47,6 @@ module Badline
       PORT_PULLUPS  = 0b0001_0111
       PORT_FLOATING = 0b1000_1000
       CAPS_LOCK     = 0b0100_0000
-      TAPE_SENSE    = 0b0001_0000
 
       # The C64's power-on pattern (AddressBus::RAM_POWER_ON) in both 64K
       # banks. The C128's own DRAMs' pattern is unmeasured.
@@ -126,9 +125,6 @@ module Badline
       # KERNAL and the character ROM's C128 set.
       attr_reader :basic_low_rom, :basic_high_rom, :editor_rom, :c128_kernal_rom, :c128_character_rom
 
-      # Whether CAPS LOCK is down, holding P6 low.
-      attr_reader :caps_lock
-
       # The chips +model+, a Model::Profile, names, with the SID
       # +sid_model+. +mode+ is the mode the MMU resets into.
       def initialize(model, sid_model: model.sid_model, mode: :c64)
@@ -139,7 +135,6 @@ module Badline
         @mmu = MMU.new(mode)
         @cartridge = nil
         @debug_page = nil
-        @caps_lock = false
 
         load_roms
         load_c128_roms
@@ -150,7 +145,7 @@ module Badline
 
         @datasette = Datasette.new
         @datasette.on_flag { @cia1.flag! }
-        @datasette.on_sense_change { @io_port.value = port_value }
+        @datasette.on_sense_change { @cpu_port.refresh }
 
         @color_lines = ColorLines.new(@vic, @cia2, character_rom, @c128_character_rom)
         @color_ram = @color_lines.color_ram(1)
@@ -160,10 +155,8 @@ module Badline
         @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
         @configuration_writes = ConfigurationPage.new(@mmu, @open_bus)
 
-        @port_ddr = 0x00
-        @port_out = 0x00
-        @port_floating = 0x00
-        @io_port = PortStatus.new(%i[basic kernal io tape_out tape_switch tape_motor], value: port_value)
+        @cpu_port = CPUPort.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING, caps_lock: CAPS_LOCK)
+        @io_port = @cpu_port.status
 
         @read_pages = Array.new(256)
         @write_pages = Array.new(256)
@@ -171,6 +164,7 @@ module Badline
         @data = 0
         @io_mapped = false
         @mmu.on_change { update_overlays! }
+        @cpu_port.on_change { update_overlays! }
         update_overlays!
       end
 
@@ -191,19 +185,19 @@ module Badline
         @ram.clear!(RAM_POWER_ON)
       end
 
-      # The RES line clears the port's direction and output registers and
-      # resets the MMU. The port's floating bit keeps its charge.
+      # The RES line resets the MMU and clears the port's direction and
+      # output registers. The port's floating bit keeps its charge.
       def reset!
-        @port_ddr = 0x00
-        @port_out = 0x00
         @mmu.reset!
-        update_port!
+        @cpu_port.reset!
       end
+
+      # Whether CAPS LOCK is down, holding P6 low.
+      def caps_lock = @cpu_port.caps_lock
 
       # Holds CAPS LOCK down, or lets it up.
       def caps_lock=(down)
-        @caps_lock = down
-        @io_port.value = port_value
+        @cpu_port.caps_lock = down
       end
 
       # Calls the block whenever MCR bit 6 takes the machine into C64 mode or
@@ -236,7 +230,7 @@ module Badline
         @data = if addr > 0x01
                   @read_pages[addr >> 8].peek(addr)
                 else
-                  addr.zero? ? @port_ddr : @io_port.value
+                  addr.zero? ? @cpu_port.ddr : @io_port.value
                 end
       end
 
@@ -254,8 +248,7 @@ module Badline
         @data = value
         if addr < 0x02
           @write_pages[0].poke(addr, @vic.phi1_data)
-          addr.zero? ? @port_ddr = value : @port_out = value
-          update_port!
+          addr.zero? ? @cpu_port.write_ddr(value) : @cpu_port.write_data(value)
         else
           @write_pages[addr >> 8].poke(addr, value)
         end
@@ -292,21 +285,6 @@ module Badline
         @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
         @sid = SID.new(model: sid_model, pots: @control_ports)
         @vdc = VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
-      end
-
-      def update_port!
-        driven = @port_ddr & PORT_FLOATING
-        @port_floating = (@port_floating & ~driven) | (@port_out & driven)
-        @io_port.value = port_value
-        @datasette.motor = !@io_port.tape_motor?
-        update_overlays!
-      end
-
-      def port_value
-        input = PORT_PULLUPS | (@port_floating & PORT_FLOATING)
-        input |= CAPS_LOCK unless @caps_lock
-        input &= ~TAPE_SENSE if @datasette.sense_low?
-        (@port_out & @port_ddr) | (input & ~@port_ddr & 0xff)
       end
 
       def update_overlays!
