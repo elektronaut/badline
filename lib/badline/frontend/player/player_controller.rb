@@ -2,20 +2,21 @@
 
 module Badline
   module Frontend
-    # The SID player's window, which `sid` plays in, drawn by PlayerScreen:
-    # a header with the tune, its STIL credit, the views and the SID model,
-    # and a footer with the time and the buttons that step through the
-    # queue, framing one of three views: the visualizer, with each voice's
-    # note and output and the mix, the SID view, with everything the chip
-    # is doing, and the tune's STIL entry. The window's height follows the
-    # view, and .sid files and folders dropped on it join the queue.
+    # The SID player that `sid` plays in, which runs its window,
+    # PlayerScreen: a header with the tune, its STIL credit, the views and
+    # the SID model, and a footer with the time and the buttons that step
+    # through the queue, framing one of three views: the visualizer, with
+    # each voice's note and output and the mix, the SID view, with
+    # everything the chip is doing, and the tune's STIL entry. The window's
+    # height follows the view, and .sid files and folders dropped on it
+    # join the queue.
     #
     # It stands in for the terminal, so Audio::Jukebox drives it the same
     # way: #wait handles the window's clicks, keys and drops between frames
     # and redraws it at the display's pace. The SID model buttons switch
     # the chips playing on the spot, and each tune after it starts on the
     # same choice. AUTO gives each of a tune's SIDs its own model.
-    class PlayerWindow < Audio::Terminal
+    class PlayerController < Audio::Terminal
       FRAME = 1.0 / 50
 
       WARNING = VIC::PALETTE[10]

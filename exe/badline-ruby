@@ -39,7 +39,7 @@ if options.headless?
   console = if options.player_window?
               lambda do |input:, output:|
                 load_sdl
-                Badline::Frontend::PlayerWindow.new(input:, output:)
+                Badline::Frontend::PlayerController.new(input:, output:)
               end
             else
               Badline::Audio::Console.method(:new)

@@ -24,7 +24,7 @@ module Badline
           @painter.text(16, 8, fit(tune.name, 26), SIDView::BRIGHT, scale: 2)
           @painter.text(16, 28, fit([tune.author, tune.released].reject(&:empty?).join(" - "), 50), SIDView::TEXT)
           @painter.text(16, 40, fit(credit, 76), SIDView::BRIGHT)
-          @painter.text(16, 52, warning(state), PlayerWindow::WARNING)
+          @painter.text(16, 52, warning(state), PlayerController::WARNING)
         end
         draw_views(state)
         draw_chips(state, playing_models)

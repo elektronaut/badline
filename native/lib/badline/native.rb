@@ -19,6 +19,6 @@ module Badline
     CONSOLE = ->(input:, output:) { Console.new(input:, output:) }
 
     # The factory for `sid` without --headless: the SID player's window.
-    PLAYER = ->(input:, output:) { Frontend::PlayerWindow.new(input:, output:) }
+    PLAYER = ->(input:, output:) { Frontend::PlayerController.new(input:, output:) }
   end
 end
