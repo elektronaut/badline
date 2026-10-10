@@ -15,7 +15,9 @@ module Badline
   # A drive drives CLK and DATA from VIA 1's PB3 and PB1, the same way. It
   # also pulls DATA while ATN IN differs from its ATN acknowledge on PB4
   # (an XOR gate), which answers ATN in hardware before the DOS gets to it.
-  # SerialPort reads the lines back into VIA 1.
+  # SerialPort reads the lines back into VIA 1. A drive whose
+  # serial_output sets DRIVE_ATN_GATED pulls DATA that way only while
+  # ATN is low, as the 1581's NAND does.
   #
   # Fast serial adds SRQ, which the C64 leaves alone. A C128 and a 1571
   # clock bytes over it from a CIA's CNT, with the bits on DATA from its
@@ -47,6 +49,10 @@ module Badline
     # pins pulling DATA and SRQ.
     DRIVE_FAST_DATA = 0x100
     DRIVE_FAST_SRQ = 0x200
+
+    # A drive's serial_output bit whose ATN acknowledge pulls DATA only
+    # while ATN is low.
+    DRIVE_ATN_GATED = 0x400
 
     attr_reader :drives, :host_lines
 
@@ -119,13 +125,19 @@ module Badline
       while i < @drives.length
         drive = @drives[i].serial_output
         low |= CLK if drive.anybits?(DRIVE_CLK_OUT)
-        low |= DATA if drive.anybits?(DRIVE_DATA_OUT) || atn != drive.anybits?(DRIVE_ATNA)
+        low |= DATA if drive.anybits?(DRIVE_DATA_OUT) || acknowledging?(drive, atn)
         i += 1
       end
       low
     end
 
     def atn_low?(host = @host_lines) = host.anybits?(HOST_ATN_OUT)
+
+    # Whether a drive's ATN acknowledge pulls DATA, with its serial_output
+    # +drive+, while ATN is +atn+.
+    def acknowledging?(drive, atn)
+      atn != drive.anybits?(DRIVE_ATNA) && (atn || drive.nobits?(DRIVE_ATN_GATED))
+    end
 
     def clk_low? = low_lines.anybits?(CLK)
 

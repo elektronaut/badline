@@ -3,8 +3,8 @@
 module Badline
   module Drive
     # What every Commodore disk drive here shares: a 6502 running the DOS
-    # ROM with two VIAs on its bus, VIA 1 facing the serial bus and VIA 2
-    # the disk mechanism, on a clock of its own.
+    # ROM, with chips on its bus facing the serial bus and the disk
+    # mechanism, on a clock of its own.
     #
     # The drive runs on its own crystal, so it clocks against the host's
     # clock through a fractional accumulator: each host cycle adds the
@@ -14,8 +14,7 @@ module Badline
     # every 67. The host sets its clock on attaching the drive, and until
     # then a 1 MHz drive runs one cycle per host cycle.
     #
-    # VIA 2's port B runs the Mechanism, which reads a Disk put in with
-    # insert.
+    # The Mechanism reads a Disk put in with insert.
     #
     # While the DOS idles, host_cycle! skips the drive's cycles and catches
     # up on them later, exactly (see Idle). The readers of the drive's parts
@@ -24,7 +23,10 @@ module Badline
     # sleeps through them too (see Orbit).
     #
     # A model includes Core and builds its parts, sets @clock_hz and
-    # @idle_loop, and runs one drive cycle in step.
+    # @idle_loop, and runs one drive cycle in step. It hears ATN on
+    # connecting (hear_atn), drives the serial bus (serial_output), and
+    # answers Idle's and Orbit's questions about its chips, as VIAs does
+    # for the 1541 and the 1571.
     module Core
       include Sleep
       include Idle
@@ -40,16 +42,6 @@ module Badline
       def bus
         settle!
         @bus
-      end
-
-      def via1
-        settle!
-        @via1
-      end
-
-      def via2
-        settle!
-        @via2
       end
 
       def mechanism
@@ -77,7 +69,7 @@ module Badline
         @serial_bus = serial_bus
         @serial_port.bus = serial_bus
         serial_bus.attach(self)
-        @via1.ca1 = @serial_port.atn_low?
+        hear_atn
       end
 
       # Puts a Disk in the drive (Disk.from_d64 makes one from an image).
@@ -93,24 +85,11 @@ module Badline
       # is the same at the end of every pass the drive sleeps through.
       def led_on? = @mechanism.led_on?
 
-      # VIA 1's port B as it drives the serial bus. It holds still while the
-      # drive sleeps, so reading it leaves the drive asleep.
-      def serial_output = @via1.port_b_output
-
       # Stores what the head wrote since the motor last stopped in the
       # disk's image, as the motor stopping does.
       def flush
         settle!
         @mechanism.flush
-      end
-
-      # The serial bus's RESET line reaches the CPU and both VIAs. RAM keeps
-      # its contents.
-      def reset!
-        settle!
-        @via1.reset!
-        @via2.reset!
-        @cpu.reset!
       end
 
       # Runs the drive cycles that fall in one host cycle: none, one or two.
@@ -157,10 +136,6 @@ module Badline
       end
 
       private
-
-      # Runs the model's chips beyond the VIAs +cycles+ quiet cycles at once
-      # (see quiet_cycles). The 1541 has none.
-      def fast_forward_chips(_cycles) = nil
 
       # A drive cycle from host_cycle!, which may find the idle loop.
       def run_cycle

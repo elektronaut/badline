@@ -139,7 +139,8 @@ Without `--true-drive`, device 8 is no drive at all but traps on the
 KERNAL's disk routines. Loading is instant, but fast loaders and copy
 protection that run code on the drive need `--true-drive`, which puts
 an emulated 1541 there, running its own DOS at a real 1541's speed. Its
-red LED lights in the bottom right corner of the border.
+red LED lights in the bottom right corner of the border. With
+`--true-drive`, a `.d81` goes in an emulated 1581 in place of the 1541.
 [doc/media.md](doc/media.md) has the details, and how to attach media
 from Ruby.
 
@@ -354,6 +355,9 @@ program or `.sid` dropped on it opens the menu to ask first.
 - **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
   mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial
   (burst) to a C128 in C128 mode (`badline c128 --true-drive`).
+- **1581**: the 3.5" drive running its own DOS on its WD1772 and 8520,
+  reading and writing `.d81` images, on the C64, the VIC-20 and the C128
+  (`--true-drive` with a `.d81`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
   Learning, Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon /

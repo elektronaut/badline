@@ -78,6 +78,7 @@ module Badline
         @datasette.save_state(out)
         save_trap_drive(out)
         save_drive1541(out)
+        save_drive1581(out)
       end
 
       def load_state(input)
@@ -99,6 +100,7 @@ module Badline
         @datasette.load_state(input)
         load_trap_drive(input)
         load_drive1541(input)
+        load_drive1581(input)
       end
 
       private

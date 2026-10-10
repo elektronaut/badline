@@ -70,6 +70,15 @@ Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1571/1571-rom.310654-05.bin
 SHA-1 f1be619c106641a685f6609e4d43d6fc9eac1e70.
 
+dos1581.rom
+-----------
+The 1581 disk drive's DOS, 318045-02, 32 KB for $8000-$FFFF.
+Drive1581 loads it.
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1581/1581-rom.318045-02.bin
+SHA-1 01228eae6f066bd9b7b2b6a7fa3f667e41dad393.
+
 Commodore VIC-20 ROMs
 =====================
 

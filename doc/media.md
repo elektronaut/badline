@@ -36,6 +36,14 @@ drive's red LED lights in the bottom right corner of the border.
 A `.g64` holds the disk's raw GCR, half tracks and all, so copy
 protection and fast loaders that read it work.
 
+## The true 1581
+
+With a true drive on device 8, a `.d81` goes in an emulated 1581 in
+its place: the 3.5" drive's own DOS on its 6502, with its WD1772 reading
+and writing the image's sectors and its 8520 on the serial bus. Another
+disk image swaps the 1541 (or on the C128 the 1571) back in. On the
+C128 in C128 mode the 1581 talks fast serial (burst), as the 1571 does.
+
 ## Write protection
 
 Disks given on the command line, inserted from the pause menu or by an
@@ -56,7 +64,8 @@ another disk. Both write to disk images unless told otherwise:
 `disk: { read_only: true }`, as the test harnesses under `bin/` do. A
 `.g64` goes in the true 1541, and takes out a disk mounted through the
 traps, so `LOAD` and `SAVE` reach the 1541 too. With the 1541 in device
-8, a `.d64` goes in its drive as well.
+8, a `.d64` goes in its drive as well, and a `.d81` in a 1581 that takes
+the 1541's place.
 
 `Badline::Media::DiskSet.around(path)` lists the disks of the set a disk
 image belongs to, which the pause menu's PREVIOUS DISK and NEXT DISK step

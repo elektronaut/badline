@@ -535,14 +535,18 @@ describe Badline::Media do
       expect(drive.disk.write_protected?).to be(true)
     end
 
-    {
-      "disk.d71" => 349_696, "disk.d81" => 819_200, "tape.t64" => 0x40
-    }.each do |name, size|
-      it "refuses a #{File.extname(name)}, which the 1541 can't read" do
+    { "disk.d71" => 349_696, "tape.t64" => 0x40 }.each do |name, size|
+      it "refuses a #{File.extname(name)}, which neither the 1541 nor the 1581 reads" do
         path = File.join(dir, name).tap { |p| File.binwrite(p, "\x00" * size) }
         expect { described_class.attach(computer, path) }
-          .to raise_error(described_class::TrueDrive::Error, /\.d64 or \.g64/)
+          .to raise_error(described_class::TrueDrive::Error, /\.d64, \.g64 or \.d81/)
       end
+    end
+
+    it "puts a .d81 in a 1581 in the 1541's place" do
+      path = File.join(dir, "disk.d81").tap { |p| File.binwrite(p, "\x00" * 819_200) }
+      described_class.attach(computer, path)
+      expect(computer.true_drive).to be_a(Badline::Drive1581)
     end
 
     it "refuses a directory" do
@@ -711,7 +715,7 @@ describe Badline::Media do
       end
 
       it "refuses a disk the 1541 can't read" do
-        expect { described_class.insert_disk(computer, dir) }.to raise_error(ArgumentError, /\.d64 or \.g64/)
+        expect { described_class.insert_disk(computer, dir) }.to raise_error(ArgumentError, /\.d64, \.g64 or \.d81/)
       end
     end
   end

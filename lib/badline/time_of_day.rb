@@ -52,9 +52,9 @@ module Badline
       @latch = input.boolean? ? FIELDS.to_h { |field| [field, input.int] } : nil
     end
 
-    # Whether the clock is stopped with no alarm to raise, so its cycles
-    # move only the divider's phase.
-    def quiet? = @stopped && !@alarm_pending
+    # Whether the clock is stopped, or gets no pulses on its pin, with no
+    # alarm to raise, so its cycles move only the divider's phase.
+    def quiet? = (@stopped || @mains_hz.zero?) && !@alarm_pending
 
     # Runs +cycles+ quiet cycles at once.
     def fast_forward(cycles)

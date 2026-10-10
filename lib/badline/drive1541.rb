@@ -16,6 +16,7 @@ module Badline
   # clocks it against the host and sleeps through the DOS's idle loop.
   class Drive1541
     include Drive::Core
+    include Drive::VIAs
 
     CLOCK_HZ = 1_000_000
 

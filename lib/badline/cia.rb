@@ -61,14 +61,16 @@ module Badline
       @tb.latch = value
     end
 
-    def initialize(start: 0, peripheral: nil, model: :mos6526, region: Region::PAL)
+    # +tod_hz+ is the rate of the pulses on the TOD pin, the region's mains
+    # unless a machine feeds it otherwise, and 0 for a pin held still.
+    def initialize(start: 0, peripheral: nil, model: :mos6526, region: Region::PAL, tod_hz: nil)
       raise ArgumentError, "unknown CIA model #{model}" unless MODELS.include?(model)
 
       addressable_at(start, length: 2**8)
 
       @model = model
       @clock_hz = region.clock_hz
-      @mains_hz = region.mains_hz
+      @mains_hz = tod_hz || region.mains_hz
 
       @peripheral = peripheral
       @port_b4_handler = nil
@@ -139,9 +141,10 @@ module Badline
 
     # Port A as driven by the data/direction registers alone, without
     # peripheral pulldown. Cheap path for the VIC bank lookup.
-    def port_a_lines
-      driven_lines(@data_port_a, @data_dir_a)
-    end
+    def port_a_lines = driven_lines(@data_port_a, @data_dir_a)
+
+    # Port B as driven by the data/direction registers alone.
+    def port_b_lines = driven_lines(@data_port_b, @data_dir_b)
 
     def read_port_b
       lines = driven_lines(@data_port_b, @data_dir_b)

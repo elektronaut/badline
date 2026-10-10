@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/computer/true_drives"
 require "badline/computer/attachments"
 require "badline/computer/kernal_traps"
 require "badline/computer/saved_state"
@@ -77,6 +78,7 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @drive1541 = nil
+      @drive1581 = nil
       plug_serial_bus
       @reu = reu ? plug_reu(reu) : nil
     end
@@ -101,6 +103,7 @@ module Badline
       watch_freeze if @freezing
       clock_cpu
       @drive1541&.host_cycle!
+      @drive1581&.host_cycle!
 
       @cycles += 1
     end
@@ -174,6 +177,7 @@ module Badline
       @dma = false
       @drive&.reset!
       @drive1541&.reset!
+      @drive1581&.reset!
       @freezing = false
       @nmi_asserted = false
       cpu.reset!

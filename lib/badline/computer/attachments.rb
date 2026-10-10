@@ -3,9 +3,11 @@
 module Badline
   class Computer
     # What plugs into the machine besides its chips, the cartridge, the
-    # disk device 8 serves through the traps, a true 1541 and an REU, and
-    # their state for a snapshot.
+    # disk device 8 serves through the traps, its true drives (TrueDrives)
+    # and an REU, and their state for a snapshot.
     module Attachments
+      include TrueDrives
+
       # Puts the cartridge in the expansion port and wires its clock and NMI
       # line to the machine, leaving the machine's state as it is. A
       # restored snapshot's cartridge comes back through here.
@@ -44,41 +46,7 @@ module Badline
       # it.
       attr_reader :iec_bus
 
-      # Plugs in a Drive1541, which then runs alongside the C64 on its own
-      # clock and talks to it over the serial bus. The serial traps stop
-      # answering the drive's device number, so the KERNAL's TALK, LISTEN and
-      # byte transfers reach the drive. The LOAD and SAVE traps stay, and
-      # still serve a mounted image.
-      def attach_drive1541(drive)
-        @iec_bus.detach(@drive1541) if @drive1541
-        drive.host_clock_hz = region.clock_hz
-        @drive1541 = drive
-        drive.connect(iec_bus)
-        @serial_trap&.device = serial_trap_device
-      end
-
-      # The true drive on the serial bus: the Drive1541, or nil.
-      def true_drive = @drive1541
-
-      # Plugs a Drive1541 in as device 8, and returns it.
-      def plug_true_drive = Drive1541.new.tap { |drive| attach_drive1541(drive) }
-
-      # Unplugs the Drive1541, leaving the serial bus with nothing on it.
-      def detach_drive1541
-        return unless @drive1541
-
-        @iec_bus.detach(@drive1541)
-        @drive1541 = nil
-        @serial_trap&.device = serial_trap_device
-      end
-
       private
-
-      # The device number the serial traps answer: device 8, unless a true
-      # drive is on the bus as device 8.
-      def serial_trap_device
-        @drive1541&.device == KernalTrap::Routine::DEVICE ? nil : KernalTrap::Routine::DEVICE
-      end
 
       # CIA 2's port A drives the serial bus, which reads CLK and DATA back
       # into it.
@@ -130,26 +98,6 @@ module Badline
         @drive.load_state(input)
         @serial_trap.load_state(input)
         @save_trap.load_state(input)
-      end
-
-      # A true 1541 on the serial bus. The leading flag is the bus itself,
-      # which every machine now has, kept so older snapshots still load.
-      def save_serial_bus(out)
-        out.boolean(true).boolean(!@drive1541.nil?)
-        return unless @drive1541
-
-        out.int(@drive1541.device)
-        @drive1541.save_state(out)
-      end
-
-      def load_serial_bus(input)
-        input.boolean?
-        return detach_drive1541 unless input.boolean?
-
-        device = input.int
-        detach_drive1541 if @drive1541 && @drive1541.device != device
-        attach_drive1541(Drive1541.new(device:)) unless @drive1541
-        @drive1541.load_state(input)
       end
 
       # The REU, which the setup says the machine has, and whether it has

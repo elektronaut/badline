@@ -22,6 +22,7 @@ module Badline
         drive_fast_serial if @fast_serial_out
         @drive1541&.host_cycle!
         @drive1571&.host_cycle!
+        @drive1581&.host_cycle!
       end
 
       def turn_fast_serial
