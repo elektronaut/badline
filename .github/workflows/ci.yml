@@ -390,9 +390,8 @@ jobs:
           key: vice-testprogs-v1
       - name: Check out the vendored suites
         run: bundle exec rake vendor:VICE-testprogs
-      # The rake tasks build their own harnesses. Building them here once
-      # for the shard, SPINEL=true below makes each task's build a no-op
-      # that leaves these binaries in place.
+      # Every harness the shard's tasks run, built once here rather than
+      # once per task.
       - name: Build the harnesses
         env:
           HARNESSES: ${{ matrix.harnesses }}
@@ -405,6 +404,10 @@ jobs:
       # that fails leaves the next to run, and the step fails at the end.
       - name: Run the suites
         env:
+          # Each spinel:* task builds its harnesses first, running the
+          # compiler SPINEL names. /bin/true as the compiler exits 0 and
+          # prints nothing, so SpinelCheck.build counts each harness as
+          # built and leaves the binaries the step above built in place.
           SPINEL: "true"
           TASKS: ${{ matrix.tasks }}
         run: |
