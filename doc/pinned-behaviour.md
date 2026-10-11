@@ -38,6 +38,7 @@ only catches the rows that happen to move.
 - [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
 - [VIC-I fetches and the V-bus](#vic-i-fetches-and-the-v-bus)
 - [VIC-I sound](#vic-i-sound)
+- [TED beam and the 7501 port](#ted-beam-and-the-7501-port)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1489,6 +1490,34 @@ wasn't read.
     11,280. badline's own recording fits 1,420 and 157.6 Hz.
   - Spec guard: *a step* in
     [`vic_i/sound/output_spec.rb`](../spec/badline/chips/vic_i/sound/output_spec.rb).
+
+## TED beam and the 7501 port
+
+Two places where badline knowingly differs from xplus4 r45942, which was
+run as a black box. No hardware capture settles either of them. Whoever
+finds one should start here.
+
+- The line count steps, and the raster interrupt fires, at horizontal
+  count 376, column 47 of `Chips::TED::Beam`: the datasheet's "Increment
+  Vertical Line" decode, which fits its "8 cycles before the character
+  window" for the raster interrupt. xplus4 steps the line about 3 single
+  clock cycles later, and its raster interrupt reaches the handler 2-3
+  cycles later, on display and border lines alike.
+  - Pinned by the TED datasheet in the *Plus/4 Hardware Manual*, the
+    scanned decode table on sheet 11 (page 62 of `hw.pdf`), not by a test.
+    The comparison with xplus4 used trace probes that sample `$FF1E` and
+    `$FF1D` through the lines, described with #644. The Lorenz plus4 rows
+    don't move either way.
+  - Spec guard: *the beam* in
+    [`chips/ted_spec.rb`](../spec/badline/chips/ted_spec.rb).
+- `trap10`, `trap12` and `trap14` of the Lorenz suite's plus4 build, and
+  their `ane` and `lxa` variants, pass on badline and fail (`$ff`) on
+  xplus4. They are the trap tests that put their data on the 7501's port
+  at `$00`-`$01` (`Plus4::CPUPort`: a full 8-bit direction register, P5
+  reading 1 as an input). `readme-plus4.txt` says the trap tests don't
+  work on a real 264, so its results don't decide this either.
+  - Pinned by `lorenz-plus4`'s rows for those tests. The xplus4 verdicts
+    are its exit codes with `-debugcart`, one program at a time.
 
 ## 1541 serial port
 

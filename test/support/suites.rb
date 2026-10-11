@@ -93,6 +93,10 @@ module Suites
   # with a 1551's TCBM interface plugged in, as xplus4 starts, and
   # testbench-c16 the same rows on a 16K C16. Their Spinel build is
   # spinel/plus4_testbench.rb.
+  # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
+  # PAL Plus/4, chained whole: none of its stretches has been checked to
+  # resume as the chain records it. Its Spinel build is
+  # spinel/plus4_lorenz.rb.
   # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
   # untagged programs; :args go to the runner as they are.
   # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -127,6 +131,7 @@ module Suites
                               engine: "c128_testbench" },
     "testbench-plus4" => { runner: "bin/testbench", args: %w[--plus4], engine: "plus4_testbench" },
     "testbench-c16" => { runner: "bin/testbench", args: %w[--c16], engine: "plus4_testbench" },
+    "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: [] },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },
     "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] }
@@ -341,6 +346,19 @@ module Suites
       return if rows.keys == expected.keys
 
       "#{name} reported #{rows.length} rows where the baseline has #{expected.length}."
+    end
+
+    # The Lorenz suite's plus4 build on the Spinel build, the whole chain in
+    # one run, compared against its baseline.
+    def spinel_lorenz_plus4
+      suite = "lorenz-plus4"
+      recorded = read_recorded(suite)
+      first = (recorded.keys - [Regression::ChainRange::OUTCOME]).first
+      range = Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME)
+      results = SpinelCheck.run_lorenz_segments(suite, image: Lorenz::PLUS4_IMAGE, harness: "plus4_lorenz",
+                                                       next_disk: Lorenz::PLUS4_NEXT_DISK)
+      problem = stretch_problem("spinel-#{suite}", range, recorded, results)
+      raise problem if problem
     end
 
     # The Lorenz chain on the Spinel build: the stretches of `rake regression:lorenz-N`

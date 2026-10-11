@@ -4,7 +4,7 @@
 # Headless runner for the Wolfgang Lorenz C64 Emulator Test Suite.
 #
 #   ruby --yjit bin/lorenz [image] [start_test] [max_cycles] [--results PATH]
-#                          [--resume NAME] [--stop-after NAME]
+#                          [--resume NAME] [--stop-after NAME] [--plus4]
 #
 # Boots the machine, mounts the image as device 8 and autostarts (or loads
 # start_test by name to resume mid-suite; --resume NAME does the same
@@ -35,6 +35,18 @@
 # in test/baselines/, and `rake "regression:record:lorenz[first,last]"`
 # for re-recording a stretch of the chain.
 #
+# --plus4 runs the suite's plus4 build on a PAL Plus/4 instead:
+# LorenzPlus4.d81, carrying on onto Disk4plus4.d64. Its programs report
+# through $FDCF, which nothing reads here, and the transcript is the same
+# CHROUT capture. readme-plus4.txt names the tests that can't pass on the
+# 264: trap1-trap17, branchwrap, mmufetch, mmu, cpuport and cputiming, and
+# nmi on a CPU without NMI. Some of those stop the chain, so when it hangs,
+# drops to READY, halts for keys more than Lorenz::PLUS4_KEY_LIMIT times in
+# one test or runs one test past Lorenz::PLUS4_TEST_CYCLE_LIMIT cycles, a
+# fresh machine resumes it at the program after the one it
+# stuck on, in the order the disks hold them (Lorenz.segments), and the
+# (suite) row names the programs it resumed past.
+#
 # The machine-driving half lives in test/support/lorenz_chain.rb, which Spinel
 # compiles too (spinel/lorenz.rb), and the rows come from test/support/lorenz_run.rb.
 
@@ -46,6 +58,7 @@ require_relative "../test/support/cli"
 require_relative "../test/support/lorenz_chain"
 require_relative "../test/support/lorenz_run"
 require_relative "../test/support/testbench_machine"
+require_relative "../test/support/testbench_plus4_machine"
 
 module Lorenz
   ARTIFACT_DIR = File.expand_path("../tmp/lorenz", __dir__)
@@ -79,7 +92,18 @@ module Lorenz
 
     def dump_screen(computer)
       warn "=== screen RAM ==="
-      Testbench.screen_text(computer.ram).each { |line| warn line }
+      screen = if computer.is_a?(Badline::Plus4) then Testbench.plus4_screen_text(computer)
+               else Testbench.screen_text(computer.ram)
+               end
+      screen.each { |line| warn line }
+    end
+
+    # The machine the chain runs on, a PAL Plus/4 for the plus4 build or a
+    # C64 whose VIC leaves its colours unpainted.
+    def machine(plus4)
+      return Badline::Plus4.new if plus4
+
+      Badline::C64.new.tap { |computer| computer.vic.render = false }
     end
   end
 end
@@ -88,24 +112,36 @@ if $PROGRAM_NAME == __FILE__
   results_path = CLI.take_option(ARGV, "--results")
   resume = CLI.take_option(ARGV, "--resume")
   stop_after = CLI.take_option(ARGV, "--stop-after")
-  image = ARGV[0] || Lorenz::DEFAULT_IMAGE
+  plus4 = !ARGV.delete("--plus4").nil?
+  image = ARGV[0] || (plus4 ? Lorenz::PLUS4_IMAGE : Lorenz::DEFAULT_IMAGE)
   start_test = resume || ARGV[1]
   max_cycles = (ARGV[2] || 10_000_000_000).to_i
 
-  computer = Badline::C64.new
-  computer.vic.render = false
-  capture = computer.capture_output
-  disk = Lorenz.mount(computer, image, capture, start_test)
-  warn "Mounted #{image} as device 8"
-
-  chain = Lorenz::Chain.new(computer, capture, disk, max_cycles, stop_after)
-  Lorenz.drive(chain)
-  result = chain.result
-  run = Lorenz::Run.new(capture.output, disk.names.zip(disk.offsets), chain.key_offsets, result)
+  next_disk = plus4 ? Lorenz::PLUS4_NEXT_DISK : Lorenz::NEXT_DISK
+  computer = nil
+  keys_sent = 0
+  run_chain = lambda do |start|
+    computer = Lorenz.machine(plus4)
+    capture = computer.capture_output
+    disk = Lorenz.mount(computer, image, capture, start, next_disk)
+    warn "Mounted #{image} as device 8#{", resuming at #{start}" if start}"
+    chain = Lorenz::Chain.new(computer, capture, disk, max_cycles, stop_after)
+    if plus4
+      chain.key_limit = Lorenz::PLUS4_KEY_LIMIT
+      chain.test_cycle_limit = Lorenz::PLUS4_TEST_CYCLE_LIMIT
+    end
+    Lorenz.drive(chain)
+    keys_sent += chain.keys_sent
+    Lorenz::Run.new(capture.output, disk.names.zip(disk.offsets), chain.key_offsets, chain.result)
+  end
+  run = if plus4 then Lorenz.segments(Lorenz::Resumption.for(image, next_disk), start_test, &run_chain)
+        else run_chain.call(start_test)
+        end
+  result = run.result
 
   warn "Transcript written to #{Lorenz.write_transcript(run)}"
   Lorenz.write_results(results_path, run) if results_path
   Lorenz.dump_screen(computer) unless %w[completed stopped].include?(result)
-  warn "[#{result}] #{computer.cycles} cycles, #{chain.keys_sent} keys sent"
+  warn "[#{result}] #{computer.cycles} cycles, #{keys_sent} keys sent"
   exit(%w[completed ready-prompt stopped].include?(result) ? 0 : 1)
 end

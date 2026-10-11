@@ -3,6 +3,7 @@
 require "fileutils"
 require "open3"
 require "rbconfig"
+require_relative "../test/support/lorenz_chain"
 require_relative "../test/support/lorenz_run"
 
 # Builds the Spinel harnesses and checks each compiled binary against the
@@ -11,7 +12,7 @@ require_relative "../test/support/lorenz_run"
 module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
-                 sid].freeze
+                 plus4_lorenz sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -135,6 +136,24 @@ module SpinelCheck
     Process.kill(signal, pid)
   rescue Errno::ESRCH
     nil
+  end
+
+  # Runs a chain on the +harness+ build in segments (Lorenz.segments),
+  # resuming past each program it sticks on, and writes the joined run's
+  # rows to the results file it returns.
+  def run_lorenz_segments(name, image:, harness:, next_disk:)
+    resumption = Lorenz::Resumption.for(image, next_disk)
+    run = Lorenz.segments(resumption, nil) do |resume|
+      command = [binary(harness), image, *(["--resume", resume] if resume)]
+      puts command.join(" ")
+      out, status = Open3.capture2(*command)
+      raise "#{command.join(' ')} exited with #{status.exitstatus}" unless status.success?
+
+      Lorenz::Run.parse(out)
+    end
+    results = "#{OUT}/#{name}.txt"
+    File.write(results, "#{run.records.join("\n")}\n")
+    results
   end
 
   def lorenz_results(name)

@@ -333,6 +333,23 @@ Recorded output of the headless hardware suites, one file per suite:
   closing `(suite)` row records how the chain ended, so a run that stops
   early is a changed verdict rather than a pile of missing rows. The full
   transcript is written to `tmp/lorenz/transcript.txt`, not tracked here.
+- `lorenz-plus4.txt` — `bin/lorenz --plus4`, the suite's plus4 build on a
+  PAL Plus/4, off `LorenzPlus4.d81` and then `Disk4plus4.d64`, with the
+  same rows. `readme-plus4.txt` says the trap tests, `branchwrap`,
+  `mmufetch`, `mmu`, `cpuport` and `cputiming` don't work on the 264, and
+  some of them hang, drop to BASIC, halt for keys without end or print
+  without end. So when a test does any of those (more than
+  `Lorenz::PLUS4_KEY_LIMIT` keys or `Lorenz::PLUS4_TEST_CYCLE_LIMIT` cycles
+  for the last two), a fresh machine resumes the chain at the next
+  program in disk order, and the `(suite)` row lists the programs it
+  resumed past. CI runs the whole chain on Spinel, in about 17 minutes.
+  The FAIL rows are the readme's, plus `trap4`-`trap8` and
+  `trap15`-`trap17` in their plain, ANE and LXA variants, `irq` and `nmi`.
+  Run one program at a time with `-debugcart` (exit 0 for pass), xplus4
+  r45942 agrees on every row but three: it fails `trap10`, `trap12` and
+  `trap14` (each also as `ane` and `lxa`), the tests that put their data
+  on the 7501's port at `$00`-`$01`, and `aneb` runs out of cycles there
+  without reporting. No real 264's results were found for either.
 - `sid.txt` — `bin/sidtests` over the SID testprogs in
   `vendor/VICE-testprogs/SID` that report through `$D7FF`. Same
   tab-separated record as the testbench, in the runner's test order:

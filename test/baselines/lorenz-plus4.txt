@@ -1,0 +1,282 @@
+*	PASS	searching for * | loading | ready. | start | Commodore 64 Emulator Test Suite | Public Domain, no Copyright | basic commands
+ldab	PASS
+ldaz	PASS
+ldazx	PASS
+ldaa	PASS
+ldaax	PASS
+ldaay	PASS
+ldaix	PASS
+ldaiy	PASS
+staz	PASS
+stazx	PASS
+staa	PASS
+staax	PASS
+staay	PASS
+staix	PASS
+staiy	PASS
+ldxb	PASS
+ldxz	PASS
+ldxzy	PASS
+ldxa	PASS
+ldxay	PASS
+stxz	PASS
+stxzy	PASS
+stxa	PASS
+ldyb	PASS
+ldyz	PASS
+ldyzx	PASS
+ldya	PASS
+ldyax	PASS
+styz	PASS
+styzx	PASS
+stya	PASS
+taxn	PASS
+tayn	PASS
+txan	PASS
+tyan	PASS
+tsxn	PASS
+txsn	PASS
+phan	PASS
+plan	PASS
+phpn	PASS
+plpn	PASS
+inxn	PASS
+inyn	PASS
+dexn	PASS
+deyn	PASS
+incz	PASS
+inczx	PASS
+inca	PASS
+incax	PASS
+decz	PASS
+deczx	PASS
+deca	PASS
+decax	PASS
+asln	PASS
+aslz	PASS
+aslzx	PASS
+asla	PASS
+aslax	PASS
+lsrn	PASS
+lsrz	PASS
+lsrzx	PASS
+lsra	PASS
+lsrax	PASS
+roln	PASS
+rolz	PASS
+rolzx	PASS
+rola	PASS
+rolax	PASS
+rorn	PASS
+rorz	PASS
+rorzx	PASS
+rora	PASS
+rorax	PASS
+andb	PASS
+andz	PASS
+andzx	PASS
+anda	PASS
+andax	PASS
+anday	PASS
+andix	PASS
+andiy	PASS
+orab	PASS
+oraz	PASS
+orazx	PASS
+oraa	PASS
+oraax	PASS
+oraay	PASS
+oraix	PASS
+oraiy	PASS
+eorb	PASS
+eorz	PASS
+eorzx	PASS
+eora	PASS
+eorax	PASS
+eoray	PASS
+eorix	PASS
+eoriy	PASS
+clcn	PASS
+secn	PASS
+cldn	PASS
+sedn	PASS
+clin	PASS
+sein	PASS
+clvn	PASS
+adcb	PASS
+adcz	PASS
+adczx	PASS
+adca	PASS
+adcax	PASS
+adcay	PASS
+adcix	PASS
+adciy	PASS
+sbcb	PASS
+sbcz	PASS
+sbczx	PASS
+sbca	PASS
+sbcax	PASS
+sbcay	PASS
+sbcix	PASS
+sbciy	PASS
+cmpb	PASS
+cmpz	PASS
+cmpzx	PASS
+cmpa	PASS
+cmpax	PASS
+cmpay	PASS
+cmpix	PASS
+cmpiy	PASS
+cpxb	PASS
+cpxz	PASS
+cpxa	PASS
+cpyb	PASS
+cpyz	PASS
+cpya	PASS
+bitz	PASS
+bita	PASS
+brkn	PASS
+rtin	PASS
+jsrw	PASS
+rtsn	PASS
+jmpw	PASS
+jmpi	PASS
+beqr	PASS
+bner	PASS
+bmir	PASS
+bplr	PASS
+bcsr	PASS
+bccr	PASS
+bvsr	PASS
+bvcr	PASS
+nopn	PASS
+nopb	PASS
+nopz	PASS
+nopzx	PASS
+nopa	PASS
+nopax	PASS
+asoz	PASS
+asozx	PASS
+asoa	PASS
+asoax	PASS
+asoay	PASS
+asoix	PASS
+asoiy	PASS
+rlaz	PASS
+rlazx	PASS
+rlaa	PASS
+rlaax	PASS
+rlaay	PASS
+rlaix	PASS
+rlaiy	PASS
+lsez	PASS
+lsezx	PASS
+lsea	PASS
+lseax	PASS
+lseay	PASS
+lseix	PASS
+lseiy	PASS
+rraz	PASS
+rrazx	PASS
+rraa	PASS
+rraax	PASS
+rraay	PASS
+rraix	PASS
+rraiy	PASS
+dcmz	PASS
+dcmzx	PASS
+dcma	PASS
+dcmax	PASS
+dcmay	PASS
+dcmix	PASS
+dcmiy	PASS
+insz	PASS
+inszx	PASS
+insa	PASS
+insax	PASS
+insay	PASS
+insix	PASS
+insiy	PASS
+laxz	PASS
+laxzy	PASS
+laxa	PASS
+laxay	PASS
+laxix	PASS
+laxiy	PASS
+axsz	PASS
+axszy	PASS
+axsa	PASS
+axsix	PASS
+alrb	PASS
+arrb	PASS
+sbxb	PASS
+shaay	PASS
+shaiy	PASS
+shxay	PASS
+shyax	PASS
+shsay	PASS
+ancb	PASS
+lasay	PASS
+sbcb-eb	PASS
+trap1	PASS
+trap2	PASS
+trap3	PASS
+trap4	FAIL	halted for a keypress | ora 01 | after 1b c6 b1 6c b0 | right 1b df b1 6c b0 | aso 03 | after 1b c6 b1 6c b0 | right 36 f6 b1 6c b0 | nop 04… sha=9b785b19
+trap5	FAIL	halted for a keypress | searching for trap5 | loading | ready. | trap5 | ora 01 | after 1b c4 b1 6c b0 | right 1b df b1 6c b0 | aso 03 | aft… sha=26e70fb6
+trap6	FAIL	searching for trap6 | loading | ready. | trap6 | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+trap7	FAIL	halted for a keypress | searching for trap7 | loading | ready. | trap7 | brk 00 | after 66 c6 b1 6c 34 | right 1b c6 b1 6c 34 | ora 01 | aft… sha=c0e5ddc4
+trap8	FAIL	halted for a keypress | brk 00 | after 3c c6 b1 6c 34 | right 1b c6 b1 6c 34 | ora 01 | after 3c fe b1 6c b0 | right 1b df b1 6c b0 | hlt 02… sha=053d5050
+trap9	PASS
+trap10	PASS
+trap11	PASS
+trap12	PASS
+trap13	PASS
+trap14	PASS
+trap15	FAIL	halted for a keypress | brk 00 | after 66 c6 b1 6c 34 | right 1b c6 b1 6c 34 | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+trap16	FAIL	halted for a keypress | searching for trap16 | loading | ready. | trap16 | brk 00 | after 00 00 00 00 00 | right 1b c6 b1 6c 34 | ora 01 | a… sha=d6dca23b
+trap17	FAIL	halted for a keypress | searching for trap17 | loading | ready. | trap17 | brk 00 | after 00 00 00 00 00 | right 1b c6 b1 6c 34 | ora 01 | a… sha=85009694
+branchwrap	FAIL	searching for branchwrap | loading | ready. | branchwrap | break | pc sr ac xr yr sp | ; 6c05 32 fe 0a 00 f0 | commodore basic v3.5 60671 by… sha=1c048f56
+mmufetch	FAIL	searching for mmufetch | loading | ready. | mmufetch | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+mmu	FAIL	halted for a keypress | searching for mmu | loading | ready. | mmu | 0=0 1=0 0=0 0=0 0=0 0=0 | after 0 7 80 20 3c 3c | right 0 7 95 86 00 03… sha=108d37c6
+cpuport	FAIL	halted for a keypress | searching for cpuport | loading | ready. | cpuport | 0=ff 1=ff 0=00 1=ff 1=ff 1=ff | after 00 3f | right 00 df | 0=f… sha=d7b4c973
+cputiming	FAIL	commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+irq	FAIL	searching for irq | loading | ready. | irq | irq (old cia) | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+nmi	FAIL	searching for nmi | loading | ready. | nmi | nmi (old cia) | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+aneb	PASS	searching for aneb | loading | ready. | aneb | magic value: ef
+lxab	PASS	magic value: ee
+trap1ane	PASS	ane magic value: ef
+trap2ane	PASS	ane magic value: ef
+trap3ane	PASS	ane magic value: ef
+trap4ane	FAIL	halted for a keypress | ane magic value: ef | ora 01 | after 1b c6 b1 6c b0 | right 1b df b1 6c b0 | ane magic value: ef | aso 03 | after 1b… sha=07e2ab75
+trap5ane	FAIL	halted for a keypress | searching for trap5ane | loading | ready. | trap5ane | ane magic value: ef | ora 01 | after 1b c4 b1 6c b0 | right 1… sha=da5ee172
+trap6ane	FAIL	searching for trap6ane | loading | ready. | trap6ane | ane magic value: ef | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+trap7ane	FAIL	halted for a keypress | searching for trap7ane | loading | ready. | trap7ane | ane magic value: ef | brk 00 | after 66 c6 b1 6c 34 | right 1… sha=a1a1a293
+trap8ane	FAIL	halted for a keypress | ane magic value: ef | brk 00 | after 3c c6 b1 6c 34 | right 1b c6 b1 6c 34 | ane magic value: ef | ora 01 | after 3c… sha=50689d81
+trap9ane	PASS	ane magic value: ef
+trap10ane	PASS	ane magic value: ef
+trap11ane	PASS	ane magic value: ef
+trap12ane	PASS	ane magic value: ef
+trap13ane	PASS	ane magic value: ef
+trap14ane	PASS	ane magic value: ef
+trap15ane	FAIL	halted for a keypress | ane magic value: ef | brk 00 | after 66 c6 b1 6c 34 | right 1b c6 b1 6c 34 | ane magic value: ef | commodore basic v… sha=22f55398
+trap16ane	FAIL	halted for a keypress | searching for trap16ane | loading | ready. | trap16ane | ane magic value: ef | brk 00 | after 00 00 00 00 00 | right… sha=bedaed6f
+trap17ane	FAIL	halted for a keypress | searching for trap17ane | loading | ready. | trap17ane | ane magic value: ef | brk 00 | after 00 00 00 00 00 | right… sha=ca7c0c41
+trap1lxa	PASS	searching for trap1lxa | loading | ready. | trap1lxa | lxa magic value: ee
+trap2lxa	PASS	lxa magic value: ee
+trap3lxa	PASS	lxa magic value: ee
+trap4lxa	FAIL	halted for a keypress | lxa magic value: ee | ora 01 | after 1b c6 b1 6c b0 | right 1b df b1 6c b0 | lax magic value: ee | aso 03 | after 1b… sha=aef93d1a
+trap5lxa	FAIL	halted for a keypress | searching for trap5lxa | loading | ready. | trap5lxa | lxa magic value: ee | ora 01 | after 1b c4 b1 6c b0 | right 1… sha=02f1ca99
+trap6lxa	FAIL	searching for trap6lxa | loading | ready. | trap6lxa | lxa magic value: ee | commodore basic v3.5 60671 bytes free | 3-plus-1 on key f1 | ready.
+trap7lxa	FAIL	halted for a keypress | searching for trap7lxa | loading | ready. | trap7lxa | lxa magic value: ee | brk 00 | after 66 c6 b1 6c 34 | right 1… sha=7a9f78c3
+trap8lxa	FAIL	halted for a keypress | lxa magic value: ee | brk 00 | after 3c c6 b1 6c 34 | right 1b c6 b1 6c 34 | lax magic value: ee | ora 01 | after 3c… sha=cce5b783
+trap9lxa	PASS	lxa magic value: ee
+trap10lxa	PASS	lxa magic value: ee
+trap11lxa	PASS	lxa magic value: ee
+trap12lxa	PASS	lxa magic value: ee
+trap13lxa	PASS	lxa magic value: ee
+trap14lxa	PASS	lxa magic value: ee
+trap15lxa	FAIL	halted for a keypress | lxa magic value: ee | brk 00 | after 66 c6 b1 6c 34 | right 1b c6 b1 6c 34 | lax magic value: ee | commodore basic v… sha=ee791a5d
+trap16lxa	FAIL	halted for a keypress | searching for trap16lxa | loading | ready. | trap16lxa | lxa magic value: ee | brk 00 | after 00 00 00 00 00 | right… sha=4cac69c9
+trap17lxa	FAIL	halted for a keypress | searching for trap17lxa | loading | ready. | trap17lxa | lxa magic value: ee | brk 00 | after 00 00 00 00 00 | right… sha=4c997239
+finish	PASS	searching for finish | loading | ready. | finish | test suite 2.15+ completed
+(suite)	PASS	completed after finish, resumed past trap4, trap5, trap6, trap15, trap16, trap17, branchwrap, mmufetch, mmu, cputiming, irq, nmi, trap4ane, trap5ane, trap6ane, trap15ane, trap16ane, trap17ane, trap4lxa, trap5lxa, trap6lxa, trap15lxa, trap16lxa, trap17lxa

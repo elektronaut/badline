@@ -217,4 +217,29 @@ describe Badline::KernalTrap::Layout do
       end
     end
   end
+
+  context "with the 264's" do
+    let(:layout) { Badline::KernalTrap::PLUS4_LAYOUT }
+    let(:machine) { Badline::Plus4.new }
+    let(:bus) { machine.bus }
+
+    it "finds the KERNAL while ROM is selected with its bank" do
+      expect(layout.kernal_mapped?(bus)).to be(true)
+    end
+
+    it "finds RAM once $FF3F selects it" do
+      bus.poke(0xff3f, 0)
+      expect(layout.kernal_mapped?(bus)).to be(false)
+    end
+
+    it "finds another bank once the latch picks one" do
+      bus.poke(0xfdd4, 0)
+      expect(layout.kernal_mapped?(bus)).to be(false)
+    end
+
+    it "reads the file name from the RAM under ROM" do
+      bus.poke(0x9000, 0x41)
+      expect(layout.filename_byte(bus, 0x9000)).to eq(0x41)
+    end
+  end
 end

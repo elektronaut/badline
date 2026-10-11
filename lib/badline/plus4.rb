@@ -17,12 +17,14 @@ module Badline
   # 6529. Only the TED pulls IRQ, and nothing pulls NMI, which the 7501
   # doesn't have.
   #
-  # It runs headless only: the TED paints no picture yet, and nothing
-  # attaches media.
+  # It runs headless only: the TED paints no picture yet. Device 8
+  # serves disks through the KERNAL traps (C64::KernalTraps), and
+  # cartridges go in cartridge 1's slots.
   class Plus4
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include C64::KernalTraps
 
     # The cycle by which the KERNAL has booted and BASIC printed READY,
     # with a margin, in TED cycles. READY is up by about 116,000 on a PAL
@@ -70,6 +72,10 @@ module Badline
       @cycles = 0
       @init_handlers = []
       @pending_keys = nil
+      @dos = nil
+      @serial_trap = nil
+      @save_trap = nil
+      @capture_output = nil
     end
 
     # One TED cycle: the TED moves on and decides the CPU's clock, then the
@@ -99,6 +105,7 @@ module Badline
       @port.reset!
       @keyboard_port.reset!
       @user_port&.reset!
+      @dos&.reset!
       @acia&.reset!
       @tias.each(&:reset!)
       @bus.reset!
@@ -139,6 +146,15 @@ module Badline
 
     # The 264 KERNAL's keyboard buffer.
     def keyboard_buffer = Machine::KeyboardBuffer::PLUS4_LAYOUT
+
+    # The 264 KERNAL, which the traps stand in for.
+    def trap_layout = KernalTrap::PLUS4_LAYOUT
+
+    def trap_bus = @bus
+
+    # Device 8, which the serial traps answer for, with no true drive on
+    # the bus to take it.
+    def serial_trap_device = KernalTrap::Routine::DEVICE
 
     # BA stops the CPU at a read, and a write goes ahead.
     def clock_cpu(ted)

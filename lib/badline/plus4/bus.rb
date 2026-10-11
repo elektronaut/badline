@@ -235,6 +235,10 @@ module Badline
         map_reads
       end
 
+      # Whether the CPU reads the KERNAL at $C000-$FFFF: ROM selected, with
+      # the KERNAL's bank, high bank 0.
+      def kernal_selected? = @rom_selected && @high_bank.zero?
+
       # A write to the ROM bank latch at +addr+.
       def select_banks(addr)
         @low_bank = addr & 0x03
