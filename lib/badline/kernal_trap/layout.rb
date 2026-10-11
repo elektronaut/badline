@@ -29,11 +29,13 @@ module Badline
     # +serial_timer+. The ROM lets go of each serial line by reading a
     # port, masking the line's bit off and writing it back: ATN at
     # +atn_port+ with +atn_mask+, then the clock and the data line.
+    # +zero_page+ is a ZeroPage, where the KERNAL keeps the file's
+    # parameters and the status the traps read and set.
     Layout = Data.define(:load, :save, :searching_message, :loading_message, :load_byte_loop, :load_done,
                          :file_not_found_exit, :missing_file_name_exit, :saving_message, :clock_release,
                          :data_release, :save_done, :talk, :listen, :second, :tksa, :ciout, :untalk,
                          :unlisten, :acptr, :banked, :serial_timer, :serial_timer_start, :atn_port, :atn_mask,
-                         :clock_port, :clock_mask, :data_port, :data_mask, :mmu) do
+                         :clock_port, :clock_mask, :data_port, :data_mask, :mmu, :zero_page) do
       # Whether the CPU reads the KERNAL ROM at the trapped addresses: on a
       # banked machine, the 6510 port's banking bits select it, and on the
       # C128 the MMU.
@@ -95,6 +97,23 @@ module Badline
       end
     end
 
+    # The zero-page variables of a KERNAL's file routines, by address:
+    # +status+ (ST), +verify+ (VERCK, 0 for LOAD and 1 for VERIFY),
+    # +start_address+ (SAL), +end_address+ (EAL), +filename_length+
+    # (FNLEN), +secondary_address+ (SA), +device+ (FA), +filename_address+
+    # (FNADR), +save_start+ (STAL) and +load_address+ (MEMUSS, where LOAD
+    # puts a file loaded with secondary address 0). Each two-byte one names
+    # its low byte, and the high byte follows it.
+    ZeroPage = Data.define(:status, :verify, :start_address, :end_address, :filename_length, :secondary_address,
+                           :device, :filename_address, :save_start, :load_address)
+
+    # The C64's file variables. The VIC-20 and C128 KERNALs keep theirs at
+    # the same addresses.
+    C64_ZERO_PAGE = ZeroPage.new(
+      status: 0x90, verify: 0x93, start_address: 0xac, end_address: 0xae, filename_length: 0xb7,
+      secondary_address: 0xb9, device: 0xba, filename_address: 0xbb, save_start: 0xc1, load_address: 0xc3
+    )
+
     # A CIA's control value that starts its timer: force load, one-shot,
     # start.
     TIMER_ONE_SHOT_START = 0x19
@@ -117,7 +136,7 @@ module Badline
       ciout: 0xeddd, untalk: 0xedef, unlisten: 0xedfe, acptr: 0xee13,
       banked: true, serial_timer: 0xdc07, serial_timer_start: 0xdc0f,
       atn_port: 0xdd00, atn_mask: 0xf7, clock_port: 0xdd00, clock_mask: 0xef, data_port: 0xdd00, data_mask: 0xdf,
-      mmu: false
+      mmu: false, zero_page: C64_ZERO_PAGE
     )
 
     # The VIC-20 KERNAL, 901486-07 (PAL). The NTSC one, 901486-06, differs
@@ -135,7 +154,7 @@ module Badline
       ciout: 0xeee4, untalk: 0xeef6, unlisten: 0xef04, acptr: 0xef19,
       banked: false, serial_timer: 0x9129, serial_timer_start: nil,
       atn_port: 0x911f, atn_mask: 0x7f, clock_port: 0x912c, clock_mask: 0xfd, data_port: 0x912c, data_mask: 0xdf,
-      mmu: false
+      mmu: false, zero_page: C64_ZERO_PAGE
     )
 
     # The C128 KERNAL, 318020-05, in C128 mode: the jump table's targets
@@ -156,7 +175,7 @@ module Badline
       ciout: 0xe503, untalk: 0xe515, unlisten: 0xe526, acptr: 0xe43e,
       banked: true, serial_timer: nil, serial_timer_start: nil,
       atn_port: 0xdd00, atn_mask: 0xf7, clock_port: 0xdd00, clock_mask: 0xef, data_port: 0xdd00, data_mask: 0xdf,
-      mmu: true
+      mmu: true, zero_page: C64_ZERO_PAGE
     )
   end
 end

@@ -6,17 +6,17 @@ module Badline
       private
 
       def active?
-        kernal_mapped? && @bus.peek(0xba) == DEVICE
+        kernal_mapped? && @bus.peek(zero_page.device) == DEVICE
       end
 
       def filename
         Storage.strip_drive_prefix(full_filename)
       end
 
-      # Filename pointer at $BB/$BC, length at $B7
+      # The file name FNADR points to, FNLEN bytes long.
       def full_filename
-        pointer = uint16(@bus.peek(0xbb), @bus.peek(0xbc))
-        bytes = Array.new(@bus.peek(0xb7)) do |i|
+        pointer = peek_word(zero_page.filename_address)
+        bytes = Array.new(@bus.peek(zero_page.filename_length)) do |i|
           @layout.filename_byte(@bus, (pointer + i) & 0xffff)
         end
         Storage.ascii(bytes)
