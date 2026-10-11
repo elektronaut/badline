@@ -99,6 +99,12 @@ module Badline
         @since = 0
       end
 
+      # Sets the write line's level without recording an edge, as a
+      # snapshot loads it.
+      def write_level=(high)
+        @write_high = high
+      end
+
       def playing? = @playing
 
       # Sense reads low while a key is down on the deck.
