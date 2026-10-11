@@ -28,7 +28,7 @@ module CIMatrix
     "drive-via-1" => [%w[testbench-drive via1.prg via2.prg via3 via4.prg via5.prg via9.prg]],
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
     "drive" => [%w[testbench-drive !viavarious], "drive-scenarios", "testbench-vic20", "testbench-plus4",
-                "testbench-c16"],
+                "testbench-c16", "testbench-plus4-ntsc"],
     "lorenz-plus4" => %w[lorenz-plus4],
     "c128c64" => %w[testbench-c128c64],
     "c128" => %w[testbench-c128],

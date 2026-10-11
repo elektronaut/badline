@@ -559,8 +559,14 @@ class TestTestbenchPlus4 < Minitest::Test
     assert_equal %w[plus4 c16ntsc], [parse("").plus4_model, parse("ted-ntsc", family: :c16).plus4_model]
   end
 
-  def test_takes_only_exitcode_rows
-    assert_nil parse("", type: "screenshot")
+  def test_runs_every_row_on_the_ntsc_board_with_ntsc
+    test = Testbench::Plus4Testlist.parse("#{@dir}/,t.prg,exitcode,1000000", :plus4, ntsc: true)
+
+    assert_equal "plus4ntsc", test.plus4_model
+  end
+
+  def test_takes_exitcode_and_screenshot_rows
+    assert_equal %w[exitcode screenshot], [parse("").type, parse("", type: "screenshot").type]
     assert_nil parse("", type: "interactive")
   end
 
@@ -585,6 +591,23 @@ class TestTestbenchPlus4 < Minitest::Test
     machine = Testbench.plus4_machine("c16", true)
 
     assert_equal " commodore basic v3.5 12277 bytes free", Testbench.plus4_screen_text(machine)[1].rstrip
+  end
+
+  def test_compares_an_ntsc_screenshot_with_a_pal_reference_on_the_lines_both_show
+    png = ChunkyPNG::Image.new(384, 288, ChunkyPNG::Color.rgb(0, 0, 0))
+    png[40, 100] = ChunkyPNG::Color.rgb(255, 255, 255)
+    png.save(File.join(@dir, "ref.png"))
+    rows = Array.new(242) { Array.new(384, 0) }
+    rows[78][40] = 0x71
+    test = Struct.new(:reference, :key).new(File.join(@dir, "ref.png"), "t")
+
+    assert_equal 0, Testbench::Plus4Screenshot.new(rows).compare(test)
+  end
+
+  def test_crops_the_picture_as_xplus4_does
+    rows = Testbench.plus4_screenshot(Testbench.plus4_machine("c16", true).ted)
+
+    assert_equal [288, 384, 0x6e, 0x71], [rows.length, rows[0].length, rows[39][32], rows[40][32]]
   end
 end
 
@@ -1238,6 +1261,12 @@ class TestTestbenchRecord < Minitest::Test
     rows = Array.new(272) { |row| Array.new(384) { |col| (row + col) & 0xf } }
 
     assert_equal rows, parse(Testbench::Record.screen("t", 0, 1, rows), "screenshot").screen
+  end
+
+  def test_a_wide_record_reads_back_as_the_rows_of_palette_indices
+    rows = Array.new(288) { |row| Array.new(384) { |col| (row + col) & 0x7f } }
+
+    assert_equal rows, parse(Testbench::Record.wide_screen("t", 0, 1, rows), "screenshot").screen
   end
 
   def test_a_record_carries_the_exit_code

@@ -641,7 +641,9 @@ module Testbench
     # screen is the text screen for an exitcode test, and the display's
     # rows of palette indices for a screenshot test.
     def score(test, exit_code, screen)
-      return score_screenshot(test, exit_code, Screenshot.new(screen)) unless test.type == "exitcode"
+      unless test.type == "exitcode"
+        return score_screenshot(test, exit_code, test.plus4? ? Plus4Screenshot.new(screen) : Screenshot.new(screen))
+      end
 
       score_exitcode(test, exit_code).tap do |result|
         write_screen(test, screen) unless result == "PASS"
@@ -777,7 +779,7 @@ module Testbench
     when :vic20 then Vic20Testlist.tests(argv, scope:, exclude:)
     when :c128c64 then C128Testlist.tests(argv, scope:, exclude:)
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
-    when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:)
+    when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:, ntsc: rows.standard == :ntsc)
     else Testlist.tests(argv, scope:, exclude:, rows:)
     end
   end

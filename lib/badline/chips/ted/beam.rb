@@ -88,6 +88,7 @@ module Badline
             end_frame
           end
           step_row_line(line)
+          step_scanline(line)
           self.line = line
         end
 

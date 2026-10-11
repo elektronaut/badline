@@ -190,7 +190,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
-`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions`, under 1 for `testbench-vic20`, `testbench-plus4` and `testbench-c16`, and about 30 for `testbench-c128c64`. `lorenz-plus4` takes about 17 min on the Spinel build. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions`, under 1 for `testbench-vic20`, `testbench-plus4`, `testbench-c16` and `testbench-plus4-ntsc`, and about 30 for `testbench-c128c64`. `lorenz-plus4` takes about 17 min on the Spinel build. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -258,7 +258,9 @@ the 6526A) for anything the interrupt register or the CIA model reaches; cartrid
 `testbench-vic20` (`bin/testbench --vic20`); the 264 series (`plus4.rb`,
 `plus4/`), the TED (`chips/ted.rb`, `chips/ted/`) or the TIA (`chips/tia.rb`)
 → `testbench-plus4` (`bin/testbench --plus4`) and `testbench-c16`
-(`bin/testbench --c16`), plus `lorenz-plus4` (`bin/lorenz --plus4`) for
+(`bin/testbench --c16`), plus `testbench-plus4-ntsc`
+(`bin/testbench --plus4 --ntsc`) for anything NTSC timing or the picture
+reaches, and `lorenz-plus4` (`bin/lorenz --plus4`) for
 anything the CPU's clock, the TED's DMA, its timers or its interrupt reach.
 Its tests run one at a time as the C64's do, with
 `ruby --yjit bin/lorenz --plus4 --resume <test> --stop-after <test>`; the C128 (`c128.rb`, `c128/`), or

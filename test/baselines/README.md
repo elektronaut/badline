@@ -170,21 +170,30 @@ Recorded output of the headless hardware suites, one file per suite:
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
     plain and `exp` variants.
 - `testbench-plus4.txt` — the same runner with `--plus4`, over the
-  `exitcode` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
+  `exitcode` and `screenshot` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
   each on a PAL Plus/4 with a 1551's TCBM interface plugged in at
   `$FEC0`-`$FEFF`, as xplus4 starts with a 1551 as drive 8, and nothing
   answering on the drive's side. The program goes to the start of BASIC
   at TXTTAB, with VARTAB and EAL set as LOAD sets them, and `RUN` is typed
   once the machine has booted. A `mountcrt` row starts from power-on with
   the cartridge's ROM chips in cartridge 1's slots. Tests report through
-  `$FDCF`. The screenshot rows wait for the TED's video. On Spinel the
-  rows run on `spinel/plus4_testbench.rb`. Every row passes.
+  `$FDCF`. A screenshot row compares the TED's picture, cropped as
+  xplus4's screenshots are, with the reference from (32, 35) on, as
+  xplus4's hook does. Each reference pixel counts as the palette entry
+  nearest to it, with no tolerance beyond that (`Testbench::Plus4Screenshot`).
+  On Spinel the rows run on `spinel/plus4_testbench.rb`, which prints a
+  screenshot two hex digits a pixel. Every row passes.
   `Plus4/openio/outrun2.prg` reads unconnected I/O at `$FDD0` 256 times
   and wants a different byte at least once: the TED's pattern fetches in
   the first half of a display line's cycles leave their bytes on the bus.
 - `testbench-c16.txt` — the same rows with `--c16`, on a 16K PAL C16.
   `memory-expansions/c16-ram-emd.prg` fails there too, `$ff`, as on
   xplus4's 16K C16.
+- `testbench-plus4-ntsc.txt` — the same rows with `--plus4 --ntsc`, on an
+  NTSC Plus/4, as a `ted-ntsc` row asks. The testlist has no NTSC rows or
+  references, so a screenshot, 384 by 242 lines with the window from line
+  18, is compared with the PAL reference on the lines both show, the
+  window's corners lined up. Every row passes.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`

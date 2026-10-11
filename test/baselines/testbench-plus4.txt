@@ -1,7 +1,11 @@
 selftest/plus4-pass.prg	PASS
 selftest/plus4-fail.prg	PASS
+selftest/plus4-pass.prg#2	PASS
+selftest/plus4-fail.prg#2	PASS
 selftest/plus4-pass.crt	PASS
 selftest/plus4-fail.crt	PASS
+selftest/plus4-pass.crt#2	PASS
+selftest/plus4-fail.crt#2	PASS
 Plus4/openio/outrun.prg	PASS
 Plus4/openio/outrun2.prg	PASS
 Plus4/tcbm/test.prg	PASS
