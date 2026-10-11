@@ -35,7 +35,8 @@ module Badline
             @disabled = true
             self.mode = :off
           else
-            @roml = bank(@banks, value & @bank_mask)
+            @bank = value & @bank_mask
+            @roml = bank(@banks, @bank)
           end
         end
 

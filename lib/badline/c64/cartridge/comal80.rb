@@ -37,6 +37,7 @@ module Badline
         def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
         def select(number, mode)
+          @bank = number
           @roml = bank(@roml_banks, number)
           @romh = bank(@romh_banks, number)
           self.mode = mode

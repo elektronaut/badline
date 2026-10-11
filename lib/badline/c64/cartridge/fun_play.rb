@@ -10,7 +10,8 @@ module Badline
         def poke(addr, value)
           return if addr > 0xdeff
 
-          @roml = bank(@banks, self.class.bank_number(value))
+          @bank = self.class.bank_number(value)
+          @roml = bank(@banks, @bank)
           case value & 0xc6
           when 0x00 then self.mode = :rom8k
           when 0x86 then self.mode = :off

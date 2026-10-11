@@ -6,9 +6,21 @@ require_relative "../../../../test/support/snapshot_cartridges"
 # Every mapper's keyed fields, saved again the same: bin/snapshot_check's
 # matrix of mappers after register writes, reads, freezes and thaws, each
 # saved, built again from its fields (Cartridge.from_fields), loaded and
-# saved again.
+# saved again, with ROML and ROMH showing what they showed.
 module CartridgeKeyedSamples
   module_function
+
+  # The bank or view each window shows, by the name a 0.14.0 snapshot gave
+  # it.
+  def windows(cartridge)
+    choices = cartridge.send(:windows)
+    return [] unless choices
+
+    labels = cartridge.send(:window_labels)
+    [cartridge.roml, cartridge.romh].map do |window|
+      window.nil? ? "none" : labels.fetch(cartridge.send(:window_index, window, choices))
+    end
+  end
 
   def saved_fields(cartridge)
     out = Badline::Snapshot::Keyed::Writer.new
@@ -25,13 +37,14 @@ module CartridgeKeyedSamples
       copy.load_fields(input)
       lines = input.report.lines(verbose: true)
       lines << "saves other fields" unless saved_fields(copy) == saved_fields(cartridge)
+      lines << "shows other windows" unless windows(copy) == windows(cartridge)
       lines.map { |line| "#{name}: #{line}" }
     end
   end
 end
 
 describe Badline::C64::Cartridge::KeyedState do
-  it "restores every mapper in the matrix" do
+  it "restores every mapper in the matrix", :slow do
     expect(CartridgeKeyedSamples.problems.first(8)).to be_empty
   end
 end

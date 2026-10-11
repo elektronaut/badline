@@ -22,6 +22,7 @@ module Badline
 
         # In 16K mode the selected bank shows through ROMH as well.
         def select_bank(number)
+          @bank = number
           @roml = bank(@banks, number)
           @romh = @roml if game.zero?
         end

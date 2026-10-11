@@ -11,7 +11,8 @@ module Badline
           return if addr > 0xdeff
 
           @exrom = value.anybits?(0x80) ? 1 : 0
-          @roml = bank(@banks, value & @bank_mask)
+          @bank = value & @bank_mask
+          @roml = bank(@banks, @bank)
           changed!
         end
 

@@ -27,7 +27,8 @@ module Badline
         private
 
         def select(addr)
-          @roml = bank(@banks, addr & 0x3f)
+          @bank = addr & 0x3f
+          @roml = bank(@banks, @bank)
           changed!
         end
 
