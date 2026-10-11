@@ -59,8 +59,8 @@ module Badline
       plus4_parts = @model.plus4_parts
       @acia = plus4_parts ? ACIA.new : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
-      @bus = Bus.new(ted: @ted, port: @port, keyboard_port: @keyboard_port, ram_kb: @ram_kb,
-                     kernal: @model.kernal, acia: @acia, user_port: @user_port, plus4_parts:)
+      io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port)
+      @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
