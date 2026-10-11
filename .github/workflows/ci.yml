@@ -146,6 +146,21 @@ jobs:
           make -C "$SPINEL_DIR" -j"$(nproc)"
       - name: Print the Spinel version
         run: '"$SPINEL_DIR/bin/spinel" --version'
+      # A signature file Spinel can't parse is dropped with only a warning,
+      # and the build loses its types without failing.
+      - uses: actions/checkout@v6.1.0
+        with:
+          sparse-checkout: spinel/sig
+      - name: Parse the RBS signatures
+        run: |
+          status=0
+          for sig in spinel/sig/*.rbs; do
+            if "$SPINEL_DIR/bin/spinel_rbs_extract" "$sig" 2>&1 >/dev/null | grep -q 'parse failed'; then
+              echo "::error file=$sig::Spinel can't parse $sig"
+              status=1
+            fi
+          done
+          exit "$status"
 
   # Builds the native badline and runs it headless for a few frames, then
   # does the same with the spin pack tarball release.yml ships to Homebrew.

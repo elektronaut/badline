@@ -160,6 +160,7 @@ module Badline
       @pending_write: bool
       @optional_dummy: bool
     end
+  end
 
   class Plus4
     class CPU
