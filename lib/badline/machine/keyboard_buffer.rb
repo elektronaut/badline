@@ -2,10 +2,19 @@
 
 module Badline
   module Machine
+    # Typing into the KERNAL's keyboard buffer once the machine has booted.
+    # The machine that includes it answers #keyboard_buffer, the Layout of
+    # the KERNAL it runs, and #ram.
     module KeyboardBuffer
-      ADDRESS = 0x0277
-      COUNT = 0xc6
-      CAPACITY = 10
+      # Where a KERNAL keeps its keyboard buffer (KEYD), the count of
+      # characters in it (NDX), and how many it holds.
+      Layout = Data.define(:address, :count, :capacity)
+
+      # The C64's and the VIC-20's.
+      C64_LAYOUT = Layout.new(address: 0x0277, count: 0xc6, capacity: 10)
+
+      # BASIC 7.0's, in C128 mode.
+      C128_LAYOUT = Layout.new(address: 0x034a, count: 0xd0, capacity: 10)
 
       def type_text(text)
         codes = text.bytes.map { |b| ascii_to_petscii(b) }
@@ -15,11 +24,12 @@ module Badline
       private
 
       def feed_keyboard
-        return unless ram.peek(COUNT).zero?
+        buffer = keyboard_buffer
+        return unless ram.peek(buffer.count).zero?
 
-        chunk = @pending_keys.shift(CAPACITY)
-        ram.write(ADDRESS, chunk)
-        ram.poke(COUNT, chunk.length)
+        chunk = @pending_keys.shift(buffer.capacity)
+        ram.write(buffer.address, chunk)
+        ram.poke(buffer.count, chunk.length)
         @pending_keys = nil if @pending_keys.empty?
       end
 
