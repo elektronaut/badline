@@ -31,7 +31,7 @@ module Badline
     # Plus/4, 126,000 on an NTSC one and sooner on a C16.
     INIT_THRESHOLD = 200_000
 
-    attr_reader :model, :bus, :cpu, :ted, :port, :keyboard, :keyboard_port, :joystick1, :joystick2, :acia,
+    attr_reader :model, :bus, :cpu, :ted, :sound, :port, :keyboard, :keyboard_port, :joystick1, :joystick2, :acia,
                 :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb
 
     def family = :plus4
@@ -43,6 +43,10 @@ module Badline
     def control_ports = nil
 
     def ram = @bus.ram
+
+    # What a front end plays: the TED's sound, which answers #record and
+    # #drain_samples.
+    def sound_source = @sound
 
     # Reads and writes memory as the CPU sees it, through the bus.
     def peek(addr) = @bus.peek(addr)
@@ -77,6 +81,8 @@ module Badline
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
+      @sound = Chips::TED::Sound.new(self, @model.ted.clock_hz)
+      @ted.sound = @sound
       @init_handlers = []
       @pending_keys = nil
       @dos = nil
@@ -119,11 +125,12 @@ module Badline
       @cpu.reset!
     end
 
-    # Switches the machine off and on: RAM and the TED start from their
-    # power-on state, and the RES line resets everything else.
+    # Switches the machine off and on: RAM, the TED and its sound start
+    # from their power-on state, and the RES line resets everything else.
     def power_cycle!
       @bus.power_on!
       @ted.power_on!
+      @sound.power_on!
       reset!
     end
 

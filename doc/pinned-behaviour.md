@@ -39,6 +39,7 @@ only catches the rows that happen to move.
 - [VIC-I fetches and the V-bus](#vic-i-fetches-and-the-v-bus)
 - [VIC-I sound](#vic-i-sound)
 - [TED beam and the 7501 port](#ted-beam-and-the-7501-port)
+- [TED sound](#ted-sound)
 - [1541 serial port](#1541-serial-port)
 - [1541 disk mechanism](#1541-disk-mechanism)
 - [REU DMA](#reu-dma)
@@ -1591,6 +1592,77 @@ mid-frame. Where it follows xplus4 over the datasheet:
 - The blink counter's carry turns cursor and flash over together: in one
   turn flashing characters show the background and the cursor is off, in
   the other both show, the cursor as reverse.
+
+## TED sound
+
+No testprog checks the TED's sound, so these rules are pinned by xplus4
+(VICE 3.10) recordings, run as a black box: `-sounddev wav` at 96 kHz of
+probe programs that set the registers, the same programs run on badline
+with the sound's level sampled at the same rate, and the two compared by
+period, level and noise bits. xplus4 records the raw level, with no
+filter, so its samples read off as levels. xplus4's own source wasn't
+read.
+
+- A voice counts once every 4 cycles and toggles its output every
+  1023 - x counts, so its frequency is the clock over 8 * (1023 - x).
+  `$3FF` counts 1,024. The datasheet's formula has 1024 - x, and its PAL
+  constant, 111,840.45, is 1,000 above the clock over 8.
+  - Pinned by xplus4: voice 1 at `$000`, `$200`, `$300`, `$3F0` and `$3FF`
+    measures 108.344, 216.900, 434.653, 7389.08 and 108.239 Hz. Their
+    ratios are 1023 : 511 : 255 : 15 : 1024 to 5 digits, which 1024 - x
+    can't give, and badline's recordings measure the same within 0.005%.
+  - Spec guard: *a voice's counter* in
+    [`chips/ted/sound_spec.rb`](../spec/badline/chips/ted/sound_spec.rb).
+- `$3FE` stops a voice after its next toggle, its output high whatever
+  the phase, square wave or noise, and stops the noise's shifts.
+  - Pinned by xplus4: `$3FE` written while voice 1 plays at `$200`, after
+    21, 22, 23 and 24 frames, holds the level high each time, and noise
+    at `$3FE` holds high too. Noise held at `$3FE` for 20, 21 or 23
+    frames plays on with the same bits once it leaves, one shift on from
+    where it would be if the pending toggle were dropped.
+  - Spec guard: *$3FE* in
+    [`chips/ted/sound_spec.rb`](../spec/badline/chips/ted/sound_spec.rb).
+- The noise is an 8-bit shift register that shifts at each of voice 2's
+  toggles, taking in the XOR of bits 1, 4, 5 and 7 at bit 0. Bit 1 is the
+  output. Voice 2's counter and the noise run whether voice 2 plays the
+  square wave, the noise or nothing, and the square wins when bits 5 and
+  6 of `$FF11` are both set.
+  - Pinned by xplus4: 21,306 bits of noise at `$3D7` after a reload,
+    decoded from a recording, satisfy s(n) = s(n-2) ^ s(n-5) ^ s(n-6) ^
+    s(n-8) (Berlekamp-Massey gives linear complexity 8), with period 255,
+    starting 1100110111101110. Run back from there, the register held all
+    ones with the first two output bits already in it, so the output is
+    bit 1. Released from the reload into the square wave, into nothing or
+    into noise, voice 2 plays the same bits once switched to noise.
+    badline's recordings decode to the same first 64 bits in each of
+    these runs and in the `$3FE` ones above.
+  - Spec guard: *the noise* in
+    [`chips/ted/sound_spec.rb`](../spec/badline/chips/ted/sound_spec.rb).
+- While `$FF11` bit 7 is set, the voices that are on hold high, the noise
+  is silent and its register holds all ones. Written clear, each voice
+  starts on a whole high half-wave. With the voices held high, the volume
+  plays 9-level samples.
+  - Pinned by xplus4: voice 1, voice 2's square wave and both hold the
+    level high under bit 7, noise holds it at 0, and the half-wave after
+    the release is 221 samples at `$200`, a whole one.
+  - Spec guard: *the reload bit* in
+    [`chips/ted/sound_spec.rb`](../spec/badline/chips/ted/sound_spec.rb).
+- The level comes from the volume and how many voices are on and high.
+  One voice measures 586, 1610, 2634, 3658, 4682, 5706, 6730 and 7754 at
+  volumes 1-8, and both 1172, 3284, 5526, 7984, 10658, 13548, 16654 and
+  19976. Volumes 9-15 are 8, and volume 0 or no voice on is silent.
+  - Pinned by xplus4: those are its sample values, read off recordings
+    that step the volume with one voice and with both held high.
+  - Not pinned: that the hardware's levels are these. Nothing here says
+    why two voices come out above twice one.
+  - Spec guard: *the levels* in
+    [`chips/ted/sound_spec.rb`](../spec/badline/chips/ted/sound_spec.rb).
+- The output stage is the level averaged over each sample, then a one-pole
+  high-pass at 2.7 Hz. The Plus/4 schematic (310164, sheet 2) couples SND
+  through R10 (1K) and C18 (10 uF) into R11 (12K) and R12 (10K), with C19
+  (2,700 pF) as a low-pass at about 70 kHz, above any audio rate.
+  - Not pinned: xplus4 records no output stage, and there is no hardware
+    recording.
 
 ## 1541 serial port
 
