@@ -109,6 +109,50 @@ module Badline
         end
       end
 
+      # VICE's debug cartridge register at $FDCF, a spot in the I/O page
+      # that nothing answers (plus4world forum post 31417). A write there
+      # calls the handler with the byte, the exit code the VICE testprogs
+      # report. Every other access falls through to the I/O page.
+      class DebugRegister
+        ADDRESS = 0xfdcf
+
+        def initialize(io, &handler)
+          @io = io
+          @handler = handler
+        end
+
+        def peek(addr) = @io.peek(addr)
+
+        def poke(addr, value)
+          return @handler.call(value) if addr == ADDRESS
+
+          @io.poke(addr, value)
+        end
+      end
+
+      # Page $FE with a 1551's TCBM interface plugged in: the 6523 TIA
+      # that talks to drive 9 at $FEC0-$FEDF and drive 8's at $FEE0-$FEFF.
+      # The rest of the page is open.
+      class TCBMPage
+        def initialize(bus, drive8:, drive9:)
+          @bus = bus
+          @drive8 = drive8
+          @drive9 = drive9
+        end
+
+        def peek(addr)
+          return @bus.data if addr < 0xfec0
+
+          addr < 0xfee0 ? @drive9.peek(addr) : @drive8.peek(addr)
+        end
+
+        def poke(addr, value)
+          return if addr < 0xfec0
+
+          addr < 0xfee0 ? @drive9.poke(addr, value) : @drive8.poke(addr, value)
+        end
+      end
+
       # Page $FF: the TED in $FF00-$FF3F, its two phantom registers, and
       # ROM or RAM above.
       class TopPage
@@ -162,6 +206,8 @@ module Badline
         @io_page = io
         io.connect(self)
         @top_page = TopPage.new(self, ted)
+        @tcbm_page = @open_bus
+        @debug_register = nil
         @data = 0
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @ram_view)
@@ -196,6 +242,34 @@ module Badline
         map_reads
       end
 
+      # Calls the block with each byte written to $FDCF (DebugRegister).
+      def install_debug_register(&)
+        @debug_register = DebugRegister.new(@io_page, &)
+        map_writes
+      end
+
+      # Plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF.
+      def plug_tcbm(drive8:, drive9:)
+        @tcbm_page = TCBMPage.new(self, drive8:, drive9:)
+        map_writes
+        map_reads
+      end
+
+      # Puts a cartridge's ROM chips in the slots of cartridge 1: a chip at
+      # $8000 in low bank 2 and one at $C000 in high bank 2, each repeated
+      # through the bank's 16K.
+      def attach_cartridge(chips)
+        chips.each do |chip|
+          data = chip.data * (0x4000 / chip.data.length)
+          if chip.address < 0xc000
+            @low_roms[2] = ROM.new(data, length: 0x4000, start: 0x8000)
+          else
+            @high_roms[2] = ROM.new(data, length: 0x4000, start: 0xc000)
+          end
+        end
+        map_reads
+      end
+
       def peek(addr)
         @data = @read_pages[addr >> 8].peek(addr)
       end
@@ -209,8 +283,8 @@ module Badline
 
       def map_writes
         @write_pages[0x00] = @zero_page
-        @write_pages[0xfd] = @io_page
-        @write_pages[0xfe] = @open_bus
+        @write_pages[0xfd] = @debug_register || @io_page
+        @write_pages[0xfe] = @tcbm_page
         @write_pages[0xff] = @top_page
       end
 
@@ -220,7 +294,7 @@ module Badline
         map_roms if @rom_selected
         @top_memory = @rom_selected ? @high_roms[@high_bank] || @open_bus : @ram_view
         @read_pages[0xfd] = @io_page
-        @read_pages[0xfe] = @open_bus
+        @read_pages[0xfe] = @tcbm_page
         @read_pages[0xff] = @top_page
       end
 

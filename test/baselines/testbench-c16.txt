@@ -1,0 +1,8 @@
+selftest/plus4-pass.prg	PASS
+selftest/plus4-fail.prg	PASS
+selftest/plus4-pass.crt	PASS
+selftest/plus4-fail.crt	PASS
+Plus4/openio/outrun.prg	PASS
+Plus4/openio/outrun2.prg	FAIL	exit=$ff
+Plus4/tcbm/test.prg	PASS
+memory-expansions/c16-ram-emd.prg	FAIL	exit=$ff

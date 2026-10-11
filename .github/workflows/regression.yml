@@ -37,6 +37,8 @@ on:
           - testbench-c128
           - testbench-c128-z80
           - testbench-c128-zex
+          - testbench-plus4
+          - testbench-c16
           - sid-8580
           - drive-scenarios
           - drive-scenarios-cpm

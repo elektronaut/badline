@@ -8,6 +8,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "badline"
 require "badline/vic20"
 require "badline/c128"
+require "badline/plus4"
 require "chunky_png"
 require "etc"
 require "tmpdir"
@@ -21,6 +22,8 @@ require_relative "testbench_vic20"
 require_relative "testbench_vic20_machine"
 require_relative "testbench_c128"
 require_relative "testbench_c128_machine"
+require_relative "testbench_plus4"
+require_relative "testbench_plus4_machine"
 require_relative "cli"
 
 module Testbench
@@ -120,13 +123,18 @@ module Testbench
     include RegionRow
     include Vic20Row
     include C128Row
+    include Plus4Row
 
-    # The machine a VIC-20 or a C128 row forks from.
-    def family_machine = vic20? ? vic20_machine : c128_machine
+    # The machine a VIC-20, C128 or 264 series row forks from.
+    def family_machine
+      return vic20_machine if vic20?
 
-    # What tells a VIC-20 or C128 row's machine apart: the family, the
-    # VIC-20's RAM and the C128's true drive.
-    def family_key = [family, ram_configuration, c128_drive]
+      plus4? ? plus4_machine : c128_machine
+    end
+
+    # What tells a VIC-20, C128 or 264 series row's machine apart: the
+    # family, the VIC-20's RAM, the C128's true drive and the 264's model.
+    def family_key = [family, ram_configuration, c128_drive, (plus4_model if plus4?)]
 
     def name
       return cartridge if prg.empty?
@@ -611,6 +619,7 @@ module Testbench
 
     def run_test(test, computer)
       return score(test, *test.run_vic20(computer)) if test.vic20?
+      return score(test, *test.run_plus4(computer)) if test.plus4?
 
       Dir.mktmpdir("testbench-disk") do |scratch|
         exitcode = test.type == "exitcode"
@@ -749,14 +758,17 @@ module Testbench
     [argv.delete("--cia-new") ? :mos6526a : :mos6526, argv.delete("--vicii-new") ? :mos8565 : :mos6569]
   end
 
-  # :vic20, :c128c64, :c128_z80, :c128 or nil for the C64, deleting every
-  # machine flag from argv.
+  # :vic20, :c128c64, :c128_z80, :c128, :plus4, :c16 or nil for the C64,
+  # deleting every machine flag from argv.
   def self.command_line_machine(argv)
-    vic20, c128c64, c128_z80, c128 = %w[--vic20 --c128c64 --c128-z80 --c128].map { |flag| argv.delete(flag) }
+    flags = %w[--vic20 --c128c64 --c128-z80 --c128 --plus4 --c16]
+    vic20, c128c64, c128_z80, c128, plus4, c16 = flags.map { |flag| argv.delete(flag) }
     if vic20 then :vic20
     elsif c128c64 then :c128c64
     elsif c128_z80 then :c128_z80
     elsif c128 then :c128
+    elsif plus4 then :plus4
+    elsif c16 then :c16
     end
   end
 
@@ -765,6 +777,7 @@ module Testbench
     when :vic20 then Vic20Testlist.tests(argv, scope:, exclude:)
     when :c128c64 then C128Testlist.tests(argv, scope:, exclude:)
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
+    when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:)
     else Testlist.tests(argv, scope:, exclude:, rows:)
     end
   end

@@ -7,6 +7,7 @@
 #                             [--carts] [--drive] [--1541-testsuite]
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
 #                             [--drean] [--vic20] [--c128c64] [--c128] [--c128-z80]
+#                             [--plus4] [--c16]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -108,6 +109,15 @@
 # same machine: the c128/z80 programs (the per-opcode timing, zex128, OUTI
 # and the page relocation) and the c64modez80 and c128modez80 programs.
 #
+# --plus4 runs the exitcode rows of plus4-testlist.in instead, each on a
+# PAL Plus/4 with a 1551's TCBM interface plugged in, as xplus4 starts, or
+# its NTSC board for ted-ntsc, and --c16 runs the same rows on a 16K C16.
+# The program goes to the start of BASIC, with BASIC's end pointers set as
+# LOAD sets them, and RUN is typed once the machine has booted. A mountcrt
+# row starts from power-on with the cartridge's ROM in cartridge 1's
+# slots. Tests report through $FDCF, and a failure keeps the 40-column
+# text screen at $0C00. Screenshot rows wait for the TED's video.
+#
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
 # those rows against the tracked baseline in test/baselines/,
@@ -124,8 +134,9 @@
 # default) and the per-test records merged back into testlist order.
 #
 # --engine runs the tests on a Spinel build of spinel/testbench.rb, or of
-# spinel/vic20_testbench.rb for --vic20 or spinel/c128_testbench.rb for
-# --c128c64, --c128 and --c128-z80, instead,
+# spinel/vic20_testbench.rb for --vic20, spinel/c128_testbench.rb for
+# --c128c64, --c128 and --c128-z80 or spinel/plus4_testbench.rb for --plus4
+# and --c16, instead,
 # one build process per shard, each booting a fresh machine per test. The
 # build only emulates, and the rows are scored here as they are for a
 # test run in process (see Testbench::Engine in test/support/testbench_engine.rb).

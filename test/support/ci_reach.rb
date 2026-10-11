@@ -15,6 +15,7 @@ module CIReach
            drive-scenarios].freeze
   VIC20 = %w[testbench-vic20 drive-scenarios].freeze
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
+  PLUS4 = %w[testbench-plus4 testbench-c16].freeze
   VIC = %w[testbench testbench-vicii-new testbench-ntsc testbench-ntsc-vicii-new testbench-drean
            testbench-interrupts testbench-irqdma testbench-general testbench-expansions testbench-carts
            testbench-c128c64 testbench-c128].freeze
@@ -47,7 +48,7 @@ module CIReach
     ["lib/badline/{c64.rb,c64/**/*}", C64 + %w[testbench-c128c64]],
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
     ["lib/badline/{c128.rb,c128/**/*}", C128],
-    ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*}", []],
+    ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],
     ["lib/badline/drives/{model1571,model1581}{.rb,/**/*}", %w[drive-scenarios testbench-c128c64 testbench-c128]],
     ["lib/badline/drives/{engine,serial_bus}{.rb,/**/*}", DRIVES + %w[testbench-c128c64 testbench-c128]],
