@@ -205,7 +205,7 @@ module Badline
       def update_status(bits)
         return if bits.zero?
 
-        @bus.poke(0x90, @bus.peek(0x90) | bits)
+        @bus.poke(zero_page.status, @bus.peek(zero_page.status) | bits)
       end
     end
   end

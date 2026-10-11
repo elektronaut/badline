@@ -55,6 +55,12 @@ describe Badline::Machine do
     expect(described_class.build(:c128, model: "c128", sid_model: :mos8580).sound_source.model).to eq(:mos8580)
   end
 
+  it "refuses the Plus/4 until it runs" do
+    expect do
+      described_class.build(:plus4, model: "plus4")
+    end.to raise_error(ArgumentError, "the Plus/4 isn't emulated yet")
+  end
+
   it "refuses a family it can't build" do
     expect { described_class.build(:pet, model: "c64") }.to raise_error(ArgumentError, /pet/)
   end

@@ -59,6 +59,8 @@ module Badline
       end
 
       def validate_family
+        raise Error, "the Plus/4 isn't emulated yet" if @family == :plus4
+
         if @family == :vic20
           validate_vic20
         elsif !@ram.nil?
