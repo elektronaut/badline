@@ -56,7 +56,7 @@ module Badline
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
-    KEYBOARD_MATRIX = (Keyboard::C64_MATRIX + [
+    KEYBOARD_MATRIX = (Input::Keyboard::C64_MATRIX + [
       %i[help keypad8 keypad5 tab keypad2 keypad4 keypad7 keypad1],
       %i[esc keypad_plus keypad_minus line_feed keypad_enter keypad6 keypad9 keypad3],
       %i[alt keypad0 keypad_period crsr_up crsr_down crsr_left crsr_right no_scroll]

@@ -2,14 +2,14 @@
 
 require "spec_helper"
 
-describe Badline::ControlPorts do
+describe Badline::Input::ControlPorts do
   subject(:ports) do
     described_class.new(keyboard:, joystick1:, joystick2:)
   end
 
-  let(:keyboard) { Badline::Keyboard.new }
-  let(:joystick1) { Badline::Joystick.new }
-  let(:joystick2) { Badline::Joystick.new }
+  let(:keyboard) { Badline::Input::Keyboard.new }
+  let(:joystick1) { Badline::Input::Joystick.new }
+  let(:joystick2) { Badline::Input::Joystick.new }
 
   it "wires joystick 2 onto port A" do
     joystick2.press(:up)
@@ -52,7 +52,7 @@ describe Badline::ControlPorts do
   end
 
   describe "extra rows" do
-    let(:keyboard) { Badline::Keyboard.new(matrix: Badline::Keyboard::C64_MATRIX + [%i[extra0], %i[extra1], %i[extra2]]) }
+    let(:keyboard) { Badline::Input::Keyboard.new(matrix: Badline::Input::Keyboard::C64_MATRIX + [%i[extra0], %i[extra1], %i[extra2]]) }
 
     before { keyboard.press(:extra1) }
 

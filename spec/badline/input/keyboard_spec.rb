@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Keyboard do
+describe Badline::Input::Keyboard do
   subject(:keyboard) { described_class.new }
 
   # :a sits at row 1, column 2 -- the reference key for most of these.

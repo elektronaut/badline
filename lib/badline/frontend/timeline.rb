@@ -39,15 +39,15 @@ module Badline
 
       # The Keyboard's key for a name such as space, return or a.
       def self.keyboard_key(name)
-        key = Keyboard.new.matrix.flatten.find { |candidate| candidate.to_s == name }
-        key.nil? ? Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name } : key
+        key = Input::Keyboard.new.matrix.flatten.find { |candidate| candidate.to_s == name }
+        key.nil? ? Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name } : key
       end
 
       # The direction of joy1-NAME or joy2-NAME, such as up or fire.
       def self.joystick_direction(name)
         return nil unless name.start_with?("joy1-") || name.start_with?("joy2-")
 
-        Joystick::DIRECTIONS.keys.find { |direction| direction.to_s == name[5, name.size - 5] }
+        Input::Joystick::DIRECTIONS.keys.find { |direction| direction.to_s == name[5, name.size - 5] }
       end
 
       # The screenshot's file name, with the frame's number in place of %d,

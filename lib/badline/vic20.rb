@@ -49,8 +49,8 @@ module Badline
     def initialize(ram: :unexpanded, debug: false)
       @ram_configuration = ram
       @vic = Chips::VICI.new
-      @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
-      @joystick1 = Joystick.new
+      @keyboard = Input::Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
+      @joystick1 = Input::Joystick.new
       @iec_bus = Drives::SerialBus.new
       @datasette = Drives::Datasette.new
       @via1 = Chips::VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1, serial_bus: @iec_bus,

@@ -275,10 +275,10 @@ module Badline
       end
 
       def plug_chips(model, sid_model)
-        @keyboard = Keyboard.new(matrix: KEYBOARD_MATRIX)
-        @joystick1 = Joystick.new
-        @joystick2 = Joystick.new
-        @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
+        @keyboard = Input::Keyboard.new(matrix: KEYBOARD_MATRIX)
+        @joystick1 = Input::Joystick.new
+        @joystick2 = Input::Joystick.new
+        @control_ports = Input::ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
         @vic = Chips::VIC.new(model: model.vic_model, region: @region)
         @cia1 = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, model: model.cia_model, region: @region)
         @cia2 = Chips::CIA.new(start: 0xdd00, model: model.cia_model, region: @region)

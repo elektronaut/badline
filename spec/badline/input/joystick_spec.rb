@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Joystick do
+describe Badline::Input::Joystick do
   subject(:joystick) { described_class.new }
 
   it "reads all bits high when idle" do

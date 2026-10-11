@@ -86,10 +86,10 @@ describe Badline::Chips::CIA do
   describe "PB4 pulled low by a peripheral (light pen line)" do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral: ports) }
 
-    let(:joystick1) { Badline::Joystick.new }
+    let(:joystick1) { Badline::Input::Joystick.new }
     let(:ports) do
-      Badline::ControlPorts.new(keyboard: Badline::Keyboard.new, joystick1:,
-                                joystick2: Badline::Joystick.new)
+      Badline::Input::ControlPorts.new(keyboard: Badline::Input::Keyboard.new, joystick1:,
+                                       joystick2: Badline::Input::Joystick.new)
     end
     let(:edges) { [] }
 
@@ -783,7 +783,7 @@ describe Badline::Chips::CIA do
   describe "keyboard peripheral" do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral: keyboard) }
 
-    let(:keyboard) { Badline::Keyboard.new }
+    let(:keyboard) { Badline::Input::Keyboard.new }
 
     before { cia.poke(0xdc02, 0xff) }
 
@@ -808,9 +808,10 @@ describe Badline::Chips::CIA do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral:) }
 
     let(:peripheral) do
-      Badline::ControlPorts.new(keyboard: Badline::Keyboard.new, joystick1: Badline::Joystick.new, joystick2:)
+      Badline::Input::ControlPorts.new(keyboard: Badline::Input::Keyboard.new, joystick1: Badline::Input::Joystick.new,
+                                       joystick2:)
     end
-    let(:joystick2) { Badline::Joystick.new }
+    let(:joystick2) { Badline::Input::Joystick.new }
 
     it "shows a pressed switch through the default output port" do
       joystick2.press(:up)
@@ -837,10 +838,10 @@ describe Badline::Chips::CIA do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral:) }
 
     let(:peripheral) do
-      Badline::ControlPorts.new(keyboard:, joystick1:, joystick2: Badline::Joystick.new)
+      Badline::Input::ControlPorts.new(keyboard:, joystick1:, joystick2: Badline::Input::Joystick.new)
     end
-    let(:keyboard) { Badline::Keyboard.new }
-    let(:joystick1) { Badline::Joystick.new }
+    let(:keyboard) { Badline::Input::Keyboard.new }
+    let(:joystick1) { Badline::Input::Joystick.new }
 
     it "shows a pressed switch through port B" do
       joystick1.press(:right) # bit 3
@@ -858,7 +859,7 @@ describe Badline::Chips::CIA do
   describe "reverse keyboard scan" do
     subject(:cia) { described_class.new(start: 0xdc00, peripheral: keyboard) }
 
-    let(:keyboard) { Badline::Keyboard.new }
+    let(:keyboard) { Badline::Input::Keyboard.new }
 
     before do
       cia.poke(0xdc02, 0x00) # port A all inputs

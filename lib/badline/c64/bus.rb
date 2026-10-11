@@ -79,10 +79,10 @@ module Badline
 
         load_roms
 
-        @keyboard = Keyboard.new
-        @joystick1 = Joystick.new
-        @joystick2 = Joystick.new
-        @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
+        @keyboard = Input::Keyboard.new
+        @joystick1 = Input::Joystick.new
+        @joystick2 = Input::Joystick.new
+        @control_ports = Input::ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
         @vic  = Chips::VIC.new(model: vic_model, region:)
         @cia1 = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model, region:)
         @cia2 = Chips::CIA.new(start: 0xdd00, model: cia_model, region:)
