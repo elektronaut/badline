@@ -107,10 +107,7 @@ module Badline
         # The blink counter counts a frame on one line of the vertical
         # blank, the line xplus4 counts it on.
         def count_blink
-          return unless @line == (lines_per_frame == 312 ? 256 : 228)
-
-          @blink = (@blink + 1) & 0x0f
-          blink_carry if @blink.zero?
+          @blink = (@blink + 1) & 0x0f if @line == (lines_per_frame == 312 ? 256 : 228)
         end
 
         # Column 51: what the line fetches, decided where BA is.
