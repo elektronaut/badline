@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::SIDHistory do
   subject(:history) { described_class.new(1000) }
 
-  let(:sid) { Badline::SID.new }
+  let(:sid) { Badline::Chips::SID.new }
 
   # Records a frame that ends at `rendered` seconds with the first voice's
   # frequency low byte set to `marker`.
@@ -63,7 +63,7 @@ describe Badline::Frontend::SIDHistory do
   context "with two SIDs" do
     subject(:history) { described_class.new(1000, 2) }
 
-    let(:second) { Badline::SID.new(at: 0xd420) }
+    let(:second) { Badline::Chips::SID.new(at: 0xd420) }
 
     before do
       sid.poke(0xd400, 1)

@@ -62,3 +62,8 @@ Layout/LineLength:
 
 Layout/MultilineOperationIndentation:
   EnforcedStyle: aligned
+
+RSpec/SpecFilePathFormat:
+  # Chips::VICI lives in chips/vic_i.rb.
+  CustomTransform:
+    VICI: vic_i

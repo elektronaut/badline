@@ -32,7 +32,7 @@ CRuby.
 - `convert.rb` samples the SingleStepTests JSON into the line format
   `cpu_tests.rb` reads, since the Spinel build has no JSON library. It runs
   on CRuby only.
-- `z80_tests.rb` runs SingleStepTests' Z80 cases against `Badline::Z80`
+- `z80_tests.rb` runs SingleStepTests' Z80 cases against `Badline::Chips::Z80`
   and checks registers, T-states, the bus pins on every T-state, the ports
   and RAM. `convert_z80.rb` samples them into its line format. The Z80
   isn't in the core, so `z80_tests.rb` requires `badline/chips/z80/core` alone,

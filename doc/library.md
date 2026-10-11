@@ -44,7 +44,7 @@ model (`Badline::Model::ALL`):
   `Badline::Datasette::Missing`. The SX-64 has both.
 - `kernal: :pet64` fits the PET 64's KERNAL, and `board: :pet64` its
   green monochrome monitor: the VIC's `palette` is
-  `Badline::VIC::GREEN_PALETTE`, each colour's luminance in green. The
+  `Badline::Chips::VIC::GREEN_PALETTE`, each colour's luminance in green. The
   PET 64 has both.
 - `kernal: :gs` fits the C64GS's BASIC and KERNAL, and `board: :gs` its
   case, which has no keyboard: `computer.keyboard` takes no keys. The

@@ -155,7 +155,8 @@ module Badline
         @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
         @configuration_writes = ConfigurationPage.new(@mmu, @open_bus)
 
-        @cpu_port = CPUPort.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING, caps_lock: CAPS_LOCK)
+        @cpu_port = Chips::CPU::Port.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING,
+                                                     caps_lock: CAPS_LOCK)
         @io_port = @cpu_port.status
 
         @read_pages = Array.new(256)
@@ -278,13 +279,13 @@ module Badline
         @joystick1 = Joystick.new
         @joystick2 = Joystick.new
         @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-        @vic = VIC.new(model: model.vic_model, region: @region)
-        @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: model.cia_model, region: @region)
-        @cia2 = CIA.new(start: 0xdd00, model: model.cia_model, region: @region)
+        @vic = Chips::VIC.new(model: model.vic_model, region: @region)
+        @cia1 = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, model: model.cia_model, region: @region)
+        @cia2 = Chips::CIA.new(start: 0xdd00, model: model.cia_model, region: @region)
         @control_ports.port_a_source = @cia1
         @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
-        @sid = SID.new(model: sid_model, pots: @control_ports)
-        @vdc = VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
+        @sid = Chips::SID.new(model: sid_model, pots: @control_ports)
+        @vdc = Chips::VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
       end
 
       def update_overlays!

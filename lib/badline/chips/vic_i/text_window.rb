@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Badline
-  class Vic20
-    class VIC
+  module Chips
+    class VICI
       # The text window's rows: where it opens and closes, the video matrix
       # counter and the character line, and the registers that place the
       # window and its memory.

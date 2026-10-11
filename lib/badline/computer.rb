@@ -56,7 +56,7 @@ module Badline
     def initialize(debug: false, reu: nil, **machine)
       @address_bus = AddressBus.new(**machine.except(*AddressBus::Fittings::NAMES))
       @address_bus.fit(**machine.slice(*AddressBus::Fittings::NAMES))
-      @cpu = CPU.new(@address_bus, debug:)
+      @cpu = Chips::CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
       @cia1 = @address_bus.cia1

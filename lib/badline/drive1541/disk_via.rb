@@ -6,7 +6,7 @@ module Badline
     # Mechanism, and CB2 selects its read or write mode. The mechanism
     # hears both after every write and reset, since ORB, DDRB, the ACR and
     # the PCR can all change them.
-    class DiskVIA < VIA
+    class DiskVIA < Chips::VIA
       attr_reader :mechanism
 
       def initialize(start:, mechanism:)

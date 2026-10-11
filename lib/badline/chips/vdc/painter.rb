@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class C128
+  module Chips
     class VDC
       # Paints the VDC's scan lines into its display, one line at a time,
       # from the registers as they stand when the line ends. Each pixel of

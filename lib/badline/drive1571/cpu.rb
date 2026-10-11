@@ -4,7 +4,7 @@ module Badline
   class Drive1571
     # The drive's 6502, on the drive's Bus.
     class CPU
-      include Badline::CPU::Core
+      include Badline::Chips::CPU::Core
       include Drive::IdleCPU
     end
   end

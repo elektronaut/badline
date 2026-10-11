@@ -4,8 +4,8 @@ require "spec_helper"
 
 describe Badline::AddressBus::SIDSlots do
   let(:bus) { Badline::AddressBus.new }
-  let(:second) { Badline::SID.new(at: 0xd420) }
-  let(:third) { Badline::SID.new(at: 0xde00) }
+  let(:second) { Badline::Chips::SID.new(at: 0xd420) }
+  let(:third) { Badline::Chips::SID.new(at: 0xde00) }
 
   before do
     bus.add_sid(second)

@@ -5,7 +5,7 @@ require "badline/chips/vic_i/text_window"
 require "badline/chips/vic_i/saved_state"
 
 module Badline
-  class Vic20
+  module Chips
     # The VIC-I, the 6561 on PAL machines: its sixteen registers, the
     # raster, the text window's fetches over the V-bus and the picture. The
     # writes to the sound's registers, $900A-$900E, go on to the Sound
@@ -39,7 +39,7 @@ module Badline
     # display's lines start 6 cycles after the raster count moves, as
     # xvic's view of the frame does, so the character fetched 16 cycles
     # into the line lands 48 pixels in. Lines 0-27 are blanked.
-    class VIC
+    class VICI
       include TextWindow
       include SavedState
 

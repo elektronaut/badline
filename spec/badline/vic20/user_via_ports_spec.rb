@@ -4,7 +4,7 @@ require "spec_helper"
 require "badline/vic20"
 
 describe Badline::Vic20::UserVIAPorts do
-  subject(:via) { Badline::VIA.new(start: 0x9110, peripheral: described_class.new(joystick:, serial_bus:, datasette:)) }
+  subject(:via) { Badline::Chips::VIA.new(start: 0x9110, peripheral: described_class.new(joystick:, serial_bus:, datasette:)) }
 
   let(:joystick) { Badline::Joystick.new }
   let(:serial_bus) { Badline::IECBus.new }

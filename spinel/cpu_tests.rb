@@ -61,7 +61,7 @@ module CPUTests
 
   # The 6502 core on a RecordingMemory.
   class CPU
-    include Badline::CPU::Core
+    include Badline::Chips::CPU::Core
   end
 
   # One test: initial registers and RAM, expected registers and RAM, and the

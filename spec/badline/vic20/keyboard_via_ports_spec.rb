@@ -4,7 +4,7 @@ require "spec_helper"
 require "badline/vic20"
 
 describe Badline::Vic20::KeyboardVIAPorts do
-  subject(:via) { Badline::VIA.new(start: 0x9120, peripheral: ports) }
+  subject(:via) { Badline::Chips::VIA.new(start: 0x9120, peripheral: ports) }
 
   let(:keyboard) { Badline::Keyboard.new(matrix: described_class::MATRIX) }
   let(:joystick) { Badline::Joystick.new }

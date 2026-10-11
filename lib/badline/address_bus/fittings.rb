@@ -29,7 +29,7 @@ module Badline
         raise ArgumentError, "no board named #{name}" unless BOARDS.include?(name)
 
         @board = name
-        vic.palette = name == :pet64 ? VIC::GREEN_PALETTE : VIC::PALETTE
+        vic.palette = name == :pet64 ? Chips::VIC::GREEN_PALETTE : Chips::VIC::PALETTE
         keyboard.connected = name != :gs
         update_overlays!
       end

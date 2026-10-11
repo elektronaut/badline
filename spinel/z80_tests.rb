@@ -90,7 +90,7 @@ module Z80Tests
 
   # The Z80 core on a RecordingBus.
   class CPU
-    include Badline::Z80::Core
+    include Badline::Chips::Z80::Core
   end
 
   # One case: the registers in convert_z80.rb's order, RAM and ports

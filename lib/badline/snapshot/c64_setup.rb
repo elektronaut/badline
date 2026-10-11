@@ -31,7 +31,7 @@ module Badline
       end
 
       def self.read(input)
-        new(vic_model: VIC::MODELS.fetch(input.int), cia_model: CIA::MODELS.fetch(input.int),
+        new(vic_model: Chips::VIC::MODELS.fetch(input.int), cia_model: Chips::CIA::MODELS.fetch(input.int),
             sid_model: SID_MODELS.fetch(input.int), region: REGIONS.fetch(input.int),
             ram_expansion: ram_expansion(RAM_EXPANSIONS.fetch(input.int)), reu: reu(input.int),
             kernal: KERNALS.fetch(input.int), datasette: input.boolean?, board: BOARDS.fetch(input.int))
@@ -50,7 +50,7 @@ module Badline
       end
 
       def write(out)
-        out.int(VIC::MODELS.index(vic_model)).int(CIA::MODELS.index(cia_model))
+        out.int(Chips::VIC::MODELS.index(vic_model)).int(Chips::CIA::MODELS.index(cia_model))
         out.int(SID_MODELS.index(sid_model)).int(REGIONS.index(region))
         out.int(RAM_EXPANSIONS.index(ram_expansion || :none)).int(reu || 0)
         out.int(KERNALS.index(kernal)).boolean(datasette).int(BOARDS.index(board))

@@ -531,7 +531,7 @@ module Testbench
     # the runner stops the builds, whose unfinished tests get no row.
     def run_engines(tests)
       groups = Shards.split(tests, [@shards, tests.length].min)
-      lock = Mutex.new
+      lock = Thread::Mutex.new
       forwarding_signals do
         groups.each_with_index.map do |group, n|
           Thread.new { run_engine(group, "#{@results_path}.engine-#{n}", lock) }

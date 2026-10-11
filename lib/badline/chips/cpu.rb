@@ -3,8 +3,10 @@
 require "badline/chips/cpu/core"
 
 module Badline
-  # The C64's 6510, on the AddressBus.
-  class CPU
-    include Core
+  module Chips
+    # The C64's 6510, on the AddressBus.
+    class CPU
+      include Core
+    end
   end
 end

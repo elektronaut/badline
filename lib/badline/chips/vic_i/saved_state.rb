@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Badline
-  class Vic20
-    class VIC
+  module Chips
+    class VICI
       # The VIC's state for a snapshot: the registers and what they set, the
       # raster, the text window and its fetches, and the picture with what
       # each line fetched. The sound saves its own.

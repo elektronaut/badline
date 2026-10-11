@@ -33,7 +33,7 @@ module Badline
     def initialize(rom: nil, host_clock_hz: CLOCK_HZ, device: 8, debug: false)
       @device = device
       @serial_port = SerialPort.new(device:)
-      @via1 = VIA.new(start: 0x1800, peripheral: @serial_port)
+      @via1 = Chips::VIA.new(start: 0x1800, peripheral: @serial_port)
       @mechanism = Mechanism.new
       @via2 = DiskVIA.new(start: 0x1c00, mechanism: @mechanism)
       @bus = Bus.new(rom: rom || ROM.load("dos1541.rom", 0xc000), via1: @via1, via2: @via2)

@@ -31,7 +31,7 @@ module Badline
         cutoff = (history.register(frame, 0x15) & 0x07) | (history.register(frame, 0x16) << 3)
         resonance = history.register(frame, 0x17) >> 4
         mode_volume = history.register(frame, 0x18)
-        hertz = SID::Filter::W0.fetch(model)[cutoff] / (2 * Math::PI * SID::Filter::SCALE)
+        hertz = Chips::SID::Filter::W0.fetch(model)[cutoff] / (2 * Math::PI * Chips::SID::Filter::SCALE)
         paint = @painter
         paint.text(LEFT, top, "FILTER", BRIGHT)
         x = LEFT + 64

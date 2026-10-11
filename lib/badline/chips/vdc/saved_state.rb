@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class C128
+  module Chips
     class VDC
       # The VDC's state for a snapshot.
       module SavedState

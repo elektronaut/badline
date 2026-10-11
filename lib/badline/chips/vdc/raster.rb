@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class C128
+  module Chips
     class VDC
       # The VDC's raster: R0 + 1 characters a line, R9 + 1 lines a row,
       # R4 + 1 rows a frame and then R5 more lines, with the frame's size

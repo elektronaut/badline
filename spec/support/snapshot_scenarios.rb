@@ -145,12 +145,12 @@ module SnapshotScenarios
     # needed.
     HOST = {
       "Badline::Computer" => %i[@init_handlers @capture_output @init_handlers_lost],
-      "Badline::CPU" => %i[@traps @debug],
+      "Badline::Chips::CPU" => %i[@traps @debug],
       "Badline::AddressBus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
-      "Badline::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
-      "Badline::VIC::Sequencer" => %i[@render],
-      "Badline::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
-      "Badline::CIA" => %i[@peripheral],
+      "Badline::Chips::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
+      "Badline::Chips::VIC::Sequencer" => %i[@render],
+      "Badline::Chips::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
+      "Badline::Chips::CIA" => %i[@peripheral],
       "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
                                  @record_cycles @record_instructions @record_quiet @asleep @recording
                                  @orbit_instructions],

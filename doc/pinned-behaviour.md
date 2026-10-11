@@ -86,9 +86,9 @@ only catches the rows that happen to move.
     offset 106). Consuming `@skip_poll` in the stall breaks test 5.
   - Pinned by `interrupts/irqdma` (all 16 rows) and Lorenz `irq` and `nmi`.
   - Spec guard: *interrupts sampled while stalled by the VIC* in
-    [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per piece.
+    [`cpu_spec.rb`](../spec/badline/chips/cpu_spec.rb), one example per piece.
 - Spec guard: the *interrupt recognition timing* group in
-  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb), one example per quirk.
+  [`cpu_spec.rb`](../spec/badline/chips/cpu_spec.rb), one example per quirk.
 
 ## CPU JAM
 
@@ -97,7 +97,7 @@ only catches the rows that happen to move.
   boundary, so a pending IRQ or NMI is never taken.
 - Pinned by `CPU/cpujam` (the halt) and `jamirq`/`jamnmi`.
 - Spec guard: the *JAM* group in
-  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
+  [`cpu_spec.rb`](../spec/badline/chips/cpu_spec.rb).
 
 ## CPU unstable stores under DMA
 
@@ -120,7 +120,7 @@ only catches the rows that happen to move.
     need sprite BA at `54 + 2n`, and the `*4`/`*5` variants (sprite and
     character DMA) also need the bad-line and sprite-DMA-end BA to match.
 - Spec guard: *SHX stalled by the VIC* in
-  [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
+  [`cpu_spec.rb`](../spec/badline/chips/cpu_spec.rb).
 
 ## CPU ANE constant
 
@@ -135,7 +135,7 @@ only catches the rows that happen to move.
 - SingleStepTests recorded an NMOS 6502 whose constant is `$EE`, so
   `test/test_cpu.rb` builds its CPU with `ane_constant: 0xee` and checks
   `$8B` as strictly as every other opcode.
-- Spec guard: *ANE* in [`cpu_spec.rb`](../spec/badline/cpu_spec.rb).
+- Spec guard: *ANE* in [`cpu_spec.rb`](../spec/badline/chips/cpu_spec.rb).
 
 ## VIC raster IRQ phase
 
@@ -150,7 +150,7 @@ only catches the rows that happen to move.
   [CPU interrupt recognition](#cpu-interrupt-recognition), so recalibrate
   the two together.
 - Spec guard: *with the compare at the line wrap* and *with line 0 as the
-  target* in [`vic_spec.rb`](../spec/badline/vic_spec.rb). They are the
+  target* in [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb). They are the
   only examples that separate this phase from a uniform column-0 compare.
 - `$d011` bit 7 and `$d012` follow the same phase. Every line reads as the
   new line from the CPU cycle paired with column 62 of the old one. Line 0
@@ -161,7 +161,7 @@ only catches the rows that happen to move.
     reads `$1b`/`$00` where the chip reads `$9b`/`$37`, and the test exits
     `$ff`.
   - Spec guard: *when the counter wraps to line 0* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - The compare latches the flag only on a change from no match to match,
   and it runs again after every `$d011`/`$d012` write as well as at each
   line step (VICE x64sc compares in every cycle). A write after column 61
@@ -177,7 +177,7 @@ only catches the rows that happen to move.
     pass when a write only updates the match state.
   - Spec guard: *with the target stepped along with the raster line* and
     *when a write moves the target onto the current line* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 
 ## VIC mid-line register visibility
 
@@ -199,13 +199,13 @@ only catches the rows that happen to move.
     later. The old delays were 8 px of that phase error on top of the real
     delay.
   - Spec guard: *mid-line write delays* in
-    [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb), one example
+    [`vic/sprites_spec.rb`](../spec/badline/chips/vic/sprites_spec.rb), one example
     per path, each failing on a one-pixel change.
 - $d020–$d024 writes become visible 1 px into the next column.
   `ColorPatches` restores the boundary pixel at `finish_line`.
   - Pinned by `greydot`.
   - Spec guard:
-    [`vic/color_patches_spec.rb`](../spec/badline/vic/color_patches_spec.rb).
+    [`vic/color_patches_spec.rb`](../spec/badline/chips/vic/color_patches_spec.rb).
 - `apply_border` restores a pre-composite snapshot (`BorderMask`) instead of
   repainting with the end-of-line $d020, so mid-line border splits survive
   sprite compositing.
@@ -238,14 +238,14 @@ only catches the rows that happen to move.
     DMA*: on their line 51, a bad line meets the head of the sprite 3
     window, and the CPU gets 9 cycles between the two.
   - Spec guard: *sprite DMA cycle stealing (#ba_low?)* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - A DMA started on the *second* compare leaves sprite 0 a column short of
   AEC, because sprite 0 alone has its accesses immediately after the
   compares. The first of its three s-accesses therefore reads back the $ff
   the CPU is still driving.
   - Pinned by `spriteenable2`.
   - Spec guard: *the first s-access of a new DMA* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 - Rows come from MCBASE/MC, not from a line counter (Bauer §3.8). MC
   steps once per s-access, so it stands three past MCBASE after a row's
   fetch. At Bauer cycle 16 (**VIC column 14**) MCBASE takes MC while the
@@ -280,7 +280,7 @@ only catches the rows that happen to move.
     all five fail (`sequencer-bug` 8064 px, 384 px a column early).
   - `spritedma/d017-54` and `d017-57` pass with and without it.
   - Spec guard: *sprite crunch* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb), one example
+    [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb), one example
     per row of the readme's table.
 - Sprite pixels come from a per-pixel sequencer, not from a decoded row. A
   live X comparator fires one pixel before the sprite's first pixel, the
@@ -294,7 +294,7 @@ only catches the rows that happen to move.
 - X coordinates ≥ $1f8 never match the VIC's 504-step X counter, so those
   sprites stay dark. The `spritegap` dumps show this boundary.
   - Spec guard: *X comparator* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 - Each sprite's s-accesses **reload its shift register** at raster pixel
   K = 459 + 16*m (mod 504). That is late in the line for sprites 0–2 and
   early in the next one for 3–7.
@@ -315,7 +315,7 @@ only catches the rows that happen to move.
     (entries 14–16: 469/470 dead, 471 = K+12 fires again),
     `spritex/demusinterruptus` and `spritegap2` pass on it too.
   - Spec guard: *the reload* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
   - The run into the next line is pinned by `spritescan_drean`'s 6572
     dump, where sprite 3 shows nothing for X = $193 to $19e, the twelve
     pixels from K = 515 on a 520-pixel line. Without it a hit at $198 to
@@ -337,7 +337,7 @@ only catches the rows that happen to move.
     positions ≡ 2 mod 4, where an X-expanded sprite's pair loads land on
     458.
   - Spec guard: *a multicolor pair loaded on the pixel before the reload*
-    in [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    in [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 - Sprites 3–7 run their s-accesses at the start of the line, so on the line
   whose compare starts their DMA, those accesses ran with the DMA still
   off. The shift register loads what the VIC saw anyway. The first and third
@@ -356,7 +356,7 @@ only catches the rows that happen to move.
   - `Sprite::InternalBus` samples $3fff as the line starts rather than in
     the sprite's own cycle, which `sbsprf24` can't tell apart.
   - Spec guard: *the s-accesses before the DMA starts* in
-    [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb).
+    [`vic/sprites_spec.rb`](../spec/badline/chips/vic/sprites_spec.rb).
 - On the line that shows its last row, where MCBASE reached 63 and the DMA
   ended at cycle 16, the sprite loses its display at cycle 58: no hit from
   raster pixel **460** on starts it, though one already shifting runs on,
@@ -371,18 +371,18 @@ only catches the rows that happen to move.
   matches at cycle 58.
   - Pinned by `spriterestart`.
   - Spec guard: *when Y matches only at the compare on the last row's line*
-    in [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    in [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 - The DMA end also drops the sprite's BA tail on that line, because the
   BA columns are rebuilt at cycle 16. Pinned by `CPU/sha*`, `shs*` and
   `shxy*`, variants 4 and 5.
   - Spec guard: *sprite BA on the line its DMA ends* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - The Y comparator is **eight bits** wide, so a coordinate of 0–55 matches a
   second time on PAL lines 256–311 and starts a second DMA run there.
   - Pinned by `spritey`, whose reference collides on every one of the 312
     lines.
   - Spec guard: *the eight-bit Y compare* in
-    [`vic/sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`vic/sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 
 ## VIC sprite collisions
 
@@ -417,9 +417,9 @@ only catches the rows that happen to move.
     which no testprog covers; it follows VICE, which sets the bit
     regardless of $D01A.
   - Spec guard: *when the beam crosses the colliding pixel* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - Spec guard: *#collide_upto* in
-  [`vic/sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb). Its first
+  [`vic/sprites_spec.rb`](../spec/badline/chips/vic/sprites_spec.rb). Its first
   four examples each fail on a one-pixel change.
 - $D01E and $D01F are read-only. A write, including the write-back of a
   read-modify-write such as `LSR $D01E`, changes neither register.
@@ -428,7 +428,7 @@ only catches the rows that happen to move.
     leaves bit 0 set for the next frame, which reads as a collision one
     pixel to the right of every real one.
   - Spec guard: *with a collision register* in
-    [`vic/registers_spec.rb`](../spec/badline/vic/registers_spec.rb).
+    [`vic/registers_spec.rb`](../spec/badline/chips/vic/registers_spec.rb).
 
 ## VIC border and idle state
 
@@ -462,9 +462,9 @@ only catches the rows that happen to move.
       compare sees `$d011` as of column 16. `vborder2-35` is the other side
       of the pair.
   - Spec guard: *vertical border flip-flop* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb), one context per rule,
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb), one context per rule,
     each failing under its knock-out, and *vertical border flip-flop* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb) for
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb) for
     the armed bottom compare and the 40-column left compare.
 - The side border compares see CSEL a pixel late, as the colour registers
   do. The 40-column compares fall on the first pixel of their group (raster
@@ -482,7 +482,7 @@ only catches the rows that happen to move.
   - Spec guard: *closes the right border when CSEL clears in the compare's
     column* and *closes the right border at the 38-column compare in the
     column CSEL clears* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb).
 - The border colour shows where the **main** flip-flop is set, and only
   there. The vertical flip-flop keeps the main one from clearing at the
   left compare and withholds the graphics data, but it does not paint
@@ -496,14 +496,14 @@ only catches the rows that happen to move.
     [graphics pipeline](#vic-graphics-pipeline) rules).
   - Spec guard: *shows the vertical border only through the main
     flip-flop* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb).
 - An idle-state g-access reads $3fff, or $39ff with ECM set, and the byte
   is painted through the current mode with a zero screen byte and colour
   nibble (foreground black, background per mode). A guard keeps
   closed-border lines on the bulk path.
   - Pinned by `ss-pri*`, whose diffs collapsed from ~85k px to 220–440 px.
   - Spec guard: *renders the idle byte at $3fff in black* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - A column with no g-access (outside columns 14–53), or one whose
   g-access falls while the vertical border stays closed for the rest of
   the line, shifts out **zero data**. It is painted through the current
@@ -524,7 +524,7 @@ only catches the rows that happen to move.
     the first g-accesses are sampled. Without that, every picture loses
     the start of its first line (`greydot`, `dmadelay`, `dentest`).
   - Spec guard: *a column with no g-access* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb).
 - The XSCROLL bleed at column 0 takes its pixels from the group before
   it, the zero-data group, rather than filling with $d021. Only
   `border-bm-ysh2` separates the two (+6 px).
@@ -580,7 +580,7 @@ only catches the rows that happen to move.
     (CPU halted through the cycle after column 54) breaks `bascan`
     itself, all five `colorfetchbug` rows, `flibug/blackmail*`,
     `spriteenable3`–`5` and several `vborder*` rows.
-  - Spec guard: *#ba_low?* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+  - Spec guard: *#ba_low?* in [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - The DEN latch is level-sensitive across the raster counter's increment,
   so its window runs from the last column of line 47 through the last
   column of line 48. The wrap column counts for both the line ending and
@@ -595,7 +595,7 @@ only catches the rows that happen to move.
   next one instead of a fixed +40.
 - All 21 `dmadelay` rows pass under these rules, and they sweep the match
   across the whole line. `D011Test/disable-bad` pins the too-late match.
-- Spec guard: [`vic/display_state_spec.rb`](../spec/badline/vic/display_state_spec.rb),
+- Spec guard: [`vic/display_state_spec.rb`](../spec/badline/chips/vic/display_state_spec.rb),
   one group per rule.
 - The colour nibble of a c-access before AEC is the low nibble of the byte
   at the CPU's PC, which is the opcode it is halted on, as VICE reads it.
@@ -604,7 +604,7 @@ only catches the rows that happen to move.
   - Pinned by `flibug/blackmail*` and `colorfetchbug/main*`, whose bug
     cells take their colour from the halted opcode.
   - Spec guard: *an FLI match in column 13* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - On the 6569, a match that opens display state in a g-access column, which
   is a DMA delay out of idle state, moves that column's idle g-access from
   `$3fff` (or `$39ff`) to `$38ff`, but only when YSCROLL is nonzero, so
@@ -629,7 +629,7 @@ only catches the rows that happen to move.
   - Spec guard: *reads the idle byte at $38ff when YSCROLL is nonzero* and
     *reads the idle byte at $3fff when YSCROLL is 0*, plus the 8565's
     *reads the idle byte at $3fff when YSCROLL is nonzero*, in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - These rows can't be read as pixel counts. The sweep became readable by
   OCRing each reference PNG against `lib/badline/roms/character.rom` and
   matching every display row back to its offset in screen memory, so a diff
@@ -651,7 +651,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     between the g-access and the draw, and `fetchsplit` (2939 → 2890 px
     without it), which splits `$d018` and `$dd00` mid-line.
   - Spec guard: *reads the byte in its own column* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - The g-access still sees BMM for one column after it falls: it addresses
   with `$d011` OR-ed with the BMM bit of the column before
   (`VIC::FETCH_HOLD`). When BMM changes and the access moves from RAM onto
@@ -663,7 +663,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     13/14/9 px).
   - Spec guard: *addresses with a BMM that fell in the same column* and
     *mixes the addresses when BMM falls onto the character ROM* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - ECM is held for that column too, but only when the access it leaves,
   addressed through the old mode, read the character ROM
   (`VIC::FETCH_HOLD_ROM`). A falling ECM reaches a RAM access at once.
@@ -680,7 +680,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     capture. VICE holds BMM only.
   - Spec guard: *drops a falling ECM at once when the access left RAM* and
     *holds a falling ECM when the access left the character ROM* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - The byte a group draws loads into the shift register at pixel XSCROLL,
   and that XSCROLL is the one the **column before** saw. It is latched in
   each g-access column with the vertical border open (VICE
@@ -690,7 +690,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     `modesplit` (48 → 144) and `vicii_reg_timing` (pass → 720), and by
     `border-bm-idle`, `border-bm-ysh` and `border-mcbm`.
   - Spec guard: *loads the byte at the XSCROLL the column before saw* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - A mode change takes hold **inside** the group. ECM and BMM rising show
   at pixel 4 and falling at pixel 6, so a change that clears one bit while
   it sets the other shows the invalid mode's black on pixels 4 and 5. MCM
@@ -721,7 +721,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     - Spec guard: *takes a BMM falling out of hi-res bitmap at pixel 6*,
       *out of ECM+BMM at pixel 5* and *out of multicolour bitmap at
       pixel 5* in
-      [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
+      [`vic/graphics_shifter_spec.rb`](../spec/badline/chips/vic/graphics_shifter_spec.rb).
   - An MCM that falls out of the invalid ECM+MCM text mode is a pixel
     later on both counts. The lookup stays black through pixel 4 and
     changes at pixel 5, and the pairs are read through pixel 7, with
@@ -733,10 +733,10 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
       `videomode2`, `vicii_reg_timing`, `modesplit` and `videomode-v`,
       `-w`, `-x` and `-y`.
     - Spec guard: *takes an MCM falling out of ECM+MCM a pixel late* in
-      [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
-  - Spec guard: [`vic/graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb),
+      [`vic/graphics_shifter_spec.rb`](../spec/badline/chips/vic/graphics_shifter_spec.rb).
+  - Spec guard: [`vic/graphics_shifter_spec.rb`](../spec/badline/chips/vic/graphics_shifter_spec.rb),
     one example per pixel, and *a mode change inside a group* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb).
 - The pixels XSCROLL keeps from the previous byte take the **current**
   colour registers: a `$d021`–`$d024` write repaints that byte before it
   shows. The `ColorPatches` +1 px still applies on top.
@@ -745,7 +745,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     `spritefetchbug/test-136-2a` (8 px → pass) go back only when both this
     and the XSCROLL latch are knocked out.
   - Spec guard: *a background write under XSCROLL* in
-    [`vic/sequencer_spec.rb`](../spec/badline/vic/sequencer_spec.rb).
+    [`vic/sequencer_spec.rb`](../spec/badline/chips/vic/sequencer_spec.rb).
 
 ## VIC phi1 bus
 
@@ -773,7 +773,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
     way fails it on 19 of its 63 columns. The refresh counter, display-state
     g-accesses and the DMA s-access follow VICE: `phi1timing` fills
     $3f00–$3ffe with one value and runs with DEN clear and no sprites.
-  - Spec guard: *#phi1_data* in [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+  - Spec guard: *#phi1_data* in [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 
 ## VIC light pen
 
@@ -815,11 +815,11 @@ are the row's diff with the rule removed.
     and `vicii_reg_timing` (22 px), whose read-modify-write instructions
     store each value twice.
   - Spec guard: the *on the 8565* group in
-    [`color_patches_spec.rb`](../spec/badline/vic/color_patches_spec.rb),
+    [`color_patches_spec.rb`](../spec/badline/chips/vic/color_patches_spec.rb),
     *shows a grey dot on the pixel before a new sprite color* in
-    [`sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb) and *shows a
+    [`sprites_spec.rb`](../spec/badline/chips/vic/sprites_spec.rb) and *shows a
     grey dot for a background write of the same color* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - **Sprite multicolour.** `$d01c` reaches the sprite sequencers a pixel
   sooner, 6 pixels on instead of 7, and works on the multicolour
   flip-flop (VICE `update_sprite_mc_bits_8565`). The X match leaves the
@@ -836,16 +836,16 @@ are the row's diff with the rule removed.
     `ss-mc-hires-exp` (44 px), and the hi-res hold by `ss-mc-hires` and
     `ss-mc-hires-exp` (44 px each).
   - Spec guard: *reaches the multicolor flip-flop six pixels on* in
-    [`sprites_spec.rb`](../spec/badline/vic/sprites_spec.rb) and the *with
+    [`sprites_spec.rb`](../spec/badline/chips/vic/sprites_spec.rb) and the *with
     an 8565* group of *mid-line writes* in
-    [`sprite_spec.rb`](../spec/badline/vic/sprite_spec.rb).
+    [`sprite_spec.rb`](../spec/badline/chips/vic/sprite_spec.rb).
 - **The g-access addresses with the `$d011` of the column before**,
   whole, instead of the 6569's hold of BMM and, on the character ROM, ECM.
   - Pinned by `modesplit` (598 px), `vicii_reg_timing` (92, 99/106 px),
     `fetchsplit` (180 px) and every videomode row but `videomode1` (3 to
     16 px).
   - Spec guard: *addresses with the $d011 of the column before* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - **ECM and BMM take hold at the next group's pixel 0**, rising or
   falling, where the 6569 takes them at pixel 4 as they rise and 5 or 6 as
   they fall. MCM keeps the 6569's timing, but an MCM that falls out of
@@ -854,7 +854,7 @@ are the row's diff with the rule removed.
     100/114 px) and every videomode row (6 to 13 px). The on-time MCM by
     `videomode1` and `videomode-z` (2 px each).
   - Spec guard: the *on the 8565* group in
-    [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
+    [`graphics_shifter_spec.rb`](../spec/badline/chips/vic/graphics_shifter_spec.rb).
 - **Out of an invalid mode into multicolour bitmap, a background pixel 0
   is still black, and into hi-res text any pixel 0 is.** Into multicolour
   text and ECM text it shows on time.
@@ -877,12 +877,12 @@ are the row's diff with the rule removed.
     into hi-res text*, *shows pixel 0 on time out of an invalid mode into
     multicolour text* and *shows pixel 0 on time out of an invalid mode into
     ECM text* in
-    [`graphics_shifter_spec.rb`](../spec/badline/vic/graphics_shifter_spec.rb).
+    [`graphics_shifter_spec.rb`](../spec/badline/chips/vic/graphics_shifter_spec.rb).
 - **The light pen latches one extra half-pixel**, where the 6569 adds two.
   - Pinned by `lp-trigger/test2new`, which measures the trigger delay and
     fails with two.
   - Spec guard: *adds one extra half-pixel on the 8565* in
-    [`vic_spec.rb`](../spec/badline/vic_spec.rb).
+    [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb).
 - **A `$dd00` write that swaps the bank lines shows bank 3 for a cycle.**
   Where one bank line goes high as the other goes low, every VIC access in
   the cycle after the write reads bank 3 (both lines low), and the new bank
@@ -894,7 +894,7 @@ are the row's diff with the rule removed.
     the 6569 reference shows none. `M1` also shows it after the DDR swaps;
     `M7`, which the `-8565` reference is made from, doesn't.
   - Spec guard: the `#sample_lines` group in
-    [`bank_spec.rb`](../spec/badline/vic/bank_spec.rb).
+    [`bank_spec.rb`](../spec/badline/chips/vic/bank_spec.rb).
 
 What the 8565 references don't settle, and so what stays as it is:
 
@@ -1056,8 +1056,8 @@ region moves the sprites. The positions live in `Region::Profile` and
     of them fails, and every other row of the sprite, phi1, dmadelay, vsp
     and screenpos subsets passes as before.
   - Spec guard: *sprite DMA cycle stealing on NTSC* and *#phi1_data on
-    NTSC* in [`vic_spec.rb`](../spec/badline/vic_spec.rb), and
-    [`timing_spec.rb`](../spec/badline/vic/sprite/timing_spec.rb).
+    NTSC* in [`vic_spec.rb`](../spec/badline/chips/vic_spec.rb), and
+    [`timing_spec.rb`](../spec/badline/chips/vic/sprite/timing_spec.rb).
 - **Display compare.** The 6567R8 turns a sprite's display on and off in
   cycle 59 (`sprite_display_cycle`), where the 6567R56A keeps the 6569's
   cycle 58. This isn't pinned yet: moving the 6567R8's to 58 or the
@@ -1115,7 +1115,7 @@ testlist comments that row out, and `testbench-drean`
   misses $180-$183 (4 bytes), repeating $180-$183 misses $184-$186 (3),
   and repeating $17c-$183 or $184-$18b moves 18 bytes. Spec guard: the
   6567R8 and 6572 examples in
-  [`timing_spec.rb`](../spec/badline/vic/sprite/timing_spec.rb).
+  [`timing_spec.rb`](../spec/badline/chips/vic/sprite/timing_spec.rb).
 - The display compare isn't pinned: the dump matches with it in cycle
   58 as well as 59.
 - Not matched: `spritegap3`'s 6572 dump has sprite 0 at X = 0 miss the
@@ -1185,10 +1185,10 @@ testlist comments that row out, and `testbench-drean`
   timer starts and raises a spurious NMI. Pinned by
   `interrupts/branchquirk/branchquirk-nmiold` (first cell only) and
   `CPU/Acid800/cpu_bugs` (NMI lands before the BRK instead of hijacking it).
-- Spec guard: [`cia/timer_spec.rb`](../spec/badline/cia/timer_spec.rb) runs
+- Spec guard: [`cia/timer_spec.rb`](../spec/badline/chips/cia/timer_spec.rb) runs
   the eight `(*1)` cells and the `cia1tab` table. It fails if the IR delay
   is dropped. Its *power-on state* group guards the `$ffff` reset.
-  [`cia_spec.rb`](../spec/badline/cia_spec.rb)'s *6526 interrupt
+  [`cia_spec.rb`](../spec/badline/chips/cia_spec.rb)'s *6526 interrupt
   acknowledge* and *6526 timer B bug* groups guard the three ICR rules
   above, on a bare CIA.
 
@@ -1248,7 +1248,7 @@ and each was knocked out: removing it fails the rows named.
   the 6526A, passes every `testbench-cia-new` row, so the 6526A keeps the
   6526's behaviour on both.
 - Spec guard: *the 6526A interrupt register* in
-  [`cia_spec.rb`](../spec/badline/cia_spec.rb), one example per rule,
+  [`cia_spec.rb`](../spec/badline/chips/cia_spec.rb), one example per rule,
   each failing when its rule is knocked out.
 
 ## CIA serial shift register
@@ -1302,7 +1302,7 @@ and each was knocked out: removing it fails the rows named.
   state one baud carries into the next through the mode-change latch. Run
   the test2 sweeps for real (about 5 min each) after changing that path.
 - Spec guard: the "serial port in output mode" block in
-  [`cia_spec.rb`](../spec/badline/cia_spec.rb) covers the flag timing, the
+  [`cia_spec.rb`](../spec/badline/chips/cia_spec.rb) covers the flag timing, the
   waiting byte, both mode-change reports and the zero-latch stall.
 
 ## VIA shift register
@@ -1338,9 +1338,9 @@ and each was knocked out: removing it fails the rows named.
   the flag's cycle in the φ2 modes either: no row starts a byte and then
   reads IFR.
 - Spec guard: the mode blocks in
-  [`shift_register_spec.rb`](../spec/badline/via/shift_register_spec.rb)
+  [`shift_register_spec.rb`](../spec/badline/chips/via/shift_register_spec.rb)
   and *the shift register* in
-  [`via_spec.rb`](../spec/badline/via_spec.rb).
+  [`via_spec.rb`](../spec/badline/chips/via_spec.rb).
 
 ## 6510 I/O port
 
@@ -1416,16 +1416,16 @@ and each was knocked out: removing it fails the rows named.
     `dumps/dump6561e.prg`, a real 6561E. The later 6561-101's dump reads
     `$20` in the idle cycles instead; badline follows the 6561E.
   - Spec guard:
-    [`vic20/vic_split_tests_timing_spec.rb`](../spec/badline/vic20/vic_split_tests_timing_spec.rb)
+    [`chips/vic_i_split_tests_timing_spec.rb`](../spec/badline/chips/vic_i_split_tests_timing_spec.rb)
     (`:slow`), and *the fetches* in
-    [`vic20/vic_video_spec.rb`](../spec/badline/vic20/vic_video_spec.rb).
+    [`chips/vic_i_video_spec.rb`](../spec/badline/chips/vic_i_video_spec.rb).
 - A write to `$900F` or `$900E` takes hold from the second of the four
   pixels of the cycle it lands in, the reverse bit two pixels later, and
   a character's pixels come out in the two cycles after its pattern
   fetch. These match xvic's screenshots of a test of cycle-timed writes
   pixel for pixel; no testprog or hardware capture checks them.
   - Spec guard: *a colour write* in
-    [`vic20/vic_video_spec.rb`](../spec/badline/vic20/vic_video_spec.rb).
+    [`chips/vic_i_video_spec.rb`](../spec/badline/chips/vic_i_video_spec.rb).
 
 ## VIC-I sound
 
@@ -1444,7 +1444,7 @@ wasn't read.
     and `$A0` 1154.59 and 182.30 Hz, each within 0.001 Hz of the formula
     on the PAL clock.
   - Spec guard: *a tone voice's counter* in
-    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+    [`vic_i/sound_spec.rb`](../spec/badline/chips/vic_i/sound_spec.rb).
 - A tone voice's shift register takes bit 7 back into bit 0 inverted while
   the voice is on and a zero while it's off, and keeps shifting either way.
   Bit 0 is the output, not gated by the enable bit. This is the die-shot
@@ -1457,7 +1457,7 @@ wasn't read.
     0.1 dB through the 12th. 10101010 puts the 7th and 9th harmonics
     above the fundamental, which a register cleared while off couldn't.
   - Spec guard: *a tone voice* in
-    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+    [`vic_i/sound_spec.rb`](../spec/badline/chips/vic_i/sound_spec.rb).
 - The noise voice's counter steps a 16-bit LFSR: bit 0 takes the XOR of
   bits 3, 12, 14 and 15 while the voice is on and a one while it's off.
   Each rise of the LFSR's bit 0 shifts the noise voice's own shift
@@ -1471,14 +1471,14 @@ wasn't read.
     band levels of noise at `$FE`, `$FD`, `$F0`, `$C0` and `$80` match
     xvic's within 0.5 dB up to 8 kHz.
   - Spec guard: *the noise voice* in
-    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+    [`vic_i/sound_spec.rb`](../spec/badline/chips/vic_i/sound_spec.rb).
 - The output is the voices that are high plus 2/9 of a voice, times the
   volume, so a volume write steps the output with every voice off, as
   4-bit samples played through `$900E` need.
   - Pinned by xvic: a volume step from 0 to 15 with every voice off peaks
     at 0.218 of a voice turned on at volume 15.
   - Spec guard: *the volume* in
-    [`vic20/sound_spec.rb`](../spec/badline/vic20/sound_spec.rb).
+    [`vic_i/sound_spec.rb`](../spec/badline/chips/vic_i/sound_spec.rb).
   - Not pinned: the volume scales the output linearly. xvic's tone level
     per volume step isn't linear (volume 1 is 0.099 of volume 15 and 14
     is 1.015), and nothing here says whether the hardware is.
@@ -1488,7 +1488,7 @@ wasn't read.
     stages at 1,417 and 158.0 Hz, with an RMS error of 6 against a peak of
     11,280. badline's own recording fits 1,420 and 157.6 Hz.
   - Spec guard: *a step* in
-    [`vic20/sound/output_spec.rb`](../spec/badline/vic20/sound/output_spec.rb).
+    [`vic_i/sound/output_spec.rb`](../spec/badline/chips/vic_i/sound/output_spec.rb).
 
 ## 1541 serial port
 
@@ -1736,9 +1736,9 @@ testprogs named.
     The test pins the delay only. Phase 1's float differs from pulling down
     only when pulse+noise is selected across it, and nothing pins that.
   - Spec guard: *two cycles after accumulator bit 19 rises* and *around a
-    shift* in [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb),
+    shift* in [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb),
     and *carries a noise shift pending across a span edge* in
-    [`sid_spec.rb`](../spec/badline/sid_spec.rb): a catch-up that
+    [`sid_spec.rb`](../spec/badline/chips/sid_spec.rb): a catch-up that
     fast-forwards across a rise carries the shift still in flight into the
     next span.
 - Setting the test bit onto noise combined with another waveform writes
@@ -1752,7 +1752,7 @@ testprogs named.
     shift's phase 2 (below). Pinned by `SID/wf12nsr`'s pulse+noise row,
     which sets the test bit onto pulse+noise.
   - Spec guard: *as the test bit rises* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+    [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb).
 - The test bit does not clear the LFSR. It stalls it halfway through a
   shift with bit 22 forced high. While the bit is held, every bit bleeds up
   to `$7fffff`: after `$950000` cycles on the 8580 (`SID/bitfade`'s
@@ -1772,7 +1772,7 @@ testprogs named.
     that varies with the chip's temperature (`SID/wf12nsr`'s
     `quicktest.prg` on a 6581), which nothing scored depends on.
   - Spec guard: *bleeding through a held test bit* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+    [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb).
 - Before the bit clocks in on release, the old waveform's output is
   written back only for some waveform changes. Noise has to have been
   combined before the release and still be combined after it, so a change
@@ -1800,7 +1800,7 @@ testprogs named.
     `SID/wb_testsuite/samplings`, both chips, reads `F`→`8` as a plain
     shift.
   - Spec guard: *as the test bit falls* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+    [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb).
 - A combined waveform shorts the shapers onto the lines the oscillator reads
   back. A low top bit reaches the accumulator MSB through the sawtooth
   switch and clears it (`SID/osc_topbit`, all three). With noise selected,
@@ -1816,7 +1816,7 @@ testprogs named.
   Noise is ANDed over triangle and sawtooth mixes; pulse+noise is below.
   - Not pinned by an exit code: oscsample only scores the single
     waveforms, and no scored test reads a combined shape without noise.
-  - Spec guard: [`sid/waveform/combined_spec.rb`](../spec/badline/sid/waveform/combined_spec.rb)
+  - Spec guard: [`sid/waveform/combined_spec.rb`](../spec/badline/chips/sid/waveform/combined_spec.rb)
     checks spot values against the dumps.
 - Noise in a combined waveform writes its lines back into the LFSR by a
   lower threshold than OSC3 reads them by. Two rules follow, both fitted to
@@ -1862,7 +1862,7 @@ testprogs named.
     pulse+noise on the 8580*, *reads nothing of pulse+noise on the 6581*,
     *with pulse+noise on the 6581*, *as the test bit rises* and *as the
     test bit falls* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+    [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb).
 - The pulse comparator's output reaches the lines a cycle after the
   accumulator it compared, on both chips. Setting the test bit forces it
   high at once.
@@ -1872,7 +1872,7 @@ testprogs named.
     whose OSC3 reads the phase itself a cycle late. Comparing on time fails
     both `waveforms-40` rows.
   - Spec guard: *reaches the output a cycle after the accumulator it
-    compared* in [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb).
+    compared* in [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb).
 - Waveform 0 leaves the DAC input floating. It holds the last value a shaper
   drove onto it and drains to `$000` after `$4000` cycles.
   - Pinned by `SID/osc3-wave0`. `SID/oscinit`'s `allinit` pins the power-on
@@ -1886,8 +1886,8 @@ testprogs named.
     a `$ffff` sawtooth and reads OSC3 four cycles later: `3` on the 6581,
     `2` on the 8580.
   - Spec guard: *#osc3 on the 8580* in
-    [`sid/waveform_spec.rb`](../spec/badline/sid/waveform_spec.rb) and
-    *the 8580* in [`sid_spec.rb`](../spec/badline/sid_spec.rb).
+    [`sid/waveform_spec.rb`](../spec/badline/chips/sid/waveform_spec.rb) and
+    *the 8580* in [`sid_spec.rb`](../spec/badline/chips/sid_spec.rb).
 
 ## SID register writes
 
@@ -1957,7 +1957,7 @@ testprogs named.
   - Spec guard: *gate edge*, *attack*, *#env3*, *exponential divider*,
     *gate falling with a step in flight* and *gate rising as the rate
     counter matches* in
-    [`sid/envelope_spec.rb`](../spec/badline/sid/envelope_spec.rb). Its
+    [`sid/envelope_spec.rb`](../spec/badline/chips/sid/envelope_spec.rb). Its
     *#fast_forward* examples hold the batched catch-up to the same timing:
     between steps a span jumps from one match to the next, and the cycles
     around each step run whole.

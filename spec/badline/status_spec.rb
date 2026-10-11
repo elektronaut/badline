@@ -37,7 +37,7 @@ describe Badline::Status do
   end
 
   describe Badline::CPUStatus do
-    let(:status) { described_class.new(Badline::CPU::STATUS_FLAGS) }
+    let(:status) { described_class.new(Badline::Chips::CPU::STATUS_FLAGS) }
 
     it "has setter methods" do
       status.carry = true

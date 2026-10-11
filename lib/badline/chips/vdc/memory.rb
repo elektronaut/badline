@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class C128
+  module Chips
     class VDC
       # The VDC's own DRAM: 16K of two 4416s (16K by 4) or 64K of 4164s or
       # 4464s, behind the 16-bit addresses the VDC computes.

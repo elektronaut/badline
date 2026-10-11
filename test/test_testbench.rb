@@ -319,7 +319,7 @@ class TestTestbenchNTSC < Minitest::Test
   end
 
   def test_crops_an_ntsc_screenshot_from_line_28_through_the_next_frame
-    vic = Badline::VIC.new(region: Badline::Region::NTSC)
+    vic = Badline::Chips::VIC.new(region: Badline::Region::NTSC)
     vic.display[(28 * vic.width) + 96] = 5
     vic.display[(11 * vic.width) + 96] = 7
     rows = Testbench.screenshot(vic)
@@ -370,7 +370,7 @@ class TestTestbenchDrean < Minitest::Test
   end
 
   def test_crops_a_drean_screenshot_as_pal
-    vic = Badline::VIC.new(region: Badline::Region::DREAN)
+    vic = Badline::Chips::VIC.new(region: Badline::Region::DREAN)
     vic.display[(16 * vic.width) + 96] = 5
     rows = Testbench.screenshot(vic)
 

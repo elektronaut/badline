@@ -63,7 +63,7 @@ module Badline
       @serial_port = SerialPort.new(@mechanism, device:)
       @via1 = SerialVIA.new(start: 0x1800, peripheral: @serial_port, drive: self)
       @via2 = Drive1541::DiskVIA.new(start: 0x1c00, mechanism: @mechanism)
-      @cia = CIA.new(start: 0x4000)
+      @cia = Chips::CIA.new(start: 0x4000)
       @fdc = WD1770.new
       @bus = Bus.new(rom: rom || ROM.load("dos1571.rom", 0x8000), via1: @via1, via2: @via2, cia: @cia, fdc: @fdc)
       @cpu = CPU.new(@bus, debug:)

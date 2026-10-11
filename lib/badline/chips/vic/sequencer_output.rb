@@ -1,113 +1,115 @@
 # frozen_string_literal: true
 
 module Badline
-  class VIC
-    class Sequencer
-      # Writes a column's 8-pixel group into the line buffers, through the
-      # main border flip-flop and XSCROLL.
-      module Output
-        private
+  module Chips
+    class VIC
+      class Sequencer
+        # Writes a column's 8-pixel group into the line buffers, through the
+        # main border flip-flop and XSCROLL.
+        module Output
+          private
 
-        # Write the 8-pixel group for a column into the line buffers. The main
-        # border flip-flop only changes state in the groups containing the
-        # window edge compares, so all other groups take a branch-free bulk
-        # path: fully border or fully window. A group's first pixel, where the
-        # 40-column compares fall, still sees CSEL as the column before had it.
-        def output(col, shift)
-          x_pos = (col + 16) * 8
-          csel = @registers.csel?
-          first = @window_compares[@first_csel ? 1 : 0]
-          @first_csel = csel
-          compares = @window_compares[csel ? 1 : 0]
-          win_lo, right_compare = compares
+          # Write the 8-pixel group for a column into the line buffers. The main
+          # border flip-flop only changes state in the groups containing the
+          # window edge compares, so all other groups take a branch-free bulk
+          # path: fully border or fully window. A group's first pixel, where the
+          # 40-column compares fall, still sees CSEL as the column before had it.
+          def output(col, shift)
+            x_pos = (col + 16) * 8
+            csel = @registers.csel?
+            first = @window_compares[@first_csel ? 1 : 0]
+            @first_csel = csel
+            compares = @window_compares[csel ? 1 : 0]
+            win_lo, right_compare = compares
 
-          if !first.equal?(compares) || boundary_group?(x_pos, win_lo, right_compare)
-            output_boundary(x_pos, first, compares, shift)
-          elsif @main_border
-            output_border(x_pos)
-          else
-            output_window(x_pos, shift)
-          end
-        end
-
-        # True if the group contains a window edge, where the main border
-        # flip-flop can change state.
-        def boundary_group?(x_pos, win_lo, right_compare)
-          lo_delta = win_lo - x_pos
-          hi_delta = right_compare - x_pos
-          (lo_delta >= 0 && lo_delta < 8) || (hi_delta >= 0 && hi_delta < 8)
-        end
-
-        def output_border(x_pos)
-          @colors.fill(@registers.border, x_pos, 8) if @render
-          @border_groups[x_pos >> 3] = BorderMask::FULL
-          @fg.fill(false, x_pos, 8)
-        end
-
-        def output_window(x_pos, shift)
-          in_gfx = x_pos >= @gfx_x_start && x_pos < @gfx_x_end
-          @border_groups[x_pos >> 3] = BorderMask::NONE
-
-          if shift.zero?
-            @colors[x_pos, 8] = @cur_colors if @render
-            if in_gfx
-              @fg[x_pos, 8] = @cur_fg
+            if !first.equal?(compares) || boundary_group?(x_pos, win_lo, right_compare)
+              output_boundary(x_pos, first, compares, shift)
+            elsif @main_border
+              output_border(x_pos)
             else
-              @fg.fill(false, x_pos, 8)
+              output_window(x_pos, shift)
             end
-          else
-            output_window_shifted(x_pos, in_gfx, shift)
           end
-        end
 
-        def output_window_shifted(x_pos, in_gfx, shift)
-          keep = 8 - shift
-
-          if @render
-            copy(@cur_colors, 0, @colors, x_pos + shift, keep)
-            copy(@prev_colors, keep, @colors, x_pos, shift)
+          # True if the group contains a window edge, where the main border
+          # flip-flop can change state.
+          def boundary_group?(x_pos, win_lo, right_compare)
+            lo_delta = win_lo - x_pos
+            hi_delta = right_compare - x_pos
+            (lo_delta >= 0 && lo_delta < 8) || (hi_delta >= 0 && hi_delta < 8)
           end
-          output_shifted_fg(x_pos, in_gfx, shift, keep)
-        end
 
-        def output_shifted_fg(x_pos, in_gfx, shift, keep)
-          return @fg.fill(false, x_pos, 8) unless in_gfx
-
-          copy(@cur_fg, 0, @fg, x_pos + shift, keep)
-          copy(@prev_fg, keep, @fg, x_pos, shift)
-        end
-
-        def copy(src, from, dest, to, count)
-          i = 0
-          while i < count
-            dest[to + i] = src[from + i]
-            i += 1
+          def output_border(x_pos)
+            @colors.fill(@registers.border, x_pos, 8) if @render
+            @border_groups[x_pos >> 3] = BorderMask::FULL
+            @fg.fill(false, x_pos, 8)
           end
-        end
 
-        # Slow path for the groups where the border flip-flop can change state.
-        def output_boundary(x_pos, first, compares, shift)
-          border = @registers.border
-          win_lo, right_compare = first
-          @border_groups[x_pos >> 3] = BorderMask::MIXED
+          def output_window(x_pos, shift)
+            in_gfx = x_pos >= @gfx_x_start && x_pos < @gfx_x_end
+            @border_groups[x_pos >> 3] = BorderMask::NONE
 
-          i = 0
-          while i < 8
-            src = i - shift
-            if src >= 0
-              pixel = @cur_colors[src]
-              mask = @cur_fg[src]
+            if shift.zero?
+              @colors[x_pos, 8] = @cur_colors if @render
+              if in_gfx
+                @fg[x_pos, 8] = @cur_fg
+              else
+                @fg.fill(false, x_pos, 8)
+              end
             else
-              pixel = @prev_colors[8 + src]
-              mask = @prev_fg[8 + src]
+              output_window_shifted(x_pos, in_gfx, shift)
             end
-            x = x_pos + i
-            shown = pixel_shown?(x, win_lo, right_compare)
-            @colors[x] = shown ? pixel : border
-            @border[x] = !shown
-            @fg[x] = x >= @gfx_x_start && x < @gfx_x_end ? mask : false
-            win_lo, right_compare = compares if i.zero?
-            i += 1
+          end
+
+          def output_window_shifted(x_pos, in_gfx, shift)
+            keep = 8 - shift
+
+            if @render
+              copy(@cur_colors, 0, @colors, x_pos + shift, keep)
+              copy(@prev_colors, keep, @colors, x_pos, shift)
+            end
+            output_shifted_fg(x_pos, in_gfx, shift, keep)
+          end
+
+          def output_shifted_fg(x_pos, in_gfx, shift, keep)
+            return @fg.fill(false, x_pos, 8) unless in_gfx
+
+            copy(@cur_fg, 0, @fg, x_pos + shift, keep)
+            copy(@prev_fg, keep, @fg, x_pos, shift)
+          end
+
+          def copy(src, from, dest, to, count)
+            i = 0
+            while i < count
+              dest[to + i] = src[from + i]
+              i += 1
+            end
+          end
+
+          # Slow path for the groups where the border flip-flop can change state.
+          def output_boundary(x_pos, first, compares, shift)
+            border = @registers.border
+            win_lo, right_compare = first
+            @border_groups[x_pos >> 3] = BorderMask::MIXED
+
+            i = 0
+            while i < 8
+              src = i - shift
+              if src >= 0
+                pixel = @cur_colors[src]
+                mask = @cur_fg[src]
+              else
+                pixel = @prev_colors[8 + src]
+                mask = @prev_fg[8 + src]
+              end
+              x = x_pos + i
+              shown = pixel_shown?(x, win_lo, right_compare)
+              @colors[x] = shown ? pixel : border
+              @border[x] = !shown
+              @fg[x] = x >= @gfx_x_start && x < @gfx_x_end ? mask : false
+              win_lo, right_compare = compares if i.zero?
+              i += 1
+            end
           end
         end
       end

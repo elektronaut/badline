@@ -82,7 +82,7 @@ module Badline
       @mechanism = Mechanism.new
       @fdc = WD1772.new(@mechanism)
       @serial_port = SerialPort.new(@mechanism, device:)
-      @cia = CIA.new(start: 0x4000, peripheral: @serial_port, tod_hz: 0)
+      @cia = Chips::CIA.new(start: 0x4000, peripheral: @serial_port, tod_hz: 0)
       @bus = Bus.new(rom: rom || ROM.load("dos1581.rom", 0x8000), cia: @cia, fdc: @fdc, drive: self)
       @cpu = CPU.new(@bus, debug:)
       @idle_loop = IDLE_LOOP

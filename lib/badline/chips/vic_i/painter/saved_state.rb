@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Badline
-  class Vic20
-    class VIC
+  module Chips
+    class VICI
       class Painter
         # The painter's state for a snapshot.
         module SavedState

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class C128
+  module Chips
     class VDC
       # Paints the characters of a displayed line, R1 of them from the
       # line's first dot, in text mode or, with R25 bit 7, bitmap mode.

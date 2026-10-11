@@ -5,7 +5,7 @@ module Badline
     # VIA 1, the one facing the serial bus. Its port A also selects the
     # side, the clock rate and the fast serial direction, so the drive
     # hears port A after every write and reset (Drive1571#port_a_written).
-    class SerialVIA < VIA
+    class SerialVIA < Chips::VIA
       def initialize(start:, peripheral:, drive:)
         @drive = drive
         super(start:, peripheral:)

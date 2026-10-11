@@ -3,8 +3,8 @@
 require "badline/chips/vic_i/painter/saved_state"
 
 module Badline
-  class Vic20
-    class VIC
+  module Chips
+    class VICI
       # Paints the VIC-I's display a line at a time from what the VIC
       # fetched for it: each character's pattern byte and colour nibble, the
       # pixel its first character starts at and how many it fetched. Each

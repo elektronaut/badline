@@ -52,7 +52,7 @@ module Badline
       def poke(_addr, _value); end
     end
 
-    # The 6510's port pins with pull-ups, and the floating ones (CPUPort).
+    # The 6510's port pins with pull-ups, and the floating ones (CPU::Port).
     PORT_PULLUPS  = 0b0001_0111
     PORT_FLOATING = 0b1100_1000
 
@@ -82,12 +82,12 @@ module Badline
       @joystick1 = Joystick.new
       @joystick2 = Joystick.new
       @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-      @vic  = VIC.new(model: vic_model, region:)
-      @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model, region:)
-      @cia2 = CIA.new(start: 0xdd00, model: cia_model, region:)
+      @vic  = Chips::VIC.new(model: vic_model, region:)
+      @cia1 = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, model: cia_model, region:)
+      @cia2 = Chips::CIA.new(start: 0xdd00, model: cia_model, region:)
       @control_ports.port_a_source = @cia1
       @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
-      @sid = SID.new(model: sid_model, pots: @control_ports)
+      @sid = Chips::SID.new(model: sid_model, pots: @control_ports)
       @sid_slots = []
 
       @datasette = Datasette.new
@@ -100,7 +100,7 @@ module Badline
       @open_bus = OpenBus.new(@vic)
       @cpu_off_bus = false
 
-      @cpu_port = CPUPort.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING)
+      @cpu_port = Chips::CPU::Port.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING)
       @cpu_port.on_change { update_overlays! }
       @io_port = @cpu_port.status
 

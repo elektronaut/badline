@@ -69,7 +69,7 @@ end
 
 def format_rate(cycles, elapsed)
   rate = cycles / elapsed
-  speed = rate / Badline::TimeOfDay::CLOCK_HZ
+  speed = rate / Badline::Chips::CIA::TimeOfDay::CLOCK_HZ
   format("%<rate>9d cycles/s (%<speed>.2fx real time)", rate:, speed:)
 end
 

@@ -133,11 +133,11 @@ RSpec.describe Badline::Computer do
 
   describe "the board" do
     it "shows the VIC's colours on a C64's" do
-      expect(computer.vic.palette).to eq(Badline::VIC::PALETTE)
+      expect(computer.vic.palette).to eq(Badline::Chips::VIC::PALETTE)
     end
 
     it "shows them in green on the PET 64's monitor" do
-      expect(described_class.new(board: :pet64).vic.palette).to eq(Badline::VIC::GREEN_PALETTE)
+      expect(described_class.new(board: :pet64).vic.palette).to eq(Badline::Chips::VIC::GREEN_PALETTE)
     end
 
     it "has no keyboard on the C64GS's" do

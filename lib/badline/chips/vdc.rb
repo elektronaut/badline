@@ -7,7 +7,7 @@ require "badline/chips/vdc/raster"
 require "badline/chips/vdc/saved_state"
 
 module Badline
-  class C128
+  module Chips
     # The 8563 or 8568 VDC: the address register at $D600 and the data
     # register at $D601, mirrored through $D6FF, in front of 37 internal
     # registers (38 on the 8568), the VDC's own RAM (Memory) and its 80

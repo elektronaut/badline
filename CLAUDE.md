@@ -57,7 +57,7 @@ requires only the namespace file.
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80` |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
-| CIA offline grids | `bundle exec rspec --tag slow spec/badline/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
+| CIA offline grids | `bundle exec rspec --tag slow spec/badline/chips/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
 The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
 8 s) and the `cia-sdr-icr` loop for every timer A latch (about 2 min),

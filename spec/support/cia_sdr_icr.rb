@@ -125,7 +125,7 @@ module CiaSdrIcr
     module_function
 
     def run(baud)
-      cia = Badline::CIA.new
+      cia = Badline::Chips::CIA.new
       [[0x0e, 0x00], [0x0f, 0x00], [0x04, baud], [0x05, 0x00], [0x0d, 0x7f]].each { |reg, value| cia.poke(reg, value) }
       # The first call's result is discarded; sample i waits 20 + i cycles.
       test(cia, 19)

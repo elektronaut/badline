@@ -1,30 +1,32 @@
 module Badline
-  class CPU
-    @memory: AddressBus
-    @operation: Symbol
-    @plan: Array[Symbol]
-    @a: Integer
-    @x: Integer
-    @y: Integer
-    @stack_pointer: Integer
-    @program_counter: Integer
-    @address: Integer
-    @pointer: Integer
-    @dummy_address: Integer
-    @value: Integer
-    @rmw_result: Integer
-    @ane_constant: Integer
-    @irq: bool
-    @irq_sample: bool
-    @irq_pending: bool
-    @boundary_irq: bool
-    @boundary_nmi: bool
-    @pending_write: bool
-    @optional_dummy: bool
+  module Chips
+    class CPU
+      @memory: AddressBus
+      @operation: Symbol
+      @plan: Array[Symbol]
+      @a: Integer
+      @x: Integer
+      @y: Integer
+      @stack_pointer: Integer
+      @program_counter: Integer
+      @address: Integer
+      @pointer: Integer
+      @dummy_address: Integer
+      @value: Integer
+      @rmw_result: Integer
+      @ane_constant: Integer
+      @irq: bool
+      @irq_sample: bool
+      @irq_pending: bool
+      @boundary_irq: bool
+      @boundary_nmi: bool
+      @pending_write: bool
+      @optional_dummy: bool
 
-    class Microcode
-      attr_accessor operation: Symbol
-      attr_accessor plan: Array[Symbol]
+      class Microcode
+        attr_accessor operation: Symbol
+        attr_accessor plan: Array[Symbol]
+      end
     end
   end
 
@@ -157,9 +159,7 @@ module Badline
       @optional_dummy: bool
     end
   end
-end
 
-module Badline
   class Status
     @value: Integer
     @bitmask: Integer

@@ -9,8 +9,8 @@ describe Badline::Drive1541::Bus do
   let(:rom) do
     Badline::ROM.new(Array.new(0x4000) { |i| i & 0xff }, length: 0x4000, start: 0xc000)
   end
-  let(:serial_via) { Badline::VIA.new(start: 0x1800) }
-  let(:disk_via) { Badline::VIA.new(start: 0x1c00) }
+  let(:serial_via) { Badline::Chips::VIA.new(start: 0x1800) }
+  let(:disk_via) { Badline::Chips::VIA.new(start: 0x1c00) }
 
   describe "RAM" do
     it "holds 2 KB from $0000" do

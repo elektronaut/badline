@@ -3,7 +3,7 @@
 require "json"
 require "badline/chips/z80"
 
-# Runs SingleStepTests' Z80 cases against Badline::Z80: one instruction
+# Runs SingleStepTests' Z80 cases against Badline::Chips::Z80: one instruction
 # from the initial state, then the registers, RAM, the port accesses and
 # the bus pins on every T-state against the final state. The cases come
 # from the first 100 of each file (rake vendor:z80-sample), or from the
@@ -109,7 +109,7 @@ module Z80SingleStep
   def start(test)
     initial = test["initial"]
     bus = Bus.new(initial["ram"], test.fetch("ports", []))
-    cpu = Badline::Z80.new(bus)
+    cpu = Badline::Chips::Z80.new(bus)
     bus.cpu = cpu
     REGISTERS.each { |name| cpu.public_send("#{name}=", initial[name]) }
     ALTERNATES.each { |name, attribute| cpu.public_send("#{attribute}=", initial[name]) }

@@ -55,7 +55,7 @@ module Badline
         @bus.poke(0x01, 0x37)
         @bus.poke(VIDEO_STANDARD, tune.ntsc? ? 0 : 1)
         @bus.cia1.timer_a_latch = tune.ntsc? ? NTSC_KERNAL_TIMER : KERNAL_TIMER
-        @cpu = CPU.new(@bus)
+        @cpu = Chips::CPU.new(@bus)
         @sid = @bus.sid
         @stereo = Stereo.new(@bus, tune, sid_models)
         @extras = @stereo.extras
