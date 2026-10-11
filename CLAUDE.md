@@ -92,6 +92,13 @@ Z80), and names the first component that differs. It builds a C64 unless
 `--family vic20` or `--family c128` (with `--mode c64|c128`) says
 otherwise. Use it for refactors and speed work.
 
+`bin/snapshot_check` checks snapshots. For each scenario (`--list`) it saves
+twice, then saves, loads and saves again, and expects the same bytes each
+time. It then runs the saved and the loaded machine side by side and names
+the first difference. `--carts` does the same for every cartridge mapper,
+and `--diff A B` compares two snapshot files module by module. Run it on any
+change to a unit's saved state.
+
 ## Driving the emulator headlessly
 
 `exe/badline-ruby <media>` opens the SDL window, which is no use for checking
@@ -153,7 +160,7 @@ worktree and owns a different set of files.
 
 - `rake vendor:checkout` fetches SingleStepTests 65x02, the Z80 sample
   and VICE-testprogs into `vendor/`
-- `bundle exec rspec`: line coverage is about 97%. `spec/spec_helper.rb`
+- `bundle exec rspec`: line coverage is about 95%. `spec/spec_helper.rb`
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
   by default: run them with `bundle exec rspec --tag slow`
