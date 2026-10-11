@@ -1534,6 +1534,15 @@ checked with probes that sample `$FF1A`, `$FF1B`, `$FF1D`, `$FF1E` and
 - A row's last line keeps its own attributes, although the line fetches
   the next row's, as xplus4 shows it: the attributes take hold as each
   character's pointer is fetched.
+- The attribute line reads the row the reload will point to after its own
+  latch: 40 on from it on a row's eighth line, and the reload itself on any
+  other line, as on the first row of a frame or after a scroll change
+  stretched a row past eight lines.
+- The pointer line is the line after an attribute line, whatever the
+  scroll says by then (the datasheet's DMA timing, step 8). A line whose
+  scroll alone asks for pointers fetches none and carries the row's line
+  on, so a scroll of 7 starts the first row on line 8, not line 0. Pinned
+  by xplus4 screenshots of a scroll change inside a text row.
 - `$FF1A` reads back both bits written to it, the datasheet's two MSBs of
   the reload. xplus4 reads bit 1 as 0.
 - xplus4 reads the reload 40 higher for a few cycles around the line step

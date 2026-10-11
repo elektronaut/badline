@@ -78,6 +78,13 @@ describe Badline::Chips::TED do
         expect(cpu_cycles(57)).to eq(24)
       end
 
+      it "takes no pointers on line 0 with a scroll of 7, with no attributes before it" do
+        ted.poke(0xff06, 0x1f)
+        run_to_line(2)
+        run_to_line(0)
+        expect(cpu_cycles(57)).to eq(64)
+      end
+
       it "runs it 109 times a line below line 203" do
         run_to_line(204)
         expect(cpu_cycles(57)).to eq(109)
@@ -241,6 +248,23 @@ describe Badline::Chips::TED do
       ram.poke(0x2000 + (41 * 8) + 3, 0x5a)
       run_to(15, 0)
       expect(ted.patterns[1]).to eq(0x5a)
+    end
+
+    # Pinned by xplus4 screenshots of a scroll change mid-row.
+    it "fetches the attributes of the row the next pointers read after a row runs long" do
+      ram.poke(0x0800 + (13 * 40), 0x25)
+      run_to(100, 60)
+      ted.poke(0xff06, 0x1c)
+      run_to(109, 55)
+      expect(ted.attributes[0]).to eq(0x25)
+    end
+
+    # Pinned by xplus4 screenshots of a scroll change mid-row.
+    it "fetches no pointers on a line whose scroll asks for them after a line without attributes" do
+      run_to(101, 60)
+      ted.poke(0xff06, 0x1d)
+      run_to(102, 56)
+      expect(ted.row_line).to eq(2)
     end
 
     it "moves the character position on by 40 at the end of a row" do

@@ -105,7 +105,10 @@ module Badline
         # The blink counter counts a frame on one line of the vertical
         # blank, the line xplus4 counts it on.
         def count_blink
-          @blink = (@blink + 1) & 0x0f if @line == (lines_per_frame == 312 ? 256 : 228)
+          return unless @line == (lines_per_frame == 312 ? 256 : 228)
+
+          @blink = (@blink + 1) & 0x0f
+          blink_carry if @blink.zero?
         end
 
         # Column 51: what the line fetches, decided where BA is.
@@ -119,17 +122,16 @@ module Badline
           @pattern_fetches = @row_active && @line <= Beam::LAST_DISPLAY_LINE && display_enabled? && !@bus.nil?
         end
 
+        # The attributes on a line whose low three bits match $FF06's
+        # scroll, below line 203, and the pointers on the line after one
+        # that fetched attributes (the datasheet's DMA timing, step 8),
+        # whatever the scroll says by then.
         def dma_kind
           return Beam::NO_DMA unless display_enabled?
+          return Beam::POINTER_DMA if @dma_kind == Beam::ATTRIBUTE_DMA
+          return Beam::NO_DMA unless @line < Beam::LAST_DISPLAY_LINE
 
-          phase = (@line - (@registers[0x06] & 0x07)) & 0x07
-          if phase.zero?
-            @line < Beam::LAST_DISPLAY_LINE ? Beam::ATTRIBUTE_DMA : Beam::NO_DMA
-          elsif phase == 1
-            @line <= Beam::LAST_DISPLAY_LINE ? Beam::POINTER_DMA : Beam::NO_DMA
-          else
-            Beam::NO_DMA
-          end
+          (@line - @registers[0x06]).nobits?(0x07) ? Beam::ATTRIBUTE_DMA : Beam::NO_DMA
         end
 
         def display_enabled? = @registers[0x06].anybits?(0x10)
@@ -141,7 +143,7 @@ module Badline
           index = column >= Beam::DMA_COLUMN ? column - Beam::DMA_COLUMN : column + (Beam::CYCLES_PER_LINE - Beam::DMA_COLUMN)
           matrix = (@registers[0x14] & 0xf8) << 8
           if @dma_kind == Beam::ATTRIBUTE_DMA
-            position = @row_active ? @char_position + CHARACTERS : @char_position
+            position = latching? ? @char_position + CHARACTERS : @char_position
             @fetched_attributes[index] = bus.ted_fetch(matrix | ((position + index) & 0x3ff))
           else
             @pointers[index] = bus.ted_fetch(matrix | 0x400 | ((@char_position + index) & 0x3ff))
@@ -174,10 +176,11 @@ module Badline
         # The end of a row's eighth line moves the reload on to the next
         # row.
         def latch_char_position
-          return unless @row_active && @row_line == 7 && @line <= Beam::LAST_DISPLAY_LINE
-
-          @char_position = (@char_position + CHARACTERS) & 0x3ff
+          @char_position = (@char_position + CHARACTERS) & 0x3ff if latching?
         end
+
+        # Whether the line ends a row, and latches the next row's position.
+        def latching? = @row_active && @row_line == 7 && @line <= Beam::LAST_DISPLAY_LINE
 
         # The line count steps to +line+: the row's next line, up to the
         # last line of the display window.
