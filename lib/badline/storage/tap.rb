@@ -19,10 +19,12 @@ module Badline
       # The file it was read from, expanded, and the file's bytes.
       attr_reader :version, :platform, :path, :bytes
 
-      # A blank version 1 tape for `platform` (0 C64, 1 VIC-20) at `path`,
-      # written to the host file.
+      # A blank tape for `platform` at `path`, written to the host file: a
+      # version 1 tape for the C64 (0) or the VIC-20 (1), and a version 2
+      # C16 tape for the 264 series (2).
       def self.create(path, platform:)
-        File.binwrite(path, (SIGNATURE + [1, platform, 0, 0, 0, 0, 0, 0]).pack("C*"))
+        header = platform == 2 ? C16_SIGNATURE + [2] : SIGNATURE + [1]
+        File.binwrite(path, (header + [platform, 0, 0, 0, 0, 0, 0]).pack("C*"))
         new(path)
       end
 
@@ -61,15 +63,16 @@ module Badline
       # cycle count for a long one (a lone zero, an overflow, on a version 0
       # tape). A version 2 tape records it as two equal halves.
       def record_pulse(cycles)
-        @bytes.slice!(@pos..)
-        if version == 2
-          half = cycles / 2
-          @bytes.concat(encode(cycles - half))
-          @bytes.concat(encode(half))
-        else
-          @bytes.concat(encode(cycles))
-        end
-        @pos = @end = @bytes.length
+        return record(encode(cycles)) unless version == 2
+
+        half = cycles / 2
+        record(encode(cycles - half) + encode(half))
+      end
+
+      # Records a half wave `cycles` long at the position, in place of the
+      # rest of the tape, as a version 2 tape times them.
+      def record_half_wave(cycles)
+        record(encode(cycles))
       end
 
       # Writes the tape back to its host file, with the data size the
@@ -109,6 +112,12 @@ module Badline
         # $00 is an overflow in version 0 and a 24-bit cycle count from
         # version 1 on.
         version.zero? ? OVERFLOW : long_pulse
+      end
+
+      def record(times)
+        @bytes.slice!(@pos..)
+        @bytes.concat(times)
+        @pos = @end = @bytes.length
       end
 
       def encode(cycles)

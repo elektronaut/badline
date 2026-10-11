@@ -256,5 +256,24 @@ describe Badline::Drives::Datasette do
       datasette.stop!
       expect(datasette.recording?).to be(false)
     end
+
+    context "with the level timed, on a version 2 tape" do
+      subject(:datasette) { described_class.new(level: true) }
+
+      let(:halves) { [] }
+
+      before do
+        allow(tape).to receive(:half_waves?).and_return(true)
+        allow(tape).to receive(:record_half_wave) { |cycles| halves << cycles }
+      end
+
+      it "records each half wave from the first low one on" do
+        run(7)
+        write_cycle(30)
+        run(40)
+        datasette.write_line = false
+        expect(halves).to eq([30, 40])
+      end
+    end
   end
 end

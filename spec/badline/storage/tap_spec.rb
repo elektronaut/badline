@@ -169,6 +169,11 @@ describe Badline::Storage::TAP do
     it "writes a version 1 tape for the platform, with no pulses" do
       expect([blank.version, blank.platform, File.size(blank.path), blank.end?]).to eq([1, 1, 20, true])
     end
+
+    it "writes a version 2 C16 tape for the 264 series" do
+      c16 = described_class.create(File.join(dir, "c16.tap"), platform: 2)
+      expect([File.binread(c16.path, 12), c16.version, c16.platform]).to eq(["C16-TAPE-RAW", 2, 2])
+    end
   end
 
   describe "#record_pulse" do
@@ -195,6 +200,11 @@ describe Badline::Storage::TAP do
       it "records a pulse as two half waves" do
         tape.record_pulse(363)
         expect(tape.bytes.drop(20)).to eq([0x30, 0x42, 0x17, 0x17])
+      end
+
+      it "records a half wave as one byte" do
+        tape.record_half_wave(212)
+        expect(tape.bytes.drop(20)).to eq([0x30, 0x42, 0x1b])
       end
     end
 

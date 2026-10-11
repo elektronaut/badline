@@ -72,7 +72,7 @@ file: `core.rb` requires their members one by one.
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts; its plus4 build with `--plus4`: the CPU on the 264's bus, the TED's clock, DMA, timers and interrupt |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4` and the C16 with `--c16` |
 | VICE SID testprogs | `bin/sidtests` | SID |
-| Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart |
+| Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart; the `plus4-*` rows on the Plus/4 and C16, with the 1541 and 1581 on their serial bus and a tape saved and loaded back on the datasette |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/chips/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
 The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
@@ -260,8 +260,10 @@ the 6526A) for anything the interrupt register or the CIA model reaches; cartrid
 → `testbench-plus4` (`bin/testbench --plus4`) and `testbench-c16`
 (`bin/testbench --c16`), plus `testbench-plus4-ntsc`
 (`bin/testbench --plus4 --ntsc`) for anything NTSC timing or the picture
-reaches, and `lorenz-plus4` (`bin/lorenz --plus4`) for
-anything the CPU's clock, the TED's DMA, its timers or its interrupt reach.
+reaches, `lorenz-plus4` (`bin/lorenz --plus4`) for
+anything the CPU's clock, the TED's DMA, its timers or its interrupt reach,
+and the `plus4-*` drive scenarios (`bin/drive_scenarios plus4`) for its
+serial bus, its media, the CPU port or the datasette.
 Its tests run one at a time as the C64's do, with
 `ruby --yjit bin/lorenz --plus4 --resume <test> --stop-after <test>`; the C128 (`c128.rb`, `c128/`), or
 the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`

@@ -5,6 +5,7 @@ require_relative "drive_scenarios_1571"
 require_relative "drive_scenarios_1581"
 require_relative "drive_scenarios_cpm"
 require_relative "drive_scenarios_plus4"
+require_relative "drive_scenarios_plus4_tape"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
@@ -13,8 +14,9 @@ require_relative "drive_scenarios_plus4"
 # (drive_scenarios_vic20.rb), the same on the C128's 1571, with a
 # double-sided format (drive_scenarios_1571.rb), on a C64's 1581
 # (drive_scenarios_1581.rb), CP/M 3.0 booting on a C128 from a 1581
-# (drive_scenarios_cpm.rb), and the 1541 and 1581 on the 264 series' serial
-# bus (drive_scenarios_plus4.rb). Each takes tens of
+# (drive_scenarios_cpm.rb), the 1541 and 1581 on the 264 series' serial
+# bus (drive_scenarios_plus4.rb) and its datasette
+# (drive_scenarios_plus4_tape.rb). Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
 # `scenario/check<TAB>PASS`, or `scenario/check<TAB>FAIL<TAB>detail`.
@@ -24,7 +26,7 @@ require_relative "drive_scenarios_plus4"
 # the same way.
 module DriveScenarios
   # The scenarios and the checks each makes, the longest-running first.
-  CHECKS = Runs1581::CHECKS.merge(CpmRuns::CHECKS).merge(Plus4Runs::CHECKS).merge(
+  CHECKS = Runs1581::CHECKS.merge(CpmRuns::CHECKS).merge(Plus4Runs::CHECKS).merge(Plus4TapeRuns::CHECKS).merge(
     "1571-format" => %w[no-error lists-new-disk second-side trap-readable],
     "format" => %w[no-error lists-new-disk name-and-id bam-free trap-readable],
     "save" => %w[no-error loads-back file-in-image trap-readable],
@@ -70,6 +72,8 @@ module DriveScenarios
     when "plus4-format", "plus4-save", "plus4-1581-save", "plus4-read-only", "plus4-autostart",
          "plus4-1581-autostart", "plus4-error-channel", "plus4-c16-error-channel"
       Plus4Runs.run(report, name, dir)
+    when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")
+    when "plus4-c16-tape" then Plus4TapeRuns.run(report, dir, "c16")
     else
 
       raise ArgumentError, "No drive scenario #{name}" unless Runs1581::CHECKS.key?(name)
