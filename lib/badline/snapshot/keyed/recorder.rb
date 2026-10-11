@@ -3,16 +3,16 @@
 module Badline
   module Snapshot
     module Keyed
-      # A Reader with no records that notes every read: the module, the
-      # key, the type read and the default passed. Loading a machine at
-      # power-on through Recorders lists each module's fields with their
-      # power-on values.
+      # A Reader that notes every read: the module, the key, the type read
+      # and the default passed. Loading a machine at power-on through
+      # Recorders lists each module's fields with their power-on values
+      # (FieldDoc).
       class Recorder < Reader
         Field = Data.define(:module_name, :key, :type, :default)
 
         attr_reader :fields
 
-        def initialize(name)
+        def initialize(name, payload = "".b, missing: false)
           super
           @fields = []
         end

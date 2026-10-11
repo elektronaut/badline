@@ -11,7 +11,8 @@ module Badline
       # A Reader with no records stands in for a module the snapshot
       # doesn't have, so every load takes the same path.
       class Reader
-        attr_reader :name
+        # The tag of each key the module's records hold.
+        attr_reader :name, :tags
 
         # Whether it stands in for a module the snapshot doesn't have.
         def missing? = @missing
