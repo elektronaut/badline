@@ -39,17 +39,28 @@ describe Badline::Frontend::Pacer do
       expect(playing).to have_received(:wait).with(described_class::SAFETY)
     end
 
-    it "waits out the frame on the timer without vsync or sound" do
-      timer = described_class.new(paced: true, vsync: false, verbose: false, timing:)
-      timer.start(started = Process.clock_gettime(Process::CLOCK_MONOTONIC))
-      timer.wait(silent)
-      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.019
-    end
+    # The timer's clock starts at 100 s and moves only as the pacer reads it
+    # or delays, so a busy machine can't stretch or shorten a frame's wait.
+    context "without vsync or sound" do
+      let(:timer) { described_class.new(paced: true, vsync: false, verbose: false, timing:) }
+      let(:clock) { Struct.new(:seconds).new(100.0) }
 
-    it "doesn't catch up on frames it ran behind on" do
-      timer = described_class.new(paced: true, vsync: false, verbose: false, timing:)
-      timer.start(Process.clock_gettime(Process::CLOCK_MONOTONIC) - 1.0)
-      expect { timer.wait(silent) }.to change { Process.clock_gettime(Process::CLOCK_MONOTONIC) }.by_at_most(0.019)
+      before do
+        allow(timer).to receive(:now) { clock.seconds += 0.0001 }
+        allow(Badline::SDL).to receive(:SDL_Delay) { |ms| clock.seconds += ms / 1000.0 }
+      end
+
+      it "waits out the frame on the timer" do
+        timer.start(100.0)
+        timer.wait(silent)
+        expect(clock.seconds).to be >= 100.019
+      end
+
+      it "doesn't catch up on frames it ran behind on" do
+        timer.start(99.0)
+        timer.wait(silent)
+        expect(clock.seconds).to be <= 100.019
+      end
     end
   end
 
