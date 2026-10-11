@@ -26,8 +26,9 @@ module Badline
         # bad line conditions and BA.
         module KeyedState
           def save_fields(out)
-            out.int("vc_base", @vc_base).int("vc", @vc).int("vmli", @vmli).int("rc", @rc).bool("display_state", @display)
-            out.bool("bad_lines_enabled", @bad_lines_enabled).bool("matched", @matched).optional_int("ba", @ba)
+            out.int("vc_base", @vc_base).int("vc", @vc).int("vmli", @vmli).int("rc", @rc)
+            out.bool("display_state", @display).bool("bad_lines_enabled", @bad_lines_enabled).bool("matched", @matched)
+            out.optional_int("ba", @ba)
             out.int("line_bits", @line_bits).bool("den_line", @den_line).bool("in_window", @in_window)
           end
 
