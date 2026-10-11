@@ -178,12 +178,10 @@ Recorded output of the headless hardware suites, one file per suite:
   once the machine has booted. A `mountcrt` row starts from power-on with
   the cartridge's ROM chips in cartridge 1's slots. Tests report through
   `$FDCF`. The screenshot rows wait for the TED's video. On Spinel the
-  rows run on `spinel/plus4_testbench.rb`. The FAIL row:
-  - `Plus4/openio/outrun2.prg`, `$ff`: it reads unconnected I/O at `$FDD0`
-    256 times and wants a different byte at least once. On a real machine
-    the TED's fetches in the first half of a cycle leave their bytes on
-    the bus, and badline's TED fetches nothing until it paints a picture,
-    so every read finds the same byte. xplus4 passes it.
+  rows run on `spinel/plus4_testbench.rb`. Every row passes.
+  `Plus4/openio/outrun2.prg` reads unconnected I/O at `$FDD0` 256 times
+  and wants a different byte at least once: the TED's pattern fetches in
+  the first half of a display line's cycles leave their bytes on the bus.
 - `testbench-c16.txt` — the same rows with `--c16`, on a 16K PAL C16.
   `memory-expansions/c16-ram-emd.prg` fails there too, `$ff`, as on
   xplus4's 16K C16.
