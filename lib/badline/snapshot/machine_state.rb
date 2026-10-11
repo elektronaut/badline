@@ -48,7 +48,7 @@ module Badline
         values.each do |value|
           raise RangeError, "#{value} is too large for a snapshot" unless VALUES.cover?(value)
 
-          numbers << (value.negative? ? (-2 * value) - 1 : 2 * value)
+          numbers << (value.negative? ? ((-value - 1) << 1) | 1 : value << 1)
         end
         index = numbers.pack("w*")
         [index.bytesize].pack("V") + index + strings.join
@@ -69,7 +69,7 @@ module Badline
       def values(numbers, from)
         Array.new(numbers.length - from) do |i|
           folded = numbers[from + i]
-          folded.odd? ? -((folded + 1) / 2) : folded / 2
+          folded.odd? ? -(folded >> 1) - 1 : folded >> 1
         end
       end
 
