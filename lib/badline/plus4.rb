@@ -31,12 +31,16 @@ module Badline
     # Plus/4, 126,000 on an NTSC one and sooner on a C16.
     INIT_THRESHOLD = 200_000
 
-    attr_reader :model, :bus, :cpu, :ted, :port, :keyboard, :keyboard_port, :acia, :user_port, :datasette, :tias,
-                :iec_bus, :cycles, :ram_kb
+    attr_reader :model, :bus, :cpu, :ted, :port, :keyboard, :keyboard_port, :joystick1, :joystick2, :acia,
+                :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb
 
     def family = :plus4
 
     def init_threshold = INIT_THRESHOLD
+
+    # The joysticks reach the TED's keyboard latch, so there are no C64
+    # control ports to plug a pot device into.
+    def control_ports = nil
 
     def ram = @bus.ram
 
@@ -56,7 +60,9 @@ module Badline
 
       @ted = Chips::TED.new(@model.ted)
       @keyboard = Input::Keyboard.new(matrix: KeyboardPort::MATRIX)
-      @keyboard_port = KeyboardPort.new(@keyboard)
+      @joystick1 = Input::Joystick.new
+      @joystick2 = Input::Joystick.new
+      @keyboard_port = KeyboardPort.new(@keyboard, @joystick1, @joystick2)
       @ted.keyboard_port = @keyboard_port
       @iec_bus = Drives::SerialBus.new
       @datasette = Drives::Datasette.new(level: true)

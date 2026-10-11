@@ -2,12 +2,19 @@
 
 module Badline
   class Plus4
-    # The keyboard: the 6529 at $FD30-$FD3F, whose eight outputs drive the
-    # key matrix's lines, and the TED's K0-K7 inputs, which $FF08 latches
-    # (Chips::TED#keyboard_port=). The KERNAL's scan ($DB11) writes each
-    # line's mask to $FD30 and $FF08 and reads the keys back from $FF08,
-    # and its key table at $E026 puts each key at line times 8 plus input
-    # bit.
+    # The keyboard and the joysticks: the 6529 at $FD30-$FD3F, whose eight
+    # outputs drive the key matrix's lines, and the TED's K0-K7 inputs,
+    # which $FF08 latches (Chips::TED#keyboard_port=). The KERNAL's scan
+    # ($DB11) writes each line's mask to $FD30 and $FF08 and reads the keys
+    # back from $FF08, and its key table at $E026 puts each key at line
+    # times 8 plus input bit.
+    #
+    # The joysticks share K0-K7. The byte written to $FF08 selects them,
+    # bit 2 low joystick 1 and bit 1 low joystick 2, as BASIC's JOY does
+    # ($FA and $FD). A selected joystick pulls up, down, left and right
+    # onto K0-K3 and its fire button onto K6 (joystick 1) or K7
+    # (joystick 2), and those lines settle against the matrix with the
+    # keys'.
     #
     # The 6529 is a quasi-bidirectional latch: a read returns what was
     # written to it.
@@ -28,8 +35,10 @@ module Badline
 
       attr_reader :keyboard, :output
 
-      def initialize(keyboard)
+      def initialize(keyboard, joystick1, joystick2)
         @keyboard = keyboard
+        @joystick1 = joystick1
+        @joystick2 = joystick2
         @output = 0xff
       end
 
@@ -43,9 +52,25 @@ module Badline
         @output = value
       end
 
-      # The K0-K7 inputs the TED latches on a write of +_value+ to $FF08:
-      # high but where a held key joins a line the 6529 pulls low.
-      def latch(_value) = @keyboard.scan(@output, 0xff).last
+      # The K0-K7 inputs the TED latches on a write of +value+ to $FF08:
+      # high but where a held key joins a line the 6529 pulls low, or a
+      # joystick +value+ selects holds a switch closed.
+      def latch(value) = @keyboard.scan(@output, joystick_lines(value)).last
+
+      private
+
+      def joystick_lines(value)
+        lines = 0xff
+        lines &= joystick_inputs(@joystick1.port_bits, 0x40) if value.nobits?(0x04)
+        lines &= joystick_inputs(@joystick2.port_bits, 0x80) if value.nobits?(0x02)
+        lines
+      end
+
+      # A joystick's switches, Input::Joystick's bits 0-4, on K0-K7: the
+      # directions on K0-K3 and the fire button on +fire+.
+      def joystick_inputs(bits, fire)
+        bits.anybits?(0x10) ? bits | 0xf0 : (bits | 0xf0) & ~fire & 0xff
+      end
     end
   end
 end
