@@ -6,6 +6,7 @@ require "badline/chips/cia/serial"
 require "badline/chips/cia/timer"
 require "badline/chips/cia/saved_state"
 require "badline/chips/cia/fast_forward"
+require "badline/chips/cia/keyed_parts"
 
 module Badline
   module Chips
