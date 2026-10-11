@@ -9,9 +9,9 @@ class TestSpinelCheckMissingConstants < Minitest::Test
   end
 
   def test_names_each_missing_constant_once
-    lines = [warning("Drive1541::Disk"), warning("IECBus"), warning("Drive1541::Disk")]
+    lines = [warning("Drives::Model1541::Disk"), warning("Drives::SerialBus"), warning("Drives::Model1541::Disk")]
 
-    assert_equal %w[Drive1541::Disk IECBus], SpinelCheck.missing_constants(lines)
+    assert_equal %w[Drives::Model1541::Disk Drives::SerialBus], SpinelCheck.missing_constants(lines)
   end
 end
 

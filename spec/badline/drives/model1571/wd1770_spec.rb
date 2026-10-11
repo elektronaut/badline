@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Drive1571::WD1770 do
+describe Badline::Drives::Model1571::WD1770 do
   subject(:fdc) { described_class.new.tap { |wd| wd.cpu = clock } }
 
   let(:clock) { Struct.new(:cycles).new(0) }

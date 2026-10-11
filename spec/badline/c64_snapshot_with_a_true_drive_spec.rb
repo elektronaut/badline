@@ -12,10 +12,10 @@ describe Badline::C64, "#snapshot with a true drive", :slow do
   include SnapshotScenarios
 
   let(:idle) do
-    { "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording
-                                 @orbit_instructions],
-      "Badline::Drive1541::Bus" => %i[@touched @volatile @watching] }
+    { "Badline::Drives::Model1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                         @record_cycles @record_instructions @record_quiet @asleep @recording
+                                         @orbit_instructions],
+      "Badline::Drives::Model1541::Bus" => %i[@touched @volatile @watching] }
   end
   let(:dir) { Dir.mktmpdir }
   let(:path) do

@@ -27,7 +27,7 @@ module Badline
       # CIA 2's port A drives the serial bus, which reads CLK and DATA back
       # into it.
       def plug_serial_bus
-        @iec_bus = IECBus.new
+        @iec_bus = Drives::SerialBus.new
         @cia2.peripheral = @iec_bus
         @cia2.on_port_a_write { push_serial_lines }
         push_serial_lines

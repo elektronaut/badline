@@ -544,7 +544,7 @@ RSpec.describe Badline::C64 do
       let(:disk) { instance_double(Badline::Storage::D64Image, read_file: [0x00, 0xc0, 0x01], first_block: [17, 0]) }
 
       before do
-        computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub))
+        computer.attach_drive1541(Badline::Drives::Model1541.new(rom: Drive1541ROM.stub))
         computer.mount(disk)
         run_load
         return_to_caller
@@ -757,7 +757,7 @@ RSpec.describe Badline::C64 do
   end
 
   describe "#attach_drive1541" do
-    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+    let(:drive) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
 
     before { drive.ram.write(0x0300, [0x4c, 0x00, 0x03]) } # JMP *
 

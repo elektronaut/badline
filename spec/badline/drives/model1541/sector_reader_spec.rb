@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-describe Badline::Drive1541::SectorReader do
-  let(:disk) { Badline::Drive1541::Disk }
-  let(:gcr) { Badline::Drive1541::GCR }
+describe Badline::Drives::Model1541::SectorReader do
+  let(:disk) { Badline::Drives::Model1541::Disk }
+  let(:gcr) { Badline::Drives::Model1541::GCR }
   let(:data) { Array.new(256) { |i| (i * 11) & 0xff } }
 
   # A sector as the DOS writes it: SYNC, header, gap, SYNC and data.

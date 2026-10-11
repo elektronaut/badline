@@ -41,7 +41,7 @@ model (`Badline::Model::ALL`):
 - `reu: 512` plugs in a RAM Expansion Unit of that many K.
 - `kernal: :sx64` fits the SX-64's KERNAL, and `datasette: false`
   leaves the cassette port empty, so inserting a tape raises
-  `Badline::Datasette::Missing`. The SX-64 has both.
+  `Badline::Drives::Datasette::Missing`. The SX-64 has both.
 - `kernal: :pet64` fits the PET 64's KERNAL, and `board: :pet64` its
   green monochrome monitor: the VIC's `palette` is
   `Badline::Chips::VIC::GREEN_PALETTE`, each colour's luminance in green. The

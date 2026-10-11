@@ -54,7 +54,7 @@ MD5 049e657afafbdd802e8c6a4f88f3d730.
 dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01
-($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drive1541 loads it.
+($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drives::Model1541 loads it.
 
 Both halves downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1541/
@@ -64,7 +64,7 @@ SHA-1 ab16f56989b27d89babe5f89c5a8cb3da71a82f0.
 dos1571.rom
 -----------
 The 1571 disk drive's DOS 3.0, 310654-05, 32 KB for $8000-$FFFF.
-Drive1571 loads it.
+Drives::Model1571 loads it.
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1571/1571-rom.310654-05.bin
@@ -73,7 +73,7 @@ SHA-1 f1be619c106641a685f6609e4d43d6fc9eac1e70.
 dos1581.rom
 -----------
 The 1581 disk drive's DOS, 318045-02, 32 KB for $8000-$FFFF.
-Drive1581 loads it.
+Drives::Model1581 loads it.
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1581/1581-rom.318045-02.bin

@@ -2,13 +2,13 @@
 
 module Badline
   class C64
-    # The true drives on the machine's serial bus: a Drive1541, and a
-    # Drive1581 (Drive1581::Slot), each in a field of its own. C64,
+    # The true drives on the machine's serial bus: a Drives::Model1541, and a
+    # Drives::Model1581 (Drives::Model1581::Slot), each in a field of its own. C64,
     # Vic20 and C128 each include it.
     module TrueDrives
-      include Drive1581::Slot
+      include Drives::Model1581::Slot
 
-      # Plugs in a Drive1541, which then runs alongside the machine on its
+      # Plugs in a Drives::Model1541, which then runs alongside the machine on its
       # own clock and talks to it over the serial bus. The serial traps stop
       # answering the drive's device number, so the KERNAL's TALK, LISTEN and
       # byte transfers reach the drive. The LOAD and SAVE traps stay, and
@@ -22,18 +22,18 @@ module Badline
         drive1541_attached
       end
 
-      # The true drive on the serial bus: the Drive1581 ahead of the
-      # Drive1541, or nil.
+      # The true drive on the serial bus: the Drives::Model1581 ahead of the
+      # Drives::Model1541, or nil.
       def true_drive = @drive1581 || @drive1541
 
-      # Plugs a Drive1541 in as device 8, in place of a 1581 there, and
+      # Plugs a Drives::Model1541 in as device 8, in place of a 1581 there, and
       # returns it.
       def plug_true_drive
         detach_drive1581 if drive1581_on_device8?
-        Drive1541.new.tap { |drive| attach_drive1541(drive) }
+        Drives::Model1541.new.tap { |drive| attach_drive1541(drive) }
       end
 
-      # Unplugs the Drive1541, leaving the serial bus with nothing on it.
+      # Unplugs the Drives::Model1541, leaving the serial bus with nothing on it.
       def detach_drive1541
         return unless @drive1541
 
@@ -61,7 +61,7 @@ module Badline
 
         device = input.int
         detach_drive1541 if @drive1541 && @drive1541.device != device
-        attach_drive1541(Drive1541.new(device:)) unless @drive1541
+        attach_drive1541(Drives::Model1541.new(device:)) unless @drive1541
         @drive1541.load_state(input)
       end
     end

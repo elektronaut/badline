@@ -34,7 +34,7 @@ describe Badline::Frontend::MediaSlots do
   context "with a disk in the true drive" do
     let(:drive) { Badline::Media::TrueDrive.plug(computer) }
 
-    before { drive.insert(Badline::Drive1541::Disk.open(disk)) }
+    before { drive.insert(Badline::Drives::Model1541::Disk.open(disk)) }
 
     it "has a disk in" do
       expect(described_class.disk?(computer)).to be(true)
@@ -51,9 +51,9 @@ describe Badline::Frontend::MediaSlots do
 
   context "with a true drive on another device than 8" do
     before do
-      drive = Badline::Drive1541.new(device: 9)
+      drive = Badline::Drives::Model1541.new(device: 9)
       computer.attach_drive1541(drive)
-      drive.insert(Badline::Drive1541::Disk.open(disk))
+      drive.insert(Badline::Drives::Model1541::Disk.open(disk))
     end
 
     it "looks at device 8's traps instead" do

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require_relative "../support/drive1541_rom"
+require_relative "../../support/drive1541_rom"
 
-describe Badline::IECBus do
+describe Badline::Drives::SerialBus do
   context "with only the C64 on it" do
     let(:computer) { Badline::C64.new }
 
@@ -58,7 +58,7 @@ describe Badline::IECBus do
   describe "a bus with only drives on it" do
     subject(:bus) { described_class.new }
 
-    let(:drive) { instance_double(Badline::Drive1541, host_written!: nil) }
+    let(:drive) { instance_double(Badline::Drives::Model1541, host_written!: nil) }
 
     it "holds no host lines" do
       expect(bus.host_lines).to eq(0)
@@ -73,7 +73,7 @@ describe Badline::IECBus do
 
   context "with the C64 and a drive on it" do
     let(:computer) { Badline::C64.new }
-    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+    let(:drive) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
     let(:bus) { computer.iec_bus }
 
     # CIA 2 port A: PA3 ATN OUT, PA4 CLK OUT, PA5 DATA OUT, PA6 CLK IN,
@@ -286,14 +286,14 @@ describe Badline::IECBus do
       end
 
       it "read 11 for device 11" do
-        drive = Badline::Drive1541.new(rom: Drive1541ROM.stub, device: 11)
+        drive = Badline::Drives::Model1541.new(rom: Drive1541ROM.stub, device: 11)
         computer.attach_drive1541(drive)
         expect(drive.via1.peek(0x1800) & 0x60).to eq(0x60)
       end
     end
 
     describe "a drive swapped for another" do
-      let(:second) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+      let(:second) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
 
       before do
         drive.via1.poke(0x1802, 0x1a)
@@ -314,7 +314,7 @@ describe Badline::IECBus do
     end
 
     describe "a drive on a bus of its own" do
-      subject(:alone) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+      subject(:alone) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
 
       it "reads its own lines back" do
         alone.via1.poke(0x1802, 0x1a)
@@ -331,7 +331,7 @@ describe Badline::IECBus do
     # its ATNA bit.
     def gated(ack)
       output = described_class::DRIVE_ATN_GATED | (ack ? described_class::DRIVE_ATNA : 0)
-      bus.attach(instance_double(Badline::Drive1581, serial_output: output, host_written!: nil))
+      bus.attach(instance_double(Badline::Drives::Model1581, serial_output: output, host_written!: nil))
     end
 
     it "pulls DATA while ATN is low and ATNA differs" do
@@ -349,7 +349,7 @@ describe Badline::IECBus do
   describe "fast serial" do
     subject(:bus) { described_class.new }
 
-    let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub).tap { |drive| drive.connect(bus) } }
+    let(:drive) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub).tap { |drive| drive.connect(bus) } }
 
     it "pulls SRQ and DATA with the host's fast serial pins" do
       bus.host_fast_lines = described_class::SRQ | described_class::DATA

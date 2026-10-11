@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Drive1581::Track do
+describe Badline::Drives::Model1581::Track do
   subject(:track) { described_class.standard(3, 1) { |sector| Array.new(512, sector) } }
 
   # A write track's bytes for one sector, as the DOS's format sends them,

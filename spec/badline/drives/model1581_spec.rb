@@ -4,11 +4,11 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 require "badline/c128"
-require_relative "../support/blank_disk"
-require_relative "../support/snapshot_scenarios"
-require_relative "../support/taken_once"
+require_relative "../../support/blank_disk"
+require_relative "../../support/snapshot_scenarios"
+require_relative "../../support/taken_once"
 
-describe Badline::Drive1581 do
+describe Badline::Drives::Model1581 do
   include SnapshotScenarios
   include BlankDisk
 
@@ -22,7 +22,7 @@ describe Badline::Drive1581 do
     Badline::ROM.new(bytes, length: 0x8000, start: 0x8000)
   end
 
-  let(:serial_bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
+  let(:serial_bus) { Badline::Drives::SerialBus.new.tap { |bus| bus.host_lines = 0x07 } }
 
   def run(cycles) = cycles.times { drive.cycle! }
 
@@ -115,7 +115,7 @@ describe Badline::Drive1581 do
     end
 
     it "reads /RDY low with a disk turning" do
-      drive.insert(Badline::Drive1581::Disk.new)
+      drive.insert(Badline::Drives::Model1581::Disk.new)
       port_a(0x00)
       expect(drive.cia.peek(0x4000) & 0x02).to eq(0)
     end
@@ -183,7 +183,7 @@ describe Badline::Drive1581 do
     def srq_pulses(cycles)
       levels = Array.new(cycles) do
         drive.host_cycle!
-        serial_bus.low_lines & Badline::IECBus::SRQ
+        serial_bus.low_lines & Badline::Drives::SerialBus::SRQ
       end
       levels.chunk_while { |a, b| a == b }.count { |run| run.first.positive? }
     end
@@ -243,7 +243,7 @@ describe Badline::Drive1581 do
     subject(:drive) do
       TakenOnce.fetch(:drive1581_booted) do
         described_class.new.tap do |booted|
-          booted.connect(Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 })
+          booted.connect(Badline::Drives::SerialBus.new.tap { |bus| bus.host_lines = 0x07 })
           3_000_000.times do
             booted.host_cycle!
             break if booted.asleep?

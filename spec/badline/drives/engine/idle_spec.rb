@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-describe Badline::Drive::Idle do
+describe Badline::Drives::Engine::Idle do
   # The C64's side of the bus, whose port A lines the spec pushes.
-  let(:bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
+  let(:bus) { Badline::Drives::SerialBus.new.tap { |bus| bus.host_lines = 0x07 } }
   # INC $10; DEC $10; JMP $EBFF
   let(:pure_loop) { [0xe6, 0x10, 0xc6, 0x10, 0x4c, 0xff, 0xeb] }
 
@@ -22,7 +22,7 @@ describe Badline::Drive::Idle do
     bytes[0x3000, irq.length] = irq
     bytes[0x3ffc, 4] = [0x00, 0xe0, 0x00, 0xf0]
     rom = Badline::ROM.new(bytes, length: 0x4000, start: 0xc000)
-    Badline::Drive1541.new(rom:).tap do |drive|
+    Badline::Drives::Model1541.new(rom:).tap do |drive|
       drive.idle_skip = idle_skip
       drive.connect(bus)
     end
@@ -75,7 +75,7 @@ describe Badline::Drive::Idle do
   end
 
   it "runs every cycle for a CPU that logs each instruction" do
-    expect(Badline::Drive1541.new(debug: true).idle_skip).to be(false)
+    expect(Badline::Drives::Model1541.new(debug: true).idle_skip).to be(false)
   end
 
   it "wakes when ATN moves" do

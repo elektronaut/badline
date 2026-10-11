@@ -28,7 +28,7 @@ module Badline
   #   +press_cartridge_button+, +release_cartridge_button+,
   #   +attach_drive1541+, +drive1541+, +true_drive+ and +plug_true_drive+
   #   for the drive Media::TrueDrive plugs in, +attach_drive1581+,
-  #   +drive1581+ and +plug_drive1581+ for a 1581 (Drive1581::Slot), and
+  #   +drive1581+ and +plug_drive1581+ for a 1581 (Drives::Model1581::Slot), and
   #   +address_bus+ for its +cartridge+ and +detach_cartridge+.
   # - Snapshots and tests: +snapshot+, +restore+, +save_snapshot+,
   #   +install_debug_register+ and +capture_output+.

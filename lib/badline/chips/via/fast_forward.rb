@@ -4,14 +4,14 @@ module Badline
   module Chips
     class VIA
       # Running a VIA a stretch of cycles at once while nothing but its
-      # counters would change, for Drive::Idle.
+      # counters would change, for Drives::Engine::Idle.
       module FastForward
         # quiet_cycles for a VIA that will never set a flag of its own.
         QUIET = 1 << 40
 
         # How many cycles the VIA can run with nothing but its counters
         # changing: no flag set, no pulse on a control line and no bit
-        # shifted. See Drive::Idle.
+        # shifted. See Drives::Engine::Idle.
         def quiet_cycles
           return 0 if @sr_uses_t2 || @shift_register.clocking? || @ca.pulsing? || @cb.pulsing?
 
@@ -27,7 +27,7 @@ module Badline
           @t2.fast_forward(cycles)
         end
 
-        # The counters an orbit (see Drive::Idle) has to bring back: those
+        # The counters an orbit (see Drives::Engine::Idle) has to bring back: those
         # of the armed timers, and of the timers +touched+ names (bit 0 for
         # timer 1, bit 1 for timer 2). The others only count.
         def counter_state(touched)

@@ -6,7 +6,7 @@ module Badline
     # through buffers MCR's FSDIR turns round. Outwards, the machine pushes
     # the lines the pins pull into the bus as they move. Inwards, CIA 1
     # hears the lines whenever a drive moves its own fast serial pins
-    # (IECBus#on_fast_change).
+    # (Drives::SerialBus#on_fast_change).
     module FastSerial
       private
 
@@ -48,15 +48,15 @@ module Badline
         serial = @cia1.serial
         return 0 unless serial.output?
 
-        low = serial.cnt ? 0 : IECBus::SRQ
-        serial.sp_out ? low : low | IECBus::DATA
+        low = serial.cnt ? 0 : Badline::Drives::SerialBus::SRQ
+        serial.sp_out ? low : low | Badline::Drives::SerialBus::DATA
       end
 
       def hear_fast_serial
         low = @iec_bus.low_lines
         serial = @cia1.serial
-        serial.cnt_in = low.nobits?(IECBus::SRQ)
-        serial.sp_in = low.nobits?(IECBus::DATA)
+        serial.cnt_in = low.nobits?(Badline::Drives::SerialBus::SRQ)
+        serial.sp_in = low.nobits?(Badline::Drives::SerialBus::DATA)
       end
     end
   end

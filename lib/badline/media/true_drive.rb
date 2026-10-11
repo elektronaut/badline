@@ -9,7 +9,7 @@ module Badline
     # disk's raw GCR, which only a true drive reads, so it plugs one in
     # when there's none yet. The 1541 reads only .d64 and .g64 images, the
     # 1571 .d71 and .g71 as well, and the 1581 only .d81, so a .d81 swaps
-    # the drive on device 8 for a 1581 (Drive1581::Slot), and another disk
+    # the drive on device 8 for a 1581 (Drives::Model1581::Slot), and another disk
     # image swaps a 1581 back for the machine's own drive. The traps' other
     # disk media, a .t64 or a host directory, raise Error.
     module TrueDrive

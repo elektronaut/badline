@@ -2,10 +2,10 @@
 
 require "spec_helper"
 
-describe Badline::Drive1581::Mechanism do
+describe Badline::Drives::Model1581::Mechanism do
   subject(:mechanism) { described_class.new }
 
-  let(:disk) { Badline::Drive1581::Disk.new }
+  let(:disk) { Badline::Drives::Model1581::Disk.new }
   let(:revolution) { described_class::REVOLUTION }
 
   def spin
@@ -62,7 +62,7 @@ describe Badline::Drive1581::Mechanism do
   end
 
   it "finds the track under the head on the side selected" do
-    disk.write(2, 1, Badline::Drive1581::Track.new([]))
+    disk.write(2, 1, Badline::Drives::Model1581::Track.new([]))
     mechanism.insert(disk, 0)
     2.times { mechanism.step(true) }
     mechanism.side = 1

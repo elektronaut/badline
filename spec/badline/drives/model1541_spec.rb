@@ -3,10 +3,10 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../support/blank_disk"
-require_relative "../support/drive1541_rom"
+require_relative "../../support/blank_disk"
+require_relative "../../support/drive1541_rom"
 
-describe Badline::Drive1541 do
+describe Badline::Drives::Model1541 do
   subject(:drive) { described_class.new(rom: Drive1541ROM.stub) }
 
   def run(cycles) = cycles.times { drive.cycle! }
@@ -100,8 +100,10 @@ describe Badline::Drive1541 do
     let(:disk) do
       Dir.mktmpdir do |dir|
         image = Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64")))
-        track = Badline::Drive1541::Track.new(Badline::Drive1541::Disk.format_track(image, 18, [0x41, 0x42]), 2)
-        Badline::Drive1541::Disk.new.tap { |disk| disk.write(36, track) }
+        track = Badline::Drives::Model1541::Track.new(
+          Badline::Drives::Model1541::Disk.format_track(image, 18, [0x41, 0x42]), 2
+        )
+        Badline::Drives::Model1541::Disk.new.tap { |disk| disk.write(36, track) }
       end
     end
     let(:read) { drive.ram.read(0x0500, 10) }
@@ -128,13 +130,13 @@ describe Badline::Drive1541 do
     end
 
     it "reads a header for track 18 with the disk's ID" do
-      header = Badline::Drive1541::GCR.decode(read)
+      header = Badline::Drives::Model1541::GCR.decode(read)
       expect([header[0], header[3], header[1]]).to eq([0x08, 18, header[2] ^ 18 ^ header[4] ^ header[5]])
     end
   end
 
   describe "#flush" do
-    let(:disk) { Badline::Drive1541::Disk.new }
+    let(:disk) { Badline::Drives::Model1541::Disk.new }
 
     before do
       allow(disk).to receive(:flush)
@@ -243,7 +245,7 @@ describe Badline::Drive1541 do
       give_disk_id(path)
       Badline::Storage::D64Image.new(path).write_file("data", program)
       drive = described_class.new
-      drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+      drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
       computer.attach_drive1541(drive)
       output
     end

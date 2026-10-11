@@ -38,7 +38,7 @@ describe Badline::Vic20::PortWiring do
     end
 
     it "pulls ATN" do
-      expect(lines).to eq(Badline::IECBus::HOST_ATN_OUT)
+      expect(lines).to eq(Badline::Drives::SerialBus::HOST_ATN_OUT)
     end
   end
 
@@ -49,7 +49,7 @@ describe Badline::Vic20::PortWiring do
     end
 
     it "pulls the clock" do
-      expect(lines).to eq(Badline::IECBus::HOST_CLK_OUT)
+      expect(lines).to eq(Badline::Drives::SerialBus::HOST_CLK_OUT)
     end
   end
 
@@ -60,7 +60,7 @@ describe Badline::Vic20::PortWiring do
     end
 
     it "pulls the data line" do
-      expect(lines).to eq(Badline::IECBus::HOST_DATA_OUT)
+      expect(lines).to eq(Badline::Drives::SerialBus::HOST_DATA_OUT)
     end
   end
 

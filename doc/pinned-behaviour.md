@@ -1514,7 +1514,7 @@ wasn't read.
     `drive/skew/skew1` and `drive/iecdelay/iec-bus-delay-auto`.
 - Spec guard: *sees an assertion from the host cycle after the one it
   lands in* and *shows the drive the C64's CLK from the host cycle after
-  the write* in [`iec_bus_spec.rb`](../spec/badline/iec_bus_spec.rb).
+  the write* in [`serial_bus_spec.rb`](../spec/badline/drives/serial_bus_spec.rb).
 
 ## 1541 disk mechanism
 
@@ -1534,7 +1534,7 @@ wasn't read.
     on.
   - Spec guard: *steps in from the stop with the first phase after the
     bump* in
-    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    [`mechanism_spec.rb`](../spec/badline/drives/model1541/mechanism_spec.rb),
     and the `format/name-and-id`, `format/bam-free` and
     `format/trap-readable` rows of the `drive-scenarios` suite
     ([`drive_scenarios.rb`](../test/support/drive_scenarios.rb)), which read the
@@ -1560,9 +1560,9 @@ wasn't read.
   - Pinned by `drive/scanner` (all six programs, on the `.d64` and the
     `.g64`), which reads every track and each track's error map.
   - Spec guard: the *at 300 rpm* examples and *turns once in 200 ms* in
-    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb),
+    [`mechanism_spec.rb`](../spec/badline/drives/model1541/mechanism_spec.rb),
     and *#cell_at* in
-    [`track_spec.rb`](../spec/badline/drive1541/track_spec.rb).
+    [`track_spec.rb`](../spec/badline/drives/model1541/track_spec.rb).
 - A write lays its bits one to a cell from the cell under the head. A
   half track without data gets a blank track first, as long as a turn at
   the rate the drive writes at, not at the rate of the track's own zone,
@@ -1580,10 +1580,10 @@ wasn't read.
     194,728 cycles (`exit=$ff`).
   - Spec guard: *gives a half track a blank track 7142 bytes around,
     written in zone 2* in
-    [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb), and *lays
+    [`disk_spec.rb`](../spec/badline/drives/model1541/disk_spec.rb), and *lays
     a track written in another zone out again as a turn at the zone
     written* and *writes a turn of SYNC that reads back without a break*
-    in [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+    in [`mechanism_spec.rb`](../spec/badline/drives/model1541/mechanism_spec.rb).
 - A disk made from a `.d64` starts sector 0 of each track where the DOS's
   `N:` leaves it: track 1 at the index angle, and each track after it
   round from the last by the skew `N:` leaves in its zone, 0.6869 of a
@@ -1600,7 +1600,7 @@ wasn't read.
     the same skew made them read track 4 as error 27, which is why
     `skew1` failed before.
   - Spec guard: *starts sector 0 of track N where the DOS's N: leaves
-    it* in [`disk_spec.rb`](../spec/badline/drive1541/disk_spec.rb).
+    it* in [`disk_spec.rb`](../spec/badline/drives/model1541/disk_spec.rb).
 - The CPU sees BYTE READY on SO a cycle late: BYTE READY sets V for the
   next cycle's instruction step, not the one in the cycle it falls in.
   - Pinned by `drive/hls-protection`. Its drive code counts the bytes
@@ -1617,7 +1617,7 @@ wasn't read.
     the test expects.
   - Spec guard: *sets V through SO while CA2 is high, a cycle after BYTE
     READY* in
-    [`mechanism_spec.rb`](../spec/badline/drive1541/mechanism_spec.rb).
+    [`mechanism_spec.rb`](../spec/badline/drives/model1541/mechanism_spec.rb).
 
 ## REU DMA
 

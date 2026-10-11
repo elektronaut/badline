@@ -13,7 +13,7 @@ module Badline
       STATUS_FLAGS = [:carry, :zero, :interrupt, :decimal, :break, 1, :overflow, :negative].freeze
 
       # The 6502 core, on whatever bus +memory+ is. The C64's 6510 (CPU) and
-      # the 1541's 6502 (Drive1541::CPU) each include it.
+      # the 1541's 6502 (Drives::Model1541::CPU) each include it.
       module Core
         include IntegerHelper
         include InstructionSet

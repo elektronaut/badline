@@ -41,7 +41,7 @@ module Testbench
   # the serial bus that boots alongside it.
   def self.drive_machine(cia_model, vic_model)
     computer = Badline::C64.new(cia_model:, vic_model:)
-    computer.attach_drive1541(Badline::Drive1541.new)
+    computer.attach_drive1541(Badline::Drives::Model1541.new)
     computer.run_cycles(computer.init_threshold)
     computer
   end
@@ -50,7 +50,7 @@ module Testbench
   # have, or a .g64 or .g71 as its tracks are. The drive writes back to
   # the image at +path+.
   def self.insert_disk(computer, path)
-    computer.true_drive.insert(Badline::Drive1541::Disk.open(path))
+    computer.true_drive.insert(Badline::Drives::Model1541::Disk.open(path))
   end
 
   # The RAM expansion an expansion option fits, if it names one.

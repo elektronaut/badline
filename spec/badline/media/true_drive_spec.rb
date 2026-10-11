@@ -17,7 +17,7 @@ describe Badline::Media::TrueDrive do
 
   context "with a C128" do
     it "plugs in the C128D's 1571" do
-      expect(described_class.plug(machine)).to be_a(Badline::Drive1571)
+      expect(described_class.plug(machine)).to be_a(Badline::Drives::Model1571)
     end
 
     it "puts a .d71 in the 1571" do
@@ -69,7 +69,7 @@ describe Badline::Media::TrueDrive do
 
     it "plugs in a 1581 for a .d81" do
       described_class.insert(machine, image("disk.d81", 819_200))
-      expect(machine.true_drive).to be_a(Badline::Drive1581)
+      expect(machine.true_drive).to be_a(Badline::Drives::Model1581)
     end
 
     it "unplugs the 1541 it takes the place of" do
@@ -81,7 +81,7 @@ describe Badline::Media::TrueDrive do
     it "puts a .d64 back in a 1541" do
       described_class.insert(machine, image("disk.d81", 819_200))
       described_class.insert(machine, image("disk.d64", 174_848))
-      expect(machine.true_drive).to be_a(Badline::Drive1541)
+      expect(machine.true_drive).to be_a(Badline::Drives::Model1541)
     end
   end
 end

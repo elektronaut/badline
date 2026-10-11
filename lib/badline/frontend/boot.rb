@@ -33,7 +33,7 @@ module Badline
     def self.media_problem
       yield
       ""
-    rescue Machine::Unsupported, Media::TrueDrive::Error, Media::DiskList::Error, Media::NotDisk, Datasette::Missing,
+    rescue Machine::Unsupported, Media::TrueDrive::Error, Media::DiskList::Error, Media::NotDisk, Drives::Datasette::Missing,
            SystemCallError, Storage::SIDFile::FormatError, Storage::T64::FormatError, Storage::TAP::FormatError,
            Storage::CRTFile::FormatError, Storage::G64Image::FormatError, C64::Cartridge::UnsupportedTypeError,
            Snapshot::FormatError => e

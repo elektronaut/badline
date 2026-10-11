@@ -11,7 +11,7 @@ describe Badline::Media::Vic20Media do
 
   let(:dir) { Dir.mktmpdir }
   let(:ram) { Badline::Memory.new(length: 0xc000) }
-  let(:datasette) { Badline::Datasette.new }
+  let(:datasette) { Badline::Drives::Datasette.new }
   let(:machine) do
     instance_double(Badline::Vic20, family: :vic20, ram:, basic_start: 0x1201, type_text: nil, load_prg: nil,
                                     attach_cartridge: nil, drive1541: nil, true_drive: nil, mount: nil, datasette:)

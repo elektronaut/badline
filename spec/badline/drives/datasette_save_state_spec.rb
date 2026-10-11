@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require_relative "../support/snapshot_scenarios"
+require_relative "../../support/snapshot_scenarios"
 
-describe Badline::Datasette, "#save_state" do
+describe Badline::Drives::Datasette, "#save_state" do
   include SnapshotScenarios
 
   let(:dir) { Dir.mktmpdir }

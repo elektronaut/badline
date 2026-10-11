@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Badline::Chips::CPU::Port do
-  let(:datasette) { Badline::Datasette.new }
+  let(:datasette) { Badline::Drives::Datasette.new }
   let(:port) { described_class.new(datasette, pullups: 0x17, floating: 0xc8) }
   let(:changes) { [] }
 

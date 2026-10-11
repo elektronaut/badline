@@ -3,7 +3,7 @@
 module Badline
   module Chips
     class CIA
-      # Running a CIA a stretch of cycles at once, for Drive::Idle.
+      # Running a CIA a stretch of cycles at once, for Drives::Engine::Idle.
       module FastForward
         # quiet_cycles for a CIA whose counters will never set a flag.
         QUIET = 1 << 40
@@ -12,7 +12,7 @@ module Badline
         # in its pipeline, no interrupt or acknowledge on its way, CNT where it
         # was, the TOD clock stopped, and timer A either stopped, or free
         # running (Timer#free_running?) with its interrupt masked and the
-        # serial port an idle input. Drive::Idle sleeps the 1571's CIA through
+        # serial port an idle input. Drives::Engine::Idle sleeps the 1571's CIA through
         # such cycles, which its DOS leaves timer A running in.
         def quiet?
           return false unless @tb.idle? && @icr.quiet && @tod.quiet? && cnt_steady?

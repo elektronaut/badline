@@ -3,9 +3,9 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../../support/blank_disk"
+require_relative "../../../support/blank_disk"
 
-describe Badline::Drive1581::Disk do
+describe Badline::Drives::Model1581::Disk do
   include BlankDisk
 
   let(:dir) { Dir.mktmpdir }
@@ -105,7 +105,7 @@ describe Badline::Drive1581::Disk do
     end
 
     it "keeps a track formatted another way on the disk alone" do
-      disk.write(4, 0, Badline::Drive1581::Track.new([]))
+      disk.write(4, 0, Badline::Drives::Model1581::Track.new([]))
       disk.flush
       expect(disk.track(4, 0).sectors).to be_empty
     end
@@ -125,7 +125,7 @@ describe Badline::Drive1581::Disk do
     def round_trip(current)
       out = Badline::Snapshot::StateWriter.new
       disk.save_state(out)
-      Badline::Drive1581::Disk::SavedState.load(Badline::Snapshot::StateReader.new(out.state), current)
+      Badline::Drives::Model1581::Disk::SavedState.load(Badline::Snapshot::StateReader.new(out.state), current)
     end
 
     before do

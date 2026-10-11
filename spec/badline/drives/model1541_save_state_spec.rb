@@ -3,25 +3,25 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../support/blank_disk"
-require_relative "../support/snapshot_scenarios"
+require_relative "../../support/blank_disk"
+require_relative "../../support/snapshot_scenarios"
 
-describe Badline::Drive1541, "#save_state" do
+describe Badline::Drives::Model1541, "#save_state" do
   include BlankDisk
   include SnapshotScenarios
 
   # What Idle keeps about the pass it records or sleeps through, which a
   # saved drive settles and a restored one starts without.
   let(:idle) do
-    { "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording],
-      "Badline::Drive1541::Bus" => %i[@touched @volatile @watching] }
+    { "Badline::Drives::Model1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                         @record_cycles @record_instructions @record_quiet @asleep @recording],
+      "Badline::Drives::Model1541::Bus" => %i[@touched @volatile @watching] }
   end
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "disk.d64").tap { |disk| blank_d64(disk) } }
   # The DOS's power-up tests, with the motor on and the disk turning
   # under the head, at an odd cycle.
-  let(:drive) { described_class.new.tap { |drive| drive.insert(Badline::Drive1541::Disk.open(path)) } }
+  let(:drive) { described_class.new.tap { |drive| drive.insert(Badline::Drives::Model1541::Disk.open(path)) } }
   let(:target) { described_class.new }
 
   before { 20_001.times { drive.cycle! } }
@@ -43,7 +43,7 @@ describe Badline::Drive1541, "#save_state" do
   end
 
   it "keeps the disk in a drive that has the same image in" do
-    disk = Badline::Drive1541::Disk.open(path)
+    disk = Badline::Drives::Model1541::Disk.open(path)
     target.insert(disk)
     expect(round_trip(drive, target).disk).to equal(disk)
   end
@@ -53,7 +53,7 @@ describe Badline::Drive1541, "#save_state" do
   end
 
   it "takes the disk out of a drive when the saved one had none" do
-    target.insert(Badline::Drive1541::Disk.open(path))
+    target.insert(Badline::Drives::Model1541::Disk.open(path))
     expect(round_trip(described_class.new, target).disk).to be_nil
   end
 

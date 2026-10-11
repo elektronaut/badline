@@ -5,7 +5,7 @@ module Badline
     # A .g64 image: a 1541 disk's flux as raw GCR, track by track, for the
     # true drive to read the way it reads a real disk, copy protection and
     # all. It has no file system of its own, so only the true drive
-    # (Drive1541::Disk.from_g64) can use it. A .g71 holds a 1571 disk the
+    # (Drives::Model1541::Disk.from_g64) can use it. A .g71 holds a 1571 disk the
     # same way, with "GCR-1571" for its signature and 168 half tracks,
     # the first side's 84 and then the second's.
     #
@@ -21,7 +21,7 @@ module Badline
     # A larger one is the offset of a speed map, two bits a byte, four
     # track bytes to a map byte, the first byte's in the top two bits, for
     # a track whose zone changes along it. The drive passes each byte
-    # under the head at its own zone's rate (Drive1541::Track).
+    # under the head at its own zone's rate (Drives::Model1541::Track).
     #
     # The drive writes a track at one zone, so a track written back takes
     # that zone as its speed entry. Writing it puts it in its own block,

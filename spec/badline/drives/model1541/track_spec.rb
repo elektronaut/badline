@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Drive1541::Track do
+describe Badline::Drives::Model1541::Track do
   let(:turn) { described_class::TURN }
   let(:tick) { described_class::TICK }
 

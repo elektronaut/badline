@@ -2,17 +2,17 @@
 
 require "spec_helper"
 require "badline/c128"
-require_relative "../../support/snapshot_scenarios"
+require_relative "../../../support/snapshot_scenarios"
 
 # A 1581 on each machine's serial bus.
-describe Badline::Drive1581::Slot do
+describe Badline::Drives::Model1581::Slot do
   include SnapshotScenarios
 
   # A 1581 whose ROM is NOPs, its reset vector in RAM.
   let(:drive) do
     bytes = Array.new(0x8000, 0xea)
     bytes[0x7ffc, 2] = [0x00, 0x03]
-    Badline::Drive1581.new(rom: Badline::ROM.new(bytes, length: 0x8000, start: 0x8000))
+    Badline::Drives::Model1581.new(rom: Badline::ROM.new(bytes, length: 0x8000, start: 0x8000))
   end
 
   context "with a C64" do
@@ -68,7 +68,7 @@ describe Badline::Drive1581::Slot do
 
     it "waits for its DOS to boot before typing" do
       machine.attach_drive1581(drive)
-      expect(machine.init_threshold).to eq(Badline::Drive1581::BOOT_CYCLES)
+      expect(machine.init_threshold).to eq(Badline::Drives::Model1581::BOOT_CYCLES)
     end
   end
 
@@ -76,14 +76,14 @@ describe Badline::Drive1581::Slot do
     let(:machine) { Badline::C128.new(mode: :c128) }
 
     it "makes the 1581 its true drive ahead of the 1571" do
-      machine.attach_drive1571(Badline::Drive1571.new)
+      machine.attach_drive1571(Badline::Drives::Model1571.new)
       machine.attach_drive1581(drive)
       expect(machine.true_drive).to equal(drive)
     end
 
     it "waits for its DOS to boot before typing" do
       machine.attach_drive1581(drive)
-      expect(machine.init_threshold).to eq(Badline::Drive1581::BOOT_CYCLES)
+      expect(machine.init_threshold).to eq(Badline::Drives::Model1581::BOOT_CYCLES)
     end
 
     it "runs the drive while the Z80 has the bus" do
@@ -94,7 +94,7 @@ describe Badline::Drive1581::Slot do
     end
 
     it "finds it answering in burst mode", :slow do
-      machine.attach_drive1581(Badline::Drive1581.new)
+      machine.attach_drive1581(Badline::Drives::Model1581.new)
       machine.on_init { machine.type_text("open1,8,15:close1\r") }
       machine.run_cycles(3_500_000)
       expect(machine.ram.peek(0x0a1c) & 0x40).to eq(0x40)

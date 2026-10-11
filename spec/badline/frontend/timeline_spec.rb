@@ -161,7 +161,7 @@ describe Badline::Frontend::Timeline do
 
       it "empties the drive" do
         drive = Badline::Media::TrueDrive.plug(computer)
-        drive.insert(Badline::Drive1541::Disk.open(disk))
+        drive.insert(Badline::Drives::Model1541::Disk.open(disk))
         expect { run_to(1) }.to output.to_stdout.and(change(drive, :disk).to(nil))
       end
     end

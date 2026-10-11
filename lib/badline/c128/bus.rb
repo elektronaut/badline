@@ -143,7 +143,7 @@ module Badline
         @on_mode_change = nil
         plug_chips(model, sid_model)
 
-        @datasette = Datasette.new
+        @datasette = Badline::Drives::Datasette.new
         @datasette.on_flag { @cia1.flag! }
         @datasette.on_sense_change { @cpu_port.refresh }
 

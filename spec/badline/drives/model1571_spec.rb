@@ -4,10 +4,10 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 require "badline/c128"
-require_relative "../support/blank_disk"
-require_relative "../support/snapshot_scenarios"
+require_relative "../../support/blank_disk"
+require_relative "../../support/snapshot_scenarios"
 
-describe Badline::Drive1571 do
+describe Badline::Drives::Model1571 do
   include SnapshotScenarios
 
   subject(:drive) { described_class.new(rom: stub_rom) }
@@ -111,7 +111,7 @@ describe Badline::Drive1571 do
   end
 
   describe "fast serial" do
-    let(:bus) { Badline::IECBus.new.tap { |bus| bus.host_lines = 0x07 } }
+    let(:bus) { Badline::Drives::SerialBus.new.tap { |bus| bus.host_lines = 0x07 } }
 
     # VIA 1's port B lets CLK and DATA go, so only the fast serial pins
     # pull them.
@@ -125,7 +125,7 @@ describe Badline::Drive1571 do
     def lines(cycles)
       Array.new(cycles) do
         drive.host_cycle!
-        bus.low_lines & (Badline::IECBus::SRQ | Badline::IECBus::DATA)
+        bus.low_lines & (Badline::Drives::SerialBus::SRQ | Badline::Drives::SerialBus::DATA)
       end
     end
 
@@ -133,8 +133,8 @@ describe Badline::Drive1571 do
     # significant bit first.
     def clock_in(byte)
       7.downto(0) do |bit|
-        data = byte[bit].zero? ? Badline::IECBus::DATA : 0
-        bus.host_fast_lines = data | Badline::IECBus::SRQ
+        data = byte[bit].zero? ? Badline::Drives::SerialBus::DATA : 0
+        bus.host_fast_lines = data | Badline::Drives::SerialBus::SRQ
         4.times { drive.host_cycle! }
         bus.host_fast_lines = data
         4.times { drive.host_cycle! }
@@ -145,8 +145,8 @@ describe Badline::Drive1571 do
       load([0x4c, 0x00, 0x03]) # JMP *
       port_a(0x02)
       [[0x4004, 4], [0x4005, 0], [0x400e, 0x51], [0x400c, 0xa5]].each { |addr, value| drive.bus.poke(addr, value) }
-      expect(lines(200).chunk_while { |a, b| a == b }.count { |run| run.first.anybits?(Badline::IECBus::SRQ) })
-        .to eq(8)
+      runs = lines(200).chunk_while { |a, b| a == b }
+      expect(runs.count { |run| run.first.anybits?(Badline::Drives::SerialBus::SRQ) }).to eq(8)
     end
 
     it "lets SRQ and DATA go with PA1 in" do
@@ -179,7 +179,7 @@ describe Badline::Drive1571 do
     subject(:drive) { described_class.new(host_clock_hz: 985_248) }
 
     before do
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       1_200_000.times { drive.host_cycle! }

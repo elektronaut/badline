@@ -3,9 +3,9 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../../support/blank_disk"
+require_relative "../../../support/blank_disk"
 
-describe Badline::Drive1541::Disk, ".image_for" do
+describe Badline::Drives::Model1541::Disk, ".image_for" do
   include BlankDisk
 
   let(:dir) { Dir.mktmpdir }

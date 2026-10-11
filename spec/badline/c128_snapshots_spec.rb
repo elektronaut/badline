@@ -114,7 +114,7 @@ describe Badline::C128 do
     end
 
     it "carries a true 1541 over, running on as the saved one" do
-      machine = described_class.new.tap { |with_drive| with_drive.attach_drive1541(Badline::Drive1541.new) }
+      machine = described_class.new.tap { |with_drive| with_drive.attach_drive1541(Badline::Drives::Model1541.new) }
       machine.run_cycles(400_001)
       restored = described_class.restored(machine.snapshot)
       run_on(machine, restored)

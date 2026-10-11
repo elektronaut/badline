@@ -114,7 +114,7 @@ module DriveScenarios
   # a program line.
   def self.error_channel(report)
     computer = Badline::C64.new
-    computer.attach_drive1541(Badline::Drive1541.new)
+    computer.attach_drive1541(Badline::Drives::Model1541.new)
     output = computer.capture_output
     computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
     computer.run_cycles(7_000_000)
@@ -211,9 +211,9 @@ module DriveScenarios
 
     # A drive on a bus of its own, the C64's lines released.
     def idle_drive(idle_skip)
-      drive = Badline::Drive1541.new(host_clock_hz: 985_248)
+      drive = Badline::Drives::Model1541.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       drive
@@ -246,8 +246,8 @@ module DriveScenarios
     # and then until the drive's motor stops, and returns what it printed.
     def write_run(path, text, readies)
       computer = Badline::C64.new
-      drive = Badline::Drive1541.new
-      drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+      drive = Badline::Drives::Model1541.new
+      drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
       computer.attach_drive1541(drive)
       output = computer.capture_output
       computer.on_init { computer.type_text(text) }

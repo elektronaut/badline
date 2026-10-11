@@ -3,19 +3,19 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../../support/blank_disk"
-require_relative "../../support/drive1541_rom"
+require_relative "../../../support/blank_disk"
+require_relative "../../../support/drive1541_rom"
 
-describe Badline::Drive1541::Mechanism do
+describe Badline::Drives::Model1541::Mechanism do
   include BlankDisk
 
   subject(:mechanism) { drive.mechanism }
 
-  let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+  let(:drive) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
   let(:via) { drive.via2 }
   let(:dir) { Dir.mktmpdir }
   let(:disk) do
-    Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
+    Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
   end
 
   after { FileUtils.remove_entry(dir) }
@@ -56,7 +56,7 @@ describe Badline::Drive1541::Mechanism do
   end
 
   describe "at power-on" do
-    subject(:mechanism) { Badline::Drive1541.new(rom: Drive1541ROM.stub).mechanism }
+    subject(:mechanism) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub).mechanism }
 
     # Port B's lines float high until the DOS sets it up.
     it "turns the motor and lights the LED" do
@@ -178,8 +178,8 @@ describe Badline::Drive1541::Mechanism do
   describe "over a half track without data" do
     # Track 18 in zone 1, a SYNC mark at its start and gap bytes after it.
     let(:disk) do
-      Badline::Drive1541::Disk.new.tap do |disk|
-        disk.write(36, Badline::Drive1541::Track.new(([0xff] * 5) + ([0x55] * 6661), 1))
+      Badline::Drives::Model1541::Disk.new.tap do |disk|
+        disk.write(36, Badline::Drives::Model1541::Track.new(([0xff] * 5) + ([0x55] * 6661), 1))
       end
     end
 
@@ -205,8 +205,8 @@ describe Badline::Drive1541::Mechanism do
   end
 
   describe "the write electronics" do
-    let(:disk) { Badline::Drive1541::Disk.new }
-    let(:gcr) { Badline::Drive1541::GCR }
+    let(:disk) { Badline::Drives::Model1541::Disk.new }
+    let(:gcr) { Badline::Drives::Model1541::GCR }
 
     # Write mode as the DOS sets it: port A all outputs, CB2 low.
     def write_mode
@@ -233,7 +233,7 @@ describe Badline::Drive1541::Mechanism do
 
     # A sector as the DOS writes it: SYNC, header, gap, SYNC and data.
     def sector(track, sector, data)
-      disk_class = Badline::Drive1541::Disk
+      disk_class = Badline::Drives::Model1541::Disk
       ([0xff] * 5) + gcr.encode(disk_class.header(track, sector, [0x41, 0x42], nil)) + ([0x55] * 9) +
         ([0xff] * 5) + gcr.encode(disk_class.data_block(data, nil))
     end
@@ -257,14 +257,14 @@ describe Badline::Drive1541::Mechanism do
     # Pinned by drive/rpm/rpm3, which writes a turn and a bit of SYNC and
     # times a turn by reading it back.
     it "lays a track written in another zone out again as a turn at the zone written" do
-      disk.write(36, Badline::Drive1541::Track.new([0x55] * 7692, 3))
+      disk.write(36, Badline::Drives::Model1541::Track.new([0x55] * 7692, 3))
       drive.insert(disk)
       write_bytes([0x5a])
       expect([disk.track(36).length, disk.track(36).zone]).to eq([7142, 2])
     end
 
     it "keeps the flux of a track laid out again at its angle" do
-      disk.write(36, Badline::Drive1541::Track.new(([0xff] * 3846) + ([0x00] * 3846), 3))
+      disk.write(36, Badline::Drives::Model1541::Track.new(([0xff] * 3846) + ([0x00] * 3846), 3))
       drive.insert(disk)
       write_bytes([0x5a])
       expect(disk.track(36).bytes.values_at(100, 3470, 3670, 7000)).to eq([0xff, 0xff, 0x00, 0x00])
@@ -287,7 +287,7 @@ describe Badline::Drive1541::Mechanism do
       data = Array.new(256) { |i| (i * 13) & 0xff }
       run(37)
       write_bytes(sector(18, 5, data))
-      found = Badline::Drive1541::SectorReader.read(disk.track(36).bytes, 18)[5]
+      found = Badline::Drives::Model1541::SectorReader.read(disk.track(36).bytes, 18)[5]
       expect(found.data[1, 256]).to eq(data)
     end
 
@@ -301,7 +301,9 @@ describe Badline::Drive1541::Mechanism do
 
     context "with the disk write-protected" do
       let(:disk) do
-        Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64"))))
+        Badline::Drives::Model1541::Disk.from_d64(
+          Badline::Storage::D64Image.new(blank_d64(File.join(dir, "blank.d64")))
+        )
       end
 
       before do
@@ -401,11 +403,11 @@ describe Badline::Drive1541::Mechanism do
     describe "at 300 rpm" do
       # Half track 36 holds +bytes+ written in +zone+, a SYNC mark at the
       # start and gap bytes after them to +length+.
-      def track_of(bytes, zone, length: Badline::Drive1541::Disk::TRACK_LENGTHS[zone], speeds: nil)
+      def track_of(bytes, zone, length: Badline::Drives::Model1541::Disk::TRACK_LENGTHS[zone], speeds: nil)
         bytes = ([0xff] * 5) + bytes
         bytes += [0x55] * (length - bytes.length)
-        disk = Badline::Drive1541::Disk.new
-        disk.write(36, Badline::Drive1541::Track.new(bytes, zone, speeds))
+        disk = Badline::Drives::Model1541::Disk.new
+        disk.write(36, Badline::Drives::Model1541::Track.new(bytes, zone, speeds))
         drive.insert(disk)
       end
 
@@ -423,9 +425,9 @@ describe Badline::Drive1541::Mechanism do
         Array.new(count) { next_byte && via.peek(0x1c01) }
       end
 
-      let(:data) { Badline::Drive1541::GCR.encode(Array.new(40) { |i| (i * 37) & 0xff }) }
+      let(:data) { Badline::Drives::Model1541::GCR.encode(Array.new(40) { |i| (i * 37) & 0xff }) }
 
-      Badline::Drive1541::Disk::TRACK_LENGTHS.each_index do |zone|
+      Badline::Drives::Model1541::Disk::TRACK_LENGTHS.each_index do |zone|
         it "turns a track written in zone #{zone} once in 200 ms" do
           track_of([], zone)
           expect(turn(zone)).to eq(200_000)
@@ -495,7 +497,7 @@ describe Badline::Drive1541::Mechanism do
         drive.cycle! until mechanism.sync?
         drive.cycle! while mechanism.sync?
         bytes = Array.new(5) { next_byte && via.peek(0x1c01) }
-        expect(Badline::Drive1541::GCR.decode(bytes)&.first).to eq(0x08).or eq(0x07)
+        expect(Badline::Drives::Model1541::GCR.decode(bytes)&.first).to eq(0x08).or eq(0x07)
       end
     end
 

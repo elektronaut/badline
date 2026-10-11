@@ -103,7 +103,7 @@ module DriveScenarios
     # BASIC reads the DOS's power-on message from the error channel.
     def error_channel(report)
       computer = Badline::C64.new
-      computer.attach_drive1581(Badline::Drive1581.new)
+      computer.attach_drive1581(Badline::Drives::Model1581.new)
       output = computer.capture_output
       computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
       Runs.run_until(computer, 7_000_000) { output.output.upcase.include?(" 0 0\n") }
@@ -116,8 +116,8 @@ module DriveScenarios
     # then until the drive's motor stops, and returns what it printed.
     def write_run(path, text, readies)
       computer = Badline::C64.new
-      drive = Badline::Drive1581.new
-      drive.insert(Badline::Drive1581::Disk.open(path))
+      drive = Badline::Drives::Model1581.new
+      drive.insert(Badline::Drives::Model1581::Disk.open(path))
       computer.attach_drive1581(drive)
       output = computer.capture_output
       computer.on_init { computer.type_text(text) }
@@ -169,9 +169,9 @@ module DriveScenarios
     end
 
     def idle_drive(idle_skip)
-      drive = Badline::Drive1581.new(host_clock_hz: 985_248)
+      drive = Badline::Drives::Model1581.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       drive

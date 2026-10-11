@@ -90,8 +90,8 @@ describe Badline::Snapshot, ".load without the media files", :slow do
       d64 = File.join(dir, "demo.d64")
       blank_d64(d64)
       Badline::Storage::D64Image.new(d64).write_file("DEMO", program)
-      disk = Badline::Drive1541::Disk.open(d64)
-      tracks = (2..Badline::Drive1541::Disk::MAX_HALF_TRACK).filter_map do |half|
+      disk = Badline::Drives::Model1541::Disk.open(d64)
+      tracks = (2..Badline::Drives::Model1541::Disk::MAX_HALF_TRACK).filter_map do |half|
         [half - 2, [disk.track(half).bytes, disk.track(half).zone]] if disk.track(half)
       end
       File.join(dir, "demo.g64").tap { |file| Badline::Storage::G64Image.create(file, tracks.to_h) }

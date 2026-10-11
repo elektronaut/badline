@@ -3,9 +3,9 @@
 require "spec_helper"
 require "tmpdir"
 require "fileutils"
-require_relative "../../support/blank_disk"
+require_relative "../../../support/blank_disk"
 
-describe Badline::Drive1541::Disk do
+describe Badline::Drives::Model1541::Disk do
   include BlankDisk
 
   subject(:disk) { described_class.from_d64(image) }
@@ -13,7 +13,7 @@ describe Badline::Drive1541::Disk do
   let(:dir) { Dir.mktmpdir }
   let(:path) { File.join(dir, "disk.d64") }
   let(:image) { Badline::Storage::D64Image.new(path) }
-  let(:gcr) { Badline::Drive1541::GCR }
+  let(:gcr) { Badline::Drives::Model1541::GCR }
 
   before do
     blank_d64(path)

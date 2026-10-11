@@ -91,7 +91,7 @@ module Badline
         @sid = Chips::SID.new(model: sid_model, pots: @control_ports)
         @sid_slots = []
 
-        @datasette = Datasette.new
+        @datasette = Drives::Datasette.new
         @datasette.on_flag { @cia1.flag! }
         @datasette.on_sense_change { @cpu_port.refresh }
 

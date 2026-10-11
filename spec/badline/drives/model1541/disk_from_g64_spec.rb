@@ -4,7 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Drive1541::Disk, ".from_g64" do
+describe Badline::Drives::Model1541::Disk, ".from_g64" do
   subject(:disk) { described_class.from_g64(image) }
 
   let(:dir) { Dir.mktmpdir }

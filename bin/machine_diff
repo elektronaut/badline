@@ -45,12 +45,12 @@
 #          components, all 128K of RAM, and the VDC's registers, the VDC's
 #          RAM, the MMU and the Z80 (Badline::C128Checkpoint)
 #
-# --true-drive plugs a Drive1541 into the serial bus before the machine
+# --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
 # goes into the drive instead of Media.attach, and the machine types
 # LOAD"$",8 and LIST (or --text) once booted, so the directory comes off
 # the disk through the DOS. --no-idle-skip makes the drive run every
-# cycle of its idle loop (see Drive::Idle), so running the same tree
+# cycle of its idle loop (see Drives::Engine::Idle), so running the same tree
 # with and without it checks that skipping leaves the drive and the
 # machine alone:
 #
@@ -289,7 +289,7 @@ module MachineDiff
     end
 
     def plug_drive(machine, options)
-      drive = Badline::Drive1541.new
+      drive = Badline::Drives::Model1541.new
       drive.idle_skip = options[:idle_skip] if drive.respond_to?(:idle_skip=)
       machine.attach_drive1541(drive)
     end

@@ -51,8 +51,8 @@ module Badline
       @vic = Chips::VICI.new
       @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
       @joystick1 = Joystick.new
-      @iec_bus = IECBus.new
-      @datasette = Datasette.new
+      @iec_bus = Drives::SerialBus.new
+      @datasette = Drives::Datasette.new
       @via1 = Chips::VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1, serial_bus: @iec_bus,
                                                                          datasette: @datasette))
       keyboard_ports = KeyboardVIAPorts.new(keyboard: @keyboard, joystick: @joystick1)

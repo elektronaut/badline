@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Datasette do
+describe Badline::Drives::Datasette do
   subject(:datasette) { described_class.new }
 
   let(:tape) { instance_double(Badline::Storage::TAP, rewind: nil, end?: false) }

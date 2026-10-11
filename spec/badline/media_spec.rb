@@ -162,7 +162,7 @@ describe Badline::Media do
       end
 
       it "keeps a true drive already plugged in" do
-        drive = Badline::Drive1541.new
+        drive = Badline::Drives::Model1541.new
         computer.attach_drive1541(drive)
         described_class.attach(computer, g64_path)
         expect([computer.drive1541.equal?(drive), drive.disk.nil?]).to eq([true, false])
@@ -511,7 +511,7 @@ describe Badline::Media do
 
     it "puts a .d64 in the drive" do
       described_class.attach(computer, d64_path)
-      expect(drive.disk).to be_a(Badline::Drive1541::Disk)
+      expect(drive.disk).to be_a(Badline::Drives::Model1541::Disk)
     end
 
     it "leaves the KERNAL traps unmounted, so device 8 is the drive's alone" do
@@ -567,7 +567,7 @@ describe Badline::Media do
     it "puts a .d81 in a 1581 in the 1541's place" do
       path = File.join(dir, "disk.d81").tap { |p| File.binwrite(p, "\x00" * 819_200) }
       described_class.attach(computer, path)
-      expect(computer.true_drive).to be_a(Badline::Drive1581)
+      expect(computer.true_drive).to be_a(Badline::Drives::Model1581)
     end
 
     it "refuses a directory" do
@@ -593,19 +593,19 @@ describe Badline::Media do
     end
 
     it "plugs in another in place of a 1541 on device 9" do
-      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      computer.attach_drive1541(Badline::Drives::Model1541.new(device: 9))
       expect(described_class::TrueDrive.plug(computer).device).to eq(8)
     end
 
     it "leaves a 1541 on device 9 out of device 8's media" do
-      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      computer.attach_drive1541(Badline::Drives::Model1541.new(device: 9))
       allow(computer).to receive(:mount)
       described_class.attach(computer, dir)
       expect(computer).to have_received(:mount)
     end
 
     it "puts a .g64 in a 1541 of its own rather than one on device 9" do
-      computer.attach_drive1541(Badline::Drive1541.new(device: 9))
+      computer.attach_drive1541(Badline::Drives::Model1541.new(device: 9))
       described_class.attach(computer, g64_path)
       expect([computer.drive1541.device, computer.drive1541.disk.nil?]).to eq([8, false])
     end
@@ -620,7 +620,7 @@ describe Badline::Media do
 
     it "puts a .d64 in the drive" do
       described_class.insert_disk(computer, d64_path)
-      expect(computer.drive1541.disk).to be_a(Badline::Drive1541::Disk)
+      expect(computer.drive1541.disk).to be_a(Badline::Drives::Model1541::Disk)
     end
 
     it "leaves the traps unmounted" do
@@ -716,7 +716,7 @@ describe Badline::Media do
 
     context "with a true drive in device 8" do
       before do
-        computer.attach_drive1541(Badline::Drive1541.new)
+        computer.attach_drive1541(Badline::Drives::Model1541.new)
         allow(computer).to receive(:unmount)
       end
 

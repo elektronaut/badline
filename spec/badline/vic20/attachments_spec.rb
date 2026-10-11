@@ -76,7 +76,7 @@ describe Badline::Vic20::Attachments do
   end
 
   describe "#attach_drive1541" do
-    let(:drive) { Badline::Drive1541.new }
+    let(:drive) { Badline::Drives::Model1541.new }
 
     # Calls TALK for device 8 with a return address on the stack, and
     # returns where the CPU went: back to the caller when a trap answers.

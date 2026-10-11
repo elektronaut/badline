@@ -2,20 +2,20 @@
 
 require "spec_helper"
 
-describe Badline::Drive1581::WD1772 do
+describe Badline::Drives::Model1581::WD1772 do
   subject(:fdc) { described_class.new(mechanism) }
 
-  let(:mechanism) { Badline::Drive1581::Mechanism.new }
-  let(:disk) { Badline::Drive1581::Disk.new }
+  let(:mechanism) { Badline::Drives::Model1581::Mechanism.new }
+  let(:disk) { Badline::Drives::Model1581::Disk.new }
   let(:busy) { described_class::BUSY }
-  let(:revolution) { Badline::Drive1581::Mechanism::REVOLUTION }
+  let(:revolution) { Badline::Drives::Model1581::Mechanism::REVOLUTION }
 
   # Sector n of each standard track holds n, its cylinder and its side,
   # then the byte's place.
   def format(cylinders = 0..9)
     cylinders.each do |cylinder|
       2.times do |side|
-        track = Badline::Drive1581::Track.standard(cylinder, side) do |sector|
+        track = Badline::Drives::Model1581::Track.standard(cylinder, side) do |sector|
           [sector, cylinder, side, *Array.new(509) { |i| i & 0xff }]
         end
         disk.write(cylinder, side, track)
@@ -270,7 +270,7 @@ describe Badline::Drive1581::WD1772 do
     end
 
     it "reads the next ID's four bytes and its CRC" do
-      expect(bytes).to eq([0, 0, 1, 2, *Badline::Drive1581::Track.field_crc(0xfe, [0, 0, 1, 2])])
+      expect(bytes).to eq([0, 0, 1, 2, *Badline::Drives::Model1581::Track.field_crc(0xfe, [0, 0, 1, 2])])
     end
 
     it "copies the track into the sector register" do

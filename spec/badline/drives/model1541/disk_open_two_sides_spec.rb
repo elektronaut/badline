@@ -4,10 +4,10 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Drive1541::Disk, ".open" do
+describe Badline::Drives::Model1541::Disk, ".open" do
   let(:dir) { Dir.mktmpdir }
   let(:side) { described_class::SIDE }
-  let(:reader) { Badline::Drive1541::SectorReader }
+  let(:reader) { Badline::Drives::Model1541::SectorReader }
 
   after { FileUtils.remove_entry(dir) }
 
@@ -73,7 +73,7 @@ describe Badline::Drive1541::Disk, ".open" do
     end
 
     it "writes the second side's track 1 back to entry 84" do
-      disk.write(side + 2, Badline::Drive1541::Track.new(Array.new(7692, 0x33), 3))
+      disk.write(side + 2, Badline::Drives::Model1541::Track.new(Array.new(7692, 0x33), 3))
       disk.written(side + 2)
       disk.flush
       expect(Badline::Storage::G64Image.new(path).track(84).first.first(2)).to eq([0x33, 0x33])

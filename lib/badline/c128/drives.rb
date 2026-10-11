@@ -2,13 +2,13 @@
 
 module Badline
   class C128
-    # The true drives on the C128's serial bus: a Drive1541, the C128D's
-    # built-in 1571 (Drive1571) or a 1581 (Drive1581::Slot), each in a
+    # The true drives on the C128's serial bus: a Drives::Model1541, the C128D's
+    # built-in 1571 (Drives::Model1571) or a 1581 (Drives::Model1581::Slot), each in a
     # field of its own, so none makes another's per-cycle call a union.
     module Drives
       attr_reader :drive1571
 
-      # Plugs in a Drive1571, which then runs alongside the C128 on its own
+      # Plugs in a Drives::Model1571, which then runs alongside the C128 on its own
       # clock and talks to it over the serial bus, as attach_drive1541 does
       # for a 1541.
       def attach_drive1571(drive)
@@ -19,7 +19,7 @@ module Badline
         @serial_trap&.device = serial_trap_device
       end
 
-      # Unplugs the Drive1571.
+      # Unplugs the Drives::Model1571.
       def detach_drive1571
         return unless @drive1571
 
@@ -35,7 +35,7 @@ module Badline
       # returns it.
       def plug_true_drive
         detach_drive1581 if drive1581_on_device8?
-        Drive1571.new.tap { |drive| attach_drive1571(drive) }
+        Badline::Drives::Model1571.new.tap { |drive| attach_drive1571(drive) }
       end
 
       private
@@ -61,7 +61,7 @@ module Badline
       # A 1581 plugged in holds the machine's on_init handlers back until
       # its DOS has booted, which takes longer than the C128 KERNAL's.
       def drive1581_attached
-        @init_threshold = [@init_threshold, Drive1581::BOOT_CYCLES].max if @cycles < @init_threshold
+        @init_threshold = [@init_threshold, Badline::Drives::Model1581::BOOT_CYCLES].max if @cycles < @init_threshold
       end
 
       # Unplugs the 1541 and the 1571 if either is device 8, for a 1581 to
@@ -99,7 +99,7 @@ module Badline
 
         device = input.int
         detach_drive1571 if @drive1571 && @drive1571.device != device
-        attach_drive1571(Drive1571.new(device:)) unless @drive1571
+        attach_drive1571(Badline::Drives::Model1571.new(device:)) unless @drive1571
         @drive1571.load_state(input)
       end
     end
