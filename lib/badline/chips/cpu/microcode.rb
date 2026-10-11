@@ -117,6 +117,22 @@ module Badline
           end.freeze
         end
 
+        # The plan step that follows `cycles` cycles of the instruction, counting
+        # the opcode fetch as 1: one further on once an indexed read has
+        # skipped its dummy read, which it does when the index add didn't
+        # cross a page.
+        def index_at(cycles, crossed) = skips_dummy?(cycles, crossed) ? cycles + 1 : cycles
+
+        # The cycles run before plan step `index`, as index_at counts them.
+        def t_at(index, crossed) = skips_dummy?(index - 1, crossed) ? index - 1 : index
+
+        def skips_dummy?(cycles, crossed)
+          return false unless optional_dummy && !crossed
+
+          dummy = plan.index(:op_idx_dummy)
+          !dummy.nil? && cycles >= dummy
+        end
+
         def self.write_mask(plan)
           plan.map { |step| WRITE_STEPS.include?(step) }.freeze
         end

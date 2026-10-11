@@ -75,4 +75,21 @@ describe Badline::Chips::CPU::Port do
       expect(port.value).to eq(0x17)
     end
   end
+
+  describe "keyed fields" do
+    let(:fresh) { described_class.new(datasette, pullups: 0x17, floating: 0xc8) }
+
+    before do
+      port.write_ddr(0xef)
+      port.write_data(0xc5)
+      out = Badline::Snapshot::Keyed::Writer.new
+      port.save_fields(out, "port.")
+      fresh.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-CPU")), "port.")
+    end
+
+    it "restores the registers, the charge and what a read sees" do
+      expect([fresh.ddr, fresh.data, fresh.floating,
+              fresh.value]).to eq([port.ddr, port.data, port.floating, port.value])
+    end
+  end
 end

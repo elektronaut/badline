@@ -6,6 +6,7 @@ require "badline/chips/cpu/operations"
 require "badline/chips/cpu/stack_operations"
 require "badline/chips/cpu/boundary"
 require "badline/chips/cpu/saved_state"
+require "badline/chips/cpu/keyed_state"
 
 module Badline
   module Chips
@@ -24,6 +25,7 @@ module Badline
         include StackOperations
         include Boundary
         include SavedState
+        include KeyedState
 
         attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write
         attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq
