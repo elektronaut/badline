@@ -46,6 +46,26 @@ module Badline
           end
         end
 
+        # The system ROM's byte at +addr+, $8000 or above, as CR value 0 maps it.
+        def system_rom_peek(addr)
+          if addr < 0xc000
+            @basic_high_rom.peek(addr)
+          elsif addr < 0xd000
+            @editor_rom.peek(addr)
+          elsif addr < 0xe000
+            @c128_character_rom.peek(addr)
+          else
+            @c128_kernal_rom.peek(addr)
+          end
+        end
+
+        # The chip's byte at +addr+, in $D000-$DFFF, as C128 mode's I/O maps it.
+        def bank_io_peek(addr)
+          lay_out_io(@bank_io_reads, @bank_io_writes)
+          @bank_io_reads[0xd5] = @mmu
+          @bank_io_reads[addr >> 8].peek(addr)
+        end
+
         # The bank CR picks, with common RAM in bank 0, then the pages page 0
         # and page 1 move to.
         def map_ram_pages

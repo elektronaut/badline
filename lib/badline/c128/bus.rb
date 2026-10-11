@@ -161,6 +161,8 @@ module Badline
 
         @read_pages = Array.new(256)
         @write_pages = Array.new(256)
+        @bank_io_reads = Array.new(256)
+        @bank_io_writes = Array.new(256)
         @address = 0
         @data = 0
         @io_mapped = false
@@ -211,8 +213,21 @@ module Badline
       # ROM at $C000-$FFFF.
       def system_rom_mapped? = !@mmu.c64_mode? && @mmu.cr.nobits?(0x30)
 
-      # The RAM the C128 KERNAL's bank number +bank+ reaches (Banks).
-      def peek_bank(bank, addr) = @banks.peek(bank, addr)
+      # The byte the C128 KERNAL's bank number +bank+ reads at +addr+, as
+      # its INDFET does: the ROMs and I/O the bank's CR value maps, over the
+      # RAM it reaches (Banks).
+      def peek_bank(bank, addr)
+        cr = @banks.configuration(bank)
+        return @mmu.peek_configuration(addr) if addr.between?(0xff00, 0xff04)
+        return bank_io_peek(addr) if cr.nobits?(0x01) && (addr & 0xf000) == 0xd000
+        return @basic_low_rom.peek(addr) if cr.nobits?(0x02) && addr.between?(0x4000, 0x7fff)
+
+        select = addr < 0xc000 ? (cr >> 2) & 0x03 : (cr >> 4) & 0x03
+        return @banks.peek(bank, addr) if addr < 0x8000 || select == 3
+        return @open_bus.peek(addr) unless select.zero?
+
+        system_rom_peek(addr)
+      end
 
       def write_bank(bank, addr, bytes) = @banks.write(bank, addr, bytes)
 
