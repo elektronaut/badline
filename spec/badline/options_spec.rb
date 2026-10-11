@@ -352,6 +352,14 @@ describe Badline::Options do
         "        --sound                      Play the SID through the host's audio device (F10 mutes)\n"
       )
     end
+
+    it "names every medium's extension" do
+      expect(options.help.split(%r{[\s,/]+})).to include(*Badline::Media::Extensions::ALL)
+    end
+
+    it "wraps the media's names at 70 columns" do
+      expect(options.help.lines.drop_while { |line| !line.start_with?("Media") }.first(4).map(&:size).max).to be <= 71
+    end
   end
 
   describe "the machine family" do

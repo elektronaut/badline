@@ -28,6 +28,16 @@ module Badline
 
       # What goes in device 8 through the traps.
       MOUNTABLE = of(%i[disk archive])
+
+      # What goes in device 8, a true drive's or the traps', and the lists
+      # of disks to put there.
+      DEVICE8 = of(%i[disk gcr archive disk_list])
+
+      # Programs, which load on their own.
+      PROGRAMS = %w[.prg .p00].freeze
+
+      # Every medium Media.attach takes by its extension.
+      ALL = (KINDS.keys + PROGRAMS).freeze
     end
   end
 end

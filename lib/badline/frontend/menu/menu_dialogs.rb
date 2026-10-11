@@ -8,8 +8,8 @@ module Badline
     # name. A disk or tape picked goes straight in, and a save loads.
     class MenuDialogs
       EXTENSIONS = {
-        disk: %w[.d64 .d71 .d81 .g64 .t64 .m3u .vfl], tape: %w[.tap], cartridge: %w[.crt],
-        program: %w[.d64 .d71 .d81 .g64 .t64 .m3u .vfl .tap .crt .prg .p00 .sid], snapshot: %w[.vsf]
+        disk: Media::Extensions::DEVICE8, tape: Media::Extensions.of(%i[tape]),
+        cartridge: Media::Extensions.of(%i[cartridge]), program: Media::Extensions::ALL, snapshot: %w[.vsf]
       }.freeze
       TITLES = { disk: "INSERT A DISK", tape: "INSERT A TAPE", cartridge: "INSERT A CARTRIDGE",
                  program: "QUICK OPEN", snapshot: "LOAD A SAVE" }.freeze

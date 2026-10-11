@@ -35,6 +35,34 @@ module Badline
 
     def describe(option) = @native && option.name == "--sound" ? "#{option.text} (default)" : option.text
 
+    # The media the window opens, by their extensions (Media::Extensions),
+    # wrapped as the banner is.
+    def media_kinds
+      text = "Media can be a #{Media::Extensions::PROGRAMS.join('/')} program, a #{listed(%i[disk])} disk image, " \
+             "a #{listed(%i[gcr])} disk image for a true drive, an #{listed(%i[disk_list])} list of disk images, " \
+             "a #{listed(%i[archive])} tape archive, a #{listed(%i[tape])} tape, a #{listed(%i[cartridge])} " \
+             "cartridge, a #{listed(%i[tune])} tune, a .vsf snapshot, or a directory to mount as device 8."
+      wrap(text)
+    end
+
+    def listed(kinds) = Media::Extensions.of(kinds).join("/")
+
+    # The words of `text` in lines of at most 70 characters.
+    def wrap(text)
+      lines = [""]
+      text.split.each do |word|
+        line = lines.last
+        if line.empty?
+          lines[-1] = word
+        elsif line.size + word.size < 70
+          lines[-1] = "#{line} #{word}"
+        else
+          lines << word
+        end
+      end
+      lines.join("\n")
+    end
+
     def banner
       <<~BANNER
         Usage: #{@program} [c64] [options] [media]
@@ -50,11 +78,8 @@ module Badline
             c128                             Run a C128 in C128 mode, the one --model names
             sid                              Play .sid tunes and directories of them
 
-        Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
-        .g64 disk image for the true 1541, an .m3u or .vfl list of disk
-        images, a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid
-        tune, a .vsf snapshot, or a directory to mount as device 8. It
-        opens in the emulator window. There F11 quicksaves the machine to
+        #{media_kinds}
+        It opens in the emulator window. There F11 quicksaves the machine to
         the next of five slots in badline's data folder, replacing the
         oldest, and F12 restores the newest quicksave or named save. The
         window also autosaves every two minutes of play, which only the

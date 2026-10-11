@@ -121,7 +121,7 @@ module Badline
 
       extension = File.extname(media).downcase
       return true if extension == ".sid"
-      return false unless %w[.prg .p00].include?(extension)
+      return false unless Media::Extensions::PROGRAMS.include?(extension)
 
       [Media::BASIC_START, Media::BASIC_START - 1].include?(Storage::P00.load_address(media))
     end

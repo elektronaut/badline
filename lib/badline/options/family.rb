@@ -38,7 +38,9 @@ module Badline
       # the C128's.
       def pick_family
         return if @family_named || @sid_command || @media_path.nil?
-        return unless %w[.prg .p00].include?(File.extname(@media_path).downcase) && File.file?(@media_path)
+
+        program = Media::Extensions::PROGRAMS.include?(File.extname(@media_path).downcase)
+        return unless program && File.file?(@media_path)
 
         @family = :c128 if Storage::P00.load_address(@media_path) == C128_BASIC_START
       end
