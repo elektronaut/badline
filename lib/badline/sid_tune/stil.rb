@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/storage/stil/credit"
+require "badline/sid_tune/stil/credit"
 
 module Badline
   module Storage
