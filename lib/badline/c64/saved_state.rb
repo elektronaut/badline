@@ -66,8 +66,12 @@ module Badline
       # between instructions or jammed, and no REU transfer under way.
       def settled_for_snapshot? = (@cpu.boundary? || @cpu.jammed?) && !reu&.dma?
 
-      # The SID's deferred cycles and writes, run up to this cycle.
-      def settle_chips_for_snapshot = sid.catch_up!
+      # The SID's deferred cycles and writes, run up to this cycle, and the
+      # VIC's sprite collisions latched up to the beam.
+      def settle_chips_for_snapshot
+        sid.catch_up!
+        @vic.fold_collisions!
+      end
 
       def save_state(out)
         out.marker(Snapshot::C64Setup::MARKER).stamp
