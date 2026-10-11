@@ -86,11 +86,12 @@ module SnapshotScenarios
   # raster IRQ, and mid-instruction.
   DEMO_CYCLES = 10_001
 
-  # The demo run to DEMO_CYCLES and its State there, taken once for every
-  # spec that restores it. Restoring is exact, which the C64#snapshot
-  # specs check against a machine run the whole way.
-  def self.demo_state
-    @demo_state ||= begin
+  # The demo run to DEMO_CYCLES and its snapshot, which settles it a few
+  # cycles on, taken once for every spec that restores it. Restoring is
+  # exact, which the C64#snapshot specs check against a machine run the
+  # whole way.
+  def self.demo_image
+    @demo_image ||= begin
       computer = Badline::C64.new
       computer.load_prg(DEMO_PRG)
       computer.cpu.program_counter = DEMO_START
@@ -99,15 +100,12 @@ module SnapshotScenarios
     end
   end
 
-  # A new demo machine at DEMO_CYCLES, restored from the shared State.
-  def saved_demo
-    state = SnapshotScenarios.demo_state
-    Badline::C64.setup(state).build.restore(state)
-  end
+  # A new demo machine where the shared snapshot was saved.
+  def saved_demo = Badline::C64.new.restore(SnapshotScenarios.demo_image)
 
-  # A machine restored from `state` and settled as a save settles it
-  # (Machine::Settling), as Snapshot::Vice.export takes it.
-  def settled_copy(state) = Badline::C64.restored(state).tap(&:settle_for_snapshot!)
+  # A new machine restored from `image`, which saving settled, as
+  # Snapshot::Vice.export takes a machine.
+  def settled_copy(image) = image.load
 
   def run(computer, cycles)
     cycles.times { computer.cycle! }

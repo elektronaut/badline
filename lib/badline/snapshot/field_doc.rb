@@ -1,0 +1,109 @@
+# frozen_string_literal: true
+
+require "badline"
+require "badline/c128"
+
+module Badline
+  module Snapshot
+    # doc/snapshot-format.md, written by running the code: each family's
+    # machine is saved with its attachments, and its modules loaded into a
+    # machine built the same way at power-on through Keyed::Recorders,
+    # which note every key read with its type and the value the new machine
+    # had, its default. `rake snapshot:fields` writes it, and a spec checks
+    # that the file matches.
+    module FieldDoc
+      PATH = File.expand_path("../../../doc/snapshot-format.md", __dir__)
+
+      # Modules read through Recorders.
+      class RecordingModules < Keyed::Modules
+        private
+
+        def parse(section) = Keyed::Recorder.parse(section)
+
+        def missing(name) = Keyed::Recorder.missing(name)
+      end
+
+      # One machine saved and loaded: the family it belongs to, and for
+      # each module the keys its records hold, with their tags, and the fields the load read.
+      Load = Data.define(:family, :written, :fields)
+
+      # The machines the doc is made from: each family at power-on, and the
+      # C64 with each kind of expansion, cartridge and media.
+      def self.machines
+        {
+          "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512), with_cartridge, with_trap_dos,
+                    with_tape, with_drive(:d64), with_drive(:d81)],
+          "vic20" => [Vic20.new, with_rom],
+          "c128" => [C128.new(mode: :c128), with_drive(:d71)]
+        }
+      end
+
+      def self.blank(length) = Array.new(length, 0)
+
+      def self.with_cartridge
+        chips = [0x8000, 0xa000].map do |address|
+          Storage::CRTFile::Chip.new(chip_type: 2, bank: 0, address:, data: blank(0x2000))
+        end
+        image = Storage::CRTFile::Image.new(hardware_type: 32, subtype: 0, exrom: 1, game: 0, name: "DOC", chips:)
+        C64.new.tap do |machine|
+          machine.attach_cartridge(C64::Cartridge.from_crt(Storage::CRTFile.new(bytes: Storage::CRTFile.encode(image))))
+        end
+      end
+
+      def self.with_trap_dos
+        C64.new.tap { |machine| machine.mount(Storage::D64Image.new("", read_only: true, bytes: blank(174_848))) }
+      end
+
+      def self.with_tape
+        bytes = "C64-TAPE-RAW".bytes + [1, 0, 0, 0, 4, 0, 0, 0, 0x30, 0x30, 0x30, 0x30]
+        C64.new.tap { |machine| machine.datasette.insert(Storage::TAP.new("", bytes:)) }
+      end
+
+      def self.with_drive(kind)
+        case kind
+        when :d81
+          C64.new.tap do |machine|
+            machine.plug_drive1581.insert(Drives::Model1581::Disk.new(Storage::D81Image.new("", bytes: blank(819_200))))
+          end
+        when :d71
+          C128.new(mode: :c128).tap do |machine|
+            image = Storage::D71Image.new("", bytes: blank(349_696))
+            machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
+          end
+        else
+          C64.new.tap do |machine|
+            image = Storage::D64Image.new("", bytes: blank(174_848))
+            machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
+          end
+        end
+      end
+
+      def self.with_rom
+        Vic20.new.tap { |machine| machine.bus.map_rom(0xa000, blank(0x2000)) }
+      end
+
+      # Saves `machine` and loads it into a new one through Recorders.
+      def self.load(family, machine)
+        modules = RecordingModules.new(Image.of(machine).sections)
+        Image.setup(modules.machine).build.load_modules(modules)
+        modules.machine.text("written_by", "")
+        written = {}
+        fields = {}
+        modules.readers.each do |reader|
+          written[reader.name] = reader.tags
+          fields[reader.name] = reader.fields
+        end
+        Load.new(family:, written:, fields:)
+      end
+
+      def self.loads = machines.flat_map { |family, list| list.map { |machine| load(family, machine) } }
+
+      # The doc, as markdown.
+      def self.markdown(loads = self.loads) = Markdown.new(loads).to_s
+
+      def self.write(path = PATH) = File.write(path, markdown)
+    end
+  end
+end
+
+require "badline/snapshot/field_doc/markdown"

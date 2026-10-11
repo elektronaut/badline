@@ -6,20 +6,22 @@ require_relative "taken_once"
 # screens show.
 module C128Boot
   # A machine built for +mode+, with the 40/80 key down when +display_key+,
-  # run to the cycle its KERNAL has booted by, once for every example that
-  # asks for it. Examples read it, and run on from a machine #booted
+  # run to the cycle its KERNAL has booted by and on to the next
+  # instruction boundary, where a snapshot saves it, once for every example
+  # that asks for it. Examples read it, and run on from a machine #booted
   # restores.
   def booted_once(mode = :c64, display_key: false)
     TakenOnce.fetch([:c128_booted, mode, display_key]) do
       Badline::C128.new(mode:).tap do |booting|
         booting.press_display_key if display_key
         booting.run_cycles(booting.init_threshold)
+        booting.settle_for_snapshot!
       end
     end
   end
 
   # A new machine where #booted_once's machine stands.
-  def booted(mode = :c64) = Badline::C128.restored(booted_once(mode).snapshot)
+  def booted(mode = :c64) = TakenOnce.fetch([:c128_booted_image, mode]) { booted_once(mode).snapshot }.load
 
   # Runs the machine on to +cycles+ since power-on.
   def run_to(cycles) = machine.run_cycles(cycles - machine.cycles)

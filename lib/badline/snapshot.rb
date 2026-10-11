@@ -12,13 +12,12 @@ require "badline/snapshot/image"
 module Badline
   # Saves and restores the whole machine in VICE's .vsf snapshot format.
   #
-  # A snapshot badline writes carries VICE's modules for what both
-  # emulators model, and a BADLINE module holding the State
-  # C64#snapshot takes, with everything badline needs to carry on
-  # exactly where it stopped. VICE skips modules it doesn't know. Restoring
-  # a badline snapshot uses the BADLINE module alone; a snapshot from VICE
-  # restores through its modules, as far as they map, and reports the
-  # modules badline doesn't take.
+  # A snapshot badline writes holds the machine as BL-* modules, one per
+  # unit, each a list of keyed records (Snapshot::Keyed), which later
+  # badlines read: doc/snapshot-format.md lists them. VICE skips modules it
+  # doesn't know. An export for VICE puts VICE's own modules for the C64
+  # ahead of them. A snapshot from VICE restores through its modules, as
+  # far as they map, and reports the modules badline doesn't take.
   module Snapshot
     module_function
 
@@ -27,22 +26,21 @@ module Badline
       path
     end
 
+    # Saves the machine's snapshot with VICE's modules ahead of its own for
+    # a C64, so x64sc opens it too.
+    def export(computer, path)
+      File.binwrite(path, Image.exported(computer).to_s)
+      path
+    end
+
     # The machine's snapshot file. Saving first runs the machine on to the
     # end of the instruction its CPU is in, and of an REU transfer under
     # way (Machine::Settling), so a save advances it by a few cycles, and a
     # second save straight after runs none. A VIC-20's or a C128's snapshot
-    # holds the BADLINE module alone, in a container named as xvic or x128
-    # names its machine.
-    def dump(computer)
-      computer.settle_for_snapshot!
-      state = computer.snapshot
-      return Container.new([MachineState.section(state)], machine: Container::VIC20).to_s if computer.family == :vic20
-      return Container.new([MachineState.section(state)], machine: Container::C128).to_s if computer.family == :c128
+    # is in a container named as xvic or x128 names its machine.
+    def dump(computer) = Image.of(computer).to_s
 
-      Container.new(Vice.export(computer) + [MachineState.section(state)]).to_s
-    end
-
-    def read(path) = Image.new(Container.parse(File.binread(path)))
+    def read(path) = Image.new(Container.parse(File.binread(path)), name: File.basename(path))
 
     # A new machine, built as the snapshot's was and restored from it.
     # Yields a line for each thing it leaves out.
@@ -53,12 +51,32 @@ module Badline
     # snapshot that fails leaves the machine as it was.
     def restore(computer, path, &) = read(path).restore(computer, &)
 
-    # A machine's snapshots as .vsf files. C64, Vic20 and C128 each
-    # include it.
+    # A machine's snapshots, as .vsf files and in memory. C64, Vic20 and
+    # C128 each include it.
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
 
+      # Saves the snapshot with VICE's modules too, for a C64, so x64sc
+      # opens it as well as badline.
+      def export_snapshot(path) = Snapshot.export(self, path)
+
       def restore_snapshot(path, &) = Snapshot.restore(self, path, &)
+
+      # The machine's snapshot in memory (Image.of), which settles it as a
+      # save does.
+      def snapshot = Image.of(self)
+
+      # Takes the machine back to an Image from #snapshot. The machine keeps
+      # its chips, its traps and its callbacks, and puts in the cartridge,
+      # drives and tape the image has, taking out any it hasn't. Raises
+      # Snapshot::FormatError for an image of a machine built another way.
+      # The image goes into a new machine first, so one that fails leaves
+      # this machine as it was. What it leaves out goes unsaid:
+      # Image#restore returns it in a Report.
+      def restore(image)
+        image.restore(self) { nil }
+        self
+      end
     end
   end
 

@@ -91,16 +91,13 @@ describe Badline::C64::Cartridge, "#save_state" do
   end
 
   describe "in a machine", :slow do
-    def restored(computer)
-      state = computer.snapshot
-      Badline::C64.setup(state).build.restore(state)
-    end
+    def restored(computer) = computer.snapshot.load
 
     def machine(cartridge) = run(Badline::C64.new.tap { |computer| computer.attach_cartridge(cartridge) }, 10_001)
 
     it "builds the EasyFlash again in a machine without one" do
       computer = machine(cartridge(32, banks(2) + banks(2, address: 0xa000)))
-      expect(state_differences(computer, restored(computer))).to be_empty
+      expect(restored(computer).snapshot).to eq(computer.snapshot)
     end
 
     it "builds the GEO-RAM again, with its RAM, and runs on alike" do

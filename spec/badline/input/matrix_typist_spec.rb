@@ -57,4 +57,37 @@ describe Badline::Input::MatrixTypist do
     type((3 * (described_class::HOLD + described_class::GAP)) + 1)
     expect(typist.typing?).to be(false)
   end
+
+  describe "in a snapshot" do
+    let(:other_keyboard) { Badline::Input::Keyboard.new }
+    let(:copy) { described_class.new(other_keyboard) }
+
+    # Saved part way through the second code's hold, loaded into a typist
+    # on another keyboard.
+    before do
+      type(described_class::HOLD + described_class::GAP + 500)
+      out = Badline::Snapshot::Keyed::Writer.new
+      typist.save_fields(out, "host.typist.")
+      copy.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-MACHINE")), "host.typist.")
+    end
+
+    it "presses the keys held" do
+      expect(other_keyboard.keys).to eq(%i[lshift i])
+    end
+
+    # Both typists on, each with its own copy of the codes left, as the
+    # keys they hold and whether they are typing, every cycle.
+    def timelines
+      rest = codes.dup
+      Array.new(described_class::HOLD + described_class::GAP + 10) do
+        typist.cycle!(codes)
+        copy.cycle!(rest)
+        [[keyboard.keys.dup, typist.typing?], [other_keyboard.keys.dup, copy.typing?]]
+      end
+    end
+
+    it "types on as the saved one does" do
+      expect(timelines).to all(satisfy { |ours, theirs| ours == theirs })
+    end
+  end
 end

@@ -209,21 +209,18 @@ jobs:
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
             require "badline/support"
+            require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/ready.vsf")
             again = Badline::Snapshot.load("tmp/native/again.vsf")
             (again.cycles - saved.cycles).times { saved.cycle! }
             ours = Badline::Support::Checkpoint.take(saved)
             theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
-            [saved, again].each do |machine|
-              machine.settle_for_snapshot!
-              machine.sid.voices.each { |voice| voice.waveform.output }
-            end
-            ours = saved.snapshot
-            theirs = again.snapshot
+            ours = Badline::Snapshot.dump(saved)
+            theirs = Badline::Snapshot.dump(again)
             unless ours == theirs
-              first = ours.values.each_index.find { |i| ours.values[i] != theirs.values[i] }
-              abort "the restored native machine holds another state than the CRuby machine, from value #{first.inspect}"
+              abort "the restored native machine holds another state than the CRuby machine: " \
+                    "#{SnapshotTracing.differences(ours, theirs).first(5).join("; ")}"
             end
             puts "restored and ran on to cycle #{again.cycles} as CRuby does"'
       # Saved 200 frames in, the true drive is loading the program the
@@ -251,6 +248,7 @@ jobs:
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
             require "badline/support"
+            require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/drive.vsf")
             again = Badline::Snapshot.load("tmp/native/drive-again.vsf")
             abort "the snapshot has no true drive" unless saved.drive1541 && again.drive1541
@@ -262,6 +260,12 @@ jobs:
             drive = ->(machine) { [machine.drive1541.cpu.program_counter, machine.drive1541.cycles,
                                    machine.drive1541.bus.ram.read(0, 0x800)] }
             abort "the restored native drive ran on differently" unless drive.call(saved) == drive.call(again)
+            ours = Badline::Snapshot.dump(saved)
+            theirs = Badline::Snapshot.dump(again)
+            unless ours == theirs
+              abort "the restored native machine and drive hold another state than CRuby: " \
+                    "#{SnapshotTracing.differences(ours, theirs).first(5).join("; ")}"
+            end
             puts "restored mid-load and ran on to cycle #{again.cycles} with the drive as CRuby does"'
       # The C128 typing print 6*7 on its VIC-IIe, then running a BASIC
       # loop that sets up the VDC's raster with a solid cursor, and showing
@@ -302,6 +306,7 @@ jobs:
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
             require "badline/support"
+            require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/c128.vsf")
             again = Badline::Snapshot.load("tmp/native/c128-again.vsf")
             abort "the snapshot is no C128DCR" unless saved.model.name == "c128dcr" && again.model.name == "c128dcr"
@@ -309,15 +314,11 @@ jobs:
             ours = Badline::Support::Checkpoint.take(saved)
             theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native C128 ran on differently: #{ours.differences(theirs)}" unless ours == theirs
-            [saved, again].each do |machine|
-              machine.settle_for_snapshot!
-              machine.sid.voices.each { |voice| voice.waveform.output }
-            end
-            ours = saved.snapshot
-            theirs = again.snapshot
+            ours = Badline::Snapshot.dump(saved)
+            theirs = Badline::Snapshot.dump(again)
             unless ours == theirs
-              first = ours.values.each_index.find { |i| ours.values[i] != theirs.values[i] }
-              abort "the restored native C128 holds another state than the CRuby one, from value #{first.inspect}"
+              abort "the restored native C128 holds another state than the CRuby one: " \
+                    "#{SnapshotTracing.differences(ours, theirs).first(5).join("; ")}"
             end
             puts "restored the C128 and ran on to cycle #{again.cycles} as CRuby does"'
       - name: Upload the screenshot

@@ -39,6 +39,7 @@ module Badline
       def initialize(keyboard)
         @keyboard = keyboard
         @held = []
+        @code = 0
         @wait = 0
         @typing = false
       end
@@ -62,13 +63,33 @@ module Badline
         end
       end
 
+      # Where it is in its typing, in a keyed snapshot module under `prefix`:
+      # the code whose keys are down, if any, the cycles left before they
+      # go up or the next code's go down, and whether it is part way
+      # through. The keys go down again on load.
+      def save_fields(out, prefix)
+        out.optional_int("#{prefix}code", @held.empty? ? nil : @code)
+        out.int("#{prefix}wait", @wait).bool("#{prefix}typing", @typing)
+      end
+
+      def load_fields(input, prefix)
+        @held.each { |key| @keyboard.release(key) }
+        code = input.optional_int("#{prefix}code")
+        @code = code || 0
+        @held = code.nil? ? [] : MatrixTypist.keys(code)
+        @held.each { |key| @keyboard.press(key) }
+        @wait = input.int("#{prefix}wait", @wait)
+        @typing = input.bool("#{prefix}typing", @typing)
+      end
+
       private
 
       def press(codes)
         @typing = !codes.empty?
         return unless @typing
 
-        @held = MatrixTypist.keys(codes.shift)
+        @code = codes.shift
+        @held = MatrixTypist.keys(@code)
         @held.each { |key| @keyboard.press(key) }
         @wait = @held.empty? ? 1 : HOLD
       end

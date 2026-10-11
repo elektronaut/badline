@@ -227,6 +227,15 @@ end
 desc "Build the native badline (native:build)"
 task native: "native:build"
 
+namespace :snapshot do
+  desc "Write doc/snapshot-format.md, each snapshot module's keys, types and defaults, from the code that loads them"
+  task :fields do
+    $LOAD_PATH.unshift(File.expand_path("lib", __dir__))
+    require "badline/snapshot/field_doc"
+    Badline::Snapshot::FieldDoc.write
+  end
+end
+
 Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
 end

@@ -40,6 +40,15 @@ module Badline
         raise FormatError, "#{NAME} is damaged: #{e.message}"
       end
 
+      # The badline version that saved a BADLINE module, the string after
+      # its marker, for the refusal of the old layout.
+      def written_by(section)
+        state = decode(Zlib.inflate(section.data))
+        state.strings.fetch(1, "").to_s
+      rescue Zlib::Error, FormatError
+        "an earlier version"
+      end
+
       def encode(state)
         values = state.values
         strings = state.strings

@@ -17,6 +17,22 @@ module Badline
           @data = input.byte("#{prefix}data", @data)
         end
 
+        # Both banks of colour RAM as bank0 and bank1.
+        def save_color_fields(out)
+          @color_lines.color_ram(0).save_fields(out, "bank0")
+          @color_lines.color_ram(1).save_fields(out, "bank1")
+        end
+
+        def load_color_fields(input)
+          @color_lines.color_ram(0).load_fields(input, "bank0")
+          @color_lines.color_ram(1).load_fields(input, "bank1")
+        end
+
+        # The 8502's port, as the C64's (C64::Bus::KeyedState).
+        def save_port_fields(out) = @cpu_port.save_fields(out, "port.")
+
+        def load_port_fields(input) = @cpu_port.load_fields(input, "port.")
+
         def restored!
           update_overlays!
           @control_ports.extra_rows = 0xf8 | @vic.extra_keyboard_lines

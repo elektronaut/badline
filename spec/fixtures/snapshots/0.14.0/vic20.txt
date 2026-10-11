@@ -1,0 +1,23 @@
+**** cbm basic v2 ****
+
+3583 bytes free
+
+ready.
+print 6*7
+ 42
+
+ready.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

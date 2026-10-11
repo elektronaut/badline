@@ -860,6 +860,10 @@ describe Badline::Options do
       expect(parse("--frames", "10", "--save-snapshot", "ready.vsf").save_snapshot).to eq("ready.vsf")
     end
 
+    it "saves the snapshot for VICE too with --vice" do
+      expect(parse("--frames", "10", "--save-snapshot", "ready.vsf", "--vice").vice?).to be(true)
+    end
+
     it "knows a .vsf snapshot among the media" do
       path = File.join(dir, "saved.VSF").tap { |file| File.write(file, "") }
       expect(parse(path).snapshot?).to be(true)
@@ -871,7 +875,7 @@ describe Badline::Options do
 
     it "lists every option in the help" do
       %w[--subtune --sid --no-autostart --true-drive --reu --model --ntsc --sound --no-sound --no-vsync --verbose --help
-         --version --frames --unpaced --screenshot --save-snapshot --headless --audio-out --seconds --songlengths
+         --version --frames --unpaced --screenshot --save-snapshot --vice --headless --audio-out --seconds --songlengths
          --rate --filter-chunk --quiet --no-tui --all-subtunes].each do |flag|
         expect(help).to include(flag)
       end

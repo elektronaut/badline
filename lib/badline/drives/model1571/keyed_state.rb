@@ -63,6 +63,43 @@ module Badline
           push_fast_output(@fast_serial_out ? fast_pins : 0)
           forget_orbits
         end
+
+        # The drive as modules of its own, as the 1541's, with the CIA and
+        # the WD1770.
+        def save_modules(sections, name)
+          sections << Snapshot::Keyed.section(name) { |out| save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-RAM") { |out| @bus.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-VIA1") { |out| @via1.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-VIA2") { |out| @via2.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-CIA") { |out| @cia.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-CPU") { |out| @cpu.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-FDC") { |out| @fdc.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-MECH") { |out| @mechanism.save_fields(out) }
+          disk = @mechanism.disk
+          sections << Snapshot::Keyed.section("#{name}-DISK") { |out| disk.save_fields(out) } if disk
+          sections
+        end
+
+        # The drive from its modules, `input` being its own. The WD1770
+        # counts from the CPU's cycles, so it loads after the CPU.
+        def load_modules(modules, input, name)
+          load_fields(input)
+          @bus.load_fields(modules.required("#{name}-RAM"))
+          @via1.load_fields(modules.required("#{name}-VIA1"))
+          @via2.load_fields(modules.required("#{name}-VIA2"))
+          @cia.load_fields(modules.required("#{name}-CIA"))
+          @cpu.load_fields(modules.required("#{name}-CPU"))
+          @fdc.load_fields(modules.required("#{name}-FDC"))
+          disk = modules.optional("#{name}-DISK")
+          mechanism = modules.required("#{name}-MECH")
+          @mechanism.load_fields(mechanism,
+                                 disk.nil? ? nil : Model1541::Disk.from_fields(disk, detached: modules.detached?))
+          @via1.restored!
+          @via2.restored!
+          @cia.restored!
+          @cpu.restored!
+          restored!
+        end
       end
 
       include KeyedState

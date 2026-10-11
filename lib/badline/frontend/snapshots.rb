@@ -20,6 +20,7 @@ module Badline
       def initialize(computer, options)
         @computer = computer
         @at_finish = options.save_snapshot
+        @vice = options.vice?
         @autosave = options.frames.zero?
         @autosave_at = AUTOSAVE_FRAMES
       end
@@ -128,10 +129,20 @@ module Badline
       end
 
       def finish
-        save(@at_finish) unless @at_finish.empty?
+        return if @at_finish.empty?
+
+        @vice ? export(@at_finish) : save(@at_finish)
       end
 
       private
+
+      # Saves the machine with VICE's modules too, and warns when it can't.
+      def export(path)
+        @computer.export_snapshot(path)
+        puts "Saved #{path} for badline and VICE"
+      rescue Snapshot::FormatError, SystemCallError => e
+        warn "badline: #{path}: #{e.message}"
+      end
 
       def restore_from(path)
         @computer = Snapshot.load(path) { |line| puts line }

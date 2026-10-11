@@ -10,7 +10,12 @@ require_relative "../../../../test/support/snapshot_cartridges"
 module CartridgeKeyedSamples
   module_function
 
-  def positional(cartridge) = SnapshotCartridges.save(cartridge).state
+  def positional(cartridge)
+    out = Badline::Snapshot::StateWriter.new
+    cartridge.save_setup(out)
+    cartridge.save_state(out)
+    out.state
+  end
 
   def problems
     @problems ||= SnapshotCartridges.scenarios.flat_map do |name, cartridge|
