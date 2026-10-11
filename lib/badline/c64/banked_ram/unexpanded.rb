@@ -21,6 +21,10 @@ module Badline
 
         def load_state(_input); end
 
+        def save_fields(_out); end
+
+        def load_fields(_input); end
+
         def reset!; end
 
         def power_on!; end

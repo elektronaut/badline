@@ -37,6 +37,11 @@ module Badline
       input.blob_into(@storage)
     end
 
+    # Every byte as one record of a keyed snapshot module, under `key`.
+    def save_fields(out, key) = out.bytes(key, @storage)
+
+    def load_fields(input, key) = input.bytes_into(key, @storage)
+
     # Refills the whole memory as if newly built with `initial`
     def clear!(initial = [])
       @storage.replace(zero_fill(initial))
