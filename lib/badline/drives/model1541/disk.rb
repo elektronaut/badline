@@ -65,12 +65,12 @@ module Badline
         end
 
         # The image at +path+, by its name: a .g64 or .g71, a .d71, and
-        # anything else a .d64.
-        def self.image_for(path, read_only)
-          return Storage::G64Image.new(path, read_only:) if SavedState.g64?(path)
-          return Storage::D71Image.new(path, read_only:) if File.extname(path).casecmp?(".d71")
+        # anything else a .d64. `bytes` stands in for the file's contents.
+        def self.image_for(path, read_only, bytes = nil)
+          return Storage::G64Image.new(path, read_only:, bytes:) if SavedState.g64?(path)
+          return Storage::D71Image.new(path, read_only:, bytes:) if File.extname(path).casecmp?(".d71")
 
-          Storage::D64Image.new(path, read_only:)
+          Storage::D64Image.new(path, read_only:, bytes:)
         end
 
         # A disk from a G64 or G71 image, each half track as the image stores

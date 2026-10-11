@@ -29,8 +29,12 @@ module Badline
       # instructions.
       def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
 
-      # The SID's deferred cycles and writes, run up to this cycle.
-      def settle_chips_for_snapshot = sid.catch_up!
+      # The SID's deferred cycles and writes, run up to this cycle, and the
+      # VIC's sprite collisions latched up to the beam.
+      def settle_chips_for_snapshot
+        sid.catch_up!
+        @vic.fold_collisions!
+      end
 
       def snapshot
         out = Snapshot::StateWriter.new

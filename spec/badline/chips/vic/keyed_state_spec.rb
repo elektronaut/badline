@@ -90,12 +90,20 @@ describe Badline::Chips::VIC::KeyedState do
     let(:machine) { VICKeyedSamples.demo_machine.tap { |c64| c64.run_cycles(30_017) } }
     let(:target) { Badline::Chips::VIC.new }
 
-    before do
+    let(:input) do
       out = Badline::Snapshot::Keyed::Writer.new
       machine.vic.save_fields(out)
       out.int("line.layout", 99)
-      target.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-VIC")))
+      Badline::Snapshot::Keyed::Reader.parse(out.section("BL-VIC"))
+    end
+
+    before do
+      target.load_fields(input)
       target.restored!
+    end
+
+    it "reports the line restarted" do
+      expect(input.report.adjusted).to include("line in progress from another renderer, restarted")
     end
 
     it "keeps the beam and the registers" do

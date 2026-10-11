@@ -47,6 +47,7 @@ module Badline
           @registers.load_fields(input)
           @display_state.load_fields(input)
           line = input.int("line.layout", 0) == LINE_LAYOUT
+          input.adjust("line in progress from another renderer, restarted") unless line || input.missing?
           @sequencer.load_fields(input, "line.", line)
           @sprites.load_fields(input, "line.", line)
           load_display_fields(input)

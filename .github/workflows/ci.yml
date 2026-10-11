@@ -201,7 +201,7 @@ jobs:
             theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             [saved, again].each do |machine|
-              machine.sid.catch_up!
+              machine.settle_for_snapshot!
               machine.sid.voices.each { |voice| voice.waveform.output }
             end
             ours = saved.snapshot
@@ -295,7 +295,7 @@ jobs:
             theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native C128 ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             [saved, again].each do |machine|
-              machine.sid.catch_up!
+              machine.settle_for_snapshot!
               machine.sid.voices.each { |voice| voice.waveform.output }
             end
             ours = saved.snapshot

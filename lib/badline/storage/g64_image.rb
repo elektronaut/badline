@@ -66,14 +66,19 @@ module Badline
         [bytes.length].pack("v") + bytes.pack("C*").ljust(size, "\x00".b)
       end
 
-      attr_reader :half_tracks, :max_track_size
+      attr_reader :half_tracks, :max_track_size, :path
 
-      def initialize(path, read_only: false)
+      # `bytes` stands in for the host file's contents, as a snapshot
+      # restores the image as it was.
+      def initialize(path, read_only: false, bytes: nil)
         @path = path
         @read_only = read_only
-        @data = File.binread(path)
+        @data = bytes ? bytes.pack("C*") : File.binread(path)
         parse
       end
+
+      # The image as its file holds it.
+      def contents = @data.bytes
 
       # Whether the image was opened write-protected.
       def read_only? = @read_only
