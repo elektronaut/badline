@@ -25,6 +25,7 @@ module Testbench
     # C128 row's its model, its mode, and its true drive and disk image.
     def self.spec(test)
       return vic20_spec(test) if test.vic20?
+      return plus4_spec(test) if test.plus4?
       return c128_spec(test) if test.c128?
 
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
@@ -36,6 +37,11 @@ module Testbench
     def self.vic20_spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
        test.ram_configuration].join("\t") << "\n"
+    end
+
+    def self.plus4_spec(test)
+      [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
+       test.plus4_model].join("\t") << "\n"
     end
 
     def self.c128_spec(test)

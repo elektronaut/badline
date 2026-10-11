@@ -89,6 +89,10 @@ module Suites
   # timing in 1 MHz cycles, the OUTI and page relocation checks, and the Z80
   # side of c64modemmu. testbench-c128-zex is its zex128 rows, ZEXDOC and
   # ZEXALL, which run for 50 billion cycles in all, so CI leaves them out.
+  # testbench-plus4 is the 264 testlist's exitcode rows on a PAL Plus/4
+  # with a 1551's TCBM interface plugged in, as xplus4 starts, and
+  # testbench-c16 the same rows on a 16K C16. Their Spinel build is
+  # spinel/plus4_testbench.rb.
   # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
   # untagged programs; :args go to the runner as they are.
   # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -121,6 +125,8 @@ module Suites
                               engine: "c128_testbench" },
     "testbench-c128-zex" => { runner: "bin/testbench", args: %w[--c128-z80], scope: "c128/z80/zex128/",
                               engine: "c128_testbench" },
+    "testbench-plus4" => { runner: "bin/testbench", args: %w[--plus4], engine: "plus4_testbench" },
+    "testbench-c16" => { runner: "bin/testbench", args: %w[--c16], engine: "plus4_testbench" },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },
     "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] }
