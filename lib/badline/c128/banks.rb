@@ -21,9 +21,7 @@ module Badline
       # The CR value the KERNAL's table holds for the bank.
       def configuration(bank) = @kernal_rom.peek(CONFIGURATIONS + (bank & 0x0f))
 
-      def write(bank, addr, bytes)
-        bytes.each_with_index { |byte, i| @ram.poke(physical(bank, (addr + i) & 0xffff), byte) }
-      end
+      def poke(bank, addr, value) = @ram.poke(physical(bank, addr), value)
 
       private
 

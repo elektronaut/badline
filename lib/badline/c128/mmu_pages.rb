@@ -66,6 +66,13 @@ module Badline
           @bank_io_reads[addr >> 8].peek(addr)
         end
 
+        # Writes the chip at +addr+, in $D000-$DFFF, as C128 mode's I/O maps it.
+        def bank_io_poke(addr, value)
+          lay_out_io(@bank_io_reads, @bank_io_writes)
+          @bank_io_writes[0xd5] = @mmu
+          @bank_io_writes[addr >> 8].poke(addr, value)
+        end
+
         # The bank CR picks, with common RAM in bank 0, then the pages page 0
         # and page 1 move to.
         def map_ram_pages
