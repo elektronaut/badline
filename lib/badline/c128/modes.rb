@@ -49,6 +49,23 @@ module Badline
       def keyboard_buffer
         mode == :c64 ? Machine::KeyboardBuffer::C64_LAYOUT : Machine::KeyboardBuffer::C128_LAYOUT
       end
+
+      # Types the text type_text left: into the keyboard buffer, or while
+      # the Z80 runs, as under CP/M, where no KERNAL reads the buffer, on
+      # the key matrix, all of it once begun there.
+      def type_pending
+        if @z80_running || @typist.typing?
+          type_on_matrix
+        else
+          feed_keyboard
+        end
+      end
+
+      def type_on_matrix
+        pending = @pending_keys
+        @typist.cycle!(pending)
+        @pending_keys = nil if pending.empty? && !@typist.typing?
+      end
     end
   end
 end
