@@ -80,6 +80,67 @@ describe Badline::Plus4 do
     end
   end
 
+  describe "#attach_drive1541" do
+    let(:machine) { described_class.new }
+    let(:drive) { Badline::Drives::Model1541.new }
+
+    # Calls TALK for device 8 with a return address on the stack, and
+    # returns where the CPU went: back to the caller when a trap answers.
+    def talk_to_device8
+      machine.ram.write(0x01fe, [0x33, 0x12])
+      machine.cpu.stack_pointer = 0xfd
+      machine.cpu.a = 8
+      machine.cpu.program_counter = Badline::KernalTrap::PLUS4_LAYOUT.talk
+      machine.cpu.cycle!
+      machine.cpu.program_counter
+    end
+
+    before do
+      machine.mount(Badline::Storage::HostDirectory.new(Dir.tmpdir))
+      machine.attach_drive1541(drive)
+    end
+
+    it "puts the drive on the serial bus" do
+      expect(machine.iec_bus.drives).to eq([drive])
+    end
+
+    it "waits for the drive to boot before the on_init handlers" do
+      expect(machine.init_threshold).to eq(described_class::DRIVE_BOOT_CYCLES)
+    end
+
+    it "leaves device 8's serial traffic to the drive" do
+      expect(talk_to_device8).to eq(Badline::KernalTrap::PLUS4_LAYOUT.talk + 1)
+    end
+
+    it "gives device 8 back to the traps once the drive is unplugged" do
+      machine.detach_drive1541
+      expect(talk_to_device8).to eq(0x1235)
+    end
+
+    # TALK and LISTEN try a 1551's TCBM interface for devices 8 and 9
+    # before the serial bus, and the traps answer device 8 ahead of that.
+    context "with a 1551's TCBM interface plugged in" do
+      let(:machine) { described_class.new(tcbm: true) }
+
+      it "answers device 8 from the traps before the KERNAL probes it" do
+        machine.detach_drive1541
+        expect(talk_to_device8).to eq(0x1235)
+      end
+    end
+
+    it "lets the drive see ATN as the port pulls it" do
+      machine.poke(0x00, 0x07)
+      machine.poke(0x01, 0x04)
+      expect(drive.serial_bus.atn_low?).to be(true)
+    end
+  end
+
+  it "waits for a 1581 to boot before the on_init handlers" do
+    machine = described_class.new
+    machine.attach_drive1581(Badline::Drives::Model1581.new)
+    expect(machine.init_threshold).to eq(Badline::Drives::Model1581::BOOT_CYCLES)
+  end
+
   it "captures what the KERNAL prints" do
     machine = described_class.new(model: "c16")
     capture = machine.capture_output
