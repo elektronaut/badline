@@ -64,6 +64,7 @@ module Badline
         def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
         def select(number)
+          @bank = number
           @io_bank = @roml = bank(@roml_banks, number)
           @romh = bank(@romh_banks, number)
         end

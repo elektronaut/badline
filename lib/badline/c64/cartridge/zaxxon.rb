@@ -26,6 +26,7 @@ module Badline
           end
 
           def select(number)
+            @number = number
             @bank = @banks[number] || EMPTY_BANK
           end
 

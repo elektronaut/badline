@@ -33,6 +33,7 @@ module Badline
         def windows = [*@roml_banks, *@romh_banks, *@ram_banks, @open_bus || EMPTY_BANK, EMPTY_BANK]
 
         def select(value)
+          @control = value
           half = (value >> 1) & 0x01
           chip = (value >> 2) & 0x03
           @roml, @romh = window(chip, half)

@@ -152,9 +152,9 @@ module Badline
 
       private
 
-      # The banks and views ROML and ROMH can point at, which a snapshot
-      # names them by: the mapper's banks, or nothing for a mapper whose
-      # windows stay where install_chips put them.
+      # The banks and views ROML and ROMH can point at, which a 0.14.0
+      # snapshot names them by: the mapper's banks, or nothing for a mapper
+      # whose windows stay where install_chips put them.
       def windows
         [*@banks, EMPTY_BANK] if @banks
       end

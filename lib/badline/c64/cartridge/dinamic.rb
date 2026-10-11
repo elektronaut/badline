@@ -12,13 +12,15 @@ module Badline
 
         def peek(addr)
           if addr < 0xde10
-            @roml = bank(@banks, addr & 0x0f)
+            @bank = addr & 0x0f
+            @roml = bank(@banks, @bank)
             changed!
           end
           open_bus(addr)
         end
 
         def reset
+          @bank = 0
           @roml = bank(@banks, 0)
           changed!
         end

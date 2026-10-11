@@ -24,8 +24,9 @@ module Badline
         def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
         def select(value)
-          @roml = bank(@roml_banks, value & 0x03)
-          @romh = bank(@romh_banks, value & 0x03)
+          @bank = value & 0x03
+          @roml = bank(@roml_banks, @bank)
+          @romh = bank(@romh_banks, @bank)
           self.mode = value.anybits?(0x04) ? :off : :rom16k
           @locked = value.anybits?(0x08)
         end

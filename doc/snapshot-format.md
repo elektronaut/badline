@@ -483,8 +483,8 @@ Written by the C64, VIC-20.
 | --- | --- | --- |
 | `geo_ram_kb` | int | C64: 0 |
 | `crt` | bytes | C64: [] |
-| `exrom` | int & 0x1 | C64: 1 |
-| `game` | int & 0x1 | C64: 0 |
+| `exrom` | int & 0x1 | C64: 1 or 0 |
+| `game` | int & 0x1 | C64: 0 or 1 |
 | `nmi` | bool | C64: false |
 | `button` | bool | C64: false |
 | `bank` | int | C64: 0 |
@@ -512,6 +512,10 @@ Written by the C64, VIC-20.
 | `flash_high.erasing_sectors` | ints | C64: [] |
 | `flash_high.windows` | ints | C64: [] |
 | `flash_high.status_windows` | ints | C64: [] |
+| `high_bank` | int | C64: 0 |
+| `active` | bool | C64: true |
+| `ram` | bytes | C64: 8192 × 0 |
+| `ram<N>.data` | bytes | C64: 8192 × 0 |
 | `roms` | int | VIC-20: 0 |
 | `rom0.bytes` | bytes | VIC-20: [] |
 | `rom0.start` | word | VIC-20: 0 |

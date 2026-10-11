@@ -22,6 +22,10 @@ module Badline
         include Freezer
 
         CONTROL_MODES = %i[rom8k rom16k off ultimax].freeze
+
+        # Ultimax mode with the RAM at ROML and I/O 2 and the first bank at
+        # ROMH, as a freeze leaves the register.
+        FREEZE_CONTROL = 0x23
         IO2_PAGE = 0x1f00
 
         def connect(ram:, open_bus:)
@@ -59,8 +63,7 @@ module Badline
 
         def freeze!
           @active = true
-          @rom = bank(@rom_banks, 0)
-          select(:ultimax, @isolated, io2_ram: true)
+          control(FREEZE_CONTROL)
         end
 
         private
@@ -72,6 +75,7 @@ module Badline
         end
 
         def control(value)
+          @control = value
           self.nmi = false if value.anybits?(0x40)
           @rom = bank(@rom_banks, (value >> 3) & 0x03)
           configure(value)

@@ -6,9 +6,13 @@ module Badline
       # A cartridge's fields in a keyed snapshot module (Snapshot::Keyed,
       # BL-CART): the CRT image it was built from and its jumpers, which
       # build it again (Cartridge.from_fields), the EXROM and GAME lines,
-      # its pull on NMI, the button, and where ROML and ROMH point, each by
-      # the name of the bank or view it shows (window_labels), and whatever
-      # each mapper adds.
+      # its pull on NMI, the button, and each mapper's own registers, from
+      # which a load works out where ROML and ROMH point again.
+      #
+      # Snapshots from 0.14.0 name the bank or view each window shows
+      # instead (window_labels), under roml and romh. A load reads those
+      # when the mapper's register isn't there, and works the register out
+      # from the windows.
       module KeyedState
         def save_fields(out)
           save_setup_fields(out)
@@ -34,12 +38,28 @@ module Badline
 
         def save_jumper_fields(_out); end
 
-        def save_mapper_fields(out)
-          save_window_fields(out)
+        def save_mapper_fields(_out); end
+
+        def load_mapper_fields(_input); end
+
+        # The register at `key`, cut to `mask`, or nil for a snapshot that
+        # names the windows instead, with the windows put back from their
+        # names.
+        def latch_or_windows(input, key, default, mask)
+          return input.masked(key, default, mask) if input.tags.key?(key)
+
+          load_window_fields(input)
+          nil
         end
 
-        def load_mapper_fields(input)
-          load_window_fields(input)
+        # The number of the bank among `banks` that `window` shows, or of the
+        # first the image leaves out for erased ROM.
+        def number_showing(banks, window)
+          number = banks.index { |each| each.equal?(window) }
+          return number if number
+          return 0 unless window.equal?(EMPTY_BANK)
+
+          banks.index(nil) || banks.length
         end
 
         # The name of each of `windows`, in the same order: bank<N> for the
@@ -49,21 +69,6 @@ module Badline
           return [] unless banks
 
           [*Array.new(banks.length) { |number| "bank#{number}" }, "empty"]
-        end
-
-        def save_window_fields(out)
-          choices = windows
-          return unless choices
-
-          labels = window_labels
-          save_window(out, "roml", @roml, choices, labels)
-          save_window(out, "romh", @romh, choices, labels)
-        end
-
-        def save_window(out, key, window, choices, labels)
-          return if window.nil?
-
-          out.text(key, labels.fetch(window_index(window, choices)))
         end
 
         def load_window_fields(input)
@@ -97,9 +102,48 @@ module Badline
         def from_jumper_fields(crt, _input) = new(crt)
       end
 
-      # Two banks of ROM, one behind each window: roml<N> and romh<N>.
+      # One bank register, under bank, selecting the bank ROML shows.
+      module BankLatch
+        private
+
+        def save_mapper_fields(out)
+          out.int("bank", @bank)
+        end
+
+        def load_mapper_fields(input)
+          latch = latch_or_windows(input, "bank", @bank, bank_latch_mask)
+          if latch.nil?
+            @bank = number_showing(@banks, @roml)
+          else
+            @bank = latch
+            show_bank
+          end
+        end
+
+        def show_bank
+          @roml = bank(@banks, @bank)
+        end
+      end
+
+      # Two banks of ROM, one behind each window: roml<N> and romh<N>, both
+      # selected by one bank register, under bank.
       module SplitBanks
         private
+
+        def save_mapper_fields(out)
+          out.int("bank", @bank)
+        end
+
+        def load_mapper_fields(input)
+          latch = latch_or_windows(input, "bank", @bank, bank_latch_mask)
+          if latch.nil?
+            @bank = number_showing(@roml_banks, @roml)
+          else
+            @bank = latch
+            @roml = bank(@roml_banks, @bank)
+            @romh = bank(@romh_banks, @bank)
+          end
+        end
 
         def window_labels
           [*Array.new(@roml_banks.length) { |number| "roml#{number}" },
@@ -107,10 +151,54 @@ module Badline
         end
       end
 
+      class Ocean
+        include BankLatch
+
+        private
+
+        def bank_latch_mask = @bank_mask
+
+        def show_bank = select_bank(@bank)
+      end
+
+      class FunPlay
+        include BankLatch
+
+        private
+
+        def bank_latch_mask = 0x0f
+      end
+
+      class GameSystem
+        include BankLatch
+
+        private
+
+        def bank_latch_mask = 0x3f
+      end
+
+      class Dinamic
+        include BankLatch
+
+        private
+
+        def bank_latch_mask = 0x0f
+      end
+
+      class MagicDesk
+        include BankLatch
+
+        private
+
+        def bank_latch_mask = @bank_mask
+      end
+
       class SuperGames
         include SplitBanks
 
         private
+
+        def bank_latch_mask = 0x03
 
         def save_mapper_fields(out)
           super
@@ -125,12 +213,18 @@ module Badline
 
       class Comal80
         include SplitBanks
+
+        private
+
+        def bank_latch_mask = 0x07
       end
 
       class FinalCartridge3
         include SplitBanks
 
         private
+
+        def bank_latch_mask = @bank_mask
 
         def save_mapper_fields(out)
           super
@@ -146,7 +240,11 @@ module Badline
       end
 
       class RGCD
+        include BankLatch
+
         private
+
+        def bank_latch_mask = @bank_mask
 
         def save_mapper_fields(out)
           super
@@ -162,12 +260,11 @@ module Badline
       class Zaxxon
         class High
           def save_fields(out)
-            out.int("high_bank", [*@banks, EMPTY_BANK].index { |bank| bank.equal?(@bank) }.to_i)
+            out.int("high_bank", @number)
           end
 
           def load_fields(input)
-            choices = [*@banks, EMPTY_BANK]
-            @bank = choices.fetch(input.int("high_bank", 0).clamp(0, choices.length - 1))
+            select(input.int("high_bank", 0).clamp(0, @banks.length))
           end
         end
 
@@ -204,18 +301,35 @@ module Badline
         end
 
         def save_mapper_fields(out)
-          super
-          out.text("rom", window_labels.fetch(window_index(@rom, windows))).bool("active", @active)
-          out.bool("io2_ram", @io2_ram).bytes("ram", @ram_data)
+          out.int("control", @control).bool("active", @active).bytes("ram", @ram_data)
         end
 
         def load_mapper_fields(input)
-          super
+          latch = latch_or_windows(input, "control", @control, 0xff)
+          if latch.nil?
+            load_legacy_fields(input)
+          else
+            @control = latch
+            @rom = bank(@rom_banks, (@control >> 3) & 0x03)
+            configure(@control)
+          end
+          @active = input.bool("active", @active)
+          input.bytes_into("ram", @ram_data)
+        end
+
+        # The ROM bank by name, and whether I/O 2 shows the RAM, from which
+        # the register is worked out.
+        def load_legacy_fields(input)
           labels = window_labels
           @rom = window_named(input.choice("rom", labels, "rom0"), windows, labels)
-          @active = input.bool("active", @active)
           @io2_ram = input.bool("io2_ram", @io2_ram)
-          input.bytes_into("ram", @ram_data)
+          number = number_showing(@rom_banks, @rom) << 3
+          @control = if @roml.equal?(@contended) || @romh.equal?(@isolated)
+                       0x22 | number
+                     else
+                       mode = @exrom.zero? ? 1 - @game : 3 - @game
+                       mode | (@io2_ram ? 0x20 : 0) | number
+                     end
         end
       end
 
@@ -237,12 +351,19 @@ module Badline
         end
 
         def save_mapper_fields(out)
-          super
+          out.int("control", @control)
           @ram_banks.each_with_index { |ram, number| out.bytes("ram#{number}.data", ram.data) }
         end
 
         def load_mapper_fields(input)
-          super
+          latch = latch_or_windows(input, "control", @control, 0xff)
+          if latch.nil?
+            selected = (0...8).find { |select| window(select >> 1, select & 0x01) == [@roml, @romh] } || 0
+            @control = (selected << 1) | (@exrom == 1 && @game == 1 ? 0x10 : 0)
+          else
+            @control = latch
+            @roml, @romh = window((@control >> 2) & 0x03, (@control >> 1) & 0x01)
+          end
           @ram_banks.each_with_index { |ram, number| input.bytes_into("ram#{number}.data", ram.data) }
         end
       end
