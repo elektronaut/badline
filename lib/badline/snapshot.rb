@@ -27,14 +27,19 @@ module Badline
       path
     end
 
-    # A VIC-20's or a C128's snapshot holds the BADLINE module alone, in a
-    # container named as xvic or x128 names its machine.
+    # The machine's snapshot file. Saving first runs the machine on to the
+    # end of the instruction its CPU is in, and of an REU transfer under
+    # way (Machine::Settling), so a save advances it by a few cycles, and a
+    # second save straight after runs none. A VIC-20's or a C128's snapshot
+    # holds the BADLINE module alone, in a container named as xvic or x128
+    # names its machine.
     def dump(computer)
+      computer.settle_for_snapshot!
       state = computer.snapshot
       return Container.new([MachineState.section(state)], machine: Container::VIC20).to_s if computer.family == :vic20
       return Container.new([MachineState.section(state)], machine: Container::C128).to_s if computer.family == :c128
 
-      Container.new(Vice.export(state) + [MachineState.section(state)]).to_s
+      Container.new(Vice.export(computer) + [MachineState.section(state)]).to_s
     end
 
     def read(path) = Image.new(Container.parse(File.binread(path)))

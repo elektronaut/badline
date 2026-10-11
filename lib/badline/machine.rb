@@ -2,6 +2,7 @@
 
 require "badline/machine/clocking"
 require "badline/machine/keyboard_buffer"
+require "badline/machine/settling"
 
 module Badline
   # = Machine

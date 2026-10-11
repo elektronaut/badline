@@ -105,6 +105,10 @@ module SnapshotScenarios
     Badline::C64.setup(state).build.restore(state)
   end
 
+  # A machine restored from `state` and settled as a save settles it
+  # (Machine::Settling), as Snapshot::Vice.export takes it.
+  def settled_copy(state) = Badline::C64.restored(state).tap(&:settle_for_snapshot!)
+
   def run(computer, cycles)
     cycles.times { computer.cycle! }
     computer

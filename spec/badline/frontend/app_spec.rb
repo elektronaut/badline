@@ -55,7 +55,7 @@ describe Badline::Frontend::App do
 
   it "saves --save-snapshot after the last frame" do
     run(argv: %w[--frames 2 --save-snapshot ready.vsf])
-    expect(Badline::Snapshot.load("ready.vsf").cycles).to eq(2 * frame_cycles)
+    expect(Badline::Snapshot.load("ready.vsf").cycles).to eq(computer.cycles)
   end
 
   describe "the timeline" do

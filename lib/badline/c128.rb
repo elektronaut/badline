@@ -45,6 +45,7 @@ module Badline
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include C64::Common
     include C64::Attachments
     include C64::KernalTraps

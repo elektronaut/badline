@@ -24,6 +24,13 @@ module Badline
       # yet to run than this one has. Nil until the machine is restored.
       attr_reader :init_handlers_lost
 
+      # Whether a snapshot file saves now (Machine::Settling): the CPU
+      # between instructions or jammed.
+      def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
+
+      # The sound runs up to the cycle as save_state writes it.
+      def settle_chips_for_snapshot = nil
+
       def snapshot
         out = Snapshot::StateWriter.new
         save_state(out)
