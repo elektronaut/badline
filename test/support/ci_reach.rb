@@ -24,6 +24,10 @@ module CIReach
   SID = %w[sid sid-8580 spinel:check_sid].freeze
   DRIVES = %w[testbench-drive drive-scenarios testbench-vic20].freeze
   CARTRIDGES = %w[testbench-carts testbench-expansions testbench-general].freeze
+  # Every family's keyboard is an Input::Keyboard, which the C64, VIC-20
+  # and C128 read their joysticks beside through the CIA and VIA ports and
+  # the C128 types through, and the paddles and mouse feed the SID's pots.
+  INPUT = (C64 + VIC20 + C128 + PLUS4 + SID).uniq.freeze
 
   # Patterns as File.fnmatch takes them with FNM_PATHNAME and FNM_EXTGLOB,
   # in order, each mapped to the suites a change there can move.
@@ -34,7 +38,7 @@ module CIReach
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{native,exe}/**/*", []],
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],
-    ["lib/badline/**/{saved_state,keyed_state,keyed_parts}.rb", []],
+    ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
     ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version}.rb", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
@@ -49,6 +53,7 @@ module CIReach
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
     ["lib/badline/{c128.rb,c128/**/*}", C128],
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
+    ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],
     ["lib/badline/drives/{model1571,model1581}{.rb,/**/*}", %w[drive-scenarios testbench-c128c64 testbench-c128]],
     ["lib/badline/drives/{engine,serial_bus}{.rb,/**/*}", DRIVES + %w[testbench-c128c64 testbench-c128]],
