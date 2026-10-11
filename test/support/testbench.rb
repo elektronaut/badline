@@ -779,7 +779,7 @@ module Testbench
     when :vic20 then Vic20Testlist.tests(argv, scope:, exclude:)
     when :c128c64 then C128Testlist.tests(argv, scope:, exclude:)
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
-    when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:)
+    when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:, ntsc: rows.standard == :ntsc)
     else Testlist.tests(argv, scope:, exclude:, rows:)
     end
   end

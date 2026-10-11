@@ -39,6 +39,7 @@ on:
           - testbench-c128-zex
           - testbench-plus4
           - testbench-c16
+          - testbench-plus4-ntsc
           - lorenz-plus4
           - sid-8580
           - drive-scenarios

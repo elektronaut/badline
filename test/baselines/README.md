@@ -189,6 +189,11 @@ Recorded output of the headless hardware suites, one file per suite:
 - `testbench-c16.txt` — the same rows with `--c16`, on a 16K PAL C16.
   `memory-expansions/c16-ram-emd.prg` fails there too, `$ff`, as on
   xplus4's 16K C16.
+- `testbench-plus4-ntsc.txt` — the same rows with `--plus4 --ntsc`, on an
+  NTSC Plus/4, as a `ted-ntsc` row asks. The testlist has no NTSC rows or
+  references, so a screenshot, 384 by 242 lines with the window from line
+  18, is compared with the PAL reference on the lines both show, the
+  window's corners lined up. Every row passes.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`

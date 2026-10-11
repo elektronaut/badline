@@ -91,7 +91,9 @@ module Suites
   # ZEXALL, which run for 50 billion cycles in all, so CI leaves them out.
   # testbench-plus4 is the 264 testlist's exitcode and screenshot rows on a PAL Plus/4
   # with a 1551's TCBM interface plugged in, as xplus4 starts, and
-  # testbench-c16 the same rows on a 16K C16. Their Spinel build is
+  # testbench-c16 the same rows on a 16K C16, and testbench-plus4-ntsc the
+  # same rows on an NTSC Plus/4, its screenshots compared with the PAL
+  # references on the lines both show. Their Spinel build is
   # spinel/plus4_testbench.rb.
   # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
   # PAL Plus/4, chained whole: none of its stretches has been checked to
@@ -131,6 +133,7 @@ module Suites
                               engine: "c128_testbench" },
     "testbench-plus4" => { runner: "bin/testbench", args: %w[--plus4], engine: "plus4_testbench" },
     "testbench-c16" => { runner: "bin/testbench", args: %w[--c16], engine: "plus4_testbench" },
+    "testbench-plus4-ntsc" => { runner: "bin/testbench", args: %w[--plus4 --ntsc], engine: "plus4_testbench" },
     "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: [] },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },

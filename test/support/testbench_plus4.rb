@@ -7,13 +7,16 @@ module Testbench
   PLUS4_TESTLIST = File.expand_path("../../vendor/VICE-testprogs/testbench/plus4-testlist.in", __dir__)
 
   # A TestCase's machine, when the row is the 264 series', and its run.
+  # The testlist option that asks for a 264's NTSC board.
+  TED_NTSC_OPTION = "ted-ntsc"
+
   module Plus4Row
     def plus4? = %i[plus4 c16].include?(family)
 
     # The model the row runs on: the family's, its NTSC board for ted-ntsc.
     def plus4_model
       model = family.to_s
-      options.include?("ted-ntsc") ? "#{model}ntsc" : model
+      options.include?(TED_NTSC_OPTION) ? "#{model}ntsc" : model
     end
 
     # The machine the row's tests fork from: booted, or at power-on for a
@@ -31,7 +34,9 @@ module Testbench
 
   # A 264 series screenshot against its reference, both cropped as xplus4
   # crops them. VICE's testbench compares them from (32, 35) on, and so
-  # does this. A reference pixel counts as the derived palette's colour
+  # does this. An NTSC screenshot, whose window starts 18 lines down
+  # where a PAL one's starts 40 down, is compared with a PAL reference on
+  # the lines both show, the window's corners lined up. A reference pixel counts as the derived palette's colour
   # nearest to it, so a picture matches as long as each colour the
   # reference shows is nearest to the one badline paints. Colour 0 is
   # black at every luminance, so it counts as index 0 whatever the
@@ -39,6 +44,9 @@ module Testbench
   class Plus4Screenshot
     LEFT = 32
     TOP = 35
+
+    # The line of each screenshot's height the window starts on.
+    WINDOW_TOPS = { 288 => 40, 242 => 18 }.freeze
 
     attr_reader :rows
 
@@ -49,14 +57,16 @@ module Testbench
     # The number of mismatched pixels, or :ref_size.
     def compare(test)
       png = ChunkyPNG::Image.from_file(test.reference)
-      return :ref_size unless png.width == rows.first.length && png.height == rows.length
+      return :ref_size unless png.width == rows.first.length && WINDOW_TOPS.key?(png.height)
 
+      shift = WINDOW_TOPS.fetch(png.height) - WINDOW_TOPS.fetch(rows.length)
       cache = {}
       diff = 0
       (TOP...png.height).each do |y|
-        (LEFT...png.width).each do |x|
-          diff += 1 unless (cache[png[x, y]] ||= nearest(png[x, y])) == rows[y][x]
-        end
+        row = rows[y - shift]
+        next unless row && y >= shift
+
+        (LEFT...png.width).each { |x| diff += 1 unless (cache[png[x, y]] ||= nearest(png[x, y])) == row[x] }
       end
       write_actual(test) if diff.positive?
       diff
@@ -88,23 +98,25 @@ module Testbench
   end
 
   # The 264 testlist's exitcode and screenshot rows, on the Plus/4 for
-  # --plus4 and on the C16 for --c16. Interactive rows are left out as on
-  # the C64. A mountcrt row starts from
+  # --plus4 and on the C16 for --c16, each on its NTSC board with --ntsc,
+  # as a ted-ntsc row asks. Interactive rows are left out as on the C64. A mountcrt row starts from
   # power-on with its cartridge in, as a C64 cartridge row does.
   module Plus4Testlist
     module_function
 
-    def tests(filters, family, scope: nil, exclude: nil)
-      Testlist.numbered(File.readlines(PLUS4_TESTLIST).filter_map { |line| parse(line, family) })
+    def tests(filters, family, scope: nil, exclude: nil, ntsc: false)
+      Testlist.numbered(File.readlines(PLUS4_TESTLIST).filter_map { |line| parse(line, family, ntsc:) })
               .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end
 
-    def parse(line, family)
+    def parse(line, family, ntsc: false)
       line = line.strip
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
       return unless RUNNABLE_TYPES.include?(type)
+
+      options << TED_NTSC_OPTION if ntsc && !options.include?(TED_NTSC_OPTION)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, Testlist.cartridge(options))
       test.family = family
