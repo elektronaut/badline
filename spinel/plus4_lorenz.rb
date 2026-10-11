@@ -18,6 +18,7 @@ module Lorenz
   # runs it to the end.
   def self.run_plus4_chain(image, resume, stop_after, max_cycles)
     computer = Badline::Plus4.new
+    computer.ted.render = false
     capture = computer.capture_output
     disk = mount(computer, image, capture, (resume unless resume.empty?), PLUS4_NEXT_DISK)
     chain = Chain.new(computer, capture, disk, max_cycles, (stop_after unless stop_after.empty?))

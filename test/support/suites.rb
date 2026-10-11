@@ -89,7 +89,7 @@ module Suites
   # timing in 1 MHz cycles, the OUTI and page relocation checks, and the Z80
   # side of c64modemmu. testbench-c128-zex is its zex128 rows, ZEXDOC and
   # ZEXALL, which run for 50 billion cycles in all, so CI leaves them out.
-  # testbench-plus4 is the 264 testlist's exitcode rows on a PAL Plus/4
+  # testbench-plus4 is the 264 testlist's exitcode and screenshot rows on a PAL Plus/4
   # with a 1551's TCBM interface plugged in, as xplus4 starts, and
   # testbench-c16 the same rows on a 16K C16. Their Spinel build is
   # spinel/plus4_testbench.rb.

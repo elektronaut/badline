@@ -1552,6 +1552,40 @@ checked with probes that sample `$FF1A`, `$FF1B`, `$FF1D`, `$FF1E` and
 - xplus4 reads the reload 40 higher for a few cycles around the line step
   on some lines. badline reads the register as it stands.
 
+The TED's picture (`Chips::TED::Picture` and `Modes`) matches xplus4's
+screenshots pixel for pixel, by palette index, on probes for every mode,
+both column widths, both row counts, each horizontal and vertical scroll,
+the idle lines before the first row, cursor and flash, and scroll changes
+mid-frame. Where it follows xplus4 over the datasheet:
+
+- The 38-column window is pixels 39-342 of the 384, 7 in on the left and
+  9 on the right. The datasheet's counts (3 and 307 against 451 and 315)
+  would make it 8 and 8.
+- A multicolour bitmap's 01 takes the luminance of the attribute's bits
+  0-2, as the hires bitmap's 1 does. The datasheet gives it bits 4-6.
+- A register write takes hold 19 dots after its cycle starts
+  (`Picture::WRITE_DELAY`), on a character cell's boundary with no scroll.
+  That puts a raster interrupt's colour change within a cycle or two of
+  where xplus4 puts it. Code timed from `$FF1E` or a DMA stall lands 3
+  cycles later than in xplus4, the other side of the line-step difference
+  above. Pinned by probes that change `$FF15` and `$FF19` every 6 cycles,
+  timed both ways, and the spec guard *shows a register written mid-line
+  from the pixel the write lands on* in
+  [`chips/ted_spec.rb`](../spec/badline/chips/ted_spec.rb).
+- The picture's lines are scanlines as they go out. They follow the line
+  count until a write to `$FF1C`-`$FF1D` moves it, start over where the
+  count wraps to 0 at the end of the frame, and step with each line
+  otherwise. The vertical border is a flip-flop: the window opens when
+  the count reaches line 4 (8 with 24 rows) and shuts when it reaches 204
+  (200), so a count moved past line 4 leaves the frame bordered. Pinned by
+  `TED/write-scanline-coarse.prg`, which matches xplus4's screenshot pixel
+  for pixel, and the spec guards *keeps the window shut through a frame
+  whose line count jumps past line 4* and *paints the scanline after a
+  line count write on the picture's next line*.
+- The blink counter's carry turns cursor and flash over together: in one
+  turn flashing characters show the background and the cursor is off, in
+  the other both show, the cursor as reverse.
+
 ## 1541 serial port
 
 - The drive sees the C64's side of the serial bus a host cycle late. The

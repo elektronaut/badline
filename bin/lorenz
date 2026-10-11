@@ -99,9 +99,9 @@ module Lorenz
     end
 
     # The machine the chain runs on, a PAL Plus/4 for the plus4 build or a
-    # C64 whose VIC leaves its colours unpainted.
+    # C64, its picture left unpainted.
     def machine(plus4)
-      return Badline::Plus4.new if plus4
+      return Badline::Plus4.new.tap { |computer| computer.ted.render = false } if plus4
 
       Badline::C64.new.tap { |computer| computer.vic.render = false }
     end

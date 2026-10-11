@@ -3,14 +3,17 @@
 require "badline/chips/ted/timers"
 require "badline/chips/ted/beam"
 require "badline/chips/ted/fetches"
+require "badline/chips/ted/palette"
+require "badline/chips/ted/modes"
+require "badline/chips/ted/picture"
 
 module Badline
   module Chips
     # The TED of the Commodore 264 series, the 7360 and 8360: its registers
     # at $FF00-$FF1F, the raster, the three timers, the interrupt, the
-    # keyboard latch, the clock it gives the CPU (Beam) and what it fetches
-    # for the picture (Fetches). It paints no picture and plays no sound
-    # yet: those registers keep what is written to them.
+    # keyboard latch, the clock it gives the CPU (Beam), what it fetches
+    # for the picture (Fetches) and the picture (Picture). It plays no
+    # sound yet: those registers keep what is written to them.
     #
     # The machine clocks it once a single clock cycle, 57 to a line, and
     # asks it then how many cycles the CPU runs in that one (#cpu_slots)
@@ -31,6 +34,9 @@ module Badline
       include Timers
       include Beam
       include Fetches
+      include Palette
+      include Modes
+      include Picture
 
       # The clock a TED is fed, its single clock: the crystal divided by 20
       # on PAL machines and by 16 on NTSC ones (the Plus/4 hardware manual's
@@ -45,6 +51,10 @@ module Badline
       # The interrupt sources a mask bit can enable: the raster, the light
       # pen and the three timers.
       SOURCES = 0x5e
+
+      # The registers the picture reads as it paints: $FF06, $FF07, the
+      # cursor and the five colours.
+      PICTURE_REGISTERS = 0x03e030c0
 
       attr_reader :profile, :interrupt_flags, :interrupt_mask
 
@@ -71,6 +81,7 @@ module Badline
         @blink = 0
         reset_timers
         reset_fetches
+        reset_picture
         reset_beam
       end
 
@@ -82,6 +93,7 @@ module Badline
           count_timers
           move_beam
           fetch(@column)
+          picture_cycle(@column)
         end
         decide_clock
       end
@@ -115,6 +127,7 @@ module Badline
         register = addr & 0x3f
         return if register >= 0x20
 
+        paint_to_write if (PICTURE_REGISTERS >> register).anybits?(1)
         @registers[register] = value
         case register
         when 0x00..0x05 then write_timer(register, value)
@@ -146,7 +159,10 @@ module Badline
       end
 
       # The end of a frame: the fetches' counters start over.
-      def end_frame = end_fetch_frame
+      def end_frame
+        end_fetch_frame
+        end_picture_frame
+      end
 
       def write_interrupt_mask(value)
         @interrupt_mask = value & 0x5f

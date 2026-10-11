@@ -12,6 +12,8 @@ module Testbench
   #   cycles CYCLES
   #   text            then the lines of the text screen, for an exitcode test
   #   screen          or the rows of the display as hex palette indices
+  #   wide            or as two hex digits an index, for a palette of more
+  #                   than 16 colours
   #   done
   module Record
     HEX_DIGITS = "0123456789abcdef"
@@ -31,6 +33,18 @@ module Testbench
       out << "screen\n"
       rows.each do |row|
         row.each { |index| out << HEX_DIGITS[index] }
+        out << "\n"
+      end
+      out << "done\n"
+    end
+
+    # The record for a screenshot test whose palette has more than 16
+    # colours, two hex digits a pixel.
+    def self.wide_screen(key, exit_code, cycles, rows)
+      out = header(key, exit_code, cycles)
+      out << "wide\n"
+      rows.each do |row|
+        row.each { |index| out << HEX_DIGITS[index >> 4] << HEX_DIGITS[index & 0x0f] }
         out << "\n"
       end
       out << "done\n"

@@ -57,7 +57,11 @@ module Testbench
       raise ArgumentError, "Expected #{test.key}, the build reported #{header}" unless header == "test #{test.key}"
 
       code = exit_line.delete_prefix("exit ")
-      screen = kind == "screen" ? body.map { |row| row.chars.map { Record::HEX_DIGITS.index(it) } } : body.first(25)
+      screen = case kind
+               when "screen" then body.map { |row| row.chars.map { Record::HEX_DIGITS.index(it) } }
+               when "wide" then body.map { |row| row.scan(/../).map { it.to_i(16) } }
+               else body.first(25)
+               end
       Outcome.new(code == "none" ? nil : code.to_i, screen)
     end
 

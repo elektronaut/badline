@@ -641,7 +641,9 @@ module Testbench
     # screen is the text screen for an exitcode test, and the display's
     # rows of palette indices for a screenshot test.
     def score(test, exit_code, screen)
-      return score_screenshot(test, exit_code, Screenshot.new(screen)) unless test.type == "exitcode"
+      unless test.type == "exitcode"
+        return score_screenshot(test, exit_code, test.plus4? ? Plus4Screenshot.new(screen) : Screenshot.new(screen))
+      end
 
       score_exitcode(test, exit_code).tap do |result|
         write_screen(test, screen) unless result == "PASS"

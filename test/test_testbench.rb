@@ -559,8 +559,8 @@ class TestTestbenchPlus4 < Minitest::Test
     assert_equal %w[plus4 c16ntsc], [parse("").plus4_model, parse("ted-ntsc", family: :c16).plus4_model]
   end
 
-  def test_takes_only_exitcode_rows
-    assert_nil parse("", type: "screenshot")
+  def test_takes_exitcode_and_screenshot_rows
+    assert_equal %w[exitcode screenshot], [parse("").type, parse("", type: "screenshot").type]
     assert_nil parse("", type: "interactive")
   end
 
@@ -585,6 +585,12 @@ class TestTestbenchPlus4 < Minitest::Test
     machine = Testbench.plus4_machine("c16", true)
 
     assert_equal " commodore basic v3.5 12277 bytes free", Testbench.plus4_screen_text(machine)[1].rstrip
+  end
+
+  def test_crops_the_picture_as_xplus4_does
+    rows = Testbench.plus4_screenshot(Testbench.plus4_machine("c16", true).ted)
+
+    assert_equal [288, 384, 0x6e, 0x71], [rows.length, rows[0].length, rows[39][32], rows[40][32]]
   end
 end
 
@@ -1238,6 +1244,12 @@ class TestTestbenchRecord < Minitest::Test
     rows = Array.new(272) { |row| Array.new(384) { |col| (row + col) & 0xf } }
 
     assert_equal rows, parse(Testbench::Record.screen("t", 0, 1, rows), "screenshot").screen
+  end
+
+  def test_a_wide_record_reads_back_as_the_rows_of_palette_indices
+    rows = Array.new(288) { |row| Array.new(384) { |col| (row + col) & 0x7f } }
+
+    assert_equal rows, parse(Testbench::Record.wide_screen("t", 0, 1, rows), "screenshot").screen
   end
 
   def test_a_record_carries_the_exit_code

@@ -308,6 +308,169 @@ describe Badline::Chips::TED do
     end
   end
 
+  # Each pinned by xplus4 screenshots of the same registers and memory.
+  describe "the picture" do
+    subject(:ted) { machine.ted }
+
+    let(:machine) { Badline::Plus4.new }
+    let(:ram) { machine.ram }
+
+    # Runs to +column+ of +line+.
+    def run_to(line, column)
+      ted.cycle! until ted.line == line && ted.column == column
+    end
+
+    # The +count+ pixels of +line+ from +from+, once the line is painted.
+    def pixels(line, from, count = 8)
+      run_to(line, 45)
+      ted.display[(line * 384) + from, count]
+    end
+
+    # The palette worked out from the hardware manual's luminance voltages
+    # and PAL hue phases, as Palette describes.
+    def derived_palette
+      volts = [2.0, 2.4, 2.55, 2.7, 2.9, 3.3, 3.6, 4.1, 4.8]
+      phases = [nil, nil, 103, 283, 53, 241, 347, 167, 129, 148, 195, 83, 265, 323, 23, 213]
+      Array.new(128) do |index|
+        y = (volts[(index >> 4) + 1] - 2.0) / 2.8
+        angle = (phases[index & 0x0f] || 0) * Math::PI / 180
+        chroma = phases[index & 0x0f] ? 0.5 / 2.8 : 0.0
+        r = y + (chroma * Math.sin(angle) / 0.877)
+        b = y + (chroma * Math.cos(angle) / 0.492)
+        rgb = [r, (y - (0.299 * r) - (0.114 * b)) / 0.587, b].map { |c| (c.clamp(0.0, 1.0) * 255).round }
+        index.nobits?(0x0f) ? 0 : rgb.reduce(0) { |value, c| (value << 8) | c }
+      end
+    end
+
+    def poke_all(values)
+      values.each { |addr, value| ted.poke(addr, value) }
+    end
+
+    before do
+      poke_all(0xff14 => 0x08, 0xff13 => 0x30, 0xff12 => 0x08, 0xff15 => 0x32, 0xff16 => 0x27,
+               0xff17 => 0x53, 0xff18 => 0x64, 0xff19 => 0x45, 0xff07 => 0x08, 0xff0c => 0x03, 0xff0d => 0xff)
+      [0x3008, 0x3408, 0x2000].each { |addr| ram.poke(addr, 0x1b) }
+      ram.poke(0x0800, 0x46)
+      ram.poke(0x0c00, 0x01)
+      ted.poke(0xff06, 0x1b)
+    end
+
+    it "paints the border above the window" do
+      expect(pixels(3, 100, 2)).to eq([0x45, 0x45])
+    end
+
+    it "paints a character's set bits in its attribute's colour and the rest in the background" do
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x32, 0x46, 0x46, 0x32, 0x46, 0x46])
+    end
+
+    it "reverses a character whose pointer has bit 7 set" do
+      ram.poke(0x0c00, 0x81)
+      expect(pixels(4, 32)).to eq([0x46, 0x46, 0x46, 0x32, 0x32, 0x46, 0x32, 0x32])
+    end
+
+    it "shows the second 128 characters unreversed with $FF07 bit 7 set" do
+      ted.poke(0xff07, 0x88)
+      ram.poke(0x0c00, 0x81)
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x32, 0x46, 0x46, 0x32, 0x46, 0x46])
+    end
+
+    it "paints a multicolour character in pairs" do
+      ted.poke(0xff07, 0x18)
+      ram.poke(0x0800, 0x5c)
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x27, 0x27, 0x53, 0x53, 0x54, 0x54])
+    end
+
+    it "paints a character without attribute bit 3 as hires in multicolour mode" do
+      ted.poke(0xff07, 0x18)
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x32, 0x46, 0x46, 0x32, 0x46, 0x46])
+    end
+
+    it "picks the background from the pointer's top bits in extended colour mode" do
+      ted.poke(0xff06, 0x5b)
+      ram.poke(0x0c00, 0xc1)
+      expect(pixels(4, 32)).to eq([0x64, 0x64, 0x64, 0x46, 0x46, 0x64, 0x46, 0x46])
+    end
+
+    it "takes a bitmap's colours from the matrix and its luminances from the attributes" do
+      ted.poke(0xff06, 0x3b)
+      ram.poke(0x0c00, 0x41)
+      expect(pixels(4, 32)).to eq([0x41, 0x41, 0x41, 0x64, 0x64, 0x41, 0x64, 0x64])
+    end
+
+    it "paints a multicolour bitmap's 01 as the bitmap's 1 and 10 as its 0" do
+      poke_all(0xff06 => 0x3b, 0xff07 => 0x18)
+      ram.poke(0x0c00, 0x41)
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x64, 0x64, 0x41, 0x41, 0x27, 0x27])
+    end
+
+    it "paints black in extended colour mode with multicolour" do
+      poke_all(0xff06 => 0x5b, 0xff07 => 0x18)
+      expect(pixels(4, 32, 2)).to eq([0, 0])
+    end
+
+    it "narrows the window to 38 columns with $FF07 bit 3 clear" do
+      ted.poke(0xff07, 0x00)
+      expect(pixels(4, 32)).to eq(([0x45] * 7) + [0x46])
+    end
+
+    it "moves the characters right by $FF07's scroll, with the background before them" do
+      ted.poke(0xff07, 0x0a)
+      expect(pixels(4, 32)).to eq([0x32, 0x32, 0x32, 0x32, 0x32, 0x46, 0x46, 0x32])
+    end
+
+    it "starts the window on line 8 with 24 rows" do
+      ted.poke(0xff06, 0x13)
+      expect(pixels(7, 32, 2)).to eq([0x45, 0x45])
+    end
+
+    it "paints a line of the window with no row under way in the background" do
+      ted.poke(0xff06, 0x1f)
+      expect(pixels(4, 36, 2)).to eq([0x32, 0x32])
+    end
+
+    it "blanks the picture to the border colour with $FF06 bit 4 clear" do
+      ted.poke(0xff06, 0x0b)
+      expect(pixels(100, 32, 2)).to eq([0x45, 0x45])
+    end
+
+    it "reverses the cursor's character in the blink's turns on" do
+      poke_all(0xff0c => 0x00, 0xff0d => 0x00, 0xff1f => 0x78)
+      run_to(257, 0)
+      expect(pixels(4, 32)).to eq([0x46, 0x46, 0x46, 0x32, 0x32, 0x46, 0x32, 0x32])
+    end
+
+    it "hides a flashing character in the blink's turns off" do
+      ram.poke(0x0800, 0xc6)
+      expect(pixels(4, 32, 4)).to eq([0x32] * 4)
+    end
+
+    # Pinned by xplus4 screenshots of TED/write-scanline-coarse.
+    it "keeps the window shut through a frame whose line count jumps past line 4" do
+      run_to(0, 50)
+      ted.poke(0xff1d, 10)
+      run_to(20, 45)
+      expect(ted.display[(10 * 384) + 100, 2]).to eq([0x45, 0x45])
+    end
+
+    # Pinned by xplus4 screenshots of TED/write-scanline-coarse.
+    it "paints the scanline after a line count write on the picture's next line" do
+      run_to(100, 50)
+      poke_all(0xff15 => 0x71, 0xff1d => 250)
+      run_to(251, 45)
+      expect(ted.display[(101 * 384) + 100, 2]).to eq([0x71, 0x71])
+    end
+
+    it "shows a register written mid-line from the pixel the write lands on" do
+      run_to(100, 10)
+      ted.poke(0xff15, 0x71)
+      expect(pixels(100, 0, 384).index(0x71)).to eq((10 * 8) + 19 - 419 + 456)
+    end
+
+    it "derives its palette from the hardware manual's luminance voltages and PAL hue phases" do
+      expect(described_class::PALETTE).to eq(derived_palette)
+    end
+  end
+
   it "reads in $FF13 bit 0 whether the CPU sees ROM" do
     ted.poke(0xff13, 0xd0)
     ted.rom_selected = false
