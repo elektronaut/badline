@@ -88,15 +88,15 @@ module Badline
         key=NAME presses a key (space, return, a, f1, run_stop, restore, and
         on the C128 esc, help, keypad1 and the rest) or a joystick's
         direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
-        pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT types it, with \\n for RETURN. insert=FILE swaps
-        in a disk, a list's first disk, a tape or a cartridge, and
-        eject=disk, tape or cartridge takes one out. screenshot=FILE saves
-        the frame as a .bmp, with the frame's number in place of %d. menu
-        opens the pause menu, and menu=PAGE opens it on snapshots, drive,
-        datasette, expansion, ports, sound or power. Its frames still count,
-        and resume closes it. display=vdc or display=vic shows the C128's
-        80 or 40 column screen, as F8 switches them. reset, freeze and quit
-        take no argument.
+        pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
+        types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's
+        first disk, a tape or a cartridge, and eject=disk, tape or
+        cartridge takes one out. screenshot=FILE saves the frame as a .bmp,
+        with the frame's number in place of %d. menu opens the pause menu,
+        and menu=PAGE opens it on snapshots, drive, datasette, expansion,
+        ports, sound or power. Its frames still count, and resume closes
+        it. display=vdc or display=vic shows the C128's 80 or 40 column
+        screen, as F8 switches them. reset, freeze and quit take no argument.
       BANNER
     end
 
