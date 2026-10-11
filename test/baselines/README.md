@@ -431,9 +431,10 @@ machine, only in `testbench-drean`.
 
 `testbench`, `lorenz` and `sid` are the main set, which `rake regression`
 runs. The `testbench-*` suites, `sid-8580` and `drive-scenarios` are
-opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs every
-suite on the Spinel build on every pull request and every push to `main`,
-and fails on any changed row. The Regression workflow runs any suite but
+opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs the
+suites a pull request's changes can reach (`test/support/ci_reach.rb`) on
+the Spinel build, and fails on any changed row. `.github/workflows/suites.yml`
+runs every suite on `main` every two hours. The Regression workflow runs any suite but
 `testbench-drive` on CRuby, started by hand from the Actions tab, to check
 that CRuby and Spinel agree.
 
