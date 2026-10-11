@@ -87,7 +87,9 @@ blocks given to `on_init` that hadn't run yet, which a restore reports.
 Every model saves this way, PAL, NTSC, old NTSC and Drean alike, and so
 does a machine with an REU, with its RAM and its registers. A snapshot
 restores into a machine with the same chip models, region, RAM
-expansion, REU, KERNAL, datasette and board.
+expansion, REU, KERNAL, datasette and board. The second and third SIDs
+the SID player fits for a stereo tune are saved too, each with its
+address and model, and a restore fits them.
 
 Text typed with `type_text` that the machine hasn't taken yet, such as
 autostart's `RUN`, carries over, and so do the keys a C128 is typing on

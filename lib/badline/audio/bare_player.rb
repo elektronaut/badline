@@ -93,10 +93,7 @@ module Badline
         sections << Snapshot::Keyed.section("BL-CIA1") { |out| bus.cia1.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-CIA2") { |out| bus.cia2.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-SID") { |out| bus.sid.save_fields(out) }
-        @extras.each_with_index do |sid, index|
-          sections << Snapshot::Keyed.section("BL-SID#{index + 2}") { |out| sid.save_fields(out) }
-        end
-        sections
+        bus.save_extra_sid_modules(sections)
       end
 
       # Takes a rig that hasn't started to where #save_modules found one, in
@@ -152,10 +149,9 @@ module Badline
         bus.vic.load_fields(modules.required("BL-VIC"))
         bus.cia1.load_fields(modules.required("BL-CIA1"))
         bus.cia2.load_fields(modules.required("BL-CIA2"))
-        @stereo.sids.each_with_index do |sid, index|
-          sid.load_fields(modules.required(index.zero? ? "BL-SID" : "BL-SID#{index + 1}"))
-          sid.restored!
-        end
+        bus.sid.load_fields(modules.required("BL-SID"))
+        bus.load_extra_sid_modules(modules)
+        @stereo.sids.each(&:restored!)
         bus.vic.restored!
         bus.cia1.restored!
         bus.cia2.restored!
