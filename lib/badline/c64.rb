@@ -188,6 +188,9 @@ module Badline
     # The KERNAL the traps stand in for (KernalTraps#mount).
     def trap_layout = KernalTrap::C64_LAYOUT
 
+    # The KERNAL's keyboard buffer, which #type_text feeds.
+    def keyboard_buffer = Machine::KeyboardBuffer::C64_LAYOUT
+
     def trap_bus = address_bus
 
     def plug_reu(size_kb)

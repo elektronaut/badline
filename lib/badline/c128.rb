@@ -67,10 +67,6 @@ module Badline
     # BASIC 7.0's, which is READY by then.
     C128_INIT_THRESHOLD = 2_000_000
 
-    # The C128 KERNAL's keyboard buffer and its count.
-    C128_KEYBOARD_BUFFER = 0x034a
-    C128_KEYBOARD_COUNT = 0xd0
-
     attr_reader :cpu, :cycles, :drive1541, :model, :init_threshold
 
     def family = :c128
