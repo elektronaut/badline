@@ -7,6 +7,7 @@ require "badline/chips/via/shift_register"
 require "badline/chips/via/saved_state"
 require "badline/chips/via/timer1"
 require "badline/chips/via/timer2"
+require "badline/chips/via/keyed_parts"
 
 module Badline
   module Chips
