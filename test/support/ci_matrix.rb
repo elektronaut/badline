@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "suites"
+require_relative "ci_reach"
 
 # The suites job matrix in .github/workflows/ci.yml, derived from the suite
 # table, and the check that a matrix runs every suite and every baseline row
@@ -52,9 +53,14 @@ module CIMatrix
 
   # The include list of ci.yml's suites matrix, from SHARDS.
   module Derive
-    def matrix
-      SHARDS.map do |shard, entries|
+    # Only the entries whose suite or check is in reached, and the shards
+    # left with any, unless reached is CIReach::ALL.
+    def matrix(reached = CIReach::ALL)
+      SHARDS.filter_map do |shard, entries|
         entries = entries.map { |entry| Array(entry) }
+        entries = entries.select { |suite, *| reached.include?(suite) } unless reached == CIReach::ALL
+        next if entries.empty?
+
         { "shard" => shard,
           "harnesses" => entries.flat_map { |suite, *| harnesses(suite) }.uniq.join(" "),
           "tasks" => entries.map { |suite, *args| task(suite, args) }.join(" ") }
