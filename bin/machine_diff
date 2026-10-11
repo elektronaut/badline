@@ -561,7 +561,7 @@ require "badline"
 # This tree's checkpoints digest the machine on either revision.
 checkpoints = { Checkpoint: "checkpoint", Vic20Checkpoint: "vic20_checkpoint", C128Checkpoint: "c128_checkpoint" }
 checkpoints.each do |name, file|
-  path = File.expand_path("../lib/badline/#{file}.rb", __dir__)
+  path = File.expand_path("../lib/badline/support/#{file}.rb", __dir__)
   Badline.__send__(:remove_const, name) if Badline.const_defined?(name, false) && !$LOADED_FEATURES.include?(path)
   require path
 end
