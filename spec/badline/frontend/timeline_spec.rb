@@ -56,6 +56,19 @@ describe Badline::Frontend::Timeline do
       expect(error("1:key=caps_lock")).to eq("no such key: caps_lock")
     end
 
+    it "takes the Plus/4's own keys on the Plus/4" do
+      keys = %w[esc help f2 crsr_up crsr_left clr_home cbm run_stop £ joy1-fire]
+      expect(error(*keys.map { |key| "1:key=#{key}" }, family: :plus4)).to eq("")
+    end
+
+    it "turns RESTORE away on the Plus/4" do
+      expect(error("1:key=space", "2:key=restore", family: :plus4)).to eq("no such key: restore")
+    end
+
+    it "turns the C64's shifted cursor keys away on the Plus/4" do
+      expect(error("1:key=cursor_up", family: :plus4)).to eq("no such key: cursor_up")
+    end
+
     it "takes the pause menu's pages, or none" do
       expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
     end
@@ -107,6 +120,16 @@ describe Badline::Frontend::Timeline do
     it "is let go five frames later" do
       run_to(6)
       expect(computer.keyboard.keys).to be_empty
+    end
+  end
+
+  describe "a Plus/4 key" do
+    let(:computer) { Badline::Plus4.new }
+    let(:argv) { at("1:key=help") }
+
+    it "is pressed in the Plus/4's matrix" do
+      run_to(1)
+      expect(computer.keyboard.keys).to eq([:help])
     end
   end
 

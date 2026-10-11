@@ -5,7 +5,7 @@ module Badline
     # The pause menu's PORTS page, which MenuPages draws: what each C64
     # control port has plugged in, a joystick or a pot device, and whether
     # the keys type or drive the joysticks. The VIC-20 has one port, a
-    # joystick's.
+    # joystick's, and the Plus/4 two joysticks and no pot devices.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -16,6 +16,7 @@ module Badline
 
       def draw_ports
         return draw_vic20_port if @computer.family == :vic20
+        return draw_plus4_ports if @computer.family == :plus4
 
         toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
         toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
@@ -35,6 +36,17 @@ module Badline
         skip
         info("ARROWS, SPACE", "JOYSTICK")
         info("WASD, LEFT SHIFT", "JOYSTICK")
+      end
+
+      # The Plus/4's two joysticks, one for each set of keys.
+      def draw_plus4_ports
+        return unless draw_keys("PLUS/4")
+
+        row("SWAP JOYSTICKS", :swap)
+        skip
+        arrows = @controls.arrows_port
+        info("ARROWS, SPACE", "JOYSTICK #{arrows}")
+        info("WASD, LEFT SHIFT", "JOYSTICK #{3 - arrows}")
       end
 
       # The toggle between the keyboard named and the joysticks, and

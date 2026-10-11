@@ -28,4 +28,12 @@ describe Badline::Frontend::Sound do
     sound.switch(sid, Badline::Region::NTSC.clock_hz)
     expect(sid).to have_received(:record).with(rate: sound.rate, clock_hz: 1_022_727)
   end
+
+  it "plays the Plus/4's TED at the TED's clock" do
+    plus4 = Badline::Plus4.new
+    sound = opened(plus4.sound_source, plus4.timing.clock_hz)
+    plus4.run_cycles(10_000)
+    sound.feed
+    expect(sound.queued).to eq((10_000 * sound.rate / 886_724.0).round)
+  end
 end

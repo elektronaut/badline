@@ -17,7 +17,7 @@ module Badline
   # 6529. Only the TED pulls IRQ, and nothing pulls NMI, which the 7501
   # doesn't have.
   #
-  # It runs headless only: the TED paints no picture yet. Device 8
+  # The TED paints the picture a front end shows (#video, #timing). Device 8
   # serves disks through the KERNAL traps (C64::KernalTraps), and
   # cartridges go in cartridge 1's slots.
   class Plus4
@@ -47,6 +47,22 @@ module Badline
     # What a front end plays: the TED's sound, which answers #record and
     # #drain_samples.
     def sound_source = @sound
+
+    # The chip whose #display a front end shows.
+    def video = @ted
+
+    # The TED's clock and raster, and the part of its picture xplus4 shows:
+    # all 384 pixels of a line, and 288 lines from line 276 on PAL or 242
+    # from line 248 on NTSC, running on past the frame's last line to its
+    # first, as the top border is the end of the frame. The TED draws 8
+    # pixels a cycle, so each shows one window pixel wide, as on the C64.
+    def timing
+      profile = @ted.profile
+      ntsc = profile == Chips::TED::NTSC
+      Timing.new(clock_hz: profile.clock_hz, cycles_per_line: Chips::TED::Beam::CYCLES_PER_LINE,
+                 lines_per_frame: ntsc ? 262 : 312, crop: ntsc ? [0, 248, 384, 242] : [0, 276, 384, 288],
+                 pixel_width: 1)
+    end
 
     # Reads and writes memory as the CPU sees it, through the bus.
     def peek(addr) = @bus.peek(addr)

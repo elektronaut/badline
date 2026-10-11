@@ -70,7 +70,8 @@ module Badline
           @screen = Screen.new(vdc, vdc.crop, dots: 2)
         else
           timing = @computer.timing
-          @screen = Screen.new(@computer.video, timing.crop, pixel_width: timing.pixel_width)
+          @screen = Screen.new(@computer.video, timing.crop,
+                               pixel_width: timing.pixel_width, frame_lines: timing.lines_per_frame)
         end
       end
 
