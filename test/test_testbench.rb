@@ -559,6 +559,12 @@ class TestTestbenchPlus4 < Minitest::Test
     assert_equal %w[plus4 c16ntsc], [parse("").plus4_model, parse("ted-ntsc", family: :c16).plus4_model]
   end
 
+  def test_runs_every_row_on_the_ntsc_board_with_ntsc
+    test = Testbench::Plus4Testlist.parse("#{@dir}/,t.prg,exitcode,1000000", :plus4, ntsc: true)
+
+    assert_equal "plus4ntsc", test.plus4_model
+  end
+
   def test_takes_exitcode_and_screenshot_rows
     assert_equal %w[exitcode screenshot], [parse("").type, parse("", type: "screenshot").type]
     assert_nil parse("", type: "interactive")
@@ -585,6 +591,17 @@ class TestTestbenchPlus4 < Minitest::Test
     machine = Testbench.plus4_machine("c16", true)
 
     assert_equal " commodore basic v3.5 12277 bytes free", Testbench.plus4_screen_text(machine)[1].rstrip
+  end
+
+  def test_compares_an_ntsc_screenshot_with_a_pal_reference_on_the_lines_both_show
+    png = ChunkyPNG::Image.new(384, 288, ChunkyPNG::Color.rgb(0, 0, 0))
+    png[40, 100] = ChunkyPNG::Color.rgb(255, 255, 255)
+    png.save(File.join(@dir, "ref.png"))
+    rows = Array.new(242) { Array.new(384, 0) }
+    rows[78][40] = 0x71
+    test = Struct.new(:reference, :key).new(File.join(@dir, "ref.png"), "t")
+
+    assert_equal 0, Testbench::Plus4Screenshot.new(rows).compare(test)
   end
 
   def test_crops_the_picture_as_xplus4_does

@@ -1582,6 +1582,12 @@ mid-frame. Where it follows xplus4 over the datasheet:
   for pixel, and the spec guards *keeps the window shut through a frame
   whose line count jumps past line 4* and *paints the scanline after a
   line count write on the picture's next line*.
+- A write to `$FF1E` changes nothing: xplus4 reads the same positions
+  after writes of `$00` to `$FF` on line 100, and its screenshots don't
+  move. Härsfalvi says writing back a value read at the right time
+  affects the screen, which no probe here reproduces.
+- Freezing the TED (`$FF07` bit 5) for about 100 cycles on line 100
+  leaves the picture as xplus4 shows it.
 - The blink counter's carry turns cursor and flash over together: in one
   turn flashing characters show the background and the cursor is off, in
   the other both show, the cursor as reverse.
