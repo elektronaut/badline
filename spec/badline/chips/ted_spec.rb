@@ -20,6 +20,8 @@ describe Badline::Chips::TED do
   end
 
   describe "the beam" do
+    # Pinned by the TED datasheet's horizontal decode table, column 47;
+    # xplus4 steps about 3 cycles later (doc/pinned-behaviour.md).
     it "steps the line once every 57 cycles" do
       run_to_line(1)
       57.times { ted.cycle! }
