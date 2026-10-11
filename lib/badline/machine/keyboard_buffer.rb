@@ -16,6 +16,10 @@ module Badline
       # BASIC 7.0's, in C128 mode.
       C128_LAYOUT = Layout.new(address: 0x034a, count: 0xd0, capacity: 10)
 
+      # The 264 series KERNAL's, which sets its capacity at $053F to 10
+      # ($D86E).
+      PLUS4_LAYOUT = Layout.new(address: 0x0527, count: 0xef, capacity: 10)
+
       def type_text(text)
         codes = text.bytes.map { |b| ascii_to_petscii(b) }
         on_init { @pending_keys = codes }

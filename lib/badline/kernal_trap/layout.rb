@@ -114,6 +114,15 @@ module Badline
       secondary_address: 0xb9, device: 0xba, filename_address: 0xbb, save_start: 0xc1, load_address: 0xc3
     )
 
+    # The 264 series KERNAL's file variables, as its LOAD ($F04A) and SAVE
+    # ($F1A4) use them: SAVE walks SAL at $9B from STAL at $B2 up to EAL at
+    # $9D, and LOAD ends with EAL at $9D, or starts it from MEMUSS at $B4
+    # for secondary address 0.
+    PLUS4_ZERO_PAGE = ZeroPage.new(
+      status: 0x90, verify: 0x93, start_address: 0x9b, end_address: 0x9d, filename_length: 0xab,
+      secondary_address: 0xad, device: 0xae, filename_address: 0xaf, save_start: 0xb2, load_address: 0xb4
+    )
+
     # A CIA's control value that starts its timer: force load, one-shot,
     # start.
     TIMER_ONE_SHOT_START = 0x19
