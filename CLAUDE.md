@@ -207,12 +207,16 @@ the rows your change can't reach tell you nothing about it.
   `ruby --yjit bin/lorenz [image] [start_test] [max_cycles]` (resumes the
   chain at a named test, and `--stop-after NAME` ends it once that test is
   done). These take seconds to minutes
-- A pull request's CI is the verdict. It runs every suite on the Spinel
-  build, compared row by row against
-  `test/baselines/`, and every job is a required check. A row that moved
+- A pull request's CI is the verdict. It runs the specs, and the suites
+  its changed files can reach, on the Spinel build, compared row by row
+  against `test/baselines/`. `test/support/ci_reach.rb` maps paths to
+  suites, and a path it doesn't name runs every suite. A row that moved
   fails it. A pull request that changes only docs, or only a release's
-  version bump, skips the specs and suites; pushes to main always run
-  them. Re-record only those rows, in the same change:
+  version bump, skips the specs and suites. Pushes to main always run
+  every suite, so a move the map missed shows up there: fix it on main
+  at once, and add the path to the map. When a change adds a directory
+  under `lib/badline/`, give it a rule. Re-record only the rows that
+  moved, in the same change:
   `rake "regression:record:<suite>[filter,...]"` (quote it, because zsh
   globs the brackets). It runs only the matching tests on CRuby and
   splices their rows into the baseline, and every other row keeps its

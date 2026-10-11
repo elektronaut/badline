@@ -1,0 +1,51 @@
+# frozen_string_literal: true
+
+require "minitest/autorun"
+require_relative "support/ci_matrix"
+
+class TestCIReach < Minitest::Test
+  def test_every_rule_names_known_suites
+    known = Suites::ALL_SUITES.keys + CIMatrix::CHECKS.keys
+    named = CIReach::RULES.map(&:last).grep(Array).flatten.uniq
+
+    assert_empty named - known, "CIReach names #{(named - known).join(', ')}, which no suite or check is"
+  end
+
+  def test_a_path_no_rule_names_reaches_everything
+    assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/kernal_trap/load.rb])
+  end
+
+  def test_specs_reach_nothing
+    assert_empty CIReach.suites(%w[spec/badline/chips/cia_spec.rb])
+  end
+
+  def test_a_lib_change_runs_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/frontend/controls.rb])
+  end
+
+  def test_a_units_snapshot_fields_reach_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/cia/keyed_parts.rb])
+  end
+
+  def test_the_cpu_reaches_everything
+    assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/chips/cpu/core.rb spec/badline/cpu_spec.rb])
+  end
+
+  def test_the_sid_reaches_the_sid_suites
+    assert_equal %w[sid sid-8580 spinel:check spinel:check_sid], CIReach.suites(%w[lib/badline/chips/sid/voice.rb])
+  end
+
+  def test_a_baseline_reaches_its_suite
+    assert_equal %w[testbench-cia], CIReach.suites(%w[test/baselines/testbench-cia.txt])
+  end
+
+  def test_the_matrix_keeps_only_reached_entries
+    tasks = CIMatrix.matrix(%w[sid spinel:check]).to_h { |shard| [shard["shard"], shard["tasks"]] }
+
+    assert_equal({ "sid-ntsc" => "spinel:sidtests[6581] spinel:check" }, tasks)
+  end
+
+  def test_the_matrix_is_empty_when_nothing_is_reached
+    assert_empty CIMatrix.matrix([])
+  end
+end
