@@ -27,7 +27,7 @@ module Testbench
     machine = plus4_machine(fields[6], cartridge.nil?)
     screenshot = fields[1] == "screenshot"
     exit_code = Plus4Execution.new(machine).run(screenshot, cartridge, fields[5], fields[4], fields[2].to_i)
-    return Record.wide_screen(fields[0], exit_code, machine.cycles, plus4_screenshot(machine.ted)) if screenshot
+    return Record.wide_screen(fields[0], exit_code, machine.cycles, plus4_screenshot(machine)) if screenshot
 
     Record.text(fields[0], exit_code, machine.cycles, plus4_screen_text(machine))
   end

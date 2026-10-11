@@ -28,7 +28,7 @@ module Testbench
     def run_plus4(machine)
       screenshot = type == "screenshot"
       exit_code = Plus4Execution.new(machine).run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
-      [exit_code, screenshot ? Testbench.plus4_screenshot(machine.ted) : Testbench.plus4_screen_text(machine)]
+      [exit_code, screenshot ? Testbench.plus4_screenshot(machine) : Testbench.plus4_screen_text(machine)]
     end
   end
 

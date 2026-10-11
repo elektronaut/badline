@@ -11,12 +11,6 @@ require_relative "testbench_machine"
 module Testbench
   PLUS4_SCREEN = 0x0c00
 
-  # xplus4's screenshots: 384 by 288 lines from line 276 on PAL, which puts
-  # the display window's top left corner at (32, 40), and 384 by 242 from
-  # line 248 on NTSC, which puts it at (32, 18).
-  PLUS4_PAL_VIEW = [276, 288].freeze
-  PLUS4_NTSC_VIEW = [248, 242].freeze
-
   # A 264 series machine of +model+ with a 1551's TCBM interface plugged
   # in, as xplus4 starts with a 1551 as drive 8, booted up to the cycle
   # where a program loads, or left at power-on when +boot+ is false, for a
@@ -27,14 +21,16 @@ module Testbench
     machine
   end
 
-  # The TED's picture cropped to xplus4's screenshot, as rows of palette
-  # indices.
-  def self.plus4_screenshot(ted)
+  # The TED's picture cropped to xplus4's screenshot, the part of it
+  # Plus4#timing shows, as rows of palette indices.
+  def self.plus4_screenshot(machine)
+    ted = machine.ted
     display = ted.display
     width = ted.width
     lines = ted.height
-    top, height = lines == 312 ? PLUS4_PAL_VIEW : PLUS4_NTSC_VIEW
-    Array.new(height) { |row| display[((row + top) % lines) * width, width] }
+    crop = machine.timing.crop
+    top = crop[1]
+    Array.new(crop[3]) { |row| display[((row + top) % lines) * width, width] }
   end
 
   # The text screen at $0C00, 25 lines of 40 characters.
