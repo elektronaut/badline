@@ -58,7 +58,7 @@ module Badline
       # interrupt lines going to the Z80.
       def clock_chips
         handle_init if @cycles == @init_threshold
-        feed_keyboard if @pending_keys
+        type_pending if @pending_keys
 
         clock_bits = @clock_bits
         @clock_bits = @vic.clock_bits

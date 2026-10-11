@@ -136,6 +136,7 @@ module Badline
       @restore_pulse = false
       @init_handlers = []
       @pending_keys = nil
+      @typist = Input::MatrixTypist.new(@bus.keyboard)
       @capture_output = nil
       init_drives
       enter_c64_mode if @c64_built
@@ -150,7 +151,7 @@ module Badline
       return z80_cycle! if @z80_turn
 
       handle_init if @cycles == @init_threshold
-      feed_keyboard if @pending_keys
+      type_pending if @pending_keys
 
       clock_bits = @clock_bits
       @clock_bits = @vic.clock_bits
