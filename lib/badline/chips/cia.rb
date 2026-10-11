@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "badline/cia/interrupt_register"
-require "badline/cia/serial"
-require "badline/cia/timer"
-require "badline/cia/saved_state"
-require "badline/cia/fast_forward"
+require "badline/chips/cia/interrupt_register"
+require "badline/chips/cia/serial"
+require "badline/chips/cia/timer"
+require "badline/chips/cia/saved_state"
+require "badline/chips/cia/fast_forward"
 
 module Badline
   # CIA (Complex Interface Adapter) chip

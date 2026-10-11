@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require "badline/instruction_set/arithmetic"
-require "badline/instruction_set/bitwise"
-require "badline/instruction_set/branch"
-require "badline/instruction_set/inc_dec"
-require "badline/instruction_set/flag"
-require "badline/instruction_set/illegal"
-require "badline/instruction_set/stack"
-require "badline/instruction_set/transfer"
+require "badline/chips/cpu/instruction_set/arithmetic"
+require "badline/chips/cpu/instruction_set/bitwise"
+require "badline/chips/cpu/instruction_set/branch"
+require "badline/chips/cpu/instruction_set/inc_dec"
+require "badline/chips/cpu/instruction_set/flag"
+require "badline/chips/cpu/instruction_set/illegal"
+require "badline/chips/cpu/instruction_set/stack"
+require "badline/chips/cpu/instruction_set/transfer"
 
 module Badline
   # http://www.6502.org/tutorials/6502opcodes.html

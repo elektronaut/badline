@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "badline/cpu/microcode"
-require "badline/cpu/addressing"
-require "badline/cpu/operations"
-require "badline/cpu/stack_operations"
-require "badline/cpu/boundary"
-require "badline/cpu/saved_state"
+require "badline/chips/cpu/microcode"
+require "badline/chips/cpu/addressing"
+require "badline/chips/cpu/operations"
+require "badline/chips/cpu/stack_operations"
+require "badline/chips/cpu/boundary"
+require "badline/chips/cpu/saved_state"
 
 module Badline
   class CPU

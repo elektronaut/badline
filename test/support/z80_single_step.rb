@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
-require "badline/z80"
+require "badline/chips/z80"
 
 # Runs SingleStepTests' Z80 cases against Badline::Z80: one instruction
 # from the initial state, then the registers, RAM, the port accesses and

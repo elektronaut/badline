@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/sid/envelope/saved_state"
+require "badline/chips/sid/envelope/saved_state"
 
 module Badline
   class SID

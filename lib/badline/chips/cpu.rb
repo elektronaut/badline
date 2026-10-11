@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/cpu/core"
+require "badline/chips/cpu/core"
 
 module Badline
   # The C64's 6510, on the AddressBus.

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "badline/c128/vdc/memory"
-require "badline/c128/vdc/window"
-require "badline/c128/vdc/painter"
-require "badline/c128/vdc/raster"
-require "badline/c128/vdc/saved_state"
+require "badline/chips/vdc/memory"
+require "badline/chips/vdc/window"
+require "badline/chips/vdc/painter"
+require "badline/chips/vdc/raster"
+require "badline/chips/vdc/saved_state"
 
 module Badline
   class C128

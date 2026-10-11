@@ -6,8 +6,8 @@ require "badline/vic20/cpu"
 require "badline/vic20/keyboard_via_ports"
 require "badline/vic20/port_wiring"
 require "badline/vic20/user_via_ports"
-require "badline/vic20/vic"
-require "badline/vic20/sound"
+require "badline/chips/vic_i"
+require "badline/chips/vic_i/sound"
 require "badline/vic20/saved_state"
 
 module Badline

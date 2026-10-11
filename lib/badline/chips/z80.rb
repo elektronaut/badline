@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/z80/core"
+require "badline/chips/z80/core"
 
 module Badline
   # The Zilog Z80 (NMOS), which the C128 has beside its 8502. It is not

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "badline/via/shift_register"
+require "badline/chips/via/shift_register"
 
 # Under its own clock the register drops CB1 on the first tick of a byte,
 # raises it on the second, and sets the flag on the tick that raises it over

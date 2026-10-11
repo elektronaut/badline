@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "badline/sid/waveform/combined"
-require "badline/sid/waveform/fast_forward"
-require "badline/sid/waveform/noise_writeback"
-require "badline/sid/waveform/saved_state"
+require "badline/chips/sid/waveform/combined"
+require "badline/chips/sid/waveform/fast_forward"
+require "badline/chips/sid/waveform/noise_writeback"
+require "badline/chips/sid/waveform/saved_state"
 
 module Badline
   class SID

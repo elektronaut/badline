@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/cia/serial/saved_state"
+require "badline/chips/cia/serial/saved_state"
 
 module Badline
   class CIA

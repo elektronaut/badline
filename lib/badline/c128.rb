@@ -2,7 +2,7 @@
 
 require "badline/c128/model"
 require "badline/c128/mmu"
-require "badline/c128/vdc"
+require "badline/chips/vdc"
 require "badline/c128/mmu_pages"
 require "badline/c128/io_pages"
 require "badline/c128/z80_pages"

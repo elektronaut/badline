@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "badline/via/control_lines"
-require "badline/via/fast_forward"
-require "badline/via/interrupt_register"
-require "badline/via/shift_register"
-require "badline/via/saved_state"
-require "badline/via/timer1"
-require "badline/via/timer2"
+require "badline/chips/via/control_lines"
+require "badline/chips/via/fast_forward"
+require "badline/chips/via/interrupt_register"
+require "badline/chips/via/shift_register"
+require "badline/chips/via/saved_state"
+require "badline/chips/via/timer1"
+require "badline/chips/via/timer2"
 
 module Badline
   # VIA (Versatile Interface Adapter): the MOS 6522, two ports with

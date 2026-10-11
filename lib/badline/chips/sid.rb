@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "badline/sid/waveform"
-require "badline/sid/envelope"
-require "badline/sid/voice"
-require "badline/sid/filter"
-require "badline/sid/decimator"
-require "badline/sid/catch_up"
-require "badline/sid/saved_state"
+require "badline/chips/sid/waveform"
+require "badline/chips/sid/envelope"
+require "badline/chips/sid/voice"
+require "badline/chips/sid/filter"
+require "badline/chips/sid/decimator"
+require "badline/chips/sid/catch_up"
+require "badline/chips/sid/saved_state"
 
 module Badline
   # SID (Sound Interface Device) chip, in either the 6581 or the 8580

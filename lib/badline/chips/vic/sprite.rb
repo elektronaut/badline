@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "badline/vic/sprite/internal_bus"
-require "badline/vic/sprite/shifter"
-require "badline/vic/sprite/saved_state"
-require "badline/vic/sprite/timing"
+require "badline/chips/vic/sprite/internal_bus"
+require "badline/chips/vic/sprite/shifter"
+require "badline/chips/vic/sprite/saved_state"
+require "badline/chips/vic/sprite/timing"
 
 module Badline
   class VIC

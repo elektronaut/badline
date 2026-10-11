@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/vic/graphics_shifter/saved_state"
+require "badline/chips/vic/graphics_shifter/saved_state"
 
 module Badline
   class VIC

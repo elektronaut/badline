@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/vic20/sound/output"
+require "badline/chips/vic_i/sound/output"
 
 module Badline
   class Vic20

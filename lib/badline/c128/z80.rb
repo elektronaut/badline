@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/z80/core"
+require "badline/chips/z80/core"
 
 module Badline
   class C128

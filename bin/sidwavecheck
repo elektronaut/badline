@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Scores the combined waveform tables in lib/badline/sid/waveform/combined.rb.
+# Scores the combined waveform tables in lib/badline/chips/sid/waveform/combined.rb.
 #
 #   ruby --yjit bin/sidwavecheck [--resid-tables DIR]
 #

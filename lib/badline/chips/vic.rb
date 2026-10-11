@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "badline/vic/bank"
-require "badline/vic/registers"
-require "badline/vic/display_state"
-require "badline/vic/sequencer"
-require "badline/vic/sprites"
-require "badline/vic/saved_state"
+require "badline/chips/vic/bank"
+require "badline/chips/vic/registers"
+require "badline/chips/vic/display_state"
+require "badline/chips/vic/sequencer"
+require "badline/chips/vic/sprites"
+require "badline/chips/vic/saved_state"
 
 module Badline
   class VIC

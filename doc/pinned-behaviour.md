@@ -1201,7 +1201,7 @@ above unchanged: every `testbench-cia-new` row passes on the 6526's
 timer and serial code, the long counter sweeps `cia1tanew`, `cia1tbnew`,
 `cia2tanew` and `cia2tbnew` included. VICE's `ciatimer.c` has no model
 check either. Each rule below is gated on the model in
-[`cia/interrupt_register.rb`](../lib/badline/cia/interrupt_register.rb),
+[`cia/interrupt_register.rb`](../lib/badline/chips/cia/interrupt_register.rb),
 and each was knocked out: removing it fails the rows named.
 
 - **IR on the flag's cycle.** A source flag whose mask bit is set raises

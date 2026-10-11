@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "badline/vic/border_mask"
-require "badline/vic/color_patches"
-require "badline/vic/graphics_mode"
-require "badline/vic/graphics_shifter"
-require "badline/vic/sequencer_output"
-require "badline/vic/sequencer/saved_state"
+require "badline/chips/vic/border_mask"
+require "badline/chips/vic/color_patches"
+require "badline/chips/vic/graphics_mode"
+require "badline/chips/vic/graphics_shifter"
+require "badline/chips/vic/sequencer_output"
+require "badline/chips/vic/sequencer/saved_state"
 
 module Badline
   class VIC

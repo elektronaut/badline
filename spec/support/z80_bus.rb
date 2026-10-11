@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/z80"
+require "badline/chips/z80"
 
 # 64K of RAM for a Badline::Z80, which logs each access as its kind and
 # address, and puts +vector+ on the data bus when the CPU acknowledges an

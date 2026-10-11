@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "badline/vic20/vic/painter"
-require "badline/vic20/vic/text_window"
-require "badline/vic20/vic/saved_state"
+require "badline/chips/vic_i/painter"
+require "badline/chips/vic_i/text_window"
+require "badline/chips/vic_i/saved_state"
 
 module Badline
   class Vic20

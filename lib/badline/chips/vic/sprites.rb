@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "badline/vic/collisions"
-require "badline/vic/register_log"
-require "badline/vic/sprite"
-require "badline/vic/sprites/saved_state"
+require "badline/chips/vic/collisions"
+require "badline/chips/vic/register_log"
+require "badline/chips/vic/sprite"
+require "badline/chips/vic/sprites/saved_state"
 
 module Badline
   class VIC

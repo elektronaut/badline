@@ -9,7 +9,7 @@
 #   ruby --yjit -Ilib spinel/z80_tests.rb tmp/spinel/z80_cases.txt [repeat]
 #   spinel -I lib --no-line-map --rbs spinel/sig spinel/z80_tests.rb -o tmp/spinel/z80_tests
 
-require "badline/z80/core"
+require "badline/chips/z80/core"
 
 module Z80Tests
   FETCH = 0
