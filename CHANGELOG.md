@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.14.0](https://github.com/elektronaut/badline/compare/v0.13.0...v0.14.0) (2026-10-11)
+
+
+### Features
+
+* add the keyed snapshot record encoding ([1b87aed](https://github.com/elektronaut/badline/commit/1b87aeddea27f81cb1ccedbbef2bba58c2db0bb3))
+* boot the Plus/4 and the C16 to READY headless ([278020e](https://github.com/elektronaut/badline/commit/278020ee0256fa1d085391fd0e7a6679ac80dbcb))
+* bundle the 264 series ROMs and refuse badline plus4 until it runs ([7072ae7](https://github.com/elektronaut/badline/commit/7072ae7cb6e1ccd96a4e02eb1146b7b1bfaf7125))
+* give each machine its keyboard buffer layout ([0b64648](https://github.com/elektronaut/badline/commit/0b64648fec3cd56bbbee1ac4dc8fe446c84dd4b9))
+* keep the KERNAL's file variables in KernalTrap::Layout ([0ca7488](https://github.com/elektronaut/badline/commit/0ca7488505b2b7af9f358bdf6d3e86a1e1c768e3))
+* keyed snapshot fields for device 8 through the KERNAL traps ([cce36f2](https://github.com/elektronaut/badline/commit/cce36f2f740c5337cd2b0a66fe99394114409c32))
+* keyed snapshot fields for each machine's own state and setup ([ff251a6](https://github.com/elektronaut/badline/commit/ff251a62cbad4502f576628a4f4c5d3d6a22eaf8))
+* keyed snapshot fields for the 1541 ([f3f57b7](https://github.com/elektronaut/badline/commit/f3f57b7e24471e198304bfd90ba16c4abb7c4c16))
+* keyed snapshot fields for the 1571 ([5ceb741](https://github.com/elektronaut/badline/commit/5ceb7416a1902252d97c80aff22658a68e4abfb6))
+* keyed snapshot fields for the 1581 ([1c67e29](https://github.com/elektronaut/badline/commit/1c67e298c24e82e92cc5feddcc0153143d4eda8d))
+* keyed snapshot fields for the 6502 cores and the Z80 ([8ee592e](https://github.com/elektronaut/badline/commit/8ee592e5ee5b658c8f452cf4bdf9df044f8c19ab))
+* keyed snapshot fields for the C128's MMU ([aa861ca](https://github.com/elektronaut/badline/commit/aa861cac0a33d79f777b60310f0cb573024f2d60))
+* keyed snapshot fields for the cartridges ([349ae81](https://github.com/elektronaut/badline/commit/349ae81c7c002f5c1b94fa50cc994a6b7ec16915))
+* keyed snapshot fields for the CIA ([b5a6ff8](https://github.com/elektronaut/badline/commit/b5a6ff8b02026daa3ec6247ab4024d35efedb18e))
+* keyed snapshot fields for the datasette and its tape ([37a52f1](https://github.com/elektronaut/badline/commit/37a52f1018ab226a60395e1c98c6a362c0159f01))
+* keyed snapshot fields for the memories, RAM expansions and buses ([14b1a95](https://github.com/elektronaut/badline/commit/14b1a951a44c2bc23871208b9843489d4ca6963c))
+* keyed snapshot fields for the REU ([8088ac5](https://github.com/elektronaut/badline/commit/8088ac52c68667db7d6acdc6e0f0b629e165b0b3))
+* keyed snapshot fields for the SID ([b58f88d](https://github.com/elektronaut/badline/commit/b58f88d1a98346aba4dbec0dead306b3d36b32f7))
+* keyed snapshot fields for the VDC ([b894c3e](https://github.com/elektronaut/badline/commit/b894c3ef0b83988d17f03027b1831e7be3739be3))
+* keyed snapshot fields for the VIA ([52ab12c](https://github.com/elektronaut/badline/commit/52ab12cb129adedc8a3f0b7df469a1440eb72309))
+* keyed snapshot fields for the VIC-I and its sound ([a47d3e8](https://github.com/elektronaut/badline/commit/a47d3e823891e5d597141423f1675962ac266df7))
+* keyed snapshot fields for the VIC-II ([8fc8b4c](https://github.com/elektronaut/badline/commit/8fc8b4c39f8ae5cac781f51f0bbeab5134c3bc9f))
+* latch the VIC's sprite collisions when a snapshot settles ([a1c9429](https://github.com/elektronaut/badline/commit/a1c9429fefdbbc57407fb68baf057209d7163db1))
+* let a unit report its own adjustments when its snapshot loads ([3b3af19](https://github.com/elektronaut/badline/commit/3b3af19ef0d74b0a45fbea96feef107f26db12a6))
+* read Plus/4 CRT images ([450148d](https://github.com/elektronaut/badline/commit/450148db02c8057cc071f6d867707aa45a87c996))
+* read version 2 C16 tapes and time the datasette's read level ([7e78070](https://github.com/elektronaut/badline/commit/7e78070877394a4657e23699a3098f297469be05))
+* report a VIC-II line restarted from another renderer's snapshot ([6cb0607](https://github.com/elektronaut/badline/commit/6cb06075d410e59a8cd6f7d82d29757819e23e67))
+* run the 264 testbench's exitcode rows as testbench-plus4 and testbench-c16 ([862f14b](https://github.com/elektronaut/badline/commit/862f14bd474bdac92017f25a57a057cf1f42a63f))
+* run the Lorenz suite's plus4 build as lorenz-plus4 ([006efdd](https://github.com/elektronaut/badline/commit/006efddeb3a052714b99ff9b11ec18dd85cb6778))
+* save and load snapshots as BL-* modules ([25db1be](https://github.com/elektronaut/badline/commit/25db1be28817d292c314672c5401251d36d11902))
+* save snapshots at the next instruction boundary ([3f9ae3c](https://github.com/elektronaut/badline/commit/3f9ae3cf5392c194a1915801c9da4739832649e3))
+
+
+### Bug Fixes
+
+* boot C128 boot sectors on .g64 and .g71 images ([81ad184](https://github.com/elektronaut/badline/commit/81ad1842fdc66b5ddb5d2988eb699409741f376a))
+* draw the true drive's power LED, and the LEDs of a drive plugged in after start ([982c522](https://github.com/elektronaut/badline/commit/982c522c56c46d193ca5d15f49c59f221f04ad8e))
+* drive the datasette's write line from the CPU port's bit 3 ([b90c29d](https://github.com/elektronaut/badline/commit/b90c29dd758eb7867930c5f26dbd0ae510f430af))
+* let a held key go as the key it pressed across a C128 mode switch ([3a8d731](https://github.com/elektronaut/badline/commit/3a8d7313034f0b69057528b58ff247250b7e7168))
+* read the ROMs and I/O a C128 KERNAL bank maps when saving ([3e4db21](https://github.com/elektronaut/badline/commit/3e4db218959237fada950e4b65238203af10e3c6))
+* run the VIC-20's sound voices whether or not the host plays them ([13052c7](https://github.com/elektronaut/badline/commit/13052c7bbb9ca2b4ed678935ec6b88cc84bb2806))
+* take the C128's own keys in --at key= ([428047c](https://github.com/elektronaut/badline/commit/428047cc4eca55b70967048d49579840b90ea946))
+* type --at type= text on the C128's key matrix while the Z80 runs ([39d77ff](https://github.com/elektronaut/badline/commit/39d77ff29989a46c82184cd2dde03e8d470c553b))
+
 ## [0.13.0](https://github.com/elektronaut/badline/compare/v0.12.1...v0.13.0) (2026-10-11)
 
 
@@ -81,7 +130,6 @@
 * bundle the PET 64's KERNAL, 901246-01 ([9a029ec](https://github.com/elektronaut/badline/commit/9a029ecfe25c0d9a806d8858253c4c172e175b7f))
 
 
-### Miscellaneous Chores
 
 * release 0.10.1 ([9d6f6ba](https://github.com/elektronaut/badline/commit/9d6f6ba71a647f24f00a830fbc772531fbcb4d92))
 
