@@ -107,6 +107,33 @@ describe Badline::Storage::CRTFile do
       .to raise_error(described_class::FormatError, /for the c64, not the vic20/)
   end
 
+  context "with a Plus/4 image" do
+    subject(:crt) { described_class.new(path, machine: :plus4) }
+
+    let(:chips) { [chip_packet(bank: 0, address: 0x8000, data: [0x4c] * 0x1000)] }
+    let(:header) do
+      "PLUS4 CARTRIDGE ".b + [0x40, 0x0200, 0, 0, 0].pack("NnnCC") +
+        ("\x00" * 6) + "Generic Plus4 Cartridge".ljust(32, "\x00")
+    end
+
+    it "is for the Plus/4" do
+      expect(crt.machine).to eq(:plus4)
+    end
+
+    it "parses the chip load address" do
+      expect(crt.chips.first.address).to eq(0x8000)
+    end
+
+    it "parses the chip data" do
+      expect(crt.chips.first.data).to eq([0x4c] * 0x1000)
+    end
+
+    it "is refused where a C64 image is wanted" do
+      expect { described_class.new(path) }
+        .to raise_error(described_class::FormatError, /for the plus4, not the c64/)
+    end
+  end
+
   context "with a VIC-20 image" do
     subject(:crt) { described_class.new(path, machine: :vic20) }
 
