@@ -59,6 +59,47 @@ describe Badline::Plus4::Bus do
     expect(bus.peek(0x8000)).to eq(0x77)
   end
 
+  describe "the TED's fetches" do
+    it "read the video matrix from ROM where the CPU sees ROM" do
+      bus.poke(0x8000, 0x5a)
+      expect(bus.ted_fetch(0x8000)).to eq(basic[0])
+    end
+
+    it "read the video matrix from RAM where the CPU sees RAM" do
+      bus.poke(0x8000, 0x5a)
+      bus.poke(0xff3f, 0)
+      expect(bus.ted_fetch(0x8000)).to eq(0x5a)
+    end
+
+    it "read ROM under the I/O pages" do
+      expect(bus.ted_fetch(0xff00)).to eq(kernal[0x3f00])
+    end
+
+    it "read character data from RAM whatever the CPU sees" do
+      bus.poke(0xd000, 0x5a)
+      expect(bus.ted_pattern_fetch(0xd000, false)).to eq(0x5a)
+    end
+
+    it "read character data from the KERNAL ROM when asked for ROM" do
+      bus.poke(0xff3f, 0)
+      expect(bus.ted_pattern_fetch(0xd008, true)).to eq(kernal[0x1008])
+    end
+
+    # Pinned by Plus/4 openmem's readme and its photo of a real Plus/4.
+    it "find the last byte on the bus when asked for ROM below $8000" do
+      bus.poke(0x2000, 0x11)
+      bus.poke(0x0002, 0x77)
+      expect(bus.ted_pattern_fetch(0x2000, true)).to eq(0x77)
+    end
+
+    it "leave the byte they fetch on the bus" do
+      bus.poke(0x2000, 0x11)
+      bus.poke(0x0002, 0x77)
+      bus.ted_pattern_fetch(0x2000, false)
+      expect(bus.data).to eq(0x11)
+    end
+  end
+
   it "puts the keyboard's 6529 at $FD30" do
     bus.poke(0xfd30, 0xfe)
     expect([machine.keyboard_port.output, bus.peek(0xfd3f)]).to eq([0xfe, 0xfe])

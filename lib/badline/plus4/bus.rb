@@ -28,6 +28,13 @@ module Badline
     # RAM smaller than 64K repeats through the 64K, as the C16's 16K does
     # without A14 and A15. Where nothing answers, a read finds the last byte
     # on the bus.
+    #
+    # The TED fetches through the same banks: the video matrix and the
+    # attributes from ROM or RAM at $8000-$FFFF as the CPU sees it, with no
+    # I/O in the way (#ted_fetch), and character and bitmap data from RAM,
+    # or from ROM with $FF12 bit 2 set, where below $8000 and in an empty
+    # bank it finds the last byte on the bus (#ted_pattern_fetch, Plus/4
+    # openmem). Each byte it fetches is left on the bus.
     class Bus
       include Addressable
 
@@ -211,6 +218,8 @@ module Badline
         @data = 0
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @ram_view)
+        @ted_pages = Array.new(256, @ram_view)
+        @ted_rom_pages = Array.new(256, @open_bus)
         @low_bank = @high_bank = 0
         @rom_selected = true
         @top_memory = @ram_view
@@ -283,6 +292,16 @@ module Badline
         @write_pages[addr >> 8].poke(addr, value)
       end
 
+      # A TED fetch of the video matrix or the attributes.
+      def ted_fetch(addr)
+        @data = @ted_pages[addr >> 8].peek(addr)
+      end
+
+      # A TED fetch of character or bitmap data, from ROM when +rom+.
+      def ted_pattern_fetch(addr, rom)
+        @data = rom ? @ted_rom_pages[addr >> 8].peek(addr) : @ram_view.peek(addr)
+      end
+
       private
 
       def map_writes
@@ -295,17 +314,26 @@ module Badline
       def map_reads
         @read_pages.fill(@ram_view, 0x00, 0xfd)
         @read_pages[0x00] = @zero_page
-        map_roms if @rom_selected
+        map_roms(@read_pages) if @rom_selected
         @top_memory = @rom_selected ? @high_roms[@high_bank] || @open_bus : @ram_view
         @read_pages[0xfd] = @io_page
         @read_pages[0xfe] = @tcbm_page
         @read_pages[0xff] = @top_page
+        map_ted_reads
       end
 
-      def map_roms
-        @read_pages.fill(@low_roms[@low_bank] || @open_bus, 0x80, 0x40)
-        @read_pages.fill(@high_roms[@high_bank] || @open_bus, 0xc0, 0x3c)
-        @read_pages[0xfc] = @high_roms[0]
+      def map_ted_reads
+        @ted_pages.fill(@ram_view, 0x80, 0x80)
+        map_roms(@ted_pages) if @rom_selected
+        map_roms(@ted_rom_pages)
+        @ted_pages.fill(@high_roms[@high_bank] || @open_bus, 0xfd, 3) if @rom_selected
+        @ted_rom_pages.fill(@high_roms[@high_bank] || @open_bus, 0xfd, 3)
+      end
+
+      def map_roms(pages)
+        pages.fill(@low_roms[@low_bank] || @open_bus, 0x80, 0x40)
+        pages.fill(@high_roms[@high_bank] || @open_bus, 0xc0, 0x3c)
+        pages[0xfc] = @high_roms[0]
       end
     end
   end

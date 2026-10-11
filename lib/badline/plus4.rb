@@ -66,6 +66,7 @@ module Badline
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port)
       @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
+      @ted.connect(@bus)
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
