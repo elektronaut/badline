@@ -30,10 +30,11 @@ module Badline
       # The output is the voices that are high, plus a little more, times the
       # volume, so a volume write steps the output even with every voice off.
       #
-      # The voices only run while #record collects the output: nothing the
-      # CPU reads depends on them. Until then a write only sets the register.
-      # While recording, the voices catch up to the current cycle whenever a
-      # write lands or the samples are drained, one shift at a time.
+      # The voices catch up to the current cycle whenever a write lands, the
+      # samples are drained or #catch_up! asks, one shift at a time, whether
+      # or not #record collects the output, so their state doesn't depend on
+      # whether the host plays it. Unrecorded, while every voice is off and
+      # shifted out to silence, they skip to the cycle at once.
       class Sound
         VOICES = 4
         NOISE = 3
@@ -86,13 +87,14 @@ module Badline
         # second, for #drain_samples. `clock_hz` is the rate the cycles are
         # taken to run at.
         def record(rate:, clock_hz: @clock_hz)
-          now = @clock.cycles
-          run_to(now)
-          resume(now)
+          run_to(@clock.cycles)
           @output = Output.new(clock_hz:, rate:, level: @level)
         end
 
         def recording? = !@output.nil?
+
+        # Runs the voices up to the current cycle.
+        def catch_up! = run_to(@clock.cycles)
 
         # The samples recorded since the last drain.
         def drain_samples
@@ -116,7 +118,7 @@ module Badline
           @level = level_now
         end
 
-        # A voice's shift register as of the current cycle, while recording.
+        # A voice's shift register as of the current cycle.
         def shift_register(voice)
           run_to(@clock.cycles)
           @shift_registers[voice]
@@ -129,35 +131,47 @@ module Badline
 
         private
 
-        # Moves each shift that the cycles since the voices last ran have
-        # passed to its next turn from `now`, keeping its phase.
-        def resume(now)
-          @time = now
-          VOICES.times do |voice|
-            due = @next_shifts[voice]
-            next if due >= now
-
-            interval = period(voice) * DIVIDERS[voice]
-            @next_shifts[voice] = due + ((now - due + interval - 1) / interval * interval)
-          end
-        end
-
         # Runs the voices up to the start of cycle `target`, the output holding
         # each level for the cycles it lasts.
         def run_to(target)
           time = @time
+          return if target <= time
+
           output = @output
-          return if output.nil? || target <= time
+          return skip_to(target) if output.nil? && silent?
 
           following = next_shift
           while following < target
-            output.hold(@level, following - time)
+            output&.hold(@level, following - time)
             time = following
             shift_due(time)
             @level = level_now
             following = next_shift
           end
-          output.hold(@level, target - time)
+          output&.hold(@level, target - time)
+          @time = target
+        end
+
+        # Whether every voice is off and shifted out to where its shifts
+        # change nothing: the tone voices' registers empty and the noise
+        # voice's LFSR full of ones.
+        def silent?
+          enabled = @enabled
+          registers = @shift_registers
+          !(enabled[0] || enabled[1] || enabled[2] || enabled[NOISE]) &&
+            registers[0].zero? && registers[1].zero? && registers[2].zero? && @lfsr == 0xffff
+        end
+
+        # Moves each shift before `target` to its next turn from there,
+        # keeping its phase.
+        def skip_to(target)
+          VOICES.times do |voice|
+            due = @next_shifts[voice]
+            next if due >= target
+
+            interval = period(voice) * DIVIDERS[voice]
+            @next_shifts[voice] = due + ((target - due + interval - 1) / interval * interval)
+          end
           @time = target
         end
 
