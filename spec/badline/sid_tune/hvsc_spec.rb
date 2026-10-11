@@ -4,7 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Storage::HVSC do
+describe Badline::SIDTune::HVSC do
   let(:dir) { Dir.mktmpdir }
   let(:root) { File.join(dir, "C64Music") }
   let(:document) { File.join(root, "DOCUMENTS", "STIL.txt") }

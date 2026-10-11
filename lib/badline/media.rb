@@ -83,7 +83,7 @@ module Badline
       def sid_model(path, otherwise: :mos6581)
         return otherwise unless path && Extensions.kind(path) == :tune
 
-        Storage::SIDFile.new(path).sid_model
+        SIDTune::File.new(path).sid_model
       end
 
       # What the medium at `path` is to `computer`, which attach goes by:

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module Media
+  module Audio
     # An ordered list of media files to go through one at a time, such as
     # the tunes of a player. Each entry is a file and the part of it to
     # start on, counting from 1, out of the parts the file holds: a .sid

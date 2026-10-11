@@ -3,10 +3,10 @@
 require "digest"
 
 module Badline
-  module Storage
+  module SIDTune
     # PSID/RSID tunes: a memory image plus the addresses of the routines
     # that initialise it and produce one frame of music.
-    class SIDFile
+    class File
       include IntegerHelper
 
       class FormatError < StandardError; end
@@ -147,7 +147,7 @@ module Badline
       attr_reader :format
 
       def initialize(path)
-        @bytes = File.binread(path).bytes
+        @bytes = ::File.binread(path).bytes
         @format = @bytes[0, 4].pack("C*")
         raise FormatError, "Missing PSID or RSID signature" unless %w[PSID RSID].include?(@format)
         raise FormatError, "Truncated header" if truncated?

@@ -3,7 +3,7 @@
 require "badline/sid_tune/stil/credit"
 
 module Badline
-  module Storage
+  module SIDTune
     # HVSC's SID Tune Information List, `DOCUMENTS/STIL.txt`: covers,
     # subtune names and composers' comments, keyed by each tune's HVSC path.
     # An entry holds fields for the whole file, then a block per subtune
@@ -89,7 +89,7 @@ module Badline
       def entry(hvsc_path) = entries[hvsc_path]
 
       def entries
-        @entries ||= parse(Storage.latin1(File.binread(@path).bytes))
+        @entries ||= parse(Storage.latin1(::File.binread(@path).bytes))
       end
 
       private

@@ -149,7 +149,7 @@ describe Badline::Audio::Playback do
     context "with the SID behind it" do
       let(:tune_path) { File.join(Dir.mktmpdir, "tune.sid") }
       let(:renderer) do
-        Badline::Audio::Renderer.new(Badline::Storage::SIDFile.new(tune_path), seconds: 0.5, rate: 8000)
+        Badline::Audio::Renderer.new(Badline::SIDTune::File.new(tune_path), seconds: 0.5, rate: 8000)
       end
       let(:sink) { FakeSink.new(rate: 8000) }
 

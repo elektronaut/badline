@@ -1974,17 +1974,17 @@ testprogs named.
 - Derived against six OneLoad64 tunes (Galway, Tel, Gray, Dunn, Cooksey).
   Green Beret's init sits at `$9fe3` and calls its own code at `$aaca`,
   which forces the `$36` below `$a000`.
-  `SIDFile#bank_for` is the one copy of the map: `Driver` wraps both calls
+  `SIDTune::File#bank_for` is the one copy of the map: `Driver` wraps both calls
   in a `$01` save/bank/restore, and `BarePlayer#dispatch` pokes it before
   handing the CPU the stub.
 - Spec guard, at both ends: *a tune living under the BASIC ROM* in
   [`audio/renderer_spec.rb`](../spec/badline/audio/renderer_spec.rb) (a
   fixture at `$a000` that reads peak=0 without the `$01` write), and the
   *#driver for a tune under BASIC* and *#bank_for* groups in
-  [`storage/sid_file_spec.rb`](../spec/badline/storage/sid_file_spec.rb).
+  [`sid_tune/file_spec.rb`](../spec/badline/sid_tune/file_spec.rb).
 - The boot stub never returns to its caller: after `cli` it spins on
   `jmp *` (PSID and RSID). BASIC's READY loop reuses zero page `$19`–`$21`,
   which a tune owns. Wizball (Ocean Loader 1) keeps its music-enable flag
   in `$19` and goes silent when BASIC writes `$0a` there.
   - Spec guard:
-    [`storage/sid_file/driver_spec.rb`](../spec/badline/storage/sid_file/driver_spec.rb).
+    [`sid_tune/file/driver_spec.rb`](../spec/badline/sid_tune/file/driver_spec.rb).

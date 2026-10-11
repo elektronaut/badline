@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module Storage
+  module SIDTune
     # HVSC's subtune length database. Each tune gets a comment naming its path
     # and a line keyed by the MD5 of the whole `.sid` file, holding one
     # `m:ss` time per subtune, optionally down to milliseconds:
@@ -23,7 +23,7 @@ module Badline
       # The tune's per-subtune lengths in seconds, or nil when it isn't listed.
       def lengths(md5)
         prefix = "#{md5.downcase}="
-        File.foreach(@path) do |line|
+        ::File.foreach(@path) do |line|
           next unless line.start_with?(prefix)
 
           return line[prefix.length..].split.map { |time| seconds(time) }

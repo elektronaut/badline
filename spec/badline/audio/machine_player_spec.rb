@@ -8,7 +8,7 @@ describe Badline::Audio::MachinePlayer do
   subject(:player) { described_class.new(tune) }
 
   let(:dir) { Dir.mktmpdir }
-  let(:tune) { Badline::Storage::SIDFile.new(path) }
+  let(:tune) { Badline::SIDTune::File.new(path) }
 
   before { File.binwrite(path, (header + image).pack("C*")) }
   after { FileUtils.remove_entry(dir) }

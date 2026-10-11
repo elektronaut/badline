@@ -106,7 +106,7 @@ module Badline
       # Keeps the subtune's STIL credits for the header and the whole entry
       # for the INFO view.
       def stil(fields, subtune, subtune_fields)
-        @credits = Storage::STIL::Credit.list(subtune_fields.empty? ? fields : subtune_fields)
+        @credits = SIDTune::STIL::Credit.list(subtune_fields.empty? ? fields : subtune_fields)
         @stil = fields
         @stil_subtune = subtune
         @subtune_stil = subtune_fields
@@ -211,7 +211,7 @@ module Badline
 
       def draw
         @next_draw = now + FRAME
-        @screen.draw(@state, @player, @history, @tune_file, Storage::STIL::Credit.at(@credits, @state.played))
+        @screen.draw(@state, @player, @history, @tune_file, SIDTune::STIL::Credit.at(@credits, @state.played))
       end
 
       def now = Process.clock_gettime(Process::CLOCK_MONOTONIC)

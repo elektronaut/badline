@@ -8,7 +8,7 @@ describe Badline::Audio::BarePlayer do
   subject(:player) { described_class.new(tune).tap(&:start) }
 
   let(:dir) { Dir.mktmpdir }
-  let(:tune) { Badline::Storage::SIDFile.new(path) }
+  let(:tune) { Badline::SIDTune::File.new(path) }
   let(:speed) { 0 }
   let(:timer) { [] }
   let(:flags) { 0x04 }

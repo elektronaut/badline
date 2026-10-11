@@ -164,7 +164,7 @@ module Badline
 
       # Tunes live under the ROMs as often as not, so $01 has to bank out
       # whatever covers the routine about to run. An RSID tune banks itself,
-      # and `SIDFile#bank_for` hands back nil for it.
+      # and `SIDTune::File#bank_for` hands back nil for it.
       def dispatch
         bank = @tune.bank_for(@pending)
         @bus.poke(0x01, bank) if bank

@@ -49,8 +49,8 @@ module Badline
       def queue
         @queue ||= begin
           paths = @options.tune_paths
-          queue = Media::Queue.new(entries(paths, @options.subtune), all_parts: @options.all_subtunes?,
-                                                                     build: ->(dropped) { entries(dropped) })
+          queue = Queue.new(entries(paths, @options.subtune), all_parts: @options.all_subtunes?,
+                                                              build: ->(dropped) { entries(dropped) })
           raise Error, "no .sid tunes in #{paths.join(', ')}" if queue.empty? && !paths.empty?
 
           queue
@@ -77,7 +77,7 @@ module Badline
       # below the directories, the first starting on `subtune` if given.
       def entries(paths, subtune = nil)
         tunes = []
-        Media::Queue.files(paths, ".sid").each do |path|
+        Queue.files(paths, ".sid").each do |path|
           tunes << QueuedTune.new(path, @options, subtune: tunes.empty? ? subtune : nil)
         end
         tunes
@@ -223,9 +223,9 @@ module Badline
       end
 
       def stil(entry)
-        list = Storage::STIL.locate(entry.path)
-        hvsc_path = list && Storage::HVSC.path(entry.path, list)
-        hvsc_path && (@stil_lists[list] ||= Storage::STIL.new(list)).entry(hvsc_path)
+        list = SIDTune::STIL.locate(entry.path)
+        hvsc_path = list && SIDTune::HVSC.path(entry.path, list)
+        hvsc_path && (@stil_lists[list] ||= SIDTune::STIL.new(list)).entry(hvsc_path)
       end
 
       def progress(done, total)

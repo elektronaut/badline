@@ -6,7 +6,7 @@ describe Badline::Audio::Stereo do
   subject(:stereo) { described_class.new(bus, tune, %i[mos6581 mos8580 mos6581]) }
 
   let(:bus) { Badline::C64::Bus.new }
-  let(:tune) { instance_double(Badline::Storage::SIDFile, sid_addresses: addresses) }
+  let(:tune) { instance_double(Badline::SIDTune::File, sid_addresses: addresses) }
   let(:addresses) { [] }
 
   # Has each SID give up the samples in `outputs`, then mixes them.

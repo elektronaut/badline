@@ -4,7 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Media::Queue do
+describe Badline::Audio::Queue do
   subject(:queue) { described_class.new(entries, all_parts:, shuffle: lambda(&:reverse)) }
 
   let(:entries) do

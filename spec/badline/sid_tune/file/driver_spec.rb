@@ -8,9 +8,9 @@ require "fileutils"
 # clobber zero page the tune owns between init and the first play. The
 # caller at $c100 stands in for BASIC: it SYSes the stub, then marks $c001
 # and scribbles on $19.
-describe Badline::Storage::SIDFile::Driver do
+describe Badline::SIDTune::File::Driver do
   let(:dir) { Dir.mktmpdir }
-  let(:tune) { Badline::Storage::SIDFile.new(File.join(dir, "tune.sid")) }
+  let(:tune) { Badline::SIDTune::File.new(File.join(dir, "tune.sid")) }
   let(:computer) { Badline::C64.new }
 
   before do

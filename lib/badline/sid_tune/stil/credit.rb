@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  module Storage
+  module SIDTune
     class STIL
       # A TITLE in a STIL entry, the tune a subtune covers, with the ARTIST
       # after it, and the stretch of the subtune it covers when the title

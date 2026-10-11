@@ -4,7 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 
-describe Badline::Storage::SongLengths do
+describe Badline::SIDTune::SongLengths do
   subject(:database) { described_class.new(path) }
 
   let(:dir) { Dir.mktmpdir }

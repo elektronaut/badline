@@ -2,7 +2,7 @@
 
 module Badline
   module Audio
-    # Plays a Media::Queue of tunes interactively: the console's keys step
+    # Plays a Audio::Queue of tunes interactively: the console's keys step
     # between tunes and between a tune's subtunes, seek within the subtune, pause,
     # turn the queue's shuffle, loop and all-subtunes modes on and off, and
     # quit, and the status line follows along. Seeking runs the subtune
@@ -10,7 +10,7 @@ module Badline
     # forward, and from the latest of its Checkpoints at or before there to
     # go back, or to go forward when that checkpoint is further on than
     # where the subtune is. A subtune that plays to its end moves on as
-    # Media::Queue#advance says. It stops at the end of the queue, on q, or
+    # Audio::Queue#advance says. It stops at the end of the queue, on q, or
     # on Ctrl-C.
     #
     # `renderer` builds the renderer for an entry's subtune at the sink's

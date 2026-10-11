@@ -384,7 +384,7 @@ describe Badline::Media do
 
       it "rejects a tune written for two SIDs" do
         expect { described_class.attach(computer, sid_tune(version: 3, sids: 0x4200)) }
-          .to raise_error(Badline::Storage::SIDFile::FormatError, /2 SIDs/)
+          .to raise_error(Badline::SIDTune::File::FormatError, /2 SIDs/)
       end
     end
 

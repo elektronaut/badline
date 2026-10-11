@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-describe Badline::Storage::STIL::Credit do
-  def field(name, text) = Badline::Storage::STIL::Field.new(name, text)
+describe Badline::SIDTune::STIL::Credit do
+  def field(name, text) = Badline::SIDTune::STIL::Field.new(name, text)
 
   let(:credits) do
     described_class.list([field("TITLE", "BGM1 [from the arcade game Commando] (0:00)"),
