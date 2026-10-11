@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 # Every cartridge mapper after a few register writes, reads, button presses
-# and freezes, for bin/snapshot_check --carts: each one's state saved,
-# loaded into a cartridge built afresh from its setup, and saved again.
+# and freezes, for bin/snapshot_check --carts: each one's keyed module
+# saved, a cartridge built afresh from it with its state loaded, and saved
+# again.
 module SnapshotCartridges
   WRITES = [
     [[0xde00, 0x09], [0xde01, 0x09], [0xde02, 0x09], [0xdfff, 0x09]],
@@ -44,21 +45,15 @@ module SnapshotCartridges
     cartridge
   end
 
-  # The setup and state `cartridge` saves, written through `out`.
-  def save(cartridge, out = Badline::Snapshot::StateWriter.new)
-    cartridge.save_setup(out)
-    cartridge.save_state(out)
-    out
-  end
+  # The records `cartridge` saves in a keyed snapshot module (BL-CART).
+  def save(cartridge) = Badline::Snapshot::Keyed.section("BL-CART") { |out| cartridge.save_fields(out) }
 
-  # A cartridge built from `cartridge`'s setup, with its state loaded.
+  # A cartridge built afresh from `cartridge`'s module, with its state
+  # loaded.
   def round_trip(cartridge)
-    setup = Badline::Snapshot::StateWriter.new
-    cartridge.save_setup(setup)
-    state = Badline::Snapshot::StateWriter.new
-    cartridge.save_state(state)
-    copy = attach(Cartridge.from_setup(Badline::Snapshot::StateReader.new(setup.state)))
-    copy.load_state(Badline::Snapshot::StateReader.new(state.state))
+    input = Badline::Snapshot::Keyed::Reader.parse(save(cartridge))
+    copy = attach(Cartridge.from_fields(input))
+    copy.load_fields(input)
     copy
   end
 

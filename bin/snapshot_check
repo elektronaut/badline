@@ -10,6 +10,7 @@
 #   ruby --yjit bin/snapshot_check --write DIR [filter]
 #   ruby --yjit bin/snapshot_check --read DIR [filter]
 #   ruby --yjit bin/snapshot_check --diff A.vsf B.vsf
+#   ruby --yjit bin/snapshot_check --fields FILE.vsf
 #   ruby --yjit bin/snapshot_check --list
 #
 # For each scenario it builds the machine, runs it to the save point and
@@ -20,16 +21,15 @@
 #   machine alone (the two b1s match)
 # - divergence: the saved machine and the loaded one run side by side for
 #   --cycles, with a checkpoint (Badline::Support::Checkpoint and the true
-#   1541's digest) every --every cycles, and then their whole saved state
-#   is compared
+#   drive's digest) every --every cycles, and then both are saved and the
+#   snapshots compared
 #
-# Where two snapshots differ it names the module, and for the BADLINE
-# module the first values and strings that differ, each with the line of
-# the save_state that wrote it.
+# Where two snapshots differ it names the module, and in a BL-* module the
+# keys whose records differ.
 #
-# --carts saves every cartridge mapper after register writes, reads and
-# freezes (test/support/snapshot_cartridges.rb), loads the state into a
-# cartridge built from its setup, and saves that again.
+# --carts saves every cartridge mapper's module after register writes,
+# reads and freezes (test/support/snapshot_cartridges.rb), builds a
+# cartridge afresh from it, loads it, and saves that again.
 #
 # --write DIR saves each scenario's snapshot as DIR/<scenario>.vsf, runs
 # the machine on for --cycles and writes its text screen to
@@ -37,7 +37,8 @@
 # runs each for --cycles and compares the screen, so --write on another
 # checkout and --read here checks that this badline reads its snapshots.
 #
-# --diff compares two snapshot files module by module.
+# --diff compares two snapshot files module by module, and --fields lists
+# a snapshot's modules and their records.
 #
 # The exit status is 1 when anything differs.
 
@@ -61,6 +62,7 @@ parser = OptionParser.new do |opts|
     options[:dir] = dir
   end
   opts.on("--diff", "Compare the two snapshot files named") { options[:mode] = :diff }
+  opts.on("--fields", "List the modules and records of the snapshot file named") { options[:mode] = :fields }
   opts.on("--list", "List the scenarios") { options[:mode] = :list }
 end
 
@@ -80,8 +82,6 @@ require_relative "../test/support/snapshot_cartridges"
 require_relative "../test/support/snapshot_tracing"
 
 module SnapshotCheck
-  include SnapshotTracing
-
   module_function
 
   def dump(machine) = Badline::Snapshot.dump(machine)
@@ -95,8 +95,6 @@ module SnapshotCheck
     machine = image(bytes).load { |line| ignored << line }
     [machine, ignored]
   end
-
-  def traced(machine) = TracingWriter.new.tap { |out| machine.save_state(out) }
 
   def family_options(machine) = { family: machine.family.to_s }
 
@@ -140,15 +138,13 @@ module SnapshotCheck
       second = dump(restored)
       puts "#{scenario.name}: saved at cycle #{machine.cycles}, #{first.bytesize} bytes"
       ignored.each { |line| puts "  left out: #{line}" }
-      [identical?(first, again, second), runs_alike?(machine, restored, first, options)].all?
+      [identical?(first, again, second), runs_alike?(machine, restored, options)].all?
     end
   end
 
   def identical?(first, again, second)
-    sites = traced(load(first).first)
-    resave = SnapshotTracing.differences(first, again, sites)
-    reload = SnapshotTracing.differences(first, second, sites)
-    [passed?("saving twice", resave), passed?("save, load, save", reload)].all?
+    [passed?("saving twice", SnapshotTracing.differences(first, again)),
+     passed?("save, load, save", SnapshotTracing.differences(first, second))].all?
   end
 
   def passed?(what, lines)
@@ -157,7 +153,9 @@ module SnapshotCheck
     lines.empty?
   end
 
-  def runs_alike?(machine, restored, first, options)
+  # Runs both machines side by side, then saves both, which settles each
+  # the same way while they still agree.
+  def runs_alike?(machine, restored, options)
     every = options[:every]
     (options[:cycles] / every).times do
       run(machine, every)
@@ -168,16 +166,15 @@ module SnapshotCheck
 
       return passed?("run on", ["at cycle #{machine.cycles}", "saved:    #{ours}", "restored: #{theirs}"])
     end
-    states = StateDiff.lines(machine.snapshot, restored.snapshot, traced(load(first).first))
-    passed?("run on #{options[:cycles]} cycles", states.map { |line| "state: #{line}" })
+    passed?("run on #{options[:cycles]} cycles", SnapshotTracing.differences(dump(machine), dump(restored)))
   end
 
   def carts_identical?(filter)
     scenarios = SnapshotCartridges.scenarios.select { |name, _| filter.nil? || name.include?(filter) }
     failed = scenarios.reject do |name, cartridge|
-      copy = SnapshotCartridges.round_trip(cartridge)
-      lines = StateDiff.lines(SnapshotCartridges.save(cartridge).state, SnapshotCartridges.save(copy).state,
-                              SnapshotCartridges.save(copy, TracingWriter.new))
+      ours = SnapshotCartridges.save(cartridge)
+      theirs = SnapshotCartridges.save(SnapshotCartridges.round_trip(cartridge))
+      lines = SnapshotTracing.module_difference("BL-CART", ours, theirs)
       lines.each { |line| puts "#{name}: #{line}" }
       lines.empty?
     end
@@ -221,16 +218,7 @@ module SnapshotCheck
   end
 
   def same_files?(first, second)
-    passed?("#{first} against #{second}",
-            SnapshotTracing.differences(File.binread(first), File.binread(second), sites_of(first)))
-  end
-
-  # The save_state lines of a machine loaded from the snapshot at `path`,
-  # or nil if this badline can't load it.
-  def sites_of(path)
-    traced(load(File.binread(path)).first)
-  rescue Badline::Snapshot::FormatError
-    nil
+    passed?("#{first} against #{second}", SnapshotTracing.differences(File.binread(first), File.binread(second)))
   end
 end
 
@@ -245,6 +233,10 @@ passed =
   when :diff
     abort "snapshot_check: --diff takes two snapshot files" unless ARGV.length == 2
     SnapshotCheck.same_files?(*ARGV)
+  when :fields
+    abort "snapshot_check: --fields takes one snapshot file" unless ARGV.length == 1
+    puts SnapshotTracing.fields(File.binread(ARGV.first))
+    true
   else
     scenarios = SnapshotMachines.matching(ARGV.first)
     abort "snapshot_check: no scenario matches #{ARGV.first}" if scenarios.empty?
