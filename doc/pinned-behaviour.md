@@ -1540,9 +1540,13 @@ checked with probes that sample `$FF1A`, `$FF1B`, `$FF1D`, `$FF1E` and
   stretched a row past eight lines.
 - The pointer line is the line after an attribute line, whatever the
   scroll says by then (the datasheet's DMA timing, step 8). A line whose
-  scroll alone asks for pointers fetches none and carries the row's line
-  on, so a scroll of 7 starts the first row on line 8, not line 0. Pinned
-  by xplus4 screenshots of a scroll change inside a text row.
+  scroll alone asks for pointers fetches none, so a scroll of 7 starts the
+  first row on line 8, not line 0.
+- The row's line runs on from the frame's first row, wrapping from 7 to
+  0, and a pointer line doesn't reset it. After a scroll change moves the
+  DMA lines, a row starts on whatever line the counter has reached.
+- Both pinned by xplus4 screenshots of scroll changes inside a text row,
+  on lines 20, 100 and 101.
 - `$FF1A` reads back both bits written to it, the datasheet's two MSBs of
   the reload. xplus4 reads bit 1 as 0.
 - xplus4 reads the reload 40 higher for a few cycles around the line step

@@ -33,14 +33,16 @@ module Badline
       # The counters: the character position reload ($FF1A-$FF1B), the
       # character position the row starts at, which steps by 40 at the end
       # of a row's eighth line, at horizontal count 290; and the vertical
-      # sub-address ($FF1F bits 0-2), the row's line, 0 on the row's first
-      # line and stepping as the line count steps. The line before a row
-      # fetches its attributes 40 characters on from the reload, where the
-      # pointers of the next line read, or from the reload itself before
-      # the first row of a frame. A frame starts with both at 0 and no row
-      # under way, and a row is under way from its pointer line to the
-      # end of the frame. The rows' lines with the display on, up to line
-      # 203, fetch pattern bytes.
+      # sub-address ($FF1F bits 0-2), the row's line, which steps with the
+      # line count on the display window's lines once the frame's first
+      # row is under way, wrapping from 7 to 0 whatever the DMA lines do.
+      # The attribute line reads the row the reload points to after its
+      # own latch: 40 on from it on a row's eighth line, the reload itself
+      # otherwise. The pointer line is the line after an attribute line. A
+      # frame starts with both counters at 0 and no row under way, and the
+      # frame's first pointer line puts a row under way to the end of the
+      # frame. The display window's lines with a row under way and the
+      # display on fetch pattern bytes.
       module Fetches
         # The first and last cycles of the pattern fetches.
         PATTERN_COLUMN = 55
@@ -114,10 +116,7 @@ module Badline
         # Column 51: what the line fetches, decided where BA is.
         def start_line_fetches
           @dma_kind = dma_kind
-          if @dma_kind == Beam::POINTER_DMA
-            @row_line = 0
-            @row_active = true
-          end
+          @row_active = true if @dma_kind == Beam::POINTER_DMA
           @line_position = @char_position
           @pattern_fetches = @row_active && @line <= Beam::LAST_DISPLAY_LINE && display_enabled? && !@bus.nil?
         end

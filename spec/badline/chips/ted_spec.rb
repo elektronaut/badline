@@ -267,6 +267,14 @@ describe Badline::Chips::TED do
       expect(ted.row_line).to eq(2)
     end
 
+    # Pinned by xplus4 screenshots of a scroll change mid-row.
+    it "runs the row's line on through a pointer line after a scroll change" do
+      run_to(20, 52)
+      ted.poke(0xff06, 0x1c)
+      run_to(29, 56)
+      expect(ted.row_line).to eq(1)
+    end
+
     it "moves the character position on by 40 at the end of a row" do
       run_to(12, 0)
       expect([ted.peek(0xff1a), ted.peek(0xff1b)]).to eq([0xfc, 40])
