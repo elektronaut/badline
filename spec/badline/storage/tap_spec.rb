@@ -17,8 +17,8 @@ describe Badline::Storage::TAP do
 
   after { FileUtils.remove_entry(dir) }
 
-  def write_tape(bytes, size: bytes.length)
-    header = "C64-TAPE-RAW".bytes + [version, platform, 0, 0] + [size].pack("V").bytes
+  def write_tape(bytes, size: bytes.length, signature: "C64-TAPE-RAW")
+    header = signature.bytes + [version, platform, 0, 0] + [size].pack("V").bytes
     File.binwrite(path, (header + bytes).pack("C*"))
   end
 
@@ -54,6 +54,28 @@ describe Badline::Storage::TAP do
 
       it "reads the escape as a long pulse" do
         expect(pulses).to eq([described_class::OVERFLOW, 0x30 * 8])
+      end
+    end
+
+    context "with a version 2 tape" do
+      let(:version) { 2 }
+      let(:platform) { 2 }
+      let(:data) { [0x1a, 0x1b, 0x35, 0x00, 0x34, 0x12, 0x00, 0x6a] }
+
+      before { write_tape(data, signature: "C16-TAPE-RAW") }
+
+      it "reads a pulse from each two half waves" do
+        expect(pulses).to eq([(0x1a + 0x1b) * 8, (0x35 * 8) + 0x1234, 0x6a * 8])
+      end
+
+      it "reads a half wave left at the end as the whole of a pulse" do
+        2.times { tape.next_pulse }
+        expect(tape.next_pulse).to eq(0x6a * 8)
+      end
+
+      it "reads the half waves one at a time" do
+        half_waves = Array.new(5) { tape.next_half_wave }
+        expect(half_waves).to eq([0x1a * 8, 0x1b * 8, 0x35 * 8, 0x1234, 0x6a * 8])
       end
     end
 
@@ -110,6 +132,17 @@ describe Badline::Storage::TAP do
       expect(tape.platform).to eq(0)
     end
 
+    context "with a C16 tape" do
+      let(:version) { 2 }
+      let(:platform) { 2 }
+
+      before { write_tape(data, signature: "C16-TAPE-RAW") }
+
+      it "reads the version and the platform" do
+        expect([tape.version, tape.platform]).to eq([2, 2])
+      end
+    end
+
     context "with a VIC-20 tape" do
       let(:platform) { 1 }
 
@@ -125,8 +158,8 @@ describe Badline::Storage::TAP do
 
     it "rejects a version it cannot play" do
       write_tape(data)
-      File.binwrite(path, File.binread(path).tap { |raw| raw.setbyte(0x0c, 2) })
-      expect { tape }.to raise_error(described_class::FormatError, /version 2/)
+      File.binwrite(path, File.binread(path).tap { |raw| raw.setbyte(0x0c, 3) })
+      expect { tape }.to raise_error(described_class::FormatError, /version 3/)
     end
   end
 
@@ -154,6 +187,15 @@ describe Badline::Storage::TAP do
     it "leaves the tape at its end" do
       tape.record_pulse(363)
       expect(tape.end?).to be(true)
+    end
+
+    context "with a version 2 tape" do
+      let(:version) { 2 }
+
+      it "records a pulse as two half waves" do
+        tape.record_pulse(363)
+        expect(tape.bytes.drop(20)).to eq([0x30, 0x42, 0x17, 0x17])
+      end
     end
 
     context "with a version 0 tape" do

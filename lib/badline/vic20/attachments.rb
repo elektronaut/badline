@@ -34,6 +34,9 @@ module Badline
       # The VIC-20's KERNAL, which the traps stand in for.
       def trap_layout = KernalTrap::VIC20_LAYOUT
 
+      # The VIC-20's KERNAL keeps its keyboard buffer where the C64's does.
+      def keyboard_buffer = Machine::KeyboardBuffer::C64_LAYOUT
+
       def trap_bus = @bus
 
       # A drive that powers on with the machine takes longer to boot than
