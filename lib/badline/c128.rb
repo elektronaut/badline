@@ -93,6 +93,11 @@ module Badline
 
     def ram = @bus.ram
 
+    # Reads and writes memory as the CPU sees it, through the bus.
+    def peek(addr) = @bus.peek(addr)
+
+    def poke(addr, value) = @bus.poke(addr, value)
+
     def keyboard = @bus.keyboard
 
     def joystick1 = @bus.joystick1

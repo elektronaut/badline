@@ -34,6 +34,18 @@ RSpec.describe Badline::C64 do
     end
   end
 
+  describe "#peek and #poke" do
+    it "reads and writes RAM through the bus" do
+      computer.poke(0xc000, 0x5a)
+      expect([computer.peek(0xc000), computer.address_bus.peek(0xc000)]).to eq([0x5a, 0x5a])
+    end
+
+    it "reaches the chips in I/O" do
+      computer.poke(0xd021, 0x06)
+      expect(computer.vic.peek(0xd021) & 0x0f).to eq(0x06)
+    end
+  end
+
   describe "#run_cycles" do
     it "leaves the machine where as many calls to #cycle! do" do
       stepped = described_class.new

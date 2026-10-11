@@ -5,6 +5,11 @@ require "spec_helper"
 describe Badline::C128 do
   subject(:machine) { described_class.new }
 
+  it "reads and writes memory through the bus" do
+    machine.poke(0x2000, 0x5a)
+    expect([machine.peek(0x2000), machine.address_bus.peek(0x2000)]).to eq([0x5a, 0x5a])
+  end
+
   def chips(machine)
     [machine.vic.model, machine.cia1.model, machine.sid.model, machine.vdc.model, machine.vdc.ram.length,
      machine.region.name]

@@ -10,7 +10,7 @@ computer = Badline::C64.new
 Badline::Media.attach(computer, "game.d64")         # attaches and autostarts
 computer.on_init { computer.type_text("print 6*7\r") } # once the machine has booted
 3_500_000.times { computer.cycle! }
-computer.address_bus.peek(0x0400)                   # screen RAM starts at $0400
+computer.peek(0x0400)                               # screen RAM starts at $0400
 ```
 
 [media.md](media.md) covers attaching and swapping media, and

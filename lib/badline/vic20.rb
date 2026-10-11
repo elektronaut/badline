@@ -36,6 +36,11 @@ module Badline
 
     def ram = @bus.ram
 
+    # Reads and writes memory as the CPU sees it, through the bus.
+    def peek(addr) = @bus.peek(addr)
+
+    def poke(addr, value) = @bus.poke(addr, value)
+
     def family = :vic20
 
     # The one control port's joystick, which the front end's second

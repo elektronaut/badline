@@ -24,6 +24,11 @@ describe Badline::Vic20 do
     expect([machine.via1.peek(0x9002), machine.via2.peek(0x9002)]).to eq([0x12, 0x22])
   end
 
+  it "reads and writes memory through the bus" do
+    machine.poke(0x1000, 0x5a)
+    expect([machine.peek(0x1000), machine.bus.peek(0x1000)]).to eq([0x5a, 0x5a])
+  end
+
   it "puts its VIC in I/O 0" do
     machine.bus.poke(0x900f, 0x1b)
     expect(machine.vic.peek(0x900f)).to eq(0x1b)

@@ -32,6 +32,11 @@ module Badline
 
     def ram = address_bus.ram
 
+    # Reads and writes memory as the CPU sees it, through the bus.
+    def peek(addr) = address_bus.peek(addr)
+
+    def poke(addr, value) = address_bus.poke(addr, value)
+
     def keyboard = address_bus.keyboard
 
     def joystick1 = address_bus.joystick1
