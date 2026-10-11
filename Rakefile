@@ -241,6 +241,17 @@ namespace :snapshot do
     require "badline/snapshot/field_doc"
     Badline::Snapshot::FieldDoc.write
   end
+
+  desc "Write the golden snapshot fixtures snapshot_load_golden_spec loads into spec/fixtures/snapshots/VERSION " \
+       "(default: this badline's version), once per release"
+  task :golden, [:version] do |_, args|
+    $LOAD_PATH.unshift(File.expand_path("lib", __dir__))
+    require_relative "test/support/snapshot_golden"
+    version = args[:version] || Badline::VERSION
+    SnapshotGolden.write(File.expand_path("spec/fixtures/snapshots/#{version}", __dir__)) do |name, path|
+      puts "#{version}/#{name}: #{File.size(path)} bytes"
+    end
+  end
 end
 
 Rake::TestTask.new do |task|

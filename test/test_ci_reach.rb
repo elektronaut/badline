@@ -27,6 +27,16 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/cia/keyed_parts.rb])
   end
 
+  def test_a_machines_snapshot_modules_reach_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/c128/keyed_modules.rb])
+  end
+
+  def test_input_reaches_a_suite_of_every_family
+    reached = CIReach.suites(%w[lib/badline/input/keyboard.rb lib/badline/input.rb])
+
+    assert_empty %w[lorenz testbench-vic20 testbench-c128 testbench-plus4 sid] - reached
+  end
+
   def test_the_cpu_reaches_everything
     assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/chips/cpu/core.rb spec/badline/cpu_spec.rb])
   end
