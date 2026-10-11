@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.0](https://github.com/elektronaut/badline/compare/v0.12.1...v0.13.0) (2026-10-11)
+
+
+### Features
+
+* read and write memory through the machine ([0a71be9](https://github.com/elektronaut/badline/commit/0a71be914fda736bdc10c320b86cf9e0bf91b05b))
+
+
+### Bug Fixes
+
+* take dead keys such as ´ on a Mac as key presses ([44bc087](https://github.com/elektronaut/badline/commit/44bc087a0def79a3d1f8837d7e479297aca7094f))
+
+
+### Performance Improvements
+
+* type the values a snapshot restores ([71e6e62](https://github.com/elektronaut/badline/commit/71e6e6229880d413adf2071a69263f7930536157))
+
 ## [0.12.1](https://github.com/elektronaut/badline/compare/v0.12.0...v0.12.1) (2026-10-10)
 
 
