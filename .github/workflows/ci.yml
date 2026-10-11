@@ -20,13 +20,17 @@ env:
 jobs:
   # A pull request that changes only docs, or only what release-please
   # bumps for a release, can't move a spec or a suite, so the jobs after
-  # Rubocop skip it. Pushes to main always run everything.
+  # Rubocop skip it. One that changes only specs, tests or bin/ tools
+  # can't move the native build, so that job skips it. The suites matrix
+  # keeps the suites the changes reach (CIReach). Pushes to main always run
+  # everything.
   changes:
     name: Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       code: ${{ steps.check.outputs.code }}
+      native: ${{ steps.check.outputs.native }}
     steps:
       - uses: actions/checkout@v6.1.0
         with:
@@ -38,10 +42,16 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "native=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(git diff --name-only "$BASE"...HEAD)
           echo "$files"
+          if echo "$files" | grep -Evq '^(spec|test|bin|doc)/|\.md$'; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native=false" >> "$GITHUB_OUTPUT"
+          fi
           code=$(echo "$files" | grep -Ev '(\.md|^doc/.*|^\.release-please-manifest\.json|^lib/badline/version\.rb|^Gemfile\.lock)$' || true)
           lock=$(git diff "$BASE"...HEAD -- Gemfile.lock | grep -E '^[-+] ' | grep -Ev '^[-+] +badline \(' || true)
           if [ -n "$code" ] || [ -n "$lock" ]; then
@@ -140,7 +150,8 @@ jobs:
   # does the same with the spin pack tarball release.yml ships to Homebrew.
   native:
     name: Native badline
-    needs: compiler
+    needs: [changes, compiler]
+    if: needs.changes.outputs.native == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -324,7 +335,10 @@ jobs:
 
   # The suites job's matrix, which `rake ci:matrix` derives from
   # CIMatrix::SHARDS in test/support/ci_matrix.rb. The task fails when the
-  # shards leave a suite or a baseline row out, or run one twice.
+  # shards leave a suite or a baseline row out, or run one twice. On a pull
+  # request it keeps only the suites the changed files reach, which
+  # test/support/ci_reach.rb maps, and the suites job skips when that is
+  # none.
   shards:
     name: Suites matrix
     needs: changes
@@ -333,15 +347,29 @@ jobs:
     timeout-minutes: 10
     outputs:
       matrix: ${{ steps.derive.outputs.matrix }}
+      any: ${{ steps.derive.outputs.any }}
     steps:
       - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
       - name: Derive the matrix
         id: derive
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
         run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --name-only "$BASE"...HEAD > "$RUNNER_TEMP/changed"
+            export CHANGED_FILES="$RUNNER_TEMP/changed"
+          fi
           matrix=$(bundle exec rake "ci:matrix[compact]")
           echo "$matrix"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          if [ "$matrix" = '{"include":[]}' ]; then
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          fi
 
   # Every regression suite on the Spinel build, each compared against its
   # baseline in test/baselines/. The shards are balanced by recent run
@@ -353,6 +381,7 @@ jobs:
   suites:
     name: "Suites (${{ matrix.shard }})"
     needs: [compiler, shards]
+    if: needs.shards.outputs.any == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
