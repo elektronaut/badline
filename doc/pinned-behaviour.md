@@ -1519,6 +1519,26 @@ finds one should start here.
   - Pinned by `lorenz-plus4`'s rows for those tests. The xplus4 verdicts
     are its exit codes with `-debugcart`, one program at a time.
 
+The TED's fetch counters (`Chips::TED::Fetches`) follow xplus4 where the
+datasheet is silent, and the datasheet where the two disagree. Each was
+checked with probes that sample `$FF1A`, `$FF1B`, `$FF1D`, `$FF1E` and
+`$FF1F` through a frame, run on badline and xplus4 r45942 alike.
+
+- The row's line (`$FF1F` bits 0-2) steps with the line count only on the
+  display window's lines, so it holds 7 from line 204 to the end of the
+  frame, and the character position reload holds 1000 there. The frame's
+  end clears both.
+- The blink counter (`$FF1F` bits 3-6) counts at horizontal count 336, the
+  datasheet's "Increment Blink", on line 256 of a PAL frame and line 228
+  of an NTSC one, the lines xplus4 counts on. The datasheet gives no line.
+- A row's last line keeps its own attributes, although the line fetches
+  the next row's, as xplus4 shows it: the attributes take hold as each
+  character's pointer is fetched.
+- `$FF1A` reads back both bits written to it, the datasheet's two MSBs of
+  the reload. xplus4 reads bit 1 as 0.
+- xplus4 reads the reload 40 higher for a few cycles around the line step
+  on some lines. badline reads the register as it stands.
+
 ## 1541 serial port
 
 - The drive sees the C64's side of the serial bus a host cycle late. The

@@ -173,6 +173,109 @@ describe Badline::Chips::TED do
     end
   end
 
+  describe "the fetches" do
+    subject(:ted) { machine.ted }
+
+    let(:machine) { Badline::Plus4.new }
+    let(:ram) { machine.ram }
+    let(:kernal) { Badline::ROM.read("plus4/kernal-pal.rom") }
+
+    # Runs to +column+ of +line+.
+    def run_to(line, column)
+      ted.cycle! until ted.line == line && ted.column == column
+    end
+
+    before do
+      ted.poke(0xff14, 0x08)
+      ted.poke(0xff13, 0xd0)
+      ted.poke(0xff12, 0x04)
+      ram.poke(0x0800, 0x71)
+      ram.poke(0x0c00, 0x01)
+      ted.poke(0xff06, 0x1b)
+    end
+
+    it "fetches a row's attributes on the line before it and its pointers on its first line" do
+      run_to(4, 55)
+      expect([ted.attributes[0], ted.pointers[0]]).to eq([0x71, 0x01])
+    end
+
+    it "keeps the row before on its own attributes to its last line" do
+      ram.poke(0x0828, 0x25)
+      run_to(11, 55)
+      expect(ted.attributes[0]).to eq(0x71)
+    end
+
+    it "fetches a character's pattern from the character base with the row's line" do
+      run_to(6, 56)
+      expect(ted.patterns[0]).to eq(kernal[0x1000 + 8 + 2])
+    end
+
+    it "leaves the pattern byte on the bus" do
+      run_to(6, 55)
+      expect(machine.bus.data).to eq(kernal[0x1000 + 8 + 2])
+    end
+
+    it "takes the pointer's bit 7 as reverse while $FF07 bit 7 is clear" do
+      ram.poke(0x0c00, 0x81)
+      run_to(5, 56)
+      expect(ted.patterns[0]).to eq(kernal[0x1000 + 8 + 1])
+    end
+
+    it "fetches 256 characters with $FF07 bit 7 set" do
+      ted.poke(0xff07, 0x80)
+      ram.poke(0x0c00, 0x81)
+      run_to(5, 56)
+      expect(ted.patterns[0]).to eq(kernal[0x1000 + 0x408 + 1])
+    end
+
+    it "fetches from the first 64 characters in extended colour mode" do
+      ted.poke(0xff06, 0x5b)
+      ram.poke(0x0c00, 0xc1)
+      run_to(5, 56)
+      expect(ted.patterns[0]).to eq(kernal[0x1000 + 8 + 1])
+    end
+
+    it "fetches bitmap bytes from the bitmap base with the character position and the row's line" do
+      ted.poke(0xff12, 0x08)
+      ted.poke(0xff06, 0x3b)
+      ram.poke(0x2000 + (41 * 8) + 3, 0x5a)
+      run_to(15, 0)
+      expect(ted.patterns[1]).to eq(0x5a)
+    end
+
+    it "moves the character position on by 40 at the end of a row" do
+      run_to(12, 0)
+      expect([ted.peek(0xff1a), ted.peek(0xff1b)]).to eq([0xfc, 40])
+    end
+
+    it "counts the row's lines in $FF1F" do
+      run_to(7, 0)
+      expect(ted.peek(0xff1f) & 0x07).to eq(3)
+    end
+
+    it "holds the row's line after line 203" do
+      run_to(250, 0)
+      expect([ted.row_line, ted.char_position]).to eq([7, 1000])
+    end
+
+    it "starts the character position over with the frame" do
+      ted.poke(0xff1b, 0x55)
+      run_to(0, 50)
+      expect(ted.char_position).to eq(0)
+    end
+
+    # Pinned by xplus4, which counts the blink counter on line 256.
+    it "counts frames in the blink counter on line 256" do
+      run_to(256, 43)
+      expect(ted.peek(0xff1f) >> 3).to eq(0x11)
+    end
+
+    it "sets the row's line and the blink counter through $FF1F" do
+      ted.poke(0xff1f, 0x2d)
+      expect(ted.peek(0xff1f)).to eq(0xad)
+    end
+  end
+
   it "reads in $FF13 bit 0 whether the CPU sees ROM" do
     ted.poke(0xff13, 0xd0)
     ted.rom_selected = false

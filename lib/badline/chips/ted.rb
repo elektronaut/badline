@@ -2,14 +2,15 @@
 
 require "badline/chips/ted/timers"
 require "badline/chips/ted/beam"
+require "badline/chips/ted/fetches"
 
 module Badline
   module Chips
     # The TED of the Commodore 264 series, the 7360 and 8360: its registers
     # at $FF00-$FF1F, the raster, the three timers, the interrupt, the
-    # keyboard latch and the clock it gives the CPU (Beam). It paints no
-    # picture and plays no sound yet: those registers keep what is written
-    # to them.
+    # keyboard latch, the clock it gives the CPU (Beam) and what it fetches
+    # for the picture (Fetches). It paints no picture and plays no sound
+    # yet: those registers keep what is written to them.
     #
     # The machine clocks it once a single clock cycle, 57 to a line, and
     # asks it then how many cycles the CPU runs in that one (#cpu_slots)
@@ -23,10 +24,13 @@ module Badline
     # and $FF0B the compare's low byte. $FF13 bit 0 reads whether the CPU
     # sees ROM at $8000-$FFFF (#rom_selected=). $FF1C and $FF1D read and
     # set the raster line, and $FF1E reads the horizontal position's top 8
-    # bits.
+    # bits. $FF1A and $FF1B read and set the character position reload,
+    # and $FF1F the row's line in bits 0-2 and in bits 3-6 the blink
+    # counter, which counts frames.
     class TED
       include Timers
       include Beam
+      include Fetches
 
       # The clock a TED is fed, its single clock: the crystal divided by 20
       # on PAL machines and by 16 on NTSC ones (the Plus/4 hardware manual's
@@ -54,6 +58,7 @@ module Badline
         @profile = profile
         @keyboard_port = nil
         @rom_selected = true
+        @bus = nil
         power_on!
       end
 
@@ -63,16 +68,20 @@ module Badline
         @interrupt_mask = 0
         @raster_compare = 0
         @key_latch = 0xff
+        @blink = 0
         reset_timers
+        reset_fetches
         reset_beam
       end
 
-      # Counts the timers and moves the beam on a cycle, unless $FF07's
-      # freeze bit holds them, then decides the CPU's clock for the cycle.
+      # Counts the timers, moves the beam on a cycle and makes the cycle's
+      # fetches, unless $FF07's freeze bit holds them, then decides the
+      # CPU's clock for the cycle.
       def cycle!
         unless frozen?
           count_timers
           move_beam
+          fetch(@column)
         end
         decide_clock
       end
@@ -92,9 +101,12 @@ module Badline
         when 0x0a then @interrupt_mask | 0xa0
         when 0x0b then @raster_compare & 0xff
         when 0x13 then (@registers[0x13] & 0xfe) | (@rom_selected ? 1 : 0)
+        when 0x1a then 0xfc | (@char_position >> 8)
+        when 0x1b then @char_position & 0xff
         when 0x1c then 0xfe | (@line >> 8)
         when 0x1d then @line & 0xff
         when 0x1e then @column << 2
+        when 0x1f then 0x80 | (@blink << 3) | @row_line
         else @registers[register]
         end
       end
@@ -110,8 +122,11 @@ module Badline
         when 0x09 then @interrupt_flags &= ~value
         when 0x0a then write_interrupt_mask(value)
         when 0x0b then @raster_compare = (@raster_compare & 0x100) | value
+        when 0x1a then @char_position = (@char_position & 0xff) | ((value & 0x03) << 8)
+        when 0x1b then @char_position = (@char_position & 0x300) | value
         when 0x1c then self.line = (@line & 0xff) | ((value & 0x01) << 8)
         when 0x1d then self.line = (@line & 0x100) | value
+        when 0x1f then write_row_line(value)
         end
       end
 
@@ -124,6 +139,14 @@ module Badline
         value = @interrupt_flags | 0x21
         irq? ? value | 0x80 : value
       end
+
+      def write_row_line(value)
+        @row_line = value & 0x07
+        @blink = (value >> 3) & 0x0f
+      end
+
+      # The end of a frame: the fetches' counters start over.
+      def end_frame = end_fetch_frame
 
       def write_interrupt_mask(value)
         @interrupt_mask = value & 0x5f

@@ -46,6 +46,11 @@ module Badline
         DOUBLE_COLUMNS = (43..49)
         LAST_DISPLAY_LINE = 203
 
+        # The DMA a line makes: none, the attributes or the pointers.
+        NO_DMA = 0
+        ATTRIBUTE_DMA = 1
+        POINTER_DMA = 2
+
         # The single clock cycle in the line, 0-56.
         attr_reader :column
 
@@ -67,7 +72,6 @@ module Badline
         def reset_beam
           @column = 0
           @line = 0
-          @dma_line = false
           @ba_low = false
           @cpu_slots = 1
         end
@@ -79,14 +83,18 @@ module Badline
           return unless column == LINE_STEP_COLUMN
 
           line = @line + 1
-          line = 0 if line >= lines_per_frame
+          if line >= lines_per_frame
+            line = 0
+            end_frame
+          end
+          step_row_line(line)
           self.line = line
         end
 
+        # The clock for the cycle. Freeze leaves single clock, without DMA.
         def decide_clock
           column = @column
-          @dma_line = dma_line? if column == BA_COLUMN
-          if @dma_line && (column >= BA_COLUMN || column <= DMA_END_COLUMN)
+          if @dma_kind != NO_DMA && (column >= BA_COLUMN || column <= DMA_END_COLUMN) && !frozen?
             @ba_low = true
             @cpu_slots = column >= DMA_COLUMN || column <= DMA_END_COLUMN ? 0 : 1
             return
@@ -103,16 +111,6 @@ module Badline
         end
 
         def display_window? = @registers[0x06].anybits?(0x10) && @line <= LAST_DISPLAY_LINE
-
-        def dma_line?
-          return false unless @registers[0x06].anybits?(0x10)
-
-          phase = (@line - (@registers[0x06] & 0x07)) & 0x07
-          return false if phase > 1
-
-          row = phase.zero? ? @line + 1 : @line
-          row <= LAST_DISPLAY_LINE
-        end
       end
     end
   end
