@@ -27,6 +27,10 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/cia/keyed_parts.rb])
   end
 
+  def test_the_vics_sprite_fields_reach_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/vic/keyed_sprites.rb])
+  end
+
   def test_a_machines_snapshot_modules_reach_only_the_spinel_check
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/c128/keyed_modules.rb])
   end

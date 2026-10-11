@@ -38,7 +38,7 @@ module CIReach
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{native,exe}/**/*", []],
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],
-    ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules}.rb", []],
+    ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
     ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version}.rb", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],

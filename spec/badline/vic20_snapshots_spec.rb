@@ -20,6 +20,8 @@ describe Badline::Vic20 do
 
     def digest(machine) = [machine.snapshot, machine.video.display.hash]
 
+    def vic_record(machine) = machine.snapshot.sections.find { |section| section.name == "BL-VICI" }
+
     described_class::Bus::RAM_CONFIGURATIONS.each_key do |ram|
       it "restores a machine with #{ram} RAM that runs on as the saved one" do
         machine = booting(ram)
@@ -35,6 +37,14 @@ describe Badline::Vic20 do
       restored = machine.snapshot.load
       [machine, restored].each { |each_machine| each_machine.run_cycles(200_000) }
       expect(digest(restored)).to eq(digest(machine))
+    end
+
+    it "saves the same VIC record whether or not the host played and drained the sound" do
+      played, silent = Array.new(2) { described_class.new.tap { |machine| machine.run_cycles(400_001) } }
+      played.sound_source.record(rate: 44_100)
+      [played, silent].each { |machine| machine.vic.poke(0x900c, 0xf3) && machine.run_cycles(30_000) }
+      played.sound_source.drain_samples
+      expect(vic_record(played)).to eq(vic_record(silent))
     end
 
     it "carries a cartridge's ROM over" do
