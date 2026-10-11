@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "badline/drive1571/cpu"
-require "badline/drive1571/wd1770"
-require "badline/drive1571/serial_port"
-require "badline/drive1571/serial_via"
-require "badline/drive1571/bus"
-require "badline/drive1571/saved_state"
+require "badline/drives/model1571/cpu"
+require "badline/drives/model1571/wd1770"
+require "badline/drives/model1571/serial_port"
+require "badline/drives/model1571/serial_via"
+require "badline/drives/model1571/bus"
+require "badline/drives/model1571/saved_state"
 
 module Badline
   # The 1571 disk drive, the C128D's built-in one: the 1541's 6502, two

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/datasette/saved_state"
+require "badline/drives/datasette/saved_state"
 
 module Badline
   # The 1530 datasette. Plays a pulse stream into CIA 1's FLAG pin while the

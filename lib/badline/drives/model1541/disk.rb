@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "badline/drive1541/sector_reader"
-require "badline/drive1541/disk/saved_state"
+require "badline/drives/model1541/sector_reader"
+require "badline/drives/model1541/disk/saved_state"
 
 module Badline
   class Drive1541

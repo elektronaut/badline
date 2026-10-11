@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require "badline/drive"
-require "badline/drive1541/bus"
-require "badline/drive1541/cpu"
-require "badline/drive1541/serial_port"
-require "badline/drive1541/gcr"
-require "badline/drive1541/track"
-require "badline/drive1541/disk"
-require "badline/drive1541/mechanism"
-require "badline/drive1541/disk_via"
-require "badline/drive1541/saved_state"
+require "badline/drives/engine"
+require "badline/drives/model1541/bus"
+require "badline/drives/model1541/cpu"
+require "badline/drives/model1541/serial_port"
+require "badline/drives/model1541/gcr"
+require "badline/drives/model1541/track"
+require "badline/drives/model1541/disk"
+require "badline/drives/model1541/mechanism"
+require "badline/drives/model1541/disk_via"
+require "badline/drives/model1541/saved_state"
 
 module Badline
   # The 1541 disk drive as a machine of its own: a 6502 running the DOS

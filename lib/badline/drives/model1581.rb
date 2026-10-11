@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require "badline/drive"
-require "badline/drive1581/track"
-require "badline/drive1581/track_bytes"
-require "badline/drive1581/disk"
-require "badline/drive1581/mechanism"
-require "badline/drive1581/wd1772"
-require "badline/drive1581/cpu"
-require "badline/drive1581/serial_port"
-require "badline/drive1581/bus"
-require "badline/drive1581/saved_state"
+require "badline/drives/engine"
+require "badline/drives/model1581/track"
+require "badline/drives/model1581/track_bytes"
+require "badline/drives/model1581/disk"
+require "badline/drives/model1581/mechanism"
+require "badline/drives/model1581/wd1772"
+require "badline/drives/model1581/cpu"
+require "badline/drives/model1581/serial_port"
+require "badline/drives/model1581/bus"
+require "badline/drives/model1581/saved_state"
 
 module Badline
   # The 1581 3.5" disk drive: a 6502 at 2 MHz with 8 KB of RAM, an 8520

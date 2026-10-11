@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/drive1581/disk/saved_state"
+require "badline/drives/model1581/disk/saved_state"
 
 module Badline
   class Drive1581

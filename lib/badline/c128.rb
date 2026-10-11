@@ -18,7 +18,7 @@ require "badline/c128/keys"
 require "badline/c128/modes"
 require "badline/c128/drives"
 require "badline/c128/fast_serial"
-require "badline/drive1571"
+require "badline/drives/model1571"
 
 module Badline
   # The Commodore 128: the 8502 on the VIC-IIe's clock, two CIAs, the SID,

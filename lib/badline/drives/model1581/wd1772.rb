@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "badline/drive1581/wd1772/registers"
-require "badline/drive1581/wd1772/turn"
-require "badline/drive1581/wd1772/stepping"
-require "badline/drive1581/wd1772/sectors"
-require "badline/drive1581/wd1772/sector_writes"
-require "badline/drive1581/wd1772/tracks"
-require "badline/drive1581/wd1772/saved_state"
+require "badline/drives/model1581/wd1772/registers"
+require "badline/drives/model1581/wd1772/turn"
+require "badline/drives/model1581/wd1772/stepping"
+require "badline/drives/model1581/wd1772/sectors"
+require "badline/drives/model1581/wd1772/sector_writes"
+require "badline/drives/model1581/wd1772/tracks"
+require "badline/drives/model1581/wd1772/saved_state"
 
 module Badline
   class Drive1581

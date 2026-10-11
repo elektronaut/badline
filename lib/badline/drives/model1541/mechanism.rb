@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "badline/drive1541/rotation"
-require "badline/drive1541/mechanism/saved_state"
-require "badline/drive1541/byte_ready"
+require "badline/drives/model1541/rotation"
+require "badline/drives/model1541/mechanism/saved_state"
+require "badline/drives/model1541/byte_ready"
 
 module Badline
   class Drive1541
