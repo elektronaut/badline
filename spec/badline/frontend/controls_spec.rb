@@ -226,6 +226,23 @@ describe Badline::Frontend::Controls do
         controls.key(78, true)
         expect(computer.keyboard.keys).to eq([:run_stop])
       end
+
+      it "lets ESC go as Esc comes up in C64 mode" do
+        controls.key(41, true)
+        computer.mmu.poke(0xd505, computer.mmu.peek(0xd505) | 0x40)
+        controls.key(41, false)
+        expect(computer.keyboard.keys).to eq([])
+      end
+    end
+
+    context "when Esc goes down in C64 mode" do
+      before { controls.key(41, true) }
+
+      it "lets RUN/STOP go as Esc comes up in C128 mode" do
+        computer.mmu.poke(0xd505, computer.mmu.peek(0xd505) & ~0x40)
+        controls.key(41, false)
+        expect(computer.keyboard.keys).to eq([])
+      end
     end
   end
 

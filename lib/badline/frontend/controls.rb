@@ -29,6 +29,7 @@ module Badline
         @arrows_port = 2
         @mouse = Input::Mouse1351.new
         @paddles = Input::Paddles.new
+        @held = {}
       end
 
       # Routes the input to another machine, the pot device going into its
@@ -73,10 +74,8 @@ module Badline
       def key(scancode, down)
         if joystick_mode? && Keys.joystick?(scancode)
           joystick_key(scancode, down)
-        elsif @computer.family == :c128
-          c128_key(Keys.c128_key(scancode, @computer.mode), down)
         else
-          c64_key(Keys.c64_key(scancode), down)
+          machine_key(scancode, down)
         end
       end
 
@@ -103,6 +102,23 @@ module Badline
       end
 
       private
+
+      # A host key lets go of the key it pressed, though the C128 has
+      # switched between C64 and C128 mode since and maps it elsewhere.
+      def machine_key(scancode, down)
+        @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
+        key = @held[scancode]
+        @held.delete(scancode) unless down
+        if @computer.family == :c128
+          c128_key(key, down)
+        else
+          c64_key(key, down)
+        end
+      end
+
+      def host_key(scancode)
+        @computer.family == :c128 ? Keys.c128_key(scancode, @computer.mode) : Keys.c64_key(scancode)
+      end
 
       # RESTORE isn't in the key matrix, so it goes to the machine instead.
       def c64_key(key, down)
