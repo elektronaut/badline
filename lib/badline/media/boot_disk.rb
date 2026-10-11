@@ -4,7 +4,8 @@ module Badline
   module Media
     # A C128 boot disk. At power-on the C128 KERNAL reads track 1, sector 0
     # of the disk in device 8 and runs it when it starts with "CBM", as boot
-    # games have it. The 1581's DOS first loads and runs a USR file named
+    # games have it, from a sector image or from the raw GCR of a .g64 or
+    # .g71. The 1581's DOS first loads and runs a USR file named
     # COPYRIGHT CBM 86 when the disk has one, which is how CP/M's 1581 disks
     # hand the KERNAL their boot sector, so a .d81 with that file boots too.
     #
@@ -15,7 +16,7 @@ module Badline
     module BootDisk
       SIGNATURE = "CBM".bytes.freeze
       AUTO_BOOT = "copyright cbm 86"
-      TYPES = Extensions.of(%i[disk])
+      TYPES = Extensions.of(%i[disk gcr])
 
       class << self
         def takes?(computer, path)
@@ -37,12 +38,23 @@ module Badline
         def boot?(path)
           type = File.extname(path).downcase
           return false unless TYPES.include?(type) && File.file?(path)
+          return gcr_signature(path) == SIGNATURE if Extensions.kind(path) == :gcr
 
           image = Media.open_storage(path, { read_only: true })
           block = image.read_block(1, 0)
           return true if block && block[0, 3] == SIGNATURE
 
           type == ".d81" && !image.read_file(AUTO_BOOT, type: :usr).nil?
+        end
+
+        private
+
+        # The first three bytes of track 1, sector 0 as the drive reads them
+        # off the GCR of a .g64 or .g71, or nil when the sector isn't there.
+        def gcr_signature(path)
+          track = Drives::Model1541::Disk.open(path, read_only: true).track(2)
+          data = track && Drives::Model1541::SectorReader.read(track.bytes, 1)[0]&.data
+          data && data[1, 3]
         end
       end
     end
