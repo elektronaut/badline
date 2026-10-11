@@ -16,6 +16,16 @@ module Badline
       filter cycle by cycle, which is exact but takes about twice as long.
     TEXT
 
+    # The article for +name+: "an" where it starts with a vowel sound. A
+    # name of letters with a vowel among them is read as a word, and any
+    # other letter by letter, so .sid and .tap take "a", and .m3u and .lnx
+    # "an".
+    def self.article(name)
+      word = name.delete_prefix(".").downcase
+      vowels = word.match?(/\A[a-z]*[aeiou][a-z]*\z/) ? "aeiou" : "aefhilmnorsx8"
+      vowels.include?(word[0]) ? "an" : "a"
+    end
+
     # What --help prints: the usage, then the options this build takes,
     # section by section, laid out as OptionParser did.
     def help
@@ -38,14 +48,19 @@ module Badline
     # The media the window opens, by their extensions (Media::Extensions),
     # wrapped as the banner is.
     def media_kinds
-      text = "Media can be a #{Media::Extensions::PROGRAMS.join('/')} program, a #{listed(%i[disk])} disk image, " \
-             "a #{listed(%i[gcr])} disk image for a true drive, an #{listed(%i[disk_list])} list of disk images, " \
-             "a #{listed(%i[archive])} tape archive, a #{listed(%i[tape])} tape, a #{listed(%i[cartridge])} " \
-             "cartridge, a #{listed(%i[tune])} tune, a .vsf snapshot, or a directory to mount as device 8."
+      text = "Media can be #{listed(Media::Extensions::PROGRAMS)} program, #{listed(%i[disk])} disk image, " \
+             "#{listed(%i[gcr])} disk image for a true drive, #{listed(%i[disk_list])} list of disk images, " \
+             "#{listed(%i[archive])} tape archive, #{listed(%i[tape])} tape, #{listed(%i[cartridge])} " \
+             "cartridge, #{listed(%i[tune])} tune, #{listed(%w[.vsf])} snapshot, or a directory to mount as device 8."
       wrap(text)
     end
 
-    def listed(kinds) = Media::Extensions.of(kinds).join("/")
+    # The extensions of the kinds, or the extensions themselves, after the
+    # article the first takes.
+    def listed(kinds)
+      extensions = kinds.first.is_a?(Symbol) ? Media::Extensions.of(kinds) : kinds
+      "#{Options.article(extensions.first)} #{extensions.join('/')}"
+    end
 
     # The words of `text` in lines of at most 70 characters.
     def wrap(text)
