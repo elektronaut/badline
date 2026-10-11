@@ -41,6 +41,10 @@ on:
           - testbench-c16
           - testbench-plus4-ntsc
           - lorenz-plus4
+          - lorenz-plus4-1
+          - lorenz-plus4-2
+          - lorenz-plus4-3
+          - lorenz-plus4-4
           - sid-8580
           - drive-scenarios
           - drive-scenarios-cpm

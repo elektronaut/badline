@@ -349,7 +349,11 @@ Recorded output of the headless hardware suites, one file per suite:
   `Lorenz::PLUS4_KEY_LIMIT` keys or `Lorenz::PLUS4_TEST_CYCLE_LIMIT` cycles
   for the last two), a fresh machine resumes the chain at the next
   program in disk order, and the `(suite)` row lists the programs it
-  resumed past. CI runs the whole chain on Spinel, in about 17 minutes.
+  resumed past. CI runs it on Spinel as the four stretches of
+  `rake regression:lorenz-plus4-1` to `lorenz-plus4-4`, cut where
+  `lorenz` is: every program it resumes past comes after `trap1`, so the
+  last stretch carries them all and the `(suite)` row, as the whole chain
+  records them.
   The FAIL rows are the readme's, plus `trap4`-`trap8` and
   `trap15`-`trap17` in their plain, ANE and LXA variants, `irq` and `nmi`.
   Run one program at a time with `-debugcart` (exit 0 for pass), xplus4
@@ -532,7 +536,11 @@ on the tests carry state from one to the next, which a fresh machine would
 lose. Disk 4 rides at the end of `lorenz-4`: its 37 tests run in about 140M
 cycles, five minutes here, which is little more than the 90M-cycle hang at
 `aneb` the chain used to end on. `rake regression:lorenz` still runs the
-whole chain. `bin/sidtests` is not sharded either. Its 102 6581
+whole chain. `lorenz-plus4` is cut at the same tests, as
+`rake regression:lorenz-plus4-1` to `lorenz-plus4-4`. Whole on Spinel it
+took 21 minutes, 12.5 of them from the top to `trap4`, where it first
+sticks, and 8.5 resuming past each test that sticks after that, so its
+last stretch is the longest. `bin/sidtests` is not sharded either. Its 102 6581
 programs take about eleven and a half minutes here, four and a half of
 them in `waveforms-80-6581` and two in the `oscsample` pair. `sid-8580`
 runs 88 programs, 48 of them the `wb_testsuite` writeback checks, and takes

@@ -141,11 +141,14 @@ module SpinelCheck
 
   # Runs a chain on the +harness+ build in segments (Lorenz.segments),
   # resuming past each program it sticks on, and writes the joined run's
-  # rows to the results file it returns.
-  def run_lorenz_segments(name, image:, harness:, next_disk:)
+  # rows to the results file it returns. A +stretch+ (a
+  # Regression::ChainRange) bounds the run to its rows, and without one it
+  # runs the whole chain.
+  def run_lorenz_segments(name, image:, harness:, next_disk:, stretch: nil)
     resumption = Lorenz::Resumption.for(image, next_disk)
-    run = Lorenz.segments(resumption, nil) do |resume|
-      command = [binary(harness), image, *(["--resume", resume] if resume)]
+    stop = ["--stop-after", stretch.last] if stretch && !stretch.to_end?
+    run = Lorenz.segments(resumption, stretch&.resume_at) do |resume|
+      command = [binary(harness), image, *(["--resume", resume] if resume), *stop]
       puts command.join(" ")
       out, status = Open3.capture2(*command)
       raise "#{command.join(' ')} exited with #{status.exitstatus}" unless status.success?

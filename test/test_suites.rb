@@ -50,6 +50,10 @@ class TestSuites < Minitest::Test
     assert_equal %w[* (suite)], [range.first, range.last]
   end
 
+  def test_the_spinel_lorenz_plus4_ranges_are_named_for_its_stretches
+    assert_equal %w[lorenz-plus4-1 lorenz-plus4-4], Suites.spinel_lorenz_ranges(recorded, %w[1 4], "lorenz-plus4").keys
+  end
+
   def test_an_unknown_spinel_lorenz_stretch_is_refused
     assert_raises(RuntimeError) { Suites.spinel_lorenz_ranges(recorded, %w[5]) }
   end

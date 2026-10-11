@@ -54,6 +54,15 @@ class TestCIMatrix < Minitest::Test
     assert_equal ["lorenz: no shard runs 4"], CIMatrix.unit_problems("l" => ["spinel:lorenz[1,2,3]"])
   end
 
+  def test_a_lorenz_plus4_stretch_no_shard_runs_is_named
+    assert_equal ["lorenz-plus4: no shard runs 2"],
+                 CIMatrix.unit_problems("p" => ["spinel:lorenz_plus4[1,3,4]"])
+  end
+
+  def test_a_lorenz_plus4_shard_runs_its_stretches
+    assert_equal ["spinel:lorenz_plus4[1,2,3]"], CIMatrix.shard_tasks.fetch("lorenz-plus4-1-3")
+  end
+
   def test_a_suite_no_shard_runs_is_named
     assert_includes CIMatrix.missing_suites("s" => ["spinel:sidtests[6581]"]), "sid-8580"
   end

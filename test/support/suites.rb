@@ -96,9 +96,10 @@ module Suites
   # references on the lines both show. Their Spinel build is
   # spinel/plus4_testbench.rb.
   # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
-  # PAL Plus/4, chained whole: none of its stretches has been checked to
-  # resume as the chain records it. Its Spinel build is
-  # spinel/plus4_lorenz.rb.
+  # PAL Plus/4, cut at the same tests as lorenz. The chain resumes past the
+  # tests it sticks on from trap4 on, which keeps the last stretch, trap1 to
+  # the end, longer than the three in the instruction tests. Its Spinel
+  # build is spinel/plus4_lorenz.rb.
   # sid-8580 is bin/sidtests on the 8580 over the testlist's sid-new and
   # untagged programs; :args go to the runner as they are.
   # drive-scenarios is bin/drive_scenarios: the C64 and a true 1541 running
@@ -134,7 +135,7 @@ module Suites
     "testbench-plus4" => { runner: "bin/testbench", args: %w[--plus4], engine: "plus4_testbench" },
     "testbench-c16" => { runner: "bin/testbench", args: %w[--c16], engine: "plus4_testbench" },
     "testbench-plus4-ntsc" => { runner: "bin/testbench", args: %w[--plus4 --ntsc], engine: "plus4_testbench" },
-    "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: [] },
+    "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: %w[rola cmpix insay] },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },
     "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] }
@@ -351,34 +352,42 @@ module Suites
       "#{name} reported #{rows.length} rows where the baseline has #{expected.length}."
     end
 
-    # The Lorenz suite's plus4 build on the Spinel build, the whole chain in
-    # one run, compared against its baseline.
-    def spinel_lorenz_plus4
+    # The Lorenz suite's plus4 build on the Spinel build: the stretches of
+    # `rake regression:lorenz-plus4-N` numbered in picked, side by side, each
+    # resuming past the tests it sticks on, compared against its baseline.
+    def spinel_lorenz_plus4(picked)
       suite = "lorenz-plus4"
       recorded = read_recorded(suite)
-      first = (recorded.keys - [Regression::ChainRange::OUTCOME]).first
-      range = Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME)
-      results = SpinelCheck.run_lorenz_segments(suite, image: Lorenz::PLUS4_IMAGE, harness: "plus4_lorenz",
-                                                       next_disk: Lorenz::PLUS4_NEXT_DISK)
-      problem = stretch_problem("spinel-#{suite}", range, recorded, results)
-      raise problem if problem
+      ranges = spinel_lorenz_ranges(recorded, picked, suite)
+      runs = ranges.to_h do |name, range|
+        [name, Thread.new { spinel_plus4_stretch(name, range) }]
+      end
+      problems = ranges.filter_map do |name, range|
+        stretch_problem("spinel-#{name}", range, recorded, runs.fetch(name).value)
+      end
+      raise problems.join("\n") if problems.any?
     end
 
-    # The Lorenz chain on the Spinel build: the stretches of `rake regression:lorenz-N`
-    # numbered in picked, all of them when it is empty, or the whole chain in one
-    # run when it is ["whole"].
-    def spinel_lorenz_ranges(recorded, picked)
+    def spinel_plus4_stretch(name, range)
+      SpinelCheck.run_lorenz_segments(name, image: Lorenz::PLUS4_IMAGE, harness: "plus4_lorenz",
+                                            next_disk: Lorenz::PLUS4_NEXT_DISK, stretch: range)
+    end
+
+    # A chained suite on the Spinel build: the stretches of `rake
+    # regression:<suite>-N` numbered in picked, all of them when it is empty,
+    # or the whole chain in one run when it is ["whole"].
+    def spinel_lorenz_ranges(recorded, picked, suite = "lorenz")
       if picked == ["whole"]
         first = (recorded.keys - [Regression::ChainRange::OUTCOME]).first
-        return { "lorenz" => Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME) }
+        return { suite => Regression::ChainRange.new(recorded, first, Regression::ChainRange::OUTCOME) }
       end
 
-      numbers = (1..(ALL_SUITES.fetch("lorenz").fetch(:cuts).length + 1)).to_a
+      numbers = (1..(ALL_SUITES.fetch(suite).fetch(:cuts).length + 1)).to_a
       unknown = picked - numbers.map(&:to_s)
-      raise "No Lorenz stretch #{unknown.join(', ')}. Pick from #{numbers.join(', ')}, or whole." if unknown.any?
+      raise "No #{suite} stretch #{unknown.join(', ')}. Pick from #{numbers.join(', ')}, or whole." if unknown.any?
 
       numbers.select { |number| picked.empty? || picked.include?(number.to_s) }.to_h do |number|
-        ["lorenz-#{number}", stretch_range("lorenz", recorded, number)]
+        ["#{suite}-#{number}", stretch_range(suite, recorded, number)]
       end
     end
   end
