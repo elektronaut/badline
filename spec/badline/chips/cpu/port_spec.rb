@@ -45,6 +45,29 @@ describe Badline::Chips::CPU::Port do
     expect(datasette.motor?).to be(false)
   end
 
+  context "when the datasette records" do
+    let(:tape) { instance_double(Badline::Storage::TAP, rewind: nil, record_pulse: nil) }
+
+    before do
+      datasette.insert(tape)
+      datasette.record!
+      port.write_ddr(0x2f)
+      port.write_data(0x00)
+      3.times { datasette.cycle! }
+    end
+
+    it "records a pulse as bit 3 rises" do
+      port.write_data(0x08)
+      expect(tape).to have_received(:record_pulse).with(3)
+    end
+
+    it "records nothing as bit 3 falls" do
+      port.write_data(0x08)
+      port.write_data(0x00)
+      expect(tape).to have_received(:record_pulse).once
+    end
+  end
+
   it "reads the tape sense low while PLAY is down" do
     datasette.on_sense_change { port.refresh }
     datasette.play!
