@@ -44,13 +44,13 @@ module Badline
       # An .m3u or .vfl list of disks attaches the first disk it lists
       # (DiskList). Every machine takes each kind of medium the same way,
       # except that the VIC-20 (Vic20Media) has cartridges, programs and a
-      # disk autostart of its own, and takes no .sid tunes. The C128 in C64
-      # mode takes a C64's.
+      # disk autostart of its own, and takes no .sid tunes, and the 264
+      # series loads programs at the start of its BASIC (Program), takes
+      # cartridges in cartridge 1's slots and no .sid tunes either. The
+      # C128 in C64 mode takes a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
-        if computer.family == :vic20 && Vic20Media::UNSUPPORTED.include?(File.extname(path).downcase)
-          raise ArgumentError, "#{path} doesn't go in a VIC-20"
-        end
+        refuse_unsupported(computer, path)
 
         BootDisk.attach(computer, path, **) || attach_kind(computer, path, autostart:, subtune:, **)
       end
@@ -116,6 +116,16 @@ module Badline
 
       private
 
+      # The VIC-20 and the 264 series have no SID to play a .sid tune on.
+      def refuse_unsupported(computer, path)
+        return unless Vic20Media::UNSUPPORTED.include?(File.extname(path).downcase)
+
+        case computer.family
+        when :vic20 then raise ArgumentError, "#{path} doesn't go in a VIC-20"
+        when :plus4 then raise ArgumentError, "#{path} doesn't go in a Plus/4"
+        end
+      end
+
       def attach_kind(computer, path, autostart:, subtune:, **options)
         disk = options.fetch(:disk, {})
         case kind(computer, path)
@@ -151,10 +161,11 @@ module Badline
         computer.family == :vic20 ? Vic20Media.disk_autostart(yield) : AUTOSTART
       end
 
-      # A VIC-20 cartridge is its ROM chips.
+      # A VIC-20 or 264 series cartridge is its ROM chips.
       def attach_cartridge(computer, path, options)
-        if computer.family == :vic20
-          computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
+        case computer.family
+        when :vic20 then computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
+        when :plus4 then computer.attach_cartridge(Storage::CRTFile.new(path, machine: :plus4).chips)
         else
           computer.attach_cartridge(C64::Cartridge.from_file(path, **options))
         end

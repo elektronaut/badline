@@ -740,4 +740,84 @@ describe Badline::Media do
       end
     end
   end
+
+  describe ".attach on a Plus/4" do
+    include BlankDisk
+
+    let(:computer) { Badline::Plus4.new }
+    let(:plus4_crt) do
+      File.join(dir, "game.crt").tap do |path|
+        File.binwrite(path, "PLUS4 CARTRIDGE ".b + [0x40, 0x0200, 0, 0, 0].pack("NnnCC") + ("\x00" * 38) +
+                            "CHIP".b + [0x1010, 0, 0, 0x8000, 0x1000].pack("Nn4") + ([0x42] * 0x1000).pack("C*"))
+      end
+    end
+
+    before { allow(computer).to receive(:type_text) }
+
+    context "with a BASIC PRG file" do
+      let(:prg_path) do
+        File.join(dir, "basic.prg").tap { |path| File.binwrite(path, [0x01, 0x10, 0x99, 0x00].pack("C*")) }
+      end
+
+      before do
+        allow(computer).to receive(:on_init).and_yield
+        described_class.attach(computer, prg_path)
+      end
+
+      it "loads it at the start of BASIC 3.5" do
+        expect(computer.ram.read(0x1001, 2)).to eq([0x99, 0x00])
+      end
+
+      it "types RUN after loading" do
+        expect(computer).to have_received(:type_text).with("run\r")
+      end
+
+      it "leaves the end address in VARTAB and in the 264 KERNAL's EAL" do
+        expect([computer.ram.read(0x2d, 2), computer.ram.read(0x9d, 2)]).to eq([[0x03, 0x10], [0x03, 0x10]])
+      end
+    end
+
+    it "loads a C64 BASIC program where it says without running it" do
+      path = File.join(dir, "c64.prg").tap { |file| File.binwrite(file, [0x01, 0x08, 0x99, 0x00].pack("C*")) }
+      allow(computer).to receive(:on_init).and_yield
+      described_class.attach(computer, path)
+      expect(computer).not_to have_received(:type_text)
+    end
+
+    it "mounts a .d64 on device 8 through the 264 KERNAL's traps and autostarts it" do
+      described_class.attach(computer, blank_d64(File.join(dir, "disk.d64")))
+      expect([computer.mounted?, computer.cpu.trapped?]).to eq([true, true])
+    end
+
+    it "types the disk autostart" do
+      described_class.attach(computer, blank_d64(File.join(dir, "disk.d64")))
+      expect(computer).to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
+    end
+
+    it "puts a .d64 in a true 1541 once one is device 8" do
+      drive = described_class::TrueDrive.plug(computer)
+      described_class.attach(computer, blank_d64(File.join(dir, "disk.d64")))
+      expect(drive.disk).to be_a(Badline::Drives::Model1541::Disk)
+    end
+
+    it "plugs a 1541 in for a .g64" do
+      expect(described_class.attach(computer, g64_path)).to eq("Inserted #{g64_path} in the 1541 as device 8")
+    end
+
+    it "swaps the 1541 for a 1581 for a .d81" do
+      described_class::TrueDrive.plug(computer)
+      described_class.attach(computer, blank_d81(File.join(dir, "disk.d81")))
+      expect(computer.true_drive.model_name).to eq("1581")
+    end
+
+    it "puts a PLUS4 CARTRIDGE in cartridge 1's slots" do
+      allow(computer).to receive(:attach_cartridge)
+      described_class.attach(computer, plus4_crt)
+      expect(computer).to have_received(:attach_cartridge).with([have_attributes(address: 0x8000)])
+    end
+
+    it "refuses a .sid tune" do
+      expect { described_class.attach(computer, sid_tune) }.to raise_error(ArgumentError, %r{Plus/4})
+    end
+  end
 end
