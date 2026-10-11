@@ -207,16 +207,25 @@ the rows your change can't reach tell you nothing about it.
   `ruby --yjit bin/lorenz [image] [start_test] [max_cycles]` (resumes the
   chain at a named test, and `--stop-after NAME` ends it once that test is
   done). These take seconds to minutes
-- A pull request's CI is the verdict. It runs the specs, and the suites
-  its changed files can reach, on the Spinel build, compared row by row
-  against `test/baselines/`. `test/support/ci_reach.rb` maps paths to
-  suites, and a path it doesn't name runs every suite. A row that moved
-  fails it. A pull request that changes only docs, or only a release's
-  version bump, skips the specs and suites. Pushes to main always run
-  every suite, so a move the map missed shows up there: fix it on main
-  at once, and add the path to the map. When a change adds a directory
-  under `lib/badline/`, give it a rule. Re-record only the rows that
-  moved, in the same change:
+- A pull request's CI is the verdict, and a pull request merges on it
+  alone. It runs the specs, Rubocop, Minitest, the harness builds, the
+  Spinel checks, the native round trip, and the suites its changed files
+  can reach, on the Spinel build, compared row by row against
+  `test/baselines/`. `test/support/ci_reach.rb` maps paths to suites, and
+  a path it doesn't name runs every suite. A row that moved fails it. A
+  pull request that changes only docs, or only a release's version bump,
+  skips the specs and suites. A row that moves in a pull request's CI is
+  re-recorded in that pull request with its reason; nobody waits for
+  `suites.yml` to confirm it. A change that reaches a suite the map
+  doesn't name adds the path to `test/support/ci_reach.rb` in the same
+  pull request, and a change that adds a directory under `lib/badline/`
+  gives it a rule
+- The full suites run on main every two hours (`.github/workflows/suites.yml`).
+  Nobody waits for it, polls it or dispatches it to check a pull request.
+  Its result is a `suites` commit status and, when red, one `suites-red`
+  issue the planner owns. A red main never blocks a merge. A release
+  publishes only once its tagged commit is green
+- Re-record only the rows that moved, in the same change:
   `rake "regression:record:<suite>[filter,...]"` (quote it, because zsh
   globs the brackets). It runs only the matching tests on CRuby and
   splices their rows into the baseline, and every other row keeps its
