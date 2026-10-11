@@ -10,7 +10,6 @@
 
 ### Bug Fixes
 
-* take dead keys such as ´ on a Mac as key presses ([ab0025e](https://github.com/elektronaut/badline/commit/ab0025e9f6515cdc145271a6bb0ef1daf3f87a77))
 * take dead keys such as ´ on a Mac as key presses ([44bc087](https://github.com/elektronaut/badline/commit/44bc087a0def79a3d1f8837d7e479297aca7094f))
 
 
