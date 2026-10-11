@@ -21,11 +21,11 @@ describe Badline::Frontend::Screen do
   end
 
   it "is PAL's crop on a PAL C64" do
-    expect(size(Badline::Computer.new)).to eq([384, 272, 384 * 4])
+    expect(size(Badline::C64.new)).to eq([384, 272, 384 * 4])
   end
 
   it "keeps PAL's height for an NTSC C64" do
-    expect(size(Badline::Computer.new(region: Badline::Region::NTSC))).to eq([384, 272, 384 * 4])
+    expect(size(Badline::C64.new(region: Badline::Region::NTSC))).to eq([384, 272, 384 * 4])
   end
 
   it "is the VIC-20's 284 by 284 crop" do

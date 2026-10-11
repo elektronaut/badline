@@ -76,7 +76,7 @@ module SnapshotScenarios
   # The demo, started straight after power-on without booting: it sets
   # its own vectors, and its IRQ handler leaves through the KERNAL.
   def demo_machine(**models)
-    Badline::Computer.new(**models).tap do |computer|
+    Badline::C64.new(**models).tap do |computer|
       computer.load_prg(DEMO_PRG)
       computer.cpu.program_counter = DEMO_START
     end
@@ -87,11 +87,11 @@ module SnapshotScenarios
   DEMO_CYCLES = 10_001
 
   # The demo run to DEMO_CYCLES and its State there, taken once for every
-  # spec that restores it. Restoring is exact, which the Computer#snapshot
+  # spec that restores it. Restoring is exact, which the C64#snapshot
   # specs check against a machine run the whole way.
   def self.demo_state
     @demo_state ||= begin
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.load_prg(DEMO_PRG)
       computer.cpu.program_counter = DEMO_START
       DEMO_CYCLES.times { computer.cycle! }
@@ -102,7 +102,7 @@ module SnapshotScenarios
   # A new demo machine at DEMO_CYCLES, restored from the shared State.
   def saved_demo
     state = SnapshotScenarios.demo_state
-    Badline::Computer.setup(state).build.restore(state)
+    Badline::C64.setup(state).build.restore(state)
   end
 
   def run(computer, cycles)
@@ -144,9 +144,9 @@ module SnapshotScenarios
     # does, and a disk image's directory is read again when it's next
     # needed.
     HOST = {
-      "Badline::Computer" => %i[@init_handlers @capture_output @init_handlers_lost],
+      "Badline::C64" => %i[@init_handlers @capture_output @init_handlers_lost],
       "Badline::Chips::CPU" => %i[@traps @debug],
-      "Badline::AddressBus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
+      "Badline::C64::Bus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
       "Badline::Chips::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
       "Badline::Chips::VIC::Sequencer" => %i[@render],
       "Badline::Chips::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],

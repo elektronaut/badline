@@ -6,7 +6,7 @@ module Badline
   # = Machine
   #
   # The machines badline builds by family, as the command line's
-  # subcommand names them: the C64, Computer, the VIC-20, Vic20, and the
+  # subcommand names them: the C64, Badline::C64, the VIC-20, Vic20, and the
   # C128 in C64 mode, C128.
   #
   # A machine answers what the front end, Media, the runners and the
@@ -65,9 +65,9 @@ module Badline
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)
-      Computer.new(vic_model: profile.vic_model, cia_model: profile.cia_model,
-                   sid_model: sid_model || profile.sid_model, region: profile.region, reu:,
-                   kernal: profile.kernal, datasette: profile.datasette, board: profile.board)
+      C64.new(vic_model: profile.vic_model, cia_model: profile.cia_model,
+              sid_model: sid_model || profile.sid_model, region: profile.region, reu:,
+              kernal: profile.kernal, datasette: profile.datasette, board: profile.board)
     end
 
     # The machine the command line's `options` name, to start `media`, a

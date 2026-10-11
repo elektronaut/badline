@@ -5,7 +5,7 @@ require_relative "../support/drive1541_rom"
 
 describe Badline::IECBus do
   context "with only the C64 on it" do
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
 
     def port_a(direction, output)
       computer.cia2.poke(0xdd02, direction)
@@ -72,7 +72,7 @@ describe Badline::IECBus do
   end
 
   context "with the C64 and a drive on it" do
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
     let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
     let(:bus) { computer.iec_bus }
 

@@ -45,9 +45,9 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
     include Machine::Clocking
-    include Computer::Common
-    include Computer::Attachments
-    include Computer::KernalTraps
+    include C64::Common
+    include C64::Attachments
+    include C64::KernalTraps
     include Keys
     include Modes
     include Drives
@@ -116,7 +116,7 @@ module Badline
 
       @model = Model.named(model)
       @c64_built = mode == :c64
-      @init_threshold = @c64_built ? Computer::INIT_THRESHOLD : C128_INIT_THRESHOLD
+      @init_threshold = @c64_built ? C64::INIT_THRESHOLD : C128_INIT_THRESHOLD
       @holding_commodore = false
       @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)

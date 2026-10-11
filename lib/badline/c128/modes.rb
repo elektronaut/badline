@@ -41,7 +41,7 @@ module Badline
 
         keyboard.release(:cbm)
         @holding_commodore = false
-        @init_threshold = @cycles + Computer::INIT_THRESHOLD if @cycles < @init_threshold
+        @init_threshold = @cycles + C64::INIT_THRESHOLD if @cycles < @init_threshold
       end
 
       # The keyboard buffer of the KERNAL the machine runs: the C64's, or in

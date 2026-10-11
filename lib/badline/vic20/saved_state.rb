@@ -11,7 +11,7 @@ module Badline
     # at that state.
     def self.restored(state) = setup(state).build.apply_state(state)
 
-    # The whole machine's state for a snapshot, as Computer's: the
+    # The whole machine's state for a snapshot, as C64's: the
     # machine's own latches, the bus with its RAM and cartridge ROM, the
     # VIC with its sound, both VIAs, the CPU, the datasette and its tape,
     # the disk device 8 serves through the traps, and a true 1541. The

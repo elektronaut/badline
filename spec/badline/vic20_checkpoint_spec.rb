@@ -53,7 +53,7 @@ describe Badline::Vic20Checkpoint do
     end
 
     it "rejects a C64's line" do
-      expect { described_class.parse(Badline::Checkpoint.take(Badline::Computer.new).to_s) }
+      expect { described_class.parse(Badline::Checkpoint.take(Badline::C64.new).to_s) }
         .to raise_error(ArgumentError, /via1/)
     end
   end

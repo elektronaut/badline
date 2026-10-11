@@ -65,7 +65,7 @@ describe Badline::Media::TrueDrive do
   end
 
   context "with a C64" do
-    let(:machine) { Badline::Computer.new }
+    let(:machine) { Badline::C64.new }
 
     it "plugs in a 1581 for a .d81" do
       described_class.insert(machine, image("disk.d81", 819_200))

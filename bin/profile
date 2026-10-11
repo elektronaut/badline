@@ -75,7 +75,7 @@ module Profiler
     NOOP = Module.new { def cycle! = nil }
 
     def initialize(name, true_drive: false, idle_skip: true)
-      @computer = Badline::Computer.new
+      @computer = Badline::C64.new
       attach_drive(idle_skip) if true_drive
       @synth = name == "synth"
       fast_forward = 3_000_000
@@ -143,8 +143,8 @@ module Profiler
       [%r{/vic(/|\.rb)}, "VIC other"],
       [%r{/cia(/|\.rb)|/time_of_day\.rb}, "CIA"],
       [%r{/(sid|audio)(/|\.rb)}, "SID"],
-      [%r{/(address_bus|memory|rom|color_memory|cartridge)(/|\.rb)}, "AddressBus/memory"],
-      [%r{/(computer|keyboard_buffer)\.rb}, "Computer#cycle!"],
+      [%r{/(c64/bus|memory|rom|c64/color_memory|c64/cartridge)(/|\.rb)}, "C64::Bus/memory"],
+      [%r{/(c64|keyboard_buffer)\.rb}, "C64#cycle!"],
       [%r{/(control_ports|keyboard|joystick)\.rb}, "input"],
       [%r{/datasette\.rb}, "datasette"]
     ].freeze

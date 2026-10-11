@@ -8,7 +8,7 @@ describe Badline::Frontend::Gamepads do
   subject(:gamepads) { described_class.new(computer, false).tap(&:rescan) }
 
   let(:sdl) { Badline::SDL }
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:controller) { Fiddle::Pointer.new(0x1000) }
   let(:buttons) { [] }
   let(:axes) { Hash.new(0) }
@@ -84,7 +84,7 @@ describe Badline::Frontend::Gamepads do
   end
 
   it "steers another machine's joystick once wired to it" do
-    other = Badline::Computer.new
+    other = Badline::C64.new
     gamepads.computer = other
     buttons << 0
     gamepads.poll

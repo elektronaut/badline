@@ -6,10 +6,37 @@ module Badline
     def []=: (Integer, Integer) -> void
   end
 
-  class ColorMemory
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-    def nibble: (Integer) -> Integer
+  class C64
+    class ColorMemory
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+      def nibble: (Integer) -> Integer
+    end
+
+    class Bus
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class OpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class SIDSlots
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class REU
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class Trigger
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
   end
 
   class ROM
@@ -133,34 +160,9 @@ module Badline
     end
   end
 
-  class AddressBus
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-
-    class OpenBus
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-    end
-
-    class SIDSlots
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-    end
-  end
-
   class DebugRegister
     def peek: (Integer) -> Integer
     def poke: (Integer, Integer) -> void
-  end
-
-  class REU
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-
-    class Trigger
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-    end
   end
 
   class Vic20

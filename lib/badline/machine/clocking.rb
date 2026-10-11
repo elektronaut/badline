@@ -3,7 +3,7 @@
 module Badline
   module Machine
     # Running a machine from outside its own #cycle!, and the handlers that
-    # wait for its KERNAL to boot. Computer, Vic20 and C128 each include it
+    # wait for its KERNAL to boot. C64, Vic20 and C128 each include it
     # and answer #cycle!, #cycles and #init_threshold, the cycle at which
     # #on_init's handlers run, and keep the handlers in @init_handlers.
     module Clocking

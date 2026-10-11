@@ -22,7 +22,7 @@ CHECKPOINT = 1_000_000
 cycles = ARGV[0] ? ARGV[0].to_i : 6_000_000
 timed_from = ARGV[1] ? ARGV[1].to_i : 3_000_000
 
-computer = Badline::Computer.new
+computer = Badline::C64.new
 if ARGV[2]
   Badline::Media.attach(computer, ARGV[2])
 else

@@ -92,7 +92,7 @@ if $PROGRAM_NAME == __FILE__
   start_test = resume || ARGV[1]
   max_cycles = (ARGV[2] || 10_000_000_000).to_i
 
-  computer = Badline::Computer.new
+  computer = Badline::C64.new
   computer.vic.render = false
   capture = computer.capture_output
   disk = Lorenz.mount(computer, image, capture, start_test)

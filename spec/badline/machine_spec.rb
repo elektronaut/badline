@@ -8,7 +8,7 @@ describe Badline::Machine do
   end
 
   it "builds a C64" do
-    expect(described_class.build(:c64, model: "c64")).to be_a(Badline::Computer)
+    expect(described_class.build(:c64, model: "c64")).to be_a(Badline::C64)
   end
 
   it "builds the model named" do

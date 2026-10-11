@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Badline::Checkpoint do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:before) { described_class.take(computer) }
 
   def changed_by
@@ -29,7 +29,7 @@ describe Badline::Checkpoint do
     end
 
     it "gives two fresh machines the same digests" do
-      expect(described_class.take(Badline::Computer.new)).to eq(before)
+      expect(described_class.take(Badline::C64.new)).to eq(before)
     end
 
     it "notices a RAM write in the RAM alone" do

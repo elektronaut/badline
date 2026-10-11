@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::Pacer do
   subject(:pacer) { described_class.new(paced: true, vsync: true, verbose: false, timing:) }
 
-  let(:timing) { Badline::Computer.new.timing }
+  let(:timing) { Badline::C64.new.timing }
 
   let(:silent) { instance_double(Badline::Frontend::Sound, playing?: false) }
   let(:playing) { instance_double(Badline::Frontend::Sound, playing?: true, level: 0.04, wait: nil) }

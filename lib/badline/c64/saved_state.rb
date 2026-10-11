@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Badline
-  class Computer
-    # The keyword arguments Computer.new takes to build the machine a
+  class C64
+    # The keyword arguments C64.new takes to build the machine a
     # State from #snapshot was taken of.
     def self.setup(state) = Snapshot::C64Setup.from(state)
 
@@ -39,13 +39,13 @@ module Badline
       # The state goes into a new machine first, so one that fails leaves
       # this machine as it was.
       def restore(state)
-        check_setup(Computer.setup(state))
-        Computer.restored(state)
+        check_setup(C64.setup(state))
+        C64.restored(state)
         apply_state(state)
       end
 
       # Puts a State into the machine without trying it on a new one
-      # first, for a machine built for it (Computer.restored): a state that
+      # first, for a machine built for it (C64.restored): a state that
       # fails leaves the machine part restored. `detached` restores it
       # without the host's files (Snapshot::StateReader).
       def apply_state(state, detached: false)

@@ -1,78 +1,80 @@
 # frozen_string_literal: true
 
 module Badline
-  class Cartridge
-    # GEO-RAM: a RAM expansion on the expansion port, seen through a 256-byte
-    # window at $DE00-$DEFF. Two write-only registers pick the page the
-    # window shows: $DFFE selects one of the 64 pages of a 16K block, and
-    # $DFFF selects the block. As in VICE, the registers answer at every
-    # address from $DF80 up, even for $DFFE and odd for $DFFF, and the block
-    # number wraps at the number of blocks the RAM holds. Reads of I/O 2 are
-    # open bus. It leaves EXROM and GAME high, and RES clears both
-    # registers.
-    class GeoRAM < Cartridge
-      SIZES = [64, 128, 256, 512, 1024, 2048, 4096].freeze
-      BLOCK_SIZE = 0x4000
-      PAGE_MASK = 0x3f
+  class C64
+    class Cartridge
+      # GEO-RAM: a RAM expansion on the expansion port, seen through a 256-byte
+      # window at $DE00-$DEFF. Two write-only registers pick the page the
+      # window shows: $DFFE selects one of the 64 pages of a 16K block, and
+      # $DFFF selects the block. As in VICE, the registers answer at every
+      # address from $DF80 up, even for $DFFE and odd for $DFFF, and the block
+      # number wraps at the number of blocks the RAM holds. Reads of I/O 2 are
+      # open bus. It leaves EXROM and GAME high, and RES clears both
+      # registers.
+      class GeoRAM < Cartridge
+        SIZES = [64, 128, 256, 512, 1024, 2048, 4096].freeze
+        BLOCK_SIZE = 0x4000
+        PAGE_MASK = 0x3f
 
-      attr_reader :size
+        attr_reader :size
 
-      # size is the RAM in kilobytes.
-      def initialize(size: 512)
-        raise ArgumentError, "Unsupported GEO-RAM size #{size}K" unless SIZES.include?(size)
+        # size is the RAM in kilobytes.
+        def initialize(size: 512)
+          raise ArgumentError, "Unsupported GEO-RAM size #{size}K" unless SIZES.include?(size)
 
-        @size = size
-        @block_mask = ((size * 1024) / BLOCK_SIZE) - 1
-        super(Storage::CRTFile::Image.new(hardware_type: nil, subtype: 0, exrom: 1, game: 1,
-                                          name: "GEO-RAM", chips: []))
-      end
-
-      def readable_io_pages
-        [0xde]
-      end
-
-      def peek(addr)
-        @ram_data[@window + (addr & 0xff)]
-      end
-
-      def poke(addr, value)
-        if addr <= 0xdeff
-          @ram_data[@window + (addr & 0xff)] = value
-        elsif addr >= 0xdf80
-          if addr.odd?
-            @block = value & @block_mask
-          else
-            @page = value & PAGE_MASK
-          end
-          @window = (@block * BLOCK_SIZE) + (@page * 0x100)
+          @size = size
+          @block_mask = ((size * 1024) / BLOCK_SIZE) - 1
+          super(Storage::CRTFile::Image.new(hardware_type: nil, subtype: 0, exrom: 1, game: 1,
+                                            name: "GEO-RAM", chips: []))
         end
-      end
 
-      def reset
-        @block = @page = @window = 0
-      end
+        def readable_io_pages
+          [0xde]
+        end
 
-      # A GEO-RAM is built from its size alone.
-      def save_setup(out)
-        out.int(GEO_RAM_SETUP).int(@size)
-      end
+        def peek(addr)
+          @ram_data[@window + (addr & 0xff)]
+        end
 
-      private
+        def poke(addr, value)
+          if addr <= 0xdeff
+            @ram_data[@window + (addr & 0xff)] = value
+          elsif addr >= 0xdf80
+            if addr.odd?
+              @block = value & @block_mask
+            else
+              @page = value & PAGE_MASK
+            end
+            @window = (@block * BLOCK_SIZE) + (@page * 0x100)
+          end
+        end
 
-      def save_mapper(out)
-        out.blob(@ram_data).int(@block).int(@page).int(@window)
-      end
+        def reset
+          @block = @page = @window = 0
+        end
 
-      def load_mapper(input)
-        input.blob_into(@ram_data)
-        @block = input.int
-        @page = input.int
-        @window = input.int
-      end
+        # A GEO-RAM is built from its size alone.
+        def save_setup(out)
+          out.int(GEO_RAM_SETUP).int(@size)
+        end
 
-      def install_chips(_chips)
-        @ram_data = Array.new(@size * 1024, 0)
-        reset
+        private
+
+        def save_mapper(out)
+          out.blob(@ram_data).int(@block).int(@page).int(@window)
+        end
+
+        def load_mapper(input)
+          input.blob_into(@ram_data)
+          @block = input.int
+          @page = input.int
+          @window = input.int
+        end
+
+        def install_chips(_chips)
+          @ram_data = Array.new(@size * 1024, 0)
+          reset
+        end
       end
     end
   end

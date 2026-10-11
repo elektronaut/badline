@@ -55,7 +55,7 @@ describe Badline::Snapshot::Vice do
   # moves on in its cycle 0, a cycle later at the start of a frame.
   describe "the beam" do
     def at(line, column)
-      vic = run(Badline::Computer.new, (line * 63) + column).vic
+      vic = run(Badline::C64.new, (line * 63) + column).vic
       vicii = described_class::VICII
       [vicii.vice_cycle(vic), vicii.vice_line(vic), vicii.frame_start?(vic)]
     end
@@ -63,7 +63,7 @@ describe Badline::Snapshot::Vice do
     # A machine running NOPs, stopped between two of them at the beam
     # position, and restored from the VICE modules alone.
     def restored_at(line, column)
-      machine = Badline::Computer.new
+      machine = Badline::C64.new
       machine.ram.write(0x1000, Array.new(0x8000, 0xea))
       machine.cpu.program_counter = 0x1000
       vic = machine.vic
@@ -95,7 +95,7 @@ describe Badline::Snapshot::Vice do
     # A 512K REU part way through stashing $0400 bytes from $0400 to $2000
     # in bank 3, with the interrupt on the end of the block enabled.
     let(:machine) do
-      Badline::Computer.new(reu: 512).tap do |computer|
+      Badline::C64.new(reu: 512).tap do |computer|
         bus = computer.address_bus
         { 0xdf02 => 0x00, 0xdf03 => 0x04, 0xdf04 => 0x00, 0xdf05 => 0x20, 0xdf06 => 0x03, 0xdf07 => 0x00,
           0xdf08 => 0x04, 0xdf09 => 0xc0, 0xdf01 => 0x90 }.each { |addr, value| bus.poke(addr, value) }

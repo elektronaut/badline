@@ -3,7 +3,7 @@
 module Badline
   class C128
     class Bus
-      # The bus's state for a snapshot, as AddressBus::SavedState is the
+      # The bus's state for a snapshot, as C64::Bus::SavedState is the
       # C64's.
       module SavedState
         # The machine's memory, the last access and everything on the bus but

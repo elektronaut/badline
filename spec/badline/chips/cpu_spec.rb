@@ -683,7 +683,7 @@ describe Badline::Chips::CPU do
 
   describe "acknowledging a VIC interrupt with ASL $D019" do
     let(:memory) do
-      Badline::AddressBus.new.tap do |bus|
+      Badline::C64::Bus.new.tap do |bus|
         bus.poke(0x00, 0x2f)
         bus.poke(0x01, 0b00000101) # HIRAM low: vectors in RAM, I/O mapped
         bus.poke16(0xfffc, start_addr)

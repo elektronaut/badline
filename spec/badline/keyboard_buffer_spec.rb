@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Badline::KeyboardBuffer do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
 
   describe "#type_text" do
     before { allow(computer).to receive(:on_init).and_yield }

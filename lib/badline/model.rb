@@ -7,7 +7,7 @@ module Badline
   # each was sold with, its video standard, its KERNAL and whether it has
   # a datasette. The names are x64sc's.
   module Model
-    # Each field but the name is a keyword Computer.new takes.
+    # Each field but the name is a keyword C64.new takes.
     Profile = Data.define(:name, :vic_model, :cia_model, :sid_model, :region, :kernal, :datasette, :board)
 
     # The breadbin PAL C64: the 6569 VIC-II, 6526 CIAs and the 6581 SID.

@@ -11,7 +11,7 @@ module Badline
     # $FF00-$FF04.
     #
     # In C64 mode the 8721 PLA decodes $01's LORAM, HIRAM and CHAREN and the
-    # cartridge's EXROM and GAME as a C64's does (AddressBus::PLA), and the
+    # cartridge's EXROM and GAME as a C64's does (C64::Bus::PLA), and the
     # MMU answers nowhere.
     #
     # In both modes the RAM is the bank CR picks, with common RAM in bank 0,
@@ -34,8 +34,8 @@ module Badline
     # Colour RAM has two 1K banks (ColorLines).
     class Bus
       include Addressable
-      include AddressBus::PLA
-      include AddressBus::ROMs
+      include C64::Bus::PLA
+      include C64::Bus::ROMs
       include MMUPages
       include IOPages
       include Z80Pages
@@ -48,9 +48,9 @@ module Badline
       PORT_FLOATING = 0b1000_1000
       CAPS_LOCK     = 0b0100_0000
 
-      # The C64's power-on pattern (AddressBus::RAM_POWER_ON) in both 64K
+      # The C64's power-on pattern (C64::Bus::RAM_POWER_ON) in both 64K
       # banks. The C128's own DRAMs' pattern is unmeasured.
-      RAM_POWER_ON = Array.new(2**17) { |addr| AddressBus::RAM_POWER_ON[addr & 0xffff] }.freeze
+      RAM_POWER_ON = Array.new(2**17) { |addr| C64::Bus::RAM_POWER_ON[addr & 0xffff] }.freeze
 
       # The VIC's write side: a write to $D02F also drives the extra
       # keyboard lines K0-K2 onto the keyboard's rows 8-10.
@@ -151,7 +151,7 @@ module Badline
         @color_ram = @color_lines.color_ram(1)
         build_z80_pages
         @vic_writes = VICWrites.new(@vic, @control_ports)
-        @open_bus = AddressBus::OpenBus.new(@vic)
+        @open_bus = C64::Bus::OpenBus.new(@vic)
         @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
         @configuration_writes = ConfigurationPage.new(@mmu, @open_bus)
 

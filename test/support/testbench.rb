@@ -280,7 +280,7 @@ module Testbench
       return false unless File.exist?(test.cartridge_path)
       return false unless test.prg.empty? || File.exist?(File.join(test.dir_abs, test.prg))
 
-      Badline::Cartridge::HARDWARE_TYPES.key?(Badline::Storage::CRTFile.new(test.cartridge_path).hardware_type)
+      Badline::C64::Cartridge::HARDWARE_TYPES.key?(Badline::Storage::CRTFile.new(test.cartridge_path).hardware_type)
     end
   end
 

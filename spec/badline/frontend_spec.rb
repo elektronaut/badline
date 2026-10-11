@@ -54,7 +54,7 @@ describe Badline::Frontend do
   end
 
   it "restores a .vsf" do
-    Badline::Computer.new.save_snapshot("saved.vsf")
+    Badline::C64.new.save_snapshot("saved.vsf")
     expect { run("saved.vsf", "--frames", "1", "--unpaced") }.to output(/Restored saved.vsf/).to_stdout
   end
 

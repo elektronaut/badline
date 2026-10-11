@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class Computer
+  class C64
     # What plugs into the machine besides its chips, the cartridge, its
     # true drives (TrueDrives) and an REU, and their state for a snapshot.
     # The disk device 8 serves through the traps is KernalTraps'.

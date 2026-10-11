@@ -17,7 +17,7 @@ module Badline
       def initialize(tune, subtune: nil, sid_models: tune.sid_models)
         @tune = tune
         @subtune = subtune || tune.start_subtune
-        @computer = Computer.new(sid_model: sid_models[0])
+        @computer = C64.new(sid_model: sid_models[0])
         @stereo = Stereo.new(@computer.address_bus, tune, sid_models)
         @extras = @stereo.extras
         @multi = !@extras.empty?
@@ -39,7 +39,7 @@ module Badline
 
       def clock_hz = @computer.region.clock_hz
 
-      # The whole machine, as Computer#snapshot takes it, and the extra SIDs,
+      # The whole machine, as C64#snapshot takes it, and the extra SIDs,
       # once it plays.
       def save_state(out)
         @computer.save_state(out)

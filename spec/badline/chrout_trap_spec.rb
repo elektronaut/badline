@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Badline::ChroutTrap do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:capture) { computer.capture_output }
 
   before do

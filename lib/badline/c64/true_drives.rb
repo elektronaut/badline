@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module Badline
-  class Computer
+  class C64
     # The true drives on the machine's serial bus: a Drive1541, and a
-    # Drive1581 (Drive1581::Slot), each in a field of its own. Computer,
+    # Drive1581 (Drive1581::Slot), each in a field of its own. C64,
     # Vic20 and C128 each include it.
     module TrueDrives
       include Drive1581::Slot

@@ -72,7 +72,7 @@ module Badline
         detach_drive1571 if @drive1571&.device == device
       end
 
-      # A true 1541 (Computer::Attachments#save_serial_bus), then a 1571 and
+      # A true 1541 (C64::Attachments#save_serial_bus), then a 1571 and
       # a 1581.
       def save_serial_bus(out)
         out.boolean(!@drive1541.nil?)

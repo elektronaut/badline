@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module Badline
-  class Computer
+  class C64
     # The disk device 8 serves through the LOAD, SAVE and serial traps, and
-    # CHROUT capture, on the KERNAL the machine runs. Computer, Vic20 and
+    # CHROUT capture, on the KERNAL the machine runs. C64, Vic20 and
     # C128 each include it and answer two private methods: #trap_layout,
     # the KernalTrap::Layout of that KERNAL, and #trap_bus, the bus the
     # traps read and write through.

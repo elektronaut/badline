@@ -11,7 +11,7 @@ require "fileutils"
 describe Badline::Storage::SIDFile::Driver do
   let(:dir) { Dir.mktmpdir }
   let(:tune) { Badline::Storage::SIDFile.new(File.join(dir, "tune.sid")) }
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
 
   before do
     File.binwrite(File.join(dir, "tune.sid"), (header + image).pack("C*"))
@@ -42,7 +42,7 @@ describe Badline::Storage::SIDFile::Driver do
   end
 
   it "never returns to the caller" do
-    expect(computer.ram.peek(0xc001)).to eq(Badline::AddressBus::RAM_POWER_ON[0xc001])
+    expect(computer.ram.peek(0xc001)).to eq(Badline::C64::Bus::RAM_POWER_ON[0xc001])
   end
 
   it "keeps the zero page init wrote for play" do

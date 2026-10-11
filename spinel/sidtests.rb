@@ -35,7 +35,7 @@ module SIDTests
       when "root" then root = value
       when "test"
         cycles, name = value.split(" ", 2)
-        computer = Badline::Computer.new(sid_model:)
+        computer = Badline::C64.new(sid_model:)
         out << record(name, exit_code(computer, File.join(root, name), cycles.to_i))
       end
     end

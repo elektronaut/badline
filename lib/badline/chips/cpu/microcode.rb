@@ -6,7 +6,7 @@ module Badline
       class InvalidOpcodeError < StandardError; end
 
       # Steps that write to memory. The CPU keeps running through BA on
-      # cycles that write, so Computer#cycle! asks before each cycle whether
+      # cycles that write, so C64#cycle! asks before each cycle whether
       # the next step is one of these.
       WRITE_STEPS = %i[
         op_mem_write op_rmw_write_original op_rmw_write_result op_push_exec op_jsr_push_high op_jsr_push_low

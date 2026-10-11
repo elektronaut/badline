@@ -23,7 +23,7 @@ module Badline
 
         def initialize(vic)
           addressable_at(0x0000, length: 2**14)
-          connect(cia2: CIA.new(start: 0xdd00), color_ram: ColorMemory.new(vic))
+          connect(cia2: CIA.new(start: 0xdd00), color_ram: C64::ColorMemory.new(vic))
           map_character_rom(ROM.load("character.rom", 0xd000))
           @base = 0
           @starts = BANK_STARTS

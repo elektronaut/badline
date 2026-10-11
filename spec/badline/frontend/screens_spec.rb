@@ -80,7 +80,7 @@ describe Badline::Frontend::Screens do
   end
 
   context "with a C64" do
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
 
     it "stays on the VIC-II" do
       screens.follow

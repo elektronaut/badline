@@ -7,7 +7,7 @@ require "badline/c64/kernal_traps"
 require "badline/c64/saved_state"
 
 module Badline
-  class Computer
+  class C64
     include IntegerHelper
     include KeyboardBuffer
     include Machine::Clocking
@@ -45,17 +45,17 @@ module Badline
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
     # The machine options (sid_model:, cia_model:, vic_model:, region: and
-    # ram_expansion:) configure the AddressBus. The region sets the clock,
+    # ram_expansion:) configure the C64::Bus. The region sets the clock,
     # the VIC's raster and sprite timing, and the mains frequency the CIAs'
     # TOD clocks count. The KERNAL tells PAL from NTSC by the raster, so
     # every region boots the same ROMs. reu plugs an REU of that many K
     # into the expansion port, where it drives the IRQ line and takes the
     # bus for its transfers. kernal:, datasette: and board: fit the bus
-    # afterwards (AddressBus::Fittings): the KERNAL ROM, the cassette port,
+    # afterwards (C64::Bus::Fittings): the KERNAL ROM, the cassette port,
     # which is empty on the SX-64, and the board and case.
     def initialize(debug: false, reu: nil, **machine)
-      @address_bus = AddressBus.new(**machine.except(*AddressBus::Fittings::NAMES))
-      @address_bus.fit(**machine.slice(*AddressBus::Fittings::NAMES))
+      @address_bus = Bus.new(**machine.except(*Bus::Fittings::NAMES))
+      @address_bus.fit(**machine.slice(*Bus::Fittings::NAMES))
       @cpu = Chips::CPU.new(@address_bus, debug:)
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }

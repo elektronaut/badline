@@ -156,7 +156,7 @@ module Badline
         if computer.family == :vic20
           computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
         else
-          computer.attach_cartridge(Cartridge.from_file(path, **options))
+          computer.attach_cartridge(C64::Cartridge.from_file(path, **options))
         end
         "Attached cartridge #{path}"
       end

@@ -9,7 +9,7 @@ require_relative "../../support/blank_disk"
 describe Badline::Frontend::MediaSlots do
   include BlankDisk
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:dir) { Dir.mktmpdir }
   let(:disk) { blank_d64(File.join(dir, "game.d64")) }
 

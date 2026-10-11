@@ -1,7 +1,7 @@
 module Badline
   module Chips
     class CPU
-      @memory: AddressBus
+      @memory: C64::Bus
       @operation: Symbol
       @plan: Array[Symbol]
       @a: Integer

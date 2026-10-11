@@ -12,7 +12,7 @@ describe Badline::Frontend::MenuMedia do
 
   subject(:media) { described_class.new("", false).tap { |menu_media| menu_media.computer = computer } }
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:dir) { Dir.mktmpdir }
   let(:first) { blank_d64(File.join(dir, "game disk1.d64")) }
   let(:second) { blank_d64(File.join(dir, "game disk2.d64")) }

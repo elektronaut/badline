@@ -233,7 +233,7 @@ describe Badline::Drive1541 do
   describe "reading a disk with the DOS ROM" do
     include BlankDisk
 
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
     let(:dir) { Dir.mktmpdir }
     let(:program) { [0x00, 0xc0, *Array.new(600) { |i| (i * 7) & 0xff }] }
     let(:output) { computer.capture_output }

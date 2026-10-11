@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # The emulator core: the machine, its chips, media and traps, and the
-# snapshot state Computer saves and restores with, without the options,
+# snapshot state C64 saves and restores with, without the options,
 # the rest of the snapshot code, audio or front end. lib/badline.rb and
 # the Spinel harnesses in spinel/ load it, so a file the core needs is
 # added here.

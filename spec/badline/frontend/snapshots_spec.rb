@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::Snapshots do
   subject(:snapshots) { described_class.new(computer, options) }
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:options) { Badline::Options.parse([]) }
   let(:quicksaves) { File.join(Badline.data_path, "quicksaves") }
   let(:saves) { File.join(Badline.data_path, "saves") }

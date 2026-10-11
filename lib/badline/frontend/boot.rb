@@ -35,7 +35,7 @@ module Badline
       ""
     rescue Machine::Unsupported, Media::TrueDrive::Error, Media::DiskList::Error, Media::NotDisk, Datasette::Missing,
            SystemCallError, Storage::SIDFile::FormatError, Storage::T64::FormatError, Storage::TAP::FormatError,
-           Storage::CRTFile::FormatError, Storage::G64Image::FormatError, Cartridge::UnsupportedTypeError,
+           Storage::CRTFile::FormatError, Storage::G64Image::FormatError, C64::Cartridge::UnsupportedTypeError,
            Snapshot::FormatError => e
       e.message
     end

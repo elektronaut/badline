@@ -20,7 +20,7 @@ module Lorenz
   # runs it to the end. Strings and Integers in, a String out, so that
   # `spin ext` can export it to CRuby as it stands.
   def self.run_chain(image, resume, stop_after, max_cycles)
-    computer = Badline::Computer.new
+    computer = Badline::C64.new
     computer.vic.render = false
     capture = computer.capture_output
     disk = mount(computer, image, capture, (resume unless resume.empty?))

@@ -44,7 +44,7 @@ module Badline
           computer.ram.write(0, fields.bytes(0x10000))
           fields.skip(3 + 8)
           charge = FLOATING.sum { |bit| fields.flag? ? bit : 0 }
-          driven = ddr & AddressBus::PORT_FLOATING
+          driven = ddr & C64::Bus::PORT_FLOATING
           computer.address_bus.restore_port(ddr, data, (data & driven) | (charge & ~driven & 0xff))
         end
       end

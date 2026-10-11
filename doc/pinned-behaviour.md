@@ -102,7 +102,7 @@ only catches the rows that happen to move.
 ## CPU unstable stores under DMA
 
 - A cycle the VIC holds the CPU through BA is not a CPU cycle.
-  `Computer#cycle!` calls `CPU#stall!` instead of `CPU#cycle!`, which
+  `C64#cycle!` calls `CPU#stall!` instead of `CPU#cycle!`, which
   records `@cycles`. The interrupt pipeline's `pending` stage doesn't
   advance, but the line sample does (see *CPU interrupt recognition*).
 - SHA, SHX, SHY and SHS/TAS drop the `& (H+1)` from the stored value when
@@ -599,7 +599,7 @@ only catches the rows that happen to move.
   one group per rule.
 - The colour nibble of a c-access before AEC is the low nibble of the byte
   at the CPU's PC, which is the opcode it is halted on, as VICE reads it.
-  `Computer` hands the VIC a lambda for it (`VIC#open_bus=`), called only
+  `C64` hands the VIC a lambda for it (`VIC#open_bus=`), called only
   on those accesses. A bare VIC reads colour RAM instead.
   - Pinned by `flibug/blackmail*` and `colorfetchbug/main*`, whose bug
     cells take their colour from the halted opcode.
@@ -795,7 +795,7 @@ VICE x64sc's `vicii_fetch_graphics` and `draw_graphics8` for the 6569.
 
 ## VIC-II 8565
 
-The 8565 (`VIC.new(model: :mos8565)`, `Computer.new(vic_model:
+The 8565 (`VIC.new(model: :mos8565)`, `C64.new(vic_model:
 :mos8565)`), fitted to the C64C, runs every rule above except the ones
 below. They follow VICE x64sc's model checks (`color_latency` clear), and
 each is gated on the model and was knocked out: removing it fails the rows
@@ -1194,7 +1194,7 @@ testlist comments that row out, and `testbench-drean`
 
 ## CIA 6526A interrupt register
 
-The 6526A (`CIA.new(model: :mos6526a)`, `Computer.new(cia_model:
+The 6526A (`CIA.new(model: :mos6526a)`, `C64.new(cia_model:
 :mos6526a)`), fitted to the C64C, differs from the 6526 only in its
 interrupt control register. Its timers and shift register run the rules
 above unchanged: every `testbench-cia-new` row passes on the 6526's
@@ -1352,7 +1352,7 @@ and each was knocked out: removing it fails the rows named.
   - Pinned by `CPU/cpuport/initvalue.crt`, which runs from a cartridge
     before the KERNAL does.
   - Spec guard: *when powered on* in
-    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+    [`bus_spec.rb`](../spec/badline/c64/bus_spec.rb).
 - A write to `$00` or `$01` goes to the port, and the RAM below takes the
   byte the VIC fetched in the phi1 half of the same cycle, as in VICE's
   `zero_store`. Only the VIC reads that RAM.
@@ -1361,7 +1361,7 @@ and each was knocked out: removing it fails the rows named.
     sprite pointer fetches. Both read the RAM back through sprite
     collisions.
   - Spec guard: *when a program writes to the port* in
-    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+    [`bus_spec.rb`](../spec/badline/c64/bus_spec.rb).
 
 ## RAM power-on pattern
 
@@ -1371,7 +1371,7 @@ and each was knocked out: removing it fails the rows named.
   C64C (ASSY 250469 R4) in `C64/raminitpattern/readme.txt`
   (`-raminitstartvalue 0 -raminitvalueinvert 4 -raminitvalueoffset 2
   -raminitpatterninvert 16384 -raminitpatterninvertvalue 255`), without
-  that machine's occasional random bytes. `AddressBus::RAM_POWER_ON`
+  that machine's occasional random bytes. `C64::Bus::RAM_POWER_ON`
   holds it.
   - Pinned by `C64/raminitpattern`: `cyberloadtest` fails when
     `$f379-$f478` holds one value, `darkstarbbstest` when the first ten
@@ -1382,7 +1382,7 @@ and each was knocked out: removing it fails the rows named.
     All-`$00` fails the first three, and each other pattern the readme
     lists fails at least one of the four.
   - Spec guard: *RAM at power-on* in
-    [`address_bus_spec.rb`](../spec/badline/address_bus_spec.rb).
+    [`bus_spec.rb`](../spec/badline/c64/bus_spec.rb).
 - The RAM expansions' extra banks still power on at `$00`.
 
 ## VIC-20 RAM power-on pattern
@@ -1629,7 +1629,7 @@ testprogs named.
   `REU/xfertiming` row and `REU/reutiming/reutiming`. /DMA takes the bus
   from the CPU from the cycle after the request, even while the REC waits
   for BA, and RDY only halts the CPU on a read, so a write the CPU makes
-  then goes nowhere (`AddressBus#cycle_cpu_off_bus`). That is how an `INC
+  then goes nowhere (`C64::Bus#cycle_cpu_off_bus`). That is how an `INC
   $FF00` starts an armed transfer without its second write reaching RAM.
   Pinned by `REU/rmw-trigger/rmwtrigger-ram` and `rmwtrigger-rom`.
 - After reading C64 memory the REC waits out every BA-low cycle. After
@@ -1704,7 +1704,7 @@ testprogs named.
   documented `$00`/`$ff` because of it.
   - Pinned by `SID/oscinit` (all three).
   - Spec guard: *leaves the SID's accumulators alone* in
-    [`computer_spec.rb`](../spec/badline/computer_spec.rb). The testbench
+    [`c64_spec.rb`](../spec/badline/c64_spec.rb). The testbench
     only runs `SID/oscinit` from power-on, so only the spec catches a reset
     that rebuilds the voices.
 - Ring modulation substitutes the triangle's MSB with
@@ -1892,14 +1892,14 @@ testprogs named.
 ## SID register writes
 
 - The 6581 latches a register write one cycle late. That falls out of the
-  bus order, not from any delay line inside `SID`. `Computer#cycle!` clocks
+  bus order, not from any delay line inside `SID`. `C64#cycle!` clocks
   the SID ahead of the CPU, so a write on cycle N first reaches the DSP on
   cycle N+1, while a read on cycle N sees N cycles of clocking. Moving
   `sid.cycle!` after `cpu.cycle!` breaks this.
 - Pinned by `SID/writedelay`, which reads OSC3 four cycles after releasing
   the test bit and expects the pulse already high.
 - Spec guard: *SID writes against the clock order* in
-  [`computer_spec.rb`](../spec/badline/computer_spec.rb). It runs an
+  [`c64_spec.rb`](../spec/badline/c64_spec.rb). It runs an
   `STA $d400` and checks that the DSP has not clocked the new frequency on
   the store's own cycle, over both the synthesizing and the idle-replay
   paths.

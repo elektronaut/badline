@@ -6,7 +6,7 @@ require_relative "../../../support/cartridge_builder"
 describe Badline::Chips::VIC::Bank do
   subject(:vic_bank) { bus.vic.vic_bank }
 
-  let(:bus) { Badline::AddressBus.new }
+  let(:bus) { Badline::C64::Bus.new }
 
   before do
     bus.cia2.poke(0xdd00, 0x03)
@@ -118,7 +118,7 @@ describe Badline::Chips::VIC::Bank do
 
     let(:ram) { Badline::Memory.new(Array.new(2**17) { |addr| addr >> 12 }, length: 2**17) }
     let(:rom) { Badline::ROM.new(Array.new(0x2000) { |addr| addr >> 8 }, length: 0x2000) }
-    let(:color_ram) { Badline::ColorMemory.new(Badline::Chips::VIC.new, start: 0, length: 0x800) }
+    let(:color_ram) { Badline::C64::ColorMemory.new(Badline::Chips::VIC.new, start: 0, length: 0x800) }
 
     it "reads RAM from the base of the VIC's 64K" do
       vic_bank.map(ram, base: 0x10000)

@@ -49,7 +49,7 @@ module Badline
       def initialize(tune, subtune: nil, sid_models: tune.sid_models)
         @tune = tune
         @subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes) - 1
-        @bus = AddressBus.new(sid_model: sid_models[0])
+        @bus = C64::Bus.new(sid_model: sid_models[0])
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
         @bus.poke(0x01, 0x37)

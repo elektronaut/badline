@@ -125,7 +125,7 @@ module DriveScenarios
     # The .d71 through the C64's traps: what a LOAD of PROG and a LIST
     # print.
     def trap_listing(path)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.mount(Badline::Storage::D71Image.new(path))
       output = computer.capture_output
       computer.on_init { computer.type_text("load\"prog\",8\rlist\r") }

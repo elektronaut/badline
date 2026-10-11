@@ -11,7 +11,7 @@ describe Badline::Frontend::Timeline do
 
   subject(:timeline) { described_class.new(Badline::Options.parse(argv)) }
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:argv) { [] }
 
   def at(*events) = events.flat_map { |event| ["--at", event] }
@@ -230,7 +230,7 @@ describe Badline::Frontend::Timeline do
     let(:argv) { at("1:eject=cartridge") }
 
     it "power-cycles the machine without it" do
-      computer.connect_cartridge(Badline::Cartridge.from_file(cartridge))
+      computer.connect_cartridge(Badline::C64::Cartridge.from_file(cartridge))
       allow(computer).to receive(:power_cycle!)
       expect { run_to(1) }.to output.to_stdout.and(change { computer.address_bus.cartridge }.to(nil))
     end

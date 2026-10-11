@@ -5,7 +5,7 @@ require "spec_helper"
 describe Badline::Audio::Stereo do
   subject(:stereo) { described_class.new(bus, tune, %i[mos6581 mos8580 mos6581]) }
 
-  let(:bus) { Badline::AddressBus.new }
+  let(:bus) { Badline::C64::Bus.new }
   let(:tune) { instance_double(Badline::Storage::SIDFile, sid_addresses: addresses) }
   let(:addresses) { [] }
 

@@ -6,7 +6,7 @@ require "fileutils"
 require_relative "../../support/blank_disk"
 
 describe Badline::KernalTrap::Save do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:ram) { computer.ram }
   let(:dir) { Dir.mktmpdir }
   let(:backend) { Badline::Storage::HostDirectory.new(dir) }

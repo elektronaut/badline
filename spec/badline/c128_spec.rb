@@ -248,7 +248,7 @@ describe Badline::C128 do
     it "waits for the C64 KERNAL's boot to run #on_init's handlers after C= takes it to C64 mode" do
       machine.hold_commodore_key
       machine.run_until(2000) { machine.mode == :c64 }
-      expect(machine.init_threshold).to eq(machine.cycles + Badline::Computer::INIT_THRESHOLD)
+      expect(machine.init_threshold).to eq(machine.cycles + Badline::C64::INIT_THRESHOLD)
     end
   end
 

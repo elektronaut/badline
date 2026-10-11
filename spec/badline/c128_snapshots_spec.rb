@@ -147,7 +147,7 @@ describe Badline::C128 do
     end
 
     it "refuses a C64's state" do
-      expect { described_class.new.restore(Badline::Computer.new.snapshot) }
+      expect { described_class.new.restore(Badline::C64.new.snapshot) }
         .to raise_error(Badline::Snapshot::FormatError, /expected C128/)
     end
 

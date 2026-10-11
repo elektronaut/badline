@@ -6,7 +6,7 @@ require "fileutils"
 require_relative "../support/blank_disk"
 
 describe Badline::Media do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:dir) { Dir.mktmpdir }
   let(:g64_path) do
     File.join(dir, "disk.g64").tap do |path|
@@ -307,7 +307,7 @@ describe Badline::Media do
         described_class.attach(computer, crt_path)
         expect(computer)
           .to have_received(:attach_cartridge)
-          .with(instance_of(Badline::Cartridge::Standard))
+          .with(instance_of(Badline::C64::Cartridge::Standard))
       end
 
       it "returns an attach message" do
@@ -318,16 +318,16 @@ describe Badline::Media do
 
       it "sets the cartridge's jumpers" do
         allow(computer).to receive(:attach_cartridge)
-        allow(Badline::Cartridge).to receive(:from_file)
+        allow(Badline::C64::Cartridge).to receive(:from_file)
         described_class.attach(computer, crt_path, cartridge: { flash_jumper: true })
-        expect(Badline::Cartridge).to have_received(:from_file).with(crt_path, flash_jumper: true)
+        expect(Badline::C64::Cartridge).to have_received(:from_file).with(crt_path, flash_jumper: true)
       end
 
       it "leaves the disk options to disk images" do
         allow(computer).to receive(:attach_cartridge)
-        allow(Badline::Cartridge).to receive(:from_file)
+        allow(Badline::C64::Cartridge).to receive(:from_file)
         described_class.attach(computer, crt_path, disk: { read_only: true })
-        expect(Badline::Cartridge).to have_received(:from_file).with(crt_path)
+        expect(Badline::C64::Cartridge).to have_received(:from_file).with(crt_path)
       end
     end
 

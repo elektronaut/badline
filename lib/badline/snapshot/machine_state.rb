@@ -2,7 +2,7 @@
 
 module Badline
   module Snapshot
-    # The BADLINE module: a State from Computer#snapshot, which restores the
+    # The BADLINE module: a State from C64#snapshot, which restores the
     # machine exactly where it was saved. VICE skips a module it doesn't
     # know.
     #

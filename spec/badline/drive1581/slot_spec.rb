@@ -16,7 +16,7 @@ describe Badline::Drive1581::Slot do
   end
 
   context "with a C64" do
-    let(:machine) { Badline::Computer.new }
+    let(:machine) { Badline::C64.new }
 
     it "runs the drive at its own clock, two cycles a host cycle" do
       machine.attach_drive1581(drive)
@@ -52,7 +52,7 @@ describe Badline::Drive1581::Slot do
     it "carries it through a snapshot" do
       machine.attach_drive1581(drive)
       machine.run_cycles(1_000)
-      target = Badline::Computer.new
+      target = Badline::C64.new
       target.restore(machine.snapshot)
       expect(target.drive1581.cycles).to eq(drive.cycles)
     end

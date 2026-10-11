@@ -20,7 +20,7 @@ live in subdirectories:
   modes, border and register timing
 - **CIA**: `cia.rb` and `cia/` (timers, serial), plus `time_of_day.rb`
 - **REU**: `reu.rb` and `reu/`, the RAM Expansion Unit's registers and
-  its DMA, which `Computer#cycle!` clocks in place of the CPU while it
+  its DMA, which `C64#cycle!` clocks in place of the CPU while it
   holds the bus
 - **SID**: `sid.rb` and `sid/`. `audio/` plays and renders tunes for
   `badline-ruby --headless` and `--audio-out`
@@ -38,7 +38,7 @@ live in subdirectories:
   `spinel/` holds the Spinel test harnesses
 
 Timing-critical code lives in `cpu`, `interrupts`, `vic`, `cia` and `sid` and
-in the order `Computer#cycle!` clocks them. Changes there move the test
+in the order `C64#cycle!` clocks them. Changes there move the test
 suites below. `frontend/` changes move none of them.
 
 Namespaced groups live in `lib/badline/<namespace>/`, with a sibling
@@ -79,10 +79,10 @@ otherwise. Use it for refactors and speed work.
 ## Driving the emulator headlessly
 
 `exe/badline-ruby <media>` opens the SDL window, which is no use for checking
-work. Drive a `Badline::Computer` from Ruby instead, as the `bin/` runners do:
+work. Drive a `Badline::C64` from Ruby instead, as the `bin/` runners do:
 
 ```ruby
-computer = Badline::Computer.new
+computer = Badline::C64.new
 Badline::Media.attach(computer, path)  # PRG, disk, tape, CRT or directory; autostarts
 computer.on_init { computer.type_text("print 6*7\r") }  # after boot (~2.5M cycles)
 3_500_000.times { computer.cycle! }
@@ -201,7 +201,7 @@ the rows your change can't reach tell you nothing about it.
   `(suite)` row too. Explain every moved row in the pull request. Never
   re-record just to make a diff go away
 - For a change whose reach you can't bound to a set of filters, such as
-  reordering `Computer#cycle!` or changing the LOAD trap every suite loads
+  reordering `C64#cycle!` or changing the LOAD trap every suite loads
   through, push and let CI run the suites
 - The Regression workflow runs the suites on CRuby, started by hand from
   the Actions tab, for a person checking that CRuby and Spinel agree.

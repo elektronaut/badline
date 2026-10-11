@@ -16,10 +16,10 @@ module CartridgeBuilder
   end
 
   def build_cartridge(type, chips, exrom: 0, game: 1, subtype: 0)
-    Badline::Cartridge.from_crt(CRT.new(hardware_type: type, subtype:, exrom:, game:, name: "TEST", chips:))
+    Badline::C64::Cartridge.from_crt(CRT.new(hardware_type: type, subtype:, exrom:, game:, name: "TEST", chips:))
   end
 
   def attached_bus(cartridge)
-    Badline::AddressBus.new.tap { |bus| bus.attach_cartridge(cartridge) }
+    Badline::C64::Bus.new.tap { |bus| bus.attach_cartridge(cartridge) }
   end
 end

@@ -12,7 +12,7 @@ module Badline
     # and the drive's VIA samples its own late in each of its cycles, so a
     # drive cycle that runs alongside the write reads the lines from
     # before it. The drive runs after the host in each host cycle (see
-    # Computer#cycle!), so the port reads the host's lines as latch_host
+    # C64#cycle!), so the port reads the host's lines as latch_host
     # took them at the end of the last one. Fast loaders that time their
     # transfer from an ATN edge, as VICE's drive tests do, depend on it.
     #

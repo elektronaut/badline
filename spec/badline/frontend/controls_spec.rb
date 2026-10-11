@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::Controls do
   subject(:controls) { described_class.new(computer) }
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:ports) { computer.control_ports }
 
   describe "#toggle_keys" do
@@ -230,7 +230,7 @@ describe Badline::Frontend::Controls do
   end
 
   describe "#computer=" do
-    let(:other) { Badline::Computer.new }
+    let(:other) { Badline::C64.new }
 
     it "puts the pot device in the other machine's port" do
       controls.plug(:paddles2)

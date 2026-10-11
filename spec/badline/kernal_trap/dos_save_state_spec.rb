@@ -67,14 +67,14 @@ describe Badline::KernalTrap::DOS, "#save_state" do
     # A machine with a SAVE and a LISTEN under way, and one restored from
     # its traps' state.
     def machines(storage)
-      computer = Badline::Computer.new.tap { |machine| machine.mount(storage) }
+      computer = Badline::C64.new.tap { |machine| machine.mount(storage) }
       serial = computer.instance_variable_get(:@serial_trap)
       { :@listening => true, :@listen_channel => 2, :@buffer => [0x50, 0x52] }
         .each { |name, value| serial.instance_variable_set(name, value) }
       computer.instance_variable_get(:@save_trap).instance_variable_set(:@saving, true)
       out = Badline::Snapshot::StateWriter.new
       computer.send(:save_trap_dos, out)
-      target = Badline::Computer.new
+      target = Badline::C64.new
       target.send(:load_trap_dos, Badline::Snapshot::StateReader.new(out.state))
       [computer, target]
     end

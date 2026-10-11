@@ -8,8 +8,8 @@ module Badline
 
     # A machine's state, held in memory: the Integers each chip writes in
     # turn, and the byte strings for memories, names and paths. Booleans
-    # are written as 0 and 1. Computer#snapshot takes one and
-    # Computer#restore puts it back.
+    # are written as 0 and 1. C64#snapshot takes one and
+    # C64#restore puts it back.
     class State
       # The layout the chips write their fields in. It goes up whenever a
       # save_state writes something else, so a State in another layout

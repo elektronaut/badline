@@ -56,7 +56,7 @@ describe Badline::Media::BootDisk do
     end
 
     it "mounts it through the traps on a C64" do
-      expect(Badline::Media.attach(Badline::Computer.new, d64("CBM"))).to start_with("Mounted")
+      expect(Badline::Media.attach(Badline::C64.new, d64("CBM"))).to start_with("Mounted")
     end
   end
 end

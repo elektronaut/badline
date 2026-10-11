@@ -11,7 +11,7 @@ module Badline
     # at that state.
     def self.restored(state) = setup(state).build.apply_state(state)
 
-    # The whole machine's state for a snapshot, as Computer's: the
+    # The whole machine's state for a snapshot, as C64's: the
     # machine's own latches, FAST and TEST as they last took hold, the bus with its RAM, the MMU, the chips and
     # the VDC, the CPU, the cartridge, the disk device 8 serves through the
     # traps and a true 1541. The serial lines go back into the bus from the

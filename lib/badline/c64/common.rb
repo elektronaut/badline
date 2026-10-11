@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module Badline
-  class Computer
+  class C64
     # What the C128 does as the C64 does: the NMI line, a PRG put into RAM
-    # and the region's timing. Computer and C128 each include it.
+    # and the region's timing. C64 and C128 each include it.
     module Common
       # The clock, the raster and the crop of the machine's region, a pixel
       # to a window pixel.

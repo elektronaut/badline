@@ -7,9 +7,9 @@ module TrueDrive
 
   module_function
 
-  # A Computer, with a true drive plugged in if the options ask.
+  # A C64, with a true drive plugged in if the options ask.
   def computer(options)
-    computer = Badline::Computer.new
+    computer = Badline::C64.new
     return computer unless options[:true_drive]
 
     drive = Badline::Drive1541.new
