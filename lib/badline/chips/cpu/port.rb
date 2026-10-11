@@ -83,6 +83,18 @@ module Badline
           refresh
         end
 
+        # The registers and the charge in a keyed snapshot module
+        # (Snapshot::Keyed), under `prefix`. What a read sees is worked out
+        # again on load, and the bus maps its banks afterwards.
+        def save_fields(out, prefix)
+          out.int("#{prefix}ddr", @ddr).int("#{prefix}data", @data).int("#{prefix}floating", @floating)
+        end
+
+        def load_fields(input, prefix)
+          load(input.byte("#{prefix}ddr", @ddr), input.byte("#{prefix}data", @data),
+               input.byte("#{prefix}floating", @floating))
+        end
+
         # Holds CAPS LOCK down, or lets it up.
         def caps_lock=(down)
           @caps_lock = down
