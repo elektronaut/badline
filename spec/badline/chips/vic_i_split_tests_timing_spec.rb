@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "badline/vic20"
+require_relative "../../support/booting"
 
 # VIC20/split-tests/timing on a PAL VIC-20, against the memory dumps it
 # left on real 6561s. For 256 cycles in a row, four lines into the text
@@ -25,8 +26,7 @@ describe Badline::Chips::VICI, :slow do
   # time until it has written its stability count at $17E8, once the
   # measurements are done.
   def self.measure(program)
-    machine = Badline::Vic20.new
-    machine.run_cycles(machine.init_threshold)
+    machine = Booting.boot(Badline::Vic20.new)
     load_program(machine, program)
     machine.run_cycles(71 * 312) while waiting?(machine)
     Array.new(0x440) { |offset| machine.ram.peek(0x17c0 + offset) }

@@ -3,8 +3,11 @@
 require "spec_helper"
 require "tmpdir"
 require "badline/plus4"
+require_relative "../support/booting"
 
 describe Badline::Plus4 do
+  include Booting
+
   # The 25 rows of 40 characters on the screen at $0C00, as text.
   def screen(machine)
     Array.new(25) do |row|
@@ -17,9 +20,7 @@ describe Badline::Plus4 do
     code.between?(1, 26) ? (code + 64).chr : code.chr
   end
 
-  def booted(**)
-    described_class.new(**).tap { |machine| machine.run_cycles(machine.init_threshold) }
-  end
+  def booted(**) = boot(described_class.new(**))
 
   it "starts at the KERNAL's reset entry" do
     expect(described_class.new.cpu.program_counter).to eq(0xfff6)
@@ -48,7 +49,7 @@ describe Badline::Plus4 do
   it "runs a line typed after boot" do
     machine = described_class.new(model: "c16")
     machine.type_text("print 6*7\r")
-    machine.run_cycles(machine.init_threshold + 100_000)
+    boot(machine, past: 100_000)
     expect(screen(machine)[4, 3]).to eq(["PRINT 6*7", " 42", ""])
   end
 
@@ -71,7 +72,7 @@ describe Badline::Plus4 do
         File.binwrite(File.join(dir, "six.prg"), program.pack("C*"))
         machine.mount(Badline::Storage::HostDirectory.new(dir))
         machine.type_text(%(load"six",8\rrun\r))
-        machine.run_cycles(machine.init_threshold + 300_000)
+        boot(machine, past: 300_000)
       end
     end
 
@@ -84,7 +85,7 @@ describe Badline::Plus4 do
     machine = described_class.new(model: "c16")
     capture = machine.capture_output
     machine.type_text("print 6*7\r")
-    machine.run_cycles(machine.init_threshold + 100_000)
+    boot(machine, past: 100_000)
     expect(capture.output).to include("42")
   end
 

@@ -2,10 +2,13 @@
 
 require "spec_helper"
 require "badline/vic20"
+require_relative "../support/booting"
 
 # The keyboard, the joystick and RESTORE, as the KERNAL and a testprog
 # read them on a booted VIC-20.
 describe Badline::Vic20, :slow do
+  include Booting
+
   subject(:machine) { described_class.new }
 
   # The first +rows+ rows of 22 characters on the screen, as text.
@@ -30,13 +33,9 @@ describe Badline::Vic20, :slow do
     machine.run_cycles(40_000)
   end
 
-  def boot
-    machine.run_cycles(machine.init_threshold)
-  end
-
   describe "#keyboard, typed through the key matrix" do
     before do
-      boot
+      boot(machine)
       quote = %i[lshift 2]
       [*%i[p r i n t space].map { [it] }, quote, [:a], quote, *%i[6 * 7 return].map { [it] }].each { tap(*it) }
     end
@@ -49,7 +48,7 @@ describe Badline::Vic20, :slow do
   describe "#press_restore, with and without RUN/STOP" do
     before do
       machine.type_text("10 print \"x\";:goto 10\rrun\r")
-      machine.run_cycles(machine.init_threshold + 300_000)
+      boot(machine, past: 300_000)
     end
 
     def press_restore(*keys)
@@ -80,7 +79,7 @@ describe Badline::Vic20, :slow do
       skip "VICE-testprogs not checked out" unless File.exist?(program)
       machine.load_prg(File.binread(program).bytes)
       machine.type_text("sys4110\r")
-      machine.run_cycles(machine.init_threshold + 200_000)
+      boot(machine, past: 200_000)
     end
 
     # Where the testprog marks each switch on its screen, around a cross

@@ -4,8 +4,11 @@ require "spec_helper"
 require "badline/vic20"
 require "tmpdir"
 require "fileutils"
+require_relative "../../support/booting"
 
 describe Badline::Vic20::Attachments do
+  include Booting
+
   subject(:machine) { Badline::Vic20.new }
 
   let(:layout) { Badline::KernalTrap::VIC20_LAYOUT }
@@ -120,7 +123,7 @@ describe Badline::Vic20::Attachments do
       machine.mount(Badline::Storage::HostDirectory.new(dir))
       machine.capture_output
       machine.on_init { machine.type_text(%(load"prog",8,1\rsave"copy",8\r)) }
-      machine.run_cycles(machine.init_threshold + 300_000)
+      boot(machine, past: 300_000)
     end
 
     it "loads the file where it says, saves BASIC's program and prints the KERNAL's messages", :aggregate_failures do

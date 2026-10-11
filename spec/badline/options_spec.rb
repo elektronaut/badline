@@ -362,6 +362,15 @@ describe Badline::Options do
     end
   end
 
+  describe ".article" do
+    { ".sid" => "a", ".tap" => "a", ".d64" => "a", ".crt" => "a", ".m3u" => "an", ".lnx" => "an",
+      ".x64" => "an" }.each do |name, article|
+      it "puts #{article} before #{name}" do
+        expect(described_class.article(name)).to eq(article)
+      end
+    end
+  end
+
   describe "the machine family" do
     it "is the C64 without a subcommand" do
       expect(described_class.parse([program_path]).family).to eq(:c64)

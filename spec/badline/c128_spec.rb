@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../support/booting"
 
 describe Badline::C128 do
+  include Booting
+
   subject(:machine) { described_class.new }
 
   it "reads and writes memory through the bus" do
@@ -252,7 +255,7 @@ describe Badline::C128 do
 
     it "traps the C128 KERNAL's CHROUT", :slow do
       out = machine.capture_output
-      machine.run_cycles(machine.init_threshold)
+      boot(machine)
       expect(out.output).to include("ready.")
     end
 
