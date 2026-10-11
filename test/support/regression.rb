@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 # Suite results are compared by test id rather than line by line, so a test
 # inserted upstream does not shift every row after it. Only ids present on
 # both sides can fail the run: a test the vendored suite has gained or lost
@@ -208,10 +210,22 @@ module Regression
       removed.each { |row| io.puts("  gone    #{row.key}: #{row}") }
     end
 
-    # On CI, the job summary shows the comparison without opening the log.
+    # On CI, the job summary shows the comparison without opening the log,
+    # and SUITES_MOVED names a file that collects the changed rows as JSON
+    # lines for the suites-red issue (bin/suites_status).
     def publish
       path = ENV.fetch("GITHUB_STEP_SUMMARY", nil)
       File.write(path, markdown, mode: "a") if path
+      record_moved(ENV.fetch("SUITES_MOVED", nil))
+    end
+
+    def record_moved(path)
+      return unless path && changed?
+
+      lines = changed.map do |before, after|
+        "#{JSON.generate({ name: @suite, key: before.key, before: before.to_s, after: after.to_s })}\n"
+      end
+      File.write(path, lines.join, mode: "a")
     end
 
     def markdown

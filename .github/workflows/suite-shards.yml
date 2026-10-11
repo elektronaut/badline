@@ -1,0 +1,185 @@
+name: Suite shards
+# The suites on the Spinel build, each compared against its baseline in
+# test/baselines/, over the matrix `rake ci:matrix` derives. ci.yml calls it
+# for the suites a pull request reaches and for the Spinel checks on a push
+# to main, and suites.yml for every suite on its schedule.
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: "The matrix `rake ci:matrix[compact]` printed"
+        required: true
+        type: string
+      harnesses:
+        description: "The harnesses the matrix runs, space-separated, as `rake ci:harnesses` prints them"
+        required: true
+        type: string
+      spinel-ref:
+        description: "The Spinel commit to build with"
+        required: true
+        type: string
+      max-parallel:
+        description: "How many shards run at once"
+        required: false
+        type: number
+        default: 64
+permissions:
+  contents: read
+jobs:
+  # Every harness the shards run, built once and cached on the Spinel
+  # commit and a hash of every source Spinel reads, so the shards restore
+  # the binaries rather than each building its own. Only binaries are
+  # cached, never a suite's verdict.
+  harnesses:
+    name: Harnesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SPINEL_REF: ${{ inputs.spinel-ref }}
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - uses: ./.github/actions/setup
+      - name: Locate Spinel
+        run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+      - name: Cache Spinel
+        id: spinel-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+      - name: Build Spinel
+        if: steps.spinel-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/matz/spinel "$SPINEL_DIR"
+          git -C "$SPINEL_DIR" checkout --quiet "$SPINEL_REF"
+          make -C "$SPINEL_DIR" deps
+          make -C "$SPINEL_DIR" -j"$(nproc)"
+      - name: Put Spinel on PATH
+        run: echo "$SPINEL_DIR/bin" >> "$GITHUB_PATH"
+      # A key per set of harnesses, falling back to any set built from the
+      # same sources, whose binaries are just as good.
+      - name: Key the harnesses
+        id: key
+        env:
+          HARNESSES: ${{ inputs.harnesses }}
+          SOURCES: ${{ hashFiles('lib/**', 'spinel/**', 'test/support/**') }}
+        run: |
+          prefix="harnesses-$RUNNER_OS-$RUNNER_ARCH-$SPINEL_REF-$SOURCES-"
+          set=$(tr ' ' '\n' <<< "$HARNESSES" | sort | sha256sum | cut -c1-16)
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=$prefix$set" >> "$GITHUB_OUTPUT"
+      - name: Cache the harnesses
+        uses: actions/cache@v6
+        with:
+          path: tmp/spinel
+          key: ${{ steps.key.outputs.key }}
+          restore-keys: ${{ steps.key.outputs.prefix }}
+      # Two builds at a time, since Spinel splits a large unit's C compile
+      # over the cores itself.
+      - name: Build the harnesses
+        env:
+          HARNESSES: ${{ inputs.harnesses }}
+        run: |
+          start=$SECONDS
+          missing=""
+          for harness in $HARNESSES; do
+            [ -x "tmp/spinel/$harness" ] || missing="${missing:+$missing }$harness"
+          done
+          echo "Building: ${missing:-nothing}"
+          if [ -n "$missing" ]; then
+            tr ' ' '\n' <<< "$missing" | xargs -P 2 -I{} env HARNESS={} \
+              bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: [ENV.fetch("HARNESS")])'
+          fi
+          printf '| Step | Time |\n| --- | --- |\n| Build %s | %d s |\n' "${missing:-nothing}" \
+            "$((SECONDS - start))" >> "$GITHUB_STEP_SUMMARY"
+          for harness in $HARNESSES; do test -x "tmp/spinel/$harness"; done
+
+  # The shards are balanced by recent run times to about 10 minutes each.
+  # testbench-irqdma is split by filter, testbench-drive by filter into its
+  # viavarious rows and the rest, and lorenz by stretch. A runner has 2
+  # cores with 2 threads each, so a Lorenz stretch runs nearly twice as fast
+  # beside one other as beside three.
+  suites:
+    name: "Suites (${{ matrix.shard }})"
+    needs: harnesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - uses: ./.github/actions/setup
+      - name: Count the cores
+        run: |
+          echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
+          printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Restore the harnesses
+        uses: actions/cache/restore@v6
+        with:
+          path: tmp/spinel
+          key: ${{ needs.harnesses.outputs.key }}
+          fail-on-cache-miss: true
+      - name: Cache 65x02 test fixtures
+        if: contains(matrix.harnesses, 'cpu_tests')
+        uses: actions/cache@v6
+        with:
+          path: vendor/65x02
+          key: 65x02-fixtures-6502-v1
+      - name: Cache Z80 test sample
+        if: contains(matrix.harnesses, 'z80_tests')
+        uses: actions/cache@v6
+        with:
+          path: vendor/z80-sample
+          key: z80-sample-ebe1875d-100
+      - name: Cache VICE-testprogs
+        uses: actions/cache@v6
+        with:
+          path: vendor/VICE-testprogs
+          key: vice-testprogs-v1
+      - name: Check out the vendored suites
+        run: bundle exec rake vendor:VICE-testprogs
+      # The testbench, SID and drive scenario tasks run SHARDS processes, set
+      # to the core count, and spinel:lorenz runs its stretches side by side. A task
+      # that fails leaves the next to run, and the step fails at the end.
+      - name: Run the suites
+        env:
+          # Each spinel:* task builds its harnesses first, running the
+          # compiler SPINEL names. /bin/true as the compiler exits 0 and
+          # prints nothing, so SpinelCheck.build counts each harness as
+          # built and leaves the restored binaries in place.
+          SPINEL: "true"
+          TASKS: ${{ matrix.tasks }}
+          SUITES_MOVED: tmp/moved/moved.jsonl
+        run: |
+          set -f
+          mkdir -p tmp/moved
+          status=0
+          for task in $TASKS; do
+            start=$SECONDS
+            bundle exec rake "$task" || status=1
+            echo "| $task | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit "$status"
+      # The rows that moved, which suites.yml names in its suites-red issue.
+      - name: Upload the moved rows
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: moved-${{ matrix.shard }}
+          path: tmp/moved/moved.jsonl
+          if-no-files-found: ignore
+      - name: Upload run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: suites-${{ matrix.shard }}
+          path: |
+            tmp/spinel/*.out
+            tmp/spinel/*.txt
+            tmp/regression
+            tmp/testbench
+          if-no-files-found: ignore
