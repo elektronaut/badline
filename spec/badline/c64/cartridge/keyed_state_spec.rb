@@ -44,7 +44,7 @@ module CartridgeKeyedSamples
 end
 
 describe Badline::C64::Cartridge::KeyedState do
-  it "restores every mapper in the matrix" do
+  it "restores every mapper in the matrix", :slow do
     expect(CartridgeKeyedSamples.problems.first(8)).to be_empty
   end
 end
