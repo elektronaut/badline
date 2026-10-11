@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "fileutils"
-require "tmpdir"
 require "badline"
 require "badline/c128"
 require_relative "../../spec/support/blank_disk"
@@ -62,10 +61,11 @@ module SnapshotGolden
     machine
   end
 
-  # The disk's module keeps the image's path, a fresh temporary directory
-  # each run, so this snapshot differs from run to run in those two texts.
+  # The disk's module keeps the image's path as given, so the image goes
+  # at the same absolute path on every machine, outside the checkout.
   def directory_listing(cycles)
-    disk = blank_d64(File.join(Dir.mktmpdir, "blank.d64"), name: "GOLDEN")
+    FileUtils.mkdir_p("/tmp/badline-golden")
+    disk = blank_d64("/tmp/badline-golden/blank.d64", name: "GOLDEN")
     Badline::C64.new.tap do |machine|
       Badline::Media::TrueDrive.plug(machine)
       Badline::Media.attach(machine, disk, autostart: false)
