@@ -21,6 +21,11 @@ module Badline
         @bus.caps_lock = false
       end
 
+      # Pushes CAPS LOCK, down if it was up and up if it was down.
+      def push_caps_lock
+        @bus.caps_lock = !@bus.caps_lock
+      end
+
       # The 40/80 DISPLAY key locks down and up. The KERNAL reads it at reset
       # and starts the screen editor on the VDC's 80 columns while it is down.
       def press_display_key
@@ -29,6 +34,10 @@ module Badline
 
       def release_display_key
         @bus.mmu.display_key = false
+      end
+
+      def push_display_key
+        @bus.mmu.display_key = !@bus.mmu.display_key
       end
     end
   end

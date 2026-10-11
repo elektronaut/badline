@@ -33,7 +33,7 @@ describe Badline::Frontend::Timeline do
   end
 
   describe ".error" do
-    def error(*events) = described_class.error(Badline::Options.parse(at(*events)).timeline)
+    def error(*events, family: :c64) = described_class.error(Badline::Options.parse(at(*events)).timeline, family)
 
     it "takes C64 keys, RESTORE and the joysticks' switches" do
       expect(error("1:key=space", "1:key=cursor_up", "1:key=restore", "1:key=joy1-fire")).to eq("")
@@ -41,6 +41,19 @@ describe Badline::Frontend::Timeline do
 
     it "names the first key that names nothing" do
       expect(error("1:key=a", "2:key=joy3-up", "3:key=hyper")).to eq("no such key: joy3-up")
+    end
+
+    it "takes the C128's own keys on the C128" do
+      keys = %w[esc help keypad1 keypad_enter tab line_feed alt no_scroll crsr_up caps_lock forty_eighty run_stop]
+      expect(error(*keys.map { |key| "1:key=#{key}" }, family: :c128)).to eq("")
+    end
+
+    it "turns the C128's own keys away on the C64" do
+      expect(error("1:key=space", "2:key=esc")).to eq("no such key: esc")
+    end
+
+    it "turns the C128's locking keys away on the C64" do
+      expect(error("1:key=caps_lock")).to eq("no such key: caps_lock")
     end
 
     it "takes the pause menu's pages, or none" do
@@ -79,6 +92,41 @@ describe Badline::Frontend::Timeline do
     it "waits for its frame" do
       run_to(1)
       expect(computer.keyboard.keys).to be_empty
+    end
+  end
+
+  describe "a C128 key" do
+    let(:computer) { Badline::C128.new }
+    let(:argv) { at("1:key=keypad1") }
+
+    it "is pressed in the C128's extra rows" do
+      run_to(1)
+      expect(computer.keyboard.keys).to eq([:keypad1])
+    end
+
+    it "is let go five frames later" do
+      run_to(6)
+      expect(computer.keyboard.keys).to be_empty
+    end
+  end
+
+  describe "40/80 DISPLAY" do
+    let(:computer) { Badline::C128.new }
+    let(:argv) { at("1:key=forty_eighty") }
+
+    it "locks down" do
+      run_to(6)
+      expect(computer.mmu.display_key).to be(true)
+    end
+  end
+
+  describe "CAPS LOCK pushed twice" do
+    let(:computer) { Badline::C128.new }
+    let(:argv) { at("1:key=caps_lock", "2:key=caps_lock") }
+
+    it "comes back up" do
+      run_to(2)
+      expect(computer.address_bus.caps_lock).to be(false)
     end
   end
 

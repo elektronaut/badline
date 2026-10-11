@@ -233,9 +233,15 @@ options are for testing, and `exe/badline-ruby` takes them too:
 
 The events:
 
-- `key=NAME` holds a C64 key for 5 frames. The names are the keyboard's
+- `key=NAME` holds a key for 5 frames. The names are the keyboard's
   own (`space`, `return`, `a`, `1`, `f1`, `run_stop`, `cursor_up`, ...),
-  `restore`, and a joystick's switch: `joy1-up` or `joy2-fire`.
+  `restore`, and a joystick's switch: `joy1-up` or `joy2-fire`. The C128
+  adds the keys of its three extra rows (`esc`, `help`, `tab`,
+  `line_feed`, `alt`, `no_scroll`, `crsr_up`, `crsr_down`, `crsr_left`,
+  `crsr_right`, `keypad0` to `keypad9`, `keypad_period`, `keypad_plus`,
+  `keypad_minus`, `keypad_enter`), and `caps_lock` and `forty_eighty`,
+  which lock: each one pushes the key down if it was up and up if it
+  was down.
 - `type=TEXT` types through the keyboard buffer, with `\n` for RETURN.
 - `insert=FILE` puts a disk image, the first disk of an `.m3u` or `.vfl`
   list, a directory, a tape or a cartridge in, without loading anything.
