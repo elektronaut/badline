@@ -19,8 +19,8 @@ describe Badline::Snapshot::Vice do
   # copy they were written from does, for a frame and a little more, all
   # but the CPU's own cycle count.
   def runs_on_alike?(state, cycles)
-    imported = image(described_class.export(state)).load { nil }
-    settled = run(described_class.settled(state), cycles)
+    imported = image(described_class.export(settled_copy(state))).load { nil }
+    settled = run(settled_copy(state), cycles)
     Badline::Support::Checkpoint.take(run(imported, cycles))
                                 .differences(Badline::Support::Checkpoint.take(settled)) == ["cpu"]
   end
@@ -36,12 +36,12 @@ describe Badline::Snapshot::Vice do
       let(:state) { model_machine(model).snapshot }
 
       it "writes VICE's VIC-II model #{number}, at the size x64sc 3.10 writes" do
-        vic = described_class.export(state).find { |section| section.name == "VIC-II" }
+        vic = described_class.export(settled_copy(state)).find { |section| section.name == "VIC-II" }
         expect([vic.data.getbyte(0), vic.data.bytesize]).to eq([number, size])
       end
 
       it "is built again from the VICE modules" do
-        container = Badline::Snapshot::Container.new(described_class.export(state))
+        container = Badline::Snapshot::Container.new(described_class.export(settled_copy(state)))
         expect(Badline::Model.of(described_class.setup(container))).to eq(model)
       end
 
@@ -69,7 +69,7 @@ describe Badline::Snapshot::Vice do
       machine.cpu.program_counter = 0x1000
       vic = machine.vic
       machine.cycle! until machine.cpu.boundary? && vic.rasterline == line && vic.column == column
-      image(described_class.export(machine.snapshot)).load { nil }.vic
+      image(described_class.export(settled_copy(machine.snapshot))).load { nil }.vic
     end
 
     it "is at VICE's cycle in the line less one" do
@@ -103,8 +103,8 @@ describe Badline::Snapshot::Vice do
         run(computer, 101)
       end
     end
-    let(:sections) { described_class.export(machine.snapshot) }
-    let(:settled) { described_class.settled(machine.snapshot) }
+    let(:sections) { described_class.export(settled_copy(machine.snapshot)) }
+    let(:settled) { settled_copy(machine.snapshot) }
 
     def reu_state(computer)
       reu = computer.reu

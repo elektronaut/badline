@@ -22,41 +22,17 @@ module Badline
     # machine at power-on with nothing attached, and applies the modules it
     # has, in the order x64sc writes them.
     module Vice
-      # Cycles a copy of the machine may run to reach an instruction
-      # boundary: the longest instruction, stretched by the VIC's longest
-      # hold on the bus.
-      BOUNDARY_CYCLES = 100
-      # Cycles more it may run for an REU transfer in flight to end: a
-      # swap of 64K, two cycles a byte, stretched by the VIC's holds on
-      # the bus.
-      TRANSFER_CYCLES = 0x40000
-
-      # The modules a badline snapshot carries for VICE, in x64sc's order.
-      # They describe a copy of the machine restored from `state`, so saving
-      # leaves the machine itself alone. VICE saves between instructions,
-      # and resumes by fetching an opcode at the program counter, so when
-      # badline's CPU is inside an instruction, or an REU transfer holds
-      # the bus, the copy runs on to the end of both. The copy's SID
-      # catches up, so its registers and voices stand as of that cycle.
-      def self.export(state)
-        machine = settled(state)
+      # The modules a badline snapshot carries for VICE, in x64sc's order,
+      # describing `machine`, which Machine::Settling has brought between
+      # instructions with no REU transfer under way: VICE saves between
+      # instructions, and resumes by fetching an opcode at the program
+      # counter. Its SID has caught up, so the registers and voices stand
+      # as of that cycle.
+      def self.export(machine)
         sections = [MainCPU.export(machine), C64Mem.export(machine), Peripherals.cartridge_port(machine)]
         sections << REU1764.export(machine) if machine.reu
         sections + [*CIAs.export(machine), SIDRegisters.export(machine), SIDExtended.export(machine),
                     Peripherals.drives, VICII.export(machine), Peripherals.glue(machine), *Peripherals.rest]
-      end
-
-      # The copy is detached from the host's files (Snapshot::StateReader),
-      # so it reads none and its traps write none.
-      def self.settled(state)
-        copy = C64.restored(state, detached: true)
-        (BOUNDARY_CYCLES + TRANSFER_CYCLES).times do
-          break if copy.cpu.boundary? && !copy.reu&.dma?
-
-          copy.cycle!
-        end
-        copy.sid.catch_up!
-        copy
       end
 
       # How the machine the snapshot was saved from was built: the VIC

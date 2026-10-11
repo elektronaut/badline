@@ -17,7 +17,7 @@ describe Badline::Snapshot do
     before { computer.save_snapshot(path) }
 
     it "restores the machine as it was saved" do
-      expect(described_class.load(path).snapshot).to eq(SnapshotScenarios.demo_state)
+      expect(described_class.load(path).snapshot).to eq(computer.snapshot)
     end
 
     it "builds the machine as the saved one was built" do
@@ -41,7 +41,7 @@ describe Badline::Snapshot do
 
     it "takes a running machine back to the snapshot" do
       target.restore_snapshot(path)
-      expect(target.snapshot).to eq(SnapshotScenarios.demo_state)
+      expect(target.snapshot).to eq(computer.snapshot)
     end
 
     it "reports nothing left out" do
@@ -63,9 +63,22 @@ describe Badline::Snapshot do
     end
   end
 
-  it "leaves the saved machine alone" do
-    computer.save_snapshot(path)
-    expect(computer.snapshot).to eq(SnapshotScenarios.demo_state)
+  describe "saving" do
+    before { computer.save_snapshot(path) }
+
+    it "runs the machine on to the end of the instruction its CPU is in" do
+      expect([computer.cpu.boundary?, computer.cycles > SnapshotScenarios::DEMO_CYCLES]).to eq([true, true])
+    end
+
+    it "runs no cycles when saved again straight away" do
+      expect { computer.save_snapshot(path) }.not_to(change(computer, :cycles))
+    end
+
+    it "writes the same file when saved again straight away" do
+      first = File.binread(path)
+      computer.save_snapshot(path)
+      expect(File.binread(path)).to eq(first)
+    end
   end
 
   Badline::Model::ALL.reject { |model| model.region == Badline::Region::PAL }.each do |model|
@@ -101,8 +114,8 @@ describe Badline::Snapshot do
 
     before { computer.save_snapshot(path) }
 
-    it "is saved with the transfer under way" do
-      expect(computer.reu).to be_holds_bus
+    it "runs the transfer to its end before saving" do
+      expect(computer.reu).not_to be_holds_bus
     end
 
     it "is built again with an REU of the same size" do

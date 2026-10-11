@@ -9,8 +9,8 @@ describe Badline::Snapshot::Vice do
   let(:state) { SnapshotScenarios.demo_state }
   # The machine the VICE modules describe: the saved one, run on to the
   # end of its instruction.
-  let(:settled) { described_class.settled(state) }
-  let(:container) { Badline::Snapshot::Container.new(described_class.export(state)) }
+  let(:settled) { settled_copy(state) }
+  let(:container) { Badline::Snapshot::Container.new(described_class.export(settled_copy(state))) }
   let(:image) { Badline::Snapshot::Image.new(container) }
   let(:imported) { image.load { nil } }
 
@@ -31,7 +31,9 @@ describe Badline::Snapshot::Vice do
   def without_log_levels(data) = data.byteslice(0, 19) + data.byteslice(31..)
 
   def with_section(name)
-    sections = described_class.export(state).map { |section| section.name == name ? yield(section) : section }
+    sections = described_class.export(settled_copy(state)).map do |section|
+      section.name == name ? yield(section) : section
+    end
     Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(sections))
   end
 
@@ -143,7 +145,7 @@ describe Badline::Snapshot::Vice do
   describe "a C64C's snapshot" do
     def c64c
       machine = Badline::C64.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580)
-      Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
+      Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(described_class.export(settled_copy(machine.snapshot))))
     end
 
     it "loads into a C64C" do
@@ -160,7 +162,7 @@ describe Badline::Snapshot::Vice do
   describe ".setup" do
     it "takes the C64C's chips from an 8565" do
       machine = Badline::C64.new(vic_model: :mos8565, sid_model: :mos8580)
-      setup = described_class.setup(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
+      setup = described_class.setup(Badline::Snapshot::Container.new(described_class.export(settled_copy(machine.snapshot))))
       expect([setup.vic_model, setup.cia_model, setup.sid_model]).to eq(%i[mos8565 mos6526a mos8580])
     end
 
@@ -171,13 +173,13 @@ describe Badline::Snapshot::Vice do
 
     it "builds no REU for an REU1764 version it doesn't know" do
       reu = Badline::Snapshot::Section.new(name: "REU1764", major: 1, minor: 0, data: [512].pack("V"))
-      container = Badline::Snapshot::Container.new(described_class.export(state) + [reu])
+      container = Badline::Snapshot::Container.new(described_class.export(settled_copy(state)) + [reu])
       expect(described_class.setup(container).reu).to be_nil
     end
 
     it "refuses an REU of a size badline doesn't build" do
       reu = Badline::Snapshot::Section.new(name: "REU1764", major: 0, minor: 0, data: [96].pack("V"))
-      container = Badline::Snapshot::Container.new(described_class.export(state) + [reu])
+      container = Badline::Snapshot::Container.new(described_class.export(settled_copy(state)) + [reu])
       expect { described_class.setup(container) }.to raise_error(Badline::Snapshot::FormatError, /a 96K REU/)
     end
   end
@@ -218,7 +220,7 @@ describe Badline::Snapshot::Vice do
 
   describe "an unknown module" do
     let(:container) do
-      Badline::Snapshot::Container.new(described_class.export(state) +
+      Badline::Snapshot::Container.new(described_class.export(settled_copy(state)) +
                                        [Badline::Snapshot::Section.new(name: "GEORAM", major: 3, minor: 1, data: "x")])
     end
 

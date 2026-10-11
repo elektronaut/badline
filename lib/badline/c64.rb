@@ -11,6 +11,7 @@ module Badline
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include Common
     include Attachments
     include KernalTraps

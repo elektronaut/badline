@@ -62,6 +62,13 @@ module Badline
         @cycles = cycles
       end
 
+      # Whether a snapshot file saves now (Machine::Settling): the CPU
+      # between instructions or jammed, and no REU transfer under way.
+      def settled_for_snapshot? = (@cpu.boundary? || @cpu.jammed?) && !reu&.dma?
+
+      # The SID's deferred cycles and writes, run up to this cycle.
+      def settle_chips_for_snapshot = sid.catch_up!
+
       def save_state(out)
         out.marker(Snapshot::C64Setup::MARKER).stamp
         Snapshot::C64Setup.of(address_bus).write(out)

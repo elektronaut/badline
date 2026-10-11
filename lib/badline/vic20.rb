@@ -22,6 +22,7 @@ module Badline
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include Attachments
     include PortWiring
     include SavedState
