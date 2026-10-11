@@ -117,7 +117,11 @@ module Badline
       end
 
       def host_key(scancode)
-        @computer.family == :c128 ? Keys.c128_key(scancode, @computer.mode) : Keys.c64_key(scancode)
+        case @computer.family
+        when :c128 then Keys.c128_key(scancode, @computer.mode)
+        when :plus4 then Keys.plus4_key(scancode)
+        else Keys.c64_key(scancode)
+        end
       end
 
       # RESTORE isn't in the key matrix, so it goes to the machine instead.
@@ -196,8 +200,8 @@ module Badline
       end
 
       def release_all
-        Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(Keys.c64_key(scancode)) }
-        Keys::WASD.each_key { |scancode| @computer.keyboard.release(Keys.c64_key(scancode)) }
+        Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
+        Keys::WASD.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
         Keys::ARROWS.each_value do |direction|
           @computer.joystick1.release(direction)
           @computer.joystick2.release(direction)

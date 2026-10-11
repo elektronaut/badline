@@ -3,8 +3,8 @@
 module Badline
   module Frontend
     # SDL scancodes follow key positions on a US layout. They map onto the C64
-    # keys, the C128's own keys and, in joystick mode, the joystick
-    # directions.
+    # keys, the C128's and the 264's own keys and, in joystick mode, the
+    # joystick directions.
     module Keys
       RETURN = 40
       ESCAPE = 41
@@ -56,6 +56,15 @@ module Badline
         63 => :forty_eighty, 72 => :forty_eighty, 78 => :run_stop
       }.freeze
 
+      # The 264's keys where they differ from the C64's: ESC on Esc, with
+      # RUN/STOP on Page Down as on the C128, F1-F3 on F1-F3, HELP on F4,
+      # Insert or Help, a cursor key on each arrow, and either SHIFT on the
+      # one SHIFT. Page Up, RESTORE on the C64, presses nothing.
+      PLUS4_OTHERS = {
+        41 => :esc, 78 => :run_stop, 58 => :f1, 59 => :f2, 60 => :f3, 61 => :help, 73 => :help, 117 => :help,
+        79 => :crsr_right, 80 => :crsr_left, 81 => :crsr_down, 82 => :crsr_up, 229 => :lshift, 75 => :none
+      }.freeze
+
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze
 
@@ -76,6 +85,9 @@ module Badline
 
         C128_OTHERS[scancode] || c64_key(scancode)
       end
+
+      # The 264's key for the scancode: one of PLUS4_OTHERS or the C64's.
+      def self.plus4_key(scancode) = PLUS4_OTHERS[scancode] || c64_key(scancode)
 
       # The character the key types on a US layout: a letter, a capital
       # with `shift`, or a digit, and "" for any other key.

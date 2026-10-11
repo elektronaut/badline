@@ -94,4 +94,12 @@ describe Badline::Plus4 do
     machine.run_cycles(57 * 312 * 4)
     expect(screen(machine)[4]).to eq("A")
   end
+
+  it "reads joystick 2 through the keyboard latch" do
+    machine = described_class.new
+    machine.joystick2.press(:left)
+    machine.poke(0xfd30, 0xff)
+    machine.poke(0xff08, 0xfd)
+    expect(machine.peek(0xff08)).to eq(0xfb)
+  end
 end

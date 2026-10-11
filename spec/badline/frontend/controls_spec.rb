@@ -246,6 +246,38 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a Plus/4" do
+    let(:computer) { Badline::Plus4.new }
+
+    {
+      "Esc" => [41, :esc], "Page Down" => [78, :run_stop], "F2" => [59, :f2], "F4" => [61, :help],
+      "Insert" => [73, :help], "the up arrow" => [82, :crsr_up], "the left arrow" => [80, :crsr_left],
+      "the right Shift" => [229, :lshift], "the left Alt" => [226, :cbm], "Home" => [74, :clr_home]
+    }.each do |name, (scancode, key)|
+      it "presses #{key} for #{name}" do
+        controls.key(scancode, true)
+        expect(computer.keyboard.keys).to eq([key])
+      end
+    end
+
+    it "presses nothing for Page Up" do
+      controls.key(75, true)
+      expect(computer.keyboard.keys).to eq([])
+    end
+
+    it "drives joystick 1 with WASD" do
+      controls.toggle_keys
+      controls.key(26, true)
+      expect(computer.joystick1.port_bits & 0x1f).to eq(0b11110)
+    end
+
+    it "lets go of the cursor keys as the keys turn to the joysticks" do
+      controls.key(81, true)
+      controls.toggle_keys
+      expect(computer.keyboard.keys).to eq([])
+    end
+  end
+
   describe "#computer=" do
     let(:other) { Badline::C64.new }
 
