@@ -74,13 +74,20 @@ module Badline
       end
 
       # Page $FD: the ACIA, the user port, the keyboard port and the ROM
-      # bank latch, by the address's bits 4-7.
+      # bank latch, by the address's bits 4-7. +acia+ and +user_port+ are
+      # nil where the machine has none.
       class IOPage
-        def initialize(bus, acia:, user_port:, keyboard_port:)
-          @bus = bus
+        def initialize(keyboard_port:, acia: nil, user_port: nil)
+          @bus = nil
           @acia = acia
           @user_port = user_port
           @keyboard_port = keyboard_port
+        end
+
+        # The bus whose last byte an empty spot reads and whose bank latch
+        # a write to $FDD0-$FDDF sets.
+        def connect(bus)
+          @bus = bus
         end
 
         def peek(addr)
@@ -135,11 +142,10 @@ module Badline
       # The CPU sees ROM at $8000-$FFFF.
       attr_reader :rom_selected
 
-      # +ram_kb+ is the RAM fitted, +kernal+ the KERNAL ROM's file, and
-      # +plus4_parts+ whether the function ROMs, the ACIA and the user port
-      # are fitted.
-      def initialize(ted:, port:, keyboard_port:, ram_kb: 64, kernal: "plus4/kernal-pal.rom", acia: nil,
-                     user_port: nil, plus4_parts: true)
+      # +io+ is the IOPage, +model+ a Model profile, whose KERNAL it maps
+      # and whose function ROMs it maps where the model has them, and
+      # +ram_kb+ the RAM fitted.
+      def initialize(ted:, port:, io:, model: Model::PLUS4, ram_kb: model.ram_kb)
         addressable_at(0, length: 2**16)
         size = ram_kb * 1024
         @ram = Memory.new(Array.new(size, RAM_POWER_ON), length: size, start: 0)
@@ -147,13 +153,14 @@ module Badline
         @ted = ted
         @open_bus = OpenBus.new(self)
         @low_roms = [ROM.load("plus4/basic.rom", 0x8000), nil, nil, nil]
-        @high_roms = [ROM.load(kernal, 0xc000), nil, nil, nil]
-        if plus4_parts
+        @high_roms = [ROM.load(model.kernal, 0xc000), nil, nil, nil]
+        if model.plus4_parts
           @low_roms[1] = ROM.load("plus4/function-low.rom", 0x8000)
           @high_roms[1] = ROM.load("plus4/function-high.rom", 0xc000)
         end
         @zero_page = ZeroPage.new(port, @ram_view)
-        @io_page = IOPage.new(self, acia:, user_port:, keyboard_port:)
+        @io_page = io
+        io.connect(self)
         @top_page = TopPage.new(self, ted)
         @data = 0
         @read_pages = Array.new(256, @open_bus)
