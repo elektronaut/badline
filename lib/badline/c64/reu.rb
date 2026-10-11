@@ -4,6 +4,7 @@ require "badline/c64/reu/ram"
 require "badline/c64/reu/dma"
 require "badline/c64/reu/trigger"
 require "badline/c64/reu/saved_state"
+require "badline/c64/reu/keyed_state"
 
 module Badline
   class C64

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drives/datasette/saved_state"
+require "badline/drives/datasette/keyed_state"
 
 module Badline
   module Drives
@@ -96,6 +97,12 @@ module Badline
 
         @tape.record_pulse(@since)
         @since = 0
+      end
+
+      # Sets the write line's level without recording an edge, as a
+      # snapshot loads it.
+      def write_level=(high)
+        @write_high = high
       end
 
       def playing? = @playing

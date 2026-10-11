@@ -31,7 +31,8 @@ own DOS ROM on its own 6502 and talking to the machine over the serial
 bus. It reads `.d64` and `.g64` images, which it autostarts with the
 same `LOAD"*",8,1` and `RUN`, but not `.d71`, `.d81` or `.t64` images
 or directories. Loading runs at the speed of a real 1541, and the
-drive's red LED lights in the bottom right corner of the border.
+drive's red activity LED and green power LED light in the bottom right
+corner of the border. A 1581 flashes its power LED after an error.
 
 A `.g64` holds the disk's raw GCR, half tracks and all, so copy
 protection and fast loaders that read it work.

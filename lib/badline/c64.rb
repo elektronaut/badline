@@ -5,12 +5,14 @@ require "badline/c64/true_drives"
 require "badline/c64/attachments"
 require "badline/c64/kernal_traps"
 require "badline/c64/saved_state"
+require "badline/c64/keyed_state"
 
 module Badline
   class C64
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include Common
     include Attachments
     include KernalTraps

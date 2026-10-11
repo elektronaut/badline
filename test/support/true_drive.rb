@@ -31,20 +31,38 @@ module TrueDrive
     true
   end
 
-  # The true drive's CPU, cycle counts, VIAs, head and RAM, or nil without
-  # one.
+  # The true drive's CPU, cycle counts, head, chips and the first 2K of its
+  # RAM, or nil without one: a 1581 ahead of a 1571 ahead of a 1541, as
+  # the machine's true_drive picks it. The 1541 and 1571 add their VIAs,
+  # the 1571 and 1581 their CIA.
   def digest(computer)
-    drive = computer.respond_to?(:drive1541) && computer.drive1541
+    drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
 
-    cpu = drive.cpu
-    values = [drive.cycles, cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p, cpu.cycles,
-              cpu.instructions, drive.mechanism.half_track, drive.mechanism.motor_on? ? 1 : 0]
-    [drive.via1, drive.via2].each do |via|
-      values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr,
-                  via.pcr, via.port_a_output, via.port_b_output)
-    end
+    values = [drive.cycles, *cpu_values(drive.cpu), *head_values(drive), *chip_values(drive)]
     Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
+  end
+
+  def cpu_values(cpu)
+    [cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p, cpu.cycles, cpu.instructions]
+  end
+
+  def head_values(drive)
+    mechanism = drive.mechanism
+    place = drive.model_name == "1581" ? mechanism.cylinder : mechanism.half_track
+    [place, mechanism.motor_on? ? 1 : 0]
+  end
+
+  def chip_values(drive)
+    values = []
+    unless drive.model_name == "1581"
+      [drive.via1, drive.via2].each do |via|
+        values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr,
+                    via.pcr, via.port_a_output, via.port_b_output)
+      end
+    end
+    values.concat(Badline::Support::Checkpoint.cia_state(drive.cia)) unless drive.model_name == "1541"
+    values
   end
 
   # A checkpoint's line, with the drive's digest when there is one.

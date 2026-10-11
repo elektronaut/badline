@@ -139,7 +139,8 @@ Without `--true-drive`, device 8 is no drive at all but traps on the
 KERNAL's disk routines. Loading is instant, but fast loaders and copy
 protection that run code on the drive need `--true-drive`, which puts
 an emulated 1541 there, running its own DOS at a real 1541's speed. Its
-red LED lights in the bottom right corner of the border. With
+red activity LED and green power LED light in the bottom right corner
+of the border. With
 `--true-drive`, a `.d81` goes in an emulated 1581 in place of the 1541.
 [doc/media.md](doc/media.md) has the details, and how to attach media
 from Ruby.

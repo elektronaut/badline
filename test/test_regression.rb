@@ -102,6 +102,21 @@ class TestRegression < Minitest::Test
     with_step_summary(nil) { assert_nil @comparison.publish }
   end
 
+  def test_the_moved_rows_are_recorded_as_json_lines
+    path = File.join(@dir, "moved.jsonl")
+    @comparison.record_moved(path)
+
+    assert_equal({ "name" => "demo", "key" => "c", "before" => "PASS", "after" => "FAIL exit=$ff" },
+                 JSON.parse(File.readlines(path).last))
+  end
+
+  def test_an_unchanged_comparison_records_nothing
+    path = File.join(@dir, "moved.jsonl")
+    compare(BASELINE, BASELINE).record_moved(path)
+
+    refute_path_exists path
+  end
+
   private
 
   def compare(baseline, current)

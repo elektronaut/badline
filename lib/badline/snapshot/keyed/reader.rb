@@ -13,6 +13,9 @@ module Badline
       class Reader
         attr_reader :name
 
+        # Whether it stands in for a module the snapshot doesn't have.
+        def missing? = @missing
+
         # The records in `section`, which must be in this encoding.
         def self.parse(section)
           unless section.major == MAJOR
@@ -87,6 +90,13 @@ module Badline
 
           @adjusted << "#{key} #{value.inspect} is not one of #{names.join(', ')}, left at #{default}"
           default
+        end
+
+        # Reports something a unit's load left out or changed beyond one
+        # field, such as a line batch from another renderer.
+        def adjust(line)
+          @adjusted << line
+          self
         end
 
         # The keys of records nothing read.

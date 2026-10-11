@@ -35,6 +35,34 @@ module Badline
 
     def describe(option) = @native && option.name == "--sound" ? "#{option.text} (default)" : option.text
 
+    # The media the window opens, by their extensions (Media::Extensions),
+    # wrapped as the banner is.
+    def media_kinds
+      text = "Media can be a #{Media::Extensions::PROGRAMS.join('/')} program, a #{listed(%i[disk])} disk image, " \
+             "a #{listed(%i[gcr])} disk image for a true drive, an #{listed(%i[disk_list])} list of disk images, " \
+             "a #{listed(%i[archive])} tape archive, a #{listed(%i[tape])} tape, a #{listed(%i[cartridge])} " \
+             "cartridge, a #{listed(%i[tune])} tune, a .vsf snapshot, or a directory to mount as device 8."
+      wrap(text)
+    end
+
+    def listed(kinds) = Media::Extensions.of(kinds).join("/")
+
+    # The words of `text` in lines of at most 70 characters.
+    def wrap(text)
+      lines = [""]
+      text.split.each do |word|
+        line = lines.last
+        if line.empty?
+          lines[-1] = word
+        elsif line.size + word.size < 70
+          lines[-1] = "#{line} #{word}"
+        else
+          lines << word
+        end
+      end
+      lines.join("\n")
+    end
+
     def banner
       <<~BANNER
         Usage: #{@program} [c64] [options] [media]
@@ -50,11 +78,8 @@ module Badline
             c128                             Run a C128 in C128 mode, the one --model names
             sid                              Play .sid tunes and directories of them
 
-        Media can be a .prg/.p00 program, a .d64/.d71/.d81 disk image, a
-        .g64 disk image for the true 1541, an .m3u or .vfl list of disk
-        images, a .t64 tape archive, a .tap tape, a .crt cartridge, a .sid
-        tune, a .vsf snapshot, or a directory to mount as device 8. It
-        opens in the emulator window. There F11 quicksaves the machine to
+        #{media_kinds}
+        It opens in the emulator window. There F11 quicksaves the machine to
         the next of five slots in badline's data folder, replacing the
         oldest, and F12 restores the newest quicksave or named save. The
         window also autosaves every two minutes of play, which only the
@@ -85,17 +110,18 @@ module Badline
 
         --at and --script run events once a number of frames has run, as
         in --at 3500:key=space or --at 250,500:screenshot=shot%05d.bmp.
-        key=NAME presses a C64 key (space, return, a, f1, run_stop, restore)
-        or a joystick's direction or fire (joy1-up, joy2-fire) for #{Event::HOLD}
-        frames. type=TEXT types it, with \\n for RETURN. insert=FILE swaps
-        in a disk, a list's first disk, a tape or a cartridge, and
-        eject=disk, tape or cartridge takes one out. screenshot=FILE saves
-        the frame as a .bmp, with the frame's number in place of %d. menu
-        opens the pause menu, and menu=PAGE opens it on snapshots, drive,
-        datasette, expansion, ports, sound or power. Its frames still count,
-        and resume closes it. display=vdc or display=vic shows the C128's
-        80 or 40 column screen, as F8 switches them. reset, freeze and quit
-        take no argument.
+        key=NAME presses a key (space, return, a, f1, run_stop, restore, and
+        on the C128 esc, help, keypad1 and the rest) or a joystick's
+        direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
+        pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
+        types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's
+        first disk, a tape or a cartridge, and eject=disk, tape or
+        cartridge takes one out. screenshot=FILE saves the frame as a .bmp,
+        with the frame's number in place of %d. menu opens the pause menu,
+        and menu=PAGE opens it on snapshots, drive, datasette, expansion,
+        ports, sound or power. Its frames still count, and resume closes
+        it. display=vdc or display=vic shows the C128's 80 or 40 column
+        screen, as F8 switches them. reset, freeze and quit take no argument.
       BANNER
     end
 

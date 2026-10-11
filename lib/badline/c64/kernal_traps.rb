@@ -43,6 +43,31 @@ module Badline
         end
       end
 
+      # Device 8 through the KERNAL traps in a keyed snapshot module
+      # (BL-TRAPDOS): the storage under storage.*, the DOS, the serial
+      # trap under serial.* and the SAVE trap under save.*. Nothing mounted
+      # writes nothing.
+      def save_trap_dos_fields(out)
+        dos = @dos
+        return unless dos
+
+        Snapshot::StorageSetup.write_fields(dos.storage, out)
+        dos.save_fields(out)
+        @serial_trap&.save_fields(out, "serial.")
+        @save_trap&.save_fields(out, "save.")
+      end
+
+      # `detached` mounts a disk image write-protected and no directory.
+      def load_trap_dos_fields(input, detached: false)
+        unmount
+        return if input.missing?
+
+        mount(Snapshot::StorageSetup.read_fields(input, detached:))
+        @dos&.load_fields(input)
+        @serial_trap&.load_fields(input, "serial.")
+        @save_trap&.load_fields(input, "save.")
+      end
+
       private
 
       def install_kernal_traps(layout)

@@ -45,6 +45,29 @@ describe Badline::Chips::CPU::Port do
     expect(datasette.motor?).to be(false)
   end
 
+  context "when the datasette records" do
+    let(:tape) { instance_double(Badline::Storage::TAP, rewind: nil, record_pulse: nil) }
+
+    before do
+      datasette.insert(tape)
+      datasette.record!
+      port.write_ddr(0x2f)
+      port.write_data(0x00)
+      3.times { datasette.cycle! }
+    end
+
+    it "records a pulse as bit 3 rises" do
+      port.write_data(0x08)
+      expect(tape).to have_received(:record_pulse).with(3)
+    end
+
+    it "records nothing as bit 3 falls" do
+      port.write_data(0x08)
+      port.write_data(0x00)
+      expect(tape).to have_received(:record_pulse).once
+    end
+  end
+
   it "reads the tape sense low while PLAY is down" do
     datasette.on_sense_change { port.refresh }
     datasette.play!
@@ -73,6 +96,23 @@ describe Badline::Chips::CPU::Port do
     it "reads low while the key is down" do
       port.caps_lock = true
       expect(port.value).to eq(0x17)
+    end
+  end
+
+  describe "keyed fields" do
+    let(:fresh) { described_class.new(datasette, pullups: 0x17, floating: 0xc8) }
+
+    before do
+      port.write_ddr(0xef)
+      port.write_data(0xc5)
+      out = Badline::Snapshot::Keyed::Writer.new
+      port.save_fields(out, "port.")
+      fresh.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-CPU")), "port.")
+    end
+
+    it "restores the registers, the charge and what a read sees" do
+      expect([fresh.ddr, fresh.data, fresh.floating,
+              fresh.value]).to eq([port.ddr, port.data, port.floating, port.value])
     end
   end
 end

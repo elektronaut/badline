@@ -83,6 +83,11 @@ describe Badline::Snapshot::Keyed::Reader do
     it { expect(adjusted.first).to eq("a appears more than once, the last one counts") }
   end
 
+  it "reports what a unit adds" do
+    input.adjust("line in progress from another renderer, restarted")
+    expect(adjusted).to eq(["line in progress from another renderer, restarted"])
+  end
+
   it "lists the keys nothing read" do
     input.int("pc", 0)
     expect(input.report.unknown).to eq(%w[nmi regs ram model later])

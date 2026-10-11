@@ -69,6 +69,17 @@ module CIMatrix
       end
     end
 
+    # The suites the files changed lists reach, one per line, or all of
+    # them without a list.
+    def reached(changed)
+      changed ? CIReach.suites(File.readlines(changed, chomp: true).reject(&:empty?)) : CIReach::ALL
+    end
+
+    # Every harness a matrix's shards run, once each.
+    def all_harnesses(include = matrix)
+      include.flat_map { |shard| shard.fetch("harnesses").split }.uniq.sort
+    end
+
     def task(suite, args)
       return suite if CHECKS.key?(suite)
 

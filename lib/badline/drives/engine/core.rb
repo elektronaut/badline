@@ -86,6 +86,9 @@ module Badline
         # is the same at the end of every pass the drive sleeps through.
         def led_on? = @mechanism.led_on?
 
+        # The power LED, which stays lit.
+        def power_led_on? = true
+
         # Stores what the head wrote since the motor last stopped in the
         # disk's image, as the motor stopping does.
         def flush

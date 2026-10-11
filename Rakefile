@@ -193,20 +193,26 @@ task "spinel:testbench", [:suite] => "vendor:VICE-testprogs" do |_task, args|
 end
 
 namespace :ci do
-  desc "Print the suites matrix for .github/workflows/ci.yml as JSON, derived from the suite table, " \
-       "once it runs every suite and baseline row on exactly one shard ([compact] prints it on one line). " \
-       "CHANGED_FILES=path names a file listing a pull request's changed files, one per line, and keeps " \
-       "only the suites they reach (CIReach)"
-  task :matrix, [:format] do |_task, args|
+  desc "Print the suites matrix for .github/workflows/ci.yml and suites.yml as JSON, derived from the suite " \
+       "table, once it runs every suite and baseline row on exactly one shard ([compact] prints it on one line, " \
+       "[compact,checks] keeps only the Spinel checks). CHANGED_FILES=path names a file listing a pull " \
+       "request's changed files, one per line, and keeps only the suites they reach (CIReach)"
+  task :matrix, %i[format scope] do |_task, args|
     require "json"
     problems = CIMatrix.problems(CIMatrix.shard_tasks)
     raise problems.join("\n") if problems.any?
 
-    changed = ENV.fetch("CHANGED_FILES", nil)
-    reached = changed ? CIReach.suites(File.readlines(changed, chomp: true).reject(&:empty?)) : CIReach::ALL
+    reached = args[:scope] == "checks" ? CIMatrix::CHECKS.keys : CIMatrix.reached(ENV.fetch("CHANGED_FILES", nil))
     warn "Suites the changes reach: #{reached == CIReach::ALL ? 'all' : reached.join(' ')}"
     matrix = { "include" => CIMatrix.matrix(reached) }
     puts args[:format] == "compact" ? JSON.generate(matrix) : JSON.pretty_generate(matrix)
+  end
+
+  desc "Print the Spinel harnesses the suites matrix runs as a JSON array, for CI to build a job each. " \
+       "CHANGED_FILES keeps those of the suites the changes reach, as ci:matrix does"
+  task :harnesses do
+    require "json"
+    puts JSON.generate(CIMatrix.all_harnesses(CIMatrix.matrix(CIMatrix.reached(ENV.fetch("CHANGED_FILES", nil)))))
   end
 end
 

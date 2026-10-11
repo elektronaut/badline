@@ -14,6 +14,11 @@ describe Badline::Snapshot::MachineState do
     expect(described_class.decode(described_class.encode(edges))).to eq(edges)
   end
 
+  it "folds the most negative value to the largest a 64-bit integer holds" do
+    edge = Badline::Snapshot::State.new([-(2**62)], [])
+    expect(described_class.encode(edge).byteslice(4..)).to eq([1, 0, (2**63) - 1].pack("w*"))
+  end
+
   it "refuses a value a native build can't hold, as the native build does" do
     too_large = Badline::Snapshot::State.new([2**62], [])
     expect { described_class.encode(too_large) }.to raise_error(RangeError, /too large/)

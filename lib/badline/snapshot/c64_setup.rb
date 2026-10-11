@@ -57,6 +57,35 @@ module Badline
       end
 
       # A machine built this way, at power-on.
+      # The setup in a keyed snapshot module (Snapshot::Keyed), with each
+      # model, the region, the RAM expansion, the KERNAL and the board by
+      # name.
+      def write_fields(out)
+        out.text("vic_model", vic_model.to_s).text("cia_model", cia_model.to_s).text("sid_model", sid_model.to_s)
+        out.text("region", region.name.to_s).text("ram_expansion", (ram_expansion || :none).to_s)
+        out.int("reu_kb", reu || 0).text("kernal", kernal.to_s).bool("datasette", datasette)
+        out.text("board", board.to_s)
+      end
+
+      # The setup a keyed snapshot module names, a C64's at power-on for
+      # anything it leaves out or names that badline doesn't build.
+      def self.read_fields(input)
+        region = named(input, "region", REGIONS.map(&:name), :pal)
+        new(vic_model: named(input, "vic_model", Chips::VIC::MODELS, :mos6569),
+            cia_model: named(input, "cia_model", Chips::CIA::MODELS, :mos6526),
+            sid_model: named(input, "sid_model", SID_MODELS, :mos6581),
+            region: REGIONS.find { |each| each.name == region } || Region::PAL,
+            ram_expansion: ram_expansion(named(input, "ram_expansion", RAM_EXPANSIONS, :none)),
+            reu: reu(input.int("reu_kb", 0)), kernal: named(input, "kernal", KERNALS, :c64),
+            datasette: input.bool("datasette", true), board: named(input, "board", BOARDS, :c64))
+      end
+
+      # The Symbol of `names` the text at `key` names.
+      def self.named(input, key, names, default)
+        text = input.choice(key, names.map(&:to_s), default.to_s)
+        names.find { |name| name.to_s == text } || default
+      end
+
       def build
         C64.new(vic_model:, cia_model:, sid_model:, region:, ram_expansion:, reu:, kernal:, datasette:, board:)
       end

@@ -91,9 +91,10 @@ bundle exec rubocop
 ## Tests and commits
 
 - Add tests for any behavior you change.
-- CI runs rubocop, the specs and every regression suite on each pull
-  request, and fails on any suite row that differs from its baseline in
-  `test/baselines/`. When a change moves rows on purpose, re-record just
+- CI runs rubocop, the specs and the regression suites a pull request's
+  changes can reach on each pull request, and fails on any suite row that
+  differs from its baseline in `test/baselines/`. Every suite runs on
+  `main` every two hours. When a change moves rows on purpose, re-record just
   those rows as [test/baselines/README.md](test/baselines/README.md)
   describes, and say why in the pull request.
 - Write commit messages using

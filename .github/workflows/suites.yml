@@ -1,0 +1,105 @@
+name: Suites
+# Every suite on main's head, every two hours, on the Spinel build. A pull
+# request's CI runs only the suites its files reach (CIReach), so this is
+# the net for what the reach map misses. The run leaves a `suites` commit
+# status on the commit it tested, and while main is red, one issue labelled
+# suites-red naming the moved rows, the commits since the last green run
+# and the pull requests among them that reach the moved suites. A green run
+# closes that issue. It never comments on a pull request.
+#
+# A scheduled tick skips a commit that already has a `suites` status, from
+# an earlier run or one still in progress. A dispatched run always runs:
+# release.yml dispatches one on a tag that has no status before it
+# publishes.
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+# Runs queue rather than cancel each other. A tick that queues behind a
+# running one finds the commit has a status by the time it starts, and
+# skips it.
+concurrency:
+  group: suites-${{ github.ref }}
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  start:
+    name: Check what to run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      statuses: write
+    outputs:
+      run: ${{ steps.start.outputs.run }}
+      matrix: ${{ steps.derive.outputs.matrix }}
+      harnesses: ${{ steps.derive.outputs.harnesses }}
+      spinel-ref: ${{ steps.derive.outputs.spinel-ref }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - uses: ./.github/actions/setup
+        with:
+          apt-packages: ""
+      - name: Derive the matrix
+        id: derive
+        run: |
+          matrix=$(bundle exec rake "ci:matrix[compact]")
+          echo "$matrix"
+          {
+            echo "matrix=$matrix"
+            echo "harnesses=$(bundle exec rake ci:harnesses)"
+            echo "spinel-ref=$(sed -n 's/^  SPINEL_REF: //p' .github/workflows/ci.yml)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Check the commit's status
+        id: start
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bundle exec ruby bin/suites_status start "$GITHUB_SHA" "$GITHUB_EVENT_NAME" "$RUN_URL" | tee -a "$GITHUB_OUTPUT"
+
+  suites:
+    name: Suites
+    needs: start
+    if: needs.start.outputs.run == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/suite-shards.yml
+    with:
+      matrix: ${{ needs.start.outputs.matrix }}
+      harnesses: ${{ needs.start.outputs.harnesses }}
+      spinel-ref: ${{ needs.start.outputs.spinel-ref }}
+      max-parallel: 4
+
+  report:
+    name: Report
+    needs: [start, suites]
+    if: always() && needs.start.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          apt-packages: ""
+      # A run that failed without moving a row uploads none.
+      - name: Download the moved rows
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: moved-*
+          path: ${{ runner.temp }}/moved
+      - name: Set the status and the suites-red issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/moved"
+          bundle exec ruby bin/suites_status report "$GITHUB_SHA" "$GITHUB_RUN_ID" "$RUN_URL" "$RUNNER_TEMP/moved"

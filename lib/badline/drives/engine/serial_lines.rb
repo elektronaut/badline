@@ -48,6 +48,13 @@ module Badline
           @host = input.int
         end
 
+        # The host's lines as the port latched them, under `prefix`.
+        def save_fields(out, prefix) = out.int("#{prefix}host", @host)
+
+        def load_fields(input, prefix)
+          @host = input.int("#{prefix}host", @host)
+        end
+
         # Whether the host has moved ATN since the last latch_host.
         def atn_moved? = (@bus.host_lines ^ @host).anybits?(SerialBus::HOST_ATN_OUT)
 

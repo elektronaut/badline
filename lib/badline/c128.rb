@@ -9,11 +9,13 @@ require "badline/c128/z80_pages"
 require "badline/c128/color_lines"
 require "badline/c128/banks"
 require "badline/c128/bus/saved_state"
+require "badline/c128/bus/keyed_state"
 require "badline/c128/bus"
 require "badline/c128/cpu"
 require "badline/c128/z80"
 require "badline/c128/z80_turns"
 require "badline/c128/saved_state"
+require "badline/c128/keyed_state"
 require "badline/c128/keys"
 require "badline/c128/modes"
 require "badline/c128/drives"
@@ -45,6 +47,7 @@ module Badline
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include C64::Common
     include C64::Attachments
     include C64::KernalTraps
@@ -136,6 +139,7 @@ module Badline
       @restore_pulse = false
       @init_handlers = []
       @pending_keys = nil
+      @typist = Input::MatrixTypist.new(@bus.keyboard)
       @capture_output = nil
       init_drives
       enter_c64_mode if @c64_built
@@ -150,7 +154,7 @@ module Badline
       return z80_cycle! if @z80_turn
 
       handle_init if @cycles == @init_threshold
-      feed_keyboard if @pending_keys
+      type_pending if @pending_keys
 
       clock_bits = @clock_bits
       @clock_bits = @vic.clock_bits

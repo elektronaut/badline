@@ -194,6 +194,23 @@ describe Badline::C128 do
       expect(machine.z80.cycles - t_states).to be_within(12).of(120)
     end
 
+    context "when text is typed while the Z80 runs" do
+      before do
+        loop_z80
+        machine.instance_variable_set(:@init_threshold, 0)
+        machine.type_text("D")
+        machine.run_until(machine.cycles + 10) { machine.keyboard.keys.any? }
+      end
+
+      it "types it on the key matrix" do
+        expect(machine.keyboard.keys).to eq(%i[lshift d])
+      end
+
+      it "leaves the KERNAL's keyboard buffer alone" do
+        expect(machine.ram.peek(Badline::Machine::KeyboardBuffer::C128_LAYOUT.count)).to eq(0)
+      end
+    end
+
     it "prints to the VDC's screen while the editor's 40/80 flag is set" do
       machine.ram.poke(0xd7, 0x80)
       expect(machine.active_screen).to eq(:vdc)

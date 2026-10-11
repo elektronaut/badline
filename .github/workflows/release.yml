@@ -107,9 +107,36 @@ jobs:
             echo "homebrew=$homebrew"
           } >> "$GITHUB_OUTPUT"
 
+  # A tag is published, as a gem or a Homebrew formula, once the full
+  # suites are green on its commit (suites.yml). With no `suites` status
+  # there yet, this dispatches suites.yml on the tag and waits for its
+  # verdict.
+  suites:
+    name: Wait for the suites
+    needs: check
+    if: needs.check.outputs.gem == 'true' || needs.check.outputs.homebrew == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      actions: write
+      contents: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          ref: ${{ needs.check.outputs.tag }}
+      - uses: ./.github/actions/setup
+        with:
+          apt-packages: ""
+      - name: Wait for a green suites status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: bundle exec ruby bin/suites_status wait "$TAG"
+
   publish:
     name: Publish the gem
-    needs: check
+    needs: [check, suites]
     if: needs.check.outputs.gem == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -126,7 +153,7 @@ jobs:
   # and boots, attaches it to the release and points the tap's formula at it.
   homebrew:
     name: Homebrew formula
-    needs: check
+    needs: [check, suites]
     if: needs.check.outputs.homebrew == 'true'
     runs-on: macos-latest
     timeout-minutes: 60

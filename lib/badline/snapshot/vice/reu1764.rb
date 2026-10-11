@@ -9,8 +9,8 @@ module Badline
       # from $DF00, and the RAM.
       #
       # Written: the registers and the RAM. VICE saves between transfers,
-      # so badline's copy of the machine runs a transfer in flight to its
-      # end first (Vice.settled).
+      # so a save runs a transfer in flight to its end first
+      # (Machine::Settling).
       #
       # Read: the registers, as the values the counters run from and
       # start from, and the RAM. The status register's interrupt, end of

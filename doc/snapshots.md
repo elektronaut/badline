@@ -39,10 +39,19 @@ builds a new machine as the saved one was built and restores it.
 `computer.snapshot` and `computer.restore(state)` do the same in memory,
 without a file. A restore that fails leaves the machine as it was.
 
+Saving to a file first runs the machine on to the next instruction
+boundary, and to the end of an REU transfer under way, so it advances
+the machine by a few cycles: usually under a hundred, and up to about
+262,000 for an REU swapping 64K. `computer.cycles` afterwards says where
+it was saved. A save straight after another runs no cycles and writes
+the same file. In the window this happens between frames, and the
+cycles fold into the next frame. `computer.snapshot` in memory doesn't
+advance the machine.
+
 ## What a snapshot holds
 
-A snapshot holds the machine as it was on the cycle it was saved: the
-chips down to the instruction step and the pixel pipeline, the RAM and
+A snapshot holds the machine as it was at the instruction boundary it
+was saved at: the chips down to the pixel pipeline, the RAM and
 any +60K or +256K expansion, the cartridge with its RAM and flash, a
 GEO-RAM, a true 1541 with its RAM, its VIAs and the disk under the head,
 a disk or directory mounted through the traps with its open channels,
@@ -103,9 +112,9 @@ the 6569 or 8565 on PAL, the 6567R8 or 8562 on NTSC, the 6567R56A on old
 NTSC and the 6572 on PAL-N. A `BADLINE` module, which VICE skips, holds
 the whole machine, and badline restores its own snapshots from it.
 
-x64sc 3.10 opens badline's snapshots, taken at the end of the
-instruction the CPU was in, and of an REU transfer under way, as long
-as its VIC-II model matches: `-model c64`, `c64c`, `ntsc`, `newntsc`,
+x64sc 3.10 opens badline's snapshots, which are saved between
+instructions with no REU transfer under way, as long as its VIC-II
+model matches: `-model c64`, `c64c`, `ntsc`, `newntsc`,
 `oldntsc` or `drean`, as `--model` names the machine. It takes the REU
 from the snapshot, keeps its own drives and leaves out the cartridge,
 the other expansions and the tape. A program x64sc runs on from badline's

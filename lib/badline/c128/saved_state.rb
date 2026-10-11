@@ -23,6 +23,19 @@ module Badline
       # yet to run than this one has. Nil until the machine is restored.
       attr_reader :init_handlers_lost
 
+      # Whether a snapshot file saves now (Machine::Settling): the 8502
+      # between instructions or jammed. While the Z80 runs, the 8502 waits
+      # at the boundary it handed the bus over at, and the Z80 runs whole
+      # instructions.
+      def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
+
+      # The SID's deferred cycles and writes, run up to this cycle, and the
+      # VIC's sprite collisions latched up to the beam.
+      def settle_chips_for_snapshot
+        sid.catch_up!
+        @vic.fold_collisions!
+      end
+
       def snapshot
         out = Snapshot::StateWriter.new
         save_state(out)

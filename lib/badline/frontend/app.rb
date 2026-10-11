@@ -21,7 +21,7 @@ module Badline
         @timeline = timeline
         @snapshots = Snapshots.new(computer, options)
         @screens = Screens.new(computer)
-        @led = DriveLed.for(computer)
+        @led = DriveLed.new(computer)
         @controls = Controls.new(computer)
         @window = MachineWindow.new(@screens.screen, vsync: @pacer.vsync?)
         @pacer.fit(@window.refresh_rate) if @pacer.vsync?
@@ -128,7 +128,7 @@ module Badline
         @computer = computer
         @screens.computer = computer
         fit_window
-        @led = DriveLed.for(computer)
+        @led = DriveLed.new(computer)
         @controls.computer = computer
         @gamepads.computer = computer
         @sound.switch(computer.sound_source, computer.timing.clock_hz)
@@ -220,7 +220,7 @@ module Badline
         renderer = @window.renderer
         SDL.SDL_RenderClear(renderer)
         SDL.SDL_RenderCopy(renderer, @window.texture, nil, nil)
-        @led&.draw(renderer, @window.width, @window.height)
+        @led.draw(renderer, @window.width, @window.height)
         @timeline.screenshots(@frames + 1).each { |path| Screenshot.write(renderer, path) }
         SDL.SDL_RenderPresent(renderer)
       end

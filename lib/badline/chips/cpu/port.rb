@@ -6,7 +6,8 @@ module Badline
       # The I/O port of the 6510 and the 8502 at $00 (direction) and $01
       # (data). An input pin reads its pull-up, P4 reads the datasette's sense
       # line, and a pin without a pull-up holds the charge last driven onto
-      # it. P5 drives the datasette motor through an inverter: low runs it.
+      # it. P5 drives the datasette motor through an inverter: low runs it,
+      # and P3 drives its write line.
       #
       # The 6510 has pull-ups on P0-P2 and P4 and leaves P3, P6 and P7
       # floating. The 8502 adds a CAPS LOCK pin on P6, high while the key is
@@ -38,6 +39,7 @@ module Badline
           @floating = 0x00
           @change_handler = nil
           @status = PortStatus.new(%i[basic kernal io tape_out tape_switch tape_motor], value: input_value)
+          @datasette.write_level = @status.tape_out?
         end
 
         # Calls the block after every write to the port, for the bus to remap
@@ -68,19 +70,33 @@ module Badline
         end
 
         # Sets the registers and the charge, as a snapshot restores them, and
-        # drives the motor and calls the change handler as a write does.
+        # drives the datasette and calls the change handler as a write does.
         def restore(ddr, data, floating)
           load(ddr, data, floating)
           update
         end
 
         # Sets the registers and the charge, as a snapshot loads them, without
-        # driving the motor or calling the change handler.
+        # driving the datasette or calling the change handler. The write
+        # line takes P3's level without recording an edge.
         def load(ddr, data, floating)
           @ddr = ddr
           @data = data
           @floating = floating
           refresh
+          @datasette.write_level = @status.tape_out?
+        end
+
+        # The registers and the charge in a keyed snapshot module
+        # (Snapshot::Keyed), under `prefix`. What a read sees is worked out
+        # again on load, and the bus maps its banks afterwards.
+        def save_fields(out, prefix)
+          out.int("#{prefix}ddr", @ddr).int("#{prefix}data", @data).int("#{prefix}floating", @floating)
+        end
+
+        def load_fields(input, prefix)
+          load(input.byte("#{prefix}ddr", @ddr), input.byte("#{prefix}data", @data),
+               input.byte("#{prefix}floating", @floating))
         end
 
         # Holds CAPS LOCK down, or lets it up.
@@ -101,6 +117,7 @@ module Badline
           @floating = (@floating & ~driven) | (@data & driven)
           refresh
           @datasette.motor = !@status.tape_motor?
+          @datasette.write_line = @status.tape_out?
           @change_handler&.call
         end
 

@@ -6,6 +6,7 @@ require "badline/chips/vic/display_state"
 require "badline/chips/vic/sequencer"
 require "badline/chips/vic/sprites"
 require "badline/chips/vic/saved_state"
+require "badline/chips/vic/keyed_parts"
 
 module Badline
   module Chips
@@ -228,6 +229,11 @@ module Badline
         @sprites.check_display(@rasterline) if hooks.anybits?(HOOK_DISPLAY)
         @sequencer.start_vertical_border(@rasterline == @last_line ? 0 : @rasterline + 1) if hooks.anybits?(HOOK_LAST)
       end
+
+      # Latches the sprite collisions up to the beam, as a read of $D01E or
+      # $D01F would, so the registers stand as the hardware has them when a
+      # snapshot is saved.
+      def fold_collisions! = @sprites.collide_upto(@column * 8, @sequencer.fg)
 
       # The IRQ line is held asserted while any enabled latch bit is set in
       # $D019/$D01A, until the program acknowledges it by writing to $D019.

@@ -47,6 +47,28 @@ module Badline
           @banks.drop(1).each { |bank| bank.load_state(input) }
         end
 
+        # $D100 as the banks it picks give it, whether it is locked, and
+        # banks 1 to 3, in a keyed snapshot module.
+        def save_fields(out)
+          low = @banks.index(@low_ram).to_i
+          video = @banks.index(@video_ram).to_i
+          out.int("d100", low | (video << 2) | (@banks.index(@high_ram).to_i << 6)).bool("locked", @locked)
+          @banks[1].save_fields(out, "bank1")
+          @banks[2].save_fields(out, "bank2")
+          @banks[3].save_fields(out, "bank3")
+        end
+
+        def load_fields(input)
+          value = input.byte("d100", 0)
+          @low_ram = @banks[value & 0b11]
+          @video_ram = @banks[(value >> 2) & 0b11]
+          @high_ram = @banks[value >> 6]
+          @locked = input.bool("locked", @locked)
+          @banks[1].load_fields(input, "bank1")
+          @banks[2].load_fields(input, "bank2")
+          @banks[3].load_fields(input, "bank3")
+        end
+
         def power_on!
           @banks.drop(1).each(&:clear!)
         end

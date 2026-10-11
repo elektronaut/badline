@@ -21,10 +21,13 @@ module Badline
         @failed = false
       end
 
-      # What's wrong with the events, the first key or menu page that
-      # names nothing, or an empty string.
-      def self.error(events)
-        event = events.find { |candidate| candidate.action == "key" && !key?(candidate.argument) }
+      # The C128's two locking keys, outside its matrix.
+      LOCKS = %w[caps_lock forty_eighty].freeze
+
+      # What's wrong with the events for the family's machine, the first
+      # key or menu page that names nothing, or an empty string.
+      def self.error(events, family)
+        event = events.find { |candidate| candidate.action == "key" && !key?(candidate.argument, family) }
         return "no such key: #{event.argument}" unless event.nil?
 
         event = events.find { |candidate| candidate.action == "menu" && !page?(candidate.argument) }
@@ -35,11 +38,16 @@ module Badline
       # sound. An empty one is its first.
       def self.page?(name) = name.empty? || PauseMenu::PAGES.any? { |page| page.to_s == name }
 
-      def self.key?(name) = name == "restore" || !keyboard_key(name).nil? || !joystick_direction(name).nil?
+      def self.key?(name, family)
+        name == "restore" || (family == :c128 && LOCKS.include?(name)) ||
+          !keyboard_key(name, family).nil? || !joystick_direction(name).nil?
+      end
 
-      # The Keyboard's key for a name such as space, return or a.
-      def self.keyboard_key(name)
-        key = Input::Keyboard.new.matrix.flatten.find { |candidate| candidate.to_s == name }
+      # The family's Keyboard key for a name such as space, return or a,
+      # or on the C128 esc or keypad1.
+      def self.keyboard_key(name, family)
+        matrix = family == :c128 ? C128::KEYBOARD_MATRIX : Input::Keyboard::C64_MATRIX
+        key = matrix.flatten.find { |candidate| candidate.to_s == name }
         key.nil? ? Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name } : key
       end
 
@@ -130,6 +138,8 @@ module Badline
 
       def press(computer, event)
         name = event.argument
+        return lock(computer, name) if LOCKS.include?(name)
+
         if name == "restore"
           computer.press_restore
           return hold(event)
@@ -137,11 +147,19 @@ module Badline
 
         direction = Timeline.joystick_direction(name)
         if direction.nil?
-          computer.keyboard.press(Timeline.keyboard_key(name))
+          computer.keyboard.press(Timeline.keyboard_key(name, computer.family))
         else
           joystick(computer, name).press(direction)
         end
         hold(event)
+      end
+
+      # CAPS LOCK and 40/80 DISPLAY lock: a push puts one down if it was up,
+      # and up if it was down.
+      def lock(computer, name)
+        return unless computer.family == :c128
+
+        name == "caps_lock" ? computer.push_caps_lock : computer.push_display_key
       end
 
       # The VIC-20 and the C128 have no cartridge with a button yet.
@@ -164,7 +182,7 @@ module Badline
 
         direction = Timeline.joystick_direction(name)
         if direction.nil?
-          computer.keyboard.release(Timeline.keyboard_key(name))
+          computer.keyboard.release(Timeline.keyboard_key(name, computer.family))
         else
           joystick(computer, name).release(direction)
         end

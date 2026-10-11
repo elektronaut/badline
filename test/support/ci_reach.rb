@@ -3,9 +3,9 @@
 require_relative "suites"
 
 # The suites a pull request's changed files can move, so its CI runs those
-# and leaves the rest to the push to main, which runs every suite. Each
-# path goes to the first rule whose pattern matches it. A path no rule
-# names reaches every suite.
+# and leaves the rest to suites.yml, which runs every suite on main every
+# two hours. Each path goes to the first rule whose pattern matches it. A
+# path no rule names reaches every suite.
 module CIReach
   ALL = :all
 
@@ -30,8 +30,8 @@ module CIReach
   RULES = [
     ["{spec,doc}/**/*", []],
     ["test/test_*.rb", []],
-    ["test/support/{ci_matrix,ci_reach,snapshot_*,machine_families}.rb", []],
-    ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit}", []],
+    ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families}.rb", []],
+    ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{native,exe}/**/*", []],
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts}.rb", []],

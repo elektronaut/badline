@@ -256,3 +256,4 @@ module Badline
     end
   end
 end
+require "badline/c64/cartridge/keyed_state"
