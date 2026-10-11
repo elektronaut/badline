@@ -12,7 +12,7 @@ module CIMatrix
   # numbers for a chained suite), or one of CHECKS. testbench-irqdma is split
   # by filter: its b.prg rows, and the rest, nmitest6.prg among them because
   # it contains test6.prg. testbench-drive is split into its viavarious rows
-  # and the rest, and lorenz by stretch.
+  # and the rest, and lorenz and lorenz-plus4 by stretch.
   SHARDS = {
     "lorenz-1-2" => [%w[lorenz 1 2]],
     "lorenz-3-4" => [%w[lorenz 3 4]],
@@ -29,7 +29,8 @@ module CIMatrix
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
     "drive" => [%w[testbench-drive !viavarious], "drive-scenarios", "testbench-vic20", "testbench-plus4",
                 "testbench-c16", "testbench-plus4-ntsc"],
-    "lorenz-plus4" => %w[lorenz-plus4],
+    "lorenz-plus4-1-3" => [%w[lorenz-plus4 1 2 3]],
+    "lorenz-plus4-4" => [%w[lorenz-plus4 4]],
     "c128c64" => %w[testbench-c128c64],
     "c128" => %w[testbench-c128],
     "c128-z80-1" => [%w[testbench-c128-z80 c128z80timing/f c128z80timing/c c128z80timing/0 c128z80timing/1
@@ -85,7 +86,7 @@ module CIMatrix
 
       case suite
       when "lorenz" then args.empty? ? "spinel:lorenz" : "spinel:lorenz[#{args.join(',')}]"
-      when "lorenz-plus4" then "spinel:lorenz_plus4"
+      when "lorenz-plus4" then args.empty? ? "spinel:lorenz_plus4" : "spinel:lorenz_plus4[#{args.join(',')}]"
       when *SID_MODELS.keys then "spinel:sidtests[#{SID_MODELS.fetch(suite)}]"
       when "drive-scenarios" then "spinel:drive_scenarios"
       else "spinel:testbench[#{[suite, *args].join(',')}]"
@@ -125,7 +126,7 @@ module CIMatrix
       when *CHECKS.keys then []
       when "spinel:testbench" then testbench_runs(args)
       when "spinel:lorenz" then [["lorenz", args - ["whole"]]]
-      when "spinel:lorenz_plus4" then [["lorenz-plus4", []]]
+      when "spinel:lorenz_plus4" then [["lorenz-plus4", args - ["whole"]]]
       when "spinel:sidtests" then [[SID_MODELS.key(args.first || "6581"), []]]
       when "spinel:drive_scenarios" then [["drive-scenarios", []]]
       else raise ArgumentError, "#{task} is not a suite task the matrix knows."

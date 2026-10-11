@@ -158,11 +158,11 @@ namespace :spinel do
   end
 end
 
-desc "Run the Lorenz suite's plus4 build on the Spinel build, whole, and compare it against " \
-     "#{Suites::BASELINE_DIR}/lorenz-plus4.txt"
-task "spinel:lorenz_plus4" => "vendor:VICE-testprogs" do
+desc "Run the Lorenz suite's plus4 build on the Spinel build, its stretches side by side ([1,2] picks " \
+     "some, [whole] runs it in one), and compare it against #{Suites::BASELINE_DIR}/lorenz-plus4.txt"
+task "spinel:lorenz_plus4", [:stretch] => "vendor:VICE-testprogs" do |_task, args|
   Suites.spinel_build(harnesses: %w[plus4_lorenz])
-  Suites.spinel_lorenz_plus4
+  Suites.spinel_lorenz_plus4(args.to_a.compact.reject(&:empty?))
 end
 
 desc "Run the SID testprogs for a chip (6581 or 8580) on the Spinel build, over SHARDS processes (4), " \

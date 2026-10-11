@@ -605,7 +605,7 @@ class TestTestbenchPlus4 < Minitest::Test
   end
 
   def test_crops_the_picture_as_xplus4_does
-    rows = Testbench.plus4_screenshot(Testbench.plus4_machine("c16", true).ted)
+    rows = Testbench.plus4_screenshot(Testbench.plus4_machine("c16", true))
 
     assert_equal [288, 384, 0x6e, 0x71], [rows.length, rows[0].length, rows[39][32], rows[40][32]]
   end
