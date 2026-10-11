@@ -31,8 +31,8 @@ module Badline
       def call
         return unless active?
 
-        @bus.poke(0x93, @cpu.a)
-        @bus.poke(0x90, 0x00)
+        @bus.poke(zero_page.verify, @cpu.a)
+        @bus.poke(zero_page.status, 0x00)
         name = filename
         return @cpu.program_counter = @layout.missing_file_name_exit if Storage.parse_name(name).first.empty?
 
@@ -66,17 +66,17 @@ module Badline
       # until RUN/STOP breaks the load, as on a real drive.
       def finish(data, complete)
         if data.empty?
-          @bus.poke(0x90, EOI | READ_TIMEOUT)
+          @bus.poke(zero_page.status, EOI | READ_TIMEOUT)
           leave_bus(ACPTR_TIMEOUT)
           continue_with(@layout.searching_message, @layout.file_not_found_exit)
         else
           deliver(data)
-          @bus.poke(0x90, @bus.peek(0x90) & ~EOI) unless complete
+          @bus.poke(zero_page.status, @bus.peek(zero_page.status) & ~EOI) unless complete
           leave_bus(ISOUR_TIMEOUT)
           continue_with(@layout.searching_message, @layout.loading_message,
                         complete ? @layout.load_done : @layout.load_byte_loop)
         end
-        @bus.poke(0xb9, LOAD_SECONDARY)
+        @bus.poke(zero_page.secondary_address, LOAD_SECONDARY)
       end
 
       # A load ends with the UNLISTEN that closes the file, a byte sent,
@@ -91,9 +91,9 @@ module Badline
         load? && data.length > 2 && load_address(data) < 0x0334
       end
 
-      # A=0 is LOAD, A=1 is VERIFY, kept at $93 (VERCK)
+      # A=0 is LOAD, A=1 is VERIFY, kept at VERCK
       def load?
-        @bus.peek(0x93).zero?
+        @bus.peek(zero_page.verify).zero?
       end
 
       def deliver(data)
@@ -102,25 +102,23 @@ module Badline
         payload = payload[0, 0x10000 - addr] if addr + payload.length > 0x10000
         if load?
           @layout.store_file(@bus, addr, payload)
-          @bus.poke(0x90, EOI)
+          @bus.poke(zero_page.status, EOI)
         else
           verify(addr, payload)
         end
-        end_addr = (addr + payload.length) & 0xffff
-        @bus.poke(0xae, low_byte(end_addr))
-        @bus.poke(0xaf, high_byte(end_addr))
+        poke_word(zero_page.end_address, (addr + payload.length) & 0xffff)
       end
 
       def verify(addr, payload)
         match = payload.each_with_index.all? { |byte, i| @layout.file_byte(@bus, addr + i) == byte }
-        @bus.poke(0x90, match ? EOI : EOI | VERIFY_MISMATCH)
+        @bus.poke(zero_page.status, match ? EOI : EOI | VERIFY_MISMATCH)
       end
 
-      # Secondary address $B9 zero relocates to the caller-supplied address
-      # stashed at $C3/$C4 (MEMUSS)
+      # Secondary address zero relocates to the caller-supplied address
+      # stashed at MEMUSS
       def load_address(data)
-        if @bus.peek(0xb9).zero?
-          uint16(@bus.peek(0xc3), @bus.peek(0xc4))
+        if @bus.peek(zero_page.secondary_address).zero?
+          peek_word(zero_page.load_address)
         else
           uint16(data[0], data[1].to_i)
         end

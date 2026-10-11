@@ -46,15 +46,8 @@ module Badline
 
       # The keyboard buffer of the KERNAL the machine runs: the C64's, or in
       # C128 mode BASIC 7.0's.
-      def feed_keyboard
-        c64 = mode == :c64
-        count = c64 ? Machine::KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
-        return unless ram.peek(count).zero?
-
-        chunk = @pending_keys.shift(Machine::KeyboardBuffer::CAPACITY)
-        ram.write(c64 ? Machine::KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER, chunk)
-        ram.poke(count, chunk.length)
-        @pending_keys = nil if @pending_keys.empty?
+      def keyboard_buffer
+        mode == :c64 ? Machine::KeyboardBuffer::C64_LAYOUT : Machine::KeyboardBuffer::C128_LAYOUT
       end
     end
   end

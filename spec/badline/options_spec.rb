@@ -391,7 +391,8 @@ describe Badline::Options do
       "an NTSC VIC-20 by name" => [%w[vic20 --model ntsc], "the NTSC VIC-20 isn't emulated yet"],
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
-      "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"]
+      "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
+      "the Plus/4" => [%w[plus4], "the Plus/4 isn't emulated yet"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
