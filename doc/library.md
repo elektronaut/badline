@@ -14,7 +14,9 @@ computer.peek(0x0400)                               # screen RAM starts at $0400
 ```
 
 [media.md](media.md) covers attaching and swapping media, and
-[snapshots.md](snapshots.md) saving and restoring the machine.
+[snapshots.md](snapshots.md) saving and restoring the machine. What
+these three pages document is the supported surface, and
+[public-api.md](public-api.md) says what 1.0 promises to keep of it.
 
 ## Building a machine
 

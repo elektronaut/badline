@@ -119,6 +119,8 @@ describes them.
 
 Other KERNAL, BASIC or character ROMs, and using badline as a Ruby
 library, are covered in [doc/library.md](doc/library.md).
+[doc/public-api.md](doc/public-api.md) says which of this 1.0 promises
+to keep.
 
 ## Media
 
