@@ -277,6 +277,29 @@ describe Badline::C128::Bus do
       expect(bus.peek_bank(1, 0x0300)).to eq(0x12)
     end
 
+    it "reads the KERNAL ROM in bank 15" do
+      expect(bus.peek_bank(15, 0xe000)).to eq(bus.c128_kernal_rom.peek(0xe000))
+    end
+
+    it "reads BASIC's low ROM in bank 15" do
+      bus.ram.poke(0x4000, 0x12)
+      expect(bus.peek_bank(15, 0x4000)).to eq(0x4c)
+    end
+
+    it "reads the character ROM in bank 14" do
+      expect(bus.peek_bank(14, 0xd008)).to eq(bus.c128_character_rom.peek(0xd008))
+    end
+
+    it "reads I/O in bank 15" do
+      bus.poke(0xd020, 0x05)
+      expect(bus.peek_bank(15, 0xd020) & 0x0f).to eq(0x05)
+    end
+
+    it "reads RAM 1 under the ROMs in bank 1" do
+      bus.ram.poke(0x1e000, 0x12)
+      expect(bus.peek_bank(1, 0xe000)).to eq(0x12)
+    end
+
     it "writes the RAM a KERNAL bank number reaches" do
       bus.write_bank(1, 0x4000, [0x12, 0x34])
       expect([bus.ram.peek(0x14000), bus.ram.peek(0x14001)]).to eq([0x12, 0x34])
