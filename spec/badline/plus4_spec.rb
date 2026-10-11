@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "tmpdir"
 require "badline/plus4"
 
 describe Badline::Plus4 do
@@ -58,6 +59,33 @@ describe Badline::Plus4 do
     before = machine.ram.peek(0xa5)
     machine.run_cycles(57 * 312 * 10)
     expect((machine.ram.peek(0xa5) - before) & 0xff).to eq(12)
+  end
+
+  describe "a directory mounted as device 8" do
+    # 10 PRINT 6
+    let(:program) { [0x01, 0x10, 0x09, 0x10, 0x0a, 0x00, 0x99, 0x20, 0x36, 0x00, 0x00, 0x00] }
+    let(:machine) { described_class.new(model: "c16") }
+
+    before do
+      Dir.mktmpdir do |dir|
+        File.binwrite(File.join(dir, "six.prg"), program.pack("C*"))
+        machine.mount(Badline::Storage::HostDirectory.new(dir))
+        machine.type_text(%(load"six",8\rrun\r))
+        machine.run_cycles(machine.init_threshold + 300_000)
+      end
+    end
+
+    it "loads a program through the KERNAL traps" do
+      expect(screen(machine)).to include(" 6")
+    end
+  end
+
+  it "captures what the KERNAL prints" do
+    machine = described_class.new(model: "c16")
+    capture = machine.capture_output
+    machine.type_text("print 6*7\r")
+    machine.run_cycles(machine.init_threshold + 100_000)
+    expect(capture.output).to include("42")
   end
 
   it "reads a held key through the keyboard latch" do

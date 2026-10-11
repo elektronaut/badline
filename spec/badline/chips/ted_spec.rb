@@ -62,7 +62,7 @@ describe Badline::Chips::TED do
       before { ted.poke(0xff06, 0x1b) }
 
       it "runs the CPU 64 times a display line" do
-        run_to_line(4)
+        run_to_line(5)
         expect(cpu_cycles(57)).to eq(64)
       end
 
@@ -71,8 +71,13 @@ describe Badline::Chips::TED do
         expect(cpu_cycles(57)).to eq(24)
       end
 
-      it "runs it 109 times a line below line 204" do
-        run_to_line(205)
+      it "takes the bus for the character pointers on a row's first line" do
+        run_to_line(4)
+        expect(cpu_cycles(57)).to eq(24)
+      end
+
+      it "runs it 109 times a line below line 203" do
+        run_to_line(204)
         expect(cpu_cycles(57)).to eq(109)
       end
 

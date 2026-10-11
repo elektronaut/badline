@@ -15,7 +15,7 @@ module CIReach
            drive-scenarios].freeze
   VIC20 = %w[testbench-vic20 drive-scenarios].freeze
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
-  PLUS4 = %w[testbench-plus4 testbench-c16].freeze
+  PLUS4 = %w[testbench-plus4 testbench-c16 lorenz-plus4].freeze
   VIC = %w[testbench testbench-vicii-new testbench-ntsc testbench-ntsc-vicii-new testbench-drean
            testbench-interrupts testbench-irqdma testbench-general testbench-expansions testbench-carts
            testbench-c128c64 testbench-c128].freeze

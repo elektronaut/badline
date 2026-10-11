@@ -20,7 +20,11 @@ module Badline
     # +banked+ says whether the 6510 port can bank the KERNAL out, and so
     # whether RAM lies under every ROM and the I/O. +mmu+ says the C128's
     # MMU maps the KERNAL instead, and that the file name and the file's
-    # bytes lie in the banks the KERNAL keeps at FNBANK and BA. Each
+    # bytes lie in the banks the KERNAL keeps at FNBANK and BA.
+    # +rom_select+ says the 264 series' TED selects ROM or RAM and its
+    # latch the ROM banks, so the KERNAL is in while ROM is selected with
+    # the KERNAL's bank, and the ROM reads the file name and the file's
+    # bytes from RAM, under any ROM, through its bank fetch at $07D9. Each
     # serial byte starts a one-shot timer by writing the high byte of its
     # count to +serial_timer+, and the control value TIMER_ONE_SHOT_START
     # to +serial_timer_start+ where the timer has a control register to
@@ -35,12 +39,13 @@ module Badline
                          :file_not_found_exit, :missing_file_name_exit, :saving_message, :clock_release,
                          :data_release, :save_done, :talk, :listen, :second, :tksa, :ciout, :untalk,
                          :unlisten, :acptr, :banked, :serial_timer, :serial_timer_start, :atn_port, :atn_mask,
-                         :clock_port, :clock_mask, :data_port, :data_mask, :mmu, :zero_page) do
+                         :clock_port, :clock_mask, :data_port, :data_mask, :mmu, :rom_select, :zero_page) do
       # Whether the CPU reads the KERNAL ROM at the trapped addresses: on a
-      # banked machine, the 6510 port's banking bits select it, and on the
-      # C128 the MMU.
+      # banked machine, the 6510 port's banking bits select it, on the
+      # C128 the MMU, and on the 264 series the ROM select and bank latch.
       def kernal_mapped?(bus)
         return bus.system_rom_mapped? if mmu
+        return bus.kernal_selected? if rom_select
 
         !banked || bus.io_port.kernal?
       end
@@ -57,15 +62,21 @@ module Badline
       end
 
       # The file name's byte at +address+, in the bank at FNBANK on the
-      # C128.
+      # C128 and in RAM on the 264 series.
       def filename_byte(bus, address)
-        mmu ? bus.peek_bank(bus.peek(FILENAME_BANK), address) : bus.peek(address)
+        return bus.peek_bank(bus.peek(FILENAME_BANK), address) if mmu
+        return bus.ram_view.peek(address) if rom_select
+
+        bus.peek(address)
       end
 
       # The byte at +address+ a SAVE writes or a VERIFY compares, in the bank
-      # at BA on the C128.
+      # at BA on the C128 and in RAM on the 264 series.
       def file_byte(bus, address)
-        mmu ? bus.peek_bank(bus.peek(BANK), address) : bus.peek(address)
+        return bus.peek_bank(bus.peek(BANK), address) if mmu
+        return bus.ram_view.peek(address) if rom_select
+
+        bus.peek(address)
       end
 
       # Starts the timer the ROM times a serial byte with, its count's high
@@ -145,7 +156,7 @@ module Badline
       ciout: 0xeddd, untalk: 0xedef, unlisten: 0xedfe, acptr: 0xee13,
       banked: true, serial_timer: 0xdc07, serial_timer_start: 0xdc0f,
       atn_port: 0xdd00, atn_mask: 0xf7, clock_port: 0xdd00, clock_mask: 0xef, data_port: 0xdd00, data_mask: 0xdf,
-      mmu: false, zero_page: C64_ZERO_PAGE
+      mmu: false, rom_select: false, zero_page: C64_ZERO_PAGE
     )
 
     # The VIC-20 KERNAL, 901486-07 (PAL). The NTSC one, 901486-06, differs
@@ -163,7 +174,7 @@ module Badline
       ciout: 0xeee4, untalk: 0xeef6, unlisten: 0xef04, acptr: 0xef19,
       banked: false, serial_timer: 0x9129, serial_timer_start: nil,
       atn_port: 0x911f, atn_mask: 0x7f, clock_port: 0x912c, clock_mask: 0xfd, data_port: 0x912c, data_mask: 0xdf,
-      mmu: false, zero_page: C64_ZERO_PAGE
+      mmu: false, rom_select: false, zero_page: C64_ZERO_PAGE
     )
 
     # The C128 KERNAL, 318020-05, in C128 mode: the jump table's targets
@@ -184,7 +195,32 @@ module Badline
       ciout: 0xe503, untalk: 0xe515, unlisten: 0xe526, acptr: 0xe43e,
       banked: true, serial_timer: nil, serial_timer_start: nil,
       atn_port: 0xdd00, atn_mask: 0xf7, clock_port: 0xdd00, clock_mask: 0xef, data_port: 0xdd00, data_mask: 0xdf,
-      mmu: true, zero_page: C64_ZERO_PAGE
+      mmu: true, rom_select: false, zero_page: C64_ZERO_PAGE
+    )
+
+    # The 264 series KERNAL, 318004-05 (PAL), the same at every address
+    # here in the NTSC 318005-05: ILOAD's and ISAVE's default targets and
+    # the jump table's targets for the serial primitives, each of which
+    # tries a 1551's TCBM interface for devices 8 and 9 before the serial
+    # bus. LOAD prints SEARCHING FOR at $F160 and LOADING or VERIFYING at
+    # $F189, which ends CLC, retries a byte from $F09F and returns at $F0EB
+    # (LDX $9D, LDY $9E, RTS). FILE NOT FOUND leaves through $F27C and
+    # MISSING FILE NAME through $F288. SAVE prints SAVING at $F228 and
+    # returns at $F226 (CLC, RTS). The port at $01 drives the lines, ATN
+    # from bit 2, the clock from bit 1 ($E2B8 lets it go) and the data line
+    # from bit 0 ($E2C6). Its serial bytes are timed with TED timer 2, but
+    # its timeouts differ from the C64's, so the traps leave the timer
+    # alone.
+    PLUS4_LAYOUT = Layout.new(
+      load: 0xf04a, save: 0xf1a4,
+      searching_message: 0xf160, loading_message: 0xf189, load_byte_loop: 0xf09f, load_done: 0xf0eb,
+      file_not_found_exit: 0xf27c, missing_file_name_exit: 0xf288,
+      saving_message: 0xf228, clock_release: 0xe2b8, data_release: 0xe2c6, save_done: 0xf226,
+      talk: 0xedfa, listen: 0xee2c, second: 0xee4d, tksa: 0xee1a,
+      ciout: 0xecdf, untalk: 0xef3b, unlisten: 0xef23, acptr: 0xec8b,
+      banked: false, serial_timer: nil, serial_timer_start: nil,
+      atn_port: 0x01, atn_mask: 0xfb, clock_port: 0x01, clock_mask: 0xfd, data_port: 0x01, data_mask: 0xfe,
+      mmu: false, rom_select: true, zero_page: PLUS4_ZERO_PAGE
     )
   end
 end

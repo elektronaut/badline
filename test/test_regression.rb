@@ -487,6 +487,39 @@ class TestLorenzRunParse < Minitest::Test
   end
 end
 
+class TestLorenzResumed < Minitest::Test
+  ORDER = Lorenz::Resumption.new(%w[start ldab trap1 trap2 finish])
+
+  def chain_run(names, result)
+    transcript = names.map { |name| "#{name}\n" }.join
+    Lorenz::Run.new(transcript, names.map { |name| [name, transcript.index("#{name}\n")] }, [], result)
+  end
+
+  def test_a_hung_run_resumes_at_the_next_program
+    assert_equal "trap2", ORDER.after(chain_run(%w[start ldab trap1], "hung"))
+  end
+
+  def test_a_run_back_at_ready_resumes_too
+    assert_equal "trap2", ORDER.after(chain_run(%w[trap1], "ready-prompt"))
+  end
+
+  def test_a_finished_run_does_not_resume
+    assert_nil ORDER.after(chain_run(%w[finish], "completed"))
+  end
+
+  def test_the_last_program_has_nothing_after_it
+    assert_nil ORDER.after(chain_run(%w[finish], "hung"))
+  end
+
+  def test_segments_join_their_rows_and_name_what_they_skipped
+    runs = { nil => chain_run(%w[ldab trap1], "hung"), "trap2" => chain_run(%w[trap2 finish], "completed") }
+    joined = Lorenz.segments(ORDER, nil) { |resume| runs.fetch(resume) }
+
+    assert_equal [%w[ldab trap1 trap2 finish], "(suite)\tPASS\tcompleted after finish, resumed past trap1"],
+                 [joined.segments.map(&:name), joined.records.last]
+  end
+end
+
 class TestLorenzChain < Minitest::Test
   Capture = Struct.new(:output)
   Disk = Struct.new(:names)

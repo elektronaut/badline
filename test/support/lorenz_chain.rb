@@ -15,6 +15,21 @@ module Lorenz
   COMPLETION = "test suite 2.15+ completed - ok"
   NEXT_DISK = "Disk4.d64"
 
+  # The plus4 build's last disk, which LorenzPlus4.d81 leaves out as
+  # Lorenz.d81 leaves out Disk4.d64.
+  PLUS4_NEXT_DISK = "Disk4plus4.d64"
+
+  # The keys a test of the plus4 build may halt for before its chain gives
+  # up on it: more than the 256 opcodes a sweep can fail on, so only a test
+  # that loops for keys forever, as the C64-only mmu does on the 264,
+  # reaches it.
+  PLUS4_KEY_LIMIT = 512
+
+  # The cycles a test of the plus4 build may run before its chain gives up
+  # on it, for a test that loops printing forever: four times the longest
+  # a test that finishes takes, trap7ane's 50 million.
+  PLUS4_TEST_CYCLE_LIMIT = 200_000_000
+
   # The suite's images open write-protected, so the chain never writes to
   # the vendored files.
   def self.open_image(path)
@@ -27,11 +42,11 @@ module Lorenz
   end
 
   # Mounts the image, with the disk the chain carries on from once it runs
-  # out as a spare, and types the LOAD that starts the chain, or resumes it
-  # at start_test.
-  def self.mount(computer, path, capture, start_test)
+  # out, next_disk, as a spare, and types the LOAD that starts the chain, or
+  # resumes it at start_test.
+  def self.mount(computer, path, capture, start_test, next_disk = NEXT_DISK)
     disk = Disk.new(open_image(path), capture)
-    spare = spare_path(path)
+    spare = spare_path(path, next_disk)
     disk.spare(spare, open_image(spare)) if spare
     computer.mount(disk)
     computer.type_text(start_test ? %(lO"#{start_test}",8\rrun\r) : AUTOSTART)
@@ -40,8 +55,8 @@ module Lorenz
 
   # The disk the chain carries on from once the image runs out, if it is
   # beside the image.
-  def self.spare_path(path)
-    spare = File.join(File.dirname(path), NEXT_DISK)
+  def self.spare_path(path, next_disk = NEXT_DISK)
+    spare = File.join(File.dirname(path), next_disk)
     spare if File.exist?(spare) && File.expand_path(spare) != File.expand_path(path)
   end
 
@@ -101,6 +116,10 @@ module Lorenz
   class Chain
     attr_reader :result, :key_offsets
 
+    # How many keys one test may halt for, and how many cycles it may run,
+    # before the chain gives up on it as stuck, or 0 for no limit.
+    attr_writer :key_limit, :test_cycle_limit
+
     def initialize(computer, capture, disk, max_cycles, stop_after = nil)
       @computer = computer
       @capture = capture
@@ -112,6 +131,12 @@ module Lorenz
       @last_progress = 0
       @getin_hits = 0
       @key_offsets = []
+      @key_limit = 0
+      @keys_for_test = 0
+      @keyed_test = -1
+      @test_cycle_limit = 0
+      @timed_test = -1
+      @test_started = 0
       computer.cpu.install_trap(0xffe4) { @getin_hits += 1 }
     end
 
@@ -146,7 +171,25 @@ module Lorenz
         @result = out.rstrip.end_with?("ready.") ? "ready-prompt" : "hung"
       end
       @result = "timeout" if @computer.cycles > @max_cycles
+      @result = "stuck" if past_test_cycle_limit?
       @result = "stopped" if @result.nil? && moved_past_stop?
+    end
+
+    def past_test_cycle_limit?
+      test = @disk.names.length
+      unless test == @timed_test
+        @timed_test = test
+        @test_started = @computer.cycles
+      end
+      @test_cycle_limit.positive? && @computer.cycles - @test_started > @test_cycle_limit
+    end
+
+    def past_key_limit?
+      test = @disk.names.length
+      @keys_for_test = 0 unless test == @keyed_test
+      @keyed_test = test
+      @keys_for_test += 1
+      @key_limit.positive? && @keys_for_test > @key_limit
     end
 
     def moved_past_stop?
@@ -161,6 +204,8 @@ module Lorenz
     # the resumed chain prints on past it, so the test that stopped is the
     # one whose slice still covers it.
     def send_key
+      return @result = "stuck" if past_key_limit?
+
       @key_offsets << @capture.output.length
       warn "[#{@computer.cycles}] test halted waiting for key, sending space (##{keys_sent})"
       @computer.type_text(" ")

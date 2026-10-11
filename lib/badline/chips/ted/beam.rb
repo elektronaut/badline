@@ -14,9 +14,11 @@ module Badline
       # those counts.
       #
       # The CPU runs once in a single clock cycle and twice in a double
-      # clock one. The datasheet's "System Clock Doubling": in lines 0-204
-      # the clock is single from count 400 round to 344, columns 50-56 and
-      # 0-42, and double in columns 43-49. In the other lines it is double
+      # clock one. The datasheet's "System Clock Doubling": in the display
+      # window's lines the clock is single from count 400 round to 344,
+      # columns 50-56 and 0-42, and double in columns 43-49. The window is
+      # lines 0-203: the datasheet says 0-204, but xplus4 runs line 204 at
+      # double clock, as the lines below it. In the other lines it is double
       # but for the five refresh cycles at counts 304-344, columns 38-42,
       # which are single everywhere. With $FF06 bit 4 clear (blank) every
       # line is double but for refresh, and $FF13 bit 1 or $FF07 bit 5
@@ -27,9 +29,11 @@ module Badline
       #
       # DMA: each character row takes the bus for 40 cycles on two lines,
       # the line before the row for the attributes and the row's first
-      # line for the character pointers (the datasheet's register 20). The
-      # rows start on the lines whose low three bits match $FF06 bits 0-2,
-      # in lines 0-203. The fetches run in columns 54-56 and 0-36, and BA
+      # line for the character pointers (the datasheet's register 20). A
+      # row starts on the line after one whose low three bits match $FF06
+      # bits 0-2, as the KERNAL's scroll of 3 puts the first row on line 4,
+      # where the datasheet's 25-row window starts, and a row starts only
+      # in lines 0-203. xplus4 takes the bus on the same lines. The fetches run in columns 54-56 and 0-36, and BA
       # goes low 3 cycles before the first, in column 51, so the CPU stops
       # at its next read. A DMA line leaves the CPU 24 cycles.
       module Beam
@@ -40,8 +44,7 @@ module Badline
         DMA_END_COLUMN = 36
         REFRESH_COLUMNS = (38..42)
         DOUBLE_COLUMNS = (43..49)
-        LAST_DISPLAY_LINE = 204
-        LAST_DMA_LINE = 203
+        LAST_DISPLAY_LINE = 203
 
         # The single clock cycle in the line, 0-56.
         attr_reader :column
@@ -102,10 +105,13 @@ module Badline
         def display_window? = @registers[0x06].anybits?(0x10) && @line <= LAST_DISPLAY_LINE
 
         def dma_line?
-          return false unless @registers[0x06].anybits?(0x10) && @line <= LAST_DMA_LINE
+          return false unless @registers[0x06].anybits?(0x10)
 
-          scroll = @registers[0x06] & 0x07
-          ((scroll - @line) & 0x07) < 2
+          phase = (@line - (@registers[0x06] & 0x07)) & 0x07
+          return false if phase > 1
+
+          row = phase.zero? ? @line + 1 : @line
+          row <= LAST_DISPLAY_LINE
         end
       end
     end
