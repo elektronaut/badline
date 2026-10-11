@@ -6,7 +6,8 @@ module Badline
       # The I/O port of the 6510 and the 8502 at $00 (direction) and $01
       # (data). An input pin reads its pull-up, P4 reads the datasette's sense
       # line, and a pin without a pull-up holds the charge last driven onto
-      # it. P5 drives the datasette motor through an inverter: low runs it.
+      # it. P5 drives the datasette motor through an inverter: low runs it,
+      # and P3 drives its write line.
       #
       # The 6510 has pull-ups on P0-P2 and P4 and leaves P3, P6 and P7
       # floating. The 8502 adds a CAPS LOCK pin on P6, high while the key is
@@ -68,14 +69,14 @@ module Badline
         end
 
         # Sets the registers and the charge, as a snapshot restores them, and
-        # drives the motor and calls the change handler as a write does.
+        # drives the datasette and calls the change handler as a write does.
         def restore(ddr, data, floating)
           load(ddr, data, floating)
           update
         end
 
         # Sets the registers and the charge, as a snapshot loads them, without
-        # driving the motor or calling the change handler.
+        # driving the datasette or calling the change handler.
         def load(ddr, data, floating)
           @ddr = ddr
           @data = data
@@ -113,6 +114,7 @@ module Badline
           @floating = (@floating & ~driven) | (@data & driven)
           refresh
           @datasette.motor = !@status.tape_motor?
+          @datasette.write_line = @status.tape_out?
           @change_handler&.call
         end
 
