@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/c64/bus/saved_state"
+require "badline/c64/bus/keyed_state"
 require "badline/c64/bus/sid_slots"
 require "badline/c64/bus/extra_sids"
 require "badline/c64/bus/pla"

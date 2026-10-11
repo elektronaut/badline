@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/vic20/bus/saved_state"
+require "badline/vic20/bus/keyed_state"
 
 module Badline
   class Vic20
