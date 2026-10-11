@@ -4,8 +4,9 @@ module Badline
   class C64
     # The whole machine as keyed snapshot modules (Snapshot::Keyed), in the
     # order a load applies them: BL-MACHINE with the setup, the memories,
-    # the cartridge, the CPU with its port, the chips, an REU, the
-    # datasette, device 8 through the traps and the true drives. A load
+    # the cartridge, the CPU with its port, the chips with any extra SIDs
+    # (Bus::ExtraSIDs), an REU, the datasette, device 8 through the traps
+    # and the true drives. A load
     # reads the CPU's port before the chips, so the banks are mapped as the
     # chips load, and the CPU's own fields after them. What each unit works
     # out again from its fields comes last, once every unit is loaded.
@@ -60,6 +61,7 @@ module Badline
         sections << Snapshot::Keyed.section("BL-CIA1") { |out| @cia1.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-CIA2") { |out| @cia2.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-SID") { |out| @sid.save_fields(out) }
+        bus.save_extra_sid_modules(sections)
       end
 
       def load_chip_modules(modules, cpu)
@@ -67,6 +69,7 @@ module Badline
         @cia1.load_fields(modules.required("BL-CIA1"))
         @cia2.load_fields(modules.required("BL-CIA2"))
         @sid.load_fields(modules.required("BL-SID"))
+        address_bus.load_extra_sid_modules(modules)
         @reu&.load_fields(modules.required("BL-REU"))
         @cpu.load_fields(cpu)
       end
@@ -94,6 +97,7 @@ module Badline
         @cia1.restored!
         @cia2.restored!
         @sid.restored!
+        address_bus.extra_sids.each(&:restored!)
         @reu&.restored!
         machine_restored!
       end

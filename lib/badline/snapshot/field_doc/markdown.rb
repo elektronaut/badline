@@ -31,11 +31,12 @@ module Badline
           `int & 0x..` are ints cut to the latch's width. A text that lists
           its values takes one of them. An optional int is absent when the
           latch holds nothing. A true drive's modules are named from its
-          device number, `BL-D8` to `BL-D11`. Keys with `<N>` stand for each
-          numbered unit. A default of "written only" is a key the load
-          doesn't read, or reads only when the snapshot has it. Where the
-          machines differ, the default is given for each, and a key only
-          some of them have names them.
+          device number, `BL-D8` to `BL-D11`, and the SIDs past the first
+          are `BL-SID2` onwards, in the order they were fitted. Keys with
+          `<N>` stand for each numbered unit. A default of "written only" is
+          a key the load doesn't read, or reads only when the snapshot has
+          it. Where the machines differ, the default is given for each, and a
+          key only some of them have names them.
         MARKDOWN
 
         def initialize(loads)

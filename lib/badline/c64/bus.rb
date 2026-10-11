@@ -91,6 +91,7 @@ module Badline
         @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
         @sid = Chips::SID.new(model: sid_model, pots: @control_ports)
         @sid_slots = []
+        @extra_sids = []
 
         @datasette = Drives::Datasette.new
         @datasette.on_flag { @cia1.flag! }

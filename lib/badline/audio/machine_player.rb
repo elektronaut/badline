@@ -40,23 +40,13 @@ module Badline
       def clock_hz = @computer.region.clock_hz
 
       # The whole machine as its keyed snapshot modules, as it stands between
-      # frames, and the extra SIDs as BL-SID2 and BL-SID3, once it plays.
-      def save_modules
-        sections = @computer.save_modules
-        @extras.each_with_index do |sid, index|
-          sections << Snapshot::Keyed.section("BL-SID#{index + 2}") { |out| sid.save_fields(out) }
-        end
-        sections
-      end
+      # frames, with the extra SIDs as BL-SID2 and BL-SID3, once it plays.
+      def save_modules = @computer.save_modules
 
       # Takes a machine that hasn't started to where #save_modules found one,
       # in place of #start.
       def load_modules(modules)
         @computer.load_modules(modules)
-        @extras.each_with_index do |sid, index|
-          sid.load_fields(modules.required("BL-SID#{index + 2}"))
-          sid.restored!
-        end
         @stereo.synthesize!
         @started = true
       end

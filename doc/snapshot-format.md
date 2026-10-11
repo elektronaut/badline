@@ -13,11 +13,12 @@ machine built afresh has: the default below. `word`, `byte` and
 `int & 0x..` are ints cut to the latch's width. A text that lists
 its values takes one of them. An optional int is absent when the
 latch holds nothing. A true drive's modules are named from its
-device number, `BL-D8` to `BL-D11`. Keys with `<N>` stand for each
-numbered unit. A default of "written only" is a key the load
-doesn't read, or reads only when the snapshot has it. Where the
-machines differ, the default is given for each, and a key only
-some of them have names them.
+device number, `BL-D8` to `BL-D11`, and the SIDs past the first
+are `BL-SID2` onwards, in the order they were fitted. Keys with
+`<N>` stand for each numbered unit. A default of "written only" is
+a key the load doesn't read, or reads only when the snapshot has
+it. Where the machines differ, the default is given for each, and a
+key only some of them have names them.
 
 ## BL-MACHINE
 
@@ -842,6 +843,49 @@ Written by the C64, C128.
 | `syncs` | ints | C64: [] |
 | `registers` | ints | C128: [0, 0, 0, 0] |
 | `result` | int | C128: 0 |
+
+## BL-SID2
+
+Written by the C64.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `address` | word | 54304 |
+| `model` | text: mos6581 mos8580 | "mos6581" |
+| `registers` | bytes | 32 × 0 |
+| `bus_value` | byte | 0 |
+| `bus_ttl` | int | 0 |
+| `voice<N>.wave.accumulator` | int & 0xffffff | 5592405 |
+| `voice<N>.wave.shift_register` | int & 0x7fffff | 8388606 |
+| `voice<N>.wave.shift_register_reset` | int | 0 |
+| `voice<N>.wave.shift_pipeline` | int | 0 |
+| `voice<N>.wave.delayed_triangle` | int & 0xfff | 0 |
+| `voice<N>.wave.delayed_sawtooth` | int & 0xfff | 0 |
+| `voice<N>.wave.msb_rising` | bool | false |
+| `voice<N>.wave.floating` | int & 0xfff | 0 |
+| `voice<N>.wave.floating_ttl` | int | 0 |
+| `voice<N>.wave.pulse` | int & 0xfff | 4095 |
+| `voice<N>.env.state` | text: attack decay_sustain release | "release" |
+| `voice<N>.env.next_state` | text: attack decay_sustain release | "release" |
+| `voice<N>.env.counter` | byte | 0 |
+| `voice<N>.env.env<N>` | byte | 0 |
+| `voice<N>.env.rate_counter` | int & 0x7fff | 0 |
+| `voice<N>.env.rate_period` | int | 8 |
+| `voice<N>.env.reset_rate_counter` | bool | false |
+| `voice<N>.env.exponential_counter` | int | 0 |
+| `voice<N>.env.exponential_period` | int | 1 |
+| `voice<N>.env.state_pipeline` | int | 0 |
+| `voice<N>.env.envelope_pipeline` | int | 0 |
+| `voice<N>.env.exponential_pipeline` | int | 0 |
+| `voice<N>.env.hold_zero` | bool | true |
+| `filter.highpass` | int | 0 |
+| `filter.bandpass` | int | 0 |
+| `filter.lowpass` | int | 0 |
+| `filter.unfiltered` | int | 0 |
+| `filter.input` | int | 0 |
+| `ext.lowpass` | int | 0 |
+| `ext.highpass` | int | 0 |
+| `ext.output` | int | 0 |
 
 ## BL-VICI
 

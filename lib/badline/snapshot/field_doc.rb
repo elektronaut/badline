@@ -28,11 +28,11 @@ module Badline
       Load = Data.define(:family, :written, :fields)
 
       # The machines the doc is made from: each family at power-on, and the
-      # C64 with each kind of expansion, cartridge and media.
+      # C64 with each kind of expansion, cartridge and media, and a second SID.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512), with_cartridge, with_trap_dos,
-                    with_tape, with_drive(:d64), with_drive(:d81)],
+                    with_tape, with_drive(:d64), with_drive(:d81), with_extra_sids],
           "vic20" => [Vic20.new, with_rom],
           "c128" => [C128.new(mode: :c128), with_drive(:d71)]
         }
@@ -48,6 +48,11 @@ module Badline
         C64.new.tap do |machine|
           machine.attach_cartridge(C64::Cartridge.from_crt(Storage::CRTFile.new(bytes: Storage::CRTFile.encode(image))))
         end
+      end
+
+      # The SID player's machine for a tune on two SIDs.
+      def self.with_extra_sids
+        C64.new.tap { |machine| machine.address_bus.add_sid(Chips::SID.new(at: 0xd420)) }
       end
 
       def self.with_trap_dos
