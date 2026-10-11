@@ -89,6 +89,13 @@ module Badline
           default
         end
 
+        # Reports something a unit's load left out or changed beyond one
+        # field, such as a line batch from another renderer.
+        def adjust(line)
+          @adjusted << line
+          self
+        end
+
         # The keys of records nothing read.
         def unknown = @tags.keys.reject { |key| @read.key?(key) }
 
