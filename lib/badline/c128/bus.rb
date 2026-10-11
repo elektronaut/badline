@@ -228,7 +228,25 @@ module Badline
         system_rom_peek(addr)
       end
 
-      def write_bank(bank, addr, bytes) = @banks.write(bank, addr, bytes)
+      # Stores +bytes+ from +addr+ on in the C128 KERNAL's bank number
+      # +bank+, as its INDSTA does, with CR set to the bank's CR value for
+      # each byte and put back after it: into the chips where that value
+      # maps I/O, the MMU's at $D500 among them, into nothing at $FF00-$FF04,
+      # where the configuration registers take the byte, and otherwise into
+      # the RAM the bank reaches (Banks).
+      def write_bank(bank, addr, bytes)
+        cr = @mmu.cr
+        io = @banks.configuration(bank).nobits?(0x01)
+        bytes.each_with_index do |byte, i|
+          address = (addr + i) & 0xffff
+          if io && (address & 0xf000) == 0xd000
+            bank_io_poke(address, byte)
+          elsif !address.between?(0xff00, 0xff04)
+            @banks.poke(bank, address, byte)
+          end
+        end
+        @mmu.poke_configuration(0xff00, cr) unless @mmu.cr == cr
+      end
 
       def install_debug_register(&)
         @debug_page = DebugPage.new(@open_bus, &)

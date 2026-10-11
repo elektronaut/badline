@@ -305,6 +305,34 @@ describe Badline::C128::Bus do
       expect([bus.ram.peek(0x14000), bus.ram.peek(0x14001)]).to eq([0x12, 0x34])
     end
 
+    it "writes I/O in bank 15" do
+      bus.write_bank(15, 0xd020, [0x02])
+      expect(bus.vic.peek(0xd020) & 0x0f).to eq(0x02)
+    end
+
+    it "leaves the RAM under I/O alone in bank 15" do
+      expect { bus.write_bank(15, 0xd020, [0x02]) }.not_to(change { bus.ram.peek(0xd020) })
+    end
+
+    it "writes the RAM under I/O in bank 0" do
+      bus.write_bank(0, 0xd020, [0x02])
+      expect(bus.ram.peek(0xd020)).to eq(0x02)
+    end
+
+    it "writes the MMU's registers at $D500 in bank 15" do
+      bus.write_bank(15, 0xd501, [0x12])
+      expect(bus.mmu.peek_configuration(0xff01)).to eq(0x12)
+    end
+
+    it "puts CR back after a write to it at $D500" do
+      expect { bus.write_bank(15, 0xd500, [0x3e]) }.not_to(change { bus.mmu.cr })
+    end
+
+    it "writes nothing at the configuration registers" do
+      expect { bus.write_bank(0, 0xff00, [0x11, 0x22, 0x33, 0x44, 0x55]) }
+        .not_to(change { (0xff00..0xff04).map { |addr| bus.ram.peek(addr) } })
+    end
+
     it "tells the machine when it goes to C64 mode" do
       changes = []
       bus.on_mode_change { changes << bus.mmu.mode }
