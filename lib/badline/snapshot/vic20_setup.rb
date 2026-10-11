@@ -29,6 +29,16 @@ module Badline
       end
 
       # A machine built this way, at power-on.
+      # The RAM expansion by name, in a keyed snapshot module.
+      def write_fields(out)
+        out.text("ram", ram.to_s)
+      end
+
+      def self.read_fields(input)
+        text = input.choice("ram", RAM_CONFIGURATIONS.map(&:to_s), "unexpanded")
+        new(ram: RAM_CONFIGURATIONS.find { |name| name.to_s == text } || :unexpanded)
+      end
+
       def build = Vic20.new(ram:)
 
       def to_s = ram.to_s

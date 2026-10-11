@@ -35,6 +35,19 @@ module Badline
       end
 
       # A machine built this way, at power-on.
+      # The model, the SID and the mode by name, in a keyed snapshot module.
+      def write_fields(out)
+        out.text("model", model).text("sid_model", sid_model.to_s).text("mode", mode.to_s)
+      end
+
+      def self.read_fields(input)
+        model = input.choice("model", C128::Model::ALL.map(&:name), "c128")
+        sid = input.choice("sid_model", SID_MODELS.map(&:to_s), "mos6581")
+        mode = input.choice("mode", MODES.map(&:to_s), "c64")
+        new(model:, sid_model: SID_MODELS.find { |name| name.to_s == sid } || :mos6581,
+            mode: MODES.find { |name| name.to_s == mode } || :c64)
+      end
+
       def build = C128.new(model:, sid_model:, mode:)
 
       def to_s = [model, sid_model, mode].join(" with a ")
