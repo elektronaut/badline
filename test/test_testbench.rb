@@ -524,6 +524,70 @@ class TestTestbenchVic20 < Minitest::Test
   end
 end
 
+class TestTestbenchPlus4 < Minitest::Test
+  # 10 POKE64975,0, which reports a pass through $FDCF.
+  REPORTS_PASS = [0x01, 0x10, 0x0e, 0x10, 0x0a, 0x00, 0x97, *"64975,0".bytes, 0x00, 0x00, 0x00].freeze
+
+  # Signs itself as module 1 with CBM at $8006, which the KERNAL calls at
+  # reset, and reports a pass: LDA #$00, STA $FDCF, JMP to itself.
+  AUTOSTART = [0x4c, 0x0a, 0x80, 0x4c, 0x0a, 0x80, 0x01, 0x43, 0x42, 0x4d,
+               0xa9, 0x00, 0x8d, 0xcf, 0xfd, 0x4c, 0x0f, 0x80].freeze
+
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), REPORTS_PASS.pack("C*"))
+    rom = AUTOSTART + Array.new(0x1000 - AUTOSTART.length, 0xea)
+    header = "PLUS4 CARTRIDGE ".b + [0x40, 0x0200, 0, 0, 0, 0].pack("NnnCCCx5") + ["Generic"].pack("a32")
+    chip = ["CHIP", 0x10 + rom.length, 0, 0, 0x8000, rom.length].pack("a4Nn4") + rom.pack("C*")
+    File.binwrite(File.join(@dir, "cart.crt"), header + chip)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(options, family: :plus4, prg: "t.prg", type: "exitcode")
+    Testbench::Plus4Testlist.parse("#{@dir}/,#{prg},#{type},1000000,#{options}", family)
+  end
+
+  def test_runs_a_row_on_the_family_asked_for
+    assert_equal %i[plus4 c16], [parse("").family, parse("", family: :c16).family]
+    refute_predicate Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000"), :plus4?
+  end
+
+  def test_picks_the_ntsc_board_for_ted_ntsc
+    assert_equal %w[plus4 c16ntsc], [parse("").plus4_model, parse("ted-ntsc", family: :c16).plus4_model]
+  end
+
+  def test_takes_only_exitcode_rows
+    assert_nil parse("", type: "screenshot")
+    assert_nil parse("", type: "interactive")
+  end
+
+  def test_hands_the_engine_its_model
+    assert Testbench::Engine.spec(parse("", family: :c16)).end_with?("\t#{@dir}\tc16\n")
+  end
+
+  def test_runs_a_program_from_the_start_of_basic
+    test = parse("")
+
+    assert_equal 0, test.run_plus4(test.plus4_machine).first
+  end
+
+  def test_starts_a_cartridge_from_power_on
+    test = parse("mountcrt:cart.crt", prg: "")
+    machine = test.plus4_machine
+
+    assert_equal [0, 0], [machine.cycles, test.run_plus4(machine).first]
+  end
+
+  def test_reads_the_text_screen_at_0c00
+    machine = Testbench.plus4_machine("c16", true)
+
+    assert_equal " commodore basic v3.5 12277 bytes free", Testbench.plus4_screen_text(machine)[1].rstrip
+  end
+end
+
 class TestTestbenchC128 < Minitest::Test
   def parse(options, dir: "../VICII/border", prg: "t.prg", type: "screenshot")
     Testbench::C128Testlist.parse("#{dir}/,#{prg},#{type},1000,#{options}")
@@ -1072,6 +1136,7 @@ class TestTestbenchEngine < Minitest::Test
     def load_name = ""
     def vic20? = false
     def c128? = false
+    def plus4? = false
   end
 
   def setup

@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       harnesses:
-        description: "The harnesses the matrix runs, space-separated, as `rake ci:harnesses` prints them"
+        description: "The harnesses the matrix runs, a JSON array as `rake ci:harnesses` prints it"
         required: true
         type: string
       spinel-ref:
@@ -26,21 +26,13 @@ on:
 permissions:
   contents: read
 jobs:
-  # Every harness the shards run, built once and cached on the Spinel
-  # commit and a hash of every source Spinel reads, so the shards restore
-  # the binaries rather than each building its own. Only binaries are
-  # cached, never a suite's verdict.
-  harnesses:
-    name: Harnesses
+  spinel:
+    name: Spinel compiler
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       SPINEL_REF: ${{ inputs.spinel-ref }}
-    outputs:
-      key: ${{ steps.key.outputs.key }}
     steps:
-      - uses: actions/checkout@v6.1.0
-      - uses: ./.github/actions/setup
       - name: Locate Spinel
         run: echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
       - name: Cache Spinel
@@ -56,45 +48,62 @@ jobs:
           git -C "$SPINEL_DIR" checkout --quiet "$SPINEL_REF"
           make -C "$SPINEL_DIR" deps
           make -C "$SPINEL_DIR" -j"$(nproc)"
-      - name: Put Spinel on PATH
-        run: echo "$SPINEL_DIR/bin" >> "$GITHUB_PATH"
-      # A key per set of harnesses, falling back to any set built from the
-      # same sources, whose binaries are just as good.
-      - name: Key the harnesses
-        id: key
-        env:
-          HARNESSES: ${{ inputs.harnesses }}
-          SOURCES: ${{ hashFiles('lib/**', 'spinel/**', 'test/support/**') }}
-        run: |
-          prefix="harnesses-$RUNNER_OS-$RUNNER_ARCH-$SPINEL_REF-$SOURCES-"
-          set=$(tr ' ' '\n' <<< "$HARNESSES" | sort | sha256sum | cut -c1-16)
-          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
-          echo "key=$prefix$set" >> "$GITHUB_OUTPUT"
-      - name: Cache the harnesses
+
+  # Each harness the shards run, built once in a job of its own and cached
+  # on its name, the Spinel commit and a hash of every source Spinel reads.
+  # The job hands the binary on as an artifact of the run, and each shard
+  # downloads the ones it runs rather than building its own. Only binaries
+  # are cached, never a suite's verdict.
+  harnesses:
+    name: "Harness (${{ matrix.harness }})"
+    needs: spinel
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: ${{ fromJSON(inputs.harnesses) }}
+    env:
+      SPINEL_REF: ${{ inputs.spinel-ref }}
+      HARNESS: ${{ matrix.harness }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+      - name: Cache the harness
+        id: cache
         uses: actions/cache@v6
         with:
-          path: tmp/spinel
-          key: ${{ steps.key.outputs.key }}
-          restore-keys: ${{ steps.key.outputs.prefix }}
-      # Two builds at a time, since Spinel splits a large unit's C compile
-      # over the cores itself.
-      - name: Build the harnesses
-        env:
-          HARNESSES: ${{ inputs.harnesses }}
+          path: tmp/spinel/${{ matrix.harness }}
+          key: >-
+            harness-${{ matrix.harness }}-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}-${{
+            hashFiles('lib/**', 'spinel/**', 'test/support/**') }}
+      - uses: ./.github/actions/setup
+        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Locate Spinel
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
+          echo "$HOME/spinel/bin" >> "$GITHUB_PATH"
+      - name: Restore Spinel
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.SPINEL_DIR }}
+          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
+          fail-on-cache-miss: true
+      - name: Build the harness
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           start=$SECONDS
-          missing=""
-          for harness in $HARNESSES; do
-            [ -x "tmp/spinel/$harness" ] || missing="${missing:+$missing }$harness"
-          done
-          echo "Building: ${missing:-nothing}"
-          if [ -n "$missing" ]; then
-            tr ' ' '\n' <<< "$missing" | xargs -P 2 -I{} env HARNESS={} \
-              bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: [ENV.fetch("HARNESS")])'
-          fi
-          printf '| Step | Time |\n| --- | --- |\n| Build %s | %d s |\n' "${missing:-nothing}" \
-            "$((SECONDS - start))" >> "$GITHUB_STEP_SUMMARY"
-          for harness in $HARNESSES; do test -x "tmp/spinel/$harness"; done
+          bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: [ENV.fetch("HARNESS")])'
+          printf '| Step | Time |\n| --- | --- |\n| Build %s | %d s |\n' "$HARNESS" "$((SECONDS - start))" \
+            >> "$GITHUB_STEP_SUMMARY"
+      - name: Hand the harness on
+        uses: actions/upload-artifact@v7
+        with:
+          name: harness-${{ matrix.harness }}
+          path: tmp/spinel/${{ matrix.harness }}
+          retention-days: 1
+          if-no-files-found: error
 
   # The shards are balanced by recent run times to about 10 minutes each.
   # testbench-irqdma is split by filter, testbench-drive by filter into its
@@ -117,12 +126,29 @@ jobs:
         run: |
           echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
           printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
-      - name: Restore the harnesses
-        uses: actions/cache/restore@v6
+      # The artifact pattern names the shard's harnesses, in braces when
+      # there are several.
+      - name: Pick the harnesses
+        id: pick
+        env:
+          HARNESSES: ${{ matrix.harnesses }}
+        run: |
+          read -ra names <<< "$HARNESSES"
+          if [ "${#names[@]}" -eq 1 ]; then
+            echo "pattern=harness-${names[0]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pattern=harness-{$(IFS=,; echo "${names[*]}")}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download the harnesses
+        uses: actions/download-artifact@v8
         with:
+          pattern: ${{ steps.pick.outputs.pattern }}
           path: tmp/spinel
-          key: ${{ needs.harnesses.outputs.key }}
-          fail-on-cache-miss: true
+          merge-multiple: true
+      - name: Make the harnesses executable
+        env:
+          HARNESSES: ${{ matrix.harnesses }}
+        run: for harness in $HARNESSES; do chmod +x "tmp/spinel/$harness"; done
       - name: Cache 65x02 test fixtures
         if: contains(matrix.harnesses, 'cpu_tests')
         uses: actions/cache@v6

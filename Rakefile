@@ -201,10 +201,11 @@ namespace :ci do
     puts args[:format] == "compact" ? JSON.generate(matrix) : JSON.pretty_generate(matrix)
   end
 
-  desc "Print the Spinel harnesses the suites matrix runs, space-separated, for CI to build once. " \
+  desc "Print the Spinel harnesses the suites matrix runs as a JSON array, for CI to build a job each. " \
        "CHANGED_FILES keeps those of the suites the changes reach, as ci:matrix does"
   task :harnesses do
-    puts CIMatrix.all_harnesses(CIMatrix.matrix(CIMatrix.reached(ENV.fetch("CHANGED_FILES", nil)))).join(" ")
+    require "json"
+    puts JSON.generate(CIMatrix.all_harnesses(CIMatrix.matrix(CIMatrix.reached(ENV.fetch("CHANGED_FILES", nil)))))
   end
 end
 

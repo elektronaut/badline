@@ -169,6 +169,24 @@ Recorded output of the headless hardware suites, one file per suite:
   - `VIC20/via_sr`: shift register modes `04`, `08`, `14` and `18` in all
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
     plain and `exp` variants.
+- `testbench-plus4.txt` — the same runner with `--plus4`, over the
+  `exitcode` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
+  each on a PAL Plus/4 with a 1551's TCBM interface plugged in at
+  `$FEC0`-`$FEFF`, as xplus4 starts with a 1551 as drive 8, and nothing
+  answering on the drive's side. The program goes to the start of BASIC
+  at TXTTAB, with VARTAB and EAL set as LOAD sets them, and `RUN` is typed
+  once the machine has booted. A `mountcrt` row starts from power-on with
+  the cartridge's ROM chips in cartridge 1's slots. Tests report through
+  `$FDCF`. The screenshot rows wait for the TED's video. On Spinel the
+  rows run on `spinel/plus4_testbench.rb`. The FAIL row:
+  - `Plus4/openio/outrun2.prg`, `$ff`: it reads unconnected I/O at `$FDD0`
+    256 times and wants a different byte at least once. On a real machine
+    the TED's fetches in the first half of a cycle leave their bytes on
+    the bus, and badline's TED fetches nothing until it paints a picture,
+    so every read finds the same byte. xplus4 passes it.
+- `testbench-c16.txt` — the same rows with `--c16`, on a 16K PAL C16.
+  `memory-expansions/c16-ram-emd.prg` fails there too, `$ff`, as on
+  xplus4's 16K C16.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
@@ -413,9 +431,10 @@ machine, only in `testbench-drean`.
 
 `testbench`, `lorenz` and `sid` are the main set, which `rake regression`
 runs. The `testbench-*` suites, `sid-8580` and `drive-scenarios` are
-opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs every
-suite on the Spinel build on every pull request and every push to `main`,
-and fails on any changed row. The Regression workflow runs any suite but
+opt-in there: run them by name. CI (`.github/workflows/ci.yml`) runs the
+suites a pull request's changes can reach (`test/support/ci_reach.rb`) on
+the Spinel build, and fails on any changed row. `.github/workflows/suites.yml`
+runs every suite on `main` every two hours. The Regression workflow runs any suite but
 `testbench-drive` on CRuby, started by hand from the Actions tab, to check
 that CRuby and Spinel agree.
 
@@ -445,6 +464,8 @@ what the suite cost before it was sharded:
 | `testbench-c128c64` | 413 | — | 74 min | 30 min |
 | `testbench-c128` | 97 | — | 4 min | 1 min |
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |
+| `testbench-plus4` | 8 | — | 0.3 min | 0.3 min |
+| `testbench-c16` | 8 | — | 0.1 min | 0.1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

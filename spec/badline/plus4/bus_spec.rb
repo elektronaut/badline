@@ -68,6 +68,41 @@ describe Badline::Plus4::Bus do
     expect(bus.peek(0xfd01)).to eq(0x10)
   end
 
+  it "calls the debug register's handler with a byte written to $FDCF" do
+    codes = []
+    bus.install_debug_register { |code| codes << code }
+    bus.poke(0xfdcf, 0x42)
+    expect(codes).to eq([0x42])
+  end
+
+  it "leaves $FEC0-$FEFF open without a TCBM interface" do
+    bus.poke(0xfef3, 0xff)
+    bus.poke(0xfef0, 0x55)
+    bus.poke(0x0002, 0x66)
+    expect(bus.peek(0xfef0)).to eq(0x66)
+  end
+
+  context "with a TCBM interface" do
+    let(:machine) { Badline::Plus4.new(tcbm: true) }
+
+    it "puts drive 8's TIA at $FEE0 and drive 9's at $FEC0" do
+      bus.poke(0xfef3, 0xff)
+      bus.poke(0xfef0, 0x55)
+      bus.poke(0xfec3, 0xff)
+      bus.poke(0xfec0, 0x66)
+      expect([machine.tias[0].ports[0], machine.tias[1].ports[0]]).to eq([0x55, 0x66])
+    end
+  end
+
+  describe "a cartridge" do
+    before { bus.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11] * 0x1000)]) }
+
+    it "goes in cartridge 1's low slot, repeated through the bank" do
+      bus.poke(0xfdd2, 0)
+      expect([bus.peek(0x8000), bus.peek(0xbfff)]).to eq([0x11, 0x11])
+    end
+  end
+
   context "with 16K of RAM" do
     let(:machine) { Badline::Plus4.new(model: "c16") }
 

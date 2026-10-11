@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/chips/ted"
+require "badline/chips/tia"
 require "badline/plus4/model"
 require "badline/plus4/cpu"
 require "badline/plus4/cpu_port"
@@ -28,7 +29,7 @@ module Badline
     # Plus/4, 126,000 on an NTSC one and sooner on a C16.
     INIT_THRESHOLD = 200_000
 
-    attr_reader :model, :bus, :cpu, :ted, :port, :keyboard, :keyboard_port, :acia, :user_port, :datasette,
+    attr_reader :model, :bus, :cpu, :ted, :port, :keyboard, :keyboard_port, :acia, :user_port, :datasette, :tias,
                 :iec_bus, :cycles, :ram_kb
 
     def family = :plus4
@@ -43,8 +44,10 @@ module Badline
     def poke(addr, value) = @bus.poke(addr, value)
 
     # +model+ names one of Model::ALL, or c116 for the C16, and +ram+ the
-    # RAM in K, one of Model::RAM_SIZES, when not the model's own.
-    def initialize(model: "plus4", ram: nil, debug: false)
+    # RAM in K, one of Model::RAM_SIZES, when not the model's own. +tcbm+
+    # plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF, with no
+    # drive answering on the other side.
+    def initialize(model: "plus4", ram: nil, tcbm: false, debug: false)
       @model = Model.named(model)
       @ram_kb = ram || @model.ram_kb
       raise ArgumentError, "no Plus/4 RAM size of #{@ram_kb}K" unless Model::RAM_SIZES.include?(@ram_kb)
@@ -61,6 +64,8 @@ module Badline
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port)
       @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
+      @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
+      @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
@@ -95,6 +100,7 @@ module Badline
       @keyboard_port.reset!
       @user_port&.reset!
       @acia&.reset!
+      @tias.each(&:reset!)
       @bus.reset!
       @cpu.reset!
     end
@@ -105,6 +111,18 @@ module Badline
       @bus.power_on!
       @ted.power_on!
       reset!
+    end
+
+    # Calls the block with the exit code a VICE testprog writes to $FDCF.
+    def install_debug_register(&) = @bus.install_debug_register(&)
+
+    # Puts a cartridge's ROM chips in cartridge 1's slots (Bus#attach_cartridge)
+    # and switches the machine off and on, as a cartridge goes in with the
+    # power off. The KERNAL starts it at reset when it signs itself with CBM
+    # at $8007.
+    def attach_cartridge(chips)
+      @bus.attach_cartridge(chips)
+      power_cycle!
     end
 
     # Stores a PRG's bytes from its load address on, into RAM, and returns
