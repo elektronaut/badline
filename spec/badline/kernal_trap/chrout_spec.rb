@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::ChroutTrap do
+describe Badline::KernalTrap::Chrout do
   let(:computer) { Badline::C64.new }
   let(:capture) { computer.capture_output }
 

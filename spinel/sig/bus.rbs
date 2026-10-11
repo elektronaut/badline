@@ -26,6 +26,11 @@ module Badline
         def peek: (Integer) -> Integer
         def poke: (Integer, Integer) -> void
       end
+
+      class DebugRegister
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
     end
 
     class REU
@@ -158,11 +163,6 @@ module Badline
         def cursor_shown?: (Integer, Integer) -> bool
       end
     end
-  end
-
-  class DebugRegister
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
   end
 
   class Vic20

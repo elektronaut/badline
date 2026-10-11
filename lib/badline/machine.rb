@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/machine/clocking"
+require "badline/machine/keyboard_buffer"
 
 module Badline
   # = Machine

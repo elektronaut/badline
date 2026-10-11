@@ -6,6 +6,7 @@ require "badline/c64/bus/extra_sids"
 require "badline/c64/bus/pla"
 require "badline/c64/bus/roms"
 require "badline/c64/bus/fittings"
+require "badline/c64/bus/debug_register"
 
 module Badline
   # Memory layout:

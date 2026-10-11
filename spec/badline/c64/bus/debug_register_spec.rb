@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::DebugRegister do
+describe Badline::C64::Bus::DebugRegister do
   let(:address_bus) { Badline::C64::Bus.new }
   let(:writes) { [] }
 

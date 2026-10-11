@@ -48,11 +48,11 @@ module Badline
       # C128 mode BASIC 7.0's.
       def feed_keyboard
         c64 = mode == :c64
-        count = c64 ? KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
+        count = c64 ? Machine::KeyboardBuffer::COUNT : C128_KEYBOARD_COUNT
         return unless ram.peek(count).zero?
 
-        chunk = @pending_keys.shift(KeyboardBuffer::CAPACITY)
-        ram.write(c64 ? KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER, chunk)
+        chunk = @pending_keys.shift(Machine::KeyboardBuffer::CAPACITY)
+        ram.write(c64 ? Machine::KeyboardBuffer::ADDRESS : C128_KEYBOARD_BUFFER, chunk)
         ram.poke(count, chunk.length)
         @pending_keys = nil if @pending_keys.empty?
       end
