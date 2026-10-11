@@ -26,6 +26,18 @@ module Badline
         @layout.kernal_mapped?(@bus)
       end
 
+      def zero_page = @layout.zero_page
+
+      # The two-byte value whose low byte is at +address+.
+      def peek_word(address)
+        uint16(@bus.peek(address), @bus.peek(address + 1))
+      end
+
+      def poke_word(address, value)
+        @bus.poke(address, low_byte(value))
+        @bus.poke(address + 1, high_byte(value))
+      end
+
       # The ROM times each byte on the serial bus with a one-shot timer
       # (Layout#time_serial_byte): ISOUR_TIMEOUT for a byte sent,
       # ACPTR_TIMEOUT for one received.

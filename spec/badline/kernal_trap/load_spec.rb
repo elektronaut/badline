@@ -437,4 +437,32 @@ describe Badline::KernalTrap::Load do
     specify { expect(ram.peek(0xc000)).to eq(Badline::C64::Bus::RAM_POWER_ON[0xc000]) }
     specify { expect(computer.cpu.stack_pointer).to eq(0xfd) }
   end
+
+  describe "with the file variables where another KERNAL keeps them" do
+    let(:zero_page) do
+      Badline::KernalTrap::C64_ZERO_PAGE.with(status: 0x02, verify: 0x03, filename_length: 0x04,
+                                              secondary_address: 0x05, device: 0x06, filename_address: 0x07,
+                                              end_address: 0x09, load_address: 0x0b)
+    end
+
+    before do
+      layout = Badline::KernalTrap::C64_LAYOUT.with(zero_page:)
+      dos = Badline::KernalTrap::DOS.new(Badline::Storage::HostDirectory.new(dir))
+      ram.write(0x0340, "DATA".bytes)
+      ram.write(0x02, [0xff, 0x00, 4, 0, 8, 0x40, 0x03, 0, 0, 0x00, 0xc1])
+      described_class.new(cpu: computer.cpu, bus: computer.address_bus, layout:, dos:).call
+    end
+
+    it "loads to the address the layout's MEMUSS holds" do
+      expect(ram.read(0xc100, 2)).to eq([0xaa, 0xbb])
+    end
+
+    it "leaves the end address in the layout's EAL" do
+      expect(ram.read(0x09, 2)).to eq([0x02, 0xc1])
+    end
+
+    it "sets the layout's ST" do
+      expect(ram.peek(0x02)).to eq(0x40)
+    end
+  end
 end

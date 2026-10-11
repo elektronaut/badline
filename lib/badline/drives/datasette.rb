@@ -7,7 +7,9 @@ module Badline
     # The 1530 datasette. Plays a pulse stream into CIA 1's FLAG pin while the
     # motor runs with a key pressed, and reports the keys through the cassette
     # sense line on the $01 port. With RECORD down too, it records the
-    # machine's write line onto the tape instead.
+    # machine's write line onto the tape instead. Built with +level: true+,
+    # it also times the read line's level, for a machine that reads that
+    # (#read_high?) rather than the falling edges.
     class Datasette
       include SavedState
 
@@ -17,8 +19,9 @@ module Badline
       attr_reader :tape
       attr_writer :motor
 
-      def initialize(tape = nil)
+      def initialize(tape = nil, level: false)
         @tape = tape
+        @level = level
         @connected = true
         @playing = false
         @recording = false
@@ -26,6 +29,7 @@ module Badline
         @since = 0
         @motor = false
         @countdown = 0
+        @rise_at = 0
         @flag_handler = nil
         @sense_handler = nil
       end
@@ -64,6 +68,7 @@ module Badline
       def rewind
         @tape&.rewind
         @countdown = 0
+        @rise_at = 0
       end
 
       def play! = press(true)
@@ -102,11 +107,22 @@ module Badline
 
       def running? = @playing && @motor && !@tape.nil?
 
+      # The tape read line's level, on a datasette built with +level: true+.
+      # Each pulse holds it low for its first half and high for its second,
+      # up to the falling edge that ends it. A version 2 tape times each
+      # half, and a version 0 or 1 tape's pulse plays as two equal halves.
+      # It reads high while the tape isn't playing.
+      def read_high?
+        return true unless running? && !@recording
+
+        @countdown.positive? && @countdown <= @rise_at
+      end
+
       def cycle!
         return unless running?
         return @since += 1 if @recording
 
-        @countdown = @tape.next_pulse.to_i if @countdown.zero?
+        next_pulse if @countdown.zero?
         return if @countdown.zero?
 
         @countdown -= 1
@@ -119,6 +135,20 @@ module Badline
       end
 
       private
+
+      def next_pulse
+        return @countdown = @tape.next_pulse.to_i unless @level
+        return next_half_waves if @tape.half_waves?
+
+        @countdown = @tape.next_pulse.to_i
+        @rise_at = @countdown / 2
+      end
+
+      def next_half_waves
+        first = @tape.next_half_wave.to_i
+        @rise_at = @tape.next_half_wave.to_i
+        @countdown = first + @rise_at
+      end
 
       def press(down)
         return if down == @playing || !@connected
