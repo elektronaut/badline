@@ -102,4 +102,23 @@ describe Badline::Plus4 do
     machine.poke(0xff08, 0xfd)
     expect(machine.peek(0xff08)).to eq(0xfb)
   end
+
+  it "shows the TED's picture" do
+    machine = described_class.new
+    expect(machine.video).to be(machine.ted)
+  end
+
+  it "runs frames of 57 cycles by 312 lines at the TED's PAL clock" do
+    timing = described_class.new(model: "c16").timing
+    expect([timing.clock_hz, timing.cycles_per_line, timing.lines_per_frame]).to eq([886_724, 57, 312])
+  end
+
+  it "crops xplus4's view on PAL, from the top border at the frame's end" do
+    expect(described_class.new.timing.crop).to eq([0, 276, 384, 288])
+  end
+
+  it "runs frames of 262 lines and crops xplus4's view on NTSC" do
+    timing = described_class.new(model: "plus4ntsc").timing
+    expect([timing.clock_hz, timing.lines_per_frame, timing.crop]).to eq([894_886, 262, [0, 248, 384, 242]])
+  end
 end

@@ -2,9 +2,9 @@
 
 module Badline
   module Frontend
-    # The machine's sound source, the C64's SID or the VIC-20's VIC, on
-    # SDL's audio queue, as mono signed 16-bit samples. Both take
-    # #record(rate:, clock_hz:) and #drain_samples.
+    # The machine's sound source, the C64's SID, the VIC-20's VIC or the
+    # Plus/4's TED, on SDL's audio queue, as mono signed 16-bit samples.
+    # Each takes #record(rate:, clock_hz:) and #drain_samples.
     # Once the device plays, it is the clock: #wait holds each frame until
     # the queue is down to `AHEAD`, so the machine runs at the device's pace.
     #
@@ -16,7 +16,7 @@ module Badline
     #
     # Each frame's samples go to a mono AudioDevice. The chip's cycles are
     # converted at `clock_hz`, the machine's clock, so an NTSC or Drean
-    # machine plays at its own pitch.
+    # machine plays at its own pitch, and the TED's at its single clock.
     class Sound
       RATE = 44_100
       AHEAD = 0.08

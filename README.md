@@ -272,6 +272,21 @@ types `"`. These keys have no same-named host key:
 | `+` / `*` | Keypad `+` / Keypad `*` |
 | `RESTORE` | `Page Up` |
 
+The Plus/4 and the C16 keep the C64's host keys for the keys they share,
+and put their own here:
+
+| Plus/4 | Host |
+|--------|------|
+| `ESC` | `Escape` |
+| `RUN/STOP` | `Page Down` |
+| `F1` / `F2` / `F3` | `F1` / `F2` / `F3` |
+| `HELP` | `F4`, `Insert` or `Help` |
+| `CRSR ←` / `→` / `↑` / `↓` | `Left` / `Right` / `Up` / `Down` |
+| `SHIFT` | `Left Shift` or `Right Shift` |
+
+They have no `RESTORE`, `←` or `↑` key, so `Page Up`, `` ` `` and `]`
+press nothing.
+
 `Tab` switches the keys between the C64 keyboard and the joysticks. The
 window title shows where they go, and any device plugged into a control
 port:

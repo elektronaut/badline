@@ -87,4 +87,14 @@ describe Badline::Frontend::Screens do
       expect(screens.vdc_shown?).to be(false)
     end
   end
+
+  context "with a Plus/4" do
+    let(:computer) { Badline::Plus4.new }
+
+    it "shows the frame's first line below its top border, the frame's end" do
+      computer.ted.display.fill(0x71, 0, 384)
+      white = Badline::Chips::TED::PALETTE[0x71] * 0x1_0000_0001
+      expect(screens.screen.pixels[(312 - 276) * 192, 192]).to eq([white] * 192)
+    end
+  end
 end

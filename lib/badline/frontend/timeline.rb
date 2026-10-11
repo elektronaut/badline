@@ -38,17 +38,30 @@ module Badline
       # sound. An empty one is its first.
       def self.page?(name) = name.empty? || PauseMenu::PAGES.any? { |page| page.to_s == name }
 
+      # Whether the family's machine has a key of the name. The Plus/4 has
+      # no RESTORE.
       def self.key?(name, family)
-        name == "restore" || (family == :c128 && LOCKS.include?(name)) ||
+        (name == "restore" && family != :plus4) || (family == :c128 && LOCKS.include?(name)) ||
           !keyboard_key(name, family).nil? || !joystick_direction(name).nil?
       end
 
       # The family's Keyboard key for a name such as space, return or a,
-      # or on the C128 esc or keypad1.
+      # on the C128 esc or keypad1, or on the Plus/4 help or crsr_up. The
+      # shifted cursor keys, such as cursor_up, are the C64's and the
+      # C128's.
       def self.keyboard_key(name, family)
-        matrix = family == :c128 ? C128::KEYBOARD_MATRIX : Input::Keyboard::C64_MATRIX
-        key = matrix.flatten.find { |candidate| candidate.to_s == name }
-        key.nil? ? Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name } : key
+        key = keyboard_matrix(family).flatten.find { |candidate| candidate.to_s == name }
+        return key unless key.nil? && family != :plus4
+
+        Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name }
+      end
+
+      def self.keyboard_matrix(family)
+        case family
+        when :c128 then C128::KEYBOARD_MATRIX
+        when :plus4 then Plus4::KeyboardPort::MATRIX
+        else Input::Keyboard::C64_MATRIX
+        end
       end
 
       # The direction of joy1-NAME or joy2-NAME, such as up or fire.

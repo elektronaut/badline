@@ -7,7 +7,8 @@ require "badline/frontend"
 describe Badline::Frontend::Screen do
   def screen(machine)
     timing = machine.timing
-    described_class.new(machine.video, timing.crop, pixel_width: timing.pixel_width)
+    described_class.new(machine.video, timing.crop, pixel_width: timing.pixel_width,
+                                                    frame_lines: timing.lines_per_frame)
   end
 
   def size(machine) = screen(machine).then { |built| [built.width, built.height, built.row_bytes] }
@@ -34,6 +35,31 @@ describe Badline::Frontend::Screen do
 
   it "is as many window pixels wide as the VIC-20's pixels are wide" do
     expect(described_class.new(Badline::Vic20.new.video, [0, 28, 284, 284], pixel_width: 2).window_width).to eq(568)
+  end
+
+  # A TED's display 4 pixels wide and 4 lines high, line N in the
+  # palette index N * 0x11, with every line changed.
+  def ted_raster
+    instance_double(Badline::Chips::TED, width: 4, palette: Badline::Chips::TED::PALETTE,
+                                         display: Array.new(16) { |pixel| (pixel / 4) * 0x11 },
+                                         dirty_lines: Array.new(4, true), clear_dirty_lines!: nil)
+  end
+
+  it "is xplus4's 384 by 288 view on a PAL Plus/4" do
+    expect(size(Badline::Plus4.new)).to eq([384, 288, 384 * 4])
+  end
+
+  it "keeps PAL's C64 height for an NTSC Plus/4" do
+    expect(size(Badline::Plus4.new(model: "plus4ntsc"))).to eq([384, 272, 384 * 4])
+  end
+
+  describe "a crop past the frame's last line" do
+    subject(:built) { described_class.new(ted_raster, [0, 2, 4, 4], frame_lines: 4) }
+
+    it "runs on from the frame's first line, in the TED's 128 colours" do
+      rows = Array.new(4) { |row| built.pixels[((row + 134) * 192) + 95] }
+      expect(rows).to eq([0x22, 0x33, 0x00, 0x11].map { |index| Badline::Chips::TED::PALETTE[index] * 0x1_0000_0001 })
+    end
   end
 
   describe "a raster of two dots to a window pixel" do

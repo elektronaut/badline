@@ -114,4 +114,42 @@ describe Badline::Frontend::MenuPages do
       expect(buttons).to have_received(:row).with(anything, "QUICKSAVE", :quicksave_now, anything)
     end
   end
+
+  describe "with a Plus/4" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::Plus4.new }
+    let(:controls) { Badline::Frontend::Controls.new(computer) }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+    let(:sound) { instance_double(Badline::Frontend::Sound, on?: true, muted?: false) }
+
+    it "names its keyboard on the keys' toggle" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[PLUS/4 JOYSTICK], anything, 0])
+    end
+
+    it "offers no mouse or paddles" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).once
+    end
+
+    it "names the joystick each set of keys drives" do
+      pages.perform(:keys_joystick)
+      pages.perform(:swap)
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "JOYSTICK 1", anything)
+    end
+
+    it "swaps the joysticks the keys drive" do
+      pages.perform(:keys_joystick)
+      pages.perform(:swap)
+      expect(controls.arrows_port).to eq(1)
+    end
+
+    it "leaves the SID's model out of the sound" do
+      pages.draw(:sound, 0, 0)
+      expect(buttons).to have_received(:toggle).once
+    end
+  end
 end
