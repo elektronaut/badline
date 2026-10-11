@@ -5,6 +5,7 @@ require "badline/chips/vdc/window"
 require "badline/chips/vdc/painter"
 require "badline/chips/vdc/raster"
 require "badline/chips/vdc/saved_state"
+require "badline/chips/vdc/keyed_parts"
 
 module Badline
   module Chips

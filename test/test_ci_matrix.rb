@@ -62,6 +62,26 @@ class TestCIMatrix < Minitest::Test
     refute_includes CIMatrix.missing_suites({}), "testbench-c128-zex"
   end
 
+  def test_the_harnesses_are_listed_once_each
+    harnesses = CIMatrix.all_harnesses([{ "harnesses" => "boot sid" }, { "harnesses" => "testbench boot" }])
+
+    assert_equal %w[boot sid testbench], harnesses
+  end
+
+  def test_the_scheduled_run_runs_every_two_hours
+    assert_equal [{ "cron" => "17 */2 * * *" }], workflow("suites.yml").fetch(true).fetch("schedule")
+  end
+
+  def test_the_scheduled_run_runs_four_shards_at_a_time
+    assert_equal 4, workflow("suites.yml").dig("jobs", "suites", "with", "max-parallel")
+  end
+
+  def test_ci_and_the_scheduled_run_share_the_shards
+    callers = [workflow("ci.yml"), workflow("suites.yml")].map { |each| each.dig("jobs", "suites", "uses") }
+
+    assert_equal ["./.github/workflows/suite-shards.yml"], callers.uniq
+  end
+
   def test_testbench_all_runs_every_testbench_suite
     assert_equal Suites::SPINEL_TESTBENCH_SUITES, CIMatrix.runs("spinel:testbench[all]").map(&:first)
   end

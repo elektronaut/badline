@@ -22,8 +22,9 @@ jobs:
   # bumps for a release, can't move a spec or a suite, so the jobs after
   # Rubocop skip it. One that changes only specs, tests or bin/ tools
   # can't move the native build, so that job skips it. The suites matrix
-  # keeps the suites the changes reach (CIReach). Pushes to main always run
-  # everything.
+  # keeps the suites the changes reach (CIReach). Pushes to main run every
+  # job, with only the Spinel checks for suites: suites.yml runs every suite
+  # on main every two hours.
   changes:
     name: Changes
     runs-on: ubuntu-latest
@@ -338,7 +339,8 @@ jobs:
   # shards leave a suite or a baseline row out, or run one twice. On a pull
   # request it keeps only the suites the changed files reach, which
   # test/support/ci_reach.rb maps, and the suites job skips when that is
-  # none.
+  # none. On a push to main it keeps only the Spinel checks, and builds
+  # every harness, so the scheduled run in suites.yml finds them cached.
   shards:
     name: Suites matrix
     needs: changes
@@ -347,7 +349,9 @@ jobs:
     timeout-minutes: 10
     outputs:
       matrix: ${{ steps.derive.outputs.matrix }}
+      harnesses: ${{ steps.derive.outputs.harnesses }}
       any: ${{ steps.derive.outputs.any }}
+      spinel-ref: ${{ env.SPINEL_REF }}
     steps:
       - uses: actions/checkout@v6.1.0
         with:
@@ -361,107 +365,32 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             git diff --name-only "$BASE"...HEAD > "$RUNNER_TEMP/changed"
             export CHANGED_FILES="$RUNNER_TEMP/changed"
+            matrix=$(bundle exec rake "ci:matrix[compact]")
+          else
+            matrix=$(bundle exec rake "ci:matrix[compact,checks]")
           fi
-          matrix=$(bundle exec rake "ci:matrix[compact]")
+          harnesses=$(bundle exec rake ci:harnesses)
           echo "$matrix"
+          echo "Harnesses: $harnesses"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "harnesses=$harnesses" >> "$GITHUB_OUTPUT"
           if [ "$matrix" = '{"include":[]}' ]; then
             echo "any=false" >> "$GITHUB_OUTPUT"
           else
             echo "any=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Every regression suite on the Spinel build, each compared against its
-  # baseline in test/baselines/. The shards are balanced by recent run
-  # times to about 10 minutes each. testbench-irqdma is split by filter,
-  # testbench-drive by filter into its viavarious rows and the rest, and
-  # lorenz by stretch. A runner has 2 cores with 2 threads each, so a
-  # Lorenz stretch runs nearly twice as fast beside one other as beside
-  # three.
+  # The matrix's suites on the Spinel build, each compared against its
+  # baseline in test/baselines/ (suite-shards.yml).
   suites:
-    name: "Suites (${{ matrix.shard }})"
+    name: Suites
     needs: [compiler, shards]
     if: needs.shards.outputs.any == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.shards.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v6.1.0
-      - uses: ./.github/actions/setup
-      - name: Locate Spinel
-        run: |
-          echo "SPINEL_DIR=$HOME/spinel" >> "$GITHUB_ENV"
-          echo "SHARDS=$(nproc)" >> "$GITHUB_ENV"
-          printf '| Step | Time |\n| --- | --- |\n' >> "$GITHUB_STEP_SUMMARY"
-      - name: Restore Spinel
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ env.SPINEL_DIR }}
-          key: spinel-${{ runner.os }}-${{ runner.arch }}-${{ env.SPINEL_REF }}
-          fail-on-cache-miss: true
-      - name: Put Spinel on PATH
-        run: echo "$SPINEL_DIR/bin" >> "$GITHUB_PATH"
-      - name: Cache 65x02 test fixtures
-        if: contains(matrix.harnesses, 'cpu_tests')
-        uses: actions/cache@v6
-        with:
-          path: vendor/65x02
-          key: 65x02-fixtures-6502-v1
-      - name: Cache Z80 test sample
-        if: contains(matrix.harnesses, 'z80_tests')
-        uses: actions/cache@v6
-        with:
-          path: vendor/z80-sample
-          key: z80-sample-ebe1875d-100
-      - name: Cache VICE-testprogs
-        uses: actions/cache@v6
-        with:
-          path: vendor/VICE-testprogs
-          key: vice-testprogs-v1
-      - name: Check out the vendored suites
-        run: bundle exec rake vendor:VICE-testprogs
-      # Every harness the shard's tasks run, built once here rather than
-      # once per task.
-      - name: Build the harnesses
-        env:
-          HARNESSES: ${{ matrix.harnesses }}
-        run: |
-          start=$SECONDS
-          bundle exec ruby -r ./spinel/check -e 'SpinelCheck.build("spinel", harnesses: ENV["HARNESSES"].split)'
-          echo "| Build $HARNESSES | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
-      # The testbench, SID and drive scenario tasks run SHARDS processes, set
-      # to the core count, and spinel:lorenz runs its stretches side by side. A task
-      # that fails leaves the next to run, and the step fails at the end.
-      - name: Run the suites
-        env:
-          # Each spinel:* task builds its harnesses first, running the
-          # compiler SPINEL names. /bin/true as the compiler exits 0 and
-          # prints nothing, so SpinelCheck.build counts each harness as
-          # built and leaves the binaries the step above built in place.
-          SPINEL: "true"
-          TASKS: ${{ matrix.tasks }}
-        run: |
-          set -f
-          status=0
-          for task in $TASKS; do
-            start=$SECONDS
-            bundle exec rake "$task" || status=1
-            echo "| $task | $((SECONDS - start)) s |" >> "$GITHUB_STEP_SUMMARY"
-          done
-          exit "$status"
-      - name: Upload run artifacts
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: suites-${{ matrix.shard }}
-          path: |
-            tmp/spinel/*.out
-            tmp/spinel/*.txt
-            tmp/regression
-            tmp/testbench
-          if-no-files-found: ignore
+    uses: ./.github/workflows/suite-shards.yml
+    with:
+      matrix: ${{ needs.shards.outputs.matrix }}
+      harnesses: ${{ needs.shards.outputs.harnesses }}
+      spinel-ref: ${{ needs.shards.outputs.spinel-ref }}
 
   # One check that passes only when every job above passed or was
   # skipped for a change that can't move it, so the required checks don't

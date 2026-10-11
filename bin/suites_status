@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# The command line .github/workflows/suites.yml and release.yml drive
+# SuitesStatus (test/support/suites_status.rb) through. Reads
+# GITHUB_REPOSITORY, and gh reads GH_TOKEN.
+#
+#   bin/suites_status start SHA EVENT RUN_URL
+#     Prints run=true and sets a pending `suites` status on SHA, or prints
+#     run=false when a scheduled tick finds SHA already has one.
+#   bin/suites_status report SHA RUN_ID RUN_URL MOVED_DIR
+#     Sets the status from the run's jobs, and opens, updates or closes the
+#     suites-red issue. Run from a checkout with main's history.
+#   bin/suites_status wait REF
+#     Waits for a final `suites` status on REF's commit, dispatching
+#     suites.yml on REF first if it has none, and fails unless it is green.
+
+require_relative "../test/support/suites_status"
+
+github = SuitesStatus::GitHub.new(ENV.fetch("GITHUB_REPOSITORY"))
+command, *args = ARGV
+
+case command
+when "start"
+  sha, event, run_url = args
+  run = SuitesStatus.start?(github, sha, event)
+  SuitesStatus.set_status(github, sha, "pending", "Running every suite", run_url) if run
+  puts "run=#{run}"
+when "report"
+  sha, run_id, run_url, moved_dir = args
+  jobs = github.get_all("repos/#{github.repo}/actions/runs/#{run_id}/jobs?per_page=100", "jobs")
+  verdict = SuitesStatus::Verdict.new(jobs, moved_dir)
+  puts "#{verdict.state}: #{verdict.description}"
+  SuitesStatus.set_status(github, sha, verdict.state, verdict.description, run_url)
+  case verdict.state
+  when "success" then SuitesStatus.close_issues(github, sha, run_url)
+  when "failure"
+    history = IO.popen(["git", "rev-list", "--first-parent", "--max-count=#{SuitesStatus::GREEN_SEARCH}",
+                        "#{sha}~1"], &:readlines).map(&:chomp)
+    green = SuitesStatus.last_green(github, history)
+    commits = green ? history.take_while { |each| each != green }.unshift(sha) : []
+    red = SuitesStatus::Red.new(sha:, run_url:, green:, commits:, pulls: SuitesStatus.pulls(github, commits),
+                                compare_url: "https://github.com/#{github.repo}/compare/#{green}...#{sha}")
+    body = SuitesStatus::IssueBody.new(verdict, red)
+    SuitesStatus.open_or_update(github, body)
+    puts body
+  end
+when "wait"
+  ref = args.fetch(0)
+  sha = github.get("repos/#{github.repo}/commits/#{ref}").fetch("sha")
+  dispatched = false
+  loop do
+    status = SuitesStatus.status(github, sha)
+    if status.nil? && !dispatched
+      puts "#{sha} has no suites status. Dispatching #{SuitesStatus::WORKFLOW} on #{ref}."
+      github.post("repos/#{github.repo}/actions/workflows/#{SuitesStatus::WORKFLOW}/dispatches", { ref: })
+      dispatched = true
+    elsif status && SuitesStatus::FINAL.include?(status.fetch("state"))
+      puts "The suites are #{status.fetch('state')} at #{sha}: #{status['description']} #{status['target_url']}"
+      exit(status.fetch("state") == "success")
+    end
+    sleep 60
+  end
+else
+  abort "Usage: bin/suites_status start SHA EVENT RUN_URL | report SHA RUN_ID RUN_URL MOVED_DIR | wait REF"
+end
