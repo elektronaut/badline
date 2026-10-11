@@ -13,6 +13,9 @@ module Badline
       class Reader
         attr_reader :name
 
+        # Whether it stands in for a module the snapshot doesn't have.
+        def missing? = @missing
+
         # The records in `section`, which must be in this encoding.
         def self.parse(section)
           unless section.major == MAJOR
