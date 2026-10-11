@@ -8,7 +8,7 @@ describe Badline::Vic20::CPU do
 
   let(:bus) do
     Badline::Vic20::Bus.new(vic: Badline::Memory.new([], length: 0x100, start: 0x9000),
-                            via1: Badline::VIA.new(start: 0x9000), via2: Badline::VIA.new(start: 0x9000))
+                            via1: Badline::Chips::VIA.new(start: 0x9000), via2: Badline::Chips::VIA.new(start: 0x9000))
   end
 
   it "starts at the KERNAL's reset vector" do

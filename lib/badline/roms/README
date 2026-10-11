@@ -20,7 +20,7 @@ The character generator ROM.
 kernal-sx64.rom
 ---------------
 The SX-64's KERNAL, 251104-04. It boots with the SX-64's banner and
-colours, and loads from device 8 rather than tape. Computer.new(kernal:
+colours, and loads from device 8 rather than tape. C64.new(kernal:
 :sx64) fits it, as --model sx64 does.
 
 Downloaded from
@@ -32,7 +32,7 @@ kernal-pet64.rom
 The KERNAL of the PET 64, 4064 and Educator 64, 901246-01. It boots
 with the "**** COMMODORE 4064  BASIC V2.0 ****" banner and a white
 cursor, and its interrupt routine keeps the border, background and
-sprite colours black unless bit 7 of $0286 is set. Computer.new(kernal:
+sprite colours black unless bit 7 of $0286 is set. C64.new(kernal:
 :pet64) fits it, as --model pet64 does.
 
 Downloaded from
@@ -45,7 +45,7 @@ The C64GS's BASIC and KERNAL, 390852-01, 16 KB: BASIC for $A000-$BFFF
 followed by the KERNAL for $E000-$FFFF. Its BASIC is 901226-01's but
 for 30 unused bytes. Its KERNAL is 901227-03's with most changes in
 $F72C-$FC92, the cassette routines' place, and many jumps redirected to
-I/O error 5. Computer.new(kernal: :gs) fits both, as --model c64gs does.
+I/O error 5. C64.new(kernal: :gs) fits both, as --model c64gs does.
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/c64/64gs.390852-01.bin
@@ -54,7 +54,7 @@ MD5 049e657afafbdd802e8c6a4f88f3d730.
 dos1541.rom
 -----------
 The 1541 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 325302-01
-($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drive1541 loads it.
+($C000-$DFFF) followed by 901229-05 ($E000-$FFFF). Drives::Model1541 loads it.
 
 Both halves downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1541/
@@ -64,7 +64,7 @@ SHA-1 ab16f56989b27d89babe5f89c5a8cb3da71a82f0.
 dos1571.rom
 -----------
 The 1571 disk drive's DOS 3.0, 310654-05, 32 KB for $8000-$FFFF.
-Drive1571 loads it.
+Drives::Model1571 loads it.
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1571/1571-rom.310654-05.bin
@@ -73,7 +73,7 @@ SHA-1 f1be619c106641a685f6609e4d43d6fc9eac1e70.
 dos1581.rom
 -----------
 The 1581 disk drive's DOS, 318045-02, 32 KB for $8000-$FFFF.
-Drive1581 loads it.
+Drives::Model1581 loads it.
 
 Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1581/1581-rom.318045-02.bin

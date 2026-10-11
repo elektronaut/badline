@@ -8,7 +8,7 @@ require_relative "../../support/sdl_dummy_drivers"
 describe Badline::Frontend::Sound do
   include_context "with SDL's dummy drivers"
 
-  def spied_sid = Badline::SID.new.tap { |sid| allow(sid).to receive(:record) }
+  def spied_sid = Badline::Chips::SID.new.tap { |sid| allow(sid).to receive(:record) }
 
   def opened(sid, clock_hz) = described_class.new(sid, clock_hz, true, false).tap { |sound| sounds << sound }
 

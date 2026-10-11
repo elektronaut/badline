@@ -6,7 +6,7 @@ require "fileutils"
 require_relative "../../support/drive1541_rom"
 
 describe Badline::KernalTrap::Serial do
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:ram) { computer.ram }
   let(:cpu) { computer.cpu }
   let(:dir) { Dir.mktmpdir }
@@ -191,7 +191,7 @@ describe Badline::KernalTrap::Serial do
 
   describe "with a true drive on device 8" do
     before do
-      computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub))
+      computer.attach_drive1541(Badline::Drives::Model1541.new(rom: Drive1541ROM.stub))
       call_routine(:listen, 8)
     end
 
@@ -202,8 +202,8 @@ describe Badline::KernalTrap::Serial do
 
   describe "with a true drive attached before the mount" do
     let(:computer) do
-      Badline::Computer.new.tap do |computer|
-        computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub))
+      Badline::C64.new.tap do |computer|
+        computer.attach_drive1541(Badline::Drives::Model1541.new(rom: Drive1541ROM.stub))
       end
     end
 
@@ -215,7 +215,7 @@ describe Badline::KernalTrap::Serial do
   end
 
   describe "with a true drive on device 9" do
-    before { computer.attach_drive1541(Badline::Drive1541.new(rom: Drive1541ROM.stub, device: 9)) }
+    before { computer.attach_drive1541(Badline::Drives::Model1541.new(rom: Drive1541ROM.stub, device: 9)) }
 
     it "still answers device 8" do
       send_frame(0xf2, "DATA".bytes)

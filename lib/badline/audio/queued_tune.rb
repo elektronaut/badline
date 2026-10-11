@@ -2,7 +2,7 @@
 
 module Badline
   module Audio
-    # A .sid tune in the player's Media::Queue, read only once the queue or
+    # A .sid tune in the player's Audio::Queue, read only once the queue or
     # the player first asks about it, so a queue of a whole collection
     # starts at once. Its subtunes, SID model and lengths follow the options:
     # --subtune picks the subtune to start on, --sid the model and --seconds the
@@ -11,7 +11,7 @@ module Badline
     #
     # A file that won't read as a tune, or lacks the subtune asked for, gets
     # an #error and a single subtune.
-    class QueuedTune < Media::Queue::Entry
+    class QueuedTune < Queue::Entry
       def initialize(path, options, subtune: nil)
         super(path)
         @options = options
@@ -39,7 +39,7 @@ module Badline
         @error
       end
 
-      def tune = @tune ||= Storage::SIDFile.new(path)
+      def tune = @tune ||= SIDTune::File.new(path)
 
       # Lets go of the tune's data, which #tune reads again if asked.
       def release = @tune = nil
@@ -71,7 +71,7 @@ module Badline
         @parts = tune.subtunes
         @part = @subtune || tune.start_subtune
         @error = "no subtune #{@part}: the tune has #{@parts}" if @part > @parts
-      rescue Storage::SIDFile::FormatError => e
+      rescue SIDTune::File::FormatError => e
         @error = e.message
       end
 
@@ -81,8 +81,8 @@ module Badline
         return @lengths if @lengths_read
 
         @lengths_read = true
-        database = @options.songlengths || Storage::SongLengths.locate(path)
-        @lengths = database && Storage::SongLengths.new(database).lengths(tune.md5)
+        database = @options.songlengths || SIDTune::SongLengths.locate(path)
+        @lengths = database && SIDTune::SongLengths.new(database).lengths(tune.md5)
       end
     end
   end

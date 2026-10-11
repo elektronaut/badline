@@ -19,6 +19,7 @@
 
 require "badline/core"
 require "badline/vic20"
+require "badline/support"
 require_relative "boot_support"
 
 CLOCK_HZ = 1_108_405
@@ -26,7 +27,7 @@ CHECKPOINT = 250_000
 FRAME = 71 * 312
 SOUND = "poke36878,15:poke36874,200:poke36875,215:poke36876,230:poke36877,240:"
 
-def fnv1a(values) = Badline::Checkpoint.fnv1a(values)
+def fnv1a(values) = Badline::Support::Checkpoint.fnv1a(values)
 
 def via_state(via)
   [via.port_a_output, via.port_b_output, via.timer1, via.timer1_latch, via.timer2,

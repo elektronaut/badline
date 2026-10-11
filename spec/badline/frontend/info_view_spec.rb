@@ -5,7 +5,7 @@ require "badline/ffi"
 require "badline/frontend"
 
 describe Badline::Frontend::InfoView do
-  def field(name, text) = Badline::Storage::STIL::Field.new(name, text)
+  def field(name, text) = Badline::SIDTune::STIL::Field.new(name, text)
 
   it "breaks text at spaces" do
     expect(described_class.wrap("one two three four", 9)).to eq(["one two", "three", "four"])

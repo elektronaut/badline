@@ -14,7 +14,7 @@ describe Badline::Frontend::MenuDialogs do
 
   let(:painter) { instance_double(Badline::Frontend::Painter, text: 0, box: nil) }
   let(:buttons) { Badline::Frontend::Buttons.new(painter, [1, 2, 3, 4]) }
-  let(:media) { Badline::Frontend::MenuMedia.new("", false).tap { |menu_media| menu_media.computer = Badline::Computer.new } }
+  let(:media) { Badline::Frontend::MenuMedia.new("", false).tap { |menu_media| menu_media.computer = Badline::C64.new } }
   let(:dir) { Dir.mktmpdir }
   let(:crt_path) do
     File.join(dir, "game.crt").tap do |path|

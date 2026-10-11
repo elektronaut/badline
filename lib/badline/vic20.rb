@@ -6,8 +6,8 @@ require "badline/vic20/cpu"
 require "badline/vic20/keyboard_via_ports"
 require "badline/vic20/port_wiring"
 require "badline/vic20/user_via_ports"
-require "badline/vic20/vic"
-require "badline/vic20/sound"
+require "badline/chips/vic_i"
+require "badline/chips/vic_i/sound"
 require "badline/vic20/saved_state"
 
 module Badline
@@ -36,6 +36,11 @@ module Badline
 
     def ram = @bus.ram
 
+    # Reads and writes memory as the CPU sees it, through the bus.
+    def peek(addr) = @bus.peek(addr)
+
+    def poke(addr, value) = @bus.poke(addr, value)
+
     def family = :vic20
 
     # The one control port's joystick, which the front end's second
@@ -48,21 +53,21 @@ module Badline
     # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS.
     def initialize(ram: :unexpanded, debug: false)
       @ram_configuration = ram
-      @vic = VIC.new
-      @keyboard = Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
-      @joystick1 = Joystick.new
-      @iec_bus = IECBus.new
-      @datasette = Datasette.new
-      @via1 = VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1, serial_bus: @iec_bus,
-                                                                  datasette: @datasette))
+      @vic = Chips::VICI.new
+      @keyboard = Input::Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
+      @joystick1 = Input::Joystick.new
+      @iec_bus = Drives::SerialBus.new
+      @datasette = Drives::Datasette.new
+      @via1 = Chips::VIA.new(start: 0x9000, peripheral: UserVIAPorts.new(joystick: @joystick1, serial_bus: @iec_bus,
+                                                                         datasette: @datasette))
       keyboard_ports = KeyboardVIAPorts.new(keyboard: @keyboard, joystick: @joystick1)
-      @via2 = VIA.new(start: 0x9000, peripheral: keyboard_ports)
+      @via2 = Chips::VIA.new(start: 0x9000, peripheral: keyboard_ports)
       keyboard_ports.connect(@via2)
       @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram))
       @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
-      @sound = Sound.new(self, @vic.profile.clock_hz)
+      @sound = Chips::VICI::Sound.new(self, @vic.profile.clock_hz)
       @vic.sound = @sound
       @nmi_asserted = false
       @init_handlers = []
@@ -111,7 +116,7 @@ module Badline
     # xvic draws them.
     def timing
       profile = @vic.profile
-      width = profile.cycles_per_line * VIC::PIXELS_PER_CYCLE
+      width = profile.cycles_per_line * Chips::VICI::PIXELS_PER_CYCLE
       blanked = profile.blanked_lines
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
                  lines_per_frame: profile.lines_per_frame,

@@ -6,7 +6,7 @@ module Badline
       # What the MMU maps. For the CPU: the RAM bank, common RAM and the
       # pages page 0 and page 1 move to in both modes, and CR's ROMs and I/O
       # in C128 mode. C64 mode lays the PLA's ROMs and I/O over the same RAM
-      # (AddressBus::PLA).
+      # (C64::Bus::PLA).
       module MMUPages
         private
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Scores the combined waveform tables in lib/badline/sid/waveform/combined.rb.
+# Scores the combined waveform tables in lib/badline/chips/sid/waveform/combined.rb.
 #
 #   ruby --yjit bin/sidwavecheck [--resid-tables DIR]
 #
@@ -27,7 +27,7 @@ require "badline"
 
 module SIDWaveCheck
   ROOT = File.expand_path("../vendor/VICE-testprogs/SID/resid-test", __dir__)
-  Combined = Badline::SID::Waveform::Combined
+  Combined = Badline::Chips::SID::Waveform::Combined
   CHIPS = { mos6581: "6581", mos8580: "8580" }.freeze
   SELECTIONS = [0x3, 0x5, 0x6, 0x7].freeze
 

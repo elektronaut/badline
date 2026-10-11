@@ -25,7 +25,7 @@ module Z80Sample
     tmp = "#{dir}.tmp"
     FileUtils.rm_rf(tmp)
     FileUtils.mkdir_p(File.join(tmp, "v1"))
-    queue = Queue.new
+    queue = Thread::Queue.new
     names.each { |name| queue << name }
     Array.new(THREADS) { Thread.new { fetch_queued(queue, tmp) } }.each(&:join)
     FileUtils.rm_rf(dir)

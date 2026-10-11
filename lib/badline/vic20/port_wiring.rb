@@ -16,12 +16,12 @@ module Badline
     # on VIA 1's PA6, its motor runs while VIA 1's CA2 is low, and VIA 2's
     # PB3 drives its write line, the same pin as a keyboard column.
     module PortWiring
-      # The lines the machine pulls, as IECBus host lines.
+      # The lines the machine pulls, as Drives::SerialBus host lines.
       def serial_lines
         lines = 0
-        lines |= IECBus::HOST_ATN_OUT if @via1.port_a_output.anybits?(0x80)
-        lines |= IECBus::HOST_CLK_OUT if @via2.ca2_output
-        lines |= IECBus::HOST_DATA_OUT if @via2.cb2_output
+        lines |= Drives::SerialBus::HOST_ATN_OUT if @via1.port_a_output.anybits?(0x80)
+        lines |= Drives::SerialBus::HOST_CLK_OUT if @via2.ca2_output
+        lines |= Drives::SerialBus::HOST_DATA_OUT if @via2.cb2_output
         lines
       end
 

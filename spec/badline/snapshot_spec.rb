@@ -21,13 +21,13 @@ describe Badline::Snapshot do
     end
 
     it "builds the machine as the saved one was built" do
-      Badline::Computer.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580).save_snapshot(path)
+      Badline::C64.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580).save_snapshot(path)
       restored = described_class.load(path)
       expect([restored.vic.model, restored.cia1.model, restored.sid.model]).to eq(%i[mos8565 mos6526a mos8580])
     end
 
     it "reports on_init handlers the saved machine had yet to run" do
-      Badline::Computer.new.tap { |machine| machine.type_text("run\r") }.save_snapshot(path)
+      Badline::C64.new.tap { |machine| machine.type_text("run\r") }.save_snapshot(path)
       lines = []
       described_class.load(path) { |line| lines << line }
       expect(lines).to eq(["1 on_init handler(s) the saved machine had yet to run, left out"])
@@ -35,7 +35,7 @@ describe Badline::Snapshot do
   end
 
   describe "#restore_snapshot" do
-    let(:target) { run(Badline::Computer.new, 3_001) }
+    let(:target) { run(Badline::C64.new, 3_001) }
 
     before { computer.save_snapshot(path) }
 
@@ -131,7 +131,7 @@ describe Badline::Snapshot do
 
   describe "saving once a medium's file is gone" do
     let(:dir) { Dir.mktmpdir }
-    let(:machine) { Badline::Computer.new }
+    let(:machine) { Badline::C64.new }
 
     after { FileUtils.rm_rf(dir) }
 

@@ -11,7 +11,7 @@ describe Badline::Frontend::PauseMenu do
   end
 
   let(:painter) { instance_double(Badline::Frontend::Painter, text: 0, box: nil) }
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:controls) { Badline::Frontend::Controls.new(computer) }
 
   before { menu.show(computer, controls, instance_double(Badline::Frontend::Sound, on?: false, muted?: false)) }

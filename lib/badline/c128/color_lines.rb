@@ -13,8 +13,8 @@ module Badline
         @cia2 = cia2
         @c64_characters = c64_characters
         @c128_characters = c128_characters
-        @bank0 = ColorMemory.new(vic)
-        @bank1 = ColorMemory.new(vic)
+        @bank0 = C64::ColorMemory.new(vic)
+        @bank1 = C64::ColorMemory.new(vic)
       end
 
       # Colour RAM bank +number+, 0 or 1.

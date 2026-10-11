@@ -56,13 +56,13 @@ describe Badline::Audio::Jukebox do
   def played = @played ||= []
 
   def tune(start, all_subtunes: false)
-    Badline::Media::Queue.new([Badline::Media::Queue::Entry.new("tune.sid", part: start, parts: 3)],
+    Badline::Audio::Queue.new([Badline::Audio::Queue::Entry.new("tune.sid", part: start, parts: 3)],
                               all_parts: all_subtunes)
   end
 
   def tunes(*subtunes, all_subtunes: false)
-    entries = subtunes.map { |parts| Badline::Media::Queue::Entry.new("#{parts}.sid", parts:) }
-    Badline::Media::Queue.new(entries, all_parts: all_subtunes, shuffle: lambda(&:reverse))
+    entries = subtunes.map { |parts| Badline::Audio::Queue::Entry.new("#{parts}.sid", parts:) }
+    Badline::Audio::Queue.new(entries, all_parts: all_subtunes, shuffle: lambda(&:reverse))
   end
 
   context "when started on the last subtune" do
@@ -423,7 +423,7 @@ describe Badline::Audio::Jukebox do
   end
 
   context "with an empty queue" do
-    let(:queue) { Badline::Media::Queue.new([]) }
+    let(:queue) { Badline::Audio::Queue.new([]) }
     let(:script) { { 3 => [:quit] } }
 
     it "waits on the console until asked to quit" do
@@ -433,7 +433,7 @@ describe Badline::Audio::Jukebox do
 
   context "with files dropped on an empty queue" do
     let(:queue) do
-      Badline::Media::Queue.new([], build: ->(paths) { paths.map { |path| Badline::Media::Queue::Entry.new(path) } })
+      Badline::Audio::Queue.new([], build: ->(paths) { paths.map { |path| Badline::Audio::Queue::Entry.new(path) } })
     end
     let(:script) { { 2 => [:drop] } }
 
@@ -445,8 +445,8 @@ describe Badline::Audio::Jukebox do
 
   context "with files dropped while playing" do
     let(:queue) do
-      Badline::Media::Queue.new([Badline::Media::Queue::Entry.new("first.sid")],
-                                build: ->(paths) { paths.map { |path| Badline::Media::Queue::Entry.new(path) } })
+      Badline::Audio::Queue.new([Badline::Audio::Queue::Entry.new("first.sid")],
+                                build: ->(paths) { paths.map { |path| Badline::Audio::Queue::Entry.new(path) } })
     end
     let(:script) { { 2 => [:drop] } }
 

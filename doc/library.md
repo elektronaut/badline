@@ -1,16 +1,16 @@
 # Using badline from Ruby
 
-The gem is also a library, which runs a `Badline::Computer` from Ruby
+The gem is also a library, which runs a `Badline::C64` from Ruby
 without a window.
 
 ```ruby
 require "badline"
 
-computer = Badline::Computer.new
+computer = Badline::C64.new
 Badline::Media.attach(computer, "game.d64")         # attaches and autostarts
 computer.on_init { computer.type_text("print 6*7\r") } # once the machine has booted
 3_500_000.times { computer.cycle! }
-computer.address_bus.peek(0x0400)                   # screen RAM starts at $0400
+computer.peek(0x0400)                               # screen RAM starts at $0400
 ```
 
 [media.md](media.md) covers attaching and swapping media, and
@@ -18,7 +18,7 @@ computer.address_bus.peek(0x0400)                   # screen RAM starts at $0400
 
 ## Building a machine
 
-`Badline::Computer.new` builds the default machine: a PAL C64 with the
+`Badline::C64.new` builds the default machine: a PAL C64 with the
 6569 VIC-II, 6526 CIAs and a 6581 SID. Its keywords build others, and
 `Badline::Model.named("c64c")` gives the ones `--model` names for each
 model (`Badline::Model::ALL`):
@@ -41,11 +41,11 @@ model (`Badline::Model::ALL`):
 - `reu: 512` plugs in a RAM Expansion Unit of that many K.
 - `kernal: :sx64` fits the SX-64's KERNAL, and `datasette: false`
   leaves the cassette port empty, so inserting a tape raises
-  `Badline::Datasette::Missing`. The SX-64 has both.
+  `Badline::Drives::Datasette::Missing`. The SX-64 has both.
 - `kernal: :pet64` fits the PET 64's KERNAL, and `board: :pet64` its
   green monochrome monitor: the VIC's `palette` is
-  `Badline::VIC::GREEN_PALETTE`, each colour's luminance in green. The
-  PET 64 has both.
+  `Badline::Chips::VIC::GREEN_PALETTE`, each colour's luminance in
+  green. The PET 64 has both.
 - `kernal: :gs` fits the C64GS's BASIC and KERNAL, and `board: :gs` its
   case, which has no keyboard: `computer.keyboard` takes no keys. The
   C64GS has both, and no datasette.
@@ -68,7 +68,7 @@ Am29F040 EAPI on attach, as VICE does. Flash writes stay in memory and
 are lost when the emulator quits: the `.crt` file is never overwritten.
 
 A GEO-RAM takes the expansion port, so it can't sit alongside a
-cartridge: `computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512))`.
+cartridge: `computer.attach_cartridge(Badline::C64::Cartridge::GeoRAM.new(size: 512))`.
 Its contents are lost when the emulator quits.
 
 ## ROMs
@@ -79,5 +79,5 @@ directory that holds `kernal.rom`, `basic.rom` and `character.rom`, plus
 `kernal-sx64.rom` for the SX-64, `kernal-pet64.rom` for the PET 64,
 `c64gs.rom` for the C64GS and `eapi/eapi-am29f040-14` if you
 attach EasyFlash cartridges.
-`Badline.rom_path = dir` does the same before a `Badline::Computer` is
+`Badline.rom_path = dir` does the same before a `Badline::C64` is
 built, and `nil` restores the bundled set.

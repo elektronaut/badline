@@ -49,7 +49,7 @@ module Badline
       # The copy is detached from the host's files (Snapshot::StateReader),
       # so it reads none and its traps write none.
       def self.settled(state)
-        copy = Computer.restored(state, detached: true)
+        copy = C64.restored(state, detached: true)
         (BOUNDARY_CYCLES + TRANSFER_CYCLES).times do
           break if copy.cpu.boundary? && !copy.reu&.dma?
 

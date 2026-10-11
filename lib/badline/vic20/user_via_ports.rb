@@ -38,8 +38,8 @@ module Badline
       def serial_inputs
         low = @serial_bus.low_lines
         value = 0x03
-        value &= ~0x01 if low.anybits?(IECBus::CLK)
-        value &= ~0x02 if low.anybits?(IECBus::DATA)
+        value &= ~0x01 if low.anybits?(Drives::SerialBus::CLK)
+        value &= ~0x02 if low.anybits?(Drives::SerialBus::DATA)
         value
       end
     end

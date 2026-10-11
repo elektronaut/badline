@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::MenuPages do
   subject(:pages) { described_class.new(nil, nil, "", Badline::Options.parse([]), nil) }
 
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:controls) { Badline::Frontend::Controls.new(computer) }
   let(:sound) { instance_double(Badline::Frontend::Sound, toggle_mute: nil, muted?: false) }
 

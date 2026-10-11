@@ -30,9 +30,9 @@ module Testbench
   # REU, or nil for none, and region names the video standard, :pal,
   # :ntsc, :ntscold or :drean.
   def self.machine(cartridge, cia_model = :mos6526, vic_model = :mos6569, expansion = nil, region: :pal)
-    computer = Badline::Computer.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
-                                     reu: reu_size(expansion), region: region_profile(region))
-    computer.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
+    computer = Badline::C64.new(cia_model:, vic_model:, ram_expansion: ram_expansion(expansion),
+                                reu: reu_size(expansion), region: region_profile(region))
+    computer.attach_cartridge(Badline::C64::Cartridge::GeoRAM.new(size: 512)) if expansion == "geo512k"
     computer.run_cycles(computer.init_threshold) unless cartridge
     computer
   end
@@ -40,8 +40,8 @@ module Testbench
   # A machine booted as Testbench.machine boots one, with a true 1541 on
   # the serial bus that boots alongside it.
   def self.drive_machine(cia_model, vic_model)
-    computer = Badline::Computer.new(cia_model:, vic_model:)
-    computer.attach_drive1541(Badline::Drive1541.new)
+    computer = Badline::C64.new(cia_model:, vic_model:)
+    computer.attach_drive1541(Badline::Drives::Model1541.new)
     computer.run_cycles(computer.init_threshold)
     computer
   end
@@ -50,7 +50,7 @@ module Testbench
   # have, or a .g64 or .g71 as its tracks are. The drive writes back to
   # the image at +path+.
   def self.insert_disk(computer, path)
-    computer.true_drive.insert(Badline::Drive1541::Disk.open(path))
+    computer.true_drive.insert(Badline::Drives::Model1541::Disk.open(path))
   end
 
   # The RAM expansion an expansion option fits, if it names one.

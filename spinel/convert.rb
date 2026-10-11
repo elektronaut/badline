@@ -10,7 +10,7 @@ require "badline"
 per = (ARGV[0] || 100).to_i
 rng = Random.new(1)
 File.open(ARGV[1] || "tmp/spinel/cases.txt", "w") do |out|
-  Badline::Instruction.map.keys.sort.each do |opcode|
+  Badline::Chips::CPU::Instruction.map.keys.sort.each do |opcode|
     tests = JSON.parse(File.read(format("vendor/65x02/6502/v1/%02x.json", opcode)))
     tests.sample(per, random: rng).each do |t|
       i = t["initial"]

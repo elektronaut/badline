@@ -39,10 +39,10 @@
 # time, which holds about ±3% while other worktrees load the machine;
 # wall-clock time doesn't.
 #
-# --true-drive plugs a Drive1541 into the serial bus before the machine
+# --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, with no disk in, so the workload runs with the drive idling
 # alongside. --no-idle-skip runs every one of its cycles (see
-# Drive::Idle). Both reach the fresh processes of --ceiling and
+# Drives::Engine::Idle). Both reach the fresh processes of --ceiling and
 # --compare, and a base revision whose drive always runs every cycle
 # ignores --no-idle-skip.
 #
@@ -75,7 +75,7 @@ module Profiler
     NOOP = Module.new { def cycle! = nil }
 
     def initialize(name, true_drive: false, idle_skip: true)
-      @computer = Badline::Computer.new
+      @computer = Badline::C64.new
       attach_drive(idle_skip) if true_drive
       @synth = name == "synth"
       fast_forward = 3_000_000
@@ -89,7 +89,7 @@ module Profiler
     end
 
     def attach_drive(idle_skip)
-      drive = Badline::Drive1541.new
+      drive = Badline::Drives::Model1541.new
       drive.idle_skip = idle_skip if drive.respond_to?(:idle_skip=)
       @computer.attach_drive1541(drive)
     end
@@ -143,8 +143,8 @@ module Profiler
       [%r{/vic(/|\.rb)}, "VIC other"],
       [%r{/cia(/|\.rb)|/time_of_day\.rb}, "CIA"],
       [%r{/(sid|audio)(/|\.rb)}, "SID"],
-      [%r{/(address_bus|memory|rom|color_memory|cartridge)(/|\.rb)}, "AddressBus/memory"],
-      [%r{/(computer|keyboard_buffer)\.rb}, "Computer#cycle!"],
+      [%r{/(c64/bus|memory|rom|c64/color_memory|c64/cartridge)(/|\.rb)}, "C64::Bus/memory"],
+      [%r{/(c64|keyboard_buffer)\.rb}, "C64#cycle!"],
       [%r{/(control_ports|keyboard|joystick)\.rb}, "input"],
       [%r{/datasette\.rb}, "datasette"]
     ].freeze

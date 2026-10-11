@@ -6,81 +6,14 @@ module Badline
     def []=: (Integer, Integer) -> void
   end
 
-  class ColorMemory
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-    def nibble: (Integer) -> Integer
-  end
-
-  class ROM
-    def poke: (Integer, Integer) -> void
-  end
-
-  class CPUPort
-    @ddr: Integer
-    @data: Integer
-    @floating: Integer
-    @pullups: Integer
-    @floating_mask: Integer
-    @caps_lock_pin: Integer
-  end
-
-  class AddressBus
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-
-    class OpenBus
+  class C64
+    class ColorMemory
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
+      def nibble: (Integer) -> Integer
     end
 
-    class SIDSlots
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-    end
-  end
-
-  class DebugRegister
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-  end
-
-  class VIC
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-    def phi1_data: () -> Integer
-
-    class Bank
-      def peek: (Integer) -> Integer
-      def peek_phi2: (Integer) -> Integer
-      def peek_color: (Integer) -> Integer
-    end
-  end
-
-  class CIA
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-  end
-
-  class SID
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-  end
-
-  class REU
-    def peek: (Integer) -> Integer
-    def poke: (Integer, Integer) -> void
-
-    class Trigger
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-    end
-  end
-
-  class Vic20
     class Bus
-      @data: Integer
-      @video_data: Integer
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
 
@@ -89,25 +22,63 @@ module Badline
         def poke: (Integer, Integer) -> void
       end
 
-      class VideoOpenBus
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-      end
-
-      class ColorRAM
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-        def nibble: (Integer) -> Integer
-      end
-
-      class IO0
+      class SIDSlots
         def peek: (Integer) -> Integer
         def poke: (Integer, Integer) -> void
       end
     end
 
+    class REU
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class Trigger
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+  end
+
+  class ROM
+    def poke: (Integer, Integer) -> void
+  end
+
+  module Chips
+    class CPU
+      class Port
+        @ddr: Integer
+        @data: Integer
+        @floating: Integer
+        @pullups: Integer
+        @floating_mask: Integer
+        @caps_lock_pin: Integer
+      end
+    end
+
     class VIC
-      @bus: Bus
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+      def phi1_data: () -> Integer
+
+      class Bank
+        def peek: (Integer) -> Integer
+        def peek_phi2: (Integer) -> Integer
+        def peek_color: (Integer) -> Integer
+      end
+    end
+
+    class CIA
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+
+    class SID
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+
+    class VICI
+      @bus: Vic20::Bus
       @stale: Array[bool]
       @cycles_per_line: Integer
       @lines_per_frame: Integer
@@ -126,7 +97,7 @@ module Badline
       @text_rows: Integer
       @window_open: bool
       @window_done: bool
-      def connect: (Bus) -> void
+      def connect: (Vic20::Bus) -> void
       def render=: (bool) -> void
       def peek: (Integer) -> Integer
       def poke: (Integer, Integer) -> void
@@ -139,47 +110,6 @@ module Badline
         @dirty_lines: Array[bool]
         def render=: (bool) -> void
       end
-    end
-  end
-
-  class C128
-    @cycles: Integer
-    @pending_keys: Array[Integer]
-
-    class Bus
-      @address: Integer
-      @data: Integer
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-
-      class VICWrites
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-      end
-
-      class DebugPage
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-      end
-
-      class RAMWindow
-        @base: Integer
-        @mask: Integer
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-      end
-
-      class ConfigurationPage
-        def peek: (Integer) -> Integer
-        def poke: (Integer, Integer) -> void
-      end
-    end
-
-    class MMU
-      def peek: (Integer) -> Integer
-      def poke: (Integer, Integer) -> void
-      def peek_configuration: (Integer) -> Integer
-      def poke_configuration: (Integer, Integer) -> void
     end
 
     class VDC
@@ -227,6 +157,82 @@ module Badline
         def colours: (Integer, Integer, bool) -> void
         def cursor_shown?: (Integer, Integer) -> bool
       end
+    end
+  end
+
+  class DebugRegister
+    def peek: (Integer) -> Integer
+    def poke: (Integer, Integer) -> void
+  end
+
+  class Vic20
+    class Bus
+      @data: Integer
+      @video_data: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class OpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class VideoOpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class ColorRAM
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+        def nibble: (Integer) -> Integer
+      end
+
+      class IO0
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+  end
+
+  class C128
+    @cycles: Integer
+    @pending_keys: Array[Integer]
+
+    class Bus
+      @address: Integer
+      @data: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class VICWrites
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class DebugPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class RAMWindow
+        @base: Integer
+        @mask: Integer
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class ConfigurationPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class MMU
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+      def peek_configuration: (Integer) -> Integer
+      def poke_configuration: (Integer, Integer) -> void
     end
   end
 end

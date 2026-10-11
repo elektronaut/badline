@@ -2,7 +2,7 @@
 
 require "badline/c128/model"
 require "badline/c128/mmu"
-require "badline/c128/vdc"
+require "badline/chips/vdc"
 require "badline/c128/mmu_pages"
 require "badline/c128/io_pages"
 require "badline/c128/z80_pages"
@@ -18,7 +18,7 @@ require "badline/c128/keys"
 require "badline/c128/modes"
 require "badline/c128/drives"
 require "badline/c128/fast_serial"
-require "badline/drive1571"
+require "badline/drives/model1571"
 
 module Badline
   # The Commodore 128: the 8502 on the VIC-IIe's clock, two CIAs, the SID,
@@ -45,9 +45,9 @@ module Badline
     include IntegerHelper
     include KeyboardBuffer
     include Machine::Clocking
-    include Computer::Common
-    include Computer::Attachments
-    include Computer::KernalTraps
+    include C64::Common
+    include C64::Attachments
+    include C64::KernalTraps
     include Keys
     include Modes
     include Drives
@@ -56,7 +56,7 @@ module Badline
 
     # The C64's 8x8 matrix and the three rows K0-K2 select, in port B
     # column order.
-    KEYBOARD_MATRIX = (Keyboard::C64_MATRIX + [
+    KEYBOARD_MATRIX = (Input::Keyboard::C64_MATRIX + [
       %i[help keypad8 keypad5 tab keypad2 keypad4 keypad7 keypad1],
       %i[esc keypad_plus keypad_minus line_feed keypad_enter keypad6 keypad9 keypad3],
       %i[alt keypad0 keypad_period crsr_up crsr_down crsr_left crsr_right no_scroll]
@@ -93,6 +93,11 @@ module Badline
 
     def ram = @bus.ram
 
+    # Reads and writes memory as the CPU sees it, through the bus.
+    def peek(addr) = @bus.peek(addr)
+
+    def poke(addr, value) = @bus.poke(addr, value)
+
     def keyboard = @bus.keyboard
 
     def joystick1 = @bus.joystick1
@@ -116,7 +121,7 @@ module Badline
 
       @model = Model.named(model)
       @c64_built = mode == :c64
-      @init_threshold = @c64_built ? Computer::INIT_THRESHOLD : C128_INIT_THRESHOLD
+      @init_threshold = @c64_built ? C64::INIT_THRESHOLD : C128_INIT_THRESHOLD
       @holding_commodore = false
       @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)

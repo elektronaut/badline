@@ -6,7 +6,7 @@ module Badline
   # = Machine
   #
   # The machines badline builds by family, as the command line's
-  # subcommand names them: the C64, Computer, the VIC-20, Vic20, and the
+  # subcommand names them: the C64, Badline::C64, the VIC-20, Vic20, and the
   # C128 in C64 mode, C128.
   #
   # A machine answers what the front end, Media, the runners and the
@@ -28,7 +28,7 @@ module Badline
   #   +press_cartridge_button+, +release_cartridge_button+,
   #   +attach_drive1541+, +drive1541+, +true_drive+ and +plug_true_drive+
   #   for the drive Media::TrueDrive plugs in, +attach_drive1581+,
-  #   +drive1581+ and +plug_drive1581+ for a 1581 (Drive1581::Slot), and
+  #   +drive1581+ and +plug_drive1581+ for a 1581 (Drives::Model1581::Slot), and
   #   +address_bus+ for its +cartridge+ and +detach_cartridge+.
   # - Snapshots and tests: +snapshot+, +restore+, +save_snapshot+,
   #   +install_debug_register+ and +capture_output+.
@@ -65,9 +65,9 @@ module Badline
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)
-      Computer.new(vic_model: profile.vic_model, cia_model: profile.cia_model,
-                   sid_model: sid_model || profile.sid_model, region: profile.region, reu:,
-                   kernal: profile.kernal, datasette: profile.datasette, board: profile.board)
+      C64.new(vic_model: profile.vic_model, cia_model: profile.cia_model,
+              sid_model: sid_model || profile.sid_model, region: profile.region, reu:,
+              kernal: profile.kernal, datasette: profile.datasette, board: profile.board)
     end
 
     # The machine the command line's `options` name, to start `media`, a

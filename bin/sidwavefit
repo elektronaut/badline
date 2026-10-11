@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Fits the combined waveform model in lib/badline/sid/waveform/combined.rb
+# Fits the combined waveform model in lib/badline/chips/sid/waveform/combined.rb
 # to OSC3 dumps of real chips, and prints the PARAMETERS it ships with.
 #
 #   ruby --yjit bin/sidwavefit [--starts N] [--jobs N]

@@ -24,9 +24,9 @@ module Testbench
   def self.c128_drive_machine(model, mode, drive)
     machine = Badline::C128.new(model:, mode:)
     if drive == "1541"
-      machine.attach_drive1541(Badline::Drive1541.new)
+      machine.attach_drive1541(Badline::Drives::Model1541.new)
     else
-      machine.attach_drive1571(Badline::Drive1571.new)
+      machine.attach_drive1571(Badline::Drives::Model1571.new)
     end
     machine.run_cycles(machine.init_threshold)
     machine

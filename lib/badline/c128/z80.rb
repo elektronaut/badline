@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "badline/z80/core"
+require "badline/chips/z80/core"
 
 module Badline
   class C128
     # The C128's Z80A, on the Z80's side of the C128::Bus.
     class Z80
-      include Badline::Z80::Core
+      include Badline::Chips::Z80::Core
     end
 
     # The Z80's accesses, through the pages C128::Bus lays out for it

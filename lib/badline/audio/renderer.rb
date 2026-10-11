@@ -50,7 +50,7 @@ module Badline
         @subtune = subtune
         @rate = rate
         @sid_models = sid_models
-        @filter_chunk = SID::FILTER_CHUNK
+        @filter_chunk = Chips::SID::FILTER_CHUNK
         @silent_samples = 0
         @level = 0
         @still = 0

@@ -7,8 +7,8 @@ describe Badline::Vic20::Bus do
   subject(:bus) { described_class.new(vic:, via1: user_via, via2: keyboard_via, blocks:) }
 
   let(:vic) { Badline::Memory.new([], length: 0x100, start: 0x9000) }
-  let(:user_via) { Badline::VIA.new(start: 0x9000) }
-  let(:keyboard_via) { Badline::VIA.new(start: 0x9000) }
+  let(:user_via) { Badline::Chips::VIA.new(start: 0x9000) }
+  let(:keyboard_via) { Badline::Chips::VIA.new(start: 0x9000) }
   let(:blocks) { [] }
 
   describe "the internal RAM" do

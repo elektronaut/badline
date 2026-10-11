@@ -13,7 +13,7 @@ module Badline
   #
   # A snapshot badline writes carries VICE's modules for what both
   # emulators model, and a BADLINE module holding the State
-  # Computer#snapshot takes, with everything badline needs to carry on
+  # C64#snapshot takes, with everything badline needs to carry on
   # exactly where it stopped. VICE skips modules it doesn't know. Restoring
   # a badline snapshot uses the BADLINE module alone; a snapshot from VICE
   # restores through its modules, as far as they map, and reports the
@@ -47,7 +47,7 @@ module Badline
     # snapshot that fails leaves the machine as it was.
     def restore(computer, path, &) = read(path).restore(computer, &)
 
-    # A machine's snapshots as .vsf files. Computer, Vic20 and C128 each
+    # A machine's snapshots as .vsf files. C64, Vic20 and C128 each
     # include it.
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
@@ -56,7 +56,7 @@ module Badline
     end
   end
 
-  class Computer
+  class C64
     include Snapshot::Files
   end
 

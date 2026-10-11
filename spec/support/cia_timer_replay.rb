@@ -12,7 +12,7 @@ module CiaTimerReplay
   # [counter low, ICR, control]
   def run(timer, init, init_control, before, before_control)
     latch_low, control, mask = REGISTERS.fetch(timer)
-    cia = Badline::CIA.new
+    cia = Badline::Chips::CIA.new
     # The loop's writes ahead of the cell: every IRQ off but the timer's,
     # timer stopped, latch high cleared
     [[0x0d, 0x7f], [0x0d, mask], [control, 0x00], [latch_low + 1, 0x00]].each do |register, value|

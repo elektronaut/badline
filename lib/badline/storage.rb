@@ -11,10 +11,6 @@ require "badline/storage/g64_image"
 require "badline/storage/t64"
 require "badline/storage/tap"
 require "badline/storage/crt_file"
-require "badline/storage/sid_file"
-require "badline/storage/hvsc"
-require "badline/storage/song_lengths"
-require "badline/storage/stil"
 require "badline/storage/unavailable"
 
 module Badline

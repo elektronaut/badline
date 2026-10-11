@@ -181,11 +181,12 @@ jobs:
           test ! -s tmp/native/save.err && test ! -s tmp/native/restore.err
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
+            require "badline/support"
             saved = Badline::Snapshot.load("tmp/native/ready.vsf")
             again = Badline::Snapshot.load("tmp/native/again.vsf")
             (again.cycles - saved.cycles).times { saved.cycle! }
-            ours = Badline::Checkpoint.take(saved)
-            theirs = Badline::Checkpoint.take(again)
+            ours = Badline::Support::Checkpoint.take(saved)
+            theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             [saved, again].each do |machine|
               machine.sid.catch_up!
@@ -222,13 +223,14 @@ jobs:
           test ! -s tmp/native/drive-save.err && test ! -s tmp/native/drive-restore.err
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
+            require "badline/support"
             saved = Badline::Snapshot.load("tmp/native/drive.vsf")
             again = Badline::Snapshot.load("tmp/native/drive-again.vsf")
             abort "the snapshot has no true drive" unless saved.drive1541 && again.drive1541
             abort "the drive was not loading when saved" unless saved.drive1541.mechanism.motor_on?
             (again.cycles - saved.cycles).times { saved.cycle! }
-            ours = Badline::Checkpoint.take(saved)
-            theirs = Badline::Checkpoint.take(again)
+            ours = Badline::Support::Checkpoint.take(saved)
+            theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native machine ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             drive = ->(machine) { [machine.drive1541.cpu.program_counter, machine.drive1541.cycles,
                                    machine.drive1541.bus.ram.read(0, 0x800)] }
@@ -272,12 +274,13 @@ jobs:
           test ! -s tmp/native/c128-save.err && test ! -s tmp/native/c128-restore.err
           bundle exec ruby --yjit -Ilib -e '
             require "badline"
+            require "badline/support"
             saved = Badline::Snapshot.load("tmp/native/c128.vsf")
             again = Badline::Snapshot.load("tmp/native/c128-again.vsf")
             abort "the snapshot is no C128DCR" unless saved.model.name == "c128dcr" && again.model.name == "c128dcr"
             saved.run_cycles(again.cycles - saved.cycles)
-            ours = Badline::Checkpoint.take(saved)
-            theirs = Badline::Checkpoint.take(again)
+            ours = Badline::Support::Checkpoint.take(saved)
+            theirs = Badline::Support::Checkpoint.take(again)
             abort "the restored native C128 ran on differently: #{ours.differences(theirs)}" unless ours == theirs
             [saved, again].each do |machine|
               machine.sid.catch_up!

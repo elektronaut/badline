@@ -4,11 +4,11 @@ require "spec_helper"
 require "badline/vic20"
 
 describe Badline::Vic20::UserVIAPorts do
-  subject(:via) { Badline::VIA.new(start: 0x9110, peripheral: described_class.new(joystick:, serial_bus:, datasette:)) }
+  subject(:via) { Badline::Chips::VIA.new(start: 0x9110, peripheral: described_class.new(joystick:, serial_bus:, datasette:)) }
 
-  let(:joystick) { Badline::Joystick.new }
-  let(:serial_bus) { Badline::IECBus.new }
-  let(:datasette) { Badline::Datasette.new }
+  let(:joystick) { Badline::Input::Joystick.new }
+  let(:serial_bus) { Badline::Drives::SerialBus.new }
+  let(:datasette) { Badline::Drives::Datasette.new }
 
   it "reads port A high with the joystick at rest" do
     expect(via.peek(0x9111)).to eq(0xff)
@@ -40,12 +40,12 @@ describe Badline::Vic20::UserVIAPorts do
   end
 
   it "reads CLK low on PA0 while the serial bus's clock is pulled" do
-    serial_bus.host_lines = Badline::IECBus::HOST_CLK_OUT
+    serial_bus.host_lines = Badline::Drives::SerialBus::HOST_CLK_OUT
     expect(via.peek(0x9111)).to eq(0b1111_1110)
   end
 
   it "reads DATA low on PA1 while the serial bus's data line is pulled" do
-    serial_bus.host_lines = Badline::IECBus::HOST_DATA_OUT
+    serial_bus.host_lines = Badline::Drives::SerialBus::HOST_DATA_OUT
     expect(via.peek(0x9111)).to eq(0b1111_1101)
   end
 

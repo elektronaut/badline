@@ -4,7 +4,7 @@ require "badline/media/extensions"
 require "badline/media/true_drive"
 require "badline/media/boot_disk"
 require "badline/media/not_disk"
-require "badline/media/queue"
+require "badline/audio/queue"
 require "badline/media/disk_set"
 require "badline/media/disk_list"
 require "badline/media/vic20_basic"
@@ -83,7 +83,7 @@ module Badline
       def sid_model(path, otherwise: :mos6581)
         return otherwise unless path && Extensions.kind(path) == :tune
 
-        Storage::SIDFile.new(path).sid_model
+        SIDTune::File.new(path).sid_model
       end
 
       # What the medium at `path` is to `computer`, which attach goes by:
@@ -156,7 +156,7 @@ module Badline
         if computer.family == :vic20
           computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
         else
-          computer.attach_cartridge(Cartridge.from_file(path, **options))
+          computer.attach_cartridge(C64::Cartridge.from_file(path, **options))
         end
         "Attached cartridge #{path}"
       end

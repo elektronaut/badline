@@ -8,7 +8,7 @@ require_relative "../../support/drive1541_rom"
 describe Badline::Frontend::DriveLed do
   subject(:led) { described_class.new(drive) }
 
-  let(:drive) { Badline::Drive1541.new(rom: Drive1541ROM.stub) }
+  let(:drive) { Badline::Drives::Model1541.new(rom: Drive1541ROM.stub) }
 
   # VIA 2's port B: PB3 drives the LED.
   def light(on)

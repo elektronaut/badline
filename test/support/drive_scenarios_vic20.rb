@@ -31,8 +31,8 @@ module DriveScenarios
       path = File.join(dir, "vic20-write.d64")
       Images.blank_d64(path, "SAVE TEST")
       machine = Badline::Vic20.new
-      drive = Badline::Drive1541.new
-      drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+      drive = Badline::Drives::Model1541.new
+      drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
       machine.attach_drive1541(drive)
       output = machine.capture_output
       machine.on_init { machine.type_text("10 print\"hello\"\rsave\"test\",8\rnew\rload\"test\",8\rlist\r") }
@@ -65,7 +65,7 @@ module DriveScenarios
     # the serial bus.
     def error_channel(report)
       machine = Badline::Vic20.new
-      machine.attach_drive1541(Badline::Drive1541.new)
+      machine.attach_drive1541(Badline::Drives::Model1541.new)
       output = machine.capture_output
       machine.on_init { machine.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
       run_until(machine, 6_000_000) { output.output.upcase.include?(" 0 0\n") }

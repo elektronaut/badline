@@ -3,7 +3,7 @@
 require "spec_helper"
 
 describe Badline::DebugRegister do
-  let(:address_bus) { Badline::AddressBus.new }
+  let(:address_bus) { Badline::C64::Bus.new }
   let(:writes) { [] }
 
   before { address_bus.install_debug_register { |value| writes << value } }

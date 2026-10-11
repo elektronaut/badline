@@ -12,7 +12,7 @@ describe Badline::Audio::Renderer do
   end
 
   let(:dir) { Dir.mktmpdir }
-  let(:tune) { Badline::Storage::SIDFile.new(tune_path) }
+  let(:tune) { Badline::SIDTune::File.new(tune_path) }
   let(:options) { {} }
   let(:signature) { "PSID" }
   let(:play) { load_address + 0x40 }

@@ -8,7 +8,7 @@ require_relative "../../support/sdl_dummy_drivers"
 # The window both builds run, on CRuby against SDL's dummy drivers.
 describe Badline::Frontend::App do
   let(:sdl) { Badline::SDL }
-  let(:computer) { Badline::Computer.new }
+  let(:computer) { Badline::C64.new }
   let(:frame_cycles) { Badline::Region::PAL.cycles_per_line * Badline::Region::PAL.lines_per_frame }
 
   include_context "with SDL's dummy drivers"

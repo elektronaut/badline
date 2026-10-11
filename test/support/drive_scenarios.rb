@@ -113,8 +113,8 @@ module DriveScenarios
   # a true drive attached. INPUT# is illegal in direct mode, so it runs as
   # a program line.
   def self.error_channel(report)
-    computer = Badline::Computer.new
-    computer.attach_drive1541(Badline::Drive1541.new)
+    computer = Badline::C64.new
+    computer.attach_drive1541(Badline::Drives::Model1541.new)
     output = computer.capture_output
     computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
     computer.run_cycles(7_000_000)
@@ -129,7 +129,7 @@ module DriveScenarios
     path = File.join(dir, "read-only.d64")
     Images.blank_d64(path, "BLANK")
     before = File.binread(path)
-    computer = Badline::Computer.new
+    computer = Badline::C64.new
     output = computer.capture_output
     Badline::Media::TrueDrive.plug(computer)
     Badline::Media.attach(computer, path, autostart: false, disk: { read_only: true })
@@ -145,7 +145,7 @@ module DriveScenarios
     path = File.join(dir, "autostart.d64")
     Images.blank_d64(path, "BLANK")
     Badline::Storage::D64Image.new(path).write_file("hello", AUTOSTART)
-    computer = Badline::Computer.new
+    computer = Badline::C64.new
     output = computer.capture_output
     Badline::Media::TrueDrive.plug(computer)
     Badline::Media.attach(computer, path)
@@ -211,9 +211,9 @@ module DriveScenarios
 
     # A drive on a bus of its own, the C64's lines released.
     def idle_drive(idle_skip)
-      drive = Badline::Drive1541.new(host_clock_hz: 985_248)
+      drive = Badline::Drives::Model1541.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       drive
@@ -245,9 +245,9 @@ module DriveScenarios
     # text once booted. Runs until BASIC has printed READY. readies times,
     # and then until the drive's motor stops, and returns what it printed.
     def write_run(path, text, readies)
-      computer = Badline::Computer.new
-      drive = Badline::Drive1541.new
-      drive.insert(Badline::Drive1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
+      computer = Badline::C64.new
+      drive = Badline::Drives::Model1541.new
+      drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
       computer.attach_drive1541(drive)
       output = computer.capture_output
       computer.on_init { computer.type_text(text) }
@@ -259,7 +259,7 @@ module DriveScenarios
     # The same image through the traps, without a drive: what a LOAD of name
     # and a LIST print.
     def trap_listing(path, name)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.mount(Badline::Storage::D64Image.new(path))
       output = computer.capture_output
       computer.on_init { computer.type_text("load\"#{name}\",8\rlist\r") }

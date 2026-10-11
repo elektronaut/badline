@@ -36,7 +36,7 @@ module Badline
         # The REU's size in K, which builds the machine.
         def size_kb(section)
           size = FieldReader.new(section).dword
-          return size if REU::SIZES_KB.include?(size)
+          return size if C64::REU::SIZES_KB.include?(size)
 
           raise FormatError, "#{section}: a #{size}K REU, which badline doesn't build"
         end

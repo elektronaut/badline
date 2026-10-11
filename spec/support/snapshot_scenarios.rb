@@ -76,7 +76,7 @@ module SnapshotScenarios
   # The demo, started straight after power-on without booting: it sets
   # its own vectors, and its IRQ handler leaves through the KERNAL.
   def demo_machine(**models)
-    Badline::Computer.new(**models).tap do |computer|
+    Badline::C64.new(**models).tap do |computer|
       computer.load_prg(DEMO_PRG)
       computer.cpu.program_counter = DEMO_START
     end
@@ -87,11 +87,11 @@ module SnapshotScenarios
   DEMO_CYCLES = 10_001
 
   # The demo run to DEMO_CYCLES and its State there, taken once for every
-  # spec that restores it. Restoring is exact, which the Computer#snapshot
+  # spec that restores it. Restoring is exact, which the C64#snapshot
   # specs check against a machine run the whole way.
   def self.demo_state
     @demo_state ||= begin
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.load_prg(DEMO_PRG)
       computer.cpu.program_counter = DEMO_START
       DEMO_CYCLES.times { computer.cycle! }
@@ -102,7 +102,7 @@ module SnapshotScenarios
   # A new demo machine at DEMO_CYCLES, restored from the shared State.
   def saved_demo
     state = SnapshotScenarios.demo_state
-    Badline::Computer.setup(state).build.restore(state)
+    Badline::C64.setup(state).build.restore(state)
   end
 
   def run(computer, cycles)
@@ -144,32 +144,32 @@ module SnapshotScenarios
     # does, and a disk image's directory is read again when it's next
     # needed.
     HOST = {
-      "Badline::Computer" => %i[@init_handlers @capture_output @init_handlers_lost],
-      "Badline::CPU" => %i[@traps @debug],
-      "Badline::AddressBus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
-      "Badline::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
-      "Badline::VIC::Sequencer" => %i[@render],
-      "Badline::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
-      "Badline::CIA" => %i[@peripheral],
-      "Badline::Drive1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording
-                                 @orbit_instructions],
-      "Badline::Drive1541::CPU" => %i[@traps @debug],
-      "Badline::Drive1541::Bus" => %i[@touched @volatile @watching],
-      "Badline::Drive1571" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording
-                                 @orbit_instructions],
-      "Badline::Drive1571::CPU" => %i[@traps @debug],
-      "Badline::Drive1571::Bus" => %i[@touched @volatile @watching],
-      "Badline::Drive1581" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                 @record_cycles @record_instructions @record_quiet @asleep @recording
-                                 @orbit_instructions],
-      "Badline::Drive1581::CPU" => %i[@traps @debug],
-      "Badline::Drive1581::Bus" => %i[@touched @volatile @watching],
+      "Badline::C64" => %i[@init_handlers @capture_output @init_handlers_lost],
+      "Badline::Chips::CPU" => %i[@traps @debug],
+      "Badline::C64::Bus" => %i[@debug_register @keyboard @joystick1 @joystick2 @control_ports],
+      "Badline::Chips::VIC" => %i[@dirty_lines @render @open_bus @loop @debug],
+      "Badline::Chips::VIC::Sequencer" => %i[@render],
+      "Badline::Chips::SID" => %i[@synthesizing @decimator @samples @filter_chunk @pots],
+      "Badline::Chips::CIA" => %i[@peripheral],
+      "Badline::Drives::Model1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                         @record_cycles @record_instructions @record_quiet @asleep @recording
+                                         @orbit_instructions],
+      "Badline::Drives::Model1541::CPU" => %i[@traps @debug],
+      "Badline::Drives::Model1541::Bus" => %i[@touched @volatile @watching],
+      "Badline::Drives::Model1571" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                         @record_cycles @record_instructions @record_quiet @asleep @recording
+                                         @orbit_instructions],
+      "Badline::Drives::Model1571::CPU" => %i[@traps @debug],
+      "Badline::Drives::Model1571::Bus" => %i[@touched @volatile @watching],
+      "Badline::Drives::Model1581" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
+                                         @record_cycles @record_instructions @record_quiet @asleep @recording
+                                         @orbit_instructions],
+      "Badline::Drives::Model1581::CPU" => %i[@traps @debug],
+      "Badline::Drives::Model1581::Bus" => %i[@touched @volatile @watching],
       "Badline::Storage::D64Image" => %i[@entries], "Badline::Storage::D71Image" => %i[@entries],
       "Badline::Storage::D81Image" => %i[@entries], "Badline::Storage::T64" => %i[@entries]
     }.freeze
-    HOST_CLASSES = %w[Badline::Keyboard Badline::Joystick Badline::ControlPorts Badline::ChroutTrap
+    HOST_CLASSES = %w[Badline::Input::Keyboard Badline::Input::Joystick Badline::Input::ControlPorts Badline::ChroutTrap
                       Badline::DebugRegister Badline::Input::Mouse1351 Badline::Input::Paddles].freeze
     LIMIT = 20
 

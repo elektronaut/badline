@@ -11,7 +11,7 @@ AllCops:
 Metrics/AbcSize:
   Max: 60
   Exclude:
-    - "lib/badline/instruction.rb"
+    - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/BlockLength:
   Exclude:
@@ -20,12 +20,12 @@ Metrics/BlockLength:
 Metrics/ClassLength:
   Max: 240
   Exclude:
-    - "lib/badline/instruction.rb"
-    - "lib/badline/vic.rb"
+    - "lib/badline/chips/cpu/instruction.rb"
+    - "lib/badline/chips/vic.rb"
 
 Metrics/CollectionLiteralLength:
   Exclude:
-    - "lib/badline/instruction.rb"
+    - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/CyclomaticComplexity:
   Max: 20
@@ -33,7 +33,7 @@ Metrics/CyclomaticComplexity:
 Metrics/MethodLength:
   Max: 48
   Exclude:
-    - "lib/badline/instruction.rb"
+    - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/ModuleLength:
   Max: 130
@@ -62,3 +62,8 @@ Layout/LineLength:
 
 Layout/MultilineOperationIndentation:
   EnforcedStyle: aligned
+
+RSpec/SpecFilePathFormat:
+  # Chips::VICI lives in chips/vic_i.rb.
+  CustomTransform:
+    VICI: vic_i

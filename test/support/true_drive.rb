@@ -7,12 +7,12 @@ module TrueDrive
 
   module_function
 
-  # A Computer, with a true drive plugged in if the options ask.
+  # A C64, with a true drive plugged in if the options ask.
   def computer(options)
-    computer = Badline::Computer.new
+    computer = Badline::C64.new
     return computer unless options[:true_drive]
 
-    drive = Badline::Drive1541.new
+    drive = Badline::Drives::Model1541.new
     drive.idle_skip = options[:idle_skip] if drive.respond_to?(:idle_skip=)
     computer.attach_drive1541(drive)
     computer
@@ -25,7 +25,7 @@ module TrueDrive
     return unless options[:true_drive] && path.downcase.end_with?(".d64")
 
     image = Badline::Storage::D64Image.new(path, **options[:media].fetch(:disk, {}))
-    computer.drive1541.insert(Badline::Drive1541::Disk.from_d64(image))
+    computer.drive1541.insert(Badline::Drives::Model1541::Disk.from_d64(image))
     text = options[:text] == "print 6*7\r" ? DIRECTORY : options[:text]
     computer.on_init { computer.type_text(text) }
     true
@@ -44,7 +44,7 @@ module TrueDrive
       values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr,
                   via.pcr, via.port_a_output, via.port_b_output)
     end
-    Badline::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
+    Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
   end
 
   # A checkpoint's line, with the drive's digest when there is one.

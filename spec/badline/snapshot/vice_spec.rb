@@ -81,11 +81,12 @@ describe Badline::Snapshot::Vice do
     it "runs on as the saved machine does, all but the CPU's own cycle count, once a frame is drawn" do
       run(settled, 20_000)
       run(imported, 20_000)
-      expect(Badline::Checkpoint.take(imported).differences(Badline::Checkpoint.take(settled))).to eq(["cpu"])
+      expect(Badline::Support::Checkpoint.take(imported).differences(Badline::Support::Checkpoint.take(settled)))
+        .to eq(["cpu"])
     end
 
     it "reports the modules badline doesn't read" do
-      expect(image.restore(Badline::Computer.new) { nil }.ignored.map { |line| line.split.first })
+      expect(image.restore(Badline::C64.new) { nil }.ignored.map { |line| line.split.first })
         .to eq(%w[C64CART FSDRIVE GLUE C64MEMHACKS TAPEPORT JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1 USERPORT])
     end
   end
@@ -93,8 +94,8 @@ describe Badline::Snapshot::Vice do
   describe "restored into a running machine" do
     # Mid-instruction at an odd cycle, with a cartridge in.
     subject(:target) do
-      Badline::Computer.new.tap do |machine|
-        machine.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 64))
+      Badline::C64.new.tap do |machine|
+        machine.attach_cartridge(Badline::C64::Cartridge::GeoRAM.new(size: 64))
         run(machine, 3_017)
       end
     end
@@ -104,7 +105,7 @@ describe Badline::Snapshot::Vice do
     it "runs on as a new machine restored from it does" do
       run(target, 10_000)
       run(imported, 10_000)
-      expect(Badline::Checkpoint.take(target)).to eq(Badline::Checkpoint.take(imported))
+      expect(Badline::Support::Checkpoint.take(target)).to eq(Badline::Support::Checkpoint.take(imported))
     end
 
     it "takes the cartridge out, as VICE saw the port empty" do
@@ -115,8 +116,8 @@ describe Badline::Snapshot::Vice do
   describe "a snapshot that fails to restore into a running machine" do
     # Mid-instruction at an odd cycle, with a cartridge in.
     def running_machine
-      Badline::Computer.new.tap do |machine|
-        machine.attach_cartridge(Badline::Cartridge::GeoRAM.new(size: 64))
+      Badline::C64.new.tap do |machine|
+        machine.attach_cartridge(Badline::C64::Cartridge::GeoRAM.new(size: 64))
         run(machine, 3_017)
       end
     end
@@ -135,13 +136,13 @@ describe Badline::Snapshot::Vice do
     end
 
     it "leaves the cartridge in" do
-      expect(restore_short(running_machine).address_bus.cartridge).to be_a(Badline::Cartridge::GeoRAM)
+      expect(restore_short(running_machine).address_bus.cartridge).to be_a(Badline::C64::Cartridge::GeoRAM)
     end
   end
 
   describe "a C64C's snapshot" do
     def c64c
-      machine = Badline::Computer.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580)
+      machine = Badline::C64.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580)
       Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
     end
 
@@ -151,14 +152,14 @@ describe Badline::Snapshot::Vice do
     end
 
     it "fails to restore into a machine built another way" do
-      expect { c64c.restore(Badline::Computer.new) }
+      expect { c64c.restore(Badline::C64.new) }
         .to raise_error(Badline::Snapshot::FormatError, /c64c, mos8565, mos6526a, mos8580, pal, not c64, mos6569/)
     end
   end
 
   describe ".setup" do
     it "takes the C64C's chips from an 8565" do
-      machine = Badline::Computer.new(vic_model: :mos8565, sid_model: :mos8580)
+      machine = Badline::C64.new(vic_model: :mos8565, sid_model: :mos8580)
       setup = described_class.setup(Badline::Snapshot::Container.new(described_class.export(machine.snapshot)))
       expect([setup.vic_model, setup.cia_model, setup.sid_model]).to eq(%i[mos8565 mos6526a mos8580])
     end
@@ -204,13 +205,13 @@ describe Badline::Snapshot::Vice do
 
     it "fails on a MAINCPU version it doesn't know" do
       newer = with_section("MAINCPU") { |section| section.with(minor: 9) }
-      expect { newer.restore(Badline::Computer.new) }
+      expect { newer.restore(Badline::C64.new) }
         .to raise_error(Badline::Snapshot::FormatError, /MAINCPU 1\.9: badline doesn't read this version/)
     end
 
     it "leaves out and reports another module's version it doesn't know" do
       lines = []
-      with_section("VIC-II") { |section| section.with(minor: 9) }.restore(Badline::Computer.new) { |line| lines << line }
+      with_section("VIC-II") { |section| section.with(minor: 9) }.restore(Badline::C64.new) { |line| lines << line }
       expect(lines).to include("VIC-II 1.9: badline doesn't read this version, left out")
     end
   end
@@ -223,18 +224,18 @@ describe Badline::Snapshot::Vice do
 
     it "is reported, not fatal" do
       lines = []
-      image.restore(Badline::Computer.new) { |line| lines << line }
+      image.restore(Badline::C64.new) { |line| lines << line }
       expect(lines).to include("GEORAM 3.1: badline doesn't read this module, left out")
     end
 
     it "is warned without a block" do
-      expect { image.restore(Badline::Computer.new) }.to output(/GEORAM 3\.1/).to_stderr
+      expect { image.restore(Badline::C64.new) }.to output(/GEORAM 3\.1/).to_stderr
     end
   end
 
   it "fails naming a module cut short" do
     short = with_section("CIA1") { |section| section.with(data: section.data.byteslice(0, 10)) }
-    expect { short.restore(Badline::Computer.new) }
+    expect { short.restore(Badline::C64.new) }
       .to raise_error(Badline::Snapshot::FormatError, /CIA1 2\.3 ends early/)
   end
 end

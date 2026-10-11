@@ -11,7 +11,7 @@ module Badline
     # $FF00-$FF04.
     #
     # In C64 mode the 8721 PLA decodes $01's LORAM, HIRAM and CHAREN and the
-    # cartridge's EXROM and GAME as a C64's does (AddressBus::PLA), and the
+    # cartridge's EXROM and GAME as a C64's does (C64::Bus::PLA), and the
     # MMU answers nowhere.
     #
     # In both modes the RAM is the bank CR picks, with common RAM in bank 0,
@@ -34,8 +34,8 @@ module Badline
     # Colour RAM has two 1K banks (ColorLines).
     class Bus
       include Addressable
-      include AddressBus::PLA
-      include AddressBus::ROMs
+      include C64::Bus::PLA
+      include C64::Bus::ROMs
       include MMUPages
       include IOPages
       include Z80Pages
@@ -48,9 +48,9 @@ module Badline
       PORT_FLOATING = 0b1000_1000
       CAPS_LOCK     = 0b0100_0000
 
-      # The C64's power-on pattern (AddressBus::RAM_POWER_ON) in both 64K
+      # The C64's power-on pattern (C64::Bus::RAM_POWER_ON) in both 64K
       # banks. The C128's own DRAMs' pattern is unmeasured.
-      RAM_POWER_ON = Array.new(2**17) { |addr| AddressBus::RAM_POWER_ON[addr & 0xffff] }.freeze
+      RAM_POWER_ON = Array.new(2**17) { |addr| C64::Bus::RAM_POWER_ON[addr & 0xffff] }.freeze
 
       # The VIC's write side: a write to $D02F also drives the extra
       # keyboard lines K0-K2 onto the keyboard's rows 8-10.
@@ -143,7 +143,7 @@ module Badline
         @on_mode_change = nil
         plug_chips(model, sid_model)
 
-        @datasette = Datasette.new
+        @datasette = Badline::Drives::Datasette.new
         @datasette.on_flag { @cia1.flag! }
         @datasette.on_sense_change { @cpu_port.refresh }
 
@@ -151,11 +151,12 @@ module Badline
         @color_ram = @color_lines.color_ram(1)
         build_z80_pages
         @vic_writes = VICWrites.new(@vic, @control_ports)
-        @open_bus = AddressBus::OpenBus.new(@vic)
+        @open_bus = C64::Bus::OpenBus.new(@vic)
         @configuration_reads = ConfigurationPage.new(@mmu, @open_bus)
         @configuration_writes = ConfigurationPage.new(@mmu, @open_bus)
 
-        @cpu_port = CPUPort.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING, caps_lock: CAPS_LOCK)
+        @cpu_port = Chips::CPU::Port.new(@datasette, pullups: PORT_PULLUPS, floating: PORT_FLOATING,
+                                                     caps_lock: CAPS_LOCK)
         @io_port = @cpu_port.status
 
         @read_pages = Array.new(256)
@@ -274,17 +275,17 @@ module Badline
       end
 
       def plug_chips(model, sid_model)
-        @keyboard = Keyboard.new(matrix: KEYBOARD_MATRIX)
-        @joystick1 = Joystick.new
-        @joystick2 = Joystick.new
-        @control_ports = ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
-        @vic = VIC.new(model: model.vic_model, region: @region)
-        @cia1 = CIA.new(start: 0xdc00, peripheral: @control_ports, model: model.cia_model, region: @region)
-        @cia2 = CIA.new(start: 0xdd00, model: model.cia_model, region: @region)
+        @keyboard = Input::Keyboard.new(matrix: KEYBOARD_MATRIX)
+        @joystick1 = Input::Joystick.new
+        @joystick2 = Input::Joystick.new
+        @control_ports = Input::ControlPorts.new(keyboard: @keyboard, joystick1: @joystick1, joystick2: @joystick2)
+        @vic = Chips::VIC.new(model: model.vic_model, region: @region)
+        @cia1 = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, model: model.cia_model, region: @region)
+        @cia2 = Chips::CIA.new(start: 0xdd00, model: model.cia_model, region: @region)
         @control_ports.port_a_source = @cia1
         @cia1.on_port_b4_change { |high| @vic.lightpen_level(high) }
-        @sid = SID.new(model: sid_model, pots: @control_ports)
-        @vdc = VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
+        @sid = Chips::SID.new(model: sid_model, pots: @control_ports)
+        @vdc = Chips::VDC.new(model: model.vdc_model, ram_kb: model.vdc_ram_kb, clock_hz: @region.clock_hz)
       end
 
       def update_overlays!

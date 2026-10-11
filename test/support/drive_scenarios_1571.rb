@@ -98,7 +98,7 @@ module DriveScenarios
     # BASIC reads DOS 3.0's power-on message from the error channel.
     def error_channel(report)
       machine = Badline::C128.new
-      machine.attach_drive1571(Badline::Drive1571.new)
+      machine.attach_drive1571(Badline::Drives::Model1571.new)
       output = machine.capture_output
       machine.on_init { machine.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
       Runs.run_until(machine, 7_000_000) { output.output.upcase.include?(" 0 0\n") }
@@ -111,8 +111,8 @@ module DriveScenarios
     # and then until the drive's motor stops, and returns what it printed.
     def write_run(path, text, readies)
       machine = Badline::C128.new
-      drive = Badline::Drive1571.new
-      drive.insert(Badline::Drive1541::Disk.open(path))
+      drive = Badline::Drives::Model1571.new
+      drive.insert(Badline::Drives::Model1541::Disk.open(path))
       machine.attach_drive1571(drive)
       output = machine.capture_output
       machine.on_init { machine.type_text(text) }
@@ -125,7 +125,7 @@ module DriveScenarios
     # The .d71 through the C64's traps: what a LOAD of PROG and a LIST
     # print.
     def trap_listing(path)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.mount(Badline::Storage::D71Image.new(path))
       output = computer.capture_output
       computer.on_init { computer.type_text("load\"prog\",8\rlist\r") }
@@ -165,9 +165,9 @@ module DriveScenarios
     end
 
     def idle_drive(idle_skip)
-      drive = Badline::Drive1571.new(host_clock_hz: 985_248)
+      drive = Badline::Drives::Model1571.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       drive

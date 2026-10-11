@@ -10,9 +10,9 @@ module Badline
         # Plays `subtune`, or the tune's own start subtune, and says what
         # plays. A tune for more than one SID raises FormatError.
         def attach(computer, path, autostart:, subtune:)
-          tune = Storage::SIDFile.new(path)
+          tune = SIDTune::File.new(path)
           if tune.sids > 1
-            raise Storage::SIDFile::FormatError, "Written for #{tune.sids} SIDs, which only the SID player plays"
+            raise SIDTune::File::FormatError, "Written for #{tune.sids} SIDs, which only the SID player plays"
           end
 
           subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes)

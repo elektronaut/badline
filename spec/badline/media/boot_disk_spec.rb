@@ -47,7 +47,7 @@ describe Badline::Media::BootDisk do
       machine = Badline::C128.new(mode: :c128)
       Badline::Media.attach(machine, d64("CBM"))
       expect([machine.drive1571.class, machine.instance_variable_get(:@pending_keys)])
-        .to eq([Badline::Drive1571, nil])
+        .to eq([Badline::Drives::Model1571, nil])
     end
 
     it "mounts it through the traps on a C128 in C64 mode" do
@@ -56,7 +56,7 @@ describe Badline::Media::BootDisk do
     end
 
     it "mounts it through the traps on a C64" do
-      expect(Badline::Media.attach(Badline::Computer.new, d64("CBM"))).to start_with("Mounted")
+      expect(Badline::Media.attach(Badline::C64.new, d64("CBM"))).to start_with("Mounted")
     end
   end
 end

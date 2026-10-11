@@ -22,7 +22,7 @@ It comes in two builds of the same emulator:
   sound, so it's the one to play games with.
 - **`badline-ruby`**, which comes with the Ruby gem and runs on CRuby. It
   runs slower than a real C64, so its sound is off by default. The gem is
-  also a library, which runs a `Badline::Computer` from Ruby without a
+  also a library, which runs a `Badline::C64` from Ruby without a
   window.
 
 ## Installation

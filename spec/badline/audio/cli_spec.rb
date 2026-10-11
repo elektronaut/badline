@@ -35,7 +35,7 @@ describe Badline::Audio::CLI do
 
   def tune_path = File.join(dir, "tune.sid")
   def output = File.join(dir, "out.wav")
-  def tune = Badline::Storage::SIDFile.new(tune_path)
+  def tune = Badline::SIDTune::File.new(tune_path)
 
   def stil
     FileUtils.mkdir_p(File.join(dir, "DOCUMENTS"))

@@ -1,36 +1,7 @@
 module Badline
-  class CPU
-    @memory: AddressBus
-    @operation: Symbol
-    @plan: Array[Symbol]
-    @a: Integer
-    @x: Integer
-    @y: Integer
-    @stack_pointer: Integer
-    @program_counter: Integer
-    @address: Integer
-    @pointer: Integer
-    @dummy_address: Integer
-    @value: Integer
-    @rmw_result: Integer
-    @ane_constant: Integer
-    @irq: bool
-    @irq_sample: bool
-    @irq_pending: bool
-    @boundary_irq: bool
-    @boundary_nmi: bool
-    @pending_write: bool
-    @optional_dummy: bool
-
-    class Microcode
-      attr_accessor operation: Symbol
-      attr_accessor plan: Array[Symbol]
-    end
-  end
-
-  class Drive1541
+  module Chips
     class CPU
-      @memory: Bus
+      @memory: C64::Bus
       @operation: Symbol
       @plan: Array[Symbol]
       @a: Integer
@@ -51,58 +22,91 @@ module Badline
       @boundary_nmi: bool
       @pending_write: bool
       @optional_dummy: bool
+
+      class Microcode
+        attr_accessor operation: Symbol
+        attr_accessor plan: Array[Symbol]
+      end
     end
   end
 
-  class Drive1571
-    class CPU
-      @memory: Bus
-      @operation: Symbol
-      @plan: Array[Symbol]
-      @a: Integer
-      @x: Integer
-      @y: Integer
-      @stack_pointer: Integer
-      @program_counter: Integer
-      @address: Integer
-      @pointer: Integer
-      @dummy_address: Integer
-      @value: Integer
-      @rmw_result: Integer
-      @ane_constant: Integer
-      @irq: bool
-      @irq_sample: bool
-      @irq_pending: bool
-      @boundary_irq: bool
-      @boundary_nmi: bool
-      @pending_write: bool
-      @optional_dummy: bool
+  module Drives
+    class Model1541
+      class CPU
+        @memory: Bus
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+      end
     end
-  end
 
-  class Drive1581
-    class CPU
-      @memory: Bus
-      @operation: Symbol
-      @plan: Array[Symbol]
-      @a: Integer
-      @x: Integer
-      @y: Integer
-      @stack_pointer: Integer
-      @program_counter: Integer
-      @address: Integer
-      @pointer: Integer
-      @dummy_address: Integer
-      @value: Integer
-      @rmw_result: Integer
-      @ane_constant: Integer
-      @irq: bool
-      @irq_sample: bool
-      @irq_pending: bool
-      @boundary_irq: bool
-      @boundary_nmi: bool
-      @pending_write: bool
-      @optional_dummy: bool
+    class Model1571
+      class CPU
+        @memory: Bus
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+      end
+    end
+
+    class Model1581
+      class CPU
+        @memory: Bus
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+      end
     end
   end
 
@@ -157,9 +161,7 @@ module Badline
       @optional_dummy: bool
     end
   end
-end
 
-module Badline
   class Status
     @value: Integer
     @bitmask: Integer

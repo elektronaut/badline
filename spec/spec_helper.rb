@@ -10,6 +10,7 @@ parallel = ENV.key?("PARALLEL_TEST_GROUPS")
 SimpleCov.start { merge_timeout 3600 if parallel }
 
 require "badline"
+require "badline/support"
 require "timecop"
 require "tmpdir"
 

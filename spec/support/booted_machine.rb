@@ -4,9 +4,9 @@
 module BootedMachine
   # The booted machine's State, taken once for every spec that restores it.
   def self.state
-    @state ||= Badline::Computer.new.tap { |computer| 2_600_000.times { computer.cycle! } }.snapshot
+    @state ||= Badline::C64.new.tap { |computer| 2_600_000.times { computer.cycle! } }.snapshot
   end
 
   # A new machine at BASIC's prompt, restored from the shared State.
-  def booted = Badline::Computer.restored(BootedMachine.state)
+  def booted = Badline::C64.restored(BootedMachine.state)
 end

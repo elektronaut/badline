@@ -18,7 +18,7 @@ module Badline
         @sids = [bus.sid]
         @extras = []
         tune.sid_addresses.each do |address|
-          sid = SID.new(model: models[@sids.size], at: address)
+          sid = Chips::SID.new(model: models[@sids.size], at: address)
           bus.add_sid(sid)
           @sids << sid
           @extras << sid

@@ -4,7 +4,7 @@ require "minitest/autorun"
 require "json"
 require "badline"
 
-opcodes = Badline::Instruction.map.keys
+opcodes = Badline::Chips::CPU::Instruction.map.keys
 
 TEST_CYCLES = true
 
@@ -54,7 +54,7 @@ class TestCPU < Minitest::Test
   end
 
   def assert_status(expected_value, actual)
-    expectation = Badline::CPUStatus.new(Badline::CPU::STATUS_FLAGS,
+    expectation = Badline::CPUStatus.new(Badline::Chips::CPU::STATUS_FLAGS,
                                          value: expected_value)
 
     assert_equal(expectation.carry, actual.carry, "status: carry")
@@ -84,7 +84,7 @@ class TestCPU < Minitest::Test
   end
 
   def setup_cpu(state)
-    cpu = Badline::CPU.new(RecordingMemory.new, ane_constant: 0xee)
+    cpu = Badline::Chips::CPU.new(RecordingMemory.new, ane_constant: 0xee)
     cpu.program_counter = state["pc"]
     cpu.stack_pointer = state["s"]
     cpu.a = state["a"]

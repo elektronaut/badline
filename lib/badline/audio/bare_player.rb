@@ -49,13 +49,13 @@ module Badline
       def initialize(tune, subtune: nil, sid_models: tune.sid_models)
         @tune = tune
         @subtune = (subtune || tune.start_subtune).clamp(1, tune.subtunes) - 1
-        @bus = AddressBus.new(sid_model: sid_models[0])
+        @bus = C64::Bus.new(sid_model: sid_models[0])
         # The CPU port as the KERNAL leaves it, which a PSID tune expects.
         @bus.poke(0x00, 0x2f)
         @bus.poke(0x01, 0x37)
         @bus.poke(VIDEO_STANDARD, tune.ntsc? ? 0 : 1)
         @bus.cia1.timer_a_latch = tune.ntsc? ? NTSC_KERNAL_TIMER : KERNAL_TIMER
-        @cpu = CPU.new(@bus)
+        @cpu = Chips::CPU.new(@bus)
         @sid = @bus.sid
         @stereo = Stereo.new(@bus, tune, sid_models)
         @extras = @stereo.extras
@@ -164,7 +164,7 @@ module Badline
 
       # Tunes live under the ROMs as often as not, so $01 has to bank out
       # whatever covers the routine about to run. An RSID tune banks itself,
-      # and `SIDFile#bank_for` hands back nil for it.
+      # and `SIDTune::File#bank_for` hands back nil for it.
       def dispatch
         bank = @tune.bank_for(@pending)
         @bus.poke(0x01, bank) if bank

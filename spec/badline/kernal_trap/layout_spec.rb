@@ -6,7 +6,7 @@ require "badline/vic20"
 describe Badline::KernalTrap::Layout do
   context "with the C64's" do
     let(:layout) { Badline::KernalTrap::C64_LAYOUT }
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
     let(:bus) { computer.address_bus }
 
     describe "#kernal_mapped?" do

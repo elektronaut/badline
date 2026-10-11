@@ -4,11 +4,11 @@ module Badline
   class Vic20
     # What plugs into the VIC-20 besides its chips: cartridge ROM in the
     # expansion blocks, the disk device 8 serves through the KERNAL traps
-    # (Computer::KernalTraps), and a true 1541 or 1581 on the serial bus
-    # (Computer::TrueDrives).
+    # (C64::KernalTraps), and a true 1541 or 1581 on the serial bus
+    # (C64::TrueDrives).
     module Attachments
-      include Computer::TrueDrives
-      include Computer::KernalTraps
+      include C64::TrueDrives
+      include C64::KernalTraps
 
       # The cycle by which a 1541 switched on with the machine has run its
       # DOS's reset, the RAM test and the ROM checksum, and waits on the
@@ -46,7 +46,7 @@ module Badline
       # A 1581 plugged in, as a 1541 does, holds the machine's on_init
       # handlers back until its DOS has booted.
       def drive1581_attached
-        @init_threshold = [@init_threshold, Drive1581::BOOT_CYCLES].max if @cycles < @init_threshold
+        @init_threshold = [@init_threshold, Drives::Model1581::BOOT_CYCLES].max if @cycles < @init_threshold
       end
     end
   end

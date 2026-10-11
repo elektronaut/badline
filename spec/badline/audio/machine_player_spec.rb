@@ -8,7 +8,7 @@ describe Badline::Audio::MachinePlayer do
   subject(:player) { described_class.new(tune) }
 
   let(:dir) { Dir.mktmpdir }
-  let(:tune) { Badline::Storage::SIDFile.new(path) }
+  let(:tune) { Badline::SIDTune::File.new(path) }
 
   before { File.binwrite(path, (header + image).pack("C*")) }
   after { FileUtils.remove_entry(dir) }
@@ -60,9 +60,9 @@ describe Badline::Audio::MachinePlayer do
 
   # A real boot takes ~2.5M cycles, so this runs only with --tag slow.
   describe "#start", :slow do
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
 
-    before { allow(Badline::Computer).to receive(:new).and_return(computer) }
+    before { allow(Badline::C64).to receive(:new).and_return(computer) }
 
     def peek(addr) = computer.address_bus.peek(addr)
     def screen = Array.new(1000) { |i| peek(0x0400 + i) }
@@ -90,9 +90,9 @@ describe Badline::Audio::MachinePlayer do
   describe "#start with a BASIC tune", :slow do
     subject(:player) { described_class.new(tune, subtune: 3) }
 
-    let(:computer) { Badline::Computer.new }
+    let(:computer) { Badline::C64.new }
 
-    before { allow(Badline::Computer).to receive(:new).and_return(computer) }
+    before { allow(Badline::C64).to receive(:new).and_return(computer) }
 
     def image
       line = [0x97, *"251,".bytes, 0xc2, *"(780)".bytes, 0xaa, *"1".bytes, 0x00]

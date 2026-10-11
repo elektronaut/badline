@@ -15,16 +15,17 @@ describe Badline::Frontend::Screen do
   # A display 300 pixels wide in the VIC-II's palette, every pixel
   # colour 1, with its 21 lines all changed.
   def fine_raster
-    instance_double(Badline::VIC, width: 300, palette: Badline::VIC::PALETTE, display: Array.new(300 * 21, 1),
-                                  dirty_lines: Array.new(21, true), clear_dirty_lines!: nil)
+    instance_double(Badline::Chips::VIC, width: 300, palette: Badline::Chips::VIC::PALETTE,
+                                         display: Array.new(300 * 21, 1),
+                                         dirty_lines: Array.new(21, true), clear_dirty_lines!: nil)
   end
 
   it "is PAL's crop on a PAL C64" do
-    expect(size(Badline::Computer.new)).to eq([384, 272, 384 * 4])
+    expect(size(Badline::C64.new)).to eq([384, 272, 384 * 4])
   end
 
   it "keeps PAL's height for an NTSC C64" do
-    expect(size(Badline::Computer.new(region: Badline::Region::NTSC))).to eq([384, 272, 384 * 4])
+    expect(size(Badline::C64.new(region: Badline::Region::NTSC))).to eq([384, 272, 384 * 4])
   end
 
   it "is the VIC-20's 284 by 284 crop" do
@@ -44,12 +45,12 @@ describe Badline::Frontend::Screen do
 
     it "centres the crop's even number of pixels" do
       built.update
-      pair = Badline::VIC::PALETTE[1] * 0x1_0000_0001
+      pair = Badline::Chips::VIC::PALETTE[1] * 0x1_0000_0001
       expect(built.pixels[(125 * 384) + 141, 102]).to eq([0] + ([pair] * 100) + [0])
     end
 
     it "starts with what the chip drew before it was built, without an update" do
-      pair = Badline::VIC::PALETTE[1] * 0x1_0000_0001
+      pair = Badline::Chips::VIC::PALETTE[1] * 0x1_0000_0001
       expect(built.pixels[(125 * 384) + 142, 100]).to eq([pair] * 100)
     end
   end

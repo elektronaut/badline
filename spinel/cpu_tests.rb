@@ -11,12 +11,12 @@
 require "badline/integer_helper"
 require "badline/addressable"
 require "badline/memory"
-require "badline/instruction"
-require "badline/instruction_set"
+require "badline/chips/cpu/instruction"
+require "badline/chips/cpu/instruction_set"
 require "badline/status"
-require "badline/interrupts"
-require "badline/traps"
-require "badline/cpu/core"
+require "badline/chips/cpu/interrupts"
+require "badline/chips/cpu/traps"
+require "badline/chips/cpu/core"
 
 module CPUTests
   class RecordingMemory < Badline::Memory
@@ -61,7 +61,7 @@ module CPUTests
 
   # The 6502 core on a RecordingMemory.
   class CPU
-    include Badline::CPU::Core
+    include Badline::Chips::CPU::Core
   end
 
   # One test: initial registers and RAM, expected registers and RAM, and the

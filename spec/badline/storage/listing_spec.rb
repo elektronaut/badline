@@ -24,7 +24,7 @@ describe Badline::Storage::Listing do
      entry("NEXT", 2, 2)]
   end
 
-  # A true 1541 (Drive1541 running the DOS ROM) sent these lines for a
+  # A true 1541 (Drives::Model1541 running the DOS ROM) sent these lines for a
   # D64 with this directory, loaded at $0801 and relinked there, so only
   # the links differ.
   let(:drive_listing) do

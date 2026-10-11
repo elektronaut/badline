@@ -7,7 +7,7 @@ require "badline/frontend"
 describe Badline::Frontend::PadPort do
   subject(:port) { described_class.new(joystick) }
 
-  let(:joystick) { Badline::Joystick.new }
+  let(:joystick) { Badline::Input::Joystick.new }
 
   def buttons(*held)
     Array.new(described_class::BUTTON_COUNT) { |button| held.include?(button) ? 1 : 0 }

@@ -73,7 +73,7 @@ module DriveScenarios
       path = File.join(dir, "1581-read-only.d81")
       Images1581.blank_d81(path, "BLANK", "BL")
       before = File.binread(path)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       output = computer.capture_output
       Badline::Media::TrueDrive.plug(computer)
       Badline::Media.attach(computer, path, autostart: false, disk: { read_only: true })
@@ -90,7 +90,7 @@ module DriveScenarios
       path = File.join(dir, "1581-autostart.d81")
       Images1581.blank_d81(path, "BLANK", "BL")
       Badline::Storage::D81Image.new(path).write_file("hello", AUTOSTART)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       output = computer.capture_output
       Badline::Media::TrueDrive.plug(computer)
       Badline::Media.attach(computer, path)
@@ -102,8 +102,8 @@ module DriveScenarios
 
     # BASIC reads the DOS's power-on message from the error channel.
     def error_channel(report)
-      computer = Badline::Computer.new
-      computer.attach_drive1581(Badline::Drive1581.new)
+      computer = Badline::C64.new
+      computer.attach_drive1581(Badline::Drives::Model1581.new)
       output = computer.capture_output
       computer.on_init { computer.type_text("1open15,8,15:input#15,a,b$,c,d:printa;b$;c;d\rrun\r") }
       Runs.run_until(computer, 7_000_000) { output.output.upcase.include?(" 0 0\n") }
@@ -115,9 +115,9 @@ module DriveScenarios
     # once booted. Runs until BASIC has printed READY. readies times, and
     # then until the drive's motor stops, and returns what it printed.
     def write_run(path, text, readies)
-      computer = Badline::Computer.new
-      drive = Badline::Drive1581.new
-      drive.insert(Badline::Drive1581::Disk.open(path))
+      computer = Badline::C64.new
+      drive = Badline::Drives::Model1581.new
+      drive.insert(Badline::Drives::Model1581::Disk.open(path))
       computer.attach_drive1581(drive)
       output = computer.capture_output
       computer.on_init { computer.type_text(text) }
@@ -130,7 +130,7 @@ module DriveScenarios
     # The .d81 through the C64's traps: what a LOAD of name and a LIST
     # print.
     def trap_listing(path, name)
-      computer = Badline::Computer.new
+      computer = Badline::C64.new
       computer.mount(Badline::Storage::D81Image.new(path))
       output = computer.capture_output
       computer.on_init { computer.type_text("load\"#{name}\",8\rlist\r") }
@@ -169,9 +169,9 @@ module DriveScenarios
     end
 
     def idle_drive(idle_skip)
-      drive = Badline::Drive1581.new(host_clock_hz: 985_248)
+      drive = Badline::Drives::Model1581.new(host_clock_hz: 985_248)
       drive.idle_skip = idle_skip
-      bus = Badline::IECBus.new
+      bus = Badline::Drives::SerialBus.new
       bus.host_lines = 0x07
       drive.connect(bus)
       drive

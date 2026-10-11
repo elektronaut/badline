@@ -22,7 +22,7 @@ describe Badline::C128 do
       described_class.restored(TakenOnce.fetch([:c128_booting, model, mode]) { booting(model, mode:).snapshot })
     end
 
-    def digest(machine) = [machine.snapshot, Badline::Checkpoint.take(machine).to_s]
+    def digest(machine) = [machine.snapshot, Badline::Support::Checkpoint.take(machine).to_s]
 
     def run_on(*machines, cycles: 60_000) = machines.each { |machine| machine.run_cycles(cycles) }
 
@@ -114,7 +114,7 @@ describe Badline::C128 do
     end
 
     it "carries a true 1541 over, running on as the saved one" do
-      machine = described_class.new.tap { |with_drive| with_drive.attach_drive1541(Badline::Drive1541.new) }
+      machine = described_class.new.tap { |with_drive| with_drive.attach_drive1541(Badline::Drives::Model1541.new) }
       machine.run_cycles(400_001)
       restored = described_class.restored(machine.snapshot)
       run_on(machine, restored)
@@ -147,7 +147,7 @@ describe Badline::C128 do
     end
 
     it "refuses a C64's state" do
-      expect { described_class.new.restore(Badline::Computer.new.snapshot) }
+      expect { described_class.new.restore(Badline::C64.new.snapshot) }
         .to raise_error(Badline::Snapshot::FormatError, /expected C128/)
     end
 
