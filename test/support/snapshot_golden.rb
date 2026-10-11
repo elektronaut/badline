@@ -7,9 +7,11 @@ require_relative "../../spec/support/blank_disk"
 
 # The golden snapshot fixtures each release saves once, under
 # spec/fixtures/snapshots/<version>/, for snapshot_load_golden_spec to load
-# in every later badline: a C64, a VIC-20 and a C128 typing PRINT 6*7, and a
-# C64 loading the directory from a true 1541. Beside each snapshot goes the
-# text screen 100,000 cycles after it, as this release runs on from it.
+# in every later badline: a C64, a VIC-20 and a C128 typing PRINT 6*7, a
+# C64 loading the directory from a true 1541, and a C64 running the Super
+# Games cartridge test from VICE-testprogs, whose mapper has a register.
+# Beside each snapshot goes the text screen 100,000 cycles after it, as
+# this release runs on from it.
 module SnapshotGolden
   extend BlankDisk
 
@@ -17,7 +19,8 @@ module SnapshotGolden
     "c64" => -> { typed(Badline::C64.new, "print 6*7\r", 3_000_000) },
     "vic20" => -> { typed(Badline::Vic20.new, "print 6*7\r", 3_000_000) },
     "c128" => -> { typed(Badline::C128.new(mode: :c128), "print 6*7\r", 3_000_000) },
-    "c64-1541" => -> { directory_listing(4_400_000) }
+    "c64-1541" => -> { directory_listing(4_400_000) },
+    "c64-cartridge" => -> { cartridge(3_000_000) }
   }.freeze
 
   module_function
@@ -59,6 +62,14 @@ module SnapshotGolden
     machine.type_text(text)
     machine.run_cycles(cycles)
     machine
+  end
+
+  def cartridge(cycles)
+    crt = File.expand_path("../../vendor/VICE-testprogs/C64/carts/supergames/supergames.crt", __dir__)
+    Badline::C64.new.tap do |machine|
+      Badline::Media.attach(machine, crt)
+      machine.run_cycles(cycles)
+    end
   end
 
   # The disk's module keeps the image's path as given, so the image goes
