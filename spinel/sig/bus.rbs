@@ -235,4 +235,48 @@ module Badline
       def poke_configuration: (Integer, Integer) -> void
     end
   end
+
+  class Plus4
+    @cycles: Integer
+    @pending_keys: Array[Integer]
+
+    class Bus
+      @data: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class MirroredRAM
+        @mask: Integer
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class OpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class ZeroPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class IOPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class TopPage
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+
+    class CPUPort
+      @ddr: Integer
+      @data: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+    end
+  end
 end

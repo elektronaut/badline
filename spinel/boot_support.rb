@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-# What spinel/boot.rb, spinel/c128_boot.rb and spinel/vic20_boot.rb share:
+# What spinel/boot.rb, spinel/c128_boot.rb, spinel/vic20_boot.rb and
+# spinel/plus4_boot.rb share:
 # running the machine in stretches between the checkpoints they print,
 # and the trailer of the text screen, the counts, the registers and the
 # speed. Builds with Spinel as well as running on CRuby.

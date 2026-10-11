@@ -10,7 +10,7 @@ require_relative "../test/support/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench sid].freeze
+  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -51,6 +51,11 @@ module SpinelCheck
   def check_boot(*args) = compare("boot", args)
 
   def check_vic20_boot(*args) = compare("vic20_boot", args)
+
+  # The Plus/4 and the C16 typing print 6*7.
+  def check_plus4_boots
+    [[], %w[1000000 500000 c16]].each { |args| compare("plus4_boot", args) }
+  end
 
   # The C128 typing print 6*7, the C128DCR typing the line that writes the
   # VDC's RAM in FAST mode, and the C128 typing print 6*7 in C128 mode.
