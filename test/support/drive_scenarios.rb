@@ -41,6 +41,7 @@ module DriveScenarios
     "1571-read-only" => %w[saves image-unchanged],
     "1571-autostart" => %w[loads-and-runs],
     "1571-error-channel" => %w[power-on-message],
+    "1571-boot-g64" => %w[boots nothing-typed],
     "1571-idle" => %w[sleeps matches-stepping]
   ).freeze
 
@@ -66,7 +67,8 @@ module DriveScenarios
     when "read-only" then read_only(report, dir)
     when "autostart" then autostart(report, dir)
     when "vic20-write", "vic20-autoboot", "vic20-status" then Vic20Runs.run(report, name, dir)
-    when "1571-save", "1571-format", "1571-read-only", "1571-autostart", "1571-error-channel", "1571-idle"
+    when "1571-save", "1571-format", "1571-read-only", "1571-autostart", "1571-error-channel", "1571-idle",
+         "1571-boot-g64"
       C128Runs.run(report, name, dir)
     when "cpm-boot", "cpm-zexdoc", "cpm-zexall" then CpmRuns.run(report, name, dir)
     when "plus4-format", "plus4-save", "plus4-1581-save", "plus4-read-only", "plus4-autostart",
