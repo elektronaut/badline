@@ -54,9 +54,10 @@ module SpinelCheck
 
   def check_vic20_boot(*args) = compare("vic20_boot", args)
 
-  # The Plus/4 and the C16 typing print 6*7.
+  # The Plus/4 and the C16 typing print 6*7, and the Plus/4 playing a tone
+  # and the noise first, recorded at 44.1 kHz.
   def check_plus4_boots
-    [[], %w[1000000 500000 c16]].each { |args| compare("plus4_boot", args) }
+    [[], %w[1000000 500000 c16], %w[1000000 500000 plus4 44100]].each { |args| compare("plus4_boot", args) }
   end
 
   # The C128 typing print 6*7, the C128DCR typing the line that writes the

@@ -180,6 +180,22 @@ describe Badline::Chips::TED do
     end
   end
 
+  describe "the sound's registers" do
+    let(:sound) { instance_double(Badline::Chips::TED::Sound, write: 0) }
+
+    before { ted.sound = sound }
+
+    it "passes writes to $FF0E-$FF12 on to the sound" do
+      (0xff0d..0xff13).each { |addr| ted.poke(addr, 0x42) }
+      expect(sound).to have_received(:write).exactly(5).times
+    end
+
+    it "reads them back as written" do
+      ted.poke(0xff11, 0xd8)
+      expect(ted.peek(0xff11)).to eq(0xd8)
+    end
+  end
+
   describe "the fetches" do
     subject(:ted) { machine.ted }
 

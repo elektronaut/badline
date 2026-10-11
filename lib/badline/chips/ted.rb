@@ -6,14 +6,16 @@ require "badline/chips/ted/fetches"
 require "badline/chips/ted/palette"
 require "badline/chips/ted/modes"
 require "badline/chips/ted/picture"
+require "badline/chips/ted/sound"
 
 module Badline
   module Chips
     # The TED of the Commodore 264 series, the 7360 and 8360: its registers
     # at $FF00-$FF1F, the raster, the three timers, the interrupt, the
     # keyboard latch, the clock it gives the CPU (Beam), what it fetches
-    # for the picture (Fetches) and the picture (Picture). It plays no
-    # sound yet: those registers keep what is written to them.
+    # for the picture (Fetches) and the picture (Picture). Writes to the
+    # sound's registers, $FF0E-$FF12, go on to the Sound attached as
+    # #sound.
     #
     # The machine clocks it once a single clock cycle, 57 to a line, and
     # asks it then how many cycles the CPU runs in that one (#cpu_slots)
@@ -64,11 +66,15 @@ module Badline
       # Whether the CPU sees ROM at $8000-$FFFF, which $FF13 bit 0 reads.
       attr_writer :rom_selected
 
+      # The Sound the sound's registers drive.
+      attr_accessor :sound
+
       def initialize(profile = PAL)
         @profile = profile
         @keyboard_port = nil
         @rom_selected = true
         @bus = nil
+        @sound = nil
         power_on!
       end
 
@@ -135,6 +141,7 @@ module Badline
         when 0x09 then @interrupt_flags &= ~value
         when 0x0a then write_interrupt_mask(value)
         when 0x0b then @raster_compare = (@raster_compare & 0x100) | value
+        when 0x0e..0x12 then @sound&.write(register, value)
         when 0x1a then @char_position = (@char_position & 0xff) | ((value & 0x03) << 8)
         when 0x1b then @char_position = (@char_position & 0x300) | value
         when 0x1c then self.line = (@line & 0xff) | ((value & 0x01) << 8)
