@@ -55,7 +55,7 @@ describe Badline::C64, "#snapshot with a true drive", :slow do
   it "runs on as the saved machine does" do
     target.restore(computer.snapshot)
     digests = Array.new(4) do
-      [computer, target].map { |machine| [Badline::Checkpoint.take(run(machine, 250_000)), drive_digest(machine)] }
+      [computer, target].map { |machine| [Badline::Support::Checkpoint.take(run(machine, 250_000)), drive_digest(machine)] }
     end
     expect(digests).to all(satisfy { |ours, theirs| ours == theirs })
   end

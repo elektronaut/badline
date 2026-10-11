@@ -21,7 +21,8 @@ describe Badline::Snapshot::Vice do
   def runs_on_alike?(state, cycles)
     imported = image(described_class.export(state)).load { nil }
     settled = run(described_class.settled(state), cycles)
-    Badline::Checkpoint.take(run(imported, cycles)).differences(Badline::Checkpoint.take(settled)) == ["cpu"]
+    Badline::Support::Checkpoint.take(run(imported, cycles))
+                                .differences(Badline::Support::Checkpoint.take(settled)) == ["cpu"]
   end
 
   # VICE's model number for each model's VIC-II, and the size of the

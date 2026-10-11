@@ -106,7 +106,8 @@ describe Badline::C64::Cartridge, "#save_state" do
     it "builds the GEO-RAM again, with its RAM, and runs on alike" do
       computer = machine(pokes(described_class::GeoRAM.new(size: 64), [[0xdfff, 1], [0xde20, 0x77]]))
       copy = restored(computer)
-      expect(Badline::Checkpoint.take(run(copy, 10_000))).to eq(Badline::Checkpoint.take(run(computer, 10_000)))
+      expect(Badline::Support::Checkpoint.take(run(copy, 10_000)))
+        .to eq(Badline::Support::Checkpoint.take(run(computer, 10_000)))
     end
   end
 end

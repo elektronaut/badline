@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Runs a scenario and prints a Badline::Checkpoint every K cycles: one
+# Runs a scenario and prints a Badline::Support::Checkpoint every K cycles: one
 # digest each for the CPU, RAM, colour RAM, the framebuffer, and the VIC,
 # CIA and SID registers, and with --true-drive one for the drive. Two runs
 # that print the same lines left the machine in the same state at every
@@ -36,14 +36,14 @@
 #          noise, and runs VIA 1 timer 1 free. The disk scenario loads it
 #          with LOAD"*",8. Checkpoints digest the CPU, RAM, colour RAM,
 #          display, the VIC-I, both VIAs and the sound
-#          (Badline::Vic20Checkpoint), with the sound recording so its
+#          (Badline::Support::Vic20Checkpoint), with the sound recording so its
 #          voices run
 #   c128   a C128 in the mode --mode names, c128 (the default) or c64. In
 #          C64 mode the demo is the C64's. In C128 mode it is the same
 #          program at $1C0D, its IRQ also writing the VDC's colour
 #          register and the MMU's PCRB. Checkpoints digest the C64's
 #          components, all 128K of RAM, and the VDC's registers, the VDC's
-#          RAM, the MMU and the Z80 (Badline::C128Checkpoint)
+#          RAM, the MMU and the Z80 (Badline::Support::C128Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
@@ -319,9 +319,9 @@ module MachineDiff
     # What takes and parses the family's checkpoints.
     def checkpoint(options)
       case options[:family]
-      when "vic20" then Badline::Vic20Checkpoint
-      when "c128" then Badline::C128Checkpoint
-      else Badline::Checkpoint
+      when "vic20" then Badline::Support::Vic20Checkpoint
+      when "c128" then Badline::Support::C128Checkpoint
+      else Badline::Support::Checkpoint
       end
     end
 
@@ -363,6 +363,20 @@ module MachineDiff
   end
 
   module_function
+
+  # The names this script and its checkpoints use, for a revision from
+  # before lib/badline/ moved into namespaces.
+  def alias_old_names
+    unless Badline.const_defined?(:Chips, false)
+      chips = Badline.const_set(:Chips, Module.new)
+      %i[VIC CIA].each { |name| chips.const_set(name, Badline.const_get(name)) }
+      Badline::CIA.const_set(:TimeOfDay, Badline::TimeOfDay)
+    end
+    Badline.const_set(:C64, Badline::Computer) unless Badline.const_defined?(:C64, false)
+    return if Badline.const_defined?(:Drives, false)
+
+    Badline.const_set(:Drives, Module.new).const_set(:Model1541, Badline::Drive1541)
+  end
 
   # The readers a checkpoint takes, for a revision from before the chips had them.
   def backport_readers
@@ -559,13 +573,11 @@ $LOAD_PATH.unshift(options[:lib])
 Jit.enable
 require "badline"
 # This tree's checkpoints digest the machine on either revision.
-checkpoints = { Checkpoint: "checkpoint", Vic20Checkpoint: "vic20_checkpoint", C128Checkpoint: "c128_checkpoint" }
-checkpoints.each do |name, file|
-  path = File.expand_path("../lib/badline/support/#{file}.rb", __dir__)
-  Badline.__send__(:remove_const, name) if Badline.const_defined?(name, false) && !$LOADED_FEATURES.include?(path)
-  require path
+%w[checkpoint vic20_checkpoint c128_checkpoint].each do |file|
+  require File.expand_path("../lib/badline/support/#{file}.rb", __dir__)
 end
 
+MachineDiff.alias_old_names
 MachineDiff.backport_readers
 # A disk image mounts write-protected, so neither run writes to the file the
 # other one reads. A revision from before `read_only` mounts it as it is.

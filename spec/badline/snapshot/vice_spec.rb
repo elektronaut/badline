@@ -81,7 +81,8 @@ describe Badline::Snapshot::Vice do
     it "runs on as the saved machine does, all but the CPU's own cycle count, once a frame is drawn" do
       run(settled, 20_000)
       run(imported, 20_000)
-      expect(Badline::Checkpoint.take(imported).differences(Badline::Checkpoint.take(settled))).to eq(["cpu"])
+      expect(Badline::Support::Checkpoint.take(imported).differences(Badline::Support::Checkpoint.take(settled)))
+        .to eq(["cpu"])
     end
 
     it "reports the modules badline doesn't read" do
@@ -104,7 +105,7 @@ describe Badline::Snapshot::Vice do
     it "runs on as a new machine restored from it does" do
       run(target, 10_000)
       run(imported, 10_000)
-      expect(Badline::Checkpoint.take(target)).to eq(Badline::Checkpoint.take(imported))
+      expect(Badline::Support::Checkpoint.take(target)).to eq(Badline::Support::Checkpoint.take(imported))
     end
 
     it "takes the cartridge out, as VICE saw the port empty" do

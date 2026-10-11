@@ -29,7 +29,7 @@ describe Badline::Snapshot, ".load without the media files", :slow do
   def digests(machine, &)
     Array.new(2) do
       run(machine, 200_000)
-      [Badline::Checkpoint.take(machine), *yield(machine)]
+      [Badline::Support::Checkpoint.take(machine), *yield(machine)]
     end
   end
 

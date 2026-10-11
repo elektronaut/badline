@@ -39,7 +39,7 @@ RSpec.describe Badline::C64 do
       stepped = described_class.new
       30_000.times { stepped.cycle! }
       computer.run_cycles(30_000)
-      expect(Badline::Checkpoint.take(computer)).to eq(Badline::Checkpoint.take(stepped))
+      expect(Badline::Support::Checkpoint.take(computer)).to eq(Badline::Support::Checkpoint.take(stepped))
     end
   end
 

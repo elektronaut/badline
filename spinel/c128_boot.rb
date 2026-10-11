@@ -2,7 +2,7 @@
 
 # Boots the C128 headless and types a line of BASIC once it is up, or
 # attaches and autostarts the media given. Prints a
-# Badline::Checkpoint every million cycles, then the screen, counts,
+# Badline::Support::Checkpoint every million cycles, then the screen, counts,
 # registers and a digest of the VDC's RAM, and the speed from timed_from
 # on. Builds with Spinel as well as running on CRuby:
 #
@@ -17,6 +17,7 @@
 
 require "badline/core"
 require "badline/c128"
+require "badline/support"
 require_relative "boot_support"
 
 CLOCK_HZ = 985_248
@@ -41,10 +42,10 @@ else
 end
 
 elapsed = BootSupport.run(machine, cycles, timed_from, CHECKPOINT) do |i|
-  puts Badline::Checkpoint.take(machine) if (i % CHECKPOINT).zero?
+  puts Badline::Support::Checkpoint.take(machine) if (i % CHECKPOINT).zero?
 end
 
 BootSupport.print_screen(machine.ram, 0x0400, 25, 40)
 BootSupport.print_state(machine)
-puts "vdc #{Badline::Checkpoint.fnv1a(machine.vdc.ram).to_s(16)} fast #{machine.vic.fast?}"
+puts "vdc #{Badline::Support::Checkpoint.fnv1a(machine.vdc.ram).to_s(16)} fast #{machine.vic.fast?}"
 BootSupport.print_speed(cycles - timed_from, elapsed, CLOCK_HZ)

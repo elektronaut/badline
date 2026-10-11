@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Checkpoint do
+describe Badline::Support::Checkpoint do
   let(:computer) { Badline::C64.new }
   let(:before) { described_class.take(computer) }
 

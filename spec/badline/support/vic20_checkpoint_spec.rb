@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::Vic20Checkpoint do
+describe Badline::Support::Vic20Checkpoint do
   let(:machine) { Badline::Vic20.new }
   let(:before) { described_class.take(machine) }
 
@@ -53,7 +53,7 @@ describe Badline::Vic20Checkpoint do
     end
 
     it "rejects a C64's line" do
-      expect { described_class.parse(Badline::Checkpoint.take(Badline::C64.new).to_s) }
+      expect { described_class.parse(Badline::Support::Checkpoint.take(Badline::C64.new).to_s) }
         .to raise_error(ArgumentError, /via1/)
     end
   end

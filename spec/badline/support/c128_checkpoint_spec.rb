@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::C128Checkpoint do
+describe Badline::Support::C128Checkpoint do
   let(:machine) { Badline::C128.new(mode: :c128) }
   let(:before) { described_class.take(machine) }
 

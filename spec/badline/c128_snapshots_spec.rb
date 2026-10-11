@@ -22,7 +22,7 @@ describe Badline::C128 do
       described_class.restored(TakenOnce.fetch([:c128_booting, model, mode]) { booting(model, mode:).snapshot })
     end
 
-    def digest(machine) = [machine.snapshot, Badline::Checkpoint.take(machine).to_s]
+    def digest(machine) = [machine.snapshot, Badline::Support::Checkpoint.take(machine).to_s]
 
     def run_on(*machines, cycles: 60_000) = machines.each { |machine| machine.run_cycles(cycles) }
 

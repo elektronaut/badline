@@ -44,7 +44,7 @@ module TrueDrive
       values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr,
                   via.pcr, via.port_a_output, via.port_b_output)
     end
-    Badline::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
+    Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
   end
 
   # A checkpoint's line, with the drive's digest when there is one.

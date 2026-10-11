@@ -7,7 +7,7 @@ Spinel unchanged. The programs here drive that build and check it against
 CRuby.
 
 - `boot.rb` boots the machine headless and types `print 6*7`, or attaches
-  and autostarts a media file. It prints a `Badline::Checkpoint` every
+  and autostarts a media file. It prints a `Badline::Support::Checkpoint` every
   million cycles, then the screen, the cycle and instruction counts and
   the registers.
 - `sid.rb` boots the machine headless with the SID recording at 44.1 kHz,
@@ -21,7 +21,7 @@ CRuby.
   sample count and a checksum of the samples follow the registers.
 - `c128_boot.rb` boots the C128 headless in C64 mode and types `print
   6*7`, or a line that writes the VDC's RAM in FAST mode. It prints a
-  `Badline::Checkpoint` every million cycles, then the screen, the counts,
+  `Badline::Support::Checkpoint` every million cycles, then the screen, the counts,
   the registers and a digest of the VDC's RAM. An argument picks the
   model.
 - `boot_support.rb` holds what the three boots share: the loop that runs

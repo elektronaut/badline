@@ -13,7 +13,7 @@ describe Badline::C64, "#snapshot" do
     Array.new(cycles / every) do
       run(first, every)
       run(second, every)
-      [Badline::Checkpoint.take(first), Badline::Checkpoint.take(second)]
+      [Badline::Support::Checkpoint.take(first), Badline::Support::Checkpoint.take(second)]
     end
   end
 
@@ -202,7 +202,7 @@ describe Badline::C64, "#snapshot" do
       restored = described_class.restored(machine.snapshot)
       run(machine, 5_000)
       run(restored, 5_000)
-      expect(Badline::Checkpoint.take(restored)).to eq(Badline::Checkpoint.take(machine))
+      expect(Badline::Support::Checkpoint.take(restored)).to eq(Badline::Support::Checkpoint.take(machine))
     end
 
     it "builds the machine with an REU of the same size" do

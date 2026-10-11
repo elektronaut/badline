@@ -2,7 +2,7 @@
 
 # Boots the machine headless, types a line of BASIC once it is up (or
 # attaches and autostarts the media given), and runs on. Prints a
-# Badline::Checkpoint every million cycles, then the screen, counts and
+# Badline::Support::Checkpoint every million cycles, then the screen, counts and
 # registers, and the speed from timed_from on. Builds with Spinel as well
 # as running on CRuby:
 #
@@ -14,6 +14,7 @@
 # its type scenario, and with media those for the same media.
 
 require "badline/core"
+require "badline/support"
 require_relative "boot_support"
 
 CLOCK_HZ = 985_248
@@ -30,7 +31,7 @@ else
 end
 
 elapsed = BootSupport.run(computer, cycles, timed_from, CHECKPOINT) do |i|
-  puts Badline::Checkpoint.take(computer) if (i % CHECKPOINT).zero?
+  puts Badline::Support::Checkpoint.take(computer) if (i % CHECKPOINT).zero?
 end
 
 BootSupport.print_screen(computer.ram, 0x0400, 25, 40)
