@@ -6,6 +6,7 @@ require "badline/chips/vic/display_state"
 require "badline/chips/vic/sequencer"
 require "badline/chips/vic/sprites"
 require "badline/chips/vic/saved_state"
+require "badline/chips/vic/keyed_parts"
 
 module Badline
   module Chips
