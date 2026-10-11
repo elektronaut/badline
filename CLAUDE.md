@@ -6,45 +6,61 @@ This file covers how to work on the code.
 
 ## Orientation
 
-`lib/badline/` holds one file per chip or subsystem, and namespaced groups
-live in subdirectories:
+`lib/badline/` is grouped by namespace, and a constant's path follows its
+directory: `chips/vic.rb` is `Badline::Chips::VIC`.
 
-- **Machine**: `computer.rb` clocks everything once per cycle (`cycle!`:
-  VIC, both CIAs, SID and the datasette, then the CPU unless the VIC holds
-  BA low). `address_bus.rb` handles banking and page-table dispatch, and
-  `banked_ram.rb` and `banked_ram/` the +60K and +256K boards that bank in
-  extra RAM through `$D100`
-- **CPU**: `cpu.rb`, `instruction.rb` and `instruction_set/`, plus
-  `interrupts.rb`
-- **VIC-II**: `vic.rb` and `vic/`, covering the sequencer, sprites, graphics
-  modes, border and register timing
-- **CIA**: `cia.rb` and `cia/` (timers, serial), plus `time_of_day.rb`
-- **REU**: `reu.rb` and `reu/`, the RAM Expansion Unit's registers and
-  its DMA, which `C64#cycle!` clocks in place of the CPU while it
-  holds the bus
-- **SID**: `sid.rb` and `sid/`. `audio/` plays and renders tunes for
-  `badline-ruby --headless` and `--audio-out`
+- **Machine**: `c64.rb` (`Badline::C64`) clocks everything once per cycle
+  (`cycle!`: VIC, both CIAs, SID and the datasette, then the CPU unless
+  the VIC holds BA low). `c64/` holds the rest of the C64's board:
+  `c64/bus.rb` handles banking and page-table dispatch, and
+  `c64/banked_ram.rb` and `c64/banked_ram/` the +60K and +256K boards
+  that bank in extra RAM through `$D100`. `vic20.rb` and `vic20/`, and
+  `c128.rb` and `c128/`, are the other two families, and `machine.rb`
+  builds each by name. Every family reads and writes memory as its CPU
+  sees it with `peek` and `poke`
+- **CPU**: `chips/cpu.rb` and `chips/cpu/`: the 6502 core
+  (`Chips::CPU::Core`, which each family's and each drive's CPU
+  includes), `instruction.rb` and `instruction_set/`, `interrupts.rb`,
+  `traps.rb` and the 6510's I/O port, `port.rb`. `chips/z80.rb` is the
+  C128's Z80
+- **VIC-II**: `chips/vic.rb` and `chips/vic/`, covering the sequencer,
+  sprites, graphics modes, border and register timing. `chips/vic_i.rb`
+  is the VIC-20's VIC-I and its sound, and `chips/vdc.rb` the C128's VDC
+- **CIA**: `chips/cia.rb` and `chips/cia/` (timers, serial and the TOD
+  clock, `time_of_day.rb`). `chips/via.rb` is the 6522 of the VIC-20 and
+  the drives
+- **REU**: `c64/reu.rb` and `c64/reu/`, the RAM Expansion Unit's
+  registers and its DMA, which `C64#cycle!` clocks in place of the CPU
+  while it holds the bus
+- **SID**: `chips/sid.rb` and `chips/sid/`. `audio/` plays and renders
+  tunes for `badline-ruby --headless` and `--audio-out`, and `sid_tune/`
+  reads `.sid` files, the HVSC's song lengths and its STIL
 - **Media and host I/O**: `storage/` (disk, tape and cartridge image
-  formats), `cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE and IEC
-  traps, and `kernal_trap/dos/`, the virtual DOS that stands in for a
-  drive), `media.rb` (attach and autostart),
-  `datasette.rb`, and `input/` (the mouse and paddles)
+  formats), `c64/cartridge/` (mappers), `kernal_trap/` (the LOAD/SAVE
+  and IEC traps, and `kernal_trap/dos/`, the virtual DOS that stands in
+  for a drive), `media.rb` (attach and autostart), `drives/` (the true
+  1541, 1571 and 1581, the engine they share, the serial bus and the
+  datasette), and `input/` (the keyboard, joysticks, control ports,
+  mouse and paddles)
 - **Front end**: `frontend/`, the SDL window both builds run (app loop,
   screen, pacer, sound, controls, gamepads, snapshots), in Spinel's
   subset, over the one binding in `sdl.rb` (`ffi.rb` implements it on
   CRuby)
 - **Native**: `native/` holds the native `badline`, the core and the
   front end compiled with Spinel (`rake native:build`, `native/README.md`).
-  `spinel/` holds the Spinel test harnesses
+  `spinel/` holds the Spinel test harnesses, and `support/` the
+  checkpoints they and `bin/machine_diff` digest a machine with, which
+  stay out of the core
 
-Timing-critical code lives in `cpu`, `interrupts`, `vic`, `cia` and `sid` and
+Timing-critical code lives in `chips/` (`cpu`, `vic`, `cia` and `sid`) and
 in the order `C64#cycle!` clocks them. Changes there move the test
 suites below. `frontend/` changes move none of them.
 
 Namespaced groups live in `lib/badline/<namespace>/`, with a sibling
 `lib/badline/<namespace>.rb` that requires the members, directly or through
 other members. `lib/badline.rb`
-requires only the namespace file.
+requires only the namespace file. `chips/` and `drives/` have no sibling
+file: `core.rb` requires their members one by one.
 
 ### Oracles
 
@@ -86,7 +102,7 @@ computer = Badline::C64.new
 Badline::Media.attach(computer, path)  # PRG, disk, tape, CRT or directory; autostarts
 computer.on_init { computer.type_text("print 6*7\r") }  # after boot (~2.5M cycles)
 3_500_000.times { computer.cycle! }
-computer.address_bus.peek(0x0400)      # screen RAM starts at $0400
+computer.peek(0x0400)                  # screen RAM starts at $0400
 ```
 
 - `computer.capture_output` traps CHROUT and records what the machine prints

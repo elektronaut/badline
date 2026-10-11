@@ -7,9 +7,9 @@ Spinel unchanged. The programs here drive that build and check it against
 CRuby.
 
 - `boot.rb` boots the machine headless and types `print 6*7`, or attaches
-  and autostarts a media file. It prints a `Badline::Support::Checkpoint` every
-  million cycles, then the screen, the cycle and instruction counts and
-  the registers.
+  and autostarts a media file. It prints a
+  `Badline::Support::Checkpoint` every million cycles, then the screen,
+  the cycle and instruction counts and the registers.
 - `sid.rb` boots the machine headless with the SID recording at 44.1 kHz,
   or attaches and autostarts a media file, and prints the sample count
   and a checksum of the samples, then the speed.
@@ -21,9 +21,9 @@ CRuby.
   sample count and a checksum of the samples follow the registers.
 - `c128_boot.rb` boots the C128 headless in C64 mode and types `print
   6*7`, or a line that writes the VDC's RAM in FAST mode. It prints a
-  `Badline::Support::Checkpoint` every million cycles, then the screen, the counts,
-  the registers and a digest of the VDC's RAM. An argument picks the
-  model.
+  `Badline::Support::Checkpoint` every million cycles, then the screen,
+  the counts, the registers and a digest of the VDC's RAM. An argument
+  picks the model.
 - `boot_support.rb` holds what the three boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
@@ -32,11 +32,12 @@ CRuby.
 - `convert.rb` samples the SingleStepTests JSON into the line format
   `cpu_tests.rb` reads, since the Spinel build has no JSON library. It runs
   on CRuby only.
-- `z80_tests.rb` runs SingleStepTests' Z80 cases against `Badline::Chips::Z80`
-  and checks registers, T-states, the bus pins on every T-state, the ports
-  and RAM. `convert_z80.rb` samples them into its line format. The Z80
-  isn't in the core, so `z80_tests.rb` requires `badline/chips/z80/core` alone,
-  and of the other harnesses only the C128's carry it, as `C128::Z80`.
+- `z80_tests.rb` runs SingleStepTests' Z80 cases against
+  `Badline::Chips::Z80` and checks registers, T-states, the bus pins on
+  every T-state, the ports and RAM. `convert_z80.rb` samples them into
+  its line format. The Z80 isn't in the core, so `z80_tests.rb` requires
+  `badline/chips/z80/core` alone, and of the other harnesses only the
+  C128's carry it, as `C128::Z80`.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
   `bin/lorenz` (`test/support/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See
@@ -67,7 +68,8 @@ the core comes to need goes into `lib/badline/core.rb` alone. The VIC-20
 is in the core, but the C128 isn't, so the C64's harnesses never see
 it: `c128_boot.rb` and `c128_testbench.rb` require `badline/c128` on top
 of the core, as
-`lib/badline.rb` does. Spinel only
+`lib/badline.rb` does. The checkpoints the three boots print aren't in
+the core either, so they require `badline/support`. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.
 
