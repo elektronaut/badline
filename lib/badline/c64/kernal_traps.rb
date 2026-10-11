@@ -36,10 +36,10 @@ module Badline
       # traps, or an empty one.
       def mounted_path = @dos.nil? ? "" : @dos.path
 
-      # Records what the KERNAL prints through CHROUT (ChroutTrap).
+      # Records what the KERNAL prints through CHROUT (KernalTrap::Chrout).
       def capture_output
-        @capture_output ||= ChroutTrap.new(cpu:, bus: trap_bus, layout: trap_layout).tap do |trap|
-          cpu.install_trap(ChroutTrap::ADDRESS) { trap.call }
+        @capture_output ||= KernalTrap::Chrout.new(cpu:, bus: trap_bus, layout: trap_layout).tap do |trap|
+          cpu.install_trap(KernalTrap::Chrout::ADDRESS) { trap.call }
         end
       end
 

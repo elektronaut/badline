@@ -9,7 +9,7 @@ require "badline/c64/saved_state"
 module Badline
   class C64
     include IntegerHelper
-    include KeyboardBuffer
+    include Machine::KeyboardBuffer
     include Machine::Clocking
     include Common
     include Attachments

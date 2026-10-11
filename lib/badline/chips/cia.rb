@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/chips/cia/time_of_day"
 require "badline/chips/cia/interrupt_register"
 require "badline/chips/cia/serial"
 require "badline/chips/cia/timer"

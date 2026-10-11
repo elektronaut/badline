@@ -169,8 +169,8 @@ module SnapshotScenarios
       "Badline::Storage::D64Image" => %i[@entries], "Badline::Storage::D71Image" => %i[@entries],
       "Badline::Storage::D81Image" => %i[@entries], "Badline::Storage::T64" => %i[@entries]
     }.freeze
-    HOST_CLASSES = %w[Badline::Input::Keyboard Badline::Input::Joystick Badline::Input::ControlPorts Badline::ChroutTrap
-                      Badline::DebugRegister Badline::Input::Mouse1351 Badline::Input::Paddles].freeze
+    HOST_CLASSES = %w[Badline::Input::Keyboard Badline::Input::Joystick Badline::Input::ControlPorts Badline::KernalTrap::Chrout
+                      Badline::C64::Bus::DebugRegister Badline::Input::Mouse1351 Badline::Input::Paddles].freeze
     LIMIT = 20
 
     def initialize(first, second, host: {})

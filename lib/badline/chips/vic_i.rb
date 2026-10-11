@@ -3,6 +3,7 @@
 require "badline/chips/vic_i/painter"
 require "badline/chips/vic_i/text_window"
 require "badline/chips/vic_i/saved_state"
+require "badline/chips/vic_i/sound"
 
 module Badline
   module Chips

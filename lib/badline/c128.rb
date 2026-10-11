@@ -43,7 +43,7 @@ module Badline
   # mirrors, and $D500-$D7FF holds the hidden MMU, the VDC and open bus.
   class C128
     include IntegerHelper
-    include KeyboardBuffer
+    include Machine::KeyboardBuffer
     include Machine::Clocking
     include C64::Common
     include C64::Attachments

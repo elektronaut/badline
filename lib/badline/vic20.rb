@@ -6,8 +6,6 @@ require "badline/vic20/cpu"
 require "badline/vic20/keyboard_via_ports"
 require "badline/vic20/port_wiring"
 require "badline/vic20/user_via_ports"
-require "badline/chips/vic_i"
-require "badline/chips/vic_i/sound"
 require "badline/vic20/saved_state"
 
 module Badline
@@ -22,7 +20,7 @@ module Badline
   # serves disks through the KERNAL traps or a true 1541.
   class Vic20
     include IntegerHelper
-    include KeyboardBuffer
+    include Machine::KeyboardBuffer
     include Machine::Clocking
     include Attachments
     include PortWiring

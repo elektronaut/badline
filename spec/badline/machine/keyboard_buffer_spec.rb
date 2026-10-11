@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe Badline::KeyboardBuffer do
+describe Badline::Machine::KeyboardBuffer do
   let(:computer) { Badline::C64.new }
 
   describe "#type_text" do
