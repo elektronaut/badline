@@ -14,7 +14,7 @@ module Badline
   # first, plays .sid tunes and directories of them in the terminal.
   # `c64`, `vic20` or `c128`, given first, names the machine family, and
   # without one the family is the C64, or the C128 for a program that loads
-  # where C128 BASIC starts. The native build adds --no-sound and
+  # where C128 BASIC starts. `plus4` is refused until the Plus/4 runs. The native build adds --no-sound and
   # --version, and badline-ruby adds --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
