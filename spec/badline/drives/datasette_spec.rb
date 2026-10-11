@@ -92,6 +92,51 @@ describe Badline::Drives::Datasette do
     end
   end
 
+  describe "#read_high?" do
+    subject(:datasette) { described_class.new(level: true) }
+
+    def levels(cycles)
+      Array.new(cycles) do
+        datasette.cycle!
+        datasette.read_high?
+      end
+    end
+
+    it "reads high with the tape stopped" do
+      expect(datasette.read_high?).to be(true)
+    end
+
+    context "with a tape of whole waves playing" do
+      before do
+        allow(tape).to receive(:half_waves?).and_return(false)
+        datasette.play!
+        datasette.motor = true
+      end
+
+      it "holds each pulse low for its first half and high for its second, until its falling edge" do
+        expect(levels(10)).to eq([false, true, true, false, false, false, true, true, true, false])
+      end
+
+      it "keeps the falling edges where they were" do
+        run(10)
+        expect(edges.length).to eq(2)
+      end
+    end
+
+    context "with a tape of half waves playing" do
+      before do
+        allow(tape).to receive_messages(half_waves?: true)
+        allow(tape).to receive(:next_half_wave).and_return(3, 1, 2, 2, nil)
+        datasette.play!
+        datasette.motor = true
+      end
+
+      it "times each half from its own half wave" do
+        expect(levels(8)).to eq([false, false, true, false, false, true, true, false])
+      end
+    end
+  end
+
   describe "#running?" do
     it "needs a key, the motor and a tape" do
       datasette.play!

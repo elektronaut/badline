@@ -132,3 +132,41 @@ c128/character.rom
 The character generator ROM, 390059-01 (characters.390059-01.bin),
 8 KB: the C64's set, the same as character.rom, followed by the C128's.
 SHA-1 29ed066d513f2d5c09ff26d9166ba23c2afb2b3f.
+
+Commodore 264 series ROMs
+=========================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/plus4/
+for the Plus/4, the C16 and the C116, which share BASIC and the KERNAL.
+Nothing maps them yet.
+
+plus4/basic.rom
+---------------
+BASIC 3.5, 318006-01 (basic.318006-01.bin), for $8000-$BFFF in ROM
+bank 0.
+SHA-1 161c96b4ad20f3a4f2321808e37a5ded26a135dd.
+
+plus4/kernal-pal.rom
+--------------------
+The PAL KERNAL, 318004-05 (kernal.318004-05.bin), for $C000-$FFFF in
+ROM bank 0, with the character set from $D000.
+SHA-1 7c7e07f016391174a557e790c4ef1cbe33512cdb.
+
+plus4/kernal-ntsc.rom
+---------------------
+The NTSC KERNAL, 318005-05 (kernal.318005-05.bin), for $C000-$FFFF in
+ROM bank 0.
+SHA-1 a3d9e5be091b98de39a046ab167fb7632d053682.
+
+plus4/function-low.rom
+----------------------
+The Plus/4's 3-plus-1 function ROM, low half, 317053-01
+(3-plus-1.317053-01.bin), for $8000-$BFFF in ROM bank 1.
+SHA-1 3b69f6e7cb4c18bb08e203fb18b7dabfa853390f.
+
+plus4/function-high.rom
+-----------------------
+The Plus/4's 3-plus-1 function ROM, high half, 317054-01
+(3-plus-1.317054-01.bin), for $C000-$FFFF in ROM bank 1.
+SHA-1 0ad7ac2db7da692d972e586ca0dfd747d82c7693.
