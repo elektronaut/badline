@@ -24,7 +24,11 @@ CRuby.
   `Badline::Support::Checkpoint` every million cycles, then the screen,
   the counts, the registers and a digest of the VDC's RAM. An argument
   picks the model.
-- `boot_support.rb` holds what the three boots share: the loop that runs
+- `plus4_boot.rb` boots a 264 series machine headless and types `print
+  6*7`. It prints digests of the CPU, the RAM, the port and the TED every
+  250,000 cycles, then the screen, the counts and the registers. An
+  argument picks the model.
+- `boot_support.rb` holds what the four boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
@@ -68,7 +72,8 @@ the core comes to need goes into `lib/badline/core.rb` alone. The VIC-20
 is in the core, but the C128 isn't, so the C64's harnesses never see
 it: `c128_boot.rb` and `c128_testbench.rb` require `badline/c128` on top
 of the core, as
-`lib/badline.rb` does. The checkpoints the three boots print aren't in
+`lib/badline.rb` does, and `plus4_boot.rb` requires `badline/plus4` the
+same way. The checkpoints and digests the boots print aren't in
 the core either, so they require `badline/support`. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.
@@ -82,7 +87,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -108,7 +113,8 @@ every SingleStepTests verdict. Without media the C64 boots for 6M cycles.
 With media it runs 23M cycles unless given a count. The VIC-20 boots
 unexpanded for 2M cycles either way, once silent and once recording its
 sound at 44.1 kHz. The C128 boots its `c128` model for 6M cycles typing
-`print 6*7`, and its `c128dcr` for 4M typing the FAST line. The first
+`print 6*7`, and its `c128dcr` for 4M typing the FAST line. The Plus/4
+and the C16 boot for 1M cycles typing `print 6*7`. The first
 run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, and 100 per
 Z80 opcode file into `tmp/spinel/z80_cases.txt`, so it needs
