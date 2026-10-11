@@ -47,7 +47,8 @@ module Badline
       # except that the VIC-20 (Vic20Media) has cartridges, programs and a
       # disk autostart of its own, and takes no .sid tunes, and the 264
       # series loads programs at the start of its BASIC (Program), takes
-      # cartridges in cartridge 1's slots and no .sid tunes either. The
+      # .crt cartridges and raw .bin ROM images in its two cartridges'
+      # slots (Plus4Media), and no .sid tunes either. The
       # C128 in C64 mode takes a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
@@ -90,10 +91,12 @@ module Badline
       # What the medium at `path` is to `computer`, which attach goes by:
       # :true_drive for a disk that goes in a true drive (TrueDrive),
       # :directory, :storage for a disk image or a .t64 that the traps
-      # mount, and otherwise its kind by its extension (Extensions).
+      # mount, :cartridge for a raw ROM image on the 264 series
+      # (Plus4Media), and otherwise its kind by its extension (Extensions).
       def kind(computer, path)
         return :true_drive if TrueDrive.takes?(computer, path)
         return :directory if File.directory?(path)
+        return :cartridge if computer.family == :plus4 && Plus4Media.rom_image?(path)
 
         kind = Extensions.kind(path)
         %i[disk archive].include?(kind) ? :storage : kind
@@ -162,11 +165,13 @@ module Badline
         computer.family == :vic20 ? Vic20Media.disk_autostart(yield) : AUTOSTART
       end
 
-      # A VIC-20 or 264 series cartridge is its ROM chips.
+      # A VIC-20 or 264 series cartridge is its ROM chips. On the 264, the
+      # options' `slot` names the slot a raw ROM image goes in
+      # (Plus4Media.cartridge_chips).
       def attach_cartridge(computer, path, options)
         case computer.family
         when :vic20 then computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
-        when :plus4 then computer.attach_cartridge(Storage::CRTFile.new(path, machine: :plus4).chips)
+        when :plus4 then computer.attach_cartridge(Plus4Media.cartridge_chips(path, slot: options.fetch(:slot, nil)))
         else
           computer.attach_cartridge(C64::Cartridge.from_file(path, **options))
         end

@@ -22,6 +22,14 @@ describe Badline::Plus4 do
 
   def booted(**) = boot(described_class.new(**))
 
+  # Holds +key+ down for three frames, then up for three.
+  def tap_key(machine, key)
+    machine.keyboard.press(key)
+    machine.run_cycles(57 * 312 * 3)
+    machine.keyboard.release(key)
+    machine.run_cycles(57 * 312 * 3)
+  end
+
   it "starts at the KERNAL's reset entry" do
     expect(described_class.new.cpu.program_counter).to eq(0xfff6)
   end
@@ -155,6 +163,13 @@ describe Badline::Plus4 do
     machine.keyboard.press(:a)
     machine.run_cycles(57 * 312 * 4)
     expect(screen(machine)[4]).to eq("A")
+  end
+
+  it "starts 3-plus-1 in the function ROMs from F1 and RETURN at READY", :slow do
+    machine = booted
+    %i[f1 return].each { |key| tap_key(machine, key) }
+    machine.run_cycles(60_000)
+    expect([machine.bus.low_bank, machine.bus.high_bank]).to eq([1, 1])
   end
 
   it "reads joystick 2 through the keyboard latch" do
