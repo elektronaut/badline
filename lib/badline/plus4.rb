@@ -18,12 +18,14 @@ module Badline
   # doesn't have.
   #
   # The TED paints the picture a front end shows (#video, #timing). Device 8
-  # serves disks through the KERNAL traps (C64::KernalTraps), and
-  # cartridges go in cartridge 1's slots.
+  # serves disks through the KERNAL traps (C64::KernalTraps), or a true
+  # 1541 or 1581 on the serial bus does (C64::TrueDrives), and cartridges
+  # go in cartridge 1's slots.
   class Plus4
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include C64::TrueDrives
     include C64::KernalTraps
 
     # The cycle by which the KERNAL has booted and BASIC printed READY,
@@ -31,12 +33,15 @@ module Badline
     # Plus/4, 126,000 on an NTSC one and sooner on a C16.
     INIT_THRESHOLD = 200_000
 
+    # The cycle by which a 1541 switched on with the machine has run its
+    # DOS's reset, the RAM test and the ROM checksum, and waits on the
+    # bus, with a margin, in TED cycles.
+    DRIVE_BOOT_CYCLES = 1_200_000
+
     attr_reader :model, :bus, :cpu, :ted, :sound, :port, :keyboard, :keyboard_port, :joystick1, :joystick2, :acia,
-                :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb
+                :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb, :drive1541, :init_threshold
 
     def family = :plus4
-
-    def init_threshold = INIT_THRESHOLD
 
     # The joysticks reach the TED's keyboard latch, so there are no C64
     # control ports to plug a pot device into.
@@ -105,12 +110,15 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @capture_output = nil
+      @drive1541 = nil
+      @drive1581 = nil
+      @init_threshold = INIT_THRESHOLD
     end
 
     # One TED cycle: the TED moves on and decides the CPU's clock, then the
     # CPU runs its cycles in it, none while the TED holds the bus.
     def cycle!
-      handle_init if @cycles == INIT_THRESHOLD
+      handle_init if @cycles == @init_threshold
       feed_keyboard if @pending_keys
 
       ted = @ted
@@ -124,17 +132,22 @@ module Badline
         clock_cpu(ted)
         clock_cpu(ted) if slots == 2
       end
+      @drive1541&.host_cycle!
+      @drive1581&.host_cycle!
 
       @cycles += 1
     end
 
     # The RESET line: the CPU, the port, the 6529s, the ACIA, the bank
-    # latch and ROM selection. The TED has no reset pin.
+    # latch and ROM selection, and through the serial bus's RESET line, the
+    # drives. The TED has no reset pin.
     def reset!
       @port.reset!
       @keyboard_port.reset!
       @user_port&.reset!
       @dos&.reset!
+      @drive1541&.reset!
+      @drive1581&.reset!
       @acia&.reset!
       @tias.each(&:reset!)
       @bus.reset!
@@ -182,9 +195,16 @@ module Badline
 
     def trap_bus = @bus
 
-    # Device 8, which the serial traps answer for, with no true drive on
-    # the bus to take it.
-    def serial_trap_device = KernalTrap::Routine::DEVICE
+    # A drive that powers on with the machine takes longer to boot than
+    # the KERNAL, and doesn't answer the bus until it has, so the
+    # machine's on_init handlers wait for it too.
+    def drive1541_attached
+      @init_threshold = [@init_threshold, DRIVE_BOOT_CYCLES].max if @cycles < @init_threshold
+    end
+
+    def drive1581_attached
+      @init_threshold = [@init_threshold, Drives::Model1581::BOOT_CYCLES].max if @cycles < @init_threshold
+    end
 
     # BA stops the CPU at a read, and a write goes ahead.
     def clock_cpu(ted)
