@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/vic_i/painter/saved_state"
-
 module Badline
   module Chips
     class VICI
@@ -28,8 +26,6 @@ module Badline
       # nibble's low three bits) and 11 the auxiliary colour, whatever
       # $900F bit 3 says (MOS 6560/6561 datasheet, "Color operating modes").
       class Painter
-        include SavedState
-
         # The characters a line holds room for. A line fetches at most 34.
         SLOTS = 40
 

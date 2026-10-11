@@ -5,7 +5,6 @@ require "badline/chips/cpu/addressing"
 require "badline/chips/cpu/operations"
 require "badline/chips/cpu/stack_operations"
 require "badline/chips/cpu/boundary"
-require "badline/chips/cpu/saved_state"
 require "badline/chips/cpu/keyed_state"
 
 module Badline
@@ -24,7 +23,6 @@ module Badline
         include Operations
         include StackOperations
         include Boundary
-        include SavedState
         include KeyedState
 
         attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write
@@ -67,6 +65,22 @@ module Badline
           @skip_poll = false
           @pending_write = false
           end_sequence
+        end
+
+        # Drops the instruction or interrupt sequence in flight and the
+        # interrupt lines' pipeline, so the next cycle fetches an opcode at the
+        # program counter, and sets the cycle count. A snapshot from VICE,
+        # taken between instructions, restores through here.
+        def resume(cycles)
+          @irq_sample = @irq_pending = false
+          @nmi_sample = @nmi_pending = false
+          @skip_poll = false
+          @interrupt = nil
+          @brk = false
+          @stalled_at = nil
+          @cycles = cycles
+          end_sequence
+          @pending_write = false
         end
 
         def p

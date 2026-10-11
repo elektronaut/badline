@@ -35,13 +35,13 @@ module TrapDOSSamples
   end
 end
 
-# Device 8 through the KERNAL traps, keyed, against the positional state the
-# machine saves for it, which restores exactly.
+# Device 8 through the KERNAL traps, keyed: saved, loaded into a new
+# machine and saved again the same.
 describe Badline::KernalTrap::DOS, "#save_fields" do
-  def positional(machine)
-    out = Badline::Snapshot::StateWriter.new
-    machine.send(:save_trap_dos, out)
-    out.state
+  def saved_fields(machine)
+    out = Badline::Snapshot::Keyed::Writer.new
+    machine.save_trap_dos_fields(out)
+    out.to_s
   end
 
   def round_trip(machine)
@@ -55,11 +55,11 @@ describe Badline::KernalTrap::DOS, "#save_fields" do
   it "restores a disk image with a file open for writing, its channels and the traps", :slow do
     machine = TrapDOSSamples.writing
     channels = machine.instance_variable_get(:@dos).instance_variable_get(:@channels)
-    expect([positional(round_trip(machine)), channels.open?(2)]).to eq([positional(machine), true])
+    expect([saved_fields(round_trip(machine)), channels.open?(2)]).to eq([saved_fields(machine), true])
   end
 
   it "restores a directory part way through a LOAD", :slow do
-    expect(positional(round_trip(TrapDOSSamples.loading))).to eq(positional(TrapDOSSamples.loading))
+    expect(saved_fields(round_trip(TrapDOSSamples.loading))).to eq(saved_fields(TrapDOSSamples.loading))
   end
 
   it "unmounts a machine whose snapshot has nothing on device 8" do

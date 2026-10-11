@@ -4,7 +4,6 @@ require "badline/c64/common"
 require "badline/c64/true_drives"
 require "badline/c64/attachments"
 require "badline/c64/kernal_traps"
-require "badline/c64/saved_state"
 require "badline/c64/keyed_state"
 require "badline/c64/keyed_modules"
 
@@ -17,7 +16,6 @@ module Badline
     include Common
     include Attachments
     include KernalTraps
-    include SavedState
 
     attr_reader :address_bus, :cpu, :cycles, :drive1541
 

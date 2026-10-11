@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/vic/graphics_shifter/saved_state"
-
 module Badline
   module Chips
     class VIC
@@ -26,8 +24,6 @@ module Badline
       # invalid mode, it is still black into hi-res text, and so is a
       # background pixel into multicolour bitmap.
       class GraphicsShifter
-        include SavedState
-
         ECM = 0b100
         ECM_BMM = 0b110
         MULTICOLOR_BITMAP = 0b011

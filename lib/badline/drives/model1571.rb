@@ -5,7 +5,6 @@ require "badline/drives/model1571/wd1770"
 require "badline/drives/model1571/serial_port"
 require "badline/drives/model1571/serial_via"
 require "badline/drives/model1571/bus"
-require "badline/drives/model1571/saved_state"
 require "badline/drives/model1571/keyed_state"
 
 module Badline
@@ -29,7 +28,6 @@ module Badline
       include Engine::Core
       include Engine::VIAs
       include Engine::FastSerial
-      include SavedState
 
       CLOCK_HZ = 1_000_000
       FAST_CLOCK_HZ = 2_000_000

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/c64/cartridge/retro_replay/saved_state"
-
 module Badline
   class C64
     class Cartridge
@@ -47,18 +45,12 @@ module Badline
       # the half in bit 5.
       class RetroReplay < Cartridge
         include Freezer
-        include SavedState
 
         CONTROL_MODES = %i[rom8k rom16k off ultimax].freeze
         IO1_PAGE = 0x1e00
         IO2_PAGE = 0x1f00
 
         attr_reader :flash
-
-        def self.from_jumpers(crt, input)
-          input.boolean?
-          new(crt, flash_jumper: input.boolean?, bank_jumper: input.boolean?)
-        end
 
         def initialize(crt, flash_jumper: false, bank_jumper: false)
           @nordic = crt.subtype == 1

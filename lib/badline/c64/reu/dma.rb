@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/c64/reu/dma/saved_state"
-
 module Badline
   class C64
     class REU
@@ -11,8 +9,6 @@ module Badline
       # After a write it goes on through the first BA-low cycle and stops at
       # the second. See doc/pinned-behaviour.md, REU DMA.
       class DMA
-        include SavedState
-
         # Transfer types, as the command register's bottom two bits give
         # them.
         STASH = 0

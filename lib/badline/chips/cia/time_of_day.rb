@@ -32,28 +32,6 @@ module Badline
           @match = enabled ? 4 : 5
         end
 
-        # The clock and the alarm, field by field in FIELDS order, the latch,
-        # and the divider's phase.
-        def save_state(out)
-          out.int(@accumulator).int(@pulses).int(@match).boolean(@stopped).boolean(@alarm_pending)
-          FIELDS.each { |field| out.int(@clock[field]).int(@alarm[field]) }
-          out.boolean(!@latch.nil?)
-          FIELDS.each { |field| out.int(@latch[field]) } if @latch
-        end
-
-        def load_state(input)
-          @accumulator = input.int
-          @pulses = input.int
-          @match = input.int
-          @stopped = input.boolean?
-          @alarm_pending = input.boolean?
-          FIELDS.each do |field|
-            @clock[field] = input.int
-            @alarm[field] = input.int
-          end
-          @latch = input.boolean? ? FIELDS.to_h { |field| [field, input.int] } : nil
-        end
-
         # Whether the clock is stopped, or gets no pulses on its pin, with no
         # alarm to raise, so its cycles move only the divider's phase.
         def quiet? = (@stopped || @mains_hz.zero?) && !@alarm_pending

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/c64/cartridge/flash/saved_state"
-
 module Badline
   class C64
     class Cartridge
@@ -69,7 +67,9 @@ module Badline
           alias [] peek
         end
 
-        include SavedState
+        # The command states, which a snapshot names.
+        STATES = %i[read program_setup autoselect programming erase_window erasing suspended chip_erase
+                    program_error].freeze
 
         attr_reader :data, :state
         attr_writer :clock

@@ -4,17 +4,12 @@ require "spec_helper"
 require "tmpdir"
 require "badline/c128"
 require_relative "../../../support/blank_disk"
-require_relative "../../../support/keyed_oracle"
-require_relative "../../../support/snapshot_scenarios"
 
-# A 1571's own fields, its WD1770, RAM, CIA, mechanism and disk through
-# their keyed fields, with its CPU and VIAs copied positionally (their keyed
-# fields have oracles of their own), against the whole drive's positional
-# state.
+# A 1571 through its keyed modules (Model1571#save_modules): its own
+# fields, RAM, VIAs, CIA, CPU, WD1770, mechanism and disk, loaded into a
+# fresh drive, which saves the same modules again.
 module Drive1571KeyedSamples
   extend BlankDisk
-  extend KeyedOracle
-  extend SnapshotScenarios
 
   module_function
 
@@ -34,27 +29,13 @@ module Drive1571KeyedSamples
     end
   end
 
-  # Each unit through a module of its own, as a snapshot keeps them.
-  def through_module(unit)
-    out = Badline::Snapshot::Keyed::Writer.new
-    unit.save_fields(out)
-    Badline::Snapshot::Keyed::Reader.parse(out.section("BL-TEST"))
-  end
-
+  # The drive's modules (Model1571#save_modules), loaded into a fresh
+  # drive, and the readers.
   def copy(drive)
+    modules = Badline::Snapshot::Keyed::Modules.new(drive.save_modules([], "BL-D8"))
     fresh = Badline::Drives::Model1571.new(rom: stub_rom)
-    inputs = [drive, drive.bus, drive.cia].zip([fresh, fresh.bus, fresh.cia]).map do |unit, target|
-      through_module(unit).tap { |input| target.load_fields(input) }
-    end
-    %i[via1 via2 cpu].each { |part| round_trip(drive.public_send(part), fresh.public_send(part)) }
-    inputs << through_module(drive.fdc).tap { |input| fresh.fdc.load_fields(input) }
-    out = Badline::Snapshot::Keyed::Writer.new
-    drive.disk.save_fields(out)
-    disk = Badline::Snapshot::Keyed::Reader.parse(out.section("BL-D8-DISK"))
-    inputs << disk << through_module(drive.mechanism)
-    fresh.mechanism.load_fields(inputs.last, Badline::Drives::Model1541::Disk.from_fields(disk))
-    [fresh.cia, fresh].each(&:restored!)
-    [fresh, inputs]
+    fresh.load_modules(modules, modules.required("BL-D8"), "BL-D8")
+    [fresh, modules.readers]
   end
 
   def samples
@@ -66,7 +47,7 @@ module Drive1571KeyedSamples
 
         fresh, inputs = copy(saved)
         problems = inputs.flat_map { |input| input.report.lines(verbose: true) }
-        problems << "positional state differs" unless positional(fresh) == positional(saved)
+        problems << "saves other modules" unless fresh.save_modules([], "BL-D8") == saved.save_modules([], "BL-D8")
         problems.map { |line| "cycle #{cycle}: #{line}" }
       end.flatten
     end

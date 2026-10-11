@@ -9,7 +9,6 @@ module Badline
                            :board)
 
     class C64Setup
-      MARKER = "COMPUTER"
       SID_MODELS = %i[mos6581 mos8580].freeze
       REGIONS = [Region::PAL, Region::NTSC, Region::NTSC_OLD, Region::DREAN].freeze
       RAM_EXPANSIONS = [:none, *C64::BankedRAM::TYPES.keys].freeze
@@ -22,23 +21,6 @@ module Badline
             kernal: address_bus.kernal, datasette: address_bus.datasette.connected?, board: address_bus.board)
       end
 
-      # The setup a C64's State starts with.
-      def self.from(state)
-        input = StateReader.new(state)
-        input.marker(MARKER)
-        input.check_stamp
-        read(input)
-      end
-
-      def self.read(input)
-        new(vic_model: Chips::VIC::MODELS.fetch(input.int), cia_model: Chips::CIA::MODELS.fetch(input.int),
-            sid_model: SID_MODELS.fetch(input.int), region: REGIONS.fetch(input.int),
-            ram_expansion: ram_expansion(RAM_EXPANSIONS.fetch(input.int)), reu: reu(input.int),
-            kernal: KERNALS.fetch(input.int), datasette: input.boolean?, board: BOARDS.fetch(input.int))
-      rescue IndexError
-        raise FormatError, "the state names a chip model, region, RAM expansion, KERNAL or board badline doesn't know"
-      end
-
       def self.ram_expansion(name) = name == :none ? nil : name
 
       # An REU's size in K, written as 0 for none.
@@ -46,17 +28,9 @@ module Badline
         return nil if size_kb.zero?
         return size_kb if C64::REU::SIZES_KB.include?(size_kb)
 
-        raise FormatError, "the state names a #{size_kb}K REU, which badline doesn't build"
+        raise FormatError, "the snapshot names a #{size_kb}K REU, which badline doesn't build"
       end
 
-      def write(out)
-        out.int(Chips::VIC::MODELS.index(vic_model)).int(Chips::CIA::MODELS.index(cia_model))
-        out.int(SID_MODELS.index(sid_model)).int(REGIONS.index(region))
-        out.int(RAM_EXPANSIONS.index(ram_expansion || :none)).int(reu || 0)
-        out.int(KERNALS.index(kernal)).boolean(datasette).int(BOARDS.index(board))
-      end
-
-      # A machine built this way, at power-on.
       # The setup in a keyed snapshot module (Snapshot::Keyed), with each
       # model, the region, the RAM expansion, the KERNAL and the board by
       # name.
@@ -86,6 +60,7 @@ module Badline
         names.find { |name| name.to_s == text } || default
       end
 
+      # A machine built this way, at power-on.
       def build
         C64.new(vic_model:, cia_model:, sid_model:, region:, ram_expansion:, reu:, kernal:, datasette:, board:)
       end

@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 
-# The datasette's keyed fields against its positional save_state.
+# The datasette's keyed fields, saved again the same.
 describe Badline::Drives::Datasette::KeyedState do
   include KeyedOracle
 
@@ -26,7 +26,7 @@ describe Badline::Drives::Datasette::KeyedState do
     target = Badline::Drives::Datasette.new
     keyed_round_trip(saved, target)
     File.delete(path)
-    expect(positional(target)).to eq(positional(saved))
+    expect(saved_fields(target)).to eq(saved_fields(saved))
   end
 
   it "takes the tape out when the module holds none" do

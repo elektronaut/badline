@@ -9,6 +9,20 @@ module Badline
         # register, and the line batch under `line_prefix` when `line` is
         # true.
         module KeyedState
+          # The shift register, MC, MCBASE, the expansion flip-flop and whether
+          # the sprite shows, for a VICE snapshot.
+          attr_reader :sr, :mc, :mcbase, :exp_ff, :display_on
+
+          # Sets MC, MCBASE, the expansion flip-flop, whether the sprite's DMA
+          # runs and whether it shows, as a VICE snapshot gives them.
+          def restore_counters(counter, base, expanded, dma, shows)
+            @mc = counter
+            @mcbase = base
+            @exp_ff = expanded
+            @dma = dma
+            @display_on = shows
+          end
+
           def save_fields(out, prefix, line_prefix)
             out.bool("#{prefix}dma", @dma).bool("#{prefix}display_on", @display_on).int("#{prefix}mcbase", @mcbase)
             out.int("#{prefix}mc", @mc).bool("#{prefix}exp_ff", @exp_ff).optional_int("#{prefix}crunched_mc",
@@ -136,6 +150,11 @@ module Badline
         # carried into the next line, the register log. Whether any DMA
         # runs comes from the sprites on load.
         module KeyedState
+          # Whether any sprite's DMA runs, set after Sprite#restore_counters.
+          def update_any_dma
+            @any_dma = @sprites.any?(&:displaying?)
+          end
+
           def save_fields(out, line_prefix)
             @sprites.each do |sprite|
               sprite.save_fields(out, "sprite#{sprite.index}.", "#{line_prefix}sprite#{sprite.index}.")

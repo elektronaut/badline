@@ -57,14 +57,6 @@ module Badline
 
         private
 
-        def save_mapper(out)
-          out.int(@discharged_at)
-        end
-
-        def load_mapper(input)
-          @discharged_at = input.int
-        end
-
         def discharge!
           @discharged_at = @clock ? @clock.call : 0
         end

@@ -4,13 +4,12 @@ require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 require_relative "../../../support/snapshot_scenarios"
 
-# The VIC-II's keyed fields against its positional save_state, which
-# restores exactly: a VIC saved on any column, loaded into a fresh
-# machine's, saves the same positional state, with the IRQ line, the
-# sprites' BA columns and whether any sprite DMA runs worked out again. The
-# g-access ring comes back oldest first, which the saved VIC is turned to
-# as well before comparing: its slots are only ever read relative to the
-# newest.
+# The VIC-II's keyed fields, saved again the same: a VIC saved on any
+# column, loaded into a fresh machine's, saves the same fields, with the
+# IRQ line, the sprites' BA columns and whether any sprite DMA runs worked
+# out again. The g-access ring comes back oldest first, which the saved VIC
+# is turned to as well before comparing: its slots are only ever read
+# relative to the newest.
 module VICKeyedSamples
   extend KeyedOracle
 
@@ -24,7 +23,7 @@ module VICKeyedSamples
       ring.replace(order.map { |slot| ring[slot] })
     end
     vic.instance_variable_set(:@g_tick, 3)
-    positional(vic)
+    saved_fields(vic)
   end
 
   def demo_machine(**models)
@@ -37,7 +36,7 @@ module VICKeyedSamples
   def check(machine, models)
     target = Badline::Chips::VIC.new(model: models.fetch(:vic_model, :mos6569))
     problems = keyed_round_trip(machine.vic, target).report.lines(verbose: true)
-    problems << "positional state differs" unless rebase(machine.vic) == rebase(target)
+    problems << "saves other fields" unless rebase(machine.vic) == rebase(target)
     problems.map { |line| "cycle #{machine.cycles} (line #{machine.vic.rasterline}): #{line}" }
   end
 

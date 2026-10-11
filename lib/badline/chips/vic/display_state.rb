@@ -79,25 +79,6 @@ module Badline
           @matched && column >= FETCH_FIRST && column <= DMA_LAST
         end
 
-        def save_state(out)
-          out.int(@vc_base).int(@vc).int(@vmli).int(@rc).boolean(@display).boolean(@bad_lines_enabled)
-          out.boolean(@matched).optional_int(@ba).int(@line_bits).boolean(@den_line).boolean(@in_window)
-        end
-
-        def load_state(input)
-          @vc_base = input.int
-          @vc = input.int
-          @vmli = input.int
-          @rc = input.int
-          @display = input.boolean?
-          @bad_lines_enabled = input.boolean?
-          @matched = input.boolean?
-          @ba = input.optional_int
-          @line_bits = input.int
-          @den_line = input.boolean?
-          @in_window = input.boolean?
-        end
-
         def new_frame
           @vc_base = 0
           @bad_lines_enabled = false

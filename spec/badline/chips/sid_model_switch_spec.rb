@@ -50,8 +50,8 @@ describe Badline::Chips::SID, "#model=" do
     sid
   end
 
-  # The switch runs the cycles already passed on the old model, which a save
-  # state would leave for the new one. It also carries the filter's cutoff
+  # The switch runs the cycles already passed on the old model, which a
+  # snapshot would leave for the new one. It also carries the filter's cutoff
   # as the saving chip mapped it, so the one built as `model` maps it again
   # through its own curve.
   def built_from(sid, model)
@@ -99,9 +99,10 @@ describe Badline::Chips::SID, "#model=" do
             expect(switched).not_to eq(stayed)
           end
 
-          # Only the 8580 keeps the delayed shapers.
+          # Only the 8580 keeps the delayed shapers. The output is a cache a
+          # snapshot leaves to be worked out again.
           it "keeps the running state" do
-            delayed = { "Badline::Chips::SID::Waveform" => %i[@delayed_sawtooth @delayed_triangle] }
+            delayed = { "Badline::Chips::SID::Waveform" => %i[@delayed_sawtooth @delayed_triangle @output @stale] }
             expect(state_differences(*at_switch, host: delayed)).to be_empty
           end
         end

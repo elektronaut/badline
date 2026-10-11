@@ -44,10 +44,9 @@ describe Badline::Drives::Model1571::WD1770 do
     expect(fdc.peek(0) & described_class::BUSY).to eq(0)
   end
 
-  it "loads a state holding the four registers alone" do
-    out = Badline::Snapshot::StateWriter.new
-    out.ints([1, 2, 3, 4])
-    fdc.load_state(Badline::Snapshot::StateReader.new(out.state))
+  it "loads a snapshot module holding the four registers alone" do
+    out = Badline::Snapshot::Keyed::Writer.new.ints("registers", [1, 2, 3, 4])
+    fdc.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-D8-FDC")))
     expect([fdc.peek(1), fdc.peek(2), fdc.peek(3), fdc.peek(0)]).to eq([2, 3, 4, 0])
   end
 end

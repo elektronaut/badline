@@ -9,7 +9,6 @@ require "badline/drives/model1541/track"
 require "badline/drives/model1541/disk"
 require "badline/drives/model1541/mechanism"
 require "badline/drives/model1541/disk_via"
-require "badline/drives/model1541/saved_state"
 require "badline/drives/model1541/keyed_state"
 
 module Badline
@@ -20,7 +19,6 @@ module Badline
     class Model1541
       include Engine::Core
       include Engine::VIAs
-      include SavedState
 
       CLOCK_HZ = 1_000_000
 

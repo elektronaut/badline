@@ -33,20 +33,6 @@ module Badline
 
         def type = :plus256k
 
-        def save_state(out)
-          [@low_ram, @video_ram, @high_ram].each { |bank| out.int(@banks.index(bank)) }
-          out.boolean(@locked)
-          @banks.drop(1).each { |bank| bank.save_state(out) }
-        end
-
-        def load_state(input)
-          @low_ram = @banks.fetch(input.int)
-          @video_ram = @banks.fetch(input.int)
-          @high_ram = @banks.fetch(input.int)
-          @locked = input.boolean?
-          @banks.drop(1).each { |bank| bank.load_state(input) }
-        end
-
         # $D100 as the banks it picks give it, whether it is locked, and
         # banks 1 to 3, in a keyed snapshot module.
         def save_fields(out)

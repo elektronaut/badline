@@ -297,12 +297,12 @@ describe Badline::Audio::Renderer do
     context "without checkpoints given" do
       before do
         stub_const("Badline::Audio::Checkpoints::EVERY", 0.01)
-        allow(renderer.player).to receive(:save_state)
+        allow(renderer.player).to receive(:save_modules)
       end
 
       it "saves none" do
         renderer.stream { |_samples, _rendered| nil }
-        expect(renderer.player).not_to have_received(:save_state)
+        expect(renderer.player).not_to have_received(:save_modules)
       end
     end
 

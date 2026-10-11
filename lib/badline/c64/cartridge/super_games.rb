@@ -21,16 +21,6 @@ module Badline
 
         private
 
-        def save_mapper(out)
-          super
-          out.boolean(@locked)
-        end
-
-        def load_mapper(input)
-          super
-          @locked = input.boolean?
-        end
-
         def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
         def select(value)

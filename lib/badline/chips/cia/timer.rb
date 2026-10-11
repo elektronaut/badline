@@ -69,26 +69,6 @@ module Badline
           settle
         end
 
-        # The counter, the latch and the pipeline between them. The control
-        # register is the CIA's to save.
-        def save_state(out)
-          out.int(@counter).int(@latch).int(@pipe).int(@load_delay).boolean(@reload).boolean(@underflowed)
-          out.int(@oneshot_linger).boolean(@toggle).boolean(@settled).boolean(@empty)
-        end
-
-        def load_state(input)
-          @counter = input.int
-          @latch = input.int
-          @pipe = input.int
-          @load_delay = input.int
-          @reload = input.boolean?
-          @underflowed = input.boolean?
-          @oneshot_linger = input.int
-          @toggle = input.boolean?
-          @settled = input.boolean?
-          @empty = input.boolean?
-        end
-
         def write_control(value)
           @toggle = true if value.anybits?(0x01) && !started?
           @oneshot_linger = 2 if control.run_mode? && value.nobits?(0x08)

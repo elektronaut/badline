@@ -4,7 +4,6 @@ require "badline/chips/vdc/memory"
 require "badline/chips/vdc/window"
 require "badline/chips/vdc/painter"
 require "badline/chips/vdc/raster"
-require "badline/chips/vdc/saved_state"
 require "badline/chips/vdc/keyed_parts"
 
 module Badline
@@ -35,7 +34,6 @@ module Badline
     # fills or two per byte it copies.
     class VDC
       include Addressable
-      include SavedState
 
       STATUS_READY = 0x80
       STATUS_VBLANK = 0x20

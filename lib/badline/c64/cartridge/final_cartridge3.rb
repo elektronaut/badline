@@ -61,18 +61,6 @@ module Badline
 
         private
 
-        def save_mapper(out)
-          super
-          out.boolean(@register_visible).boolean(@phi1_ultimax)
-        end
-
-        def load_mapper(input)
-          super
-          @io_bank = @roml
-          @register_visible = input.boolean?
-          @phi1_ultimax = input.boolean?
-        end
-
         def windows = [*@roml_banks, *@romh_banks, EMPTY_BANK]
 
         def select(number)

@@ -115,16 +115,6 @@ module Badline
       end
 
       def detach_drive1571 = nil
-
-      # A true 1541 on the serial bus, with its device number.
-      def load_drive1541(input)
-        return detach_drive1541 unless input.boolean?
-
-        device = input.int
-        detach_drive1541 if @drive1541 && @drive1541.device != device
-        attach_drive1541(Drives::Model1541.new(device:)) unless @drive1541
-        @drive1541.load_state(input)
-      end
     end
   end
 end

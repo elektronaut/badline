@@ -5,7 +5,6 @@ require "badline/chips/vic/registers"
 require "badline/chips/vic/display_state"
 require "badline/chips/vic/sequencer"
 require "badline/chips/vic/sprites"
-require "badline/chips/vic/saved_state"
 require "badline/chips/vic/keyed_parts"
 
 module Badline
@@ -13,7 +12,6 @@ module Badline
     class VIC
       include Addressable
       include IntegerHelper
-      include SavedState
 
       # The 6569 of the breadbin C64, the HMOS 8565 of the C64C, and the
       # C128's VIC-IIe, the 8566 (PAL) and 8564 (NTSC). The VIC-IIe draws as

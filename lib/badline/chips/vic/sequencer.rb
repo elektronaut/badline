@@ -5,7 +5,6 @@ require "badline/chips/vic/color_patches"
 require "badline/chips/vic/graphics_mode"
 require "badline/chips/vic/graphics_shifter"
 require "badline/chips/vic/sequencer_output"
-require "badline/chips/vic/sequencer/saved_state"
 
 module Badline
   module Chips
@@ -15,7 +14,6 @@ module Badline
       # Turns fetched graphics data into output pixels.
       class Sequencer
         include Output
-        include SavedState
 
         BORDER_Y_BOUNDS = [
           [55, 247].freeze,

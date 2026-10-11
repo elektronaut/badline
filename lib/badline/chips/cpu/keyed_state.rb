@@ -155,6 +155,22 @@ module Badline
           @rmw_result = nil
           @pointer = nil
         end
+
+        # Where the plan running comes from: an opcode's microcode, or FETCH,
+        # INTERRUPT or JAMMED below it.
+        def plan_source
+          return FETCH if @plan.equal?(FETCH_PLAN)
+          return INTERRUPT if @plan.equal?(INTERRUPT_PLAN)
+          return JAMMED if @plan.equal?(JAMMED_PLAN)
+
+          MICROCODE.index { |micro| micro.plan.equal?(@plan) && micro.operation == @operation } ||
+            MICROCODE.index { |micro| micro.plan.equal?(@plan) }
+        end
+
+        def use_plan(plan, writes)
+          @plan = plan
+          @writes = writes
+        end
       end
     end
   end

@@ -54,20 +54,6 @@ module Badline
           offset.zero? ? command(value) : @registers[offset] = value
         end
 
-        def save_state(out)
-          out.ints([*@registers, @status, @due, @result])
-        end
-
-        # A state from before the controller ran commands holds the four
-        # registers alone.
-        def load_state(input)
-          values = input.ints
-          @registers = values[0, 4]
-          @status = values[4] || 0
-          @due = values[5] || 0
-          @result = values[6] || 0
-        end
-
         private
 
         def command(value)

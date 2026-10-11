@@ -110,6 +110,17 @@ module Badline
         # by sector as the WD1772 sees them, and the tracks written since the
         # last flush.
         module KeyedState
+          # The image's path, expanded, and whether it was opened read-only,
+          # for a disk from Disk.open. Nil for a disk made another way.
+          attr_reader :path, :read_only
+
+          # Notes the image's path and how it was opened.
+          def opened(path, read_only)
+            @path = File.expand_path(path)
+            @read_only = read_only
+            self
+          end
+
           def save_fields(out)
             path = @path
             out.text("path", path) if path

@@ -3,7 +3,6 @@
 require "badline/chips/sid/waveform/combined"
 require "badline/chips/sid/waveform/fast_forward"
 require "badline/chips/sid/waveform/noise_writeback"
-require "badline/chips/sid/waveform/saved_state"
 
 module Badline
   module Chips
@@ -29,7 +28,6 @@ module Badline
       class Waveform
         include FastForward
         include NoiseWriteback
-        include SavedState
 
         # All bits high at power up, odd ones stored inverted (SID/oscinit).
         POWER_ON_ACCUMULATOR = 0x555555

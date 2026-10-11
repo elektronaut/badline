@@ -27,15 +27,11 @@ require "badline/c64/cartridge/final_cartridge3"
 require "badline/c64/cartridge/retro_replay"
 require "badline/c64/cartridge/kcs_power"
 require "badline/c64/cartridge/geo_ram"
-require "badline/c64/cartridge/saved_state"
 
 module Badline
   class C64
     class Cartridge
-      include SavedState
-
       class UnsupportedTypeError < StandardError; end
-
       ROMH_START = 0xa000
       BANK_SIZE = 0x2000
 
@@ -70,22 +66,6 @@ module Badline
           mapper_for(crt).new(crt, **)
         end
 
-        # A cartridge built afresh from what save_setup wrote, before
-        # load_state puts its state in.
-        def from_setup(input)
-          return GeoRAM.new(size: input.int) if input.int == GEO_RAM_SETUP
-
-          crt = Storage::CRTFile.new(bytes: input.string)
-          mapper_for(crt).from_jumpers(crt, input)
-        end
-
-        # A cartridge from its image and what save_jumpers wrote: whether
-        # there are jumpers, then their settings on a mapper that has them.
-        def from_jumpers(crt, input)
-          input.boolean?
-          new(crt)
-        end
-
         def mapper_for(crt)
           HARDWARE_TYPES.fetch(crt.hardware_type) do
             raise UnsupportedTypeError,
@@ -93,11 +73,6 @@ module Badline
           end
         end
       end
-
-      # What save_setup writes first: a cartridge from a CRT image, or a
-      # GEO-RAM.
-      CRT_SETUP = 0
-      GEO_RAM_SETUP = 1
 
       # Keeps the image it was built from, so a snapshot's machine can build
       # the same cartridge before the snapshot's state goes into it.
@@ -190,8 +165,6 @@ module Badline
         windows.index { |candidate| candidate.equal?(window) } ||
           raise(ArgumentError, "#{self.class.name}: a window that isn't among its banks")
       end
-
-      def window_at(index, windows) = index.negative? ? nil : windows.fetch(index)
 
       def nmi=(level)
         return if @nmi == level

@@ -145,7 +145,7 @@ describe Badline::C128::MMU do
     end
 
     it "restores the registers and a page pointer's high byte waiting for its low byte" do
-      expect(positional(fresh)).to eq(positional(mmu))
+      expect(saved_fields(fresh)).to eq(saved_fields(mmu))
     end
   end
 end

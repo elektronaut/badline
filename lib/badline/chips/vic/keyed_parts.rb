@@ -124,6 +124,11 @@ module Badline
         # `line_prefix` when `line` is true. Foreground masks go as text:
         # "shifter", or the mode table and the data byte.
         module KeyedState
+          # The foreground patterns' codes: the shifter's own, HIRES_FG's by
+          # index, and PAIR_FG's after them.
+          FG_SHIFTER = -1
+          PAIR_CODES = 256
+
           def save_fields(out, line_prefix)
             out.bool("first_csel", @first_csel).optional_int("left_vertical_border", left_vertical_code)
             out.ints("cur_colors", @cur_colors).text("cur_fg", fg_name(@cur_fg))
@@ -184,10 +189,10 @@ module Badline
 
           def fg_name(pattern)
             code = fg_code(pattern)
-            return "shifter" if code == SavedState::FG_SHIFTER
-            return "hires:#{code}" if code < SavedState::PAIR_CODES
+            return "shifter" if code == FG_SHIFTER
+            return "hires:#{code}" if code < PAIR_CODES
 
-            "pair:#{code - SavedState::PAIR_CODES}"
+            "pair:#{code - PAIR_CODES}"
           end
 
           def fg_named(name)
@@ -198,6 +203,18 @@ module Badline
             return GraphicsMode::PAIR_FG.fetch(index.clamp(0, GraphicsMode::PAIR_FG.length - 1)) if table == "pair"
 
             GraphicsMode::HIRES_FG.fetch(index.clamp(0, GraphicsMode::HIRES_FG.length - 1))
+          end
+
+          def fg_code(pattern)
+            return FG_SHIFTER if pattern.equal?(@shifter.fg)
+
+            hires = GraphicsMode::HIRES_FG.index { |fg| fg.equal?(pattern) }
+            return hires if hires
+
+            pair = GraphicsMode::PAIR_FG.index { |fg| fg.equal?(pattern) }
+            raise ArgumentError, "a foreground mask the sequencer doesn't know" unless pair
+
+            PAIR_CODES + pair
           end
         end
 

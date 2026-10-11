@@ -23,17 +23,19 @@ module Badline
         # Cycles until the current window closes, counting the next one as 1.
         attr_reader :cycles_to_close
 
-        # How far the current window has got. The clock and the rate are the
+        # How far the current window has got, in a keyed snapshot module
+        # (Snapshot::Keyed) under `prefix`. The clock and the rate are the
         # host's.
-        def save_state(out)
-          out.int(@phase).int(@sum).int(@count).int(@cycles_to_close)
+        def save_fields(out, prefix)
+          out.int("#{prefix}phase", @phase).int("#{prefix}sum", @sum).int("#{prefix}count", @count)
+          out.int("#{prefix}cycles_to_close", @cycles_to_close)
         end
 
-        def load_state(input)
-          @phase = input.int
-          @sum = input.int
-          @count = input.int
-          @cycles_to_close = input.int
+        def load_fields(input, prefix)
+          @phase = input.int("#{prefix}phase", @phase)
+          @sum = input.int("#{prefix}sum", @sum)
+          @count = input.int("#{prefix}count", @count)
+          @cycles_to_close = input.int("#{prefix}cycles_to_close", @cycles_to_close)
         end
 
         # Returns the averaged sample when these cycles close a window, and

@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 require "zlib"
-require "badline/snapshot/state"
-require "badline/snapshot/setup"
 require "badline/snapshot/container"
+require "badline/snapshot/c64_setup"
 require "badline/snapshot/machine_state"
 require "badline/snapshot/keyed"
 require "badline/snapshot/vice"

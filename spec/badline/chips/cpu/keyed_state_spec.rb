@@ -4,11 +4,10 @@ require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 require_relative "../../../support/snapshot_scenarios"
 
-# The CPU's keyed fields against its positional save_state, which restores
-# exactly: a CPU saved on any cycle, loaded into a fresh one, saves the
-# same positional state, but for what the keyed load recomputes or no step
-# reads again: the IRQ line, a stall too long ago to matter, and the
-# working registers between instructions.
+# The CPU's keyed fields, saved again the same: a CPU saved on any cycle,
+# loaded into a fresh one, saves the same fields, with the IRQ line, a
+# stall too long ago to matter and the working registers between
+# instructions set on the saved one as a keyed load leaves them.
 module CPUKeyedSamples
   extend KeyedOracle
 
@@ -22,7 +21,7 @@ module CPUKeyedSamples
               :@address => nil, :@dummy_address => nil, :@value => nil, :@rmw_result => nil,
               :@pointer => nil }.freeze
 
-  # The positional state, with the IRQ line the machine drives before every
+  # The saved fields, with the IRQ line the machine drives before every
   # cycle, a stall too long ago for any step to look back at, and the
   # registers no step reads again, set as a keyed load leaves them.
   def comparable(cpu)
@@ -32,7 +31,7 @@ module CPUKeyedSamples
     fields[:@stalled_at] = nil unless stalled_at && (cpu.cycles - stalled_at).between?(0, 1)
     fields.merge!(:@operation => nil, :@optional_dummy => false) unless instruction?(plan)
     fields.merge!(LATCHES) if cpu.boundary? || cpu.jammed?
-    positional(with_fields(cpu, fields))
+    saved_fields(with_fields(cpu, fields))
   end
 
   def instruction?(plan)
@@ -54,7 +53,7 @@ module CPUKeyedSamples
   def check(cpu, fresh)
     input = keyed_round_trip(cpu, fresh)
     problems = input.report.lines(verbose: true)
-    problems << "positional state differs" unless comparable(cpu) == comparable(fresh)
+    problems << "saves other fields" unless comparable(cpu) == comparable(fresh)
     problems.map { |line| "cycle #{cpu.cycles} (#{position(cpu)}): #{line}" }
   end
 
@@ -107,7 +106,7 @@ end
 
 describe Badline::Chips::CPU::KeyedState do
   describe "the C64's CPU on every cycle of the demo" do
-    it "restores the positional state" do
+    it "saves the same fields" do
       expect(CPUKeyedSamples.demo[:problems].first(5)).to be_empty
     end
 
@@ -121,7 +120,7 @@ describe Badline::Chips::CPU::KeyedState do
   end
 
   describe "a 1541's CPU on every cycle from power-on" do
-    it "restores the positional state" do
+    it "saves the same fields" do
       expect(CPUKeyedSamples.drive[:problems].first(5)).to be_empty
     end
 
@@ -131,7 +130,7 @@ describe Badline::Chips::CPU::KeyedState do
   end
 
   describe "a CPU through a JAM opcode" do
-    it "restores the positional state on every cycle" do
+    it "saves the same fields on every cycle" do
       expect(CPUKeyedSamples.jam[:problems]).to be_empty
     end
 

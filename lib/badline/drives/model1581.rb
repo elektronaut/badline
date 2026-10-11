@@ -9,7 +9,6 @@ require "badline/drives/model1581/wd1772"
 require "badline/drives/model1581/cpu"
 require "badline/drives/model1581/serial_port"
 require "badline/drives/model1581/bus"
-require "badline/drives/model1581/saved_state"
 require "badline/drives/model1581/keyed_state"
 require "badline/drives/model1581/slot"
 
@@ -41,7 +40,6 @@ module Badline
     class Model1581
       include Engine::Core
       include Engine::FastSerial
-      include SavedState
 
       CLOCK_HZ = 2_000_000
 

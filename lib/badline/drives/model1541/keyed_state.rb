@@ -14,6 +14,17 @@ module Badline
         # and track<H>.gcr, raw GCR as the head sees it, and the half tracks
         # written since the last flush.
         module KeyedState
+          # The image's path, expanded, and whether it was opened read-only,
+          # for a disk from Disk.open. Nil for a disk made another way.
+          attr_reader :path, :read_only
+
+          # Notes the image's path and how it was opened.
+          def opened(path, read_only)
+            @path = File.expand_path(path)
+            @read_only = read_only
+            self
+          end
+
           def save_fields(out)
             path = @path
             out.text("path", path) if path
@@ -180,7 +191,7 @@ module Badline
       # The drive's own fields in a keyed snapshot module (BL-D8): its model,
       # its clock phase and cycle count, the SO pulse due, and the host's
       # lines as the serial port latched them. A save settles the drive first, so it is awake;
-      # a load forgets its orbits, as the positional load does.
+      # a load forgets its orbits.
       module KeyedState
         def save_fields(out)
           settle!

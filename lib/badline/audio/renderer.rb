@@ -136,17 +136,17 @@ module Badline
       # or before `cycles` if there is one, and returns the cycles into the
       # subtune it starts at.
       def start(cycles)
-        state = @checkpoints&.latest(cycles)
-        return start_afresh if state.nil?
+        sections = @checkpoints&.latest(cycles)
+        return start_afresh if sections.nil?
 
-        input = Snapshot::StateReader.new(state)
-        played = input.int
-        restore_player(input)
+        modules = Snapshot::Keyed::Modules.new(sections)
+        audio = modules.required("BL-AUDIO")
+        restore_player(modules, audio)
         record
-        player.stereo.sids.each { |sid| sid.load_recording(input) }
-        @level = input.int
-        @still = input.int
-        played
+        player.stereo.sids.each_with_index { |sid, index| sid.load_recording_fields(audio, "sid#{index + 1}.rec.") }
+        @level = audio.int("level", 0)
+        @still = audio.int("still", 0)
+        audio.int("played", 0)
       end
 
       def start_afresh
@@ -157,13 +157,17 @@ module Badline
 
       def record = player.stereo.record(rate: @rate, filter_chunk: @filter_chunk, clock_hz: player.clock_hz)
 
-      # Restores the player as it was, then puts back the SID models chosen
-      # for this renderer.
-      def restore_player(input)
+      # Restores the player as it was, on the SID models it was saved on,
+      # then puts back the SID models chosen for this renderer.
+      def restore_player(modules, audio)
         sids = player.stereo.sids
         chosen = sids.map(&:model)
-        sids.each { |sid| refit(sid, Snapshot::C64Setup::SID_MODELS.fetch(input.int)) }
-        player.load_state(input)
+        names = Snapshot::C64Setup::SID_MODELS.map(&:to_s)
+        sids.each_with_index do |sid, index|
+          name = audio.choice("sid#{index + 1}.model", names, sid.model.to_s)
+          refit(sid, Snapshot::C64Setup::SID_MODELS.find { |model| model.to_s == name } || sid.model)
+        end
+        player.load_modules(modules)
         sids.each_with_index { |sid, index| refit(sid, chosen[index]) }
       end
 
@@ -171,18 +175,25 @@ module Badline
         sid.model = model unless sid.model == model
       end
 
+      # The player's modules, after a BL-AUDIO module with the cycles into
+      # the subtune, each SID's model and how far its recording has got,
+      # and the silence count. The SIDs have caught up as the frame drained
+      # them, so they leave no samples behind.
       def save_checkpoint(played, clock_hz)
         checkpoints = @checkpoints
         return if checkpoints.nil? || !checkpoints.due?(played, clock_hz)
 
         sids = player.stereo.sids
-        out = Snapshot::StateWriter.new
-        out.int(played)
-        sids.each { |sid| out.int(Snapshot::C64Setup::SID_MODELS.index(sid.model) || 0) }
-        player.save_state(out)
-        sids.each { |sid| sid.save_recording(out) }
-        out.int(@level).int(@still)
-        checkpoints.keep(played, out.state)
+        sections = player.save_modules
+        audio = Snapshot::Keyed.section("BL-AUDIO") do |out|
+          out.int("played", played)
+          sids.each_with_index do |sid, index|
+            out.text("sid#{index + 1}.model", sid.model.to_s)
+            sid.save_recording_fields(out, "sid#{index + 1}.rec.")
+          end
+          out.int("level", @level).int("still", @still)
+        end
+        checkpoints.keep(played, [audio, *sections])
       end
 
       # Counts the samples since the output last strayed more than QUIET

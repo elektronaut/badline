@@ -9,6 +9,28 @@ module Badline
     # host.*. The badline version that wrote it is written for reports and
     # never read.
     module KeyedState
+      # How many more on_init handlers the machine a snapshot was taken of had
+      # yet to run than this one has: they are the host's blocks, which a
+      # snapshot can't hold. Nil until the machine is restored.
+      attr_reader :init_handlers_lost
+
+      # Sets the machine's cycle count, for a snapshot from VICE, which
+      # counts from its own clock.
+      def resume_at(cycles)
+        @cycles = cycles
+      end
+
+      # Whether a snapshot saves now (Machine::Settling): the CPU between
+      # instructions or jammed, and no REU transfer under way.
+      def settled_for_snapshot? = (@cpu.boundary? || @cpu.jammed?) && !reu&.dma?
+
+      # The SID's deferred cycles and writes, run up to this cycle, and the
+      # VIC's sprite collisions latched up to the beam.
+      def settle_chips_for_snapshot
+        sid.catch_up!
+        @vic.fold_collisions!
+      end
+
       def save_machine_fields(out)
         out.text("family", "c64").text("written_by", VERSION)
         Snapshot::C64Setup.of(address_bus).write_fields(out)

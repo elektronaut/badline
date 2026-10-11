@@ -37,14 +37,6 @@ module Badline
           nil
         end
 
-        def save_state(out)
-          @channel.save_state(out)
-        end
-
-        def load_state(input)
-          @channel = Channels.channel_from_state(input, [])
-        end
-
         def replace(bytes)
           @channel.replace(bytes)
         end

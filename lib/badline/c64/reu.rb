@@ -3,7 +3,6 @@
 require "badline/c64/reu/ram"
 require "badline/c64/reu/dma"
 require "badline/c64/reu/trigger"
-require "badline/c64/reu/saved_state"
 require "badline/c64/reu/keyed_state"
 
 module Badline
@@ -21,8 +20,6 @@ module Badline
     # waits for the CPU's next read cycle with BA high, and C64 then
     # clocks it through #dma_cycle! until it hands the bus back.
     class REU
-      include SavedState
-
       SIZES_KB = [128, 256, 512, 1024, 2048, 4096, 8192, 16_384].freeze
 
       # The registers, by offset.

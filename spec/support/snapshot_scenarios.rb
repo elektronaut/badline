@@ -126,14 +126,15 @@ module SnapshotScenarios
     StateDiff.new(ours, theirs, host:).differences
   end
 
-  # A copy of `object` made through its save_state and load_state, into
-  # `target`, a fresh object of the same kind.
+  # A copy of `object` made through its keyed fields (Snapshot::Keyed),
+  # into `target`, a fresh object of the same kind.
   def round_trip(object, target)
-    out = Badline::Snapshot::StateWriter.new
-    object.save_state(out)
-    input = Badline::Snapshot::StateReader.new(out.state)
-    target.load_state(input)
-    raise "load_state left part of the state unread" unless input.finished?
+    out = Badline::Snapshot::Keyed::Writer.new
+    object.save_fields(out)
+    input = Badline::Snapshot::Keyed::Reader.parse(out.section("BL-TEST"))
+    target.load_fields(input)
+    target.restored! if target.respond_to?(:restored!)
+    raise "the load left keys unread: #{input.unknown}" unless input.unknown.empty?
 
     target
   end

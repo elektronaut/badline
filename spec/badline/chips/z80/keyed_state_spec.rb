@@ -4,8 +4,7 @@ require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 require_relative "../../../support/z80_bus"
 
-# The Z80's keyed fields against its positional save_state, between
-# instructions.
+# The Z80's keyed fields, saved again the same, between instructions.
 describe Badline::Chips::Z80::KeyedState do
   include KeyedOracle
 
@@ -22,9 +21,9 @@ describe Badline::Chips::Z80::KeyedState do
   end
   let(:fresh) { Badline::Chips::Z80.new(Z80Bus.new) }
 
-  it "restores the positional state" do
+  it "saves the same fields" do
     keyed_round_trip(cpu, fresh)
-    expect(positional(fresh)).to eq(positional(cpu))
+    expect(saved_fields(fresh)).to eq(saved_fields(cpu))
   end
 
   it "reads every field it writes" do

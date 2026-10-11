@@ -225,15 +225,20 @@ describe Badline::Drives::Model1581 do
     end
   end
 
-  describe "#save_state" do
+  describe "#save_modules" do
     let(:target) { described_class.new(rom: stub_rom) }
+
+    def copy_into(target)
+      modules = Badline::Snapshot::Keyed::Modules.new(drive.save_modules([], "BL-D8"))
+      target.load_modules(modules, modules.required("BL-D8"), "BL-D8")
+    end
 
     it "restores the drive as it was saved" do
       load([0xa9, 0x24, 0x8d, 0x00, 0x40, 0x4c, 0x05, 0x03]) # LDA #$24; STA PRA; JMP *
       port_a(0x24)
       run(101)
-      round_trip(drive, target)
-      expect(state_differences(drive, target)).to be_empty
+      copy_into(target)
+      expect(target.save_modules([], "BL-D8")).to eq(drive.save_modules([], "BL-D8"))
     end
   end
 

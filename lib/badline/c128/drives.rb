@@ -83,37 +83,6 @@ module Badline
         attach_drive1571(Badline::Drives::Model1571.new(device:)) unless @drive1571
         @drive1571.load_modules(modules, input, "BL-D#{device}")
       end
-
-      # A true 1541 (C64::Attachments#save_serial_bus), then a 1571 and
-      # a 1581.
-      def save_serial_bus(out)
-        out.boolean(!@drive1541.nil?)
-        if @drive1541
-          out.int(@drive1541.device)
-          @drive1541.save_state(out)
-        end
-        out.boolean(!@drive1571.nil?)
-        if @drive1571
-          out.int(@drive1571.device)
-          @drive1571.save_state(out)
-        end
-        save_drive1581(out)
-      end
-
-      def load_serial_bus(input)
-        load_drive1541(input)
-        load_drive1571(input)
-        load_drive1581(input)
-      end
-
-      def load_drive1571(input)
-        return detach_drive1571 unless input.boolean?
-
-        device = input.int
-        detach_drive1571 if @drive1571 && @drive1571.device != device
-        attach_drive1571(Badline::Drives::Model1571.new(device:)) unless @drive1571
-        @drive1571.load_state(input)
-      end
     end
   end
 end

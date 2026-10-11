@@ -122,10 +122,10 @@ describe Badline::Drives::Model1581::Disk do
   describe "a snapshot" do
     let(:disk) { described_class.open(blank_d81(path)) }
 
-    def round_trip(current)
-      out = Badline::Snapshot::StateWriter.new
-      disk.save_state(out)
-      Badline::Drives::Model1581::Disk::SavedState.load(Badline::Snapshot::StateReader.new(out.state), current)
+    def round_trip
+      out = Badline::Snapshot::Keyed::Writer.new
+      disk.save_fields(out)
+      described_class.from_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-D8-DISK")))
     end
 
     before do
@@ -135,15 +135,11 @@ describe Badline::Drives::Model1581::Disk do
     end
 
     it "brings back a track written since the disk went in" do
-      expect(round_trip(nil).track(7, 0).sectors.first.data.bytes[0]).to eq(0x77)
-    end
-
-    it "reuses the disk in when it's the one the state names" do
-      expect(round_trip(disk)).to equal(disk)
+      expect(round_trip.track(7, 0).sectors.first.data.bytes[0]).to eq(0x77)
     end
 
     it "keeps the tracks still to flush" do
-      expect(round_trip(nil)).to be_written
+      expect(round_trip).to be_written
     end
   end
 end

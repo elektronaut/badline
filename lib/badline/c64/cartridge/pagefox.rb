@@ -30,16 +30,6 @@ module Badline
 
         private
 
-        def save_mapper(out)
-          super
-          @ram_banks.each { |ram| out.blob(ram.data) }
-        end
-
-        def load_mapper(input)
-          super
-          @ram_banks.each { |ram| input.blob_into(ram.data) }
-        end
-
         def windows = [*@roml_banks, *@romh_banks, *@ram_banks, @open_bus || EMPTY_BANK, EMPTY_BANK]
 
         def select(value)

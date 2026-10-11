@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Round trips a unit through a keyed snapshot module (Snapshot::Keyed) into
-# a fresh one, for the specs that check a unit's keyed fields against its
-# positional save_state, which restores exactly.
+# a fresh one, for the specs that check a unit saves again what it loaded:
+# save, load into a fresh unit, and save that.
 module KeyedOracle
   # Saves `unit`'s fields, loads them into `target`, and returns the
   # reader, whose report says what the load left out or changed.
@@ -15,15 +15,15 @@ module KeyedOracle
     input
   end
 
-  # What `unit`'s positional save_state writes.
-  def positional(unit)
-    out = Badline::Snapshot::StateWriter.new
-    unit.save_state(out)
-    out.state
+  # The records `unit` saves, under `prefix` or with the other arguments
+  # its save_fields takes.
+  def saved_fields(unit, *)
+    out = Badline::Snapshot::Keyed::Writer.new
+    unit.save_fields(out, *)
+    out.to_s
   end
 
-  # A shallow copy of `unit` with `fields` set, as a unit the keyed load
-  # recomputes or leaves alone holds them.
+  # A shallow copy of `unit` with `fields` set.
   def with_fields(unit, fields)
     unit.dup.tap do |copy|
       fields.each { |name, value| copy.instance_variable_set(name, value) }

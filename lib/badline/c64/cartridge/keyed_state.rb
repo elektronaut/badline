@@ -269,7 +269,7 @@ module Badline
         # sequence, the toggle bit, a timed operation's end in cycles from
         # now, and the windows handed out so far, under `prefix`.
         module KeyedState
-          STATE_NAMES = SavedState::STATES.map(&:to_s).freeze
+          STATE_NAMES = STATES.map(&:to_s).freeze
 
           def save_fields(out, prefix)
             out.bytes("#{prefix}data", @data).text("#{prefix}state", @state.to_s)
@@ -301,7 +301,7 @@ module Badline
           private
 
           def state_named(name)
-            SavedState::STATES.find { |state| state.to_s == name } || :read
+            STATES.find { |state| state.to_s == name } || :read
           end
         end
 
