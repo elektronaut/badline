@@ -1,0 +1,255 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Checks that snapshots restore the machine exactly, on the scenarios in
+# test/support/snapshot_machines.rb: a C64 with each kind of media and
+# expansion, the VIC-20 and the C128.
+#
+#   ruby --yjit bin/snapshot_check [filter] [--cycles N] [--every K]
+#   ruby --yjit bin/snapshot_check --carts [filter]
+#   ruby --yjit bin/snapshot_check --write DIR [filter]
+#   ruby --yjit bin/snapshot_check --read DIR [filter]
+#   ruby --yjit bin/snapshot_check --diff A.vsf B.vsf
+#   ruby --yjit bin/snapshot_check --list
+#
+# For each scenario it builds the machine, runs it to the save point and
+# saves it twice in a row (b1, then b1 again), loads b1 into a new machine
+# and saves that (b2):
+#
+# - identity: b1 and b2 are the same bytes, and saving twice leaves the
+#   machine alone (the two b1s match)
+# - divergence: the saved machine and the loaded one run side by side for
+#   --cycles, with a checkpoint (Badline::Support::Checkpoint and the true
+#   1541's digest) every --every cycles, and then their whole saved state
+#   is compared
+#
+# Where two snapshots differ it names the module, and for the BADLINE
+# module the first values and strings that differ, each with the line of
+# the save_state that wrote it.
+#
+# --carts saves every cartridge mapper after register writes, reads and
+# freezes (test/support/snapshot_cartridges.rb), loads the state into a
+# cartridge built from its setup, and saves that again.
+#
+# --write DIR saves each scenario's snapshot as DIR/<scenario>.vsf, runs
+# the machine on for --cycles and writes its text screen to
+# DIR/<scenario>.txt. --read DIR loads those snapshots into this tree,
+# runs each for --cycles and compares the screen, so --write on another
+# checkout and --read here checks that this badline reads its snapshots.
+#
+# --diff compares two snapshot files module by module.
+#
+# The exit status is 1 when anything differs.
+
+require "fileutils"
+require "optparse"
+require "tmpdir"
+require_relative "../test/support/jit"
+
+options = { cycles: 2_000_000, every: 500_000 }
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/snapshot_check [filter] [options]"
+  opts.on("--cycles N", Integer, "Cycles to run after the save point (default: 2000000)") { |n| options[:cycles] = n }
+  opts.on("--every K", Integer, "Cycles between checkpoints (default: 500000)") { |n| options[:every] = n }
+  opts.on("--carts", "Check every cartridge mapper's state") { options[:mode] = :carts }
+  opts.on("--write DIR", "Save each scenario's snapshot and screen into DIR") do |dir|
+    options[:mode] = :write
+    options[:dir] = dir
+  end
+  opts.on("--read DIR", "Load DIR's snapshots, run them and compare the screens") do |dir|
+    options[:mode] = :read
+    options[:dir] = dir
+  end
+  opts.on("--diff", "Compare the two snapshot files named") { options[:mode] = :diff }
+  opts.on("--list", "List the scenarios") { options[:mode] = :list }
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  abort "snapshot_check: #{e.message}\n#{parser.banner}"
+end
+abort "snapshot_check: --every must be positive" unless options[:every].positive?
+
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+Jit.enable
+require "badline"
+require "badline/support"
+require_relative "../test/support/snapshot_machines"
+require_relative "../test/support/snapshot_cartridges"
+require_relative "../test/support/snapshot_tracing"
+
+module SnapshotCheck
+  include SnapshotTracing
+
+  module_function
+
+  def dump(machine) = Badline::Snapshot.dump(machine)
+
+  def image(bytes) = Badline::Snapshot::Image.new(Badline::Snapshot::Container.parse(bytes))
+
+  # A new machine from the snapshot `bytes`, and the lines its restore
+  # left out.
+  def load(bytes)
+    ignored = []
+    machine = image(bytes).load { |line| ignored << line }
+    [machine, ignored]
+  end
+
+  def traced(machine) = TracingWriter.new.tap { |out| machine.save_state(out) }
+
+  def family_options(machine) = { family: machine.family.to_s }
+
+  def checkpoint(machine)
+    line = MachineFamilies.checkpoint(family_options(machine)).take(machine).to_s
+    drive = TrueDrive.digest(machine)
+    drive ? "#{line} #{TrueDrive.field(drive)}" : line
+  end
+
+  # The text screen in RAM: 40 by 25 at $0400 on a C64 or a C128, and on a
+  # VIC-20 22 by 23 at the page the KERNAL keeps in $0288.
+  def screen(machine)
+    ram = machine.ram
+    base, columns, rows = machine.family == :vic20 ? [ram.peek(0x0288) << 8, 22, 23] : [0x0400, 40, 25]
+    Array.new(rows) do |row|
+      Array.new(columns) { |column| screen_char(ram.peek(base + (row * columns) + column)) }.join.rstrip
+    end.join("\n")
+  end
+
+  def screen_char(code)
+    code &= 0x7f
+    return "@" if code.zero?
+    return (code + 96).chr if code < 27
+    return code.chr if code < 64
+
+    " "
+  end
+
+  def run(machine, cycles)
+    cycles.times { machine.cycle! }
+  end
+
+  # Identity and divergence for one scenario. Returns whether it passed.
+  def restores?(scenario, options)
+    Dir.mktmpdir do |dir|
+      machine = scenario.build.call(dir)
+      scenario.advance.call(machine)
+      first = dump(machine)
+      again = dump(machine)
+      restored, ignored = load(first)
+      second = dump(restored)
+      puts "#{scenario.name}: saved at cycle #{machine.cycles}, #{first.bytesize} bytes"
+      ignored.each { |line| puts "  left out: #{line}" }
+      [identical?(first, again, second), runs_alike?(machine, restored, first, options)].all?
+    end
+  end
+
+  def identical?(first, again, second)
+    sites = traced(load(first).first)
+    resave = SnapshotTracing.differences(first, again, sites)
+    reload = SnapshotTracing.differences(first, second, sites)
+    [passed?("saving twice", resave), passed?("save, load, save", reload)].all?
+  end
+
+  def passed?(what, lines)
+    puts "  #{what}: #{lines.empty? ? 'identical' : 'DIFFERS'}"
+    lines.each { |line| puts "    #{line}" }
+    lines.empty?
+  end
+
+  def runs_alike?(machine, restored, first, options)
+    every = options[:every]
+    (options[:cycles] / every).times do
+      run(machine, every)
+      run(restored, every)
+      ours = checkpoint(machine)
+      theirs = checkpoint(restored)
+      next if ours == theirs
+
+      return passed?("run on", ["at cycle #{machine.cycles}", "saved:    #{ours}", "restored: #{theirs}"])
+    end
+    states = StateDiff.lines(machine.snapshot, restored.snapshot, traced(load(first).first))
+    passed?("run on #{options[:cycles]} cycles", states.map { |line| "state: #{line}" })
+  end
+
+  def carts_identical?(filter)
+    scenarios = SnapshotCartridges.scenarios.select { |name, _| filter.nil? || name.include?(filter) }
+    failed = scenarios.reject do |name, cartridge|
+      copy = SnapshotCartridges.round_trip(cartridge)
+      lines = StateDiff.lines(SnapshotCartridges.save(cartridge).state, SnapshotCartridges.save(copy).state,
+                              SnapshotCartridges.save(copy, TracingWriter.new))
+      lines.each { |line| puts "#{name}: #{line}" }
+      lines.empty?
+    end
+    puts "#{scenarios.size - failed.size} of #{scenarios.size} cartridges save, load and save identically"
+    failed.empty?
+  end
+
+  def write(scenarios, options)
+    FileUtils.mkdir_p(options[:dir])
+    scenarios.each do |scenario|
+      Dir.mktmpdir do |dir|
+        machine = scenario.build.call(dir)
+        scenario.advance.call(machine)
+        path = File.join(options[:dir], "#{scenario.name}.vsf")
+        machine.save_snapshot(path)
+        run(machine, options[:cycles])
+        File.write(File.join(options[:dir], "#{scenario.name}.txt"), screen(machine))
+        puts "#{scenario.name}: #{path}"
+      end
+    end
+  end
+
+  def reads_back?(filter, options)
+    paths = Dir[File.join(options[:dir], "*.vsf")]
+    paths.select! { |path| File.basename(path).include?(filter) } if filter
+    paths.map { |path| reads_back_one?(path, options) }.all?
+  end
+
+  def reads_back_one?(path, options)
+    name = File.basename(path, ".vsf")
+    machine, ignored = load(File.binread(path))
+    ignored.each { |line| puts "#{name}: left out: #{line}" }
+    run(machine, options[:cycles])
+    expected = File.join(File.dirname(path), "#{name}.txt")
+    return passed?(name, []) unless File.exist?(expected)
+
+    shown = screen(machine)
+    passed?(name, shown == File.read(expected) ? [] : ["the screen after #{options[:cycles]} cycles:", shown])
+  rescue Badline::Snapshot::FormatError => e
+    passed?(name, ["won't load: #{e.message}"])
+  end
+
+  def same_files?(first, second)
+    passed?("#{first} against #{second}",
+            SnapshotTracing.differences(File.binread(first), File.binread(second), sites_of(first)))
+  end
+
+  # The save_state lines of a machine loaded from the snapshot at `path`,
+  # or nil if this badline can't load it.
+  def sites_of(path)
+    traced(load(File.binread(path)).first)
+  rescue Badline::Snapshot::FormatError
+    nil
+  end
+end
+
+passed =
+  case options[:mode]
+  when :list then SnapshotMachines.all.each { |scenario| puts scenario.name }
+  when :carts then SnapshotCheck.carts_identical?(ARGV.first)
+  when :write
+    SnapshotCheck.write(SnapshotMachines.matching(ARGV.first), options)
+    true
+  when :read then SnapshotCheck.reads_back?(ARGV.first, options)
+  when :diff
+    abort "snapshot_check: --diff takes two snapshot files" unless ARGV.length == 2
+    SnapshotCheck.same_files?(*ARGV)
+  else
+    scenarios = SnapshotMachines.matching(ARGV.first)
+    abort "snapshot_check: no scenario matches #{ARGV.first}" if scenarios.empty?
+    results = scenarios.map { |scenario| SnapshotCheck.restores?(scenario, options) }
+    puts "#{results.count(true)} of #{results.size} scenarios restore exactly"
+    results.all?
+  end
+exit(passed ? 0 : 1)
