@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "badline/address_bus/saved_state"
-require "badline/address_bus/sid_slots"
-require "badline/address_bus/extra_sids"
-require "badline/address_bus/pla"
-require "badline/address_bus/roms"
-require "badline/address_bus/fittings"
+require "badline/c64/bus/saved_state"
+require "badline/c64/bus/sid_slots"
+require "badline/c64/bus/extra_sids"
+require "badline/c64/bus/pla"
+require "badline/c64/bus/roms"
+require "badline/c64/bus/fittings"
 
 module Badline
   # Memory layout:

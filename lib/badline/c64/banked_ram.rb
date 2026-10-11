@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "badline/banked_ram/banking"
-require "badline/banked_ram/unexpanded"
-require "badline/banked_ram/plus60k"
-require "badline/banked_ram/plus256k"
+require "badline/c64/banked_ram/banking"
+require "badline/c64/banked_ram/unexpanded"
+require "badline/c64/banked_ram/plus60k"
+require "badline/c64/banked_ram/plus256k"
 
 module Badline
   # RAM expansions that bank extra memory in under the CPU through a

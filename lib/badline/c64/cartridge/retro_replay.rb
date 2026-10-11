@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/cartridge/retro_replay/saved_state"
+require "badline/c64/cartridge/retro_replay/saved_state"
 
 module Badline
   class Cartridge

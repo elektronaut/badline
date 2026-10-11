@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/reu/dma/saved_state"
+require "badline/c64/reu/dma/saved_state"
 
 module Badline
   class REU

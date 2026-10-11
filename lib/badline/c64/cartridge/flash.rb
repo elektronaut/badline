@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/cartridge/flash/saved_state"
+require "badline/c64/cartridge/flash/saved_state"
 
 module Badline
   class Cartridge

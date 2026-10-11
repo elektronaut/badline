@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "badline/computer/common"
-require "badline/computer/true_drives"
-require "badline/computer/attachments"
-require "badline/computer/kernal_traps"
-require "badline/computer/saved_state"
+require "badline/c64/common"
+require "badline/c64/true_drives"
+require "badline/c64/attachments"
+require "badline/c64/kernal_traps"
+require "badline/c64/saved_state"
 
 module Badline
   class Computer

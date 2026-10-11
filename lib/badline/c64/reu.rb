@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "badline/reu/ram"
-require "badline/reu/dma"
-require "badline/reu/trigger"
-require "badline/reu/saved_state"
+require "badline/c64/reu/ram"
+require "badline/c64/reu/dma"
+require "badline/c64/reu/trigger"
+require "badline/c64/reu/saved_state"
 
 module Badline
   # A RAM Expansion Unit: the Commodore 1700 (128K), 1764 (256K) and 1750
