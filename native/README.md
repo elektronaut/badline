@@ -114,7 +114,7 @@ The front end in `lib/badline/frontend/` is the same for both builds:
 - `screen.rb` (`Screen`) repacks the video chip's display for the
   texture, `screens.rb` (`Screens`) picks the chip shown, on the C128
   the screen the machine prints to or the one F8 switches to, and `drive_led.rb` (`DriveLed`) places and colours the true drive's
-  LED over it.
+  LEDs over it.
 - `sound.rb` (`Sound`) feeds the SID's samples to SDL's audio queue, and
   `audio_sink.rb` (`AudioSink`) is the audio device of `--headless`.
 - `keys.rb` (`Keys`) maps SDL scancodes to C64 keys and joystick
@@ -183,8 +183,9 @@ render a `.sid` tune without it, as described under
   go in write-protected and their files stay unchanged.
 - `--true-drive` puts a true 1541 on device 8 in place of the KERNAL
   traps: a `.d64` or `.g64` goes into it and
-  autostarts through its DOS, and its LED lights in the bottom right
-  corner of the border. A `.g64` plugs one in without it.
+  autostarts through its DOS, and its red activity LED and green power
+  LED light in the bottom right corner of the border. A `.g64` plugs
+  one in without it.
 - `--reu SIZE` plugs in a RAM Expansion Unit of SIZE K, from 128 up to
   16384.
 - `--model NAME` runs another C64: `c64` (the default, PAL), `c64c` (the
