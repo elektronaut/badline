@@ -6,6 +6,7 @@ require "badline/drives/model1571/serial_port"
 require "badline/drives/model1571/serial_via"
 require "badline/drives/model1571/bus"
 require "badline/drives/model1571/saved_state"
+require "badline/drives/model1571/keyed_state"
 
 module Badline
   module Drives

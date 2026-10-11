@@ -184,7 +184,7 @@ module Badline
       module KeyedState
         def save_fields(out)
           settle!
-          out.text("model", "1541").int("phase", @phase).int("cycles", @cycles)
+          out.text("model", model_name).int("phase", @phase).int("cycles", @cycles)
           out.bool("so_pending", @mechanism.so_pending)
           @serial_port.save_fields(out, "serial.")
           out
@@ -192,6 +192,7 @@ module Badline
 
         def load_fields(input)
           settle!
+          input.choice("model", [model_name], model_name)
           @phase = input.int("phase", @phase)
           @cycles = input.int("cycles", @cycles)
           @mechanism.so_pending = input.bool("so_pending", @mechanism.so_pending)
