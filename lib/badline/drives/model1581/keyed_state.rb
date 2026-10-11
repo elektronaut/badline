@@ -228,6 +228,39 @@ module Badline
           push_fast_output(@fast_serial_out ? fast_pins : 0)
           forget_orbits
         end
+
+        # The drive as modules of its own, as the 1541's, with the 8520 and
+        # the WD1772 in place of the VIAs.
+        def save_modules(sections, name)
+          sections << Snapshot::Keyed.section(name) { |out| save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-RAM") { |out| @bus.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-CIA") { |out| @cia.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-CPU") { |out| @cpu.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-FDC") { |out| @fdc.save_fields(out) }
+          now = @fdc.now
+          sections << Snapshot::Keyed.section("#{name}-MECH") { |out| @mechanism.save_fields(out, now) }
+          disk = @mechanism.disk
+          sections << Snapshot::Keyed.section("#{name}-DISK") { |out| disk.save_fields(out) } if disk
+          sections
+        end
+
+        # The drive from its modules, `input` being its own. The mechanism
+        # takes the disk's angle on the WD1772's clock, so it loads after
+        # the controller.
+        def load_modules(modules, input, name)
+          load_fields(input)
+          @bus.load_fields(modules.required("#{name}-RAM"))
+          @cia.load_fields(modules.required("#{name}-CIA"))
+          @cpu.load_fields(modules.required("#{name}-CPU"))
+          @fdc.load_fields(modules.required("#{name}-FDC"))
+          disk = modules.optional("#{name}-DISK")
+          mechanism = modules.required("#{name}-MECH")
+          @mechanism.load_fields(mechanism, disk.nil? ? nil : Disk.from_fields(disk, detached: modules.detached?),
+                                 @fdc.now)
+          @cia.restored!
+          @cpu.restored!
+          restored!
+        end
       end
 
       include KeyedState

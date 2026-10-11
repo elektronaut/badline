@@ -36,21 +36,6 @@ module Badline
         @vic.fold_collisions!
       end
 
-      def snapshot
-        out = Snapshot::StateWriter.new
-        save_state(out)
-        out.state
-      end
-
-      # Takes the machine back to a State from #snapshot, trying it on a new
-      # machine first, so one that fails leaves this machine as it was.
-      # Raises Snapshot::FormatError for a state of another model or SID.
-      def restore(state)
-        check_setup(C128.setup(state))
-        C128.restored(state)
-        apply_state(state)
-      end
-
       # Puts a State into the machine without trying it on a new one first.
       def apply_state(state)
         input = Snapshot::StateReader.new(state)

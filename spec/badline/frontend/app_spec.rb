@@ -58,6 +58,11 @@ describe Badline::Frontend::App do
     expect(Badline::Snapshot.load("ready.vsf").cycles).to eq(computer.cycles)
   end
 
+  it "saves --save-snapshot with VICE's modules ahead of badline's with --vice" do
+    run(argv: %w[--frames 2 --save-snapshot ready.vsf --vice])
+    expect(Badline::Snapshot.read("ready.vsf").sections.map(&:name).values_at(0, -1)).to eq(%w[MAINCPU BL-TAPE])
+  end
+
   describe "the timeline" do
     it "quits at --at's quit" do
       run(argv: %w[--frames 5 --at 1:quit])

@@ -7,7 +7,7 @@ require_relative "../support/taken_once"
 describe Badline::C64, "#snapshot" do
   include SnapshotScenarios
 
-  let(:state) { SnapshotScenarios.demo_state }
+  let(:image) { SnapshotScenarios.demo_image }
 
   def checkpoints(first, second, cycles, every: 2_500)
     Array.new(cycles / every) do
@@ -17,11 +17,17 @@ describe Badline::C64, "#snapshot" do
     end
   end
 
-  describe "a machine restored into a new one" do
-    let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES) }
+  # A machine with one module of `image` changed by the block.
+  def with_module(image, name)
+    sections = image.sections.map { |section| section.name == name ? yield(section) : section }
+    Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(sections))
+  end
 
-    it "holds the state of a machine run the whole way" do
-      expect(state_differences(original, saved_demo)).to be_empty
+  describe "a machine restored into a new one" do
+    let(:original) { run(demo_machine, SnapshotScenarios::DEMO_CYCLES).tap(&:settle_for_snapshot!) }
+
+    it "saves what a machine run the whole way saves" do
+      expect(saved_demo.snapshot).to eq(original.snapshot)
     end
 
     it "runs on as that machine does" do
@@ -29,77 +35,70 @@ describe Badline::C64, "#snapshot" do
     end
   end
 
-  it "leaves the machine it is taken of alone" do
-    machine = saved_demo
+  it "runs the machine on to an instruction boundary" do
+    machine = run(demo_machine, SnapshotScenarios::DEMO_CYCLES)
     machine.snapshot
-    expect(machine.snapshot).to eq(state)
+    expect([machine.cpu.boundary?, machine.cycles >= SnapshotScenarios::DEMO_CYCLES]).to eq([true, true])
+  end
+
+  it "leaves a machine that has just saved alone" do
+    machine = saved_demo
+    expect { machine.snapshot }.not_to(change(machine, :cycles))
   end
 
   describe "#restore" do
     # A running machine, at another odd cycle, with the SID recording.
     let(:target) { run(described_class.new, 5_003).tap { |machine| machine.sid.record(rate: 44_100) } }
 
-    it "takes a running machine back to the state" do
-      target.restore(state)
-      expect(state_differences(saved_demo, target)).to be_empty
+    it "takes a running machine back to the snapshot" do
+      target.restore(image)
+      expect(target.snapshot).to eq(image)
     end
 
     it "keeps the machine's chips, and what is wired to them" do
       sid = target.sid
-      target.restore(state)
+      target.restore(image)
       expect(target.sid).to equal(sid)
     end
 
     it "leaves the host's recording of the SID running" do
-      target.restore(state)
+      target.restore(image)
       run(target, 1_000)
       expect(target.sid.drain_samples).not_to be_empty
     end
 
-    it "fails on the state of a machine built another way" do
-      expect { described_class.new(vic_model: :mos8565).restore(state) }
+    it "fails on the snapshot of a machine built another way" do
+      expect { described_class.new(vic_model: :mos8565).restore(image) }
         .to raise_error(Badline::Snapshot::FormatError, /mos6569, mos6526, mos6581, pal/)
     end
 
     it "names the model of each machine when it fails" do
       c64c = Badline::Model::C64C
       machine = described_class.new(vic_model: c64c.vic_model, cia_model: c64c.cia_model, sid_model: c64c.sid_model)
-      expect { machine.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /with c64, .* not c64c, /)
+      expect { machine.restore(image) }.to raise_error(Badline::Snapshot::FormatError, /with c64, .* not c64c, /)
     end
 
-    it "fails on a state that goes on past the machine" do
-      longer = Badline::Snapshot::State.new(state.values + [0], state.strings)
-      expect { target.restore(longer) }.to raise_error(Badline::Snapshot::FormatError, /goes on past/)
-    end
-
-    it "fails on a state written in another layout" do
-      values = state.values.dup
-      values[0] = Badline::Snapshot::State::SCHEMA + 1
-      expect { target.restore(Badline::Snapshot::State.new(values, state.strings)) }
-        .to raise_error(Badline::Snapshot::FormatError, /layout #{Badline::Snapshot::State::SCHEMA + 1}/o)
+    it "fails on another family's snapshot" do
+      expect { target.restore(Badline::Vic20.new.snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /of a VIC-20, not a C64/)
     end
   end
 
-  describe "#restore of a damaged state" do
-    # A value three quarters of the way in taken out, so everything after
-    # it reads one place early.
-    let(:damaged) do
-      values = state.values.dup
-      values.delete_at(values.length * 3 / 4)
-      Badline::Snapshot::State.new(values, state.strings)
-    end
+  describe "#restore of a damaged snapshot" do
+    # The VIC's module cut short, so it won't inflate.
+    let(:damaged) { with_module(image, "BL-VIC") { |section| section.with(data: section.data.byteslice(0, 40)) } }
     let(:target) do
-      described_class.restored(TakenOnce.fetch([:c64_running, 500_001]) { run(described_class.new, 500_001).snapshot })
+      TakenOnce.fetch([:c64_running_image, 500_001]) { run(described_class.new, 500_001).snapshot }.load
     end
 
-    def attempt(machine, state)
-      machine.restore(state)
+    def attempt(machine, image)
+      machine.restore(image)
     rescue Badline::Snapshot::FormatError
       nil
     end
 
-    it "fails" do
-      expect { target.restore(damaged) }.to raise_error(Badline::Snapshot::FormatError)
+    it "fails naming the module" do
+      expect { target.restore(damaged) }.to raise_error(Badline::Snapshot::FormatError, /BL-VIC is damaged/)
     end
 
     it "leaves the machine as it was" do
@@ -109,54 +108,93 @@ describe Badline::C64, "#snapshot" do
     end
   end
 
-  describe ".setup" do
-    it "builds the machine the state was taken of" do
+  describe "a module written by a later badline's encoding" do
+    let(:newer) { with_module(image, "BL-SID") { |section| section.with(major: 2) } }
+
+    it "fails naming the module" do
+      expect { newer.load }.to raise_error(Badline::Snapshot::FormatError, /BL-SID 2.0 was written by a newer/)
+    end
+  end
+
+  describe "a snapshot with fields and modules from a later badline" do
+    let(:later) do
+      extra = Badline::Snapshot::Keyed.section("BL-LATER") { |out| out.int("x", 1) }
+      cpu = with_module(image, "BL-CPU") do |section|
+        records = Badline::Snapshot::Keyed::Writer.new.int("later.latch", 7).to_s
+        section.with(data: Zlib.deflate(Zlib.inflate(section.data) + records))
+      end
+      Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(cpu.sections + [extra]))
+    end
+    let(:lines) { [] }
+    let(:loaded) { later.load { |line| lines << line } }
+
+    it "skips what it doesn't know" do
+      expect(loaded.snapshot).to eq(image)
+    end
+
+    it "reports the module it left out, and the field only in the report" do
+      report = later.restore(described_class.new) { nil }
+      expect([report.ignored, report.unknown]).to eq([["BL-LATER: badline doesn't read this module, left out"],
+                                                      { "BL-CPU" => ["later.latch"] }])
+    end
+  end
+
+  describe "a snapshot missing a module" do
+    let(:missing) do
+      Badline::Snapshot::Image.new(Badline::Snapshot::Container.new(image.sections.reject do |section|
+        section.name == "BL-SID"
+      end))
+    end
+
+    it "reports it, leaving the chip at power-on" do
+      expect(missing.restore(described_class.new) { nil }.missing).to eq(["BL-SID"])
+    end
+  end
+
+  describe "setup" do
+    def rebuilt(machine) = machine.snapshot.load
+
+    it "builds the machine the snapshot was taken of" do
       machine = described_class.new(vic_model: :mos8565, cia_model: :mos6526a, sid_model: :mos8580,
                                     ram_expansion: :plus256k)
-      built = described_class.setup(machine.snapshot).build
+      built = rebuilt(machine)
       expect([built.vic.model, built.cia1.model, built.sid.model, built.address_bus.ram_expansion.type])
         .to eq(%i[mos8565 mos6526a mos8580 plus256k])
     end
 
     it "builds a machine of the first NTSC C64s" do
-      machine = described_class.new(region: Badline::Region::NTSC_OLD)
-      expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::NTSC_OLD)
+      expect(rebuilt(described_class.new(region: Badline::Region::NTSC_OLD)).region).to eq(Badline::Region::NTSC_OLD)
     end
 
     it "builds an SX-64 with its KERNAL and without a datasette" do
-      machine = described_class.new(kernal: :sx64, datasette: false)
-      built = described_class.setup(machine.snapshot).build
+      built = rebuilt(described_class.new(kernal: :sx64, datasette: false))
       expect([built.address_bus.kernal, built.datasette.connected?]).to eq([:sx64, false])
     end
 
     it "names the SX-64 when it fails" do
       sx64 = described_class.new(kernal: :sx64, datasette: false)
-      expect { sx64.restore(state) }.to raise_error(Badline::Snapshot::FormatError, /not sx64, /)
+      expect { sx64.restore(image) }.to raise_error(Badline::Snapshot::FormatError, /not sx64, /)
     end
 
     it "builds the PET 64's board" do
-      machine = described_class.new(board: :pet64)
-      expect(described_class.setup(machine.snapshot).build.address_bus.board).to eq(:pet64)
+      expect(rebuilt(described_class.new(board: :pet64)).address_bus.board).to eq(:pet64)
     end
 
     it "names the PET 64's board when it fails" do
-      expect { described_class.new(board: :pet64).restore(state) }
+      expect { described_class.new(board: :pet64).restore(image) }
         .to raise_error(Badline::Snapshot::FormatError, /not .*the pet64 board/)
     end
 
     it "builds the C64GS's board" do
-      machine = described_class.new(board: :gs)
-      expect(described_class.setup(machine.snapshot).build.keyboard.connected?).to be(false)
+      expect(rebuilt(described_class.new(board: :gs)).keyboard.connected?).to be(false)
     end
 
     it "builds the MAX Machine's board" do
-      machine = described_class.new(board: :max)
-      expect(described_class.setup(machine.snapshot).build.address_bus.board).to eq(:max)
+      expect(rebuilt(described_class.new(board: :max)).address_bus.board).to eq(:max)
     end
 
     it "builds a Drean machine" do
-      machine = described_class.new(region: Badline::Region::DREAN)
-      expect(described_class.setup(machine.snapshot).build.region).to eq(Badline::Region::DREAN)
+      expect(rebuilt(described_class.new(region: Badline::Region::DREAN)).region).to eq(Badline::Region::DREAN)
     end
   end
 
@@ -179,9 +217,25 @@ describe Badline::C64, "#snapshot" do
     end
   end
 
+  describe "typing" do
+    # Saved while autostart's RUN is still on its way into the keyboard
+    # buffer, past the boot.
+    let(:typing) do
+      described_class.new.tap do |machine|
+        machine.type_text("print 6*7\r" * 3)
+        run(machine, 2_500_200)
+      end
+    end
+
+    it "types the rest of the text after a restore" do
+      restored = typing.snapshot.load
+      expect(run(restored, 300_000).snapshot).to eq(run(typing, 300_000).snapshot)
+    end
+  end
+
   describe "with an REU" do
     # A 16M REU part way through a swap, with its interrupt raised by the
-    # stash before it.
+    # stash before it. Saving runs the swap to its end.
     let(:machine) do
       described_class.new(reu: 16_384).tap do |computer|
         bus = computer.address_bus
@@ -193,20 +247,20 @@ describe Badline::C64, "#snapshot" do
       end
     end
 
-    it "restores the REU's registers, transfer, RAM and IRQ line" do
-      restored = described_class.restored(machine.snapshot)
-      expect(state_differences(machine, restored, host: { "Badline::C64::REU::RAM" => %i[@power_on] })).to be_empty
+    it "restores the REU's registers, RAM and IRQ line" do
+      image = machine.snapshot
+      expect(image.load.snapshot).to eq(image)
     end
 
     it "runs on as the saved machine does" do
-      restored = described_class.restored(machine.snapshot)
+      restored = machine.snapshot.load
       run(machine, 5_000)
       run(restored, 5_000)
       expect(Badline::Support::Checkpoint.take(restored)).to eq(Badline::Support::Checkpoint.take(machine))
     end
 
     it "builds the machine with an REU of the same size" do
-      expect(described_class.setup(machine.snapshot).build.reu.size_kb).to eq(16_384)
+      expect(machine.snapshot.load.reu.size_kb).to eq(16_384)
     end
 
     it "fails to restore into a machine without one" do
@@ -224,8 +278,8 @@ describe Badline::C64, "#snapshot" do
     end
 
     it "keeps the banks and the register" do
-      restored = described_class.setup(machine.snapshot).build.restore(machine.snapshot)
-      expect(state_differences(machine, restored)).to be_empty
+      image = machine.snapshot
+      expect(described_class.new(ram_expansion: :plus256k).restore(image).snapshot).to eq(image)
     end
   end
 end

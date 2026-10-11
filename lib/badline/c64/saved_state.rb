@@ -20,30 +20,6 @@ module Badline
       # State can't hold. Nil until the machine is restored.
       attr_reader :init_handlers_lost
 
-      # The machine's whole state, in memory. #restore takes the machine, or
-      # another built with the same chip models, region and RAM expansion,
-      # back to it. The cartridge, the disk in device 8, a true 1541 and its
-      # disk and the tape go in the state too. What the host holds stays
-      # out: the keyboard, the joysticks and the pot devices, the traps and
-      # callbacks, whether the display renders and whether the SID records.
-      def snapshot
-        out = Snapshot::StateWriter.new
-        save_state(out)
-        out.state
-      end
-
-      # Takes the machine back to a State from #snapshot. The machine keeps
-      # its chips, its traps and its callbacks, and puts in the cartridge,
-      # drives and tape the state has, taking out any it hasn't. Raises
-      # Snapshot::FormatError for a state of a machine built another way.
-      # The state goes into a new machine first, so one that fails leaves
-      # this machine as it was.
-      def restore(state)
-        check_setup(C64.setup(state))
-        C64.restored(state)
-        apply_state(state)
-      end
-
       # Puts a State into the machine without trying it on a new one
       # first, for a machine built for it (C64.restored): a state that
       # fails leaves the machine part restored. `detached` restores it

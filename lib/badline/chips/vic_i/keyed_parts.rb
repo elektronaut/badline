@@ -115,7 +115,9 @@ module Badline
           @fetch_from = input.int("fetch_from", @fetch_from)
           @fetched = input.int("fetched", @fetched)
           @code = input.byte("code", @code)
-          @painter.load_fields(input, input.int("line.layout", 0) == LINE_LAYOUT)
+          line = input.int("line.layout", 0) == LINE_LAYOUT
+          input.adjust("line in progress from another renderer, restarted") unless line || input.missing?
+          @painter.load_fields(input, line)
           @sound&.load_fields(input, "sound.")
         end
 

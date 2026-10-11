@@ -81,6 +81,7 @@ module Badline
         def save_fields(out) = @channel.save_fields(out, "status.")
 
         def load_fields(input)
+          input.choice("status.kind", ["channel"], "channel")
           @channel = Channel.new.load_fields(input, "status.", [])
         end
       end

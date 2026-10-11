@@ -28,25 +28,41 @@ and `$XDG_DATA_HOME/badline` or `~/.local/share/badline` elsewhere.
 
 Both executables do this, and both open a `.vsf` given as the media,
 in a machine built as the saved one was, whatever `--model` says.
-`--save-snapshot FILE` saves one to `FILE` after the last frame. A
-snapshot that fails to open leaves the machine running as it was.
+`--save-snapshot FILE` saves one to `FILE` after the last frame, and
+`--vice` adds VICE's modules to it (see [VICE](#vice)). A snapshot that
+fails to open leaves the machine running as it was.
+
+## Which snapshots load
+
+Snapshots from badline 0.14.0 on load in that version and every later
+one. Each part of the machine is saved as named fields, so a later
+badline skips a field it no longer needs, and a field an earlier one
+didn't save starts as it does when the machine is switched on. What a
+restore leaves out or changes is printed, such as a module missing from
+the file. [snapshot-format.md](snapshot-format.md) lists every field.
+
+Snapshots from badline 0.13 and earlier are refused, with a message
+naming the version that saved them, which still opens them. No snapshot
+loaded across releases before 0.14.0, and none converts.
 
 ## From Ruby
 
 `computer.save_snapshot(path)` saves, `computer.restore_snapshot(path)`
 takes a machine back to a snapshot, and `Badline::Snapshot.load(path)`
 builds a new machine as the saved one was built and restores it.
-`computer.snapshot` and `computer.restore(state)` do the same in memory,
-without a file. A restore that fails leaves the machine as it was.
+`computer.snapshot` returns a `Badline::Snapshot::Image` in memory,
+without a file, and `computer.restore(image)` takes the machine back to
+it; `image.load` builds a new machine from it. A restore that fails
+leaves the machine as it was. `computer.export_snapshot(path)` saves with
+VICE's modules too.
 
-Saving to a file first runs the machine on to the next instruction
-boundary, and to the end of an REU transfer under way, so it advances
-the machine by a few cycles: usually under a hundred, and up to about
-262,000 for an REU swapping 64K. `computer.cycles` afterwards says where
-it was saved. A save straight after another runs no cycles and writes
-the same file. In the window this happens between frames, and the
-cycles fold into the next frame. `computer.snapshot` in memory doesn't
-advance the machine.
+Saving first runs the machine on to the next instruction boundary, and
+to the end of an REU transfer under way, so it advances the machine by a
+few cycles: usually under a hundred, and up to about 262,000 for an REU
+swapping 64K. `computer.cycles` afterwards says where it was saved. A
+save straight after another runs no cycles and writes the same file. In
+the window this happens between frames, and the cycles fold into the
+next frame. `computer.snapshot` in memory saves the same way.
 
 ## What a snapshot holds
 
@@ -58,20 +74,26 @@ a disk or directory mounted through the traps with its open channels,
 and the tape with its place on it. A restored machine runs on exactly
 as the saved one would have.
 
-A tape, a `.t64` archive and a disk image mounted through the traps come
-back with their contents from the snapshot, so they need no file to
-restore. A true drive's disk opens again from its image's path, with its
-tracks as the drive last saw them. When that file is gone, the disk
-comes back from the tracks alone, write-protected. A directory mounted
-as device 8 opens again from its path. What the host holds stays the
+A tape, a `.t64` archive, a disk image mounted through the traps and a
+true drive's disk come back with their contents from the snapshot, so
+they need no file to restore. A true drive's disk holds its image as last
+written to its file, with the tracks the drive has written since, and
+writes back to that file while it is there. When the file is gone, the
+disk comes back write-protected. A directory mounted as device 8 opens
+again from its path. What the host holds stays the
 host's: the keyboard, the joysticks, the mouse and paddles, sound, and
 blocks given to `on_init` that hadn't run yet, which a restore reports.
 
 Every model saves this way, PAL, NTSC, old NTSC and Drean alike, and so
-does a machine with an REU, with its RAM, its registers and a transfer
-part way through. A snapshot only restores in the badline version that
-wrote it, into a machine with the same chip models, region, RAM
+does a machine with an REU, with its RAM and its registers. A snapshot
+restores into a machine with the same chip models, region, RAM
 expansion, REU, KERNAL, datasette and board.
+
+Text typed with `type_text` that the machine hasn't taken yet, such as
+autostart's `RUN`, carries over, and so do the keys a C128 is typing on
+its key matrix. The VIC-II's line in progress carries over to a badline
+that draws lines the same way. A later badline that draws them another
+way starts the rest of that line afresh, and says so.
 
 ## The VIC-20
 
@@ -79,10 +101,10 @@ expansion, REU, KERNAL, datasette and board.
 slots and pause menu page. A VIC-20 snapshot holds its RAM and colour
 RAM, a cartridge's ROM, the VIC with its picture and sound, both VIAs,
 the CPU, the tape with its place on it, the disk or directory device 8
-serves through the traps and a true 1541, and restores into a VIC-20
-with the same RAM expansion. Its file names its machine `VIC20`, as
-xvic's do, and holds only the `BADLINE` module, so xvic doesn't open
-it, and badline doesn't open xvic's. Restoring a
+serves through the traps and a true 1541 or 1581, and restores into a
+VIC-20 with the same RAM expansion. Its file names its machine `VIC20`,
+as xvic's do, and holds only badline's modules, so xvic doesn't open it,
+and badline doesn't open xvic's. Restoring a
 VIC-20 snapshot while a C64 runs, or a C64 one while a VIC-20 runs,
 swaps the machine in the window.
 
@@ -91,28 +113,30 @@ swaps the machine in the window.
 `badline c128` saves and restores the same way too. A C128 snapshot
 holds its 128K of RAM, both colour RAM banks, the CPU port, the MMU's
 registers and the page pointer writes it holds, the VIC-IIe, both CIAs,
-the SID, the VDC with its RAM and registers, the CPU, a cartridge, the
-tape, the disk device 8 serves through the traps and a true 1541, and
-restores into a C128 of the same model with the same SID, built for the
-same mode. The VDC's picture is left out and painted again while the
-window shows it, and the window shows the VIC-IIe after a restore. Its
-file names its machine `C128`, as x128's do, and holds only the
-`BADLINE` module, so x128 doesn't open it, and badline doesn't open
-x128's. Restoring a C128 snapshot while another machine runs swaps the
+the SID, the VDC with its RAM and registers, the 8502 and the Z80, a
+cartridge, the tape, the disk device 8 serves through the traps and a
+true 1541, 1571 or 1581, and restores into a C128 of the same model with
+the same SID, built for the same mode. The VDC's picture is left out and
+painted again while the window shows it, and the window shows the
+VIC-IIe after a restore. Its file names its machine `C128`, as x128's
+do, and holds only badline's modules, so x128 doesn't open it, and
+badline doesn't open x128's. Restoring a C128 snapshot while another machine runs swaps the
 machine in the window, as for the VIC-20.
 
 ## VICE
 
-Snapshots use VICE's `.vsf` format. badline writes VICE's modules for
-the CPU, RAM and CPU port, both CIAs, the SID and the VIC-II, and an
-REU's `REU1764`, plus the ones x64sc needs to open the file, with
-nothing else attached to the cartridge port, nothing on the tape or user
-ports and no true drive. The VIC-II module names the chip as VICE does:
-the 6569 or 8565 on PAL, the 6567R8 or 8562 on NTSC, the 6567R56A on old
-NTSC and the 6572 on PAL-N. A `BADLINE` module, which VICE skips, holds
-the whole machine, and badline restores its own snapshots from it.
+Snapshots use VICE's `.vsf` format, and badline's own modules are named
+`BL-` and something, which VICE skips. A C64 snapshot saved with
+`--vice`, or `computer.export_snapshot(path)`, also holds VICE's
+modules for the CPU, RAM and CPU port, both CIAs, the SID and the
+VIC-II, and an REU's `REU1764`, plus the ones x64sc needs to open the
+file, with nothing else attached to the cartridge port, nothing on the
+tape or user ports and no true drive. The VIC-II module names the chip
+as VICE does: the 6569 or 8565 on PAL, the 6567R8 or 8562 on NTSC, the
+6567R56A on old NTSC and the 6572 on PAL-N. badline restores such a
+snapshot from its own modules, and leaves VICE's alone.
 
-x64sc 3.10 opens badline's snapshots, which are saved between
+x64sc 3.10 opens those snapshots, which are saved between
 instructions with no REU transfer under way, as long as its VIC-II
 model matches: `-model c64`, `c64c`, `ntsc`, `newntsc`,
 `oldntsc` or `drean`, as `--model` names the machine. It takes the REU

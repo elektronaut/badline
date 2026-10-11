@@ -6,7 +6,7 @@ require_relative "../../support/snapshot_scenarios"
 describe Badline::Snapshot::Vice do
   include SnapshotScenarios
 
-  let(:state) { SnapshotScenarios.demo_state }
+  let(:state) { SnapshotScenarios.demo_image }
   # The machine the VICE modules describe: the saved one, run on to the
   # end of its instruction.
   let(:settled) { settled_copy(state) }

@@ -42,6 +42,14 @@ module Badline
       def zigzag(value) = value.negative? ? ((-value - 1) << 1) | 1 : value << 1
 
       def unzigzag(folded) = folded.odd? ? -(folded >> 1) - 1 : folded >> 1
+
+      # The module `name`, with the records the block writes to the Writer
+      # it yields.
+      def section(name)
+        out = Writer.new
+        yield out
+        out.section(name)
+      end
     end
   end
 end
@@ -51,3 +59,4 @@ require "badline/snapshot/keyed/writer"
 require "badline/snapshot/keyed/report"
 require "badline/snapshot/keyed/reader"
 require "badline/snapshot/keyed/recorder"
+require "badline/snapshot/keyed/modules"

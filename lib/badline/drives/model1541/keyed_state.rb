@@ -200,6 +200,38 @@ module Badline
         end
 
         def restored! = forget_orbits
+
+        # The drive as modules of its own, named from `name` (BL-D8 for
+        # device 8): its own fields, its RAM, each VIA, the CPU, the
+        # mechanism and the disk, when one is in.
+        def save_modules(sections, name)
+          sections << Snapshot::Keyed.section(name) { |out| save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-RAM") { |out| @bus.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-VIA1") { |out| @via1.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-VIA2") { |out| @via2.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-CPU") { |out| @cpu.save_fields(out) }
+          sections << Snapshot::Keyed.section("#{name}-MECH") { |out| @mechanism.save_fields(out) }
+          disk = @mechanism.disk
+          sections << Snapshot::Keyed.section("#{name}-DISK") { |out| disk.save_fields(out) } if disk
+          sections
+        end
+
+        # The drive from its modules, `input` being its own. No disk module
+        # means no disk in the drive.
+        def load_modules(modules, input, name)
+          load_fields(input)
+          @bus.load_fields(modules.required("#{name}-RAM"))
+          @via1.load_fields(modules.required("#{name}-VIA1"))
+          @via2.load_fields(modules.required("#{name}-VIA2"))
+          @cpu.load_fields(modules.required("#{name}-CPU"))
+          disk = modules.optional("#{name}-DISK")
+          mechanism = modules.required("#{name}-MECH")
+          @mechanism.load_fields(mechanism, disk.nil? ? nil : Disk.from_fields(disk, detached: modules.detached?))
+          @via1.restored!
+          @via2.restored!
+          @cpu.restored!
+          restored!
+        end
       end
 
       include KeyedState

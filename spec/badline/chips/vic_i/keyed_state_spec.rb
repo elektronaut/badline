@@ -63,12 +63,21 @@ describe Badline::Chips::VICI::KeyedState do
     let(:machine) { Badline::Vic20.new.tap { |vic20| 3_000.times { vic20.cycle! } } }
     let(:target) { Badline::Vic20.new }
 
-    it "leaves the line fields at power-on" do
+    let(:input) do
       out = Badline::Snapshot::Keyed::Writer.new
       machine.vic.save_fields(out)
       out.int("line.layout", 99)
-      target.vic.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-VICI")))
+      Badline::Snapshot::Keyed::Reader.parse(out.section("BL-VICI"))
+    end
+
+    before { target.vic.load_fields(input) }
+
+    it "leaves the line fields at power-on" do
       expect(target.vic.instance_variable_get(:@painter).counts).to all(be_zero)
+    end
+
+    it "reports the line restarted" do
+      expect(input.report.adjusted).to include("line in progress from another renderer, restarted")
     end
   end
 end

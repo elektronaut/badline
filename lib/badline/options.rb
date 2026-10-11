@@ -94,6 +94,7 @@ module Badline
       @true_drive = false
       @screenshot = ""
       @save_snapshot = ""
+      @vice = false
       @timeline = []
       @jit = true
       @help = false
@@ -170,6 +171,9 @@ module Badline
     def verbose? = @verbose
 
     def true_drive? = @true_drive
+
+    # Whether --save-snapshot adds VICE's modules, so x64sc opens it.
+    def vice? = @vice
 
     def jit? = @jit
 
@@ -272,6 +276,7 @@ module Badline
       when "--no-vsync" then @vsync = false
       when "--verbose" then @verbose = true
       when "--true-drive" then @true_drive = true
+      when "--vice" then @vice = true
       when "--ntsc" then @models << "ntsc"
       when "--c64" then @c64_mode = true
       when "--unpaced" then @paced = false

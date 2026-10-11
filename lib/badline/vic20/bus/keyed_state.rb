@@ -24,6 +24,9 @@ module Badline
           @video_data = input.byte("#{prefix}video_data", @video_data)
         end
 
+        # Whether a cartridge's ROM chips are in the expansion blocks.
+        def cartridge? = !@roms.empty?
+
         def save_rom_fields(out)
           out.int("roms", @roms.length)
           @roms.each_with_index do |rom, number|

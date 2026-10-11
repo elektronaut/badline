@@ -11,12 +11,6 @@ describe Badline::C64, "#snapshot with a true drive", :slow do
   include BlankDisk
   include SnapshotScenarios
 
-  let(:idle) do
-    { "Badline::Drives::Model1541" => %i[@owed @budget @slept @wake_at @pass_cycles @pass_instructions @record_state
-                                         @record_cycles @record_instructions @record_quiet @asleep @recording
-                                         @orbit_instructions],
-      "Badline::Drives::Model1541::Bus" => %i[@touched @volatile @watching] }
-  end
   let(:dir) { Dir.mktmpdir }
   let(:path) do
     File.join(dir, "demo.d64").tap do |disk|
@@ -48,8 +42,8 @@ describe Badline::C64, "#snapshot with a true drive", :slow do
   end
 
   it "restores the drive and its disk in a machine without one" do
-    target.restore(computer.snapshot)
-    expect(state_differences(computer, target, host: idle)).to be_empty
+    image = computer.snapshot
+    expect(target.restore(image).snapshot).to eq(image)
   end
 
   it "runs on as the saved machine does" do

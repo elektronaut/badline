@@ -54,12 +54,51 @@ describe Badline::Snapshot do
 
     it "reads a badline snapshot's modules" do
       expect(described_class.read(path).sections.map(&:name))
-        .to eq(%w[MAINCPU C64MEM C64CART CIA1 CIA2 SID SIDEXTENDED FSDRIVE VIC-II GLUE C64MEMHACKS TAPEPORT
-                  JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1 USERPORT BADLINE])
+        .to eq(%w[BL-MACHINE BL-RAM BL-COLORRAM BL-CPU BL-VIC BL-CIA1 BL-CIA2 BL-SID BL-TAPE])
     end
 
     it "knows a snapshot badline wrote" do
       expect(described_class.read(path)).to be_badline
+    end
+  end
+
+  describe ".export" do
+    before { described_class.export(computer, path) }
+
+    it "puts VICE's modules ahead of badline's" do
+      expect(described_class.read(path).sections.map(&:name))
+        .to eq(%w[MAINCPU C64MEM C64CART CIA1 CIA2 SID SIDEXTENDED FSDRIVE VIC-II GLUE C64MEMHACKS TAPEPORT
+                  JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1 USERPORT BL-MACHINE BL-RAM BL-COLORRAM BL-CPU BL-VIC
+                  BL-CIA1 BL-CIA2 BL-SID BL-TAPE])
+    end
+
+    it "restores from badline's modules, quietly" do
+      lines = []
+      restored = described_class.load(path) { |line| lines << line }
+      expect([restored.snapshot, lines]).to eq([computer.snapshot, []])
+    end
+  end
+
+  describe "a snapshot in the old layout" do
+    # The BADLINE module badline 0.13 and earlier wrote: the marker and
+    # the version as its first strings.
+    before do
+      strings = ["COMPUTER", "0.12.3"]
+      index = [1, strings.length, *strings.map(&:bytesize), 20].pack("w*")
+      data = Zlib.deflate([index.bytesize].pack("V") + index + strings.join)
+      section = Badline::Snapshot::Section.new(name: "BADLINE", major: 2, minor: 0, data:)
+      File.binwrite(path, Badline::Snapshot::Container.new([section]).to_s)
+    end
+
+    it "is refused, naming the version that opens it" do
+      expect { described_class.load(path) }
+        .to raise_error(Badline::Snapshot::FormatError,
+                        "machine.vsf was saved by badline 0.12.3 in the old snapshot layout, which this badline " \
+                        "can't read. It still opens in badline 0.12.3.")
+    end
+
+    it "is refused restoring into a running machine" do
+      expect { Badline::C64.new.restore_snapshot(path) }.to raise_error(Badline::Snapshot::FormatError, /0\.12\.3/)
     end
   end
 
