@@ -4,10 +4,9 @@ require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 require_relative "../../../support/snapshot_scenarios"
 
-# The CIA's keyed fields against its positional save_state, which restores
-# exactly: a CIA saved on any cycle, loaded into a fresh one, saves the same
-# positional state, the fast-path flags and the TOD divider worked out again
-# included.
+# The CIA's keyed fields, saved again the same: a CIA saved on any cycle,
+# loaded into a fresh one, saves the same fields, with the fast-path flags
+# and the TOD divider worked out again.
 module CIAKeyedSamples
   extend KeyedOracle
 
@@ -17,7 +16,7 @@ module CIAKeyedSamples
   # returns what differs.
   def check(cia, fresh, cycle)
     problems = keyed_round_trip(cia, fresh).report.lines(verbose: true)
-    problems << "positional state differs" unless positional(cia) == positional(fresh)
+    problems << "saves other fields" unless saved_fields(cia) == saved_fields(fresh)
     problems.map { |line| "cycle #{cycle}: #{line}" }
   end
 

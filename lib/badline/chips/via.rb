@@ -4,7 +4,6 @@ require "badline/chips/via/control_lines"
 require "badline/chips/via/fast_forward"
 require "badline/chips/via/interrupt_register"
 require "badline/chips/via/shift_register"
-require "badline/chips/via/saved_state"
 require "badline/chips/via/timer1"
 require "badline/chips/via/timer2"
 require "badline/chips/via/keyed_parts"
@@ -21,7 +20,6 @@ module Badline
     class VIA
       include Addressable
       include FastForward
-      include SavedState
 
       attr_reader :start, :peripheral, :shift_register, :acr, :pcr
 

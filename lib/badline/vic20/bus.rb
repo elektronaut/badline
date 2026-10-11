@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/vic20/bus/saved_state"
 require "badline/vic20/bus/keyed_state"
 
 module Badline
@@ -30,7 +29,6 @@ module Badline
     # Writes to ROM and to empty spots go nowhere.
     class Bus
       include Addressable
-      include SavedState
 
       # The pages each expansion block covers, as [first page, count].
       BLOCKS = {

@@ -3,18 +3,17 @@
 require "spec_helper"
 require_relative "../../../../test/support/snapshot_cartridges"
 
-# Every mapper's keyed fields against its positional setup and state, which
-# restore exactly: bin/snapshot_check's matrix of mappers after register
-# writes, reads, freezes and thaws, each saved, built again from its
-# fields (Cartridge.from_fields) and loaded.
+# Every mapper's keyed fields, saved again the same: bin/snapshot_check's
+# matrix of mappers after register writes, reads, freezes and thaws, each
+# saved, built again from its fields (Cartridge.from_fields), loaded and
+# saved again.
 module CartridgeKeyedSamples
   module_function
 
-  def positional(cartridge)
-    out = Badline::Snapshot::StateWriter.new
-    cartridge.save_setup(out)
-    cartridge.save_state(out)
-    out.state
+  def saved_fields(cartridge)
+    out = Badline::Snapshot::Keyed::Writer.new
+    cartridge.save_fields(out)
+    out.to_s
   end
 
   def problems
@@ -25,7 +24,7 @@ module CartridgeKeyedSamples
       copy = SnapshotCartridges.attach(Badline::C64::Cartridge.from_fields(input))
       copy.load_fields(input)
       lines = input.report.lines(verbose: true)
-      lines << "positional state differs" unless positional(copy) == positional(cartridge)
+      lines << "saves other fields" unless saved_fields(copy) == saved_fields(cartridge)
       lines.map { |line| "#{name}: #{line}" }
     end
   end

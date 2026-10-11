@@ -7,6 +7,17 @@ module Badline
     # the RESTORE key's NMI, and the host's typing still to feed and on_init
     # handlers still to run under host.*.
     module KeyedState
+      # How many more on_init handlers the machine a snapshot was taken of had
+      # yet to run than this one has. Nil until the machine is restored.
+      attr_reader :init_handlers_lost
+
+      # Whether a snapshot saves now (Machine::Settling): the CPU between
+      # instructions or jammed.
+      def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
+
+      # The sound runs itself up to the cycle as its fields are saved.
+      def settle_chips_for_snapshot = nil
+
       def save_machine_fields(out)
         out.text("family", "vic20").text("written_by", VERSION)
         Snapshot::Vic20Setup.new(ram: @ram_configuration).write_fields(out)

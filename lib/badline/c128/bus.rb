@@ -39,7 +39,6 @@ module Badline
       include MMUPages
       include IOPages
       include Z80Pages
-      include SavedState
 
       # The 8502's port has seven pins. P0-P5 are the 6510's, and P6 senses
       # the CAPS LOCK key, high while it is up. Bit 7 has no pin, and holds

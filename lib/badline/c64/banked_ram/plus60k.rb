@@ -26,16 +26,6 @@ module Badline
 
         def type = :plus60k
 
-        def save_state(out)
-          out.int(@banks.index(@high_ram))
-          @banks[1].save_state(out)
-        end
-
-        def load_state(input)
-          @high_ram = @banks.fetch(input.int)
-          @banks[1].load_state(input)
-        end
-
         # $D100 as bit 7 picks the bank above $1000, and bank 1, in a
         # keyed snapshot module.
         def save_fields(out)

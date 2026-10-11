@@ -14,7 +14,6 @@ require "badline/chips/z80/extended_page"
 require "badline/chips/z80/block_transfers"
 require "badline/chips/z80/block_io"
 require "badline/chips/z80/interrupt_acceptance"
-require "badline/chips/z80/saved_state"
 require "badline/chips/z80/keyed_state"
 
 module Badline
@@ -45,7 +44,6 @@ module Badline
         include BlockTransfers
         include BlockIO
         include InterruptAcceptance
-        include SavedState
         include KeyedState
 
         attr_reader :bus, :cycles, :nmi

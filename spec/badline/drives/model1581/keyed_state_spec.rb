@@ -5,10 +5,10 @@ require "tmpdir"
 require_relative "../../../support/blank_disk"
 require_relative "../../../support/keyed_oracle"
 
-# A 1581's WD1772, mechanism and disk through their keyed fields, against
-# their positional state: the controller reading a sector of a D81 and
-# writing one, saved now and then, the disk built again from the image the
-# module embeds and the tracks it holds.
+# A 1581's WD1772, mechanism and disk through their keyed fields, saved
+# again the same: the controller reading a sector of a D81 and writing one,
+# saved now and then, the disk built again from the image the module
+# embeds and the tracks it holds.
 module Drive1581KeyedSamples
   extend BlankDisk
   extend KeyedOracle
@@ -40,14 +40,11 @@ module Drive1581KeyedSamples
     copy_fdc.load_fields(inputs[0])
     copy.load_fields(inputs[1], Badline::Drives::Model1581::Disk.from_fields(inputs[2]), copy_fdc.now)
     problems = inputs.flat_map { |input| input.report.lines(verbose: true) }
-    same = [turned(copy, fdc.now), positional(copy_fdc)] == [turned(mechanism, fdc.now), positional(fdc)]
-    problems << "positional state differs" unless same
+    same = [saved_fields(copy, fdc.now), saved_fields(copy_fdc), saved_fields(copy.disk)] ==
+           [saved_fields(mechanism, fdc.now), saved_fields(fdc), saved_fields(mechanism.disk)]
+    problems << "saves other fields" unless same
     problems.map { |line| "cycle #{fdc.now}: #{line}" }
   end
-
-  # The mechanism's positional state with the disk's angle taken as it
-  # stands `now`, the one form of it a load keeps.
-  def turned(mechanism, now) = positional(with_fields(mechanism, :@angle => mechanism.angle(now), :@since => now))
 
   # Runs the command to its end, skipping the cycles where nothing
   # happens, as the drive does, and checks every 37th step.

@@ -4,6 +4,10 @@ require "zlib"
 
 module Badline
   module Snapshot
+    # A file that isn't a snapshot badline reads, is cut short, or is of a
+    # machine built another way.
+    class FormatError < StandardError; end
+
     # One module of a snapshot: its name, its version and its payload,
     # without the 22-byte module header.
     Section = Data.define(:name, :major, :minor, :data) do

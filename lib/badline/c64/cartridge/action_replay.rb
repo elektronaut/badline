@@ -65,19 +65,6 @@ module Badline
 
         private
 
-        def save_mapper(out)
-          super
-          out.int(window_index(@rom, windows)).boolean(@active).boolean(@io2_ram).blob(@ram_data)
-        end
-
-        def load_mapper(input)
-          super
-          @rom = window_at(input.int, windows)
-          @active = input.boolean?
-          @io2_ram = input.boolean?
-          input.blob_into(@ram_data)
-        end
-
         def windows = [@through, @isolated, @contended, *@rom_banks, EMPTY_BANK]
 
         def io2_peek(addr)

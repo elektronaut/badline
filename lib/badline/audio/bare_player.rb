@@ -74,26 +74,41 @@ module Badline
         settle
       end
 
-      # The rig between frames: the bus and its chips, the extra SIDs, the
-      # CPU, and the call waiting for the idle loop.
-      def save_state(out)
-        out.marker("BARE PLAYER")
-        @bus.save_state(out)
-        @extras.each { |sid| sid.save_state(out) }
-        @cpu.save_state(out)
-        out.optional_int(@pending).int(@argument).boolean(@idle)
+      # The rig between frames as keyed snapshot modules: the call waiting
+      # for the idle loop in BL-PLAYER, the memories, the CPU and its port,
+      # the chips and the extra SIDs, as BL-SID2 and BL-SID3.
+      def save_modules
+        bus = @bus
+        cpu = @cpu
+        sections = [Snapshot::Keyed.section("BL-PLAYER") do |out|
+          out.optional_int("pending", @pending).int("argument", @argument).bool("idle", @idle)
+        end]
+        sections << Snapshot::Keyed.section("BL-RAM") { |out| bus.ram.save_fields(out, "ram") }
+        sections << Snapshot::Keyed.section("BL-COLORRAM") { |out| bus.color_ram.save_fields(out, "ram") }
+        sections << Snapshot::Keyed.section("BL-CPU") do |out|
+          cpu.save_fields(out)
+          bus.save_port_fields(out)
+        end
+        sections << Snapshot::Keyed.section("BL-VIC") { |out| bus.vic.save_fields(out) }
+        sections << Snapshot::Keyed.section("BL-CIA1") { |out| bus.cia1.save_fields(out) }
+        sections << Snapshot::Keyed.section("BL-CIA2") { |out| bus.cia2.save_fields(out) }
+        sections << Snapshot::Keyed.section("BL-SID") { |out| bus.sid.save_fields(out) }
+        @extras.each_with_index do |sid, index|
+          sections << Snapshot::Keyed.section("BL-SID#{index + 2}") { |out| sid.save_fields(out) }
+        end
+        sections
       end
 
-      # Takes a rig that hasn't started to where #save_state found one, in
+      # Takes a rig that hasn't started to where #save_modules found one, in
       # place of #start.
-      def load_state(input)
-        input.marker("BARE PLAYER")
-        @bus.load_state(input)
-        @extras.each { |sid| sid.load_state(input) }
-        @cpu.load_state(input)
-        @pending = input.optional_int
-        @argument = input.int
-        @idle = input.boolean?
+      def load_modules(modules)
+        load_bus_modules(modules)
+        @cpu.load_fields(modules.required("BL-CPU"))
+        @cpu.restored!
+        player = modules.required("BL-PLAYER")
+        @pending = player.optional_int("pending")
+        @argument = player.int("argument", 0)
+        @idle = player.bool("idle", false)
         @stereo.synthesize!
         install_dispatch
       end
@@ -126,6 +141,24 @@ module Badline
         return (@tune.ntsc? ? NTSC_FRAME_CYCLES : FRAME_CYCLES) unless @tune.cia_timed?(@subtune + 1)
 
         @bus.cia1.timer_a_latch + 1
+      end
+
+      def load_bus_modules(modules)
+        bus = @bus
+        bus.ram.load_fields(modules.required("BL-RAM"), "ram")
+        bus.color_ram.load_fields(modules.required("BL-COLORRAM"), "ram")
+        bus.load_port_fields(modules.required("BL-CPU"))
+        bus.restored!
+        bus.vic.load_fields(modules.required("BL-VIC"))
+        bus.cia1.load_fields(modules.required("BL-CIA1"))
+        bus.cia2.load_fields(modules.required("BL-CIA2"))
+        @stereo.sids.each_with_index do |sid, index|
+          sid.load_fields(modules.required(index.zero? ? "BL-SID" : "BL-SID#{index + 1}"))
+          sid.restored!
+        end
+        bus.vic.restored!
+        bus.cia1.restored!
+        bus.cia2.restored!
       end
 
       def stub_address = @stub_address ||= @tune.driver_address

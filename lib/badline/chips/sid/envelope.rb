@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/sid/envelope/saved_state"
-
 module Badline
   module Chips
     class SID
@@ -28,11 +26,8 @@ module Badline
         EXPONENTIAL_PERIODS = { 0xff => 1, 0x5d => 2, 0x36 => 4, 0x1a => 8,
                                 0x0e => 16, 0x06 => 30, 0x00 => 1 }.freeze
 
-        # The states a snapshot names by index.
+        # The states, which VICE's SIDEXTENDED numbers by index.
         STATES = %i[attack decay_sustain release].freeze
-
-        include SavedState
-
         attr_reader :state, :counter, :env3
 
         def initialize

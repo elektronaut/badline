@@ -2,7 +2,6 @@
 
 require "badline/chips/vic/sprite/internal_bus"
 require "badline/chips/vic/sprite/shifter"
-require "badline/chips/vic/sprite/saved_state"
 require "badline/chips/vic/sprite/timing"
 
 module Badline
@@ -54,7 +53,6 @@ module Badline
         DISPLAY_OFF_X = 460
 
         include Shifter
-        include SavedState
 
         attr_reader :index, :leftmost, :span, :codes,
                     :reload_leftmost, :reload_span, :reload_codes

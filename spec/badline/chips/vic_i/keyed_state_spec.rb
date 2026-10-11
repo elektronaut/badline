@@ -3,12 +3,11 @@
 require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 
-# The VIC-I's keyed fields, its sound's included, against its positional
-# save_state, which restores exactly: a VIC-20's VIC saved on any cycle of
-# its boot once the text window opens, loaded into a fresh VIC-20's, saves the same positional state,
-# with what the registers decode to, where the fetches end and the next
-# event worked out again. The painter's repaint caches are left out, and
-# reset to repaint every line on both.
+# The VIC-I's keyed fields, its sound's included, saved again the same: a
+# VIC-20's VIC saved on any cycle of its boot once the text window opens,
+# loaded into a fresh VIC-20's, saves the same fields, with what the
+# registers decode to, where the fetches end and the next event worked out
+# again.
 module VICIKeyedSamples
   extend KeyedOracle
 
@@ -23,7 +22,7 @@ module VICIKeyedSamples
     painter = vic.instance_variable_get(:@painter)
     painter.instance_variable_get(:@stale).fill(true)
     painter.instance_variable_get(:@memo_keys).fill(-1)
-    positional(vic)
+    saved_fields(vic)
   end
 
   def check(machine)
@@ -31,7 +30,7 @@ module VICIKeyedSamples
     target.instance_variable_set(:@cycles, machine.cycles)
     target.sound_source.record(rate: 44_100)
     problems = keyed_round_trip(machine.vic, target.vic).report.lines(verbose: true)
-    problems << "positional state differs" unless comparable(machine.vic) == comparable(target.vic)
+    problems << "saves other fields" unless comparable(machine.vic) == comparable(target.vic)
     problems.map { |line| "cycle #{machine.cycles}: #{line}" }
   end
 

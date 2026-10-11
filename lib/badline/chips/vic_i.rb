@@ -2,7 +2,6 @@
 
 require "badline/chips/vic_i/painter"
 require "badline/chips/vic_i/text_window"
-require "badline/chips/vic_i/saved_state"
 require "badline/chips/vic_i/sound"
 require "badline/chips/vic_i/keyed_parts"
 
@@ -43,7 +42,6 @@ module Badline
     # into the line lands 48 pixels in. Lines 0-27 are blanked.
     class VICI
       include TextWindow
-      include SavedState
 
       # What a VIC-I sets for the machine: the clock, the raster's cycles
       # per line and lines per frame, and how many lines at the top of the

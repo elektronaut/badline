@@ -86,6 +86,9 @@ module Badline
       # running transfer, the transfer under dma.*, and the RAM. The IRQ
       # line comes from the status register on load.
       module KeyedState
+        # The REU's size in K, which the machine's setup names.
+        def size_kb = @size_kb
+
         def save_fields(out)
           out.int("status", @status).int("command", @command).int("c64", @c64).int("c64_start", @c64_start)
           out.int("expansion", @expansion).int("expansion_start", @expansion_start).int("bank", @bank)

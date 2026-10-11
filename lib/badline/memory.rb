@@ -29,14 +29,6 @@ module Badline
       Array(bytes).each_with_index { |b, i| poke(addr + i, b) }
     end
 
-    def save_state(out)
-      out.blob(@storage)
-    end
-
-    def load_state(input)
-      input.blob_into(@storage)
-    end
-
     # Every byte as one record of a keyed snapshot module, under `key`.
     def save_fields(out, key) = out.bytes(key, @storage)
 

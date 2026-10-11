@@ -151,18 +151,6 @@ module Badline
         end
       end
 
-      # The registers and the P0H and P1H writes waiting for P0L and P1L.
-      # The bus maps the restored registers once its own state is back.
-      def save_state(out)
-        out.ints(@registers).int(@p0h_latch).int(@p1h_latch)
-      end
-
-      def load_state(input)
-        input.ints_into(@registers)
-        @p0h_latch = input.int
-        @p1h_latch = input.int
-      end
-
       # The registers and the page pointers' high bytes waiting for their
       # low bytes, in a keyed snapshot module (Snapshot::Keyed). The bus
       # maps its banks from them afterwards.

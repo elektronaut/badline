@@ -155,8 +155,10 @@ module Badline
         return if old.nil? || badline?
 
         version = MachineState.written_by(old)
-        raise FormatError, "#{@name} was saved by badline #{version} in the old snapshot layout, which this " \
-                           "badline can't read. It still opens in badline #{version}."
+        layout = "in the old snapshot layout, which this badline can't read."
+        raise FormatError, "#{@name} was saved by an earlier badline #{layout}" if version.empty?
+
+        raise FormatError, "#{@name} was saved by badline #{version} #{layout} It still opens in badline #{version}."
       end
 
       def tell(report)

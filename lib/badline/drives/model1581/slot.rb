@@ -55,24 +55,6 @@ module Badline
 
         # Whether the 1581 is device 8.
         def drive1581_on_device8? = @drive1581&.device == KernalTrap::Routine::DEVICE
-
-        # The 1581 on the serial bus, with its device number.
-        def save_drive1581(out)
-          out.boolean(!@drive1581.nil?)
-          return unless @drive1581
-
-          out.int(@drive1581.device)
-          @drive1581.save_state(out)
-        end
-
-        def load_drive1581(input)
-          return detach_drive1581 unless input.boolean?
-
-          device = input.int
-          detach_drive1581 if @drive1581 && @drive1581.device != device
-          attach_drive1581(Model1581.new(device:)) unless @drive1581
-          @drive1581.load_state(input)
-        end
       end
     end
   end

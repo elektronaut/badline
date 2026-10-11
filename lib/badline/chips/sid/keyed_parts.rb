@@ -9,6 +9,25 @@ module Badline
         # shapers, the sync edge, the floating output and the pulse level.
         # What the registers set comes from them on load.
         module KeyedState
+          # The fields reSID keeps for an oscillator between cycles, for VICE's
+          # SIDEXTENDED module: the phase, the noise register, its shift pipeline
+          # and reset countdown, the floating output's countdown and the pulse
+          # level.
+          def resid_fields
+            [@accumulator, @shift_register, @shift_pipeline, @shift_register_reset, @floating_ttl, @pulse]
+          end
+
+          # Takes the fields resid_fields gives from `fields`, from `at` on.
+          def restore_resid_fields(fields, at)
+            @accumulator = fields[at]
+            @shift_register = fields[at + 1]
+            @shift_pipeline = fields[at + 2]
+            @shift_register_reset = fields[at + 3]
+            @floating_ttl = fields[at + 4]
+            @pulse = fields[at + 5]
+            @stale = true
+          end
+
           def save_fields(out, prefix)
             out.int("#{prefix}accumulator", @accumulator).int("#{prefix}shift_register", @shift_register)
             out.int("#{prefix}shift_register_reset", @shift_register_reset)
@@ -53,6 +72,28 @@ module Badline
         # `prefix`: the state, the counters and pipelines between them. The
         # rates and the gate come from the registers on load.
         module KeyedState
+          # The fields reSID keeps for an envelope between cycles, for VICE's
+          # SIDEXTENDED module: the rate and exponential counters, the level, the
+          # state as an index into STATES, whether it holds at zero, the two
+          # periods and the pipeline.
+          def resid_fields
+            [@rate_counter, @exponential_counter, @counter, STATES.index(@state).to_i, @hold_zero ? 1 : 0,
+             @rate_period, @exponential_period, @envelope_pipeline]
+          end
+
+          # Takes the fields resid_fields gives from `fields`, from `at` on.
+          def restore_resid_fields(fields, at)
+            @rate_counter = fields[at]
+            @exponential_counter = fields[at + 1]
+            @counter = @env3 = fields[at + 2]
+            state = fields[at + 3]
+            @state = @next_state = STATES.fetch(state.clamp(0, STATES.length - 1)).to_sym
+            @hold_zero = fields[at + 4] != 0
+            @rate_period = fields[at + 5]
+            @exponential_period = fields[at + 6]
+            @envelope_pipeline = fields[at + 7]
+          end
+
           def save_fields(out, prefix)
             out.text("#{prefix}state", @state.to_s).text("#{prefix}next_state", @next_state.to_s)
             out.int("#{prefix}counter", @counter).int("#{prefix}env3", @env3)
@@ -202,6 +243,23 @@ module Badline
           @voice2.load_fields(input, "voice2.")
           @voice3.load_fields(input, "voice3.")
           @filter.load_fields(input, "filter.")
+        end
+
+        # How far the recording has got into the sample it is averaging,
+        # under `prefix`, for a host that carries on recording from a
+        # snapshot: it calls #record, then #load_recording_fields.
+        def save_recording_fields(out, prefix)
+          decimator = @decimator
+          raise ArgumentError, "the SID isn't recording" if decimator.nil?
+
+          decimator.save_fields(out, prefix)
+        end
+
+        def load_recording_fields(input, prefix)
+          decimator = @decimator
+          raise ArgumentError, "the SID isn't recording" if decimator.nil?
+
+          decimator.load_fields(input, prefix)
         end
 
         def restored!

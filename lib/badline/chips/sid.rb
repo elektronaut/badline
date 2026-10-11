@@ -6,7 +6,6 @@ require "badline/chips/sid/voice"
 require "badline/chips/sid/filter"
 require "badline/chips/sid/decimator"
 require "badline/chips/sid/catch_up"
-require "badline/chips/sid/saved_state"
 require "badline/chips/sid/keyed_parts"
 
 module Badline
@@ -38,7 +37,6 @@ module Badline
     class SID
       include Addressable
       include CatchUp
-      include SavedState
 
       VOICES = 3
 

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/cia/serial/saved_state"
-
 module Badline
   module Chips
     class CIA
@@ -18,8 +16,6 @@ module Badline
       # rather than waiting for the sixteenth underflow, and a byte written
       # from that point on goes out on the next one.
       class Serial
-        include SavedState
-
         BITS = 8
 
         # A byte written to the data register reaches the shift register one

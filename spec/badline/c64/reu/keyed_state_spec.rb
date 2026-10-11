@@ -4,10 +4,10 @@ require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 require_relative "../../../support/snapshot_scenarios"
 
-# The REU's keyed fields against its positional save_state, which restores
-# exactly: an REU saved through a stash, a swap, a verify and a
-# fetch, with the end-of-block interrupt on, loaded into a fresh one, saves
-# the same positional state, with the IRQ line worked out from the status.
+# The REU's keyed fields, saved again the same: an REU saved through a
+# stash, a swap, a verify and a fetch, with the end-of-block interrupt on,
+# loaded into a fresh one, saves the same fields, with the IRQ line worked
+# out from the status.
 module REUKeyedSamples
   extend KeyedOracle
 
@@ -39,7 +39,7 @@ module REUKeyedSamples
 
           fresh = Badline::C64.new(reu: 512).reu
           problems = keyed_round_trip(machine.reu, fresh).report.lines(verbose: true)
-          problems << "positional state differs" unless positional(machine.reu) == positional(fresh)
+          problems << "saves other fields" unless saved_fields(machine.reu) == saved_fields(fresh)
           problems.map { |line| "cycle #{machine.cycles}: #{line}" }
         end.flatten
       end

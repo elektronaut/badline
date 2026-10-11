@@ -92,27 +92,6 @@ module Badline
         def write(track)
           @disk&.write(@cylinder, @side, track)
         end
-
-        # The disk (Disk#save_state) and the motor, the head and the turn.
-        def save_state(out)
-          out.boolean(!@disk.nil?)
-          @disk&.save_state(out)
-          out.int(@cylinder).int(@side).int(@angle).int(@since).boolean(@motor).boolean(@changed)
-        end
-
-        # Puts the state back, reusing the disk in when it's the one the state
-        # names (Disk::SavedState.load). A disk taken out is flushed.
-        def load_state(input)
-          disk = input.boolean? ? Disk::SavedState.load(input, @disk) : nil
-          flush unless disk.equal?(@disk)
-          @disk = disk
-          @cylinder = input.int
-          @side = input.int
-          @angle = input.int
-          @since = input.int
-          @motor = input.boolean?
-          @changed = input.boolean?
-        end
       end
     end
   end

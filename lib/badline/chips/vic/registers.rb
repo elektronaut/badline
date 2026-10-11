@@ -163,15 +163,6 @@ module Badline
 
         def latch_raster_irq! = latch_irq!(0x01)
 
-        def save_state(out)
-          out.blob(@bytes).boolean(@irq_line)
-        end
-
-        def load_state(input)
-          input.blob_into(@bytes)
-          @irq_line = input.boolean?
-        end
-
         def collide!(reg, bits)
           return false if bits.zero?
 

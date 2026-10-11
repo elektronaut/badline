@@ -37,50 +37,6 @@ module Badline
       def push_serial_lines
         @iec_bus.host_lines = @cia2.port_a_lines
       end
-
-      def save_cartridge(out)
-        cartridge = address_bus.cartridge
-        out.boolean(!cartridge.nil?)
-        cartridge&.save_setup(out)
-      end
-
-      # A cartridge comes back built afresh from the setup it was built
-      # with, before the address bus puts its state into it.
-      def load_cartridge(input)
-        if input.boolean?
-          connect_cartridge(Cartridge.from_setup(input))
-        elsif address_bus.cartridge
-          address_bus.detach_cartridge
-        end
-      end
-
-      # A true 1541 on the serial bus, then a 1581.
-      def save_serial_bus(out)
-        out.boolean(!@drive1541.nil?)
-        if @drive1541
-          out.int(@drive1541.device)
-          @drive1541.save_state(out)
-        end
-        save_drive1581(out)
-      end
-
-      def load_serial_bus(input)
-        load_drive1541(input)
-        load_drive1581(input)
-      end
-
-      # The REU, which the setup says the machine has, and whether it has
-      # asked for the bus. Its IRQ line reaches the CPU as it was.
-      def save_reu(out)
-        @reu&.save_state(out)
-        out.boolean(@dma)
-      end
-
-      def load_reu(input)
-        @reu&.load_state(input)
-        @reu_irq = @reu ? @reu.irq? : false
-        @dma = input.boolean?
-      end
     end
   end
 end

@@ -87,28 +87,6 @@ module Badline
         @serial_trap = nil
         @save_trap = nil
       end
-
-      # The disk device 8 serves through the traps, with the traps' own
-      # state: open channels, the drive's status and RAM, a SAVE under way.
-      def save_trap_dos(out)
-        out.boolean(!@dos.nil?)
-        return unless @dos
-
-        @dos.save_state(out)
-        @serial_trap.save_state(out)
-        @save_trap.save_state(out)
-      end
-
-      def load_trap_dos(input)
-        return unmount unless input.boolean?
-
-        storage = Snapshot::StorageSetup.read(input)
-        unmount
-        mount(storage)
-        @dos.load_state(input)
-        @serial_trap.load_state(input)
-        @save_trap.load_state(input)
-      end
     end
   end
 end

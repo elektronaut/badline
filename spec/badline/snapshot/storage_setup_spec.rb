@@ -16,9 +16,9 @@ describe Badline::Snapshot::StorageSetup do
   after { FileUtils.remove_entry(dir) }
 
   def reopened(storage, detached:)
-    out = Badline::Snapshot::StateWriter.new
-    described_class.write(storage, out)
-    described_class.read(Badline::Snapshot::StateReader.new(out.state, detached:))
+    out = Badline::Snapshot::Keyed::Writer.new
+    described_class.write_fields(storage, out)
+    described_class.read_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-TRAPDOS")), detached:)
   end
 
   it "opens a disk image as it was" do
@@ -39,10 +39,10 @@ describe Badline::Snapshot::StorageSetup do
     end
 
     def reopened_without_file(detached:)
-      out = Badline::Snapshot::StateWriter.new
-      described_class.write(Badline::Storage::T64.new(archive), out)
+      out = Badline::Snapshot::Keyed::Writer.new
+      described_class.write_fields(Badline::Storage::T64.new(archive), out)
       File.delete(archive)
-      described_class.read(Badline::Snapshot::StateReader.new(out.state, detached:))
+      described_class.read_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-TRAPDOS")), detached:)
     end
 
     it "serves its files once the archive's file is gone" do

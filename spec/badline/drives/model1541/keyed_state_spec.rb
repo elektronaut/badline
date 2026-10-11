@@ -6,11 +6,10 @@ require_relative "../../../support/blank_disk"
 require_relative "../../../support/drive1541_rom"
 require_relative "../../../support/keyed_oracle"
 
-# A 1541's mechanism and disk through their keyed fields, against the
-# positional state, which restores exactly: the drive reading a D64 with
-# its motor on, then writing a run of bytes, saved now and then, its disk
-# built again from the image the module embeds and the tracks it holds,
-# and the mechanism loaded over it.
+# A 1541's mechanism and disk through their keyed fields, saved again the
+# same: the drive reading a D64 with its motor on, then writing a run of
+# bytes, saved now and then, its disk built again from the image the module
+# embeds and the tracks it holds, and the mechanism loaded over it.
 module Drive1541KeyedSamples
   extend BlankDisk
   extend KeyedOracle
@@ -33,7 +32,7 @@ module Drive1541KeyedSamples
     mechanism = Badline::Drives::Model1541::Mechanism.new
     mechanism.load_fields(input, Badline::Drives::Model1541::Disk.from_fields(input))
     problems = input.report.lines(verbose: true)
-    problems << "positional state differs" unless positional(mechanism) == positional(drive.mechanism)
+    problems << "saves other fields" unless saved_fields(mechanism) == saved_fields(drive.mechanism)
     problems.map { |line| "cycle #{drive.cycles}: #{line}" }
   end
 
@@ -76,8 +75,8 @@ describe Badline::Drives::Model1541::KeyedState do
     end
 
     it "restores the clock, the cycles, the serial latch and the RAM" do
-      expect([fresh.cycles, Drive1541KeyedSamples.positional(fresh.bus)])
-        .to eq([drive.cycles, Drive1541KeyedSamples.positional(drive.bus)])
+      expect([fresh.cycles, Drive1541KeyedSamples.saved_fields(fresh.bus)])
+        .to eq([drive.cycles, Drive1541KeyedSamples.saved_fields(drive.bus)])
     end
   end
 

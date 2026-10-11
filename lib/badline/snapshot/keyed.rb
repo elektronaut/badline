@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 require "zlib"
-require "badline/snapshot/state"
 require "badline/snapshot/container"
-require "badline/snapshot/machine_state"
 
 module Badline
   module Snapshot
@@ -33,11 +31,15 @@ module Badline
 
       KEY = /\A[a-z0-9_]+(\.[a-z0-9_]+)*\z/
 
+      # The values an int record holds: what a 64-bit integer holds once
+      # zigzag doubles it, which a native build's integers can't exceed.
+      VALUES = (-(1 << 62))..((1 << 62) - 1)
+
       module_function
 
       def ber(number) = [number].pack("w")
 
-      # Folds an Integer in MachineState::VALUES to a natural number, as a
+      # Folds an Integer in VALUES to a natural number, as a
       # native build's 64-bit integers hold it.
       def zigzag(value) = value.negative? ? ((-value - 1) << 1) | 1 : value << 1
 

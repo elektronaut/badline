@@ -10,7 +10,7 @@ module Badline
         end
 
         # Raises TypeError unless `value` is an Integer, and RangeError
-        # outside MachineState::VALUES.
+        # outside VALUES.
         def int(key, value) = record(key, INT, Keyed.ber(fold(key, value)))
 
         def bool(key, value) = record(key, BOOL, value ? "\x01".b : "\x00".b)
@@ -38,7 +38,7 @@ module Badline
 
         def fold(key, value)
           raise TypeError, "#{key} is not an Integer: #{value.inspect}" unless value.is_a?(Integer)
-          raise RangeError, "#{key} #{value} is too large for a snapshot" unless MachineState::VALUES.cover?(value)
+          raise RangeError, "#{key} #{value} is too large for a snapshot" unless VALUES.cover?(value)
 
           Keyed.zigzag(value)
         end

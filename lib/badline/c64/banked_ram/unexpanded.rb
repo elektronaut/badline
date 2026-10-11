@@ -17,10 +17,6 @@ module Badline
 
         def map_io(_read_pages, _write_pages); end
 
-        def save_state(_out); end
-
-        def load_state(_input); end
-
         def save_fields(_out); end
 
         def load_fields(_input); end

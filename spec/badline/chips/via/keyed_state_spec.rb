@@ -3,10 +3,9 @@
 require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 
-# The VIA's keyed fields against its positional save_state, which restores
-# exactly: a VIA saved on any cycle, loaded into a fresh one, saves the same
-# positional state, with whether the shift register clocks off timer 2
-# worked out from the ACR.
+# The VIA's keyed fields, saved again the same: a VIA saved on any cycle,
+# loaded into a fresh one, saves the same fields, with whether the shift
+# register clocks off timer 2 worked out from the ACR.
 module VIAKeyedSamples
   extend KeyedOracle
 
@@ -15,7 +14,7 @@ module VIAKeyedSamples
   def check(via, cycle)
     fresh = Badline::Chips::VIA.new(start: via.start)
     problems = keyed_round_trip(via, fresh).report.lines(verbose: true)
-    problems << "positional state differs" unless positional(via) == positional(fresh)
+    problems << "saves other fields" unless saved_fields(via) == saved_fields(fresh)
     problems.map { |line| "cycle #{cycle}: #{line}" }
   end
 

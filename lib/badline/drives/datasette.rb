@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/drives/datasette/saved_state"
 require "badline/drives/datasette/keyed_state"
 
 module Badline
@@ -12,11 +11,8 @@ module Badline
     # it also times the read line's level, for a machine that reads that
     # (#read_high?) rather than the falling edges.
     class Datasette
-      include SavedState
-
       # What inserting a tape raises on a machine without a cassette port.
       class Missing < ArgumentError; end
-
       attr_reader :tape
       attr_writer :motor
 

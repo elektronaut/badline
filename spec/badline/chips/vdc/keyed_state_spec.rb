@@ -3,9 +3,9 @@
 require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 
-# The VDC's keyed fields against its positional save_state, which restores
-# exactly: a VDC saved on any cycle, loaded into a fresh one, saves the same
-# positional state, with the RAM's layout worked out from R28.
+# The VDC's keyed fields, saved again the same: a VDC saved on any cycle,
+# loaded into a fresh one, saves the same fields, with the RAM's layout
+# worked out from R28.
 module VDCKeyedSamples
   extend KeyedOracle
 
@@ -27,7 +27,7 @@ module VDCKeyedSamples
   def check(vdc, cycle)
     fresh = Badline::Chips::VDC.new(ram_kb: 64)
     problems = keyed_round_trip(vdc, fresh).report.lines(verbose: true)
-    problems << "positional state differs" unless positional(vdc) == positional(fresh)
+    problems << "saves other fields" unless saved_fields(vdc) == saved_fields(fresh)
     problems.map { |line| "cycle #{cycle}: #{line}" }
   end
 

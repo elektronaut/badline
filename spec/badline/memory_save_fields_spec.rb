@@ -3,8 +3,8 @@
 require "spec_helper"
 require_relative "../support/keyed_oracle"
 
-# The memories', the RAM expansions' and the buses' keyed fields against their positional
-# save_state, which restores exactly.
+# The memories', the RAM expansions' and the buses' keyed fields, saved,
+# loaded into a fresh machine's and saved again the same.
 describe Badline::Memory, "#save_fields" do
   include KeyedOracle
 
@@ -21,7 +21,7 @@ describe Badline::Memory, "#save_fields" do
     end
 
     it "restores the register and bank 1" do
-      expect(positional(fresh.address_bus.ram_expansion)).to eq(positional(machine.address_bus.ram_expansion))
+      expect(saved_fields(fresh.address_bus.ram_expansion)).to eq(saved_fields(machine.address_bus.ram_expansion))
     end
   end
 
@@ -37,7 +37,7 @@ describe Badline::Memory, "#save_fields" do
     end
 
     it "restores the banks, the lock and banks 1 to 3" do
-      expect(positional(fresh.address_bus.ram_expansion)).to eq(positional(machine.address_bus.ram_expansion))
+      expect(saved_fields(fresh.address_bus.ram_expansion)).to eq(saved_fields(machine.address_bus.ram_expansion))
     end
   end
 
@@ -56,8 +56,8 @@ describe Badline::Memory, "#save_fields" do
     end
 
     it "restores every byte" do
-      expect([positional(fresh.address_bus.ram), positional(fresh.address_bus.color_ram)])
-        .to eq([positional(machine.address_bus.ram), positional(machine.address_bus.color_ram)])
+      expect([saved_fields(fresh.address_bus.ram, "ram"), saved_fields(fresh.address_bus.color_ram, "bank0")])
+        .to eq([saved_fields(machine.address_bus.ram, "ram"), saved_fields(machine.address_bus.color_ram, "bank0")])
     end
   end
 
@@ -82,8 +82,17 @@ describe Badline::Memory, "#save_fields" do
       fresh.bus.restored!
     end
 
+    def bus_fields(bus)
+      out = Badline::Snapshot::Keyed::Writer.new
+      bus.ram.save_fields(out, "ram")
+      bus.color_ram.save_fields(out, "bank0")
+      bus.save_fields(out, "bus.")
+      bus.save_rom_fields(out)
+      out.to_s
+    end
+
     it "restores the RAM, the colour RAM, the data lines and the ROM chips" do
-      expect(positional(fresh.bus)).to eq(positional(machine.bus))
+      expect(bus_fields(fresh.bus)).to eq(bus_fields(machine.bus))
     end
 
     it "maps the ROM chips' pages" do

@@ -88,21 +88,6 @@ module Badline
           @romh = @high_flash.window(@bank * BANK_SIZE)
         end
 
-        def save_mapper(out)
-          out.int(@bank).int(@control).blob(@io_ram)
-          @low_flash.save_state(out)
-          @high_flash.save_state(out)
-        end
-
-        def load_mapper(input)
-          @bank = input.int
-          @control = input.int
-          input.blob_into(@io_ram)
-          @low_flash.load_state(input)
-          @high_flash.load_state(input)
-          map_bank
-        end
-
         def apply_control
           game = @control.nobits?(0x04) || @control.anybits?(0x01)
           exrom = @control.anybits?(0x02)

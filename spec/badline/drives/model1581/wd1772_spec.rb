@@ -84,9 +84,11 @@ describe Badline::Drives::Model1581::WD1772 do
   end
 
   def snapshot
-    out = Badline::Snapshot::StateWriter.new
-    fdc.save_state(out)
-    described_class.new(mechanism).tap { |copy| copy.load_state(Badline::Snapshot::StateReader.new(out.state)) }
+    out = Badline::Snapshot::Keyed::Writer.new
+    fdc.save_fields(out)
+    described_class.new(mechanism).tap do |copy|
+      copy.load_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-D8-FDC")))
+    end
   end
 
   def seek(cylinder)
@@ -426,9 +428,7 @@ describe Badline::Drives::Model1581::WD1772 do
     end
 
     it "fits a native build's integers with nothing due" do
-      out = Badline::Snapshot::StateWriter.new
-      fdc.save_state(out)
-      expect { Badline::Snapshot::MachineState.encode(out.state) }.not_to raise_error
+      expect { fdc.save_fields(Badline::Snapshot::Keyed::Writer.new) }.not_to raise_error
     end
   end
 end

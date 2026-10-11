@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/sid/filter/saved_state"
-
 module Badline
   module Chips
     class SID
@@ -13,8 +11,6 @@ module Badline
       # and the outputs selected by MODE/VOL are summed back together with the
       # unfiltered ones.
       class Filter
-        include SavedState
-
         # Cutoff frequency in Hz at each chip's breakpoints. The 6581 curve was
         # sampled from a real chip by reSID and bends sharply around $300; the
         # 8580's is close to a straight line from 0 to 12.5 kHz. The curve
@@ -93,16 +89,6 @@ module Badline
             @lowpass = 0
             @highpass = 0
             @output = 0
-          end
-
-          def save_state(out)
-            out.int(@lowpass).int(@highpass).int(@output)
-          end
-
-          def load_state(input)
-            @lowpass = input.int
-            @highpass = input.int
-            @output = input.int
           end
 
           # Takes the input in 1/2^Filter::FRACTION units, and reads the

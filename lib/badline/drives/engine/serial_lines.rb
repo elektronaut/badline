@@ -38,16 +38,6 @@ module Badline
           @host = @bus.host_lines
         end
 
-        # The host's lines as last latched. The jumpers and the bus are the
-        # drive's wiring.
-        def save_state(out)
-          out.int(@host)
-        end
-
-        def load_state(input)
-          @host = input.int
-        end
-
         # The host's lines as the port latched them, under `prefix`.
         def save_fields(out, prefix) = out.int("#{prefix}host", @host)
 

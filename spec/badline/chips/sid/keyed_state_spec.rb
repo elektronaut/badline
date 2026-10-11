@@ -3,11 +3,9 @@
 require "spec_helper"
 require_relative "../../../support/keyed_oracle"
 
-# The SID's keyed fields against its positional save_state, which restores
-# exactly: a SID caught up and saved, loaded into a fresh one, saves the
-# same positional state, with what the registers decode to worked out from
-# them. Each oscillator's output is read first on both, as the next cycle
-# would, since it is a cache the keyed load leaves stale.
+# The SID's keyed fields, saved again the same: a SID caught up and saved,
+# loaded into a fresh one, saves the same fields, with what the registers
+# decode to worked out from them, and runs on as the saved one does.
 module SIDKeyedSamples
   extend KeyedOracle
 
@@ -29,7 +27,7 @@ module SIDKeyedSamples
 
   def normalize(sid)
     sid.voices.each { |voice| voice.waveform.output }
-    positional(sid)
+    saved_fields(sid)
   end
 
   def fresh(model, synthesizing)
@@ -44,7 +42,7 @@ module SIDKeyedSamples
     sid.catch_up!
     target = fresh(model, synthesizing)
     problems = keyed_round_trip(sid, target).report.lines(verbose: true)
-    problems << "positional state differs" unless normalize(sid) == normalize(target)
+    problems << "saves other fields" unless normalize(sid) == normalize(target)
     problems.map { |line| "cycle #{cycle}: #{line}" }
   end
 
@@ -87,11 +85,11 @@ end
 describe Badline::Chips::SID::KeyedState do
   %i[mos6581 mos8580].each do |model|
     context "with the #{model}" do
-      it "restores the positional state through the script, synthesizing" do
+      it "saves the same fields through the script, synthesizing" do
         expect(SIDKeyedSamples.scripted(model, true).first(5)).to be_empty
       end
 
-      it "restores the positional state through the script, not synthesizing" do
+      it "saves the same fields through the script, not synthesizing" do
         expect(SIDKeyedSamples.scripted(model, false).first(5)).to be_empty
       end
 

@@ -12,6 +12,23 @@ module Badline
     # matrix), C= held from power-on and the on_init handlers still to run.
     # They load after the Z80's own fields, which z80_ahead counts from.
     module KeyedState
+      # How many more on_init handlers the machine a snapshot was taken of had
+      # yet to run than this one has. Nil until the machine is restored.
+      attr_reader :init_handlers_lost
+
+      # Whether a snapshot saves now (Machine::Settling): the 8502 between
+      # instructions or jammed. While the Z80 runs, the 8502 waits at the
+      # boundary it handed the bus over at, and the Z80 runs whole
+      # instructions.
+      def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
+
+      # The SID's deferred cycles and writes, run up to this cycle, and the
+      # VIC's sprite collisions latched up to the beam.
+      def settle_chips_for_snapshot
+        sid.catch_up!
+        @vic.fold_collisions!
+      end
+
       def save_machine_fields(out)
         out.text("family", "c128").text("written_by", VERSION)
         snapshot_setup.write_fields(out)
@@ -61,6 +78,11 @@ module Badline
         keyboard.release(:cbm) if @holding_commodore && !holding
         keyboard.press(:cbm) if holding && !@holding_commodore
         @holding_commodore = holding
+      end
+
+      # How this machine was built.
+      def snapshot_setup
+        Snapshot::C128Setup.new(model: @model.name, sid_model: @sid.model, mode: @c64_built ? :c64 : :c128)
       end
     end
 
