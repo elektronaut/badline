@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../../support/keyed_oracle"
 
 describe Badline::C128::MMU do
   subject(:mmu) { described_class.new }
@@ -127,6 +128,24 @@ describe Badline::C128::MMU do
     it "keeps 1K common RAM at the top on RCR $08" do
       mmu.poke(0xd506, 0x08)
       expect([mmu.common_low_pages, mmu.common_high_start]).to eq([0, 252])
+    end
+  end
+
+  describe "keyed fields" do
+    include KeyedOracle
+
+    let(:fresh) { described_class.new }
+
+    before do
+      mmu.poke(0xd505, 0xb0)
+      mmu.poke(0xd503, 0x7f)
+      mmu.poke(0xd508, 0x01)
+      mmu.poke(0xd50a, 0x02)
+      keyed_round_trip(mmu, fresh)
+    end
+
+    it "restores the registers and a page pointer's high byte waiting for its low byte" do
+      expect(positional(fresh)).to eq(positional(mmu))
     end
   end
 end
