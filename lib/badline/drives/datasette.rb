@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drives/datasette/saved_state"
+require "badline/drives/datasette/keyed_state"
 
 module Badline
   module Drives
