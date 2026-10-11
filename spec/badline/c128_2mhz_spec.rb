@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../support/booting"
 
 # c128/d030tester, which measures from the frame it runs how many raster
 # lines the TEST bit cuts and how long a frame takes. Its builds are
 # C128-mode programs that switch to C64 mode as they start, so they run
 # here from their machine code at $1C0E.
 describe Badline::C128, :slow do
+  include Booting
+
   subject(:machine) { described_class.new }
 
   def self.directory = File.expand_path("../../vendor/VICE-testprogs/c128/d030tester", __dir__)
@@ -23,7 +26,7 @@ describe Badline::C128, :slow do
   def start(program)
     done = false
     machine.install_debug_register { done = true }
-    machine.run_cycles(machine.init_threshold)
+    boot(machine)
     machine.load_prg(program)
     machine.cpu.step! until machine.cpu.boundary?
     machine.cpu.program_counter = 0x1c0e

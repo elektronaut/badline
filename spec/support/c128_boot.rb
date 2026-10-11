@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "taken_once"
+require_relative "booting"
 
 # Booted C128s for the specs that run BASIC and the KERNAL, and what their
 # screens show.
@@ -14,7 +15,7 @@ module C128Boot
     TakenOnce.fetch([:c128_booted, mode, display_key]) do
       Badline::C128.new(mode:).tap do |booting|
         booting.press_display_key if display_key
-        booting.run_cycles(booting.init_threshold)
+        Booting.boot(booting)
         booting.settle_for_snapshot!
       end
     end
