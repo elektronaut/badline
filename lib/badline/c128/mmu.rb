@@ -163,6 +163,19 @@ module Badline
         @p1h_latch = input.int
       end
 
+      # The registers and the page pointers' high bytes waiting for their
+      # low bytes, in a keyed snapshot module (Snapshot::Keyed). The bus
+      # maps its banks from them afterwards.
+      def save_fields(out)
+        out.bytes("registers", @registers).int("p0h_latch", @p0h_latch).int("p1h_latch", @p1h_latch)
+      end
+
+      def load_fields(input)
+        input.bytes_into("registers", @registers)
+        @p0h_latch = input.masked("p0h_latch", @p0h_latch, 0x0f)
+        @p1h_latch = input.masked("p1h_latch", @p1h_latch, 0x0f)
+      end
+
       # CR and the LCRs at $FF00-$FF04: an LCR reads its PCR.
       def peek_configuration(addr) = @registers[addr & 0x07]
 
