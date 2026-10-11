@@ -5,6 +5,7 @@ require "badline/snapshot/state"
 require "badline/snapshot/setup"
 require "badline/snapshot/container"
 require "badline/snapshot/machine_state"
+require "badline/snapshot/keyed"
 require "badline/snapshot/vice"
 require "badline/snapshot/image"
 
