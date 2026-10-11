@@ -39,6 +39,7 @@ module Badline
           @floating = 0x00
           @change_handler = nil
           @status = PortStatus.new(%i[basic kernal io tape_out tape_switch tape_motor], value: input_value)
+          @datasette.write_level = @status.tape_out?
         end
 
         # Calls the block after every write to the port, for the bus to remap
@@ -76,12 +77,14 @@ module Badline
         end
 
         # Sets the registers and the charge, as a snapshot loads them, without
-        # driving the datasette or calling the change handler.
+        # driving the datasette or calling the change handler. The write
+        # line takes P3's level without recording an edge.
         def load(ddr, data, floating)
           @ddr = ddr
           @data = data
           @floating = floating
           refresh
+          @datasette.write_level = @status.tape_out?
         end
 
         # The registers and the charge in a keyed snapshot module
