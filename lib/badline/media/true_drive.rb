@@ -3,9 +3,10 @@
 module Badline
   module Media
     # Device 8 as a true drive instead of the KERNAL traps: a 1541, or on
-    # the C128 its 1571, or a 1581. Once a true drive is plugged in as
-    # device 8, disk media go into it rather than into the traps, so a LOAD
-    # runs the DOS and every byte crosses the serial bus. A .g64 holds the
+    # the C128 its 1571, or on the Plus/4 a 1551 if it asks for one, or a
+    # 1581. Once a true drive is plugged in as device 8, disk media go into
+    # it rather than into the traps, so a LOAD runs the DOS and every byte
+    # crosses the serial bus or TCBM. A .g64 holds the
     # disk's raw GCR, which only a true drive reads, so it plugs one in
     # when there's none yet. The 1541 reads only .d64 and .g64 images, the
     # 1571 .d71 and .g71 as well, and the 1581 only .d81, so a .d81 swaps
@@ -52,9 +53,10 @@ module Badline
             raise Error, "#{path} is not a #{types.join(', ')} or .d81 image, which the #{name} and the 1581 read"
           end
 
-          (drive || computer.plug_true_drive).insert_image(path, read_only:)
+          drive ||= computer.plug_true_drive
+          drive.insert_image(path, read_only:)
           computer.unmount
-          "Inserted #{path} in the #{name} as device 8"
+          "Inserted #{path} in the #{drive.model_name} as device 8"
         end
 
         private

@@ -18,6 +18,9 @@ module Badline
     # another name for the C16.
     PLUS4_MODELS = %w[plus4 plus4ntsc c16 c16ntsc c116].freeze
 
+    # The true drives --drive-type names for the Plus/4.
+    PLUS4_DRIVE_TYPES = %w[1541 1551].freeze
+
     # The VIC-20 RAM expansions --ram takes, in the order the help lists
     # them.
     RAM_NAMES = %w[unexpanded 3k 8k 16k 24k 32k all].freeze
@@ -40,6 +43,8 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--no-sound", "Don't play the SID", section: "Window options", needs: :window, build: :native),
       Option.new("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps, a 1571 on the C128",
+                 section: "Window options", needs: :window),
+      Option.new("--drive-type MODEL", "The Plus/4's true drive: 1541 or 1551 (default: 1541); implies --true-drive",
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),

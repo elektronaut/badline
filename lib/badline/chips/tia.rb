@@ -9,20 +9,28 @@ module Badline
     #
     # A pin read as an output returns what the port drives, and one read as
     # an input returns what the other side drives, #inputs, per port.
+    #
+    # A cable plugged in (Drives::Model1551::Cable) hears every write and
+    # reset, which can move the pins it carries.
     class TIA
       attr_reader :ports, :directions
 
       # What the other side drives onto each port's pins.
       attr_reader :inputs
 
+      # The cable to the other side, or nil.
+      attr_accessor :cable
+
       def initialize
         @inputs = [0, 0, 0]
+        @cable = nil
         reset!
       end
 
       def reset!
         @ports = [0, 0, 0]
         @directions = [0, 0, 0]
+        @cable&.moved
       end
 
       def peek(addr)
@@ -43,6 +51,7 @@ module Badline
         else
           @ports[register] = value
         end
+        @cable&.moved
       end
 
       # The levels on +port+'s pins as the chip leaves them: an output's

@@ -109,6 +109,7 @@ module Badline
       @vsync = true
       @verbose = false
       @true_drive = false
+      @drive_type = nil
       @screenshot = ""
       @save_snapshot = ""
       @vice = false
@@ -188,7 +189,10 @@ module Badline
 
     def verbose? = @verbose
 
-    def true_drive? = @true_drive
+    def true_drive? = @true_drive || !@drive_type.nil?
+
+    # The Plus/4's true drive --drive-type names, "1541" without it.
+    def drive_type = @drive_type || "1541"
 
     # Whether --save-snapshot adds VICE's modules, so x64sc opens it.
     def vice? = @vice
@@ -276,6 +280,7 @@ module Badline
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--ram" then ram_option(value)
+      when "--drive-type" then @drive_type = drive_type_for(value)
       when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value

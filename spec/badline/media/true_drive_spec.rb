@@ -4,6 +4,7 @@ require "spec_helper"
 require "tmpdir"
 require "fileutils"
 require "badline/c128"
+require "badline/plus4"
 
 describe Badline::Media::TrueDrive do
   let(:dir) { Dir.mktmpdir }
@@ -13,6 +14,26 @@ describe Badline::Media::TrueDrive do
 
   def image(name, size)
     File.join(dir, name).tap { |path| File.binwrite(path, "\x00".b * size) }
+  end
+
+  context "with a Plus/4 that asks for a 1551" do
+    let(:machine) { Badline::Plus4.new(true_drive_model: "1551") }
+
+    it "puts a .d64 in a 1551" do
+      path = image("disk.d64", 174_848)
+      expect(described_class.insert(machine, path)).to eq("Inserted #{path} in the 1551 as device 8")
+    end
+
+    it "makes the 1551 the true drive" do
+      described_class.plug(machine)
+      expect(machine.true_drive).to equal(machine.drive1551)
+    end
+
+    it "swaps the 1551 back in for a .d64 after a .d81" do
+      described_class.insert(machine, image("disk.d81", 819_200))
+      described_class.insert(machine, image("disk.d64", 174_848))
+      expect([machine.drive1581, machine.true_drive]).to eq([nil, machine.drive1551])
+    end
   end
 
   context "with a C128" do

@@ -11,12 +11,13 @@ require_relative "testbench_machine"
 module Testbench
   PLUS4_SCREEN = 0x0c00
 
-  # A 264 series machine of +model+ with a 1551's TCBM interface plugged
-  # in, as xplus4 starts with a 1551 as drive 8, booted up to the cycle
-  # where a program loads, or left at power-on when +boot+ is false, for a
-  # cartridge that has to be in before the first cycle.
+  # A 264 series machine of +model+ with a 1551 on TCBM as device 8, as
+  # xplus4 starts, booted up to the cycle where a program loads, or left
+  # at power-on when +boot+ is false, for a cartridge that has to be in
+  # before the first cycle.
   def self.plus4_machine(model, boot)
-    machine = Badline::Plus4.new(model:, tcbm: true)
+    machine = Badline::Plus4.new(model:)
+    machine.attach_drive1551(Badline::Drives::Model1551.new)
     machine.run_cycles(machine.init_threshold) if boot
     machine
   end

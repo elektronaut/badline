@@ -93,7 +93,7 @@ module Badline
     def self.for_options(options, media, &)
       family = options.family
       return vic20_for(media, options.model, options.ram, &) if family == :vic20
-      return plus4_for(media, options.model, options.ram_kb) if family == :plus4
+      return plus4_for(media, options) if family == :plus4
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -127,13 +127,13 @@ module Badline
     end
     private_class_method :vic20_for
 
-    # A Plus/4 with `ram_kb` K of RAM (Plus4::Model::RAM_SIZES), or with
-    # the model's own when nil.
-    def self.plus4_for(media, model, ram_kb)
+    # A Plus/4 with the RAM --ram names (Plus4::Model::RAM_SIZES), or with
+    # the model's own without it, and the true drive --drive-type names.
+    def self.plus4_for(media, options)
       unsupported = !media.nil? && Media::Vic20Media::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a Plus/4" if unsupported
 
-      Plus4.new(model:, ram: ram_kb)
+      Plus4.new(model: options.model, ram: options.ram_kb, true_drive_model: options.drive_type)
     end
     private_class_method :plus4_for
 

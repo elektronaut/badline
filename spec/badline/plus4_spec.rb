@@ -156,6 +156,79 @@ describe Badline::Plus4 do
     end
   end
 
+  describe "#attach_drive1551" do
+    let(:machine) { described_class.new }
+    let(:drive) { Badline::Drives::Model1551.new }
+
+    before { machine.attach_drive1551(drive) }
+
+    it "puts the drive's interface TIA at $FEE0 for device 8" do
+      machine.poke(0xfef3, 0xff)
+      machine.poke(0xfef0, 0x55)
+      expect(drive.host_tia.ports[0]).to eq(0x55)
+    end
+
+    it "puts device 9's at $FEC0" do
+      nine = Badline::Drives::Model1551.new(device: 9)
+      machine.attach_drive1551(nine)
+      machine.poke(0xfec3, 0xff)
+      machine.poke(0xfec0, 0x66)
+      expect(nine.host_tia.ports[0]).to eq(0x66)
+    end
+
+    it "waits for the drive to boot before the on_init handlers" do
+      expect(machine.init_threshold).to eq(Badline::Drives::Model1551::BOOT_CYCLES)
+    end
+
+    it "is the true drive" do
+      expect(machine.true_drive).to be(drive)
+    end
+
+    it "leaves $FEE0-$FEFF open once the drive is unplugged" do
+      machine.detach_drive1551
+      machine.poke(0x0002, 0x66)
+      expect(machine.peek(0xfef0)).to eq(0x66)
+    end
+
+    context "with a TCBM interface of its own" do
+      let(:machine) { described_class.new(tcbm: true) }
+
+      it "gives the interface's TIA its place back once the drive is unplugged" do
+        machine.detach_drive1551
+        machine.poke(0xfef3, 0xff)
+        machine.poke(0xfef0, 0x55)
+        expect(machine.tias[0].ports[0]).to eq(0x55)
+      end
+    end
+
+    it "resets the drive with the machine" do
+      drive.tia.poke(0x4005, 0x1f)
+      machine.reset!
+      expect(drive.tia.directions[2]).to eq(0)
+    end
+  end
+
+  describe "#plug_true_drive" do
+    it "plugs in a 1541 by default" do
+      expect(described_class.new.plug_true_drive.model_name).to eq("1541")
+    end
+
+    it "plugs in the 1551 true_drive_model names" do
+      expect(described_class.new(true_drive_model: "1551").plug_true_drive.model_name).to eq("1551")
+    end
+
+    it "refuses a drive the Plus/4 doesn't take" do
+      expect { described_class.new(true_drive_model: "1571") }.to raise_error(ArgumentError)
+    end
+
+    it "takes a 1551 out for a 1581 on device 8" do
+      machine = described_class.new(true_drive_model: "1551")
+      machine.plug_true_drive
+      machine.plug_drive1581
+      expect(machine.drive1551).to be_nil
+    end
+  end
+
   it "waits for a 1581 to boot before the on_init handlers" do
     machine = described_class.new
     machine.attach_drive1581(Badline::Drives::Model1581.new)

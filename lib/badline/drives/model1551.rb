@@ -6,6 +6,7 @@ require "badline/drives/model1551/cpu"
 require "badline/drives/model1551/port"
 require "badline/drives/model1551/tia"
 require "badline/drives/model1551/bus"
+require "badline/drives/model1551/cable"
 
 module Badline
   module Drives
@@ -21,6 +22,11 @@ module Badline
     # drives the byte to write, and its port C selects reading or writing
     # and reads SYNC (TIA).
     #
+    # The drive comes with its interface for the computer's expansion port,
+    # a second 6523 (#host_tia), which the cable joins to the drive's
+    # (Cable). The computer puts it at $FEE0 for device 8 and at $FEC0 for
+    # device 9.
+    #
     # A 555 timer pulls IRQ low for about 7 µs every 8.3 ms, its R1 120K,
     # R2 100R and C1 0.1 µF, which runs the DOS's job loop. Nothing
     # acknowledges it: the line lets go on its own.
@@ -32,11 +38,19 @@ module Badline
       IRQ_PERIOD = 16_660
       IRQ_LOW = 14
 
+      # The host cycles, at about 1 MHz, by which a 1551 switched on with the
+      # machine has run its DOS's reset, the RAM test and the ROM checksum,
+      # and answers TCBM: half a second, with a margin.
+      BOOT_CYCLES = 600_000
+
       # Where the DOS's idle loop starts over, polling the TIA's port A for
       # a command from the computer.
       IDLE_LOOP = 0xeabd
 
       attr_reader :device, :cpu, :bus, :mechanism, :port, :tia, :cycles
+
+      # The TIA in the computer's expansion port, and the cable to it.
+      attr_reader :host_tia, :cable
 
       # The host's clock rate, which the drive's cycles keep pace with.
       attr_writer :host_clock_hz
@@ -53,6 +67,8 @@ module Badline
         @mechanism.clock_hz = CLOCK_HZ
         @port = Port.new(@mechanism)
         @tia = TIA.new(@mechanism, device:)
+        @host_tia = Chips::TIA.new
+        @cable = Cable.new(@host_tia, @tia.chip)
         @bus = Bus.new(rom: rom || ROM.load("dos1551.rom", 0xc000), port: @port, tia: @tia)
         @cpu = CPU.new(@bus, debug:)
         @host_clock_hz = host_clock_hz
@@ -89,10 +105,11 @@ module Badline
         @mechanism.flush
       end
 
-      # The RESET line from the computer, through the cable, reaches the
-      # CPU, its port and the TIA. RAM keeps its contents, and the 555 runs
-      # on.
+      # The computer's RESET line reaches the interface's TIA and, through
+      # the cable, the CPU, its port and the drive's TIA. RAM keeps its
+      # contents, and the 555 runs on.
       def reset!
+        @host_tia.reset!
         @port.reset!
         @tia.reset!
         @cpu.reset!

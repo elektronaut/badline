@@ -90,7 +90,7 @@ module Suites
   # side of c64modemmu. testbench-c128-zex is its zex128 rows, ZEXDOC and
   # ZEXALL, which run for 50 billion cycles in all, so CI leaves them out.
   # testbench-plus4 is the 264 testlist's exitcode and screenshot rows on a PAL Plus/4
-  # with a 1551's TCBM interface plugged in, as xplus4 starts, and
+  # with a 1551 on TCBM as device 8, as xplus4 starts, and
   # testbench-c16 the same rows on a 16K C16, and testbench-plus4-ntsc the
   # same rows on an NTSC Plus/4, its screenshots compared with the PAL
   # references on the lines both show. Their Spinel build is
