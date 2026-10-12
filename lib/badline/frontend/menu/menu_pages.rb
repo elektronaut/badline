@@ -151,11 +151,8 @@ module Badline
       end
 
       # Saving now and by name, loading a named save, and the quicksaves
-      # and autosaves, newest first, which a press loads. The Plus/4 has
-      # none yet.
+      # and autosaves, newest first, which a press loads.
       def draw_snapshots
-        return @painter.text(@left, @top, "NOT ON THE PLUS/4 YET", MenuTheme::DIM) if plus4?
-
         row("QUICKSAVE", :quicksave_now)
         row("SAVE...", :save_as)
         row("LOAD...", :load_save)

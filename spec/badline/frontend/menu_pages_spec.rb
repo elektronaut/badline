@@ -167,10 +167,5 @@ describe Badline::Frontend::MenuPages do
       pages.draw(:expansion, 0, 0)
       expect(buttons).to have_received(:row).twice
     end
-
-    it "has no snapshots yet" do
-      pages.draw(:snapshots, 0, 0)
-      expect(painter).to have_received(:text).with(0, 0, "NOT ON THE PLUS/4 YET", anything)
-    end
   end
 end

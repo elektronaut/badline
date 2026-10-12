@@ -257,7 +257,8 @@ Disks go through the KERNAL traps or, with `--true-drive`, a 1541 or a
 1581 on the serial bus. There is no 1551 yet. The pause menu's Power
 page names the model and its RAM, and its Expansion port page shows the
 slots that hold a cartridge and takes them all out. `F11` and the
-Snapshots page don't save the Plus/4 yet. [Input](#input) lists its keys.
+Snapshots page save it as they do the others, but not for VICE.
+[Input](#input) lists its keys.
 
 ## Snapshots
 

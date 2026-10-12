@@ -42,18 +42,15 @@ describe Badline::Frontend::Snapshots do
   context "with a Plus/4" do
     let(:computer) { Badline::Plus4.new }
 
-    it "warns that it can't save it yet" do
-      expect { snapshots.save(slot(1)) }.to output(%r{snapshots: not yet on the Plus/4}).to_stderr
+    it "quicksaves it" do
+      quicksave
+      expect(File).to exist(slot(1))
     end
 
-    it "saves nothing" do
-      silently { snapshots.save(slot(1)) }
-      expect(File).not_to exist(slot(1))
-    end
-
-    it "doesn't autosave it" do
-      snapshots.tick(described_class::AUTOSAVE_FRAMES)
-      expect(snapshots.list("autosaves")).to eq([])
+    it "restores it as a Plus/4" do
+      quicksave
+      snapshots.restore
+      expect(snapshots.computer.family).to eq(:plus4)
     end
   end
 
