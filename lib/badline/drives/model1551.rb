@@ -3,7 +3,6 @@
 require "badline/chips/tia"
 require "badline/drives/model1541"
 require "badline/drives/model1551/cpu"
-require "badline/drives/model1551/mechanism"
 require "badline/drives/model1551/port"
 require "badline/drives/model1551/tia"
 require "badline/drives/model1551/bus"
@@ -50,7 +49,7 @@ module Badline
         raise ArgumentError, "a 1551 is device 8 or 9, not #{device}" unless [8, 9].include?(device)
 
         @device = device
-        @mechanism = Mechanism.new
+        @mechanism = Model1541::Mechanism.new
         @mechanism.clock_hz = CLOCK_HZ
         @port = Port.new(@mechanism)
         @tia = TIA.new(@mechanism, device:)

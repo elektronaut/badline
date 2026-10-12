@@ -90,6 +90,8 @@ module Badline
         # on phase 0.
         def initialize(slip: 0)
           @via = nil
+          @tia = nil
+          @latched_byte = 0
           @so_pending = false
           @disk = nil
           @half_track = START_HALF_TRACK
@@ -281,8 +283,11 @@ module Badline
         end
 
         # The byte the write shift register loads in write mode: what VIA 2
-        # drives on port A.
-        def write_byte = @via.port_a_output
+        # drives on port A, or on a 1551 what its TIA drives on port B.
+        def write_byte
+          via = @via
+          via ? via.port_a_output : @tia.port_b_output
+        end
 
         # The stepper's rotor turns with the head, a phase to each half
         # track, so the energized phase pulls the head to the neighbouring

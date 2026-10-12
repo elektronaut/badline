@@ -9,6 +9,14 @@ module Badline
         # VIA 2, which DiskVIA plugs in.
         attr_writer :via
 
+        # The 1551's TIA, whose port B drives the byte to write
+        # (Drives::Model1551::TIA), where there is no VIA 2.
+        attr_writer :tia
+
+        # The byte the last BYTE READY read, which a 1551's gate array
+        # latches.
+        attr_accessor :latched_byte
+
         # Whether BYTE READY reached SO for the CPU to sample on the drive's
         # next cycle.
         attr_accessor :so_pending
@@ -25,15 +33,23 @@ module Badline
         # on, latches port A. It reaches the CPU's SO pin while VIA 2's CA2
         # (SOE) is high, which lets the DOS spin on BVC for each byte. The CPU
         # samples SO on the next cycle.
+        #
+        # A 1551 has no VIA there: its gate array latches the byte read for
+        # its TIA's port B (latched_byte), and BYTE LATCHED reaches its
+        # CPU's port.
         def byte_ready!
           @byte_latched = true
-          @via.ca1 = false
-          @so_pending = true if @via.ca2_output
+          @latched_byte = @shift & 0xff
+          via = @via
+          return unless via
+
+          via.ca1 = false
+          @so_pending = true if via.ca2_output
         end
 
         # BYTE READY lets go of CA1 with the next bit.
         def byte_ready_ended!
-          @via.ca1 = true
+          @via&.ca1 = true
         end
 
         # Whether BYTE READY has come since the CPU last read VIA 2, as the
