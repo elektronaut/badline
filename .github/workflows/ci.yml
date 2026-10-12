@@ -321,6 +321,27 @@ jobs:
                     "#{SnapshotTracing.differences(ours, theirs).first(5).join("; ")}"
             end
             puts "restored the C128 and ran on to cycle #{again.cycles} as CRuby does"'
+      # A C16 typing print 6*7, then the pause menu's Power page naming its
+      # model. Both builds must draw the same pictures.
+      - name: Run the Plus/4 as badline-ruby does
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_RENDER_DRIVER: software
+          SDL_AUDIODRIVER: dummy
+        run: |
+          cat > tmp/native/plus4.script <<'SCRIPT'
+          20:type=print 6*7\n
+          40:screenshot=tmp/native/plus4.bmp
+          41:menu=power
+          42:screenshot=tmp/native/plus4-menu.bmp
+          43:resume
+          SCRIPT
+          tmp/native/badline plus4 --model c16 --unpaced --no-sound --frames 45 --script tmp/native/plus4.script
+          mv tmp/native/plus4.bmp tmp/native/plus4-native.bmp
+          mv tmp/native/plus4-menu.bmp tmp/native/plus4-menu-native.bmp
+          bundle exec ruby --yjit exe/badline-ruby plus4 --model c16 --unpaced --frames 45 --script tmp/native/plus4.script
+          cmp tmp/native/plus4-native.bmp tmp/native/plus4.bmp
+          cmp tmp/native/plus4-menu-native.bmp tmp/native/plus4-menu.bmp
       - name: Upload the screenshot
         uses: actions/upload-artifact@v7
         with:
@@ -330,6 +351,7 @@ jobs:
             tmp/native/restored.bmp
             tmp/native/c128-vic.bmp
             tmp/native/c128-vdc.bmp
+            tmp/native/plus4.bmp
           if-no-files-found: ignore
       - name: Pack the native badline
         run: |
@@ -349,6 +371,7 @@ jobs:
           export BADLINE_ROM_PATH="$PWD/roms"
           ./badline --version
           ./badline --unpaced --no-sound --frames 150 --screenshot ready.bmp
+          ./badline plus4 --unpaced --no-sound --frames 50 --screenshot plus4.bmp
 
   # The suites job's matrix, which `rake ci:matrix` derives from
   # CIMatrix::SHARDS in test/support/ci_matrix.rb. The task fails when the
