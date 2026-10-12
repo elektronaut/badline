@@ -68,6 +68,8 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--sid-card MODEL", "Fit the Plus/4 or C16 with a SID card at $FD40: 6581 or 8580",
                  section: "Window options", needs: :window),
+      Option.new("--ram-expansion NAME", "Fit the Plus/4 or C16 with a RAM expansion: hannes256, hannes1m or csory256",
+                 section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",
                  section: "Window options", needs: :window),
       Option.new("--verbose", "Print the display, sound and gamepad setup and the frame timing",

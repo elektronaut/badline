@@ -155,7 +155,7 @@ module Badline
 
         def restored!
           @ted.rom_selected = @rom_selected
-          map_reads
+          map_ram
         end
 
         private

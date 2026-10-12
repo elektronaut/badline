@@ -133,8 +133,9 @@ module Testbench
     end
 
     # What tells a VIC-20, C128 or 264 series row's machine apart: the
-    # family, the VIC-20's RAM, the C128's true drive and the 264's model.
-    def family_key = [family, ram_configuration, c128_drive, (plus4_model if plus4?)]
+    # family, the VIC-20's RAM, the C128's true drive and the 264's model
+    # and RAM expansion.
+    def family_key = [family, ram_configuration, c128_drive, (plus4_model if plus4?), (plus4_ram_expansion if plus4?)]
 
     def name
       return cartridge if prg.empty?

@@ -415,6 +415,10 @@ describe Badline::Options do
       "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64; the Plus/4's is --sid-card"],
       "a SID card for the C64" => [%w[--sid-card 8580], "--sid-card needs plus4"],
       "an unknown SID card" => [%w[plus4 --sid-card 6582], "invalid argument: --sid-card 6582"],
+      "a RAM expansion for the C64" => [%w[--ram-expansion hannes256], "--ram-expansion needs plus4"],
+      "an unknown Plus/4 RAM expansion" => [%w[plus4 --ram-expansion hannes512],
+                                            "invalid argument: --ram-expansion hannes512"],
+      "a RAM expansion over 16K" => [%w[plus4 --ram 16k --ram-expansion csory256], "--ram-expansion needs 64k"],
       "a cartridge slot for the C64" => [%w[--c1lo game.bin], "--c1lo needs plus4"],
       "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"],
       "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
@@ -426,6 +430,14 @@ describe Badline::Options do
         it "raises" do
           expect { options }.to raise_error(described_class::Error, message)
         end
+      end
+    end
+
+    context "with plus4 and --ram-expansion" do
+      let(:argv) { %w[plus4 --ram-expansion hannes1m] }
+
+      it "fits the RAM expansion named" do
+        expect(options.ram_expansion).to eq(:hannes1m)
       end
     end
 

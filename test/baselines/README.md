@@ -185,6 +185,11 @@ Recorded output of the headless hardware suites, one file per suite:
   `Plus4/openio/outrun2.prg` reads unconnected I/O at `$FDD0` 256 times
   and wants a different byte at least once: the TED's pattern fetches in
   the first half of a display line's cycles leave their bytes on the bus.
+  Three rows of badline's own follow the testlist's
+  (`Testbench::PLUS4_ROWS`): `Plus4/HannesTest/HannesTest.prg` with the
+  Hannes 256K, the Hannes 1M (`#2`) and the Csory board (`#3`) fitted.
+  HannesTest reports through the border colour, green for a pass and
+  dark red for a failure, which end the run as `$00` and `$ff`.
 - `testbench-c16.txt` — the same rows with `--c16`, on a 16K PAL C16.
   `memory-expansions/c16-ram-emd.prg` fails there too, `$ff`, as on
   xplus4's 16K C16.

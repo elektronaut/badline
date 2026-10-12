@@ -7,8 +7,9 @@ module Badline
     # the TED, its sound, the SID card's SID where one is fitted, the
     # keyboard's 6529, the user port's 6529 and the ACIA where the model
     # has them, the TCBM interface's TIAs where one is plugged in, the RAM
-    # with the ROM bank latch and the ROM/RAM switch under bus.*, the
-    # datasette, device 8 through the traps and the true drives.
+    # with the ROM bank latch and the ROM/RAM switch under bus.*, a RAM
+    # expansion's registers and banks, the datasette, device 8 through the
+    # traps and the true drives.
     #
     # A load maps the banks before the chips load, and works out what each
     # unit derives from its fields once every unit is loaded.
@@ -22,6 +23,8 @@ module Badline
           bus.ram.save_fields(out, "ram")
           bus.save_fields(out, "bus.")
         end
+        expansion = bus.ram_expansion
+        sections << Snapshot::Keyed.section("BL-RAMEXP") { |out| expansion.save_fields(out) } if expansion
         sections << Snapshot::Keyed.section("BL-TAPE") { |out| @datasette.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-TRAPDOS") { |out| save_trap_dos_fields(out) } if mounted?
         save_drive_modules(sections)
@@ -38,6 +41,7 @@ module Badline
         bus.ram.load_fields(memory, "ram")
         bus.load_fields(memory, "bus.")
         bus.load_slot_fields(modules.optional("BL-CART") || Snapshot::Keyed::Reader.new("BL-CART"))
+        load_ram_expansion(modules)
         bus.restored!
         load_chip_modules(modules)
         @datasette.load_fields(modules.required("BL-TAPE"))
@@ -49,6 +53,13 @@ module Badline
       end
 
       private
+
+      def load_ram_expansion(modules)
+        expansion = @bus.ram_expansion
+        return if expansion.nil?
+
+        expansion.load_fields(modules.required("BL-RAMEXP"))
+      end
 
       def save_chip_modules(sections)
         sections << Snapshot::Keyed.section("BL-CPU") do |out|

@@ -124,11 +124,32 @@ module Badline
       @clocked: Integer
     end
 
+    class RAMExpansion
+      @control: Integer
+      @csory_latch: Integer
+      @mask: Integer
+      @csory: bool
+      @banks: Array[Bus::MirroredRAM]
+      @blocks: Array[Bus::MirroredRAM]
+    end
+
     class Bus
       @low_bank: Integer
       @high_bank: Integer
       @data: Integer
       @rom_selected: bool
+      @cpu_ram: Array[MirroredRAM]
+      @ted_ram: Array[MirroredRAM]
+      @top_ram: MirroredRAM
+
+      class MirroredRAM
+        @mask: Integer
+        @offset: Integer
+      end
+
+      class ZeroPage
+        @ram: MirroredRAM
+      end
     end
   end
 end

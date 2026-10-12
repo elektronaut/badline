@@ -10,6 +10,18 @@ module Testbench
   # The testlist option that asks for a 264's NTSC board.
   TED_NTSC_OPTION = "ted-ntsc"
 
+  # The option that fits a RAM expansion, by its Plus4::RAMExpansion
+  # kind, and the one for a test that reports through the border colour.
+  RAM_EXPANSION_OPTION = "ram-expansion:"
+  BORDER_OPTION = "border-result"
+
+  # Rows of badline's own, which plus4-testlist.in doesn't have, in its
+  # format. HannesTest checks the Hannes expansion's banks, and on the
+  # Csory board, which has the same register, Hannes's banking.
+  PLUS4_ROWS = %w[hannes256 hannes1m csory256].map do |kind|
+    "../Plus4/HannesTest/,HannesTest.prg,exitcode,20000000,#{RAM_EXPANSION_OPTION}#{kind},#{BORDER_OPTION}"
+  end.freeze
+
   module Plus4Row
     def plus4? = %i[plus4 c16].include?(family)
 
@@ -19,15 +31,26 @@ module Testbench
       options.include?(TED_NTSC_OPTION) ? "#{model}ntsc" : model
     end
 
+    # The RAM expansion the row asks for, a Plus4::RAMExpansion kind's
+    # name, or nil.
+    def plus4_ram_expansion
+      option = options.find { |candidate| candidate.start_with?(RAM_EXPANSION_OPTION) }
+      option&.delete_prefix(RAM_EXPANSION_OPTION)
+    end
+
+    # Whether the test reports through the border colour.
+    def border_result? = options.include?(BORDER_OPTION)
+
     # The machine the row's tests fork from: booted, or at power-on for a
     # cartridge.
-    def plus4_machine = Testbench.plus4_machine(plus4_model, cartridge.nil?)
+    def plus4_machine = Testbench.plus4_machine(plus4_model, cartridge.nil?, plus4_ram_expansion.to_s)
 
     # Runs the row on +machine+, returning the exit code and the text
     # screen, or the picture for a screenshot row.
     def run_plus4(machine)
       screenshot = type == "screenshot"
-      exit_code = Plus4Execution.new(machine).run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
+      execution = Plus4Execution.new(machine, border: border_result?)
+      exit_code = execution.run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
       [exit_code, screenshot ? Testbench.plus4_screenshot(machine) : Testbench.plus4_screen_text(machine)]
     end
   end
@@ -105,7 +128,8 @@ module Testbench
     module_function
 
     def tests(filters, family, scope: nil, exclude: nil, ntsc: false)
-      Testlist.numbered(File.readlines(PLUS4_TESTLIST).filter_map { |line| parse(line, family, ntsc:) })
+      lines = File.readlines(PLUS4_TESTLIST) + PLUS4_ROWS
+      Testlist.numbered(lines.filter_map { |line| parse(line, family, ntsc:) })
               .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end
 

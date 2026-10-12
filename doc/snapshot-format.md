@@ -31,7 +31,7 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `vic_model` | text: mos6569 mos8565 mos8566 mos8564 | C64: "mos6569" |
 | `cia_model` | text: mos6526 mos6526a | C64: "mos6526" |
 | `sid_model` | text: mos6581 mos8580 | C64: "mos6581"; C128: "mos6581" |
-| `ram_expansion` | text: none plus60k plus256k | C64: "none" |
+| `ram_expansion` | text: none plus60k plus256k | C64: "none"; Plus/4: "none" |
 | `reu_kb` | int | C64: 0 |
 | `kernal` | text: c64 sx64 pet64 gs | C64: "c64" |
 | `datasette` | bool | C64: true |
@@ -436,13 +436,16 @@ Written by the C64, VIC-20, C128, Plus/4.
 
 ## BL-RAMEXP
 
-Written by the C64.
+Written by the C64, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `d100` | byte | 0 |
-| `locked` | bool | false |
-| `bank<N>` | bytes | 65536 × 0 |
+| `d100` | byte | C64: 0 |
+| `locked` | bool | C64: false |
+| `bank<N>` | bytes | C64: 65536 × 0 |
+| `control` | byte | Plus/4: 255 |
+| `csory_latch` | byte | Plus/4: 0 |
+| `ram` | bytes | Plus/4: 196608 × 0 |
 
 ## BL-REU
 

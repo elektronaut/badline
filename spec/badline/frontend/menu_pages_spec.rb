@@ -162,6 +162,20 @@ describe Badline::Frontend::MenuPages do
       expect(painter).to have_received(:text).with(0, 12, "PLUS/4 PAL, 64K RAM", anything)
     end
 
+    it "names no RAM expansion without one" do
+      pages.draw(:power, 0, 0)
+      expect(painter).not_to have_received(:text).with(anything, anything, "RAM EXPANSION", anything)
+    end
+
+    context "with a RAM expansion" do
+      let(:computer) { Badline::Plus4.new(ram_expansion: :hannes256) }
+
+      it "names it on the power page" do
+        pages.draw(:power, 0, 0)
+        expect(painter).to have_received(:text).with(anything, anything, "HANNES, 256 KB", anything)
+      end
+    end
+
     context "with a SID card" do
       let(:computer) { Badline::Plus4.new(sid_card: :mos6581) }
 
