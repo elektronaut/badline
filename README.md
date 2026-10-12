@@ -255,8 +255,9 @@ badline plus4 --c1lo game-low.bin --c1hi game-high.bin
 
 Disks go through the KERNAL traps or, with `--true-drive`, a 1541 or a
 1581 on the serial bus. There is no 1551 yet. The pause menu's Power
-page names the model and its RAM, and its Expansion port page shows the
-slots that hold a cartridge and takes them all out. `F11` and the
+page names the model and its RAM, and its Expansion port page names the
+cartridges in, or the slot of one a snapshot put in, and takes them all
+out. `F11` and the
 Snapshots page save it as they do the others, but not for VICE.
 [Input](#input) lists its keys.
 
@@ -368,7 +369,7 @@ too.
 | Snapshots | Quicksave, save under a name, load a named save, and the latest quicksaves and autosaves |
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
-| Expansion port | The cartridge: insert, remove, and its freeze button if it has one. On the Plus/4, the slots that hold one |
+| Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
 | Ports | The device in each control port, and where the keys go |
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 its model and RAM |

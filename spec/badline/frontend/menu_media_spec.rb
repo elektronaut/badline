@@ -10,7 +10,7 @@ require_relative "../../support/blank_disk"
 describe Badline::Frontend::MenuMedia do
   include BlankDisk
 
-  subject(:media) { described_class.new("", false).tap { |menu_media| menu_media.computer = computer } }
+  subject(:media) { described_class.new("", false, {}).tap { |menu_media| menu_media.computer = computer } }
 
   let(:computer) { Badline::C64.new }
   let(:dir) { Dir.mktmpdir }
@@ -33,6 +33,24 @@ describe Badline::Frontend::MenuMedia do
       chip = "CHIP".b + [0x0110, 0, bank, 0x8000, 0x0100].pack("Nn4") + ([0x42] * 0x0100).pack("C*")
       File.binwrite(path, header + chip)
     end
+  end
+
+  def named_crt(name, slot)
+    File.join(dir, "#{name}.crt").tap do |path|
+      header = "PLUS4 CARTRIDGE ".b + [0x40, 0x0100, 0, 0, 0].pack("NnnCC") + ("\x00" * 6) + [name.upcase].pack("a32")
+      bank, address = Badline::Media::Plus4Media::SLOTS.fetch(slot)
+      File.binwrite(path, header + "CHIP".b + [0x0110, 0, bank, address, 0x0100].pack("Nn4") + ("\x42" * 0x0100))
+    end
+  end
+
+  def rom_image(name, size) = File.join(dir, name).tap { |path| File.binwrite(path, "\x11" * size) }
+
+  def quietly
+    stdout = $stdout
+    $stdout = StringIO.new
+    yield
+  ensure
+    $stdout = stdout
   end
 
   def storage = computer.instance_variable_get(:@dos).instance_variable_get(:@storage)
@@ -85,7 +103,8 @@ describe Badline::Frontend::MenuMedia do
 
   it "starts on the command line's list" do
     File.write(File.join(dir, "game.vfl"), "UNIT 8\n#{second}\n#{first}\n")
-    media = described_class.new(File.join(dir, "game.vfl"), false).tap { |menu_media| menu_media.computer = computer }
+    media = described_class.new(File.join(dir, "game.vfl"), false, {})
+    media.computer = computer
     Badline::Media.attach(computer, File.join(dir, "game.vfl"), autostart: false)
     expect([media.disk_path, media.disk_set]).to eq([second, [second, first]])
   end
@@ -207,9 +226,41 @@ describe Badline::Frontend::MenuMedia do
       expect(media.start(Badline::Options.parse(["plus4"]), plus4_crt(bank: 2))).to be_nil
     end
 
+    it "names a ROM image after its file" do
+      media.attach_cartridge(rom_image("game.bin", 0x8000))
+      expect(media.cartridge_name).to eq("game")
+    end
+
+    it "names each cartridge after its .crt's own name" do
+      media.attach_cartridge(named_crt("game", "c1lo"))
+      media.attach_cartridge(named_crt("tool", "c2hi"))
+      expect(media.cartridge_name).to eq("GAME, TOOL")
+    end
+
+    it "names the ROM images the command line put in their slots" do
+      path = rom_image("tool.bin", 0x4000)
+      Badline::Media.attach(computer, path, cartridge: { slot: "c2lo" })
+      media = described_class.new("", false, { "c2lo" => path }).tap { |menu_media| menu_media.computer = computer }
+      expect(media.cartridge_name).to eq("tool")
+    end
+
+    it "names a cartridge Quick open started" do
+      media.computer = quietly { media.start(Badline::Options.parse(["plus4"]), rom_image("game.bin", 0x4000)) }
+      expect(media.cartridge_name).to eq("game")
+    end
+
     it "keeps the problem with a ROM image too large for a slot" do
       path = File.join(dir, "game.bin").tap { |file| File.binwrite(file, "\x11" * 0x8001) }
       expect([media.attach_cartridge(path), media.problem]).to eq([false, "a 32769-byte image is no Plus/4 cartridge"])
+    end
+  end
+
+  describe "on a C128" do
+    let(:computer) { Badline::C128.new }
+
+    it "names the cartridge after its .crt's own name" do
+      media.attach_cartridge(crt("game.crt"))
+      expect(media.cartridge_name).to eq("GAME")
     end
   end
 
@@ -229,6 +280,28 @@ describe Badline::Frontend::MenuMedia do
 
     it "names a save after the machine without a disk" do
       expect(media.game_name).to eq("VIC-20")
+    end
+
+    it "names a .crt after its own name" do
+      path = File.join(dir, "game.crt")
+      header = "VIC20 CARTRIDGE ".b + [0x40, 0x0100, 0, 0, 0].pack("NnnCC") + ("\x00" * 6) + "GAME".ljust(32, "\x00")
+      File.binwrite(path, header + "CHIP".b + [0x2010, 0, 0, 0xa000, 0x2000].pack("Nn4") + ("\x42" * 0x2000))
+      media.attach_cartridge(path)
+      expect(media.cartridge_name).to eq("GAME")
+    end
+
+    it "names the cartridge the command line started after its file" do
+      path = File.join(dir, "game.a0").tap { |file| File.binwrite(file, "\x00\xa0".b + ("\x42" * 0x1000)) }
+      Badline::Media.attach(computer, path)
+      media = described_class.new(path, false, {}).tap { |menu_media| menu_media.computer = computer }
+      expect(media.cartridge_name).to eq("game")
+    end
+
+    it "names no cartridge on another machine than the one it named" do
+      path = File.join(dir, "game.a0").tap { |file| File.binwrite(file, "\x00\xa0".b + ("\x42" * 0x1000)) }
+      media = described_class.new(path, false, {}).tap { |menu_media| menu_media.computer = computer }
+      media.computer = Badline::Vic20.new
+      expect(media.cartridge_name).to eq("")
     end
 
     it "puts a tape in the datasette" do

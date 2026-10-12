@@ -9,7 +9,7 @@ describe Badline::Frontend::MenuDialogs, "#ask_name" do
 
   let(:painter) { instance_double(Badline::Frontend::Painter, text: 0, box: nil) }
   let(:buttons) { Badline::Frontend::Buttons.new(painter, [1, 2, 3, 4]) }
-  let(:media) { Badline::Frontend::MenuMedia.new("", false) }
+  let(:media) { Badline::Frontend::MenuMedia.new("", false, {}) }
   let(:snapshots) { instance_double(Badline::Frontend::Snapshots, named?: taken, save_named: true) }
   let(:taken) { false }
 

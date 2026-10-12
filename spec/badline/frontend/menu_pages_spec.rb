@@ -101,7 +101,12 @@ describe Badline::Frontend::MenuPages do
 
     it "shows the RAM expansion on the expansion port" do
       pages.draw(:expansion, 0, 0)
-      expect(painter).to have_received(:text).with(0, 12, "8K", anything)
+      expect(painter).to have_received(:text).with(0, 42, "8K", anything)
+    end
+
+    it "shows the cartridge on the expansion port" do
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 0, "CARTRIDGE", anything)
     end
 
     it "names its keyboard on the keys' toggle" do
