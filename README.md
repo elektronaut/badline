@@ -384,7 +384,9 @@ inserting or removing a cartridge does, since each power cycles the
 machine.
 
 A disk, list of disks or tape dropped on the window goes into its drive. A cartridge,
-program or `.sid` dropped on it opens the menu to ask first.
+program or `.sid` dropped on it opens the menu to ask first. On the Plus/4, a
+`.bin` ROM image dropped or opened with Quick open is a cartridge, and goes
+in cartridge 1 as it does from the command line.
 
 ## What's emulated
 
