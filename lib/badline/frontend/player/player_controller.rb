@@ -15,7 +15,8 @@ module Badline
     # way: #wait handles the window's clicks, keys and drops between frames
     # and redraws it at the display's pace. The SID model buttons switch
     # the chips playing on the spot, and each tune after it starts on the
-    # same choice. AUTO gives each of a tune's SIDs its own model.
+    # same choice. AUTO gives each of a tune's SIDs its own model. It
+    # quits once it has drawn `frames` frames (--frames), unless that's 0.
     class PlayerController < Audio::Terminal
       FRAME = 1.0 / 50
 
@@ -30,8 +31,10 @@ module Badline
         Keys::TAB => :view, 6 => :chip
       }.freeze
 
-      def initialize(input:, output:)
-        super
+      def initialize(input:, output:, frames: 0)
+        super(input:, output:)
+        @frame_limit = frames
+        @frames = 0
         @screen = PlayerScreen.new
         @player = nil
         @tune_file = nil
@@ -73,7 +76,10 @@ module Badline
         actions = poll
         deadline = now + seconds
         loop do
-          draw if now >= @next_draw
+          if now >= @next_draw
+            draw
+            actions << :quit if @frames == @frame_limit
+          end
           left = deadline - now
           break if left <= 0 || !actions.empty?
 
@@ -211,6 +217,7 @@ module Badline
 
       def draw
         @next_draw = now + FRAME
+        @frames += 1
         @screen.draw(@state, @player, @history, @tune_file, SIDTune::STIL::Credit.at(@credits, @state.played))
       end
 

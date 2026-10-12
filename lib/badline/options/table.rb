@@ -81,7 +81,7 @@ module Badline
                  section: "Options without the window", needs: :headless),
       Option.new("--no-tui", "Play without the interactive display, even on a terminal",
                  section: "Options without the window", needs: :headless),
-      Option.new("--frames N", "Quit after N frames", section: "Testing options", needs: :window),
+      Option.new("--frames N", "Quit after N frames", section: "Testing options", needs: :any_window),
       Option.new("--unpaced", "Run as fast as it can, without vsync or pacing",
                  section: "Testing options", needs: :window),
       Option.new("--screenshot FILE", "Save the last frame as a .bmp",
