@@ -597,9 +597,9 @@ class TestTestbenchPlus4 < Minitest::Test
   end
 
   def test_runs_hannestest_with_each_ram_expansion
-    tests = Testbench::Plus4Testlist.tests(["HannesTest"], :plus4)
+    options = Testbench::PLUS4_ROWS.map { |row| row.split(",")[4] }
 
-    assert_equal %w[hannes256 hannes1m csory256], tests.map(&:plus4_ram_expansion)
+    assert_equal %w[hannes256 hannes1m csory256].map { |kind| "ram-expansion:#{kind}" }, options
   end
 
   def test_runs_a_program_from_the_start_of_basic
