@@ -208,6 +208,12 @@ render a `.sid` tune without it, as described under
   window follows the machine between the VIC-IIe's 40 columns and the
   VDC's 80, fitting the window to the screen shown, and `F8` switches
   it until the machine next does.
+- `badline plus4` runs a Plus/4, as in badline-ruby (see
+  [The Plus/4](../README.md#the-plus4)). Its `--model` is `plus4`,
+  `plus4ntsc`, `c16`, `c16ntsc` or `c116`, `--ram` is `16k`, `32k` or
+  `64k`, and `--c1lo`, `--c1hi`, `--c2lo` and `--c2hi` put a `.bin`
+  ROM image in a cartridge slot. The window shows the TED's 384 by 288
+  pixels, or 242 lines on NTSC.
 - The SID plays through the host's audio device, and F10 mutes and
   unmutes it. `--no-sound` turns it off. Unlike `exe/badline-ruby`, which
   runs below real time and plays only with `--sound`, the native build
@@ -242,7 +248,8 @@ The events:
   `crsr_right`, `keypad0` to `keypad9`, `keypad_period`, `keypad_plus`,
   `keypad_minus`, `keypad_enter`), and `caps_lock` and `forty_eighty`,
   which lock: each one pushes the key down if it was up and up if it
-  was down.
+  was down. The Plus/4 has its own (`esc`, `help`, `f1` to `f3`, ...),
+  and no `restore`.
 - `type=TEXT` types through the keyboard buffer, with `\n` for RETURN.
 - `insert=FILE` puts a disk image, the first disk of an `.m3u` or `.vfl`
   list, a directory, a tape or a cartridge in, without loading anything.
@@ -283,7 +290,8 @@ changed into a streaming texture, presents it and waits.
   C64 keys. Esc is RUN/STOP and Page Up is RESTORE. On the C128 the
   keypad, Insert (HELP), the right Alt (ALT), Scroll Lock (NO SCROLL),
   Caps Lock (CAPS LOCK) and F6 or Pause (40/80 DISPLAY) are the C128's
-  own keys, and in C128 mode Esc is ESC and Page Down RUN/STOP.
+  own keys, and in C128 mode Esc is ESC and Page Down RUN/STOP. On the
+  Plus/4 Esc is ESC, Page Down RUN/STOP and F4 or Insert HELP.
 - Tab switches the keys between the keyboard and the joysticks. F9
   opens the pause menu, whose Ports page plugs a 1351 mouse or paddles
   into port 1 or 2. The title bar names both.
