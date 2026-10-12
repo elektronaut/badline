@@ -38,6 +38,18 @@ describe Badline::Plus4 do
     expect { described_class.new(ram: 48) }.to raise_error(ArgumentError, /48K/)
   end
 
+  it "names its model and RAM" do
+    expect(described_class.new(model: "c16ntsc", ram: 32).model_label).to eq("C16 NTSC, 32K RAM")
+  end
+
+  it "takes its cartridges out and power cycles" do
+    machine = described_class.new
+    machine.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
+    machine.run_cycles(10)
+    machine.detach_cartridges
+    expect([machine.cartridge_slots, machine.cycles, machine.cpu.program_counter]).to eq([[], 10, 0xfff6])
+  end
+
   it "takes c116 for the C16" do
     expect(described_class.new(model: "c116").model).to eq(described_class::Model::C16)
   end

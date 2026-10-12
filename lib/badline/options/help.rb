@@ -83,6 +83,7 @@ module Badline
         Usage: #{@program} [c64] [options] [media]
                #{@program} vic20 [options] [media]
                #{@program} c128 [options] [media]
+               #{@program} plus4 [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -91,6 +92,7 @@ module Badline
             c64                              Run a C64, the one --model names (the default)
             vic20                            Run a PAL VIC-20, with the RAM --ram names
             c128                             Run a C128 in C128 mode, the one --model names
+            plus4                            Run a Plus/4 or a C16, the one --model names
             sid                              Play .sid tunes and directories of them
 
         #{media_kinds}
@@ -105,6 +107,12 @@ module Badline
         then goes in an emulated 1581 in its place. A .sid
         tune opens in the SID player, as `sid` plays it, unless an option
         of the emulator's window asks for the machine.
+
+        The Plus/4 and the C16 take programs, disks, tapes, and cartridges as
+        .crt files or raw .bin ROM images. A .bin goes in cartridge 1, its
+        low slot for up to 16K and both slots for 32K, and --c1lo, --c1hi,
+        --c2lo and --c2hi put one in the slot they name. There Escape is ESC,
+        Page Down RUN/STOP and F4 HELP.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
@@ -126,7 +134,8 @@ module Badline
         --at and --script run events once a number of frames has run, as
         in --at 3500:key=space or --at 250,500:screenshot=shot%05d.bmp.
         key=NAME presses a key (space, return, a, f1, run_stop, restore, and
-        on the C128 esc, help, keypad1 and the rest) or a joystick's
+        on the C128 esc, help, keypad1 and the rest, and on the Plus/4
+        esc, help and f1 to f3) or a joystick's
         direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
         pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
         types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's

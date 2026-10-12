@@ -71,6 +71,20 @@ describe Badline::Frontend::MediaSlots do
     end
   end
 
+  context "with a Plus/4" do
+    let(:computer) { Badline::Plus4.new }
+
+    before { computer.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])]) }
+
+    it "has a cartridge in" do
+      expect(described_class.cartridge?(computer)).to be(true)
+    end
+
+    it "takes both cartridges out" do
+      expect { described_class.remove_cartridge(computer) }.to change(computer, :cartridge_slots).to([])
+    end
+  end
+
   it "takes the cartridge out and power cycles the machine" do
     allow(computer).to receive(:power_cycle!)
     described_class.remove_cartridge(computer)

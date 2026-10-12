@@ -14,6 +14,10 @@ module Badline
     # The C128's models, as C128::Model names them.
     C128_MODELS = %w[c128 c128ntsc c128dcr c128dcrntsc].freeze
 
+    # The 264 series' models, as Plus4::Model names them, with the C116 as
+    # another name for the C16.
+    PLUS4_MODELS = %w[plus4 plus4ntsc c16 c16ntsc c116].freeze
+
     # The VIC-20 RAM expansions --ram takes, in the order the help lists
     # them.
     RAM_NAMES = %w[unexpanded 3k 8k 16k 24k 32k all].freeze
@@ -40,12 +44,21 @@ module Badline
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),
       Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal; " \
-                                 "C128: #{C128_MODELS.join(', ')}",
+                                 "C128: #{C128_MODELS.join(', ')}; Plus/4: #{PLUS4_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
       Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
                  section: "Window options", needs: :window),
-      Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded)",
+      Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \
+                               "Plus/4 RAM: 16k, 32k or 64k (default: the model's own)",
+                 section: "Window options", needs: :window),
+      Option.new("--c1lo FILE", "Put a .bin ROM image in the Plus/4's cartridge 1, low slot ($8000)",
+                 section: "Window options", needs: :window),
+      Option.new("--c1hi FILE", "Put a .bin ROM image in cartridge 1's high slot ($C000)",
+                 section: "Window options", needs: :window),
+      Option.new("--c2lo FILE", "Put a .bin ROM image in cartridge 2's low slot ($8000)",
+                 section: "Window options", needs: :window),
+      Option.new("--c2hi FILE", "Put a .bin ROM image in cartridge 2's high slot ($C000)",
                  section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",
                  section: "Window options", needs: :window),

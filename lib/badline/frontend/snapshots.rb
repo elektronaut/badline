@@ -46,6 +46,8 @@ module Badline
 
       # Saves the machine, and warns when it can't. Says whether it saved.
       def save(path, name = "")
+        return false unless savable?(path)
+
         @computer.save_snapshot(path)
         puts(name.empty? ? "Saved #{path}" : "Saved #{name} to #{path}")
         true
@@ -73,7 +75,7 @@ module Badline
       # last, quietly. A machine that can't be saved stops autosaving after
       # one warning.
       def tick(frames)
-        return unless @autosave && frames >= @autosave_at
+        return unless @autosave && frames >= @autosave_at && @computer.family != :plus4
 
         @autosave_at = frames + AUTOSAVE_FRAMES
         folder = Badline.data_folder("autosaves")
@@ -138,10 +140,21 @@ module Badline
 
       # Saves the machine with VICE's modules too, and warns when it can't.
       def export(path)
+        return unless savable?(path)
+
         @computer.export_snapshot(path)
         puts "Saved #{path} for badline and VICE"
       rescue Snapshot::FormatError, SystemCallError => e
         warn "badline: #{path}: #{e.message}"
+      end
+
+      # Whether the machine running can be saved to `path`, which the
+      # Plus/4 can't yet, and warns when it can't.
+      def savable?(path)
+        return true unless @computer.family == :plus4
+
+        warn "badline: #{path}: snapshots: not yet on the Plus/4"
+        false
       end
 
       def restore_from(path)

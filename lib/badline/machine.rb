@@ -9,7 +9,7 @@ module Badline
   #
   # The machines badline builds by family, as the command line's
   # subcommand names them: the C64, Badline::C64, the VIC-20, Vic20, and the
-  # C128 in C64 mode, C128.
+  # C128 in C64 mode, C128, and the 264 series, Plus4.
   #
   # A machine answers what the front end, Media, the runners and the
   # snapshots call on it:
@@ -49,22 +49,31 @@ module Badline
   # +release_display_key+, and +attach_drive1571+ and +drive1571+ for the
   # C128D's 1571, its true drive.
   #
+  # The Plus/4 answers the identity, clocking, lifecycle, video, sound and
+  # input parts, with nil for +control_ports+ and no RESTORE, and of the
+  # rest +ram+, +load_prg+, +type_text+, +mount+, +unmount+, +mounted?+,
+  # +datasette+, +attach_cartridge+, +attach_drive1541+, +drive1541+,
+  # +true_drive+, +plug_true_drive+, the 1581's, +install_debug_register+
+  # and +capture_output+, and besides +model_label+, +cartridge_slots+ and
+  # +detach_cartridges+ for its two cartridges.
+  #
   # Each machine includes Machine::Clocking for the clocking part.
   module Machine
     # Media the machine named doesn't take.
     class Unsupported < ArgumentError; end
 
-    # A new machine of `family`, :c64, :vic20 or :c128, the model of it
-    # `model` names. A C64's model is one of Model::ALL, with its SID
+    # A new machine of `family`, :c64, :vic20, :c128 or :plus4, the model
+    # of it `model` names. A C64's model is one of Model::ALL, with its SID
     # `sid_model` when not nil and an REU of `reu` K when not nil. A
     # VIC-20's is "pal", with the RAM expansion `ram` names
     # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
-    # for C64 mode. :plus4 is refused until the Plus/4 runs.
+    # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
+    # the model's own RAM.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
-      raise ArgumentError, "the Plus/4 isn't emulated yet" if family == :plus4
+      return Plus4.new(model:) if family == :plus4
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)
@@ -80,10 +89,11 @@ module Badline
     # only C64 mode runs: a .sid tune or a program that loads at the C64's
     # BASIC start. A VIC-20 without RAM named gets the expansion the media
     # needs (Media::Vic20Media.ram_for) and yields a line saying so. Raises
-    # Unsupported for media a VIC-20 doesn't take.
+    # Unsupported for media a VIC-20 or a Plus/4 doesn't take.
     def self.for_options(options, media, &)
       family = options.family
       return vic20_for(media, options.model, options.ram, &) if family == :vic20
+      return plus4_for(media, options.model, options.ram_kb) if family == :plus4
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -116,6 +126,16 @@ module Badline
       build(:vic20, model:, ram:)
     end
     private_class_method :vic20_for
+
+    # A Plus/4 with `ram_kb` K of RAM (Plus4::Model::RAM_SIZES), or with
+    # the model's own when nil.
+    def self.plus4_for(media, model, ram_kb)
+      unsupported = !media.nil? && Media::Vic20Media::UNSUPPORTED.include?(File.extname(media).downcase)
+      raise Unsupported, "doesn't go in a Plus/4" if unsupported
+
+      Plus4.new(model:, ram: ram_kb)
+    end
+    private_class_method :plus4_for
 
     def self.c64_media?(media)
       return false if media.nil? || !File.file?(media)

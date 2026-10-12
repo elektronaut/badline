@@ -12,9 +12,9 @@ module Badline
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. `sid`, given
   # first, plays .sid tunes and directories of them in the terminal.
-  # `c64`, `vic20` or `c128`, given first, names the machine family, and
-  # without one the family is the C64, or the C128 for a program that loads
-  # where C128 BASIC starts. `plus4` is refused until the Plus/4 runs. The native build adds --no-sound and
+  # `c64`, `vic20`, `c128` or `plus4`, given first, names the machine
+  # family, and without one the family is the C64, or the C128 for a program
+  # that loads where C128 BASIC starts. The native build adds --no-sound and
   # --version, and badline-ruby adds --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
@@ -48,6 +48,13 @@ module Badline
       "32k" => :"32k", "all" => :all
     }.freeze
 
+    # The Plus/4's RAM sizes as --ram names them, in K.
+    PLUS4_RAM = { "16k" => 16, "32k" => 32, "64k" => 64 }.freeze
+
+    # The Plus/4's cartridge slots, by the options that fill them and
+    # xplus4's names (Media::Plus4Media::SLOTS).
+    CARTRIDGE_SLOTS = { "--c1lo" => "c1lo", "--c1hi" => "c1hi", "--c2lo" => "c2lo", "--c2hi" => "c2hi" }.freeze
+
     # A Float as OptionParser took one: digits with an optional sign,
     # fraction and exponent.
     DECIMAL = /\A[-+]?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?\z/
@@ -57,13 +64,21 @@ module Badline
     attr_reader :program, :media_path, :tune_paths, :subtune, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
-    # The machine family to build (Badline::Machine), :c64, :vic20 or
-    # :c128.
+    # The machine family to build (Badline::Machine), :c64, :vic20, :c128
+    # or :plus4.
     attr_reader :family
 
     # The VIC-20's RAM expansion --ram names, a key of
     # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
     attr_reader :ram
+
+    # The Plus/4's RAM in K --ram names, one of PLUS4_RAM's, or nil without
+    # --ram.
+    attr_reader :ram_kb
+
+    # The Plus/4's cartridge ROM images --c1lo, --c1hi, --c2lo and --c2hi
+    # name, by slot: { "c1lo" => path }.
+    attr_reader :cartridges
 
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
@@ -84,6 +99,8 @@ module Badline
       @models = []
       @reu = nil
       @ram = nil
+      @ram_kb = nil
+      @cartridges = {}
       @autostart = true
       @writable = false
       @sound = native
@@ -178,8 +195,8 @@ module Badline
     def jit? = @jit
 
     # The name of the model to build: a C64 Badline::Model names, a VIC-20
-    # of VIC20_MODELS or a C128 of C128_MODELS. --ntsc is short for --model
-    # ntsc.
+    # of VIC20_MODELS, a C128 of C128_MODELS or a Plus/4 of PLUS4_MODELS.
+    # --ntsc is short for --model ntsc.
     def model = @models.first || family_models.first
 
     # Whether --c64 asks the C128 to start in C64 mode, holding C= at
@@ -201,7 +218,8 @@ module Badline
     # A .sid on its own plays in the SID player, as `sid` would, unless an
     # option of the emulator's window asks for the machine.
     def play_lone_tune
-      return if @sid_command || @family == :vic20 || headless? || !@window_only.empty? || @media_path.nil?
+      return if @sid_command || %i[vic20 plus4].include?(@family) || headless? || !@window_only.empty?
+      return if @media_path.nil?
 
       @sid_command = File.extname(@media_path).casecmp?(".sid")
     end
@@ -254,7 +272,8 @@ module Badline
       when "--sid" then @sid_model = sid_model_for(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
-      when "--ram" then @ram = ram_configuration(value)
+      when "--ram" then ram_option(value)
+      when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value
       when "--save-snapshot" then @save_snapshot = value
@@ -264,6 +283,15 @@ module Badline
       when "--songlengths" then @songlengths = value
       when "--rate" then @rate = number(flag, value)
       else @filter_chunk = number(flag, value)
+      end
+    end
+
+    # --ram names the VIC-20's RAM expansion, or the Plus/4's RAM.
+    def ram_option(value)
+      if @family == :plus4
+        @ram_kb = plus4_ram(value)
+      else
+        @ram = ram_configuration(value)
       end
     end
 

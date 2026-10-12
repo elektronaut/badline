@@ -178,6 +178,24 @@ module Badline
       power_cycle!
     end
 
+    # Takes both cartridges out (Bus#detach_cartridges) and switches the
+    # machine off and on.
+    def detach_cartridges
+      @bus.detach_cartridges
+      power_cycle!
+    end
+
+    # The cartridge slots with a ROM in them (Bus#cartridge_slots).
+    def cartridge_slots = @bus.cartridge_slots
+
+    # The model and its RAM as the pause menu names them, such as
+    # "PLUS/4 PAL, 64K RAM".
+    def model_label
+      name = @model.plus4_parts ? "PLUS/4" : "C16"
+      standard = @model.ted == Chips::TED::NTSC ? "NTSC" : "PAL"
+      "#{name} #{standard}, #{@ram_kb}K RAM"
+    end
+
     # Stores a PRG's bytes from its load address on, into RAM, and returns
     # that address.
     def load_prg(data)

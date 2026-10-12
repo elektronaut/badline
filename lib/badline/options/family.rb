@@ -30,6 +30,7 @@ module Badline
         case @family
         when :vic20 then VIC20_MODELS
         when :c128 then C128_MODELS
+        when :plus4 then PLUS4_MODELS
         else MODELS
         end
       end

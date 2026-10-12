@@ -300,6 +300,24 @@ module Badline
         map_reads
       end
 
+      # Empties both cartridges' slots, ROM banks 2 and 3, which then read
+      # as the open bus.
+      def detach_cartridges
+        @low_roms[2] = @low_roms[3] = @high_roms[2] = @high_roms[3] = nil
+        map_reads
+      end
+
+      # The slots that hold a cartridge's ROM, by xplus4's names: c1lo,
+      # c1hi, c2lo and c2hi.
+      def cartridge_slots
+        slots = []
+        slots << "c1lo" unless @low_roms[2].nil?
+        slots << "c1hi" unless @high_roms[2].nil?
+        slots << "c2lo" unless @low_roms[3].nil?
+        slots << "c2hi" unless @high_roms[3].nil?
+        slots
+      end
+
       def peek(addr)
         @data = @read_pages[addr >> 8].peek(addr)
       end

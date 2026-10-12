@@ -155,6 +155,17 @@ describe Badline::Plus4::Bus do
       expect(bus.peek(0x8000)).to eq(0x11)
     end
 
+    it "names the slots it fills" do
+      bus.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 1, 0xc000, [0x22])])
+      expect(bus.cartridge_slots).to eq(%w[c1lo c2hi])
+    end
+
+    it "empties both cartridges' slots" do
+      bus.detach_cartridges
+      bus.poke(0xfdd2, 0x5a)
+      expect([bus.cartridge_slots, bus.peek(0x8000)]).to eq([[], 0x5a])
+    end
+
     it "refuses a chip in a bank with no slot" do
       chip = Badline::Storage::CRTFile::Chip.new(0, 2, 0x8000, [0x22])
       expect { bus.attach_cartridge([chip]) }.to raise_error(ArgumentError, /bank 2/)

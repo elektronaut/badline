@@ -159,6 +159,31 @@ describe Badline::Frontend::MenuMedia do
     expect([media.insert(:disk, tape), media.problem]).to eq([false, "#{tape} is not a disk image or a directory"])
   end
 
+  describe "on a Plus/4" do
+    let(:computer) { Badline::Plus4.new }
+
+    it "takes raw ROM images as cartridges" do
+      expect(media.cartridge_extensions).to eq(%w[.crt .bin])
+    end
+
+    it "names a save after the disk, not the cartridge slots" do
+      computer.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
+      media.insert(:disk, first)
+      expect(media.game_name).to eq("game disk1")
+    end
+
+    it "puts a ROM image in cartridge 1" do
+      path = File.join(dir, "game.bin").tap { |file| File.binwrite(file, "\x11" * 16) }
+      media.attach_cartridge(path)
+      expect(computer.cartridge_slots).to eq(%w[c1lo])
+    end
+
+    it "keeps the problem with a ROM image too large for a slot" do
+      path = File.join(dir, "game.bin").tap { |file| File.binwrite(file, "\x11" * 0x8001) }
+      expect([media.attach_cartridge(path), media.problem]).to eq([false, "a 32769-byte image is no Plus/4 cartridge"])
+    end
+  end
+
   describe "on a VIC-20" do
     let(:computer) { Badline::Vic20.new }
 
