@@ -12,6 +12,7 @@ module Badline
     # $FD00-$FD0F - the 6551 ACIA (Plus/4 only)
     # $FD10-$FD1F - the user port's 6529 (Plus/4 only)
     # $FD30-$FD3F - the keyboard's 6529 (KeyboardPort)
+    # $FD40-$FD5F - a SID card's SID, where one is fitted
     # $FDD0-$FDDF - the ROM bank latch
     # $FF00-$FF1F - the TED
     # $FF3E/$FF3F - a write selects ROM or RAM at $8000-$FFFF
@@ -80,14 +81,17 @@ module Badline
         end
       end
 
-      # Page $FD: the ACIA, the user port, the keyboard port and the ROM
-      # bank latch, by the address's bits 4-7. +acia+ and +user_port+ are
-      # nil where the machine has none, and +cassette_sense+ answers in the
-      # user port's place on a machine without one (CassetteSense).
+      # Page $FD: the ACIA, the user port, the keyboard port, a SID card and
+      # the ROM bank latch, by the address's bits 4-7. +acia+, +user_port+
+      # and +sid_card+ are nil where the machine has none, and
+      # +cassette_sense+ answers in the user port's place on a machine
+      # without one (CassetteSense). The SID card decodes its 32 bytes
+      # alone, with no mirrors, as xplus4's does.
       class IOPage
-        def initialize(keyboard_port:, acia: nil, user_port: nil, cassette_sense: nil)
+        def initialize(keyboard_port:, acia: nil, user_port: nil, cassette_sense: nil, sid_card: nil)
           @bus = nil
           @acia = acia
+          @sid_card = sid_card
           @user_port = user_port
           @cassette_sense = cassette_sense
           @keyboard_port = keyboard_port
@@ -104,6 +108,7 @@ module Badline
           when 0x00 then @acia ? @acia.peek(addr) : @bus.data
           when 0x10 then user_port_peek(addr)
           when 0x30 then @keyboard_port.peek(addr)
+          when 0x40, 0x50 then @sid_card ? @sid_card.peek(addr) : @bus.data
           else @bus.data
           end
         end
@@ -113,6 +118,7 @@ module Badline
           when 0x00 then @acia&.poke(addr, value)
           when 0x10 then @user_port&.poke(addr, value)
           when 0x30 then @keyboard_port.poke(addr, value)
+          when 0x40, 0x50 then @sid_card&.poke(addr, value)
           when 0xd0 then @bus.select_banks(addr)
           end
         end

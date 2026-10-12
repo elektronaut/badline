@@ -65,6 +65,8 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--c2hi FILE", "Put a .bin ROM image in cartridge 2's high slot ($C000)",
                  section: "Window options", needs: :window),
+      Option.new("--sid-card MODEL", "Fit the Plus/4 or C16 with a SID card at $FD40: 6581 or 8580",
+                 section: "Window options", needs: :window),
       Option.new("--no-vsync", "Pace frames by the timer or the sound instead of the display",
                  section: "Window options", needs: :window),
       Option.new("--verbose", "Print the display, sound and gamepad setup and the frame timing",

@@ -128,12 +128,14 @@ module Badline
     private_class_method :vic20_for
 
     # A Plus/4 with the RAM --ram names (Plus4::Model::RAM_SIZES), or with
-    # the model's own without it, and the true drive --drive-type names.
+    # the model's own without it, the true drive --drive-type names and the
+    # SID card --sid-card names.
     def self.plus4_for(media, options)
       unsupported = !media.nil? && Media::Vic20Media::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a Plus/4" if unsupported
 
-      Plus4.new(model: options.model, ram: options.ram_kb, true_drive_model: options.drive_type)
+      Plus4.new(model: options.model, ram: options.ram_kb, true_drive_model: options.drive_type,
+                sid_card: options.sid_card)
     end
     private_class_method :plus4_for
 

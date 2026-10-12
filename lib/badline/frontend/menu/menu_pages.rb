@@ -137,7 +137,8 @@ module Badline
         info("RAM EXPANSION", "REU, #{@reu_kb} KB")
       end
 
-      # The SID's model is a setting, and other sound chips have none.
+      # The SID's model is a setting, the C64's SID's or a Plus/4's SID
+      # card's, and other sound chips have none.
       def draw_sound
         if @sound.on?
           toggle("OUTPUT", :output, [%w[ON MUTED], %i[sound_on mute], @sound.muted? ? 1 : 0])
@@ -147,7 +148,7 @@ module Badline
         model = @computer.sound_source.model
         return unless SID_MODELS.include?(model)
 
-        toggle("SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], model == :mos8580 ? 1 : 0])
+        toggle(plus4? ? "SID CARD" : "SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], model == :mos8580 ? 1 : 0])
       end
 
       # Saving now and by name, loading a named save, and the quicksaves

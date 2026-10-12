@@ -4,11 +4,11 @@ module Badline
   class Plus4
     # The whole machine as keyed snapshot modules (Snapshot::Keyed): BL-MACHINE
     # with the setup, the cartridges' ROMs by slot, the CPU with its port,
-    # the TED, its sound, the keyboard's 6529, the user port's 6529 and the
-    # ACIA where the model has them, the TCBM interface's TIAs where one is
-    # plugged in, the RAM with the ROM bank latch and the ROM/RAM switch
-    # under bus.*, the datasette, device 8 through the traps and the true
-    # drives.
+    # the TED, its sound, the SID card's SID where one is fitted, the
+    # keyboard's 6529, the user port's 6529 and the ACIA where the model
+    # has them, the TCBM interface's TIAs where one is plugged in, the RAM
+    # with the ROM bank latch and the ROM/RAM switch under bus.*, the
+    # datasette, device 8 through the traps and the true drives.
     #
     # A load maps the banks before the chips load, and works out what each
     # unit derives from its fields once every unit is loaded.
@@ -57,6 +57,8 @@ module Badline
         end
         sections << Snapshot::Keyed.section("BL-TED") { |out| @ted.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-TEDSOUND") { |out| @sound.save_fields(out) }
+        sid_card = @sid_card
+        sections << Snapshot::Keyed.section("BL-SID") { |out| sid_card.save_fields(out) } if sid_card
         sections << Snapshot::Keyed.section("BL-KEYPORT") { |out| @keyboard_port.save_fields(out) }
         user_port = @user_port
         sections << Snapshot::Keyed.section("BL-USERPORT") { |out| user_port.save_fields(out) } if user_port
@@ -72,6 +74,7 @@ module Badline
         @port.load_fields(cpu, "port.")
         @ted.load_fields(modules.required("BL-TED"))
         @sound.load_fields(modules.required("BL-TEDSOUND"))
+        @sid_card&.load_fields(modules.required("BL-SID"))
         @keyboard_port.load_fields(modules.required("BL-KEYPORT"))
         @user_port&.load_fields(modules.required("BL-USERPORT"))
         @acia&.load_fields(modules.required("BL-ACIA"))
@@ -83,6 +86,7 @@ module Badline
         @cpu.restored!
         @ted.restored!
         @sound.restored!(@ted)
+        @sid_card&.restored!
         @port.restored!
         @acia&.restored!
         schedule

@@ -87,6 +87,10 @@ describe Badline::Machine do
       expect(described_class.for_options(options("plus4", "--model", "c16", "--ram", "64k"), nil).ram_kb).to eq(64)
     end
 
+    it "fits a Plus/4 with the SID card --sid-card names" do
+      expect(described_class.for_options(options("plus4", "--sid-card", "8580"), nil).sid_card.model).to eq(:mos8580)
+    end
+
     it "refuses media a Plus/4 doesn't take" do
       expect { described_class.for_options(options("plus4"), "tune.sid") }
         .to raise_error(Badline::Machine::Unsupported, %r{Plus/4})
