@@ -35,8 +35,9 @@ module Badline
     # The machine's snapshot file. Saving first runs the machine on to the
     # end of the instruction its CPU is in, and of an REU transfer under
     # way (Machine::Settling), so a save advances it by a few cycles, and a
-    # second save straight after runs none. A VIC-20's or a C128's snapshot
-    # is in a container named as xvic or x128 names its machine.
+    # second save straight after runs none. A VIC-20's, a C128's or a
+    # Plus/4's snapshot is in a container named as xvic, x128 or xplus4
+    # names its machine.
     def dump(computer) = Image.of(computer).to_s
 
     def read(path) = Image.new(Container.parse(File.binread(path)), name: File.basename(path))
@@ -50,8 +51,8 @@ module Badline
     # snapshot that fails leaves the machine as it was.
     def restore(computer, path, &) = read(path).restore(computer, &)
 
-    # A machine's snapshots, as .vsf files and in memory. C64, Vic20 and
-    # C128 each include it.
+    # A machine's snapshots, as .vsf files and in memory. C64, Vic20, C128
+    # and Plus4 each include it.
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
 
@@ -88,6 +89,10 @@ module Badline
   end
 
   class C128
+    include Snapshot::Files
+  end
+
+  class Plus4
     include Snapshot::Files
   end
 end

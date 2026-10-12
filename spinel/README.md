@@ -28,6 +28,13 @@ CRuby.
   6*7`. It prints digests of the CPU, the RAM, the port and the TED every
   250,000 cycles, then the screen, the counts and the registers. An
   argument picks the model.
+- `plus4_snapshot.rb` saves a 264 series machine's snapshot in memory
+  part way through a run, loads it into a new machine and runs both on.
+  It prints the size and digest of the snapshot's records, inflated,
+  since Spinel's build deflates them differently, whether the new machine saves
+  it again the same, digests of both machines every 250,000 cycles, and
+  whether both save the same snapshot at the end. Arguments pick the
+  cycle it saves at, the cycles to run and the model.
 - `boot_support.rb` holds what the four boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
@@ -89,7 +96,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 

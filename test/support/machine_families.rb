@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/support/plus4_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -243,6 +244,7 @@ module MachineFamilies
     case options[:family]
     when "vic20" then Badline::Support::Vic20Checkpoint
     when "c128" then Badline::Support::C128Checkpoint
+    when "plus4" then Badline::Support::Plus4Checkpoint
     else Badline::Support::Checkpoint
     end
   end

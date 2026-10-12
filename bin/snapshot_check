@@ -3,7 +3,7 @@
 
 # Checks that snapshots restore the machine exactly, on the scenarios in
 # test/support/snapshot_machines.rb: a C64 with each kind of media and
-# expansion, the VIC-20 and the C128.
+# expansion, the VIC-20, the C128, and the Plus/4 and the C16.
 #
 #   ruby --yjit bin/snapshot_check [filter] [--cycles N] [--every K]
 #   ruby --yjit bin/snapshot_check --carts [filter]
@@ -104,11 +104,16 @@ module SnapshotCheck
     drive ? "#{line} #{TrueDrive.field(drive)}" : line
   end
 
-  # The text screen in RAM: 40 by 25 at $0400 on a C64 or a C128, and on a
-  # VIC-20 22 by 23 at the page the KERNAL keeps in $0288.
+  # The text screen in RAM: 40 by 25 at $0400 on a C64 or a C128 and at
+  # $0C00 on the 264 series, and on a VIC-20 22 by 23 at the page the
+  # KERNAL keeps in $0288.
   def screen(machine)
     ram = machine.ram
-    base, columns, rows = machine.family == :vic20 ? [ram.peek(0x0288) << 8, 22, 23] : [0x0400, 40, 25]
+    base, columns, rows = case machine.family
+                          when :vic20 then [ram.peek(0x0288) << 8, 22, 23]
+                          when :plus4 then [0x0c00, 40, 25]
+                          else [0x0400, 40, 25]
+                          end
     Array.new(rows) do |row|
       Array.new(columns) { |column| screen_char(ram.peek(base + (row * columns) + column)) }.join.rstrip
     end.join("\n")

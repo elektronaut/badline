@@ -42,7 +42,7 @@ module CIMatrix
   # The tasks that check the Spinel build against CRuby rather than a
   # baseline, and the harnesses each needs.
   CHECKS = {
-    "spinel:check" => %w[boot cpu_tests z80_tests vic20_boot c128_boot plus4_boot],
+    "spinel:check" => %w[boot cpu_tests z80_tests vic20_boot c128_boot plus4_boot plus4_snapshot],
     "spinel:check_sid" => %w[sid]
   }.freeze
 

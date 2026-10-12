@@ -22,11 +22,11 @@ key only some of them have names them.
 
 ## BL-MACHINE
 
-Written by the C64, VIC-20, C128.
+Written by the C64, VIC-20, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `family` | text: c64 vic20 c128 | "c64" |
+| `family` | text: c64 vic20 c128 plus4 | "c64" |
 | `region` | text: pal ntsc ntscold drean | C64: "pal" |
 | `vic_model` | text: mos6569 mos8565 mos8566 mos8564 | C64: "mos6569" |
 | `cia_model` | text: mos6526 mos6526a | C64: "mos6526" |
@@ -37,7 +37,7 @@ Written by the C64, VIC-20, C128.
 | `datasette` | bool | C64: true |
 | `board` | text: c64 pet64 gs max | C64: "c64" |
 | `cycles` | int | 0 |
-| `nmi_asserted` | bool | false |
+| `nmi_asserted` | bool | C64: false; VIC-20: false; C128: false |
 | `cartridge_nmi` | bool | C64: false; C128: false |
 | `restore_pulse` | bool | C64: false; C128: false |
 | `freezing` | bool | C64: false |
@@ -49,7 +49,7 @@ Written by the C64, VIC-20, C128.
 | `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
 | `bus.data` | byte | VIC-20: 253; C128: 255 |
 | `bus.video_data` | byte | VIC-20: 0 |
-| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128" |
+| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4" |
 | `mode` | text: c64 c128 | C128: "c64" |
 | `bus.address` | word | C128: 65533 |
 | `clock_bits` | int | C128: 0 |
@@ -61,14 +61,20 @@ Written by the C64, VIC-20, C128.
 | `host.typist.code` | int, optional | C128: absent |
 | `host.typist.wait` | int | C128: 0 |
 | `host.typist.typing` | bool | C128: false |
+| `ram_kb` | int | Plus/4: 64 or 16 |
+| `tcbm` | bool | Plus/4: false |
 
 ## BL-RAM
 
-Written by the C64, VIC-20, C128.
+Written by the C64, VIC-20, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values |
+| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values; Plus/4: 65536 × 0 or 16384 × 0 |
+| `bus.low_bank` | int & 0x3 | Plus/4: 0 |
+| `bus.high_bank` | int & 0x3 | Plus/4: 0 |
+| `bus.rom_selected` | bool | Plus/4: true |
+| `bus.data` | byte | Plus/4: 255 |
 
 ## BL-COLORRAM
 
@@ -81,14 +87,14 @@ Written by the C64, VIC-20, C128.
 
 ## BL-CPU
 
-Written by the C64, C128, VIC-20.
+Written by the C64, C128, Plus/4, VIC-20.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `port.ddr` | byte | C64: 0; C128: 0 |
-| `port.data` | byte | C64: 0; C128: 0 |
+| `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
+| `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341 |
+| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -411,16 +417,18 @@ Written by the C64, C128.
 
 ## BL-TAPE
 
-Written by the C64, VIC-20, C128.
+Written by the C64, VIC-20, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
 | `playing` | bool | false |
 | `motor` | bool | false |
 | `countdown` | int | 0 |
+| `rise_at` | int | 0 |
+| `low_recorded` | bool | false |
 | `tape.bytes` | bytes | [] |
-| `tape.path` | text | C64: "" |
-| `tape.position` | int | C64: 0 |
+| `tape.path` | text | C64: ""; Plus/4: "" |
+| `tape.position` | int | C64: 0; Plus/4: 0 |
 
 ## BL-RAMEXP
 
@@ -477,7 +485,7 @@ Written by the C64.
 
 ## BL-CART
 
-Written by the C64, VIC-20.
+Written by the C64, VIC-20, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -519,6 +527,10 @@ Written by the C64, VIC-20.
 | `roms` | int | VIC-20: 0 |
 | `rom0.bytes` | bytes | VIC-20: [] |
 | `rom0.start` | word | VIC-20: 0 |
+| `c1lo` | bytes | Plus/4: [] |
+| `c2lo` | bytes | Plus/4: [] |
+| `c1hi` | bytes | Plus/4: [] |
+| `c2hi` | bytes | Plus/4: [] |
 
 ## BL-TRAPDOS
 
@@ -552,29 +564,29 @@ Written by the C64.
 
 ## BL-D8
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `model` | text: 1541 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571" |
+| `model` | text: 1541 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" |
 | `phase` | int | 0 |
 | `cycles` | int | 0 |
 | `so_pending` | bool | false |
-| `serial.host` | int | 255 |
+| `serial.host` | int | C64: 255; C128: 255; Plus/4: 0 |
 | `atn` | bool | C64: true |
 
 ## BL-D8-RAM
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `data` | byte | C64: 234 or 175; C128: 234 |
-| `ram` | bytes | C64: 2048 × 0 or 8192 × 0; C128: 2048 × 0 |
+| `data` | byte | C64: 234 or 175; C128: 234; Plus/4: 234 |
+| `ram` | bytes | C64: 2048 × 0 or 8192 × 0; C128: 2048 × 0; Plus/4: 2048 × 0 |
 
 ## BL-D8-VIA1
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -608,7 +620,7 @@ Written by the C64, C128.
 | `ifr.flags` | int & 0x7f | 0 |
 | `ifr.enable` | int & 0x7f | 0 |
 | `ca.control` | int & 0xf | 0 |
-| `ca.c1_high` | bool | true |
+| `ca.c1_high` | bool | C64: true; C128: true; Plus/4: false |
 | `ca.c2_high` | bool | true |
 | `ca.handshake_low` | bool | false |
 | `ca.pulse` | int | 0 |
@@ -622,7 +634,7 @@ Written by the C64, C128.
 
 ## BL-D8-VIA2
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -670,11 +682,11 @@ Written by the C64, C128.
 
 ## BL-D8-CPU
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | C64: 60064 or 44836; C128: 60064 |
+| `pc` | word | C64: 60064 or 44836; C128: 60064; Plus/4: 60064 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -696,7 +708,7 @@ Written by the C64, C128.
 
 ## BL-D8-DISK
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -711,13 +723,13 @@ Written by the C64, C128.
 
 ## BL-D8-MECH
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `half_track` | int | C64: 35; C128: 37 |
-| `slip` | int & 0x3 | C64: 0; C128: 2 |
-| `side` | int | C64: 0 or 1; C128: 85 |
+| `half_track` | int | C64: 35; C128: 37; Plus/4: 35 |
+| `slip` | int & 0x3 | C64: 0; C128: 2; Plus/4: 0 |
+| `side` | int | C64: 0 or 1; C128: 85; Plus/4: 0 |
 | `zone` | int & 0x3 | 3 |
 | `time` | int | 0 |
 | `read_clock_in` | int | 2097152 |
@@ -726,7 +738,7 @@ Written by the C64, C128.
 | `ones` | int | 0 |
 | `bits` | int | 0 |
 | `write_shift` | int | 0 |
-| `motor` | bool | C64: true or false; C128: true |
+| `motor` | bool | C64: true or false; C128: true; Plus/4: true |
 | `led` | bool | true |
 | `sync` | bool | false |
 | `byte_ready` | bool | false |
@@ -1093,3 +1105,93 @@ Written by the C128.
 | `int` | bool | false |
 | `nmi` | bool | false |
 | `nmi_pending` | bool | false |
+
+## BL-TED
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `registers` | bytes | 32 × 0 |
+| `interrupt_flags` | byte | 0 |
+| `key_latch` | byte | 255 |
+| `blink` | int & 0xf | 0 |
+| `blink_on` | bool | false |
+| `timer<N>.count` | word | 0 |
+| `timer<N>.running` | bool | false |
+| `timer1.reload` | word | 0 |
+| `column` | int | 0 |
+| `line` | int & 0x1ff | 0 |
+| `ba` | bool | false |
+| `cpu_slots` | int | 1 |
+| `fetch.patterns` | bytes | 40 × 0 |
+| `fetch.pointers` | bytes | 40 × 0 |
+| `fetch.attributes` | bytes | 40 × 0 |
+| `fetch.next_attributes` | bytes | 40 × 0 |
+| `fetch.char_position` | int & 0x3ff | 0 |
+| `fetch.line_position` | int & 0x3ff | 0 |
+| `fetch.row_line` | int & 0x7 | 0 |
+| `fetch.row_active` | bool | false |
+| `fetch.dma` | text: none attributes pointers | "none" |
+| `fetch.patterns_on` | bool | false |
+| `scanline` | int | 0 |
+| `window_open` | bool | false |
+| `line.layout` | int | 0 |
+| `line.painted` | int | 0 |
+| `display` | bytes | 119808 × 0 |
+
+## BL-TEDSOUND
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `voice<N>.phase` | int & 0x1 | 1 |
+| `voice<N>.toggle_in` | int, optional | absent |
+| `noise` | byte | 255 |
+| `ran_ago` | int | 0 |
+
+## BL-KEYPORT
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `output` | byte | 255 |
+
+## BL-USERPORT
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `output` | byte | 255 |
+
+## BL-ACIA
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `command` | byte | 0 |
+| `control` | byte | 0 |
+
+## BL-TIA1
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ports` | ints | [0, 0, 0] |
+| `directions` | ints | [0, 0, 0] |
+| `inputs` | ints | [0, 0, 0] |
+
+## BL-TIA2
+
+Written by the Plus/4.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ports` | ints | [0, 0, 0] |
+| `directions` | ints | [0, 0, 0] |
+| `inputs` | ints | [0, 0, 0] |

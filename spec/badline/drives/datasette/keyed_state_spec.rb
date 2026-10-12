@@ -22,11 +22,27 @@ describe Badline::Drives::Datasette::KeyedState do
     end
   end
 
+  # A version 2 tape's half waves on a datasette that times the read
+  # line's level, part way through the first high half.
+  let(:level) do
+    tape = Badline::Storage::TAP.new("", bytes: "C16-TAPE-RAW".bytes + [2, 2, 0, 0, 6, 0, 0, 0] + ([0x30, 0x52] * 3))
+    Badline::Drives::Datasette.new(tape, level: true).tap do |deck|
+      deck.play!
+      deck.motor = true
+      401.times { deck.cycle! }
+    end
+  end
+
   it "puts the tape back in where it had played to, from the bytes it holds" do
     target = Badline::Drives::Datasette.new
     keyed_round_trip(saved, target)
     File.delete(path)
     expect(saved_fields(target)).to eq(saved_fields(saved))
+  end
+
+  it "puts a level datasette back where the read line rises in a version 2 tape's half waves" do
+    target = Badline::Drives::Datasette.new(level: true).tap { |deck| keyed_round_trip(level, deck) }
+    expect([saved_fields(target), target.read_high?]).to eq([saved_fields(level), level.read_high?])
   end
 
   it "takes the tape out when the module holds none" do

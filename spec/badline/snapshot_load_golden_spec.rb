@@ -6,11 +6,11 @@ require_relative "../../test/support/snapshot_golden"
 
 # Snapshots saved by each release since the keyed modules, under
 # spec/fixtures/snapshots/<version>/ by rake snapshot:golden, never saved
-# again: a C64, a VIC-20 and a C128 typing PRINT 6*7, a C64 loading the
-# directory from a true 1541, and a C64 running the Super Games cartridge
-# test. Each loads into this badline and runs 100,000 cycles, after which
-# its text screen reads as the screen saved beside it, which the release
-# that saved it showed then.
+# again: a C64, a VIC-20, a C128 and, from 0.15.0, a Plus/4 typing PRINT
+# 6*7, a C64 loading the directory from a true 1541, and a C64 running the
+# Super Games cartridge test. Each loads into this badline and runs
+# 100,000 cycles, after which its text screen reads as the screen saved
+# beside it, which the release that saved it showed then.
 describe Badline::Snapshot, ".load" do
   fixtures = File.expand_path("../fixtures/snapshots", __dir__)
 

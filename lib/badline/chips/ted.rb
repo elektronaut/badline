@@ -7,6 +7,7 @@ require "badline/chips/ted/palette"
 require "badline/chips/ted/modes"
 require "badline/chips/ted/picture"
 require "badline/chips/ted/sound"
+require "badline/chips/ted/keyed_state"
 
 module Badline
   module Chips

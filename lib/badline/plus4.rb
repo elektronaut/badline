@@ -10,6 +10,10 @@ require "badline/plus4/user_port"
 require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
 require "badline/plus4/bus"
+require "badline/snapshot/plus4_setup"
+require "badline/plus4/keyed_parts"
+require "badline/plus4/keyed_state"
+require "badline/plus4/keyed_modules"
 
 module Badline
   # The Commodore 264 series: the Plus/4, the C16 and the C116. A 7501 on
@@ -27,6 +31,7 @@ module Badline
     include IntegerHelper
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include C64::TrueDrives
     include C64::KernalTraps
 

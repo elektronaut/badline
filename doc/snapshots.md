@@ -125,6 +125,21 @@ do, and holds only badline's modules, so x128 doesn't open it, and
 badline doesn't open x128's. Restoring a C128 snapshot while another machine runs swaps the
 machine in the window, as for the VIC-20.
 
+## The Plus/4
+
+The Plus/4, the C16 and the C116 save and restore the same way. A
+snapshot of one holds its RAM with the ROM bank latch and whether ROM or
+RAM is selected, the cartridges' ROMs in each slot, the CPU with its
+port, the TED with its timers, its counters and its picture, the TED's
+sound, the keyboard's 6529, the Plus/4's user port 6529 and ACIA, a TCBM
+interface's TIAs, the tape with its place on it, the disk or directory
+device 8 serves through the traps and a true 1541 or 1581. It restores
+into a machine of the same model with the same RAM, and the BASIC,
+KERNAL and function ROMs come with the model. Its file names its machine
+`PLUS4`, as xplus4's do, and holds only badline's modules, so xplus4
+doesn't open it, and badline doesn't open xplus4's. `--vice` and
+`computer.export_snapshot(path)` refuse a Plus/4.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format, and badline's own modules are named

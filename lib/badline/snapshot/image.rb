@@ -34,7 +34,7 @@ module Badline
     # of a machine in memory (.of).
     class Image
       MACHINE = "BL-MACHINE"
-      FAMILIES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128" }.freeze
+      FAMILIES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4" }.freeze
 
       attr_reader :container
 
@@ -54,8 +54,11 @@ module Badline
       end
 
       # The snapshot with VICE's modules ahead of the BL-* ones for a C64,
-      # so x64sc opens it too.
+      # so x64sc opens it too. Raises FormatError for a Plus/4, whose
+      # snapshots badline doesn't write for xplus4.
       def self.exported(computer)
+        raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
+
         computer.settle_for_snapshot!
         sections = computer.save_modules
         sections = Vice.export(computer) + sections if computer.family == :c64
@@ -67,6 +70,7 @@ module Badline
         case computer.family
         when :vic20 then Container::VIC20
         when :c128 then Container::C128
+        when :plus4 then Container::PLUS4
         else Container::MACHINE
         end
       end
@@ -77,6 +81,7 @@ module Badline
         case machine.choice("family", FAMILIES.keys, "c64")
         when "vic20" then Vic20Setup.read_fields(machine)
         when "c128" then C128Setup.read_fields(machine)
+        when "plus4" then Plus4Setup.read_fields(machine)
         else C64Setup.read_fields(machine)
         end
       end
@@ -92,7 +97,7 @@ module Badline
 
       # A new machine, built as the snapshot's was and restored from it. A
       # badline snapshot restores from its BL-* modules alone, and a VICE
-      # one through the modules badline reads. xvic's and x128's own
+      # one through the modules badline reads. xvic's, x128's and xplus4's own
       # modules aren't read. Yields a line for each thing left out, or
       # warns it without a block. `detached` restores it without the host's
       # files (Keyed::Modules).
@@ -100,6 +105,7 @@ module Badline
         refuse_old_layout
         raise FormatError, "badline reads only its own VIC-20 snapshots, not xvic's" if vic20? && !badline?
         raise FormatError, "badline reads only its own C128 snapshots, not x128's" if c128? && !badline?
+        raise FormatError, "badline reads only its own Plus/4 snapshots, not xplus4's" if plus4? && !badline?
         return load_vice(&) unless badline?
 
         modules = Keyed::Modules.new(sections, detached:)
@@ -113,6 +119,9 @@ module Badline
 
       # Whether the machine is a C128, as the container names it.
       def c128? = @container.machine == Container::C128
+
+      # Whether the machine is of the 264 series, as the container names it.
+      def plus4? = @container.machine == Container::PLUS4
 
       # Restores `computer` from the snapshot, and returns the Report. The
       # snapshot goes into a new machine first, so one that fails, or is of

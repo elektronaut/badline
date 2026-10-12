@@ -2,8 +2,11 @@
 
 require "spec_helper"
 require "badline/plus4"
+require_relative "../../support/keyed_oracle"
 
 describe Badline::Chips::TIA do
+  include KeyedOracle
+
   subject(:tia) { described_class.new }
 
   it "reads back what an output pin drives" do
@@ -30,5 +33,13 @@ describe Badline::Chips::TIA do
 
   it "reads registers 6 and 7 as $FF" do
     expect([tia.peek(0x06), tia.peek(0x07)]).to eq([0xff, 0xff])
+  end
+
+  it "loads its ports, their directions and what the other side drives from a keyed snapshot module" do
+    tia.poke(0x03, 0xf0)
+    tia.poke(0x02, 0x81)
+    tia.inputs[1] = 0x5a
+    target = described_class.new.tap { |fresh| keyed_round_trip(tia, fresh) }
+    expect([target.ports, target.directions, target.inputs]).to eq([tia.ports, tia.directions, tia.inputs])
   end
 end

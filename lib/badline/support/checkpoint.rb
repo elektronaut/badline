@@ -9,8 +9,9 @@ module Badline
     # interface, so taking a checkpoint leaves the machine as it was.
     #
     # Checkpoint.take digests a C64's components, COMPONENTS.
-    # Vic20Checkpoint and C128Checkpoint digest the other families', each
-    # with a list of its own, which a checkpoint carries as +components+.
+    # Vic20Checkpoint, C128Checkpoint and Plus4Checkpoint digest the other
+    # families', each with a list of its own, which a checkpoint carries as
+    # +components+.
     #
     # Colour RAM is digested as the four bits each cell stores: the upper
     # nibble a CPU read sees comes off the open bus.

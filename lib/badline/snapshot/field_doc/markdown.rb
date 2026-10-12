@@ -7,7 +7,7 @@ module Badline
       # its default, with keys that differ only in a unit's number, such as
       # voice1 to voice3, on one row.
       class Markdown
-        NAMES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128" }.freeze
+        NAMES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4" }.freeze
         TAG_TYPES = { Keyed::INT => "int", Keyed::BOOL => "bool", Keyed::BYTES => "bytes", Keyed::INTS => "ints",
                       Keyed::TEXT => "text" }.freeze
 

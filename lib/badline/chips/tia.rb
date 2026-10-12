@@ -44,6 +44,18 @@ module Badline
           @ports[register] = value
         end
       end
+
+      # The ports, their directions and what the other side drives, in a
+      # keyed snapshot module (Snapshot::Keyed, BL-TIA1 and BL-TIA2).
+      def save_fields(out)
+        out.ints("ports", @ports).ints("directions", @directions).ints("inputs", @inputs)
+      end
+
+      def load_fields(input)
+        input.ints_into("ports", @ports)
+        input.ints_into("directions", @directions)
+        input.ints_into("inputs", @inputs)
+      end
     end
   end
 end

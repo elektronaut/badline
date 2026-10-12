@@ -2,6 +2,7 @@
 
 require "badline"
 require "badline/c128"
+require "badline/plus4"
 
 module Badline
   module Snapshot
@@ -33,15 +34,19 @@ module Badline
       # Pagefox's control registers.
       CARTRIDGES = [32, 5, 21, 18, 1, 53].freeze
 
-      # The machines the doc is made from: each family at power-on, and the
-      # C64 with each kind of expansion, cartridge and media, and a second SID.
+      # The machines the doc is made from: each family at power-on, the C64
+      # with each kind of expansion, cartridge and media, and a second SID,
+      # and the 264 series' models, its TCBM interface, cartridge, tape and
+      # true drive.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
                     *CARTRIDGES.map { |type| with_cartridge(type) }, with_trap_dos, with_tape, with_drive(:d64),
                     with_drive(:d81), with_extra_sids],
           "vic20" => [Vic20.new, with_rom],
-          "c128" => [C128.new(mode: :c128), with_drive(:d71)]
+          "c128" => [C128.new(mode: :c128), with_drive(:d71)],
+          "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), plus4_with_cartridge,
+                      plus4_with_tape, plus4_with_drive]
         }
       end
 
@@ -87,6 +92,28 @@ module Badline
             image = Storage::D64Image.new("", bytes: blank(174_848))
             machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
           end
+        end
+      end
+
+      # A Plus/4 with a cartridge in each of cartridge 1's slots.
+      def self.plus4_with_cartridge
+        chips = [0x8000, 0xc000].map do |address|
+          Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address:, data: blank(0x4000))
+        end
+        Plus4.new.tap { |machine| machine.attach_cartridge(chips) }
+      end
+
+      # A C16 with a version 2 tape in its datasette, which times the read
+      # line's level.
+      def self.plus4_with_tape
+        bytes = "C16-TAPE-RAW".bytes + [2, 2, 0, 0, 4, 0, 0, 0, 0x30, 0x30, 0x30, 0x30]
+        Plus4.new(model: "c16").tap { |machine| machine.datasette.insert(Storage::TAP.new("", bytes:)) }
+      end
+
+      def self.plus4_with_drive
+        Plus4.new.tap do |machine|
+          image = Storage::D64Image.new("", bytes: blank(174_848))
+          machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
         end
       end
 
