@@ -6,11 +6,14 @@ module Badline
       # The datasette's fields in a keyed snapshot module (Snapshot::Keyed,
       # BL-TAPE): the keys, the motor, the countdown to the next pulse, and
       # a tape in it under tape.*: its path, its bytes and how far it has
-      # played. A tape that isn't in leaves tape.* out. The sense and flag
-      # handlers don't fire on load.
+      # played. A tape that isn't in leaves tape.* out. A datasette that
+      # times the read line's level adds when in the countdown the line
+      # rises, and whether a recording's low half wave is on the tape. The
+      # sense and flag handlers don't fire on load.
       module KeyedState
         def save_fields(out)
           out.bool("playing", @playing).bool("motor", @motor).int("countdown", @countdown)
+          out.int("rise_at", @rise_at).bool("low_recorded", @low_recorded) if @level
           tape = @tape
           return out unless tape
 
@@ -23,6 +26,8 @@ module Badline
           @playing = input.bool("playing", @playing)
           @motor = input.bool("motor", @motor)
           @countdown = input.int("countdown", @countdown)
+          @rise_at = input.int("rise_at", @rise_at)
+          @low_recorded = input.bool("low_recorded", @low_recorded)
           bytes = input.bytes("tape.bytes", "".b).bytes
           return @tape = nil if bytes.empty?
 
