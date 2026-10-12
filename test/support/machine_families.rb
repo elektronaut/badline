@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/support/plus4_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.

@@ -19,6 +19,7 @@ require "badline/c128"
 require "badline/plus4"
 require "badline/snapshot"
 require "badline/support"
+require "badline/support/plus4_checkpoint"
 
 CHECKPOINT = 250_000
 
