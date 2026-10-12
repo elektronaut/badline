@@ -10,3 +10,6 @@ Plus4/openio/outrun.prg	PASS
 Plus4/openio/outrun2.prg	PASS
 Plus4/tcbm/test.prg	PASS
 memory-expansions/c16-ram-emd.prg	PASS
+Plus4/HannesTest/HannesTest.prg	PASS
+Plus4/HannesTest/HannesTest.prg#2	PASS
+Plus4/HannesTest/HannesTest.prg#3	PASS

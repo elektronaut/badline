@@ -528,6 +528,9 @@ class TestTestbenchPlus4 < Minitest::Test
   # 10 POKE64975,0, which reports a pass through $FDCF.
   REPORTS_PASS = [0x01, 0x10, 0x0e, 0x10, 0x0a, 0x00, 0x97, *"64975,0".bytes, 0x00, 0x00, 0x00].freeze
 
+  # 10 POKE65305,85, which turns the border green.
+  GREEN_BORDER = [0x01, 0x10, 0x0f, 0x10, 0x0a, 0x00, 0x97, *"65305,85".bytes, 0x00, 0x00, 0x00].freeze
+
   # Signs itself as module 1 with CBM at $8006, which the KERNAL calls at
   # reset, and reports a pass: LDA #$00, STA $FDCF, JMP to itself.
   AUTOSTART = [0x4c, 0x0a, 0x80, 0x4c, 0x0a, 0x80, 0x01, 0x43, 0x42, 0x4d,
@@ -536,6 +539,7 @@ class TestTestbenchPlus4 < Minitest::Test
   def setup
     @dir = Dir.mktmpdir
     File.binwrite(File.join(@dir, "t.prg"), REPORTS_PASS.pack("C*"))
+    File.binwrite(File.join(@dir, "border.prg"), GREEN_BORDER.pack("C*"))
     rom = AUTOSTART + Array.new(0x1000 - AUTOSTART.length, 0xea)
     header = "PLUS4 CARTRIDGE ".b + [0x40, 0x0200, 0, 0, 0, 0].pack("NnnCCCx5") + ["Generic"].pack("a32")
     chip = ["CHIP", 0x10 + rom.length, 0, 0, 0x8000, rom.length].pack("a4Nn4") + rom.pack("C*")
@@ -572,6 +576,30 @@ class TestTestbenchPlus4 < Minitest::Test
 
   def test_hands_the_engine_its_model
     assert Testbench::Engine.spec(parse("", family: :c16)).end_with?("\t#{@dir}\tc16\n")
+  end
+
+  def test_hands_the_engine_its_ram_expansion_and_a_border_result
+    spec = Testbench::Engine.spec(parse("ram-expansion:hannes1m,border-result"))
+
+    assert spec.end_with?("\tplus4\thannes1m\tborder\n")
+  end
+
+  def test_fits_the_ram_expansion_a_row_names
+    test = parse("ram-expansion:csory256")
+
+    assert_equal :csory256, test.plus4_machine.ram_expansion.kind
+  end
+
+  def test_ends_a_border_result_row_on_a_green_border
+    test = parse("border-result", prg: "border.prg")
+
+    assert_equal 0, test.run_plus4(test.plus4_machine).first
+  end
+
+  def test_runs_hannestest_with_each_ram_expansion
+    options = Testbench::PLUS4_ROWS.map { |row| row.split(",")[4] }
+
+    assert_equal %w[hannes256 hannes1m csory256].map { |kind| "ram-expansion:#{kind}" }, options
   end
 
   def test_runs_a_program_from_the_start_of_basic

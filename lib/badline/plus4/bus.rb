@@ -10,7 +10,9 @@ module Badline
     # $C000-$FCFF - the high ROM bank, or RAM; $FC00-$FCFF is always the
     #               KERNAL's while ROM is selected
     # $FD00-$FD0F - the 6551 ACIA (Plus/4 only)
-    # $FD10-$FD1F - the user port's 6529 (Plus/4 only)
+    # $FD10-$FD1F - the user port's 6529 (Plus/4 only), or with a RAM
+    #               expansion, the 6529 at $FD10 and the expansion's
+    #               registers at $FD15 and $FD16
     # $FD30-$FD3F - the keyboard's 6529 (KeyboardPort)
     # $FD40-$FD5F - a SID card's SID, where one is fitted
     # $FDD0-$FDDF - the ROM bank latch
@@ -28,7 +30,8 @@ module Badline
     #
     # RAM smaller than 64K repeats through the 64K, as the C16's 16K does
     # without A14 and A15. Where nothing answers, a read finds the last byte
-    # on the bus.
+    # on the bus. A RAM expansion (RAMExpansion) picks the RAM each page
+    # reads and writes, the CPU's and the TED's.
     #
     # The TED fetches through the same banks: the video matrix and the
     # attributes from ROM or RAM at $8000-$FFFF as the CPU sees it, with no
@@ -41,17 +44,18 @@ module Badline
 
       RAM_POWER_ON = 0x00
 
-      # RAM through a size it repeats at.
+      # RAM through a size it repeats at, from +offset+ on in +ram+.
       class MirroredRAM
-        def initialize(ram, mask)
+        def initialize(ram, mask, offset = 0)
           @ram = ram
           @mask = mask
+          @offset = offset
         end
 
-        def peek(addr) = @ram.peek(addr & @mask)
+        def peek(addr) = @ram.peek((addr & @mask) + @offset)
 
         def poke(addr, value)
-          @ram.poke(addr & @mask, value)
+          @ram.poke((addr & @mask) + @offset, value)
         end
       end
 
@@ -86,10 +90,13 @@ module Badline
       # and +sid_card+ are nil where the machine has none, and
       # +cassette_sense+ answers in the user port's place on a machine
       # without one (CassetteSense). The SID card decodes its 32 bytes
-      # alone, with no mirrors, as xplus4's does.
+      # alone, with no mirrors, as xplus4's does. A RAM expansion
+      # (RAMExpansion) leaves the user port only $FD10 of $FD10-$FD1F, and
+      # has its register at $FD16.
       class IOPage
         def initialize(keyboard_port:, acia: nil, user_port: nil, cassette_sense: nil, sid_card: nil)
           @bus = nil
+          @ram_expansion = nil
           @acia = acia
           @sid_card = sid_card
           @user_port = user_port
@@ -101,12 +108,13 @@ module Badline
         # a write to $FDD0-$FDDF sets.
         def connect(bus)
           @bus = bus
+          @ram_expansion = bus.ram_expansion
         end
 
         def peek(addr)
           case addr & 0xf0
           when 0x00 then @acia ? @acia.peek(addr) : @bus.data
-          when 0x10 then user_port_peek(addr)
+          when 0x10 then @ram_expansion ? expansion_peek(addr) : user_port_peek(addr)
           when 0x30 then @keyboard_port.peek(addr)
           when 0x40, 0x50 then @sid_card ? @sid_card.peek(addr) : @bus.data
           else @bus.data
@@ -116,7 +124,7 @@ module Badline
         def poke(addr, value)
           case addr & 0xf0
           when 0x00 then @acia&.poke(addr, value)
-          when 0x10 then @user_port&.poke(addr, value)
+          when 0x10 then @ram_expansion ? expansion_poke(addr, value) : @user_port&.poke(addr, value)
           when 0x30 then @keyboard_port.poke(addr, value)
           when 0x40, 0x50 then @sid_card&.poke(addr, value)
           when 0xd0 then @bus.select_banks(addr)
@@ -124,6 +132,22 @@ module Badline
         end
 
         private
+
+        def expansion_peek(addr)
+          case addr & 0x0f
+          when 0x00 then user_port_peek(addr)
+          when RAMExpansion::CONTROL then @ram_expansion.control
+          else @bus.data
+          end
+        end
+
+        def expansion_poke(addr, value)
+          if addr.nobits?(0x0f)
+            @user_port&.poke(addr, value)
+          else
+            @bus.ram_expansion_written(addr, value)
+          end
+        end
 
         def user_port_peek(addr)
           return @user_port.peek(addr) if @user_port
@@ -197,7 +221,7 @@ module Badline
         end
 
         def poke(addr, value)
-          return @bus.ram_view.poke(addr, value) if addr >= 0xff40
+          return @bus.top_ram.poke(addr, value) if addr >= 0xff40
 
           case addr
           when 0xff3e then @bus.rom_selected = true
@@ -212,17 +236,29 @@ module Badline
       # What the top page reads above $FF3F: the high ROM bank or RAM.
       attr_reader :top_memory
 
+      # The RAM the CPU sees at $FF00-$FFFF, which a write above $FF3F
+      # reaches.
+      attr_reader :top_ram
+
+      # The RAMExpansion fitted, or nil.
+      attr_reader :ram_expansion
+
       # The CPU sees ROM at $8000-$FFFF.
       attr_reader :rom_selected
 
       # +io+ is the IOPage, +model+ a Model profile, whose KERNAL it maps
       # and whose function ROMs it maps where the model has them, and
-      # +ram_kb+ the RAM fitted.
-      def initialize(ted:, port:, io:, model: Model::PLUS4, ram_kb: model.ram_kb)
+      # +ram_kb+ the RAM fitted. +ram_expansion+ names the kind of
+      # RAMExpansion to fit over 64K of it.
+      def initialize(ted:, port:, io:, model: Model::PLUS4, ram_kb: model.ram_kb, ram_expansion: nil)
         addressable_at(0, length: 2**16)
         size = ram_kb * 1024
         @ram = Memory.new(Array.new(size, RAM_POWER_ON), length: size, start: 0)
         @ram_view = MirroredRAM.new(@ram, size - 1)
+        @ram_expansion = ram_expansion ? RAMExpansion.new(ram_expansion, @ram, @ram_view) : nil
+        @cpu_ram = Array.new(256, @ram_view)
+        @ted_ram = Array.new(256, @ram_view)
+        @top_ram = @ram_view
         @ted = ted
         @open_bus = OpenBus.new(self)
         @low_roms = [ROM.load("plus4/basic.rom", 0x8000), nil, nil, nil]
@@ -231,6 +267,7 @@ module Badline
           @low_roms[1] = ROM.load("plus4/function-low.rom", 0x8000)
           @high_roms[1] = ROM.load("plus4/function-high.rom", 0xc000)
         end
+        @port = port
         @zero_page = ZeroPage.new(port, @ram_view)
         @io_page = io
         io.connect(self)
@@ -245,19 +282,29 @@ module Badline
         @low_bank = @high_bank = 0
         @rom_selected = true
         @top_memory = @ram_view
-        map_writes
-        map_reads
+        map_ram
       end
 
       def power_on!
         @ram.clear!(Array.new(@ram.length, RAM_POWER_ON))
+        @ram_expansion&.power_on!
         reset!
       end
 
-      # The RESET line selects ROM and the first bank of each.
+      # The RESET line selects ROM and the first bank of each, and sets a
+      # RAM expansion's register.
       def reset!
         @low_bank = @high_bank = 0
-        self.rom_selected = true
+        @ram_expansion&.reset!
+        @rom_selected = true
+        @ted.rom_selected = true
+        map_ram
+      end
+
+      # A write to a RAM expansion's registers in $FD11-$FD1F.
+      def ram_expansion_written(addr, value)
+        @ram_expansion.poke(addr, value)
+        map_ram
       end
 
       def rom_selected=(selected)
@@ -354,12 +401,35 @@ module Badline
 
       # A TED fetch of character or bitmap data, from ROM when +rom+.
       def ted_pattern_fetch(addr, rom)
-        @data = rom ? @ted_rom_pages[addr >> 8].peek(addr) : @ram_view.peek(addr)
+        @data = rom ? @ted_rom_pages[addr >> 8].peek(addr) : @ted_ram[addr >> 8].peek(addr)
       end
 
       private
 
+      # Lays out the RAM a RAM expansion banks in, then every page.
+      def map_ram
+        expansion = @ram_expansion
+        if expansion
+          expansion.map(@cpu_ram, @ted_ram)
+          @zero_page = ZeroPage.new(@port, @cpu_ram[0])
+          @top_ram = @cpu_ram[0xff]
+        end
+        map_writes
+        map_reads
+      end
+
+      # Copies the RAM the CPU sees into +pages+, up to the I/O pages.
+      def copy_ram(pages)
+        cpu_ram = @cpu_ram
+        page = 1
+        while page < 0xfd
+          pages[page] = cpu_ram[page]
+          page += 1
+        end
+      end
+
       def map_writes
+        copy_ram(@write_pages) if @ram_expansion
         @write_pages[0x00] = @zero_page
         @write_pages[0xfd] = @debug_register || @io_page
         @write_pages[0xfe] = @tcbm_page
@@ -367,10 +437,14 @@ module Badline
       end
 
       def map_reads
-        @read_pages.fill(@ram_view, 0x00, 0xfd)
+        if @ram_expansion
+          copy_ram(@read_pages)
+        else
+          @read_pages.fill(@ram_view, 0x00, 0xfd)
+        end
         @read_pages[0x00] = @zero_page
-        map_roms(@read_pages) if @rom_selected
-        @top_memory = @rom_selected ? @high_roms[@high_bank] || @open_bus : @ram_view
+        map_roms(@read_pages, @high_bank) if @rom_selected
+        @top_memory = @rom_selected ? @high_roms[@high_bank] || @open_bus : @top_ram
         @read_pages[0xfd] = @io_page
         @read_pages[0xfe] = @tcbm_page
         @read_pages[0xff] = @top_page
@@ -378,16 +452,32 @@ module Badline
       end
 
       def map_ted_reads
-        @ted_pages.fill(@ram_view, 0x80, 0x80)
-        map_roms(@ted_pages) if @rom_selected
-        map_roms(@ted_rom_pages)
-        @ted_pages.fill(@high_roms[@high_bank] || @open_bus, 0xfd, 3) if @rom_selected
-        @ted_rom_pages.fill(@high_roms[@high_bank] || @open_bus, 0xfd, 3)
+        expansion = @ram_expansion
+        if expansion
+          copy_ted_ram
+        else
+          @ted_pages.fill(@ram_view, 0x80, 0x80)
+        end
+        high_bank = expansion&.kernal_for_ted? ? 0 : @high_bank
+        high_rom = @high_roms[high_bank] || @open_bus
+        map_roms(@ted_pages, high_bank) if @rom_selected
+        map_roms(@ted_rom_pages, high_bank)
+        @ted_pages.fill(high_rom, 0xfd, 3) if @rom_selected
+        @ted_rom_pages.fill(high_rom, 0xfd, 3)
       end
 
-      def map_roms(pages)
+      def copy_ted_ram
+        ted_ram = @ted_ram
+        page = 0
+        while page < 0x100
+          @ted_pages[page] = ted_ram[page]
+          page += 1
+        end
+      end
+
+      def map_roms(pages, high_bank)
         pages.fill(@low_roms[@low_bank] || @open_bus, 0x80, 0x40)
-        pages.fill(@high_roms[@high_bank] || @open_bus, 0xc0, 0x3c)
+        pages.fill(@high_roms[high_bank] || @open_bus, 0xc0, 0x3c)
         pages[0xfc] = @high_roms[0]
       end
     end

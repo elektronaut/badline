@@ -33,6 +33,12 @@ module Badline
         PLUS4_RAM[value]
       end
 
+      def plus4_ram_expansion(value)
+        raise Error, "invalid argument: --ram-expansion #{value}" unless PLUS4_RAM_EXPANSIONS.key?(value)
+
+        PLUS4_RAM_EXPANSIONS[value]
+      end
+
       def drive_type_for(value)
         raise Error, "invalid argument: --drive-type #{value}" unless PLUS4_DRIVE_TYPES.include?(value)
 
@@ -112,10 +118,11 @@ module Badline
       end
 
       # Only the Plus/4 has cartridge slots for raw ROM images and takes a
-      # SID card.
+      # SID card and a RAM expansion.
       def refuse_plus4_options
         raise Error, "--#{@cartridges.keys.first} needs plus4" unless @cartridges.empty?
         raise Error, "--sid-card needs plus4" unless @sid_card.nil?
+        raise Error, "--ram-expansion needs plus4" unless @ram_expansion.nil?
       end
 
       # The Plus/4 runs in the window, without the C64's SID and REU but
@@ -126,6 +133,7 @@ module Badline
         raise Error, "--sid needs the C64; the Plus/4's is --sid-card" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the Plus/4 needs the window" if headless?
+        raise Error, "--ram-expansion needs 64k" unless @ram_expansion.nil? || [nil, 64].include?(@ram_kb)
 
         image = @cartridges.values.find { |path| !File.extname(path).casecmp?(".bin") }
         raise Error, "not a .bin ROM image: #{image}" unless image.nil?

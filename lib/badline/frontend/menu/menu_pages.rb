@@ -167,10 +167,14 @@ module Badline
       end
 
       # The C128 names its model and the mode it runs in first, and the
-      # Plus/4 its model and RAM.
+      # Plus/4 its model and RAM, and its RAM expansion if it has one.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
-        info("MACHINE", @computer.model_label) if plus4?
+        if plus4?
+          info("MACHINE", @computer.model_label)
+          expansion = @computer.ram_expansion_label
+          info("RAM EXPANSION", expansion) if expansion
+        end
         row("RESET", :reset)
         row("POWER CYCLE", :power_cycle)
         skip

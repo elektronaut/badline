@@ -12,6 +12,7 @@ require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
 require "badline/plus4/sid_card"
 require "badline/plus4/sound_mix"
+require "badline/plus4/ram_expansion"
 require "badline/plus4/bus"
 require "badline/plus4/tcbm_drive"
 require "badline/snapshot/plus4_setup"
@@ -38,6 +39,9 @@ module Badline
   # cycle a TED cycle, 886,724 Hz on PAL, below the C64's 985,248 Hz, so a
   # C64 tune plays about a semitone flat (plus4world forum threads 38287
   # and 20130).
+  #
+  # A RAM expansion, Hannes's 256K or 1M or Csory's 256K, banks more RAM
+  # in through a register at $FD16 (RAMExpansion).
   class Plus4
     include IntegerHelper
     include Machine::KeyboardBuffer
@@ -98,11 +102,13 @@ module Badline
     # plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF, with no
     # drive answering on the other side. +true_drive_model+ names the drive
     # plug_true_drive plugs in, "1541" or "1551". +sid_card+ fits a SID
-    # card with a SID of that model, :mos6581 or :mos8580.
-    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1551", sid_card: nil, debug: false)
+    # card with a SID of that model, :mos6581 or :mos8580. +ram_expansion+
+    # fits a RAMExpansion of that kind, :hannes256, :hannes1m or
+    # :csory256, over 64K of the machine's own.
+    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1551", sid_card: nil,
+                   ram_expansion: nil, debug: false)
       @model = Model.named(model)
-      @ram_kb = ram || @model.ram_kb
-      raise ArgumentError, "no Plus/4 RAM size of #{@ram_kb}K" unless Model::RAM_SIZES.include?(@ram_kb)
+      @ram_kb = fitted_ram(ram, ram_expansion)
 
       @ted = Chips::TED.new(@model.ted)
       @keyboard = Input::Keyboard.new(matrix: KeyboardPort::MATRIX)
@@ -124,7 +130,7 @@ module Badline
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
                            cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette), sid_card: @sid_card)
-      @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
+      @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb, ram_expansion:)
       @ted.connect(@bus)
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
@@ -166,8 +172,9 @@ module Badline
     end
 
     # The RESET line: the CPU, the port, the 6529s, the ACIA, the bank
-    # latch and ROM selection, the SID card, and through the serial bus's
-    # RESET line, the drives. The TED has no reset pin.
+    # latch and ROM selection, a RAM expansion's register, the SID card,
+    # and through the serial bus's RESET line, the drives. The TED has no
+    # reset pin.
     def reset!
       @port.reset!
       @keyboard_port.reset!
@@ -229,6 +236,18 @@ module Badline
       "#{name} #{standard}, #{@ram_kb}K RAM"
     end
 
+    # The RAMExpansion fitted, or nil.
+    def ram_expansion = @bus.ram_expansion
+
+    # The RAM expansion as the pause menu names it, such as "HANNES, 256
+    # KB", or nil without one.
+    def ram_expansion_label
+      expansion = @bus.ram_expansion
+      return if expansion.nil?
+
+      "#{RAMExpansion::NAMES.fetch(expansion.kind)}, #{expansion.size_kb} KB"
+    end
+
     # Stores a PRG's bytes from its load address on, into RAM, and returns
     # that address.
     def load_prg(data)
@@ -240,6 +259,16 @@ module Badline
     end
 
     private
+
+    # The RAM in K: +ram+, or the model's own, or 64K under a RAM
+    # expansion, which needs that much.
+    def fitted_ram(ram, ram_expansion)
+      ram_kb = ram || (ram_expansion ? 64 : @model.ram_kb)
+      raise ArgumentError, "no Plus/4 RAM size of #{ram_kb}K" unless Model::RAM_SIZES.include?(ram_kb)
+      raise ArgumentError, "a RAM expansion needs 64K, not #{ram_kb}K" if ram_expansion && ram_kb != 64
+
+      ram_kb
+    end
 
     # The 264 KERNAL's keyboard buffer.
     def keyboard_buffer = Machine::KeyboardBuffer::PLUS4_LAYOUT

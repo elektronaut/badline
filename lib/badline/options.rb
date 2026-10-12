@@ -51,6 +51,9 @@ module Badline
     # The Plus/4's RAM sizes as --ram names them, in K.
     PLUS4_RAM = { "16k" => 16, "32k" => 32, "64k" => 64 }.freeze
 
+    # The Plus/4's RAM expansions as --ram-expansion names them.
+    PLUS4_RAM_EXPANSIONS = { "hannes256" => :hannes256, "hannes1m" => :hannes1m, "csory256" => :csory256 }.freeze
+
     # The Plus/4's cartridge slots, by the options that fill them and
     # xplus4's names (Media::Plus4Media::SLOTS).
     CARTRIDGE_SLOTS = { "--c1lo" => "c1lo", "--c1hi" => "c1hi", "--c2lo" => "c2lo", "--c2hi" => "c2hi" }.freeze
@@ -84,6 +87,10 @@ module Badline
     # :mos8580, or nil without one.
     attr_reader :sid_card
 
+    # The Plus/4's RAM expansion --ram-expansion names, a key of
+    # Plus4::RAMExpansion::KINDS, or nil without one.
+    attr_reader :ram_expansion
+
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
     # The native build plays the SID in the window unless --no-sound says
@@ -101,6 +108,7 @@ module Badline
       @subtune = nil
       @sid_model = nil
       @sid_card = nil
+      @ram_expansion = nil
       @models = []
       @reu = nil
       @ram = nil
@@ -283,6 +291,7 @@ module Badline
       when "--subtune" then @subtune = number(flag, value)
       when "--sid" then @sid_model = sid_model_for(value)
       when "--sid-card" then @sid_card = sid_card_for(value)
+      when "--ram-expansion" then @ram_expansion = plus4_ram_expansion(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--ram" then ram_option(value)

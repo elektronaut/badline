@@ -14,9 +14,10 @@ module Testbench
   # A 264 series machine of +model+ with a 1551 on TCBM as device 8, as
   # xplus4 starts, booted up to the cycle where a program loads, or left
   # at power-on when +boot+ is false, for a cartridge that has to be in
-  # before the first cycle.
-  def self.plus4_machine(model, boot)
-    machine = Badline::Plus4.new(model:)
+  # before the first cycle. +ram_expansion+ names a RAM expansion to fit,
+  # or is empty.
+  def self.plus4_machine(model, boot, ram_expansion = "")
+    machine = Badline::Plus4.new(model:, ram_expansion: ram_expansion.empty? ? nil : ram_expansion.to_sym)
     machine.attach_drive1551(Badline::Drives::Model1551.new)
     machine.run_cycles(machine.init_threshold) if boot
     machine
@@ -46,11 +47,20 @@ module Testbench
   # runs out, the cycle of the write ending the run as on the C64. Only a
   # screenshot test reads the picture, so the others run with the TED's
   # picture unpainted.
+  #
+  # A test that reports through the border colour, as HannesTest does,
+  # passes once the border turns green ($55) and fails once it turns dark
+  # red ($12), which end the run as exit codes $00 and $FF.
   class Plus4Execution
+    BORDER = 0xff19
+    BORDER_PASS = 0x55
+    BORDER_FAIL = 0x12
+
     attr_reader :exit_code
 
-    def initialize(machine)
+    def initialize(machine, border: false)
       @machine = machine
+      @border = border
       @exit_code = nil
       machine.install_debug_register { |value| @exit_code = value }
     end
@@ -59,11 +69,20 @@ module Testbench
       @machine.ted.render = render
       @machine.attach_cartridge(Badline::Storage::CRTFile.new(cartridge, machine: :plus4).chips) if cartridge
       basic_load(File.binread(File.join(directory, prg)).bytes) unless prg.empty?
-      @machine.run_until(budget) { @exit_code }
+      @machine.run_until(budget) { @exit_code || border_code }
       @exit_code
     end
 
     private
+
+    def border_code
+      return unless @border
+
+      colour = @machine.ted.peek(BORDER) & 0x7f
+      @exit_code = 0x00 if colour == BORDER_PASS
+      @exit_code = 0xff if colour == BORDER_FAIL
+      @exit_code
+    end
 
     # The program goes to the start of BASIC at TXTTAB, whatever its load
     # address, BASIC's end of program at VARTAB and the KERNAL's end

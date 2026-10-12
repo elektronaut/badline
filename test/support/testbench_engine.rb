@@ -40,8 +40,10 @@ module Testbench
     end
 
     def self.plus4_spec(test)
-      [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.plus4_model].join("\t") << "\n"
+      fields = [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
+                test.plus4_model]
+      fields.push(test.plus4_ram_expansion, ("border" if test.border_result?)) if test.plus4_ram_expansion
+      fields.join("\t") << "\n"
     end
 
     def self.c128_spec(test)
