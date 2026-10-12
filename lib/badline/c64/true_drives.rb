@@ -9,7 +9,7 @@ module Badline
       include Drives::Model1581::Slot
 
       # The true drive models a snapshot names.
-      DRIVE_MODELS = %w[1541 1571 1581].freeze
+      DRIVE_MODELS = %w[1541 1551 1571 1581].freeze
 
       # Plugs in a Drives::Model1541, which then runs alongside the machine on its
       # own clock and talks to it over the serial bus. The serial traps stop
@@ -44,6 +44,7 @@ module Badline
         drive1581 = @drive1581
         drive1581&.save_modules(sections, "BL-D#{drive1581.device}")
         save_drive1571_modules(sections)
+        save_drive1551_modules(sections)
         sections
       end
 
@@ -63,6 +64,7 @@ module Badline
         detach_drive1541 unless models.include?("1541")
         detach_drive1581 unless models.include?("1581")
         detach_drive1571 unless models.include?("1571")
+        detach_drive1551 unless models.include?("1551")
       end
 
       # Unplugs the Drives::Model1541, leaving the serial bus with nothing on it.
@@ -91,6 +93,7 @@ module Badline
         case model
         when "1581" then load_drive1581_modules(modules, input, device)
         when "1571" then load_drive1571_modules(modules, input, device)
+        when "1551" then load_drive1551_modules(modules, input, device)
         else load_drive1541_modules(modules, input, device)
         end
       end
@@ -115,6 +118,15 @@ module Badline
       end
 
       def detach_drive1571 = nil
+
+      # The 264 series' 1551, which only the Plus/4 has (Plus4::TCBMDrive).
+      def save_drive1551_modules(sections) = sections
+
+      def load_drive1551_modules(_modules, input, _device)
+        input.adjust("a 1551 doesn't plug into this machine, left out")
+      end
+
+      def detach_drive1551 = nil
     end
   end
 end

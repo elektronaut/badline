@@ -7,6 +7,7 @@ require "badline/drives/model1551/port"
 require "badline/drives/model1551/tia"
 require "badline/drives/model1551/bus"
 require "badline/drives/model1551/cable"
+require "badline/drives/model1551/keyed_state"
 
 module Badline
   module Drives
