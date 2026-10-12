@@ -102,7 +102,7 @@ differences noted in the table. `--help` lists the options for either.
 
 | Option | Effect |
 | --- | --- |
-| `--frames N` | Quit after N frames |
+| `--frames N` | Quit after N frames, in the SID player as in the machine's window |
 | `--unpaced` | Run as fast as it can, without vsync or pacing |
 | `--at FRAME:EVENT` | Press keys, type, swap media, open the pause menu or take a screenshot once `FRAME` frames have run |
 | `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |

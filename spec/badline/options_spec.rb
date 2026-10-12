@@ -580,6 +580,22 @@ describe Badline::Options do
         expect([options.sid_command?, options.headless?]).to eq([false, true])
       end
     end
+
+    context "with --frames" do
+      let(:argv) { [tune_path, "--frames", "100"] }
+
+      it "plays in the SID player for that many frames" do
+        expect([options.player_window?, options.frames]).to eq([true, 100])
+      end
+    end
+
+    context "with --frames and --headless" do
+      let(:argv) { ["--headless", tune_path, "--frames", "100"] }
+
+      it "is rejected" do
+        expect { options }.to raise_error(described_class::Error, "--frames needs the window")
+      end
+    end
   end
 
   describe "sid" do
@@ -599,6 +615,22 @@ describe Badline::Options do
 
     it "takes the model from each tune" do
       expect(options.sid_model).to be_nil
+    end
+
+    context "with --frames" do
+      let(:argv) { ["sid", "--frames", "100", tune_path] }
+
+      it "quits the SID player after that many frames" do
+        expect([options.player_window?, options.frames]).to eq([true, 100])
+      end
+    end
+
+    context "with --frames and --headless" do
+      let(:argv) { ["sid", "--headless", "--frames", "100", tune_path] }
+
+      it "is rejected" do
+        expect { options }.to raise_error(described_class::Error, "--frames needs the window")
+      end
     end
 
     context "without tunes" do
@@ -623,7 +655,7 @@ describe Badline::Options do
       it "lists the options it takes" do
         expect(options.help.scan(/^ +(?:-\w, )?(--[\w-]+)/).flatten)
           .to eq(%w[--subtune --sid --disable-jit --help --headless --seconds --songlengths --rate --filter-chunk
-                    --quiet --all-subtunes --no-tui])
+                    --quiet --all-subtunes --no-tui --frames])
       end
     end
 

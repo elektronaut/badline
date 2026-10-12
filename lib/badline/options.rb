@@ -126,6 +126,7 @@ module Badline
       @tui = true
       @all_subtunes = false
       @window_only = []
+      @any_window_only = []
       @headless_only = []
     end
 
@@ -254,9 +255,11 @@ module Badline
       option
     end
 
-    # Notes an option only the window or only the headless player takes.
+    # Notes an option only the window, only a window of either kind, or
+    # only the headless player takes.
     def restrict(option, flag)
       @window_only << flag if option.needs == :window
+      @any_window_only << flag if option.needs == :any_window
       @headless_only << flag if option.needs == :headless
     end
 
