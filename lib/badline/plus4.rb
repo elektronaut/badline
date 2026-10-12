@@ -106,8 +106,10 @@ module Badline
       @port = CPUPort.new(serial_bus: @iec_bus, datasette: @datasette)
       plus4_parts = @model.plus4_parts
       @cycles = 0
+      @init_threshold = INIT_THRESHOLD
       @acia_irq = false
       @acia_due = ACIA::NEVER
+      @due = INIT_THRESHOLD
       @acia = plus4_parts ? ACIA.new(self, @model.ted.clock_hz) : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
@@ -125,21 +127,19 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @capture_output = nil
-      @init_threshold = INIT_THRESHOLD
       init_drives(true_drive_model)
     end
 
     # One TED cycle: the TED moves on and decides the CPU's clock, then the
     # CPU runs its cycles in it, none while the TED holds the bus.
     def cycle!
-      handle_init if @cycles == @init_threshold
+      handle_due if @cycles >= @due
       feed_keyboard if @pending_keys
 
       ted = @ted
       ted.cycle!
       @datasette.cycle!
-      @cpu.irq = ted.irq?
-      run_acia if @cycles >= @acia_due
+      @cpu.irq = ted.irq? || @acia_irq
       slots = ted.cpu_slots
       if slots.zero?
         @cpu.stall!
@@ -181,10 +181,10 @@ module Badline
     end
 
     # The ACIA's IRQ line, and the cycle it next has something to do at.
-    # While it pulls IRQ, the machine looks in on it every cycle.
     def acia_changed(irq, due)
       @acia_irq = irq
-      @acia_due = irq ? 0 : due
+      @acia_due = due
+      schedule
     end
 
     # Calls the block with the exit code a VICE testprog writes to $FDCF.
@@ -248,10 +248,20 @@ module Badline
       @init_threshold = [@init_threshold, Drives::Model1581::BOOT_CYCLES].max if @cycles < @init_threshold
     end
 
-    def run_acia
+    # What falls due at the start of a cycle: the on_init handlers at the
+    # init threshold, and the ACIA's next character.
+    def handle_due
+      handle_init if @cycles == @init_threshold
       acia = @acia
-      acia&.run!(@cycles)
-      @cpu.irq = true if @acia_irq
+      acia.run!(@cycles) if acia && @cycles >= @acia_due
+      schedule
+    end
+
+    # The next cycle anything falls due at. A drive that raises the init
+    # threshold leaves it early, and handle_due looks again then.
+    def schedule
+      init = @cycles < @init_threshold ? @init_threshold : ACIA::NEVER
+      @due = [@acia_due, init].min
     end
 
     # BA stops the CPU at a read, and a write goes ahead.

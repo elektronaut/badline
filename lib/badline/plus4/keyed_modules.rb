@@ -85,6 +85,7 @@ module Badline
         @sound.restored!(@ted)
         @port.restored!
         @acia&.restored!
+        schedule
       end
 
       def check_snapshot_setup(setup)
