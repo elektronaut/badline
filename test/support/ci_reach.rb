@@ -28,6 +28,11 @@ module CIReach
   # and C128 read their joysticks beside through the CIA and VIA ports and
   # the C128 types through, and the paddles and mouse feed the SID's pots.
   INPUT = (C64 + VIC20 + C128 + PLUS4 + SID).uniq.freeze
+  # Media.attach loads the C64 and C128 testbench rows' programs and
+  # cartridges, the SID testprogs and every drive scenario. The VIC-20 and
+  # Plus/4 testbenches load their programs themselves, and the Lorenz
+  # chains mount their disks.
+  MEDIA = (C64 - %w[lorenz] + C128 + %w[spinel:check_sid]).uniq.freeze
 
   # Patterns as File.fnmatch takes them with FNM_PATHNAME and FNM_EXTGLOB,
   # in order, each mapped to the suites a change there can move.
@@ -54,6 +59,7 @@ module CIReach
     ["lib/badline/{c128.rb,c128/**/*}", C128],
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
     ["lib/badline/input{.rb,/**/*}", INPUT],
+    ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],
     ["lib/badline/drives/{model1571,model1581}{.rb,/**/*}", %w[drive-scenarios testbench-c128c64 testbench-c128]],
     ["lib/badline/drives/{engine,serial_bus}{.rb,/**/*}", DRIVES + %w[testbench-c128c64 testbench-c128]],
