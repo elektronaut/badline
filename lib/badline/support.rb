@@ -3,3 +3,4 @@
 require "badline/support/checkpoint"
 require "badline/support/vic20_checkpoint"
 require "badline/support/c128_checkpoint"
+require "badline/support/plus4_checkpoint"

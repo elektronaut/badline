@@ -80,6 +80,27 @@ module SnapshotSetups
     end
     run(machine, 1_000_003)
   end
+
+  # A version 2 tape of half waves, as the 264 series' datasette plays
+  # them, with nothing on it the KERNAL finds.
+  def tap264_file(dir)
+    data = (([0x30] * 20_000) + ([0x21, 0x2b] * 4000) + ([0x30] * 5000)).pack("C*")
+    File.join(dir, "tape264.tap").tap do |path|
+      File.binwrite(path, "C16-TAPE-RAW".b + [2, 2, 0, 0].pack("C*") + [data.bytesize].pack("V") + data)
+    end
+  end
+
+  # A 16K cartridge for the 264 series' cartridge 1 slot, signed for the
+  # KERNAL to start at reset, that counts at $0C00 and shows the count in
+  # the border colour.
+  def plus4_cartridge(dir)
+    rom = Array.new(0x4000, 0xea)
+    [0x4c, 0x10, 0x80, 0x4c, 0x10, 0x80, 0x01, 0x43, 0x42, 0x4d].each_with_index { |byte, i| rom[i] = byte }
+    [0x78, 0xee, 0x00, 0x0c, 0xad, 0x00, 0x0c, 0x8d, 0x19, 0xff, 0x4c, 0x11, 0x80].each_with_index do |byte, i|
+      rom[0x10 + i] = byte
+    end
+    File.join(dir, "cart.bin").tap { |path| File.binwrite(path, rom.pack("C*")) }
+  end
 end
 
 # Named machines for bin/snapshot_check, each one built with its media and
@@ -197,7 +218,37 @@ module SnapshotMachines
     ]
   end
 
-  def all = c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios
+  # A program that plays both voices and keeps changing the background
+  # and screen RAM while the TED's timers run.
+  PLUS4_BASIC = "10 vol8:sound1,600,30:sound3,800,30\r20 t=tiand255:color0,t/16+1:poke3072+t,t:goto20\rrun\r"
+
+  def plus4_scenarios
+    [
+      Scenario.new("plus4-boot", :plus4, ->(_dir) { Badline::Plus4.new }, ->(m) { run(m, 60_001) }),
+      Scenario.new("plus4-basic", :plus4, ->(_dir) { typing(Badline::Plus4.new, PLUS4_BASIC) },
+                   ->(m) { run(m, 1_500_000) }),
+      Scenario.new("plus4-c16-basic", :plus4, ->(_dir) { typing(Badline::Plus4.new(model: "c16"), PLUS4_BASIC) },
+                   ->(m) { run(m, 1_500_000) }),
+      Scenario.new("plus4-c16-tape", :plus4, lambda { |dir|
+        Badline::Plus4.new(model: "c16").tap { |m| Badline::Media.attach(m, tap264_file(dir)) }
+      }, ->(m) { run(m, 1_500_000) }),
+      Scenario.new("plus4-cartridge", :plus4, lambda { |dir|
+        Badline::Plus4.new.tap { |m| Badline::Media.attach(m, plus4_cartridge(dir)) }
+      }, ->(m) { run(m, 300_000) }),
+      Scenario.new("plus4-traps-d64", :plus4, lambda { |dir|
+        Badline::Plus4.new.tap { |m| Badline::Media.attach(m, copy(D64, dir)) }
+      }, ->(m) { run(m, 1_500_000) }),
+      Scenario.new("plus4-1541", :plus4, lambda { |dir|
+        machine = Badline::Plus4.new
+        Badline::Media::TrueDrive.insert(machine, copy(D64, dir))
+        typing(machine, "load\"$\",8\rlist\r")
+      }, ->(m) { run(m, 2_500_000) })
+    ]
+  end
+
+  def all
+    c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios
+  end
 
   def named(name) = all.find { |scenario| scenario.name == name }
 

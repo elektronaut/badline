@@ -243,6 +243,7 @@ module MachineFamilies
     case options[:family]
     when "vic20" then Badline::Support::Vic20Checkpoint
     when "c128" then Badline::Support::C128Checkpoint
+    when "plus4" then Badline::Support::Plus4Checkpoint
     else Badline::Support::Checkpoint
     end
   end
