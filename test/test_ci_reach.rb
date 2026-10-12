@@ -41,6 +41,18 @@ class TestCIReach < Minitest::Test
     assert_empty %w[lorenz testbench-vic20 testbench-c128 testbench-plus4 sid] - reached
   end
 
+  def test_media_reaches_the_suites_that_attach_through_it
+    reached = CIReach.suites(%w[lib/badline/media.rb lib/badline/media/plus4_media.rb])
+
+    assert_empty %w[testbench testbench-drive testbench-c128 sid drive-scenarios spinel:check_sid] - reached
+  end
+
+  def test_media_leaves_the_suites_that_load_without_it
+    reached = CIReach.suites(%w[lib/badline/media.rb])
+
+    assert_empty %w[lorenz lorenz-plus4 testbench-vic20 testbench-plus4] & reached
+  end
+
   def test_the_cpu_reaches_everything
     assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/chips/cpu/core.rb spec/badline/cpu_spec.rb])
   end
