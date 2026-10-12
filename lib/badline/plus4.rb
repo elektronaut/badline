@@ -21,7 +21,7 @@ module Badline
   # The TED paints the picture a front end shows (#video, #timing). Device 8
   # serves disks through the KERNAL traps (C64::KernalTraps), or a true
   # 1541 or 1581 on the serial bus does (C64::TrueDrives), cartridges go
-  # in cartridge 1's slots, and tapes play on the datasette, whose read
+  # in the two cartridges' slots, and tapes play on the datasette, whose read
   # line's level the KERNAL times with the TED's timers.
   class Plus4
     include IntegerHelper
@@ -169,7 +169,7 @@ module Badline
     # Calls the block with the exit code a VICE testprog writes to $FDCF.
     def install_debug_register(&) = @bus.install_debug_register(&)
 
-    # Puts a cartridge's ROM chips in cartridge 1's slots (Bus#attach_cartridge)
+    # Puts a cartridge's ROM chips in their slots (Bus#attach_cartridge)
     # and switches the machine off and on, as a cartridge goes in with the
     # power off. The KERNAL starts it at reset when it signs itself with CBM
     # at $8007.

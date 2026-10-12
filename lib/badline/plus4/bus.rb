@@ -279,16 +279,22 @@ module Badline
         map_reads
       end
 
-      # Puts a cartridge's ROM chips in the slots of cartridge 1: a chip at
-      # $8000 in low bank 2 and one at $C000 in high bank 2, each repeated
-      # through the bank's 16K.
+      # Puts a cartridge's ROM chips in their slots, as a PLUS4 CARTRIDGE
+      # .crt numbers them: a chip's bank picks cartridge 1 (0) or 2 (1), in
+      # ROM banks 2 and 3, and its address the low ($8000) or the high
+      # ($C000) slot. A chip shorter than 16K repeats through the slot.
+      # Slots the chips don't name keep what they held.
       def attach_cartridge(chips)
         chips.each do |chip|
-          data = chip.data * (0x4000 / chip.data.length)
+          raise ArgumentError, "no Plus/4 cartridge slot in bank #{chip.bank}" unless chip.bank.between?(0, 1)
+
+          rom = chip.data
+          length = rom.length
+          data = Array.new(0x4000) { |i| length.zero? ? 0xff : rom[i % length] }
           if chip.address < 0xc000
-            @low_roms[2] = ROM.new(data, length: 0x4000, start: 0x8000)
+            @low_roms[2 + chip.bank] = ROM.new(data, length: 0x4000, start: 0x8000)
           else
-            @high_roms[2] = ROM.new(data, length: 0x4000, start: 0xc000)
+            @high_roms[2 + chip.bank] = ROM.new(data, length: 0x4000, start: 0xc000)
           end
         end
         map_reads

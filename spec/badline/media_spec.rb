@@ -820,6 +820,27 @@ describe Badline::Media do
       expect { described_class.attach(computer, sid_tune) }.to raise_error(ArgumentError, %r{Plus/4})
     end
 
+    context "with a raw .bin ROM image" do
+      let(:bin) { File.join(dir, "game.bin").tap { |path| File.binwrite(path, ([0x4c] * 0x4000).pack("C*")) } }
+
+      before { allow(computer).to receive(:attach_cartridge) }
+
+      it "puts it in cartridge 1's low slot" do
+        described_class.attach(computer, bin)
+        expect(computer).to have_received(:attach_cartridge).with([have_attributes(bank: 0, address: 0x8000)])
+      end
+
+      it "puts it in the slot the cartridge options name" do
+        described_class.attach(computer, bin, cartridge: { slot: "c2hi" })
+        expect(computer).to have_received(:attach_cartridge).with([have_attributes(bank: 1, address: 0xc000)])
+      end
+
+      it "types nothing" do
+        described_class.attach(computer, bin)
+        expect(computer).not_to have_received(:type_text)
+      end
+    end
+
     context "with a C16 tape" do
       let(:path) { Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 2).path }
 

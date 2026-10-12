@@ -142,6 +142,23 @@ describe Badline::Plus4::Bus do
       bus.poke(0xfdd2, 0)
       expect([bus.peek(0x8000), bus.peek(0xbfff)]).to eq([0x11, 0x11])
     end
+
+    it "puts a chip of bank 1 in cartridge 2's slots, by its address" do
+      bus.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 1, 0xc000, [0x22, 0x33])])
+      bus.poke(0xfdde, 0)
+      expect([bus.peek(0xc000), bus.peek(0xc001), bus.peek(0xfbff)]).to eq([0x22, 0x33, 0x33])
+    end
+
+    it "keeps the slots the chips don't name" do
+      bus.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 1, 0x8000, [0x22])])
+      bus.poke(0xfdd2, 0)
+      expect(bus.peek(0x8000)).to eq(0x11)
+    end
+
+    it "refuses a chip in a bank with no slot" do
+      chip = Badline::Storage::CRTFile::Chip.new(0, 2, 0x8000, [0x22])
+      expect { bus.attach_cartridge([chip]) }.to raise_error(ArgumentError, /bank 2/)
+    end
   end
 
   context "with 16K of RAM" do
