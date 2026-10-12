@@ -1180,6 +1180,15 @@ Written by the Plus/4.
 | --- | --- | --- |
 | `command` | byte | 0 |
 | `control` | byte | 0 |
+| `errors` | int & 0x7 | 0 |
+| `receiver_full` | bool | false |
+| `transmitter_empty` | bool | true |
+| `irq` | bool | false |
+| `receive_data` | byte | 0 |
+| `transmit_data` | byte | 0 |
+| `shifting` | int | -1 |
+| `transmit_remainder` | int | 0 |
+| `transmit_at` | int, optional | absent |
 
 ## BL-TIA1
 

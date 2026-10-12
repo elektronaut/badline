@@ -421,8 +421,10 @@ in cartridge 1 as it does from the command line.
   timers and the CPU's single and double clock, 16K to 64K of RAM, ROM
   banking with the 3-plus-1 function ROMs, the keyboard and both
   joysticks, cartridges in both slots, the datasette and the serial bus
-  to device 8, PAL and NTSC (`badline plus4`). The ACIA's registers are
-  there but send and receive nothing.
+  to device 8, PAL and NTSC (`badline plus4`). The 6551 ACIA sends and
+  receives at its baud rates, with nothing on the user port; Ruby code
+  driving the machine can plug in a terminal, whose bytes it feeds and
+  drains, or a loopback plug (`Plus4::ACIA#plug`).
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
   mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial

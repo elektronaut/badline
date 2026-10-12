@@ -21,8 +21,8 @@ module Badline
   # The Commodore 264 series: the Plus/4, the C16 and the C116. A 7501 on
   # the TED's clock, which runs it once or twice a TED cycle (Chips::TED's
   # Beam), the TED and, on the Plus/4, a 6551 ACIA and the user port's
-  # 6529. Only the TED pulls IRQ, and nothing pulls NMI, which the 7501
-  # doesn't have.
+  # 6529. The TED and the ACIA pull IRQ, and nothing pulls NMI, which the
+  # 7501 doesn't have.
   #
   # The TED paints the picture a front end shows (#video, #timing). Device 8
   # serves disks through the KERNAL traps (C64::KernalTraps), or a true
@@ -105,7 +105,10 @@ module Badline
       @datasette = Drives::Datasette.new(level: true)
       @port = CPUPort.new(serial_bus: @iec_bus, datasette: @datasette)
       plus4_parts = @model.plus4_parts
-      @acia = plus4_parts ? ACIA.new : nil
+      @cycles = 0
+      @acia_irq = false
+      @acia_due = ACIA::NEVER
+      @acia = plus4_parts ? ACIA.new(self, @model.ted.clock_hz) : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
                            cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette))
@@ -114,7 +117,6 @@ module Badline
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
-      @cycles = 0
       @sound = Chips::TED::Sound.new(self, @model.ted.clock_hz)
       @ted.sound = @sound
       @init_handlers = []
@@ -136,7 +138,8 @@ module Badline
       ted = @ted
       ted.cycle!
       @datasette.cycle!
-      @cpu.irq = ted.irq?
+      run_acia if @cycles >= @acia_due
+      @cpu.irq = ted.irq? || @acia_irq
       slots = ted.cpu_slots
       if slots.zero?
         @cpu.stall!
@@ -175,6 +178,12 @@ module Badline
       @ted.power_on!
       @sound.power_on!
       reset!
+    end
+
+    # The ACIA's IRQ line, and the cycle it next has something to do at.
+    def acia_changed(irq, due)
+      @acia_irq = irq
+      @acia_due = due
     end
 
     # Calls the block with the exit code a VICE testprog writes to $FDCF.
@@ -236,6 +245,11 @@ module Badline
 
     def drive1581_attached
       @init_threshold = [@init_threshold, Drives::Model1581::BOOT_CYCLES].max if @cycles < @init_threshold
+    end
+
+    def run_acia
+      acia = @acia
+      acia&.run!(@cycles)
     end
 
     # BA stops the CPU at a read, and a write goes ahead.

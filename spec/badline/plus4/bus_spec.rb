@@ -106,7 +106,13 @@ describe Badline::Plus4::Bus do
   end
 
   it "reads the ACIA's status at $FD01" do
-    expect(bus.peek(0xfd01)).to eq(0x10)
+    expect(bus.peek(0xfd01)).to eq(0x70)
+  end
+
+  it "reads the user port's lines low where a device pulls them" do
+    machine.user_port.inputs = 0xfd
+    bus.poke(0xfd10, 0x7f)
+    expect(bus.peek(0xfd10)).to eq(0x7d)
   end
 
   it "calls the debug register's handler with a byte written to $FDCF" do
