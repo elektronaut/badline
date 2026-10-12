@@ -1,0 +1,25 @@
+
+ commodore basic v3.5 60671 bytes free
+ 3-plus-1 on key f1
+
+ready.
+print 6*7
+ 42
+
+ready.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

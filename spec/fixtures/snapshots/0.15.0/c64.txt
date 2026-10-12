@@ -1,0 +1,25 @@
+
+    **** commodore 64 basic v2 ****
+
+ 64k ram system  38911 basic bytes free
+
+ready.
+print 6*7
+ 42
+
+ready.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
