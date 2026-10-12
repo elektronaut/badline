@@ -40,6 +40,15 @@ module Badline
       e.message
     end
 
+    # Runs the block that puts a cartridge in, as media_problem does, and
+    # also returns the message of the ArgumentError a machine raises over a
+    # cartridge with a chip in a bank or slot it doesn't map.
+    def self.cartridge_problem(&)
+      media_problem(&)
+    rescue ArgumentError => e
+      e.message
+    end
+
     # The machine a .vsf snapshot holds, built as the saved one was, or a
     # new one built from the options with the media attached.
     def self.boot(options)

@@ -97,7 +97,7 @@ module Badline
       # Swaps the cartridge for the one at `path`, which power cycles the
       # machine, and says whether it went in.
       def attach_cartridge(path)
-        succeeds? { Media.attach(@computer, path) }
+        cartridge_succeeds? { Media.attach(@computer, path) }
       end
 
       # What a save of the machine is named after: the cartridge, the disk,
@@ -137,11 +137,12 @@ module Badline
       # when it won't start.
       def start(options, path)
         computer = nil
-        started = succeeds? do
-          computer = Frontend.start(options, path, @writable)
-          list(path)
+        if Media.kind(@computer, path) == :cartridge
+          cartridge_succeeds? { computer = started(options, path) }
+        else
+          succeeds? { computer = started(options, path) }
         end
-        started ? computer : nil
+        @problem.empty? ? computer : nil
       end
 
       private
@@ -151,6 +152,19 @@ module Badline
       def succeeds?(&)
         @problem = Frontend.media_problem(&)
         @problem.empty?
+      end
+
+      # Runs the block as #succeeds? does, keeping a cartridge's chip in a
+      # bank or slot the machine doesn't map as the problem too.
+      def cartridge_succeeds?(&)
+        @problem = Frontend.cartridge_problem(&)
+        @problem.empty?
+      end
+
+      def started(options, path)
+        computer = Frontend.start(options, path, @writable)
+        list(path)
+        computer
       end
 
       # Keeps `path` as the list the set comes from, if it's a list.
