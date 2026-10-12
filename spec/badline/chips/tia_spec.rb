@@ -31,6 +31,12 @@ describe Badline::Chips::TIA do
     expect(tia.ports[0]).to eq(0x12)
   end
 
+  it "leaves an input pin high in its output" do
+    tia.poke(0x05, 0x0f)
+    tia.poke(0x02, 0x05)
+    expect(tia.output(2)).to eq(0xf5)
+  end
+
   it "reads registers 6 and 7 as $FF" do
     expect([tia.peek(0x06), tia.peek(0x07)]).to eq([0xff, 0xff])
   end

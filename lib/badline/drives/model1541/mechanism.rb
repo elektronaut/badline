@@ -275,10 +275,14 @@ module Badline
           return unless @bits == 8
 
           @bits = 0
-          @write_shift = @writing ? @via.port_a_output : @shift & 0xff
+          @write_shift = @writing ? write_byte : @shift & 0xff
           @byte_ready = true
           byte_ready!
         end
+
+        # The byte the write shift register loads in write mode: what VIA 2
+        # drives on port A.
+        def write_byte = @via.port_a_output
 
         # The stepper's rotor turns with the head, a phase to each half
         # track, so the energized phase pulls the head to the neighbouring

@@ -45,6 +45,13 @@ module Badline
         end
       end
 
+      # The levels on +port+'s pins as the chip leaves them: an output's
+      # level, and 1 for an input, which the chip doesn't drive.
+      def output(port)
+        direction = @directions[port]
+        (@ports[port] & direction) | (~direction & 0xff)
+      end
+
       # The ports, their directions and what the other side drives, in a
       # keyed snapshot module (Snapshot::Keyed, BL-TIA1 and BL-TIA2).
       def save_fields(out)
