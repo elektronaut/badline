@@ -178,6 +178,24 @@ describe Badline::Frontend do
     expect { run("plus4", "tune.sid") }.to output(%r{tune.sid: doesn't go in a Plus/4}).to_stderr
   end
 
+  describe "a Plus/4 .crt with a chip in a bank it doesn't map" do
+    before do
+      header = "PLUS4 CARTRIDGE ".b + [0x40, 0x0100, 0, 0, 0].pack("NnnCC") + ("\x00" * 6) + "GAME".ljust(32, "\x00")
+      chip = "CHIP".b + [0x0110, 0, 2, 0x8000, 0x0100].pack("Nn4") + ([0x42] * 0x0100).pack("C*")
+      File.binwrite("bank2.crt", header + chip)
+    end
+
+    it "warns" do
+      expect { run("plus4", "bank2.crt") }
+        .to output(%r{\Abadline-ruby: bank2.crt: no Plus/4 cartridge slot in bank 2\n\z}).to_stderr
+    end
+
+    it "returns 1" do
+      allow($stderr).to receive(:write)
+      expect(run("plus4", "bank2.crt")).to eq(1)
+    end
+  end
+
   it "warns that a VIC-20 takes no .sid tune and returns 1" do
     File.binwrite("tune.sid", "PSID")
     expect { run("vic20", "tune.sid") }.to output(/tune.sid: doesn't go in a VIC-20/).to_stderr
