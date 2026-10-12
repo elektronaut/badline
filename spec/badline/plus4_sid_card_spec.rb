@@ -9,12 +9,13 @@ describe Badline::Plus4, "#sid_card" do
   # One PAL frame of TED cycles.
   let(:frame) { 57 * 312 }
 
-  # Voice 3's sawtooth at frequency $0100 from a reset oscillator.
-  def start_sawtooth(target)
-    target.poke(0xfd4e, 0x00)
-    target.poke(0xfd4f, 0x01)
-    target.poke(0xfd52, 0x08)
-    target.poke(0xfd52, 0x20)
+  # Voice 3's sawtooth at frequency $0100 from a reset oscillator, on a
+  # SID at +base+.
+  def start_sawtooth(target, base = 0xfd40)
+    target.poke(base + 0x0e, 0x00)
+    target.poke(base + 0x0f, 0x01)
+    target.poke(base + 0x12, 0x08)
+    target.poke(base + 0x12, 0x20)
   end
 
   it "puts a SID at $FD40-$FD5F" do
@@ -83,5 +84,50 @@ describe Badline::Plus4, "#sid_card" do
   it "refuses a snapshot of a machine without the card" do
     image = described_class.new.snapshot
     expect { machine.restore(image) }.to raise_error(Badline::Snapshot::FormatError, /SID card/)
+  end
+
+  it "fits a card only at $FD40 or $FE80" do
+    expect { described_class.new(sid_card: :mos6581, sid_card_address: 0xfe00) }
+      .to raise_error(ArgumentError, /\$FE00/)
+  end
+
+  context "with the card at $FE80" do
+    subject(:machine) { described_class.new(sid_card: :mos6581, sid_card_address: 0xfe80, tcbm: true) }
+
+    it "puts the SID at $FE80-$FE9F" do
+      machine.poke(0xfe98, 0x0f)
+      expect(machine.sid_card.sid.register(0x18)).to eq(0x0f)
+    end
+
+    it "clocks the SID there" do
+      start_sawtooth(machine, 0xfe80)
+      machine.run_cycles(frame)
+      expect(machine.peek(0xfe9b)).to eq(69)
+    end
+
+    it "leaves $FD40-$FD5F open" do
+      machine.poke(0xfd58, 0x0f)
+      expect(machine.sid_card.sid.register(0x18)).to eq(0)
+    end
+
+    it "doesn't repeat the card's registers around it" do
+      machine.poke(0xfeb8, 0x0f)
+      machine.poke(0xfe78, 0x0f)
+      expect(machine.sid_card.sid.register(0x18)).to eq(0)
+    end
+
+    it "leaves the TCBM interface's TIAs where they are" do
+      machine.poke(0xfee3, 0xff)
+      expect(machine.tias[0].peek(0xfee3)).to eq(0xff)
+    end
+
+    it "keeps its address in a snapshot" do
+      expect(machine.snapshot.load.sid_card.address).to eq(0xfe80)
+    end
+
+    it "refuses a snapshot of a card at $FD40" do
+      image = described_class.new(sid_card: :mos6581, tcbm: true).snapshot
+      expect { machine.restore(image) }.to raise_error(Badline::Snapshot::FormatError, /\$FD40/)
+    end
   end
 end

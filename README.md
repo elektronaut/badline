@@ -88,6 +88,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own |
 | `--c1lo FILE`, `--c1hi FILE`, `--c2lo FILE`, `--c2hi FILE` | Put a raw `.bin` ROM image in one of the Plus/4's cartridge slots: cartridge 1 or 2, low (`$8000`) or high (`$C000`). See [The Plus/4](#the-plus4) |
 | `--sid-card 6581`, `--sid-card 8580` | Fit a Plus/4 or C16 with a SID card at `$FD40`. See [The Plus/4](#the-plus4) |
+| `--sid-card-address fd40`, `--sid-card-address fe80` | Put the SID card at `$FD40` (the default) or at `$FE80` |
 | `--ram-expansion NAME` | Fit a Plus/4 or C16 with a RAM expansion: `hannes256`, `hannes1m` or `csory256`. See [The Plus/4](#the-plus4) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128 and the Plus/4 have models of their own: see their sections |
@@ -261,6 +262,8 @@ parties built for the 264s, with its SID at `$FD40`-`$FD5F`. The card
 clocks the SID at the TED's single clock, 886,724 Hz on PAL, so a C64
 tune plays about a semitone flat, as it did on those cards. Its sound
 plays with the TED's, and the Sound page swaps its SID's model.
+`--sid-card-address fe80` puts the SID at `$FE80`-`$FE9F` instead, as
+Csory's card does, beside a 1551's TCBM interface at `$FEC0`.
 
 `--ram-expansion hannes256` or `hannes1m` fits Hannes's 256K or 1M RAM
 expansion, which banks 64K at a time through its register at `$FD16`,

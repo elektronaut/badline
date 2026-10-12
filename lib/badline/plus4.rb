@@ -35,7 +35,7 @@ module Badline
   # line's level the KERNAL times with the TED's timers.
   #
   # A SID card, as third parties built for the 264s, puts a SID at
-  # $FD40-$FD5F. The cards clock it from the TED's single clock, one SID
+  # $FD40-$FD5F, or at $FE80-$FE9F as Csory's does. The cards clock it from the TED's single clock, one SID
   # cycle a TED cycle, 886,724 Hz on PAL, below the C64's 985,248 Hz, so a
   # C64 tune plays about a semitone flat (plus4world forum threads 38287
   # and 20130).
@@ -102,11 +102,12 @@ module Badline
     # plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF, with no
     # drive answering on the other side. +true_drive_model+ names the drive
     # plug_true_drive plugs in, "1541" or "1551". +sid_card+ fits a SID
-    # card with a SID of that model, :mos6581 or :mos8580. +ram_expansion+
+    # card with a SID of that model, :mos6581 or :mos8580, at
+    # +sid_card_address+, $FD40 or $FE80. +ram_expansion+
     # fits a RAMExpansion of that kind, :hannes256, :hannes1m or
     # :csory256, over 64K of the machine's own.
     def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1551", sid_card: nil,
-                   ram_expansion: nil, debug: false)
+                   sid_card_address: SIDCard::ADDRESSES.first, ram_expansion: nil, debug: false)
       @model = Model.named(model)
       @ram_kb = fitted_ram(ram, ram_expansion)
 
@@ -125,13 +126,15 @@ module Badline
       @acia_irq = false
       @acia_due = ACIA::NEVER
       @due = INIT_THRESHOLD
-      @sid_card = sid_card ? SIDCard.new(self, sid_card) : nil
+      @sid_card = sid_card ? SIDCard.new(self, sid_card, sid_card_address) : nil
       @acia = plus4_parts ? ACIA.new(self, @model.ted.clock_hz) : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
-                           cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette), sid_card: @sid_card)
+                           cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette),
+                           sid_card: sid_card_at(0xfd40))
       @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb, ram_expansion:)
       @ted.connect(@bus)
+      @bus.plug_sid_card(sid_card_at(0xfe80))
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
@@ -259,6 +262,12 @@ module Badline
     end
 
     private
+
+    # The SID card if it is at +address+, or nil.
+    def sid_card_at(address)
+      card = @sid_card
+      card if card && card.address == address
+    end
 
     # The RAM in K: +ram+, or the model's own, or 64K under a RAM
     # expansion, which needs that much.

@@ -14,8 +14,10 @@ module Badline
     #               expansion, the 6529 at $FD10 and the expansion's
     #               registers at $FD15 and $FD16
     # $FD30-$FD3F - the keyboard's 6529 (KeyboardPort)
-    # $FD40-$FD5F - a SID card's SID, where one is fitted
+    # $FD40-$FD5F - a SID card's SID, where one is fitted there
     # $FDD0-$FDDF - the ROM bank latch
+    # $FE80-$FE9F - a SID card's SID, where one is fitted there
+    # $FEC0-$FEFF - a 1551's TCBM interface, where one is plugged in
     # $FF00-$FF1F - the TED
     # $FF3E/$FF3F - a write selects ROM or RAM at $8000-$FFFF
     # $FF40-$FFFF - the high ROM bank, or RAM
@@ -179,30 +181,49 @@ module Badline
       end
 
       # Page $FE, where a 1551's TCBM interface puts its 6523 TIA: the one
-      # that talks to drive 9 at $FEC0-$FEDF and drive 8's at $FEE0-$FEFF.
-      # The rest of the page, and a place with no TIA, is open.
+      # that talks to drive 9 at $FEC0-$FEDF and drive 8's at $FEE0-$FEFF,
+      # and where a SID card can put its SID, at $FE80-$FE9F, decoding its
+      # 32 bytes alone as xplus4's does. The rest of the page, and a place
+      # with nothing in it, is open.
       class TCBMPage
         # The TIA at $FEE0-$FEFF and the one at $FEC0-$FEDF, or nil.
         attr_accessor :drive8, :drive9
+
+        # The SIDCard at $FE80-$FE9F, or nil.
+        attr_accessor :sid_card
 
         def initialize(bus)
           @bus = bus
           @drive8 = nil
           @drive9 = nil
+          @sid_card = nil
         end
 
         def peek(addr)
-          return @bus.data if addr < 0xfec0
+          return low_peek(addr) if addr < 0xfec0
 
           tia = addr < 0xfee0 ? @drive9 : @drive8
           tia ? tia.peek(addr) : @bus.data
         end
 
         def poke(addr, value)
-          return if addr < 0xfec0
+          if addr < 0xfec0
+            sid_card = @sid_card
+            sid_card.poke(addr, value) if sid_card && sid_card?(addr)
+            return
+          end
 
           tia = addr < 0xfee0 ? @drive9 : @drive8
           tia&.poke(addr, value)
+        end
+
+        private
+
+        def sid_card?(addr) = (addr & 0xe0) == 0x80
+
+        def low_peek(addr)
+          sid_card = @sid_card
+          sid_card && sid_card?(addr) ? sid_card.peek(addr) : @bus.data
         end
       end
 
@@ -334,6 +355,11 @@ module Badline
       def plug_tcbm(drive8:, drive9:)
         @tcbm_page.drive8 = drive8
         @tcbm_page.drive9 = drive9
+      end
+
+      # Puts a SIDCard at $FE80-$FE9F.
+      def plug_sid_card(sid_card)
+        @tcbm_page.sid_card = sid_card
       end
 
       # Puts +tia+ where the TCBM interface for +device+, 8 or 9, answers,
