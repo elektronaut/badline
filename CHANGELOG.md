@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.15.0](https://github.com/elektronaut/badline/compare/v0.14.0...v0.15.0) (2026-10-12)
+
+
+### Features
+
+* attach programs, disks and cartridges to a Plus/4 ([84a86f4](https://github.com/elektronaut/badline/commit/84a86f43e97e08fdb4ea21ef909adf54bc09540c))
+* fetch the TED's attributes, pointers and pattern bytes ([77ce20d](https://github.com/elektronaut/badline/commit/77ce20dfb9c9b5b6858bf384931fa0ce5e1bc868))
+* keyed snapshots for the Plus/4 and the C16 ([c7a1ace](https://github.com/elektronaut/badline/commit/c7a1ace2c3c94064bb14841773e109c56e49f1d6))
+* paint the TED's picture ([ede7805](https://github.com/elektronaut/badline/commit/ede7805b8113cb6321fbfdffedcb6b7a79e95983))
+* paint the TED's picture ([8158de8](https://github.com/elektronaut/badline/commit/8158de8729cb18a2ffd3acebaadbedeb447f59e4))
+* play and record Plus/4 and C16 tapes ([cd19fa9](https://github.com/elektronaut/badline/commit/cd19fa920a4e2b8a488011872ca98f6bd95cb43a))
+* play and record Plus/4 and C16 tapes ([d582592](https://github.com/elektronaut/badline/commit/d5825920a95a89c0f1bfcb4b207b902d0224b24b))
+* play the TED's sound ([a34efd6](https://github.com/elektronaut/badline/commit/a34efd67dbec995f246781452bce7c9c070ed10b))
+* play the TED's sound ([2852d40](https://github.com/elektronaut/badline/commit/2852d407cbf408f2b7cd24775ba746204a21ec3a))
+* Plus/4 disk media: true drives on the serial bus, PRG and disk autostart ([6ab02c9](https://github.com/elektronaut/badline/commit/6ab02c956792b680abc1e08e841ccdb6c9e5db80))
+* put a true 1541 or 1581 on the Plus/4's serial bus ([bd068ff](https://github.com/elektronaut/badline/commit/bd068ffd1b337915ad70ed9e96f10df6ca770c05))
+* put Plus/4 cartridges in both slots, from .crt or raw .bin ([42ae7c0](https://github.com/elektronaut/badline/commit/42ae7c0f66dd200bc1787ad3a9bd62c4f57719eb))
+* put Plus/4 cartridges in both slots, from .crt or raw .bin ([37d3404](https://github.com/elektronaut/badline/commit/37d34042399ae8c158c8fad905e0b78783f48d9c))
+* read the Plus/4's joysticks through the keyboard latch and map its keys ([6a1f7cb](https://github.com/elektronaut/badline/commit/6a1f7cb5a9a9426562fe5b3c9106a245bc23d287))
+* read the Plus/4's joysticks through the keyboard latch and map its keys ([28510e9](https://github.com/elektronaut/badline/commit/28510e99ff235227859cd773540d800af7be4967))
+* run the 264 testbench rows on an NTSC Plus/4 as testbench-plus4-ntsc ([4172d87](https://github.com/elektronaut/badline/commit/4172d87af0d42c82279b5d77fac6c76bc6d22e30))
+* run the 264 testbench rows on an NTSC Plus/4 as testbench-plus4-ntsc ([4f94cf8](https://github.com/elektronaut/badline/commit/4f94cf84cb746db5cb76e6ea5f00b1ee73d9698a))
+* run the Plus/4 and the C16 in the window with badline plus4 ([935bcf1](https://github.com/elektronaut/badline/commit/935bcf11b986c65f01024515d7c98ac1efa46530))
+* run the Plus/4 and the C16 with badline plus4 ([b2c23d5](https://github.com/elektronaut/badline/commit/b2c23d5aed2a4ce54d121fd1655146e9e54092f7))
+* save a level datasette's half-wave state in BL-TAPE ([54bb07e](https://github.com/elektronaut/badline/commit/54bb07e139b2dd97210f1cf0a5aa49d75cce4b19))
+* save and restore the Plus/4 and the C16 in keyed snapshots ([7bb6fcd](https://github.com/elektronaut/badline/commit/7bb6fcde49f1dd45c888a87bf19c4ce9cefb3388))
+* save cartridge mappers' registers in snapshots ([9ea6e0b](https://github.com/elektronaut/badline/commit/9ea6e0b2669c4ae9ed8270cf3de345787c76dcb3))
+* save cartridge mappers' registers in snapshots ([1bbc718](https://github.com/elektronaut/badline/commit/1bbc7182d5e3b290c0d7f4acdf0c160e15dc3cd0))
+* save the extra SIDs in snapshots ([bf7f142](https://github.com/elektronaut/badline/commit/bf7f1426472620b6168352ba3bf74e4780d29e89))
+* save the extra SIDs in snapshots ([65b1768](https://github.com/elektronaut/badline/commit/65b1768b9f91fc8ce5c0d5f5e46ee972d91122d2))
+* save the Plus/4 from F11 and the Snapshots page ([853085f](https://github.com/elektronaut/badline/commit/853085f0c177fcbf305c1fd60cd1a800dfcbc266))
+* save the Plus/4 from F11 and the Snapshots page ([7c6edf5](https://github.com/elektronaut/badline/commit/7c6edf56020f954312616429122337de145ec8fc))
+* save the Plus/4's port, 6529s, ACIA, TIAs and bus in keyed snapshot modules ([d52c289](https://github.com/elektronaut/badline/commit/d52c28944d1bbedb1efd39edb78fe42aae45d426))
+* save the TED and its sound in keyed snapshot modules ([8bbb7ca](https://github.com/elektronaut/badline/commit/8bbb7ca12b54ff73458473867dba36be15782cf9))
+* show the Plus/4's picture, play its sound and drive its joysticks in the front end ([4213c26](https://github.com/elektronaut/badline/commit/4213c26ffeaafe46bc6ec42433e2dc763b70aa6a))
+* show the Plus/4's picture, play its sound and drive its joysticks in the front end ([e8af663](https://github.com/elektronaut/badline/commit/e8af663e7cebc67ca0af4f3af6a9e10640373430))
+
+
+### Bug Fixes
+
+* count the TED's blink counter without the picture's carry ([a605fe4](https://github.com/elektronaut/badline/commit/a605fe4703972c2f00a684793155684a93bc45a4))
+* find the longest G64 track without a splat ([a5796f6](https://github.com/elektronaut/badline/commit/a5796f6ecff39724acd48598c751f002cdf97fd4))
+* run the TED's row line on through pointer lines ([c5f0a90](https://github.com/elektronaut/badline/commit/c5f0a901efdd842af438e50d4f9e61835aa16b2e))
+* store a C128 bank LOAD into the I/O that bank maps ([58672c2](https://github.com/elektronaut/badline/commit/58672c2bb7b9a5fed8d75d72007d00444eebb696))
+* store a C128 bank LOAD into the I/O that bank maps ([e207317](https://github.com/elektronaut/badline/commit/e207317970236769833d6ae3bb5f9090669cbea4))
+
+
+### Performance Improvements
+
+* type the fields the Plus/4's snapshot loads set, for the Spinel build ([e96b0c1](https://github.com/elektronaut/badline/commit/e96b0c1498955db909544ade458d3c6061ffe1f6))
+
 ## [0.14.0](https://github.com/elektronaut/badline/compare/v0.13.0...v0.14.0) (2026-10-11)
 
 
