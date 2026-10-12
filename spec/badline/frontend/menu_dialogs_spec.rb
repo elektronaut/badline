@@ -16,14 +16,17 @@ describe Badline::Frontend::MenuDialogs do
   let(:buttons) { Badline::Frontend::Buttons.new(painter, [1, 2, 3, 4]) }
   let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = Badline::C64.new } }
   let(:dir) { Dir.mktmpdir }
-  let(:crt_path) do
+
+  after { FileUtils.remove_entry(dir) }
+
+  def crt_path
     File.join(dir, "game.crt").tap do |path|
       header = "C64 CARTRIDGE   ".b + [0x40, 0x0100, 0, 0, 1].pack("NnnCC") + ("\x00" * 6) + "GAME".ljust(32, "\x00")
       File.binwrite(path, header + "CHIP".b + [0x2010, 0, 0, 0x8000, 0x2000].pack("Nn4") + ("\x42" * 0x2000))
     end
   end
 
-  after { FileUtils.remove_entry(dir) }
+  def bin_path = File.join(dir, "game.bin").tap { |path| File.binwrite(path, "\x11" * 0x8000) }
 
   # Presses the keys, laying the question out before each, as the menu's
   # frames do.
@@ -61,5 +64,27 @@ describe Badline::Frontend::MenuDialogs do
     dialogs.drop(crt_path)
     press(41)
     expect(dialogs.open?).to be(false)
+  end
+
+  describe "on a Plus/4" do
+    subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["plus4", bin_path]), nil) }
+
+    let(:computer) { Badline::Plus4.new }
+    let(:media) { Badline::Frontend::MenuMedia.new("", false).tap { |menu_media| menu_media.computer = computer } }
+
+    it "asks before a dropped ROM image goes in" do
+      expect([dialogs.drop(bin_path), dialogs.open?]).to eq([true, true])
+    end
+
+    it "puts a dropped 32K ROM image in cartridge 1's slots" do
+      dialogs.drop(bin_path)
+      press(81, 40)
+      expect(computer.cartridge_slots).to eq(%w[c1lo c1hi])
+    end
+
+    it "starts a ROM image Quick open picks" do
+      dialogs.browse(:program)
+      expect { press(81, 40, 81, 40) }.to output(/Attached cartridge .*game\.bin/).to_stdout
+    end
   end
 end

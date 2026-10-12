@@ -37,7 +37,11 @@ module Badline
       # :program, or :snapshot, which starts in the saves folder.
       def browse(kind)
         @browsing = kind
-        extensions = kind == :cartridge ? @media.cartridge_extensions : EXTENSIONS.fetch(kind)
+        extensions = case kind
+                     when :cartridge then @media.cartridge_extensions
+                     when :program then programs
+                     else EXTENSIONS.fetch(kind)
+                     end
         @browser.open(kind == :snapshot ? Badline.data_folder("saves") : @browse_from, extensions)
       end
 
@@ -56,15 +60,15 @@ module Badline
       def ask_remove = @confirmation.ask(:remove, @media.cartridge_name)
 
       # Puts a dropped disk or tape in its device, or asks before a
-      # cartridge or a program starts, and says whether it asks. Other
-      # files are left alone.
+      # cartridge, a Plus/4's raw ROM image among them, or a program
+      # starts, and says whether it asks. Other files are left alone.
       def drop(path)
         extension = File.extname(path).downcase
         return @media.insert(:disk, path) && false if EXTENSIONS[:disk].include?(extension)
         return @media.insert(:tape, path) && false if EXTENSIONS[:tape].include?(extension)
-        return false unless EXTENSIONS[:program].include?(extension)
+        return false unless programs.include?(extension)
 
-        @confirmation.ask(extension == ".crt" ? :cartridge : :start, path)
+        @confirmation.ask(@media.cartridge_extensions.include?(extension) ? :cartridge : :start, path)
         true
       end
 
@@ -97,6 +101,10 @@ module Badline
       end
 
       private
+
+      # What Quick open and a drop start: every medium, and the cartridges
+      # the machine takes.
+      def programs = (EXTENSIONS[:program] + @media.cartridge_extensions).uniq
 
       # Puts the disk or tape picked in, or asks before a cartridge or
       # Quick open power cycles the machine, and leaves the browser, as Esc
