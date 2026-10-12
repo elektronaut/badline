@@ -29,7 +29,7 @@ module Badline
         @recent = []
         @painter = painter
         @buttons = buttons
-        @media = MenuMedia.new(media_path, options.writable?)
+        @media = MenuMedia.new(media_path, options.writable?, options.cartridges)
         @reu_kb = options.reu
         @computer = nil
         @controls = nil
@@ -122,9 +122,9 @@ module Badline
       end
 
       def draw_expansion
+        info("CARTRIDGE", @media.cartridge_name)
         return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
 
-        info("CARTRIDGE", @media.cartridge_name)
         row("INSERT...", :insert_cartridge)
         row("REMOVE", :remove_cartridge)
         return if plus4?

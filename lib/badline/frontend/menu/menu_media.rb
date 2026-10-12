@@ -10,17 +10,29 @@ module Badline
     # wrong for the page to show.
     class MenuMedia
       attr_reader :problem
-      attr_writer :computer
 
       # Takes the disk set from the command line's `media_path` when it's a
-      # list.
-      def initialize(media_path, writable)
+      # list, and the names of the cartridges it and `cartridges`, the
+      # Plus/4's ROM images by slot (Options#cartridges), put in the first
+      # machine.
+      def initialize(media_path, writable, cartridges)
         @list = Media::DiskList.list?(media_path) ? media_path : ""
         @writable = writable
         @set_path = ""
         @set = []
         @problem = ""
         @computer = nil
+        @command_line = cartridges.map { |slot, path| [slot, path] } + [["", media_path]]
+        @names = {}
+        @named = nil
+      end
+
+      def computer=(computer)
+        @computer = computer
+        return unless @named.nil?
+
+        @command_line.each { |slot, path| note_cartridge(computer, path.dup, slot) }
+        @named = computer
       end
 
       def writable? = @writable
@@ -97,7 +109,9 @@ module Badline
       # Swaps the cartridge for the one at `path`, which power cycles the
       # machine, and says whether it went in.
       def attach_cartridge(path)
-        cartridge_succeeds? { Media.attach(@computer, path) }
+        attached = cartridge_succeeds? { Media.attach(@computer, path) }
+        note_cartridge(@computer, path, "") if attached
+        attached
       end
 
       # What a save of the machine is named after: the cartridge, the disk,
@@ -122,16 +136,25 @@ module Badline
       end
 
       # The name the cartridge in the expansion port gives itself, or an
-      # empty one. A Plus/4's names the slots with a ROM in them.
+      # empty one. A VIC-20's or a Plus/4's is the name of the file it came
+      # from: a .crt's own, or else the file's. A Plus/4 names each of its
+      # cartridges with a ROM in, and a slot filled from elsewhere, such as
+      # a snapshot, by the slot.
       def cartridge_name
-        return @computer.cartridge_slots.map(&:upcase).join(", ") if @computer.family == :plus4
-
-        cartridge = @computer.address_bus.cartridge
-        cartridge.nil? ? "" : cartridge.name
+        case @computer.family
+        when :plus4 then @computer.cartridge_slots.map { |slot| slot_name(slot) }.uniq.join(", ")
+        when :vic20 then named? ? @names.fetch("", "") : ""
+        else
+          cartridge = @computer.address_bus.cartridge
+          cartridge.nil? ? "" : cartridge.name
+        end
       end
 
       # Takes the cartridge out with the power off.
-      def remove_cartridge = MediaSlots.remove_cartridge(@computer)
+      def remove_cartridge
+        @names = {}
+        MediaSlots.remove_cartridge(@computer)
+      end
 
       # A new machine started on `path`, as the command line would, or nil
       # when it won't start.
@@ -161,10 +184,51 @@ module Badline
         @problem.empty?
       end
 
+      # The machine Frontend.start started on `path`, with the names of
+      # the cartridges in it noted.
       def started(options, path)
         computer = Frontend.start(options, path, @writable)
         list(path)
+        @names = {}
+        options.cartridges.each { |slot, image| note_cartridge(computer, image.dup, slot) }
+        note_cartridge(computer, path, "")
+        @named = computer
         computer
+      end
+
+      def named? = @computer.equal?(@named)
+
+      def slot_name(slot) = named? ? @names.fetch(slot, slot.upcase) : slot.upcase
+
+      # Keeps the name of the cartridge at `path` in `computer` by the
+      # slots it fills: a Plus/4's by xplus4's names, a raw image's in
+      # `slot` if it names one, and a VIC-20's in the one slot "". Other
+      # media, and other machines' cartridges, leave the names alone.
+      def note_cartridge(computer, path, slot)
+        case computer.family
+        when :plus4
+          return unless Media.kind(computer, path) == :cartridge
+
+          name = file_name(path)
+          Media::Plus4Media.cartridge_chips(path, slot: slot.empty? ? nil : slot).each do |chip|
+            @names["c#{chip.bank + 1}#{chip.address < 0xc000 ? 'lo' : 'hi'}"] = name
+          end
+        when :vic20 then @names[""] = file_name(path) if vic20_cartridge?(path)
+        end
+      end
+
+      def vic20_cartridge?(path)
+        case Media::Extensions.kind(path)
+        when :cartridge then true
+        when :program then File.file?(path) && !Media::Vic20Cartridge.chips(path, Media.program_bytes(path)).nil?
+        else false
+        end
+      end
+
+      # A .crt's own name, or else the file's, without its extension.
+      def file_name(path)
+        name = Media::Extensions.kind(path) == :cartridge ? Storage::CRTFile.new(path, machine: nil).name : ""
+        name.empty? ? File.basename(path, File.extname(path)) : name
       end
 
       # Keeps `path` as the list the set comes from, if it's a list.
