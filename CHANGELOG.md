@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.15.1](https://github.com/elektronaut/badline/compare/v0.15.0...v0.15.1) (2026-10-12)
+
+
+### Features
+
+* add the 1551 disk drive, booting its DOS headless ([db03667](https://github.com/elektronaut/badline/commit/db036672799acae2ea13a1b16780875547d74eb6))
+* add the 1551 disk drive, booting its DOS headless ([1f4db55](https://github.com/elektronaut/badline/commit/1f4db555eeb86da755241870a40c75e5441f5894))
+* emulate the Plus/4's 6551 ACIA ([8b1cc23](https://github.com/elektronaut/badline/commit/8b1cc236d7dc5c7e48c772c9256416c1011d2526))
+* emulate the Plus/4's 6551 ACIA ([06bf40f](https://github.com/elektronaut/badline/commit/06bf40f1f618db8decb25fe4d95577a035e9e903))
+* fit a Plus/4 or C16 with a Hannes or Csory RAM expansion ([14bc152](https://github.com/elektronaut/badline/commit/14bc15249914f4ecdb42212ab39d28dc4f2ee557))
+* fit a Plus/4 or C16 with a Hannes or Csory RAM expansion ([85baeba](https://github.com/elektronaut/badline/commit/85baeba267ef6f8e0243444ecd849260a22588de))
+* fit a Plus/4 or C16 with a SID card ([0ed886d](https://github.com/elektronaut/badline/commit/0ed886d5fe10e40223d9de330e38df8501bbbbfc))
+* fit a Plus/4 or C16 with a SID card ([2ae2e19](https://github.com/elektronaut/badline/commit/2ae2e197f783465a8b85c74ca6c78afdc071a66c))
+* machine_diff --family plus4 ([c479566](https://github.com/elektronaut/badline/commit/c479566180254a841d1b6e998089b8ca64ac6a48))
+* machine_diff --family plus4 ([55702f1](https://github.com/elektronaut/badline/commit/55702f10deb8e4f3775d7387a531ef7dbf4a6834))
+* make the 1551 the Plus/4's default true drive ([e3d3120](https://github.com/elektronaut/badline/commit/e3d312099478c71b59088ca4070cd839aabaac46))
+* make the 1551 the Plus/4's default true drive ([e275808](https://github.com/elektronaut/badline/commit/e27580834142351c3bfb4a088b2128bc52885036))
+* name the cartridge on the Expansion port page of every machine ([beab6e5](https://github.com/elektronaut/badline/commit/beab6e58a0aa9a374789645bb18e5c82d50fc0c8))
+* name the cartridge on the Expansion port page of every machine ([6e08889](https://github.com/elektronaut/badline/commit/6e08889edc1de913289ddfd03b75d79b6c42d994))
+* put a true 1551 on the Plus/4's TCBM with --drive-type 1551 ([1d0f9f4](https://github.com/elektronaut/badline/commit/1d0f9f42f622e5e00db1c63dd8413fb7484dd65a))
+* put a true 1551 on the Plus/4's TCBM with --drive-type 1551 ([ba8b9a3](https://github.com/elektronaut/badline/commit/ba8b9a3816300840f6b6fe8138427b81814f3957))
+* put the Plus/4's SID card at $FE80 with --sid-card-address ([da597a2](https://github.com/elektronaut/badline/commit/da597a240f77a870e610f3c186d1afd4f234695a))
+* put the Plus/4's SID card at $FE80 with --sid-card-address ([893c5eb](https://github.com/elektronaut/badline/commit/893c5eb08ca1617c5bced97501e9b8bcae443bb5))
+* save a 1551 in the Plus/4's snapshots ([8c2edad](https://github.com/elektronaut/badline/commit/8c2edadd246985d294b68ae5f46f572691d7045c))
+* save a 1551 in the Plus/4's snapshots ([06313fe](https://github.com/elektronaut/badline/commit/06313fe5de493ff8d92047ea4b2adc815d84d7b7))
+
+
+### Bug Fixes
+
+* clock the extra SIDs in C64#cycle! ([7fc8b71](https://github.com/elektronaut/badline/commit/7fc8b719702b90b43df822162c7fde48d1205409))
+* clock the extra SIDs in C64#cycle! ([016a9c4](https://github.com/elektronaut/badline/commit/016a9c4517be052db809bfc42345eedf296f3fbc))
+* read the register log's seed by index for Spinel ([d9b3c43](https://github.com/elektronaut/badline/commit/d9b3c43ef51c81faf471018a85721753450949e0))
+* refuse a .crt with a chip in an unmapped bank on the command line ([15b4060](https://github.com/elektronaut/badline/commit/15b4060afe320df465da5f767c21d69ccf93d3bc))
+* refuse a .crt with a chip in an unmapped bank on the command line ([c8c51fc](https://github.com/elektronaut/badline/commit/c8c51fc2f98deae8eaad1c671987c5b726cb4ba5))
+* refuse a cartridge with a chip in a bank the machine doesn't map ([c2bee2a](https://github.com/elektronaut/badline/commit/c2bee2a4ee01b5959a465b7d72034a9be7ec3bf3))
+* refuse a cartridge with a chip in a bank the machine doesn't map ([d08f37e](https://github.com/elektronaut/badline/commit/d08f37e2b2ff0207b1173aee2f467e4f9e71f685))
+* save the datasette's recording state in snapshots ([ba8e5e8](https://github.com/elektronaut/badline/commit/ba8e5e8dbcf088449324d66f30f8bbfe15e80210))
+* save the datasette's recording state in snapshots ([b155546](https://github.com/elektronaut/badline/commit/b1555467f70a1d2db4117ab43e623f8a060a4a3f))
+* take --frames in the SID player ([b9a54f3](https://github.com/elektronaut/badline/commit/b9a54f3c7bb84edd67c69ee38efb4f5f79347760))
+* take --frames in the SID player ([3483684](https://github.com/elektronaut/badline/commit/3483684fe8efdf2b828d85db98c9e4c1667293a4))
+* take a Plus/4 .bin cartridge from Quick open and drag and drop ([214dcd6](https://github.com/elektronaut/badline/commit/214dcd63bc48956d0f2139d89bab63613dde78d7))
+* take a Plus/4 .bin cartridge from Quick open and drag and drop ([32ec8d0](https://github.com/elektronaut/badline/commit/32ec8d0deb54000a1c2b956a02ad26b53ef2cf6d))
+* type ACIA#feed's bytes for Spinel ([32b9f72](https://github.com/elektronaut/badline/commit/32b9f72a7ad24cd862531d19e545e117c7e8e340))
+
+
+### Performance Improvements
+
+* check the init threshold and the ACIA with one compare ([b0050a7](https://github.com/elektronaut/badline/commit/b0050a7a4716e21551882f10c0811a6f0284686a))
+* count the SID card's cycles when it is touched ([d0cec9c](https://github.com/elektronaut/badline/commit/d0cec9c9d9144bb2303d0cba0b182dcf705d1b32))
+* look in on the ACIA's IRQ only when it is due ([d099091](https://github.com/elektronaut/badline/commit/d09909138087a305ce59384dafbece7ef08f340a))
+* sleep the 1551 through its idle loop ([3fabf2a](https://github.com/elektronaut/badline/commit/3fabf2ab6f866bf088682b14e5f04e4dd9054d29))
+* sleep the 1551 through its idle loop ([8d99fa3](https://github.com/elektronaut/badline/commit/8d99fa3ac22f862a51e967dc5a69471dece782da))
+
+
+### Reverts
+
+* find the longest G64 track with a splat again ([31a3df2](https://github.com/elektronaut/badline/commit/31a3df2d35ab79a072a46213d5996068eaa2d793))
+
+
+### Miscellaneous Chores
+
+* release 0.15.1 ([23586fb](https://github.com/elektronaut/badline/commit/23586fbc26b2132c4a8afe04d44cbeaed6b0eb12))
+
 ## [0.15.0](https://github.com/elektronaut/badline/compare/v0.14.0...v0.15.0) (2026-10-12)
 
 
