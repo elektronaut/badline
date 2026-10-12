@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.15.0](https://github.com/elektronaut/badline/compare/v0.14.0...v0.15.0) (2026-10-12)
+
+
+### Features
+
+* run the Plus/4 and the C16 in the window with badline plus4 ([935bcf1](https://github.com/elektronaut/badline/commit/935bcf11b986c65f01024515d7c98ac1efa46530))
+* paint the TED's picture ([ede7805](https://github.com/elektronaut/badline/commit/ede7805b8113cb6321fbfdffedcb6b7a79e95983))
+* play the TED's sound ([a34efd6](https://github.com/elektronaut/badline/commit/a34efd67dbec995f246781452bce7c9c070ed10b))
+* read the Plus/4's joysticks through the keyboard latch and map its keys ([6a1f7cb](https://github.com/elektronaut/badline/commit/6a1f7cb5a9a9426562fe5b3c9106a245bc23d287))
+* attach programs, disks and cartridges to a Plus/4 ([84a86f4](https://github.com/elektronaut/badline/commit/84a86f43e97e08fdb4ea21ef909adf54bc09540c))
+* put a true 1541 or 1581 on the Plus/4's serial bus ([bd068ff](https://github.com/elektronaut/badline/commit/bd068ffd1b337915ad70ed9e96f10df6ca770c05))
+* put Plus/4 cartridges in both slots, from .crt or raw .bin ([42ae7c0](https://github.com/elektronaut/badline/commit/42ae7c0f66dd200bc1787ad3a9bd62c4f57719eb))
+* play and record Plus/4 and C16 tapes ([cd19fa9](https://github.com/elektronaut/badline/commit/cd19fa920a4e2b8a488011872ca98f6bd95cb43a))
+* show the Plus/4's picture, play its sound and drive its joysticks in the front end ([4213c26](https://github.com/elektronaut/badline/commit/4213c26ffeaafe46bc6ec42433e2dc763b70aa6a))
+* keyed snapshots for the Plus/4 and the C16 ([c7a1ace](https://github.com/elektronaut/badline/commit/c7a1ace2c3c94064bb14841773e109c56e49f1d6))
+* save the Plus/4 from F11 and the Snapshots page ([853085f](https://github.com/elektronaut/badline/commit/853085f0c177fcbf305c1fd60cd1a800dfcbc266))
+* save cartridge mappers' registers in snapshots ([9ea6e0b](https://github.com/elektronaut/badline/commit/9ea6e0b2669c4ae9ed8270cf3de345787c76dcb3))
+* save the extra SIDs in snapshots ([bf7f142](https://github.com/elektronaut/badline/commit/bf7f1426472620b6168352ba3bf74e4780d29e89))
+
+### Bug Fixes
+
+* store a C128 bank LOAD into the I/O that bank maps ([58672c2](https://github.com/elektronaut/badline/commit/58672c2bb7b9a5fed8d75d72007d00444eebb696))
+
 ## [0.14.0](https://github.com/elektronaut/badline/compare/v0.13.0...v0.14.0) (2026-10-11)
 
 
