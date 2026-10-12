@@ -415,6 +415,10 @@ describe Badline::Options do
       "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64; the Plus/4's is --sid-card"],
       "a SID card for the C64" => [%w[--sid-card 8580], "--sid-card needs plus4"],
       "an unknown SID card" => [%w[plus4 --sid-card 6582], "invalid argument: --sid-card 6582"],
+      "a SID card address for the C64" => [%w[--sid-card-address fe80], "--sid-card-address needs plus4"],
+      "a SID card address without a card" => [%w[plus4 --sid-card-address fe80], "--sid-card-address needs --sid-card"],
+      "an unknown SID card address" => [%w[plus4 --sid-card 8580 --sid-card-address fe00],
+                                        "invalid argument: --sid-card-address fe00"],
       "a RAM expansion for the C64" => [%w[--ram-expansion hannes256], "--ram-expansion needs plus4"],
       "an unknown Plus/4 RAM expansion" => [%w[plus4 --ram-expansion hannes512],
                                             "invalid argument: --ram-expansion hannes512"],
@@ -446,6 +450,18 @@ describe Badline::Options do
 
       it "fits a SID card with the SID named" do
         expect(options.sid_card).to eq(:mos8580)
+      end
+
+      it "leaves its address to the machine" do
+        expect(options.sid_card_address).to be_nil
+      end
+    end
+
+    context "with plus4 and --sid-card-address" do
+      let(:argv) { %w[plus4 --sid-card 8580 --sid-card-address FE80] }
+
+      it "puts the SID card at the address named" do
+        expect(options.sid_card_address).to eq(0xfe80)
       end
     end
 

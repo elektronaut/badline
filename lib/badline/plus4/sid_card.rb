@@ -2,18 +2,25 @@
 
 module Badline
   class Plus4
-    # A SID card's SID at $FD40-$FD5F, clocked once a TED cycle, as the
-    # cards clock it from the TED's single clock. The SID counts the
+    # A SID card's SID at $FD40-$FD5F, or at $FE80-$FE9F as Csory's card
+    # puts it, clocked once a TED cycle, as the cards clock it from the
+    # TED's single clock. The SID counts the
     # cycles that have passed whenever something touches it, rather than
     # every cycle: a CPU access runs it through the cycle the access is in,
     # and the host, between cycles, up to the cycle about to start.
     # `clock` answers the machine's cycles.
     class SIDCard
-      attr_reader :sid
+      # Where a card can put its SID.
+      ADDRESSES = [0xfd40, 0xfe80].freeze
 
-      def initialize(clock, model)
+      attr_reader :sid, :address
+
+      def initialize(clock, model, address = ADDRESSES.first)
+        raise ArgumentError, format("no SID card at $%04X", address) unless ADDRESSES.include?(address)
+
         @clock = clock
-        @sid = Chips::SID.new(model:, at: 0xfd40)
+        @address = address
+        @sid = Chips::SID.new(model:, at: address)
         @clocked = 0
       end
 

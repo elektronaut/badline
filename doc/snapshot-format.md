@@ -64,6 +64,7 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `ram_kb` | int | Plus/4: 64 or 16 |
 | `sid_card` | text: none mos6581 mos8580 | Plus/4: "none" |
 | `tcbm` | bool | Plus/4: false |
+| `sid_card_address` | int | Plus/4: 64832 |
 
 ## BL-RAM
 
