@@ -301,6 +301,10 @@ Recorded output of the headless hardware suites, one file per suite:
     flagging a second side and counting its tracks' free blocks
     (`second-side`), and the program through the traps
     (`trap-readable`).
+  - `1571-boot-g64` attaches a `.g64`, built from a `.d64` with a boot
+    sector at track 1, sector 0, to a C128 in C128 mode: the KERNAL boots
+    it from the 1571 and runs its code (`boots`), and nothing is typed
+    after it (`nothing-typed`).
   - `1581-save`, `1581-read-only`, `1581-autostart`,
     `1581-error-channel` and `1581-idle` run the same checks on a C64
     with a true 1581 and a `.d81` (`test/support/drive_scenarios_1581.rb`).

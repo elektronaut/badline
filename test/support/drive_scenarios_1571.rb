@@ -9,13 +9,20 @@ require "badline/c128"
 # run on it unchanged: a save, the error channel, a write-protected disk,
 # an autostart and the idle loop. A double-sided format puts it in 1571
 # mode first with U0>M1, which runs it at 2 MHz and writes both sides of
-# a .d71.
+# a .d71. A .g64 with a boot sector boots a C128 in C128 mode.
 module DriveScenarios
   module C128Runs
     D71_SIZE = 349_696
 
     # The free blocks of tracks 36-38 that 18/0 counts from $DD.
     SIDE_TWO_FREE = [21, 21, 21].freeze
+
+    # Track 1, sector 0 of a boot disk: the signature, no blocks to load,
+    # the message HI, no file name, then code at $0B0B that prints BOOTED
+    # OK and returns.
+    BOOT_SECTOR = [*"CBM".bytes, 0, 0, 0, 0, *"HI".bytes, 0, 0,
+                   0xa2, 0x00, 0xbd, 0x19, 0x0b, 0xf0, 0x06, 0x20, 0xd2, 0xff, 0xe8, 0xd0, 0xf5, 0x60,
+                   *"BOOTED OK".bytes, 0x0d, 0x00].freeze
 
     module_function
 
@@ -26,6 +33,7 @@ module DriveScenarios
       when "1571-read-only" then read_only(report, dir)
       when "1571-autostart" then autostart(report, dir)
       when "1571-error-channel" then error_channel(report)
+      when "1571-boot-g64" then boot_g64(report, dir)
       else Idle1571.run(report)
       end
     end
@@ -104,6 +112,42 @@ module DriveScenarios
       Runs.run_until(machine, 7_000_000) { output.output.upcase.include?(" 0 0\n") }
       report.check("power-on-message", output.output.upcase.include?(" 73CBM DOS V3.0 1571 0 0"),
                    "printed no 73,CBM DOS V3.0 1571,0,0")
+    end
+
+    # A .g64 whose track 1, sector 0 is a boot sector, attached to a C128
+    # in C128 mode: the KERNAL boots it from the 1571 at power-on and runs
+    # its code, and nothing is typed after it.
+    def boot_g64(report, dir)
+      path = File.join(dir, "1571-boot.g64")
+      boot_disk(dir, path)
+      machine = Badline::C128.new(mode: :c128)
+      output = machine.capture_output
+      Badline::Media.attach(machine, path)
+      Runs.run_until(machine, 30_000_000) { output.output.upcase.include?("BOOTED OK\n") }
+      machine.run_cycles(5_000_000)
+      text = output.output.upcase
+      report.check("boots", text.include?("BOOTING HI...") && text.include?("BOOTED OK\n"),
+                   "printed no BOOTING HI... and BOOTED OK")
+      report.check("nothing-typed", !text.include?("SEARCHING"), "searched for a file after the boot")
+    end
+
+    # A blank .d64 with BOOT_SECTOR at track 1, sector 0, written to path
+    # as the GCR a 1541 reads from it.
+    def boot_disk(dir, path)
+      d64 = File.join(dir, "1571-boot.d64")
+      Images.blank_d64(d64, "BOOT")
+      bytes = File.binread(d64).bytes
+      bytes[0, BOOT_SECTOR.length] = BOOT_SECTOR
+      File.binwrite(d64, bytes.pack("C*"))
+      disk = Badline::Drives::Model1541::Disk.open(d64)
+      tracks = {}
+      half = 2
+      while half <= 70
+        track = disk.track(half)
+        tracks[half - 2] = [track.bytes, track.zone]
+        half += 2
+      end
+      Badline::Storage::G64Image.create(path, tracks)
     end
 
     # A C128 with the 1571 on its bus and the image at path in it, typing
