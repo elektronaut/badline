@@ -209,12 +209,16 @@ describe Badline::Plus4 do
   end
 
   describe "#plug_true_drive" do
-    it "plugs in a 1541 by default" do
-      expect(described_class.new.plug_true_drive.model_name).to eq("1541")
+    it "plugs in a 1551 by default" do
+      expect(described_class.new.plug_true_drive.model_name).to eq("1551")
     end
 
-    it "plugs in the 1551 true_drive_model names" do
-      expect(described_class.new(true_drive_model: "1551").plug_true_drive.model_name).to eq("1551")
+    it "plugs in a 1551 by default on a C16" do
+      expect(described_class.new(model: "c16").plug_true_drive.model_name).to eq("1551")
+    end
+
+    it "plugs in the 1541 true_drive_model names" do
+      expect(described_class.new(true_drive_model: "1541").plug_true_drive.model_name).to eq("1541")
     end
 
     it "refuses a drive the Plus/4 doesn't take" do

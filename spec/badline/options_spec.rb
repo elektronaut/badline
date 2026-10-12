@@ -446,19 +446,19 @@ describe Badline::Options do
       end
     end
 
-    context "with plus4 and --drive-type 1551" do
-      let(:argv) { ["plus4", "--drive-type", "1551", program_path] }
+    context "with plus4 and --drive-type 1541" do
+      let(:argv) { ["plus4", "--drive-type", "1541", program_path] }
 
-      it "puts a true 1551 on device 8" do
-        expect([options.true_drive?, options.drive_type]).to eq([true, "1551"])
+      it "puts a true 1541 on device 8" do
+        expect([options.true_drive?, options.drive_type]).to eq([true, "1541"])
       end
     end
 
     context "with plus4 and no --drive-type" do
       let(:argv) { ["plus4", program_path] }
 
-      it "names the 1541 for --true-drive" do
-        expect([options.true_drive?, options.drive_type]).to eq([false, "1541"])
+      it "names the 1551 for --true-drive" do
+        expect([options.true_drive?, options.drive_type]).to eq([false, "1551"])
       end
     end
 

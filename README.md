@@ -81,8 +81,8 @@ differences noted in the table. `--help` lists the options for either.
 | --- | --- |
 | `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
 | `--writable` | Let the machine write to disk images. Without it, a disk goes in write-protected: the drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
-| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
-| `--drive-type 1551` | On the Plus/4, make the true drive on device 8 an emulated 1551 on TCBM in place of the 1541. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
+| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, or a 1551 on the Plus/4. See [Media](#media) |
+| `--drive-type 1541` | On the Plus/4, make the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own |
@@ -261,10 +261,11 @@ clocks the SID at the TED's single clock, 886,724 Hz on PAL, so a C64
 tune plays about a semitone flat, as it did on those cards. Its sound
 plays with the TED's, and the Sound page swaps its SID's model.
 
-Disks go through the KERNAL traps or, with `--true-drive`, a 1541 or a
-1581 on the serial bus. `--drive-type 1551` puts a 1551 on device 8
-instead, on TCBM, the parallel cable to its interface in the expansion
-port. The pause menu's Power
+Disks go through the KERNAL traps or, with `--true-drive`, a 1551 on
+device 8, on TCBM, the parallel cable to its interface in the expansion
+port, on the C16 as on the Plus/4. `--drive-type 1541` puts a 1541 on
+the serial bus there instead, and a `.d81` goes in a 1581 on the serial
+bus. The pause menu's Power
 page names the model and its RAM, and its Expansion port page names the
 cartridges in, or the slot of one a snapshot put in, and takes them all
 out. `F11` and the
@@ -441,7 +442,7 @@ in cartridge 1 as it does from the command line.
   (`--true-drive` with a `.d81`).
 - **1551**: the 264 series' parallel drive, its 6510T running its own DOS
   at 2 MHz with the 1541's mechanism, on TCBM to a Plus/4 or a C16
-  (`badline plus4 --drive-type 1551`).
+  (`badline plus4 --true-drive`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann
   Learning, Rex Utility, C64 Game System / System 3, Dinamic, Zaxxon /

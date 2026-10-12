@@ -36,7 +36,7 @@ Metrics/MethodLength:
     - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/ModuleLength:
-  Max: 145
+  Max: 150
 
 Metrics/PerceivedComplexity:
   Max: 10

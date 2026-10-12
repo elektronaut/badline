@@ -99,7 +99,7 @@ module Badline
     # drive answering on the other side. +true_drive_model+ names the drive
     # plug_true_drive plugs in, "1541" or "1551". +sid_card+ fits a SID
     # card with a SID of that model, :mos6581 or :mos8580.
-    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1541", sid_card: nil, debug: false)
+    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1551", sid_card: nil, debug: false)
       @model = Model.named(model)
       @ram_kb = ram || @model.ram_kb
       raise ArgumentError, "no Plus/4 RAM size of #{@ram_kb}K" unless Model::RAM_SIZES.include?(@ram_kb)

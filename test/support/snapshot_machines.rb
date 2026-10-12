@@ -279,8 +279,9 @@ module SnapshotMachines
   # saved part way through a LOAD.
   def plus4_drive_scenarios
     [
-      Scenario.new("plus4-1541", :plus4, ->(dir) { listing(Badline::Plus4.new, copy(D64, dir)) },
-                   ->(m) { run(m, 2_500_000) }),
+      Scenario.new("plus4-1541", :plus4, lambda { |dir|
+        listing(Badline::Plus4.new(true_drive_model: "1541"), copy(D64, dir))
+      }, ->(m) { run(m, 2_500_000) }),
       Scenario.new("plus4-1551", :plus4, lambda { |dir|
         listing(Badline::Plus4.new(true_drive_model: "1551"), copy(D64, dir))
       }, ->(m) { run(m, 2_400_000) })

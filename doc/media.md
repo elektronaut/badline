@@ -34,6 +34,10 @@ or directories. Loading runs at the speed of a real 1541, and the
 drive's red activity LED and green power LED light in the bottom right
 corner of the border. A 1581 flashes its power LED after an error.
 
+On the Plus/4 and the C16, `--true-drive` puts an emulated 1551 there
+instead, on TCBM, the parallel cable to its interface in the expansion
+port, and `--drive-type 1541` a 1541 on the serial bus.
+
 A `.g64` holds the disk's raw GCR, half tracks and all, so copy
 protection and fast loaders that read it work.
 

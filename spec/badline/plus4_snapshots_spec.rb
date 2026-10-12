@@ -73,6 +73,13 @@ describe Badline::Plus4 do
       end
     end
 
+    it "loads a true 1541 from a .vsf as a 1541, whatever the default drive" do
+      machine = saved("plus4").tap { |plus4| plus4.attach_drive1541(Badline::Drives::Model1541.new) }
+      machine.save_snapshot(path)
+      loaded = Badline::Snapshot.load(path)
+      expect([loaded.true_drive.model_name, loaded.drive1551]).to eq(["1541", nil])
+    end
+
     it "saves to a .vsf whose machine is PLUS4, with badline's modules alone" do
       saved("plus4").save_snapshot(path)
       snapshot = Badline::Snapshot.read(path)
