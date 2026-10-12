@@ -794,17 +794,17 @@ describe Badline::Media do
       expect(computer).to have_received(:type_text).with(%(lO"*",8,1\rrun\r))
     end
 
-    it "puts a .d64 in a true 1541 once one is device 8" do
+    it "puts a .d64 in a true 1551 once one is device 8" do
       drive = described_class::TrueDrive.plug(computer)
       described_class.attach(computer, blank_d64(File.join(dir, "disk.d64")))
       expect(drive.disk).to be_a(Badline::Drives::Model1541::Disk)
     end
 
-    it "plugs a 1541 in for a .g64" do
-      expect(described_class.attach(computer, g64_path)).to eq("Inserted #{g64_path} in the 1541 as device 8")
+    it "plugs a 1551 in for a .g64" do
+      expect(described_class.attach(computer, g64_path)).to eq("Inserted #{g64_path} in the 1551 as device 8")
     end
 
-    it "swaps the 1541 for a 1581 for a .d81" do
+    it "swaps the 1551 for a 1581 for a .d81" do
       described_class::TrueDrive.plug(computer)
       described_class.attach(computer, blank_d81(File.join(dir, "disk.d81")))
       expect(computer.true_drive.model_name).to eq("1581")

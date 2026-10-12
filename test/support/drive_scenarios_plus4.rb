@@ -102,7 +102,7 @@ module DriveScenarios
       path = File.join(dir, "plus4-read-only.d64")
       Images.blank_d64(path, "BLANK")
       before = File.binread(path)
-      machine = Badline::Plus4.new
+      machine = Badline::Plus4.new(true_drive_model: "1541")
       output = machine.capture_output
       Badline::Media::TrueDrive.plug(machine)
       Badline::Media.attach(machine, path, autostart: false, disk: { read_only: true })
@@ -124,7 +124,7 @@ module DriveScenarios
         Images.blank_d64(path, "BLANK")
         Badline::Storage::D64Image.new(path).write_file("hello", AUTOSTART)
       end
-      machine = Badline::Plus4.new
+      machine = Badline::Plus4.new(true_drive_model: "1541")
       output = machine.capture_output
       Badline::Media::TrueDrive.plug(machine)
       Badline::Media.attach(machine, path)

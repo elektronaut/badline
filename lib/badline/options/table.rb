@@ -42,9 +42,10 @@ module Badline
       Option.new("--sound", "Play the SID through the host's audio device (F10 mutes)",
                  section: "Window options", needs: :window),
       Option.new("--no-sound", "Don't play the SID", section: "Window options", needs: :window, build: :native),
-      Option.new("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps, a 1571 on the C128",
+      Option.new("--true-drive", "Put a true 1541 on device 8 instead of the KERNAL traps, a 1571 on the C128, " \
+                                 "a 1551 on the Plus/4",
                  section: "Window options", needs: :window),
-      Option.new("--drive-type MODEL", "The Plus/4's true drive: 1541 or 1551 (default: 1541); implies --true-drive",
+      Option.new("--drive-type MODEL", "The Plus/4's true drive: 1541 or 1551 (default: 1551); implies --true-drive",
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),

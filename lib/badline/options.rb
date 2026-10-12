@@ -196,8 +196,8 @@ module Badline
 
     def true_drive? = @true_drive || !@drive_type.nil?
 
-    # The Plus/4's true drive --drive-type names, "1541" without it.
-    def drive_type = @drive_type || "1541"
+    # The Plus/4's true drive --drive-type names, "1551" without it.
+    def drive_type = @drive_type || "1551"
 
     # Whether --save-snapshot adds VICE's modules, so x64sc opens it.
     def vice? = @vice
