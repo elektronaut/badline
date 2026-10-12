@@ -47,7 +47,7 @@ module Badline
       # track 1 and 1 for track 1.5, laid out as VICE lays one out: every
       # block as long as the longest track.
       def self.create(path, tracks, half_tracks: HALF_TRACKS)
-        max = tracks.values.map { |bytes, _| bytes.length }.push(MAX_TRACK_SIZE).max
+        max = [MAX_TRACK_SIZE, *tracks.values.map { |bytes, _| bytes.length }].max
         offsets = Array.new(half_tracks, 0)
         zones = Array.new(half_tracks, 0)
         blocks = +"".b

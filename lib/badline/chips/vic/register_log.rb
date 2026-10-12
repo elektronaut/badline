@@ -43,7 +43,10 @@ module Badline
         # register back at the value it held when the line started.
         def rewind
           @values.length.times { |reg| @values[reg] = @registers[reg] }
-          @seed.each_with_index { |value, reg| @values[reg] = value unless value.nil? }
+          @seed.each_index do |reg|
+            value = @seed[reg]
+            @values[reg] = value unless value.nil?
+          end
           @cursor = 0
           @next_x = @entries.empty? ? Float::INFINITY : @entries[0][0]
         end
