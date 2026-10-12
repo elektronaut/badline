@@ -24,8 +24,11 @@ module Badline
       # sleeps through them too (see Orbit).
       #
       # A model includes Core and builds its parts, sets @clock_hz and
-      # @idle_loop, and runs one drive cycle in step. It hears ATN on
-      # connecting (hear_atn), drives the serial bus (serial_output), and
+      # @idle_loop, and runs one drive cycle in step. Its @serial_port faces
+      # the host: it says whether the host moved the lines the drive
+      # listens to (atn_moved?) and takes them for the next host cycle
+      # (latch_host), as the serial port does for ATN on the serial bus
+      # (SerialConnection) and the TCBM cable does on the 1551. The model
       # answers Idle's and Orbit's questions about its chips, as VIAs does
       # for the 1541 and the 1571.
       module Core
@@ -33,7 +36,7 @@ module Badline
         include Idle
         include Orbit
 
-        attr_reader :device, :serial_bus
+        attr_reader :device
 
         def cpu
           settle!
@@ -60,17 +63,6 @@ module Badline
         def host_clock_hz=(clock_hz)
           settle!
           @host_clock_hz = clock_hz
-        end
-
-        # Plugs the drive into a serial bus, leaving the one it was on. A drive
-        # starts out on a bus of its own, with nothing else on it.
-        def connect(serial_bus)
-          settle!
-          @serial_bus&.detach(self)
-          @serial_bus = serial_bus
-          @serial_port.bus = serial_bus
-          serial_bus.attach(self)
-          hear_atn
         end
 
         # Puts a Disk in the drive (Disk.from_d64 makes one from an image).

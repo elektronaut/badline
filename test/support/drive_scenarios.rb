@@ -76,8 +76,8 @@ module DriveScenarios
     when "plus4-format", "plus4-save", "plus4-1581-save", "plus4-read-only", "plus4-autostart",
          "plus4-1581-autostart", "plus4-error-channel", "plus4-c16-error-channel"
       Plus4Runs.run(report, name, dir)
-    when "plus4-1551-format", "plus4-1551-save", "plus4-1551-autostart", "plus4-1551-error-channel",
-         "plus4-1551-c16-error-channel"
+    when "plus4-1551-format", "plus4-1551-save", "plus4-1551-autostart", "plus4-1551-idle",
+         "plus4-1551-error-channel", "plus4-1551-c16-error-channel"
       Plus4TCBMRuns.run(report, name, dir)
     when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")
     when "plus4-c16-tape" then Plus4TapeRuns.run(report, dir, "c16")

@@ -31,7 +31,14 @@ module Badline
     # A 555 timer pulls IRQ low for about 7 µs every 8.3 ms, its R1 120K,
     # R2 100R and C1 0.1 µF, which runs the DOS's job loop. Nothing
     # acknowledges it: the line lets go on its own.
+    #
+    # Drives::Engine::Core clocks it against the host and sleeps through
+    # the DOS's idle loop, which counts its passes in $61 (Engine::Idle's
+    # pass counter), until the 555 is due to pull IRQ, the count wraps or
+    # the computer moves the cable's lines.
     class Model1551
+      include Engine::Core
+
       CLOCK_HZ = 2_000_000
 
       # The 555's cycle in drive cycles: high for 0.693 (R1 + R2) C and low,
@@ -48,13 +55,28 @@ module Badline
       # a command from the computer.
       IDLE_LOOP = 0xeabd
 
-      attr_reader :device, :cpu, :bus, :mechanism, :port, :tia, :cycles
+      # The byte the idle loop increments on each pass.
+      PASS_COUNTER = 0x61
 
-      # The TIA in the computer's expansion port, and the cable to it.
-      attr_reader :host_tia, :cable
+      def port
+        settle!
+        @port
+      end
 
-      # The host's clock rate, which the drive's cycles keep pace with.
-      attr_writer :host_clock_hz
+      def tia
+        settle!
+        @tia
+      end
+
+      # The TIA in the computer's expansion port, which the computer reads
+      # and writes without waking the drive.
+      attr_reader :host_tia
+
+      # The cable between the two TIAs.
+      def cable
+        settle!
+        @cable
+      end
 
       def model_name = "1551"
 
@@ -64,26 +86,23 @@ module Badline
         raise ArgumentError, "a 1551 is device 8 or 9, not #{device}" unless [8, 9].include?(device)
 
         @device = device
+        @clock_hz = CLOCK_HZ
         @mechanism = Model1541::Mechanism.new
         @mechanism.clock_hz = CLOCK_HZ
         @port = Port.new(@mechanism)
         @tia = TIA.new(@mechanism, device:)
         @host_tia = Chips::TIA.new
-        @cable = Cable.new(@host_tia, @tia.chip)
         @bus = Bus.new(rom: rom || ROM.load("dos1551.rom", 0xc000), port: @port, tia: @tia)
         @cpu = CPU.new(@bus, debug:)
+        @idle_loop = IDLE_LOOP
         @host_clock_hz = host_clock_hz
         @phase = 0
         @cycles = 0
         @irq_timer = IRQ_PERIOD
-      end
-
-      def ram = @bus.ram
-
-      # Puts a Disk in the drive (Model1541::Disk.from_d64 makes one from an
-      # image). Nil takes the disk out.
-      def insert(disk)
-        @mechanism.insert(disk)
+        init_idle(debug)
+        @pass_counter = PASS_COUNTER
+        @cable = Cable.new(@host_tia, @tia.chip, self)
+        @serial_port = @cable
       end
 
       # Puts in a Disk from the .d64 or .g64 image at +path+, write-protected
@@ -92,49 +111,15 @@ module Badline
         insert(Model1541::Disk.open(path, read_only:))
       end
 
-      def disk = @mechanism.disk
-
-      # Whether the activity LED is lit.
-      def led_on? = @mechanism.led_on?
-
-      # The power LED, which stays lit.
-      def power_led_on? = true
-
-      # Stores what the head wrote since the motor last stopped in the
-      # disk's image, as the motor stopping does.
-      def flush
-        @mechanism.flush
-      end
-
       # The computer's RESET line reaches the interface's TIA and, through
       # the cable, the CPU, its port and the drive's TIA. RAM keeps its
       # contents, and the 555 runs on.
       def reset!
+        settle!
         @host_tia.reset!
         @port.reset!
         @tia.reset!
         @cpu.reset!
-      end
-
-      # Runs the drive cycles that fall in one host cycle, on the drive's own
-      # crystal through a fractional accumulator.
-      def host_cycle!
-        phase = @phase + CLOCK_HZ
-        host_clock_hz = @host_clock_hz
-        while phase >= host_clock_hz
-          step
-          phase -= host_clock_hz
-        end
-        @phase = phase
-      end
-
-      # Runs one drive cycle.
-      def cycle!
-        step
-      end
-
-      def inspect
-        "#<#{self.class.name} cycles=#{@cycles} cpu=(#{@cpu.inspect})>"
       end
 
       private
@@ -150,6 +135,36 @@ module Badline
         @cpu.cycle!
         @cycles += 1
       end
+
+      # A pass of the idle loop reads the TIA's port A, which holds still
+      # until the computer moves the cable's lines, and RAM. It repeats
+      # while the motor is off and the 555 leaves IRQ alone, for as long as
+      # the 555 leaves room (see Engine::Idle).
+      def busy_for_pass? = @mechanism.motor_on? || @irq_timer <= IRQ_LOW
+
+      def quiet_cycles
+        quiet = @irq_timer - IRQ_LOW - 1
+        quiet.negative? ? 0 : quiet
+      end
+
+      def idle_state
+        chip = @tia.chip
+        [*@cpu.counting_state, @bus.data, *@mechanism.idle_state, *chip.ports, *chip.directions, *chip.inputs,
+         @port.ddr, @port.data]
+      end
+
+      def fast_forward_chips(cycles)
+        @irq_timer -= cycles
+      end
+
+      # Every 555 pulse runs the job loop, which reads the port and the TIA,
+      # so no orbit (Engine::Orbit) comes round, and the drive keeps no
+      # anchors.
+      def anchor = nil
+
+      def counter_state(_touched) = []
+
+      def skip_chip_orbits(_cycles, _touched) = nil
     end
   end
 end

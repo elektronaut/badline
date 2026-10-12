@@ -104,6 +104,7 @@ module Badline
           cycles = passes * @pass_cycles
           @cpu.fast_forward(cycles, passes * @pass_instructions)
           fast_forward_chips(cycles)
+          count_passes(passes)
           @cycles += cycles
           @budget -= cycles
           cycles

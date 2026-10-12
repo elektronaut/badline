@@ -328,7 +328,11 @@ Recorded output of the headless hardware suites, one file per suite:
     `plus4-1551-format`, `plus4-1551-save`, `plus4-1551-autostart`,
     `plus4-1551-error-channel` and `plus4-1551-c16-error-channel` run
     them with a true 1551 on TCBM in place of the serial drive
-    (`test/support/drive_scenarios_plus4_1551.rb`).
+    (`test/support/drive_scenarios_plus4_1551.rb`). `plus4-1551-idle`
+    runs two Plus/4s side by side through the 1551's boot and a LOAD,
+    one drive sleeping through its idle loop and one stepping
+    (`sleeps`), and compares the machines and drives at each checkpoint
+    (`matches-stepping`).
   - `plus4-tape` SAVEs a program to a blank version 2 tape with RECORD
     and PLAY down (`saves`), then rewinds it and LOADs and LISTs it back
     through the KERNAL's tape routines, which time the read line's half

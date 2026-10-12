@@ -47,6 +47,14 @@ module Badline
       #
       # The timer's interrupts come round too, and once they do, the drive
       # sleeps on through them (see Orbit).
+      #
+      # A model whose loop counts its passes in a byte of RAM, as the 1551's
+      # increments $61, names it in @pass_counter. A pass may then leave
+      # that byte one higher than it found it, and the drive sleeps only
+      # until the count would wrap, where the loop goes another way. The
+      # model compares the CPU without the increment's working registers
+      # (IdleCPU#counting_state), which skipping the passes sets as the
+      # last one would have left them (IdleCPU#counted).
       module Idle
         # Whether the drive may sleep through its idle loop. On by default,
         # but for a drive whose CPU logs each instruction.
@@ -64,6 +72,7 @@ module Badline
           @recording = false
           @pass_cycles = 0
           @pass_instructions = 0
+          @pass_counter = -1
           init_sleep
           init_orbits
         end
@@ -104,22 +113,51 @@ module Badline
         end
 
         # Whether the counters leave room for a whole pass.
-        def room_for_pass? = quiet_cycles >= @cycles - @record_cycles
+        def room_for_pass? = quiet_cycles >= @cycles - @record_cycles && passes_to_count.positive?
 
         # Sleeps through the pass just recorded, over and over.
         def fall_asleep
-          @pass_cycles = @cycles - @record_cycles
+          pass_cycles = @cycles - @record_cycles
+          @pass_cycles = pass_cycles
           @pass_instructions = @cpu.instructions - @record_instructions
           @asleep = true
           @host_still = false
           @owed = 0
-          @budget = quiet_cycles
+          budget = quiet_cycles
+          unless @pass_counter.negative?
+            counted = passes_to_count * pass_cycles
+            budget = counted if counted < budget
+          end
+          @budget = budget
           anchor
         end
 
+        # The RAM the pass read or wrote as it found it, but for the pass
+        # counter, one higher.
         def ram_as_found?
           ram = @bus.ram
-          @bus.touched.all? { |addr, value| ram.peek(addr) == value }
+          counter = @pass_counter
+          @bus.touched.all? do |addr, value|
+            ram.peek(addr) == (addr == counter ? value + 1 : value)
+          end
+        end
+
+        # How many more passes the pass counter can count before it wraps,
+        # and 1 without a pass counter.
+        def passes_to_count
+          counter = @pass_counter
+          counter.negative? ? 1 : 0xff - @bus.ram.peek(counter)
+        end
+
+        # Counts +passes+ more passes in the pass counter.
+        def count_passes(passes)
+          counter = @pass_counter
+          return if counter.negative?
+
+          ram = @bus.ram
+          count = ram.peek(counter) + passes
+          ram.poke(counter, count)
+          @cpu.counted(count)
         end
       end
     end
