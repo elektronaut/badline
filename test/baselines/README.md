@@ -171,9 +171,8 @@ Recorded output of the headless hardware suites, one file per suite:
     plain and `exp` variants.
 - `testbench-plus4.txt` — the same runner with `--plus4`, over the
   `exitcode` and `screenshot` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
-  each on a PAL Plus/4 with a 1551's TCBM interface plugged in at
-  `$FEC0`-`$FEFF`, as xplus4 starts with a 1551 as drive 8, and nothing
-  answering on the drive's side. The program goes to the start of BASIC
+  each on a PAL Plus/4 with a true 1551 on TCBM as device 8, its
+  interface's TIA at `$FEE0`-`$FEFF`, as xplus4 starts. The program goes to the start of BASIC
   at TXTTAB, with VARTAB and EAL set as LOAD sets them, and `RUN` is typed
   once the machine has booted. A `mountcrt` row starts from power-on with
   the cartridge's ROM chips in cartridge 1's slots. Tests report through
@@ -326,6 +325,10 @@ Recorded output of the headless hardware suites, one file per suite:
     run the same checks on a PAL Plus/4 with a true 1541 or 1581 on its
     serial bus (`test/support/drive_scenarios_plus4.rb`), and
     `plus4-c16-error-channel` reads the error channel on a C16.
+    `plus4-1551-format`, `plus4-1551-save`, `plus4-1551-autostart`,
+    `plus4-1551-error-channel` and `plus4-1551-c16-error-channel` run
+    them with a true 1551 on TCBM in place of the serial drive
+    (`test/support/drive_scenarios_plus4_1551.rb`).
   - `plus4-tape` SAVEs a program to a blank version 2 tape with RECORD
     and PLAY down (`saves`), then rewinds it and LOADs and LISTs it back
     through the KERNAL's tape routines, which time the read line's half
@@ -333,8 +336,8 @@ Recorded output of the headless hardware suites, one file per suite:
     same on a C16, whose cassette sense reaches the bus without the
     Plus/4's 6529.
   Each scenario runs in a process of its own, up to four at once. The
-  runner needs `dos1541.rom`, `dos1571.rom` and `dos1581.rom` in the ROM
-  path.
+  runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom` and
+  `dos1581.rom` in the ROM path.
 - `drive-scenarios-cpm.txt` — `bin/drive_scenarios cpm-zex`: ZEXDOC and
   ZEXALL run from the same disk under that CP/M, each until it reports
   its tests complete. `cpm-zexdoc` and `cpm-zexall` check that it got

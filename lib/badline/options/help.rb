@@ -111,8 +111,10 @@ module Badline
         The Plus/4 and the C16 take programs, disks, tapes, and cartridges as
         .crt files or raw .bin ROM images. A .bin goes in cartridge 1, its
         low slot for up to 16K and both slots for 32K, and --c1lo, --c1hi,
-        --c2lo and --c2hi put one in the slot they name. There Escape is ESC,
-        Page Down RUN/STOP and F4 HELP.
+        --c2lo and --c2hi put one in the slot they name. --drive-type 1551
+        makes device 8 an emulated 1551, on the parallel TCBM cable, in
+        place of the 1541. There Escape is ESC, Page Down RUN/STOP and F4
+        HELP.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

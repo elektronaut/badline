@@ -27,6 +27,12 @@ module Badline
         PLUS4_RAM[value]
       end
 
+      def drive_type_for(value)
+        raise Error, "invalid argument: --drive-type #{value}" unless PLUS4_DRIVE_TYPES.include?(value)
+
+        value
+      end
+
       def reu_size(value)
         raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
 
@@ -47,6 +53,8 @@ module Badline
 
       def validate
         validate_family
+        raise Error, "--drive-type needs plus4" unless @drive_type.nil? || @family == :plus4
+
         validate_mode
         validate_models
         validate_numbers

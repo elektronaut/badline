@@ -69,3 +69,13 @@ plus4-c16-tape/saves	PASS
 plus4-c16-tape/loads-back	PASS
 1571-boot-g64/boots	PASS
 1571-boot-g64/nothing-typed	PASS
+plus4-1551-format/no-error	PASS
+plus4-1551-format/lists-new-disk	PASS
+plus4-1551-format/trap-readable	PASS
+plus4-1551-save/no-error	PASS
+plus4-1551-save/loads-back	PASS
+plus4-1551-save/file-in-image	PASS
+plus4-1551-save/trap-readable	PASS
+plus4-1551-autostart/loads-and-runs	PASS
+plus4-1551-error-channel/power-on-message	PASS
+plus4-1551-c16-error-channel/power-on-message	PASS

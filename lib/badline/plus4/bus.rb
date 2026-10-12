@@ -148,26 +148,31 @@ module Badline
         end
       end
 
-      # Page $FE with a 1551's TCBM interface plugged in: the 6523 TIA
+      # Page $FE, where a 1551's TCBM interface puts its 6523 TIA: the one
       # that talks to drive 9 at $FEC0-$FEDF and drive 8's at $FEE0-$FEFF.
-      # The rest of the page is open.
+      # The rest of the page, and a place with no TIA, is open.
       class TCBMPage
-        def initialize(bus, drive8:, drive9:)
+        # The TIA at $FEE0-$FEFF and the one at $FEC0-$FEDF, or nil.
+        attr_accessor :drive8, :drive9
+
+        def initialize(bus)
           @bus = bus
-          @drive8 = drive8
-          @drive9 = drive9
+          @drive8 = nil
+          @drive9 = nil
         end
 
         def peek(addr)
           return @bus.data if addr < 0xfec0
 
-          addr < 0xfee0 ? @drive9.peek(addr) : @drive8.peek(addr)
+          tia = addr < 0xfee0 ? @drive9 : @drive8
+          tia ? tia.peek(addr) : @bus.data
         end
 
         def poke(addr, value)
           return if addr < 0xfec0
 
-          addr < 0xfee0 ? @drive9.poke(addr, value) : @drive8.poke(addr, value)
+          tia = addr < 0xfee0 ? @drive9 : @drive8
+          tia&.poke(addr, value)
         end
       end
 
@@ -224,7 +229,7 @@ module Badline
         @io_page = io
         io.connect(self)
         @top_page = TopPage.new(self, ted)
-        @tcbm_page = @open_bus
+        @tcbm_page = TCBMPage.new(self)
         @debug_register = nil
         @data = 0
         @read_pages = Array.new(256, @open_bus)
@@ -274,9 +279,18 @@ module Badline
 
       # Plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF.
       def plug_tcbm(drive8:, drive9:)
-        @tcbm_page = TCBMPage.new(self, drive8:, drive9:)
-        map_writes
-        map_reads
+        @tcbm_page.drive8 = drive8
+        @tcbm_page.drive9 = drive9
+      end
+
+      # Puts +tia+ where the TCBM interface for +device+, 8 or 9, answers,
+      # or takes the one there out with nil.
+      def plug_tia(device, tia)
+        if device == 9
+          @tcbm_page.drive9 = tia
+        else
+          @tcbm_page.drive8 = tia
+        end
       end
 
       # Puts a cartridge's ROM chips in their slots, as a PLUS4 CARTRIDGE

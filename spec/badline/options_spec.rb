@@ -414,7 +414,9 @@ describe Badline::Options do
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
       "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64"],
       "a cartridge slot for the C64" => [%w[--c1lo game.bin], "--c1lo needs plus4"],
-      "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"]
+      "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"],
+      "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
+      "a drive type the Plus/4 has none of" => [%w[plus4 --drive-type 1571], "invalid argument: --drive-type 1571"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
@@ -431,6 +433,22 @@ describe Badline::Options do
       it "runs the model given, with the RAM given, on the media given" do
         expect([options.family, options.model, options.ram_kb, options.media_path])
           .to eq([:plus4, "c116", 32, program_path])
+      end
+    end
+
+    context "with plus4 and --drive-type 1551" do
+      let(:argv) { ["plus4", "--drive-type", "1551", program_path] }
+
+      it "puts a true 1551 on device 8" do
+        expect([options.true_drive?, options.drive_type]).to eq([true, "1551"])
+      end
+    end
+
+    context "with plus4 and no --drive-type" do
+      let(:argv) { ["plus4", program_path] }
+
+      it "names the 1541 for --true-drive" do
+        expect([options.true_drive?, options.drive_type]).to eq([false, "1541"])
       end
     end
 

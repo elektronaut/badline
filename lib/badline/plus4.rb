@@ -11,6 +11,7 @@ require "badline/plus4/user_port"
 require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
 require "badline/plus4/bus"
+require "badline/plus4/tcbm_drive"
 require "badline/snapshot/plus4_setup"
 require "badline/plus4/keyed_parts"
 require "badline/plus4/keyed_state"
@@ -25,7 +26,8 @@ module Badline
   #
   # The TED paints the picture a front end shows (#video, #timing). Device 8
   # serves disks through the KERNAL traps (C64::KernalTraps), or a true
-  # 1541 or 1581 on the serial bus does (C64::TrueDrives), cartridges go
+  # 1541 or 1581 on the serial bus or a 1551 on TCBM does (TCBMDrive),
+  # cartridges go
   # in the two cartridges' slots, and tapes play on the datasette, whose read
   # line's level the KERNAL times with the TED's timers.
   class Plus4
@@ -34,6 +36,7 @@ module Badline
     include Machine::Clocking
     include Machine::Settling
     include C64::TrueDrives
+    include TCBMDrive
     include C64::KernalTraps
 
     # The cycle by which the KERNAL has booted and BASIC printed READY,
@@ -85,8 +88,9 @@ module Badline
     # +model+ names one of Model::ALL, or c116 for the C16, and +ram+ the
     # RAM in K, one of Model::RAM_SIZES, when not the model's own. +tcbm+
     # plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF, with no
-    # drive answering on the other side.
-    def initialize(model: "plus4", ram: nil, tcbm: false, debug: false)
+    # drive answering on the other side. +true_drive_model+ names the drive
+    # plug_true_drive plugs in, "1541" or "1551".
+    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1541", debug: false)
       @model = Model.named(model)
       @ram_kb = ram || @model.ram_kb
       raise ArgumentError, "no Plus/4 RAM size of #{@ram_kb}K" unless Model::RAM_SIZES.include?(@ram_kb)
@@ -119,9 +123,8 @@ module Badline
       @serial_trap = nil
       @save_trap = nil
       @capture_output = nil
-      @drive1541 = nil
-      @drive1581 = nil
       @init_threshold = INIT_THRESHOLD
+      init_drives(true_drive_model)
     end
 
     # One TED cycle: the TED moves on and decides the CPU's clock, then the
@@ -143,6 +146,7 @@ module Badline
       end
       @drive1541&.host_cycle!
       @drive1581&.host_cycle!
+      @drive1551&.host_cycle!
 
       @cycles += 1
     end
@@ -157,6 +161,7 @@ module Badline
       @dos&.reset!
       @drive1541&.reset!
       @drive1581&.reset!
+      @drive1551&.reset!
       @acia&.reset!
       @tias.each(&:reset!)
       @bus.reset!
