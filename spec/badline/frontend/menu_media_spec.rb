@@ -27,6 +27,14 @@ describe Badline::Frontend::MenuMedia do
     end
   end
 
+  def plus4_crt(bank:)
+    File.join(dir, "plus4.crt").tap do |path|
+      header = "PLUS4 CARTRIDGE ".b + [0x40, 0x0100, 0, 0, 0].pack("NnnCC") + ("\x00" * 6) + "GAME".ljust(32, "\x00")
+      chip = "CHIP".b + [0x0110, 0, bank, 0x8000, 0x0100].pack("Nn4") + ([0x42] * 0x0100).pack("C*")
+      File.binwrite(path, header + chip)
+    end
+  end
+
   def storage = computer.instance_variable_get(:@dos).instance_variable_get(:@storage)
 
   it "puts a disk in write-protected unless told otherwise" do
@@ -176,6 +184,15 @@ describe Badline::Frontend::MenuMedia do
       path = File.join(dir, "game.bin").tap { |file| File.binwrite(file, "\x11" * 16) }
       media.attach_cartridge(path)
       expect(computer.cartridge_slots).to eq(%w[c1lo])
+    end
+
+    it "keeps the problem with a .crt chip in a bank it doesn't map" do
+      attached = media.attach_cartridge(plus4_crt(bank: 2))
+      expect([attached, media.problem]).to eq([false, "no Plus/4 cartridge slot in bank 2"])
+    end
+
+    it "starts nothing from a .crt chip in a bank it doesn't map" do
+      expect(media.start(Badline::Options.parse(["plus4"]), plus4_crt(bank: 2))).to be_nil
     end
 
     it "keeps the problem with a ROM image too large for a slot" do
