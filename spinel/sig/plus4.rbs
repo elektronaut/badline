@@ -1,0 +1,95 @@
+module Badline
+  module Chips
+    class TED
+      @registers: Array[Integer]
+      @interrupt_flags: Integer
+      @interrupt_mask: Integer
+      @raster_compare: Integer
+      @key_latch: Integer
+      @blink: Integer
+      @blink_on: bool
+      @rom_selected: bool
+      @timer_counts: Array[Integer]
+      @timer_running: Array[bool]
+      @timer1_reload: Integer
+      @column: Integer
+      @line: Integer
+      @ba_low: bool
+      @cpu_slots: Integer
+      @patterns: Array[Integer]
+      @pointers: Array[Integer]
+      @attributes: Array[Integer]
+      @fetched_attributes: Array[Integer]
+      @char_position: Integer
+      @line_position: Integer
+      @row_line: Integer
+      @row_active: bool
+      @dma_kind: Integer
+      @pattern_fetches: bool
+      @scanline: Integer
+      @window_open: bool
+      @painted: Integer
+      @display: Array[Integer]
+      @dirty_lines: Array[bool]
+
+      class Sound
+        @time: Integer
+        @frequencies: Array[Integer]
+        @intervals: Array[Integer]
+        @phases: Array[Integer]
+        @next_toggles: Array[Integer]
+        @noise: Integer
+        @control: Integer
+        @volume: Integer
+        @level: Integer
+        @reloading: bool
+      end
+    end
+
+    class TIA
+      @ports: Array[Integer]
+      @directions: Array[Integer]
+      @inputs: Array[Integer]
+    end
+  end
+
+  module Drives
+    class Datasette
+      @level: bool
+      @playing: bool
+      @motor: bool
+      @countdown: Integer
+      @rise_at: Integer
+      @low_recorded: bool
+    end
+  end
+
+  class Plus4
+    @cycles: Integer
+
+    class CPUPort
+      @ddr: Integer
+      @data: Integer
+    end
+
+    class KeyboardPort
+      @output: Integer
+    end
+
+    class UserPort
+      @output: Integer
+    end
+
+    class ACIA
+      @command: Integer
+      @control: Integer
+    end
+
+    class Bus
+      @low_bank: Integer
+      @high_bank: Integer
+      @data: Integer
+      @rom_selected: bool
+    end
+  end
+end
