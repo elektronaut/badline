@@ -80,6 +80,10 @@ module Badline
     # name, by slot: { "c1lo" => path }.
     attr_reader :cartridges
 
+    # The SID model of the Plus/4's SID card --sid-card names, :mos6581 or
+    # :mos8580, or nil without one.
+    attr_reader :sid_card
+
     def self.parse(argv, native: false) = new(native:).parse(argv)
 
     # The native build plays the SID in the window unless --no-sound says
@@ -96,6 +100,7 @@ module Badline
       @tune_paths = []
       @subtune = nil
       @sid_model = nil
+      @sid_card = nil
       @models = []
       @reu = nil
       @ram = nil
@@ -277,6 +282,7 @@ module Badline
       case name
       when "--subtune" then @subtune = number(flag, value)
       when "--sid" then @sid_model = sid_model_for(value)
+      when "--sid-card" then @sid_card = sid_card_for(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--ram" then ram_option(value)

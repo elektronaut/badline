@@ -45,8 +45,8 @@ module Badline
                     with_drive(:d81), with_extra_sids],
           "vic20" => [Vic20.new, with_rom],
           "c128" => [C128.new(mode: :c128), with_drive(:d71)],
-          "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), plus4_with_cartridge,
-                      plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")]
+          "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), Plus4.new(sid_card: :mos6581),
+                      plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")]
         }
       end
 

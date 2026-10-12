@@ -162,6 +162,20 @@ describe Badline::Frontend::MenuPages do
       expect(painter).to have_received(:text).with(0, 12, "PLUS/4 PAL, 64K RAM", anything)
     end
 
+    context "with a SID card" do
+      let(:computer) { Badline::Plus4.new(sid_card: :mos6581) }
+
+      it "offers the card's SID model on the sound page" do
+        pages.draw(:sound, 0, 0)
+        expect(buttons).to have_received(:toggle).with(anything, "SID CARD", :sid, [%w[6581 8580], anything, 0])
+      end
+
+      it "swaps the card's SID model" do
+        pages.perform(:sid8580)
+        expect(computer.sid_card.model).to eq(:mos8580)
+      end
+    end
+
     it "names the cartridge slots filled on the expansion port" do
       computer.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
       pages.draw(:expansion, 0, 0)

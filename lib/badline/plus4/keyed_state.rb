@@ -16,8 +16,11 @@ module Badline
       # instructions or jammed.
       def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
 
-      # The sound's voices, run up to this cycle.
-      def settle_chips_for_snapshot = @sound.catch_up!
+      # The sound's voices and the SID card's, run up to this cycle.
+      def settle_chips_for_snapshot
+        @sound.catch_up!
+        @sid_card&.catch_up!
+      end
 
       def save_machine_fields(out)
         out.text("family", "plus4").text("written_by", VERSION)

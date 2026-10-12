@@ -120,6 +120,10 @@ module Badline
       end
     end
 
+    class SIDCard
+      @clocked: Integer
+    end
+
     class Bus
       @low_bank: Integer
       @high_bank: Integer

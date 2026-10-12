@@ -8,6 +8,12 @@ module Badline
     module Validation
       private
 
+      def sid_card_for(value)
+        raise Error, "invalid argument: --sid-card #{value}" unless SID_MODELS.key?(value)
+
+        SID_MODELS[value]
+      end
+
       def sid_model_for(value)
         return if value == "auto"
         raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
@@ -79,11 +85,7 @@ module Badline
         elsif !@ram.nil?
           raise Error, "--ram needs vic20 or plus4"
         end
-        if @family == :plus4
-          validate_plus4
-        elsif !@cartridges.empty?
-          raise Error, "--#{@cartridges.keys.first} needs plus4"
-        end
+        @family == :plus4 ? validate_plus4 : refuse_plus4_options
         if @family == :c128
           validate_c128
         elsif @c64_mode
@@ -109,12 +111,19 @@ module Badline
         raise Error, "the VIC-20 needs the window" if headless?
       end
 
-      # The Plus/4 runs in the window, without the C64's SID and REU, its
-      # NTSC models have names of their own, and its cartridge slots take
-      # raw ROM images.
+      # Only the Plus/4 has cartridge slots for raw ROM images and takes a
+      # SID card.
+      def refuse_plus4_options
+        raise Error, "--#{@cartridges.keys.first} needs plus4" unless @cartridges.empty?
+        raise Error, "--sid-card needs plus4" unless @sid_card.nil?
+      end
+
+      # The Plus/4 runs in the window, without the C64's SID and REU but
+      # with a SID card if asked, its NTSC models have names of their own,
+      # and its cartridge slots take raw ROM images.
       def validate_plus4
         raise Error, "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc" if @models.include?("ntsc")
-        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--sid needs the C64; the Plus/4's is --sid-card" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the Plus/4 needs the window" if headless?
 

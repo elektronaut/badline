@@ -412,7 +412,9 @@ describe Badline::Options do
       "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
       "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
-      "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64"],
+      "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64; the Plus/4's is --sid-card"],
+      "a SID card for the C64" => [%w[--sid-card 8580], "--sid-card needs plus4"],
+      "an unknown SID card" => [%w[plus4 --sid-card 6582], "invalid argument: --sid-card 6582"],
       "a cartridge slot for the C64" => [%w[--c1lo game.bin], "--c1lo needs plus4"],
       "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"],
       "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
@@ -424,6 +426,14 @@ describe Badline::Options do
         it "raises" do
           expect { options }.to raise_error(described_class::Error, message)
         end
+      end
+    end
+
+    context "with plus4 and --sid-card" do
+      let(:argv) { %w[plus4 --sid-card 8580] }
+
+      it "fits a SID card with the SID named" do
+        expect(options.sid_card).to eq(:mos8580)
       end
     end
 

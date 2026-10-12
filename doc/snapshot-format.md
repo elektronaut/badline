@@ -62,6 +62,7 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `host.typist.wait` | int | C128: 0 |
 | `host.typist.typing` | bool | C128: false |
 | `ram_kb` | int | Plus/4: 64 or 16 |
+| `sid_card` | text: none mos6581 mos8580 | Plus/4: "none" |
 | `tcbm` | bool | Plus/4: false |
 
 ## BL-RAM
@@ -376,7 +377,7 @@ Written by the C64, C128.
 
 ## BL-SID
 
-Written by the C64, C128.
+Written by the C64, C128, Plus/4.
 
 | Key | Type | Default |
 | --- | --- | --- |

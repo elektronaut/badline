@@ -10,6 +10,8 @@ require "badline/plus4/keyboard_port"
 require "badline/plus4/user_port"
 require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
+require "badline/plus4/sid_card"
+require "badline/plus4/sound_mix"
 require "badline/plus4/bus"
 require "badline/plus4/tcbm_drive"
 require "badline/snapshot/plus4_setup"
@@ -30,6 +32,12 @@ module Badline
   # cartridges go
   # in the two cartridges' slots, and tapes play on the datasette, whose read
   # line's level the KERNAL times with the TED's timers.
+  #
+  # A SID card, as third parties built for the 264s, puts a SID at
+  # $FD40-$FD5F. The cards clock it from the TED's single clock, one SID
+  # cycle a TED cycle, 886,724 Hz on PAL, below the C64's 985,248 Hz, so a
+  # C64 tune plays about a semitone flat (plus4world forum threads 38287
+  # and 20130).
   class Plus4
     include IntegerHelper
     include Machine::KeyboardBuffer
@@ -50,7 +58,7 @@ module Badline
     DRIVE_BOOT_CYCLES = 1_200_000
 
     attr_reader :model, :bus, :cpu, :ted, :sound, :port, :keyboard, :keyboard_port, :joystick1, :joystick2, :acia,
-                :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb, :drive1541, :init_threshold
+                :user_port, :datasette, :tias, :iec_bus, :cycles, :ram_kb, :drive1541, :init_threshold, :sid_card
 
     def family = :plus4
 
@@ -61,8 +69,8 @@ module Badline
     def ram = @bus.ram
 
     # What a front end plays: the TED's sound, which answers #record and
-    # #drain_samples.
-    def sound_source = @sound
+    # #drain_samples, mixed with the SID card's where one is fitted.
+    def sound_source = @sound_mix || @sound
 
     # The chip whose #display a front end shows.
     def video = @ted
@@ -89,8 +97,9 @@ module Badline
     # RAM in K, one of Model::RAM_SIZES, when not the model's own. +tcbm+
     # plugs in a 1551's TCBM interface, the TIAs at $FEC0-$FEFF, with no
     # drive answering on the other side. +true_drive_model+ names the drive
-    # plug_true_drive plugs in, "1541" or "1551".
-    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1541", debug: false)
+    # plug_true_drive plugs in, "1541" or "1551". +sid_card+ fits a SID
+    # card with a SID of that model, :mos6581 or :mos8580.
+    def initialize(model: "plus4", ram: nil, tcbm: false, true_drive_model: "1541", sid_card: nil, debug: false)
       @model = Model.named(model)
       @ram_kb = ram || @model.ram_kb
       raise ArgumentError, "no Plus/4 RAM size of #{@ram_kb}K" unless Model::RAM_SIZES.include?(@ram_kb)
@@ -110,10 +119,11 @@ module Badline
       @acia_irq = false
       @acia_due = ACIA::NEVER
       @due = INIT_THRESHOLD
+      @sid_card = sid_card ? SIDCard.new(self, sid_card) : nil
       @acia = plus4_parts ? ACIA.new(self, @model.ted.clock_hz) : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
-                           cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette))
+                           cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette), sid_card: @sid_card)
       @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
       @ted.connect(@bus)
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
@@ -121,6 +131,7 @@ module Badline
       @cpu = CPU.new(@bus, debug:)
       @sound = Chips::TED::Sound.new(self, @model.ted.clock_hz)
       @ted.sound = @sound
+      @sound_mix = @sid_card ? SoundMix.new(@sound, @sid_card) : nil
       @init_handlers = []
       @pending_keys = nil
       @dos = nil
@@ -155,8 +166,8 @@ module Badline
     end
 
     # The RESET line: the CPU, the port, the 6529s, the ACIA, the bank
-    # latch and ROM selection, and through the serial bus's RESET line, the
-    # drives. The TED has no reset pin.
+    # latch and ROM selection, the SID card, and through the serial bus's
+    # RESET line, the drives. The TED has no reset pin.
     def reset!
       @port.reset!
       @keyboard_port.reset!
@@ -166,6 +177,7 @@ module Badline
       @drive1581&.reset!
       @drive1551&.reset!
       @acia&.reset!
+      @sid_card&.reset!
       @tias.each(&:reset!)
       @bus.reset!
       @cpu.reset!
