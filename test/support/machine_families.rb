@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "badline/support/plus4_checkpoint"
+require_relative "../../lib/badline/support/plus4_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -179,11 +179,43 @@ VIC20_DEMO_PRG = [
   0x4c, 0xbf, 0xea        # jmp $eabf
 ].pack("C*").freeze
 
+# The Plus/4 demo: 10 SYS4109, then the demo at $100D, which runs on the
+# C16's 16K too. It starts TED timer 1 and voice 1, and hooks the KERNAL's
+# IRQ at $1038 to step the border colour and the voice's pitch before going
+# on to the KERNAL's handler, whose address it saves in its own JMP.
+PLUS4_DEMO_PRG = [
+  0x01, 0x10, # load address
+  0x0b, 0x10, 0x0a, 0x00, 0x9e, 0x34, 0x31, 0x30, 0x39, 0x00, 0x00, 0x00,
+  0x78,                   # sei
+  0xad, 0x14, 0x03,       # lda $0314
+  0x8d, 0x45, 0x10,       # sta $1045
+  0xad, 0x15, 0x03,       # lda $0315
+  0x8d, 0x46, 0x10,       # sta $1046
+  0xa9, 0x38,             # lda #<irq
+  0x8d, 0x14, 0x03,       # sta $0314
+  0xa9, 0x10,             # lda #>irq
+  0x8d, 0x15, 0x03,       # sta $0315
+  0xa9, 0x18,             # lda #$18
+  0x8d, 0x11, 0xff,       # sta $ff11
+  0xa9, 0xff,             # lda #$ff
+  0x8d, 0x00, 0xff,       # sta $ff00
+  0x8d, 0x01, 0xff,       # sta $ff01
+  0x58,                   # cli
+  0xee, 0x00, 0x0c,       # inc $0c00
+  0x4c, 0x32, 0x10,       # jmp $1032
+  0xee, 0x19, 0xff,       # irq: inc $ff19
+  0xee, 0x47, 0x10,       # inc $1047
+  0xad, 0x47, 0x10,       # lda $1047
+  0x8d, 0x0e, 0xff,       # sta $ff0e
+  0x4c, 0x00, 0x00,       # jmp the KERNAL's handler
+  0x00                    # the pitch
+].pack("C*").freeze
+
 # The machine bin/machine_diff's --family, --model, --mode and --ram
 # build, the demo program each family runs, and the checkpoint that
 # digests it. bin/snapshot_check digests its machines the same way.
 module MachineFamilies
-  NAMES = %w[c64 vic20 c128].freeze
+  NAMES = %w[c64 vic20 c128 plus4].freeze
   MODES = %w[c128 c64].freeze
 
   module_function
@@ -198,6 +230,7 @@ module MachineFamilies
     machine = case family
               when "vic20" then vic20(options, media)
               when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
+              when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
               else Badline::Machine.build(:c64, model: options[:model])
               end
     plug_drive(machine, options) if options[:true_drive]
@@ -221,6 +254,7 @@ module MachineFamilies
     case options[:family]
     when "vic20" then VIC20_DEMO_PRG
     when "c128" then options[:mode] == "c128" ? C128_DEMO_PRG : DEMO_PRG
+    when "plus4" then PLUS4_DEMO_PRG
     else DEMO_PRG
     end
   end
@@ -268,7 +302,8 @@ module MachineFamilies
       options[:model] = model
     end
     opts.on("--mode MODE", "The C128's mode: #{MODES.join(', ')} (default: c128)") { |mode| options[:mode] = mode }
-    opts.on("--ram RAM", "The VIC-20's RAM expansion (default: what the media needs)") { |ram| options[:ram] = ram }
+    opts.on("--ram RAM", "The VIC-20's RAM expansion (default: what the media needs), " \
+                         "or the Plus/4's RAM in K (default: the model's own)") { |ram| options[:ram] = ram }
     opts.separator ""
     opts.separator "Scenarios, on every family: boot, type (--text at the prompt), demo (a program built"
     opts.separator "here for the family, and for the C128's mode) and disk (the demo loaded from a host"
@@ -282,6 +317,12 @@ module MachineFamilies
     return "no family named #{family} (#{NAMES.join(', ')})" unless NAMES.include?(family)
     return "no C128 mode named #{options[:mode]} (#{MODES.join(', ')})" unless MODES.include?(options[:mode])
 
-    "--ram is the VIC-20's" if options[:ram] && family != "vic20"
+    return unless options[:ram]
+    return "--ram is the VIC-20's or the Plus/4's" unless %w[vic20 plus4].include?(family)
+
+    sizes = Badline::Plus4::Model::RAM_SIZES
+    return if family == "vic20" || sizes.include?(options[:ram].to_i)
+
+    "no Plus/4 RAM size of #{options[:ram]}K (#{sizes.join(', ')})"
   end
 end
