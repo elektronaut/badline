@@ -19,8 +19,6 @@ module Badline
         @subtune = subtune || tune.start_subtune
         @computer = C64.new(sid_model: sid_models[0])
         @stereo = Stereo.new(@computer.address_bus, tune, sid_models)
-        @extras = @stereo.extras
-        @multi = !@extras.empty?
         region = @computer.region
         @frame_cycles = region.cycles_per_line * region.lines_per_frame
         @injected = false
@@ -30,7 +28,7 @@ module Badline
       def start
         @computer.on_init { inject }
         @computer.cpu.install_trap(@tune.entry_address) { begin_playing }
-        step until @started || @computer.cycles > START_LIMIT
+        @computer.cycle! until @started || @computer.cycles > START_LIMIT
       end
 
       attr_reader :stereo
@@ -56,22 +54,12 @@ module Badline
       # Returns the cycles advanced.
       def frame(budget, &)
         cycles = [budget, @frame_cycles].min
-        if @multi
-          cycles.times { step }
-        else
-          cycles.times { @computer.cycle! }
-        end
+        cycles.times { @computer.cycle! }
         @stereo.mix(&)
         cycles
       end
 
       private
-
-      # The extra SIDs clock ahead of the CPU, as the machine's own does.
-      def step
-        @extras.each(&:cycle!) if @multi
-        @computer.cycle!
-      end
 
       def inject
         @computer.ram.write(@tune.load_address, @tune.data)

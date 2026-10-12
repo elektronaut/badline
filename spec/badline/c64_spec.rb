@@ -88,6 +88,14 @@ RSpec.describe Badline::C64 do
     it "paints the VIC's sixteen colours" do
       expect(computer.video.palette.length).to eq(16)
     end
+
+    it "clocks a SID fitted past the first every cycle" do
+      second = Badline::Chips::SID.new(at: 0xd420).tap { |sid| computer.address_bus.add_sid(sid) }
+      second.poke(0xd420, 0x01)
+      10.times { computer.cycle! }
+      second.osc3
+      expect(second.voices[0].waveform.accumulator).to eq(0x55555f)
+    end
   end
 
   describe "the CIA model" do

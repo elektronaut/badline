@@ -68,6 +68,7 @@ module Badline
       @cia1 = @address_bus.cia1
       @cia2 = @address_bus.cia2
       @sid = @address_bus.sid
+      @extra_sids = @address_bus.extra_sids
       @datasette = @address_bus.datasette
       @cycles = 0
       @nmi_asserted = false
@@ -100,6 +101,7 @@ module Badline
       @cia1.cycle!
       @cia2.cycle!
       @sid.cycle!
+      clock_extra_sids unless @extra_sids.empty?
       @datasette.cycle!
 
       @cpu.irq = @cia1.interrupted? || @vic.interrupted? || @reu_irq
@@ -201,6 +203,10 @@ module Badline
       @address_bus.attach_reu(reu)
       reu
     end
+
+    # The SIDs fitted past the first, which clock ahead of the CPU as the
+    # first does.
+    def clock_extra_sids = @extra_sids.each(&:cycle!)
 
     # BA halts the CPU on a read cycle, and so does an REU holding the bus
     # for a transfer.

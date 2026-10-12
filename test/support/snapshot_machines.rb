@@ -114,6 +114,9 @@ module SnapshotMachines
   # media, and `advance` runs it to the save point.
   Scenario = Data.define(:name, :family, :build, :advance)
 
+  # A voice on the second SID at $D420, its pitch following the jiffy clock.
+  SID2_BASIC = "10 s=54304:pokes+24,15:pokes+5,9:pokes+4,33\r20 pokes+1,peek(162):goto20\rrun\r"
+
   module_function
 
   def c64_scenarios
@@ -133,6 +136,11 @@ module SnapshotMachines
                    ->(m) { flash_program(m) }),
       Scenario.new("c64-plus256k", :c64, ->(_dir) { typing(Badline::C64.new(ram_expansion: :plus256k), "print 6*7\r") },
                    ->(m) { run(m, 3_000_000) }),
+      Scenario.new("c64-sid2", :c64, lambda { |_dir|
+        machine = Badline::C64.new
+        machine.address_bus.add_sid(Badline::Chips::SID.new(model: :mos8580, at: 0xd420))
+        typing(machine, SID2_BASIC)
+      }, ->(m) { run(m, 3_500_000) }),
       Scenario.new("c64-jam", :c64, ->(_dir) { typing(Badline::C64.new, "poke 49152,2:sys 49152\r") },
                    ->(m) { run(m, 3_500_000) })
     ]
