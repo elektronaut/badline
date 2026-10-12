@@ -239,6 +239,13 @@ the rows your change can't reach tell you nothing about it.
 - For a change whose reach you can't bound to a set of filters, such as
   reordering `C64#cycle!` or changing the LOAD trap every suite loads
   through, push and let CI run the suites
+- Each Spinel harness compiles only the code its own entry point reaches.
+  A method nothing in a harness calls, such as a host-side API only the
+  window uses, is compiled only by `native/badline.rb`, with untyped
+  arguments, and can fail there alone. A change that adds such a method
+  builds the native binary locally (`rake native:build`; on macOS with
+  `SPINEL_CC="cc -Wno-nullability-completeness"`) before it's pushed, or
+  types its arguments in `spinel/sig`
 - The Regression workflow runs the suites on CRuby, started by hand from
   the Actions tab, for a person checking that CRuby and Spinel agree.
   Agents don't start it
