@@ -228,7 +228,7 @@ module Badline
 
       def inserted?(computer, what)
         return !computer.datasette.tape.nil? if what == "tape"
-        return !computer.address_bus.cartridge.nil? if what == "cartridge"
+        return MediaSlots.cartridge?(computer) if what == "cartridge"
 
         MediaSlots.disk?(computer)
       end

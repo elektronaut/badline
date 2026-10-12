@@ -89,11 +89,7 @@ module Badline
 
       def vic20? = @computer.family == :vic20
 
-      # Says in the dim colour that the VIC-20 hasn't got what the page
-      # shows.
-      def note
-        @painter.text(@left, @top, "NOT ON THE VIC-20 YET", MenuTheme::DIM)
-      end
+      def plus4? = @computer.family == :plus4
 
       def draw_drive
         media = @media
@@ -128,10 +124,12 @@ module Badline
       def draw_expansion
         return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
 
-        cartridge = @computer.address_bus.cartridge
-        info("CARTRIDGE", cartridge.nil? ? "" : cartridge.name)
+        info("CARTRIDGE", @media.cartridge_name)
         row("INSERT...", :insert_cartridge)
         row("REMOVE", :remove_cartridge)
+        return if plus4?
+
+        cartridge = @computer.address_bus.cartridge
         row("FREEZE", :freeze) if !cartridge.nil? && cartridge.freezer? && @computer.family == :c64
         return if @reu_kb.nil?
 
@@ -153,8 +151,11 @@ module Badline
       end
 
       # Saving now and by name, loading a named save, and the quicksaves
-      # and autosaves, newest first, which a press loads.
+      # and autosaves, newest first, which a press loads. The Plus/4 has
+      # none yet.
       def draw_snapshots
+        return @painter.text(@left, @top, "NOT ON THE PLUS/4 YET", MenuTheme::DIM) if plus4?
+
         row("QUICKSAVE", :quicksave_now)
         row("SAVE...", :save_as)
         row("LOAD...", :load_save)
@@ -167,9 +168,11 @@ module Badline
         end
       end
 
-      # The C128 names its model and the mode it runs in first.
+      # The C128 names its model and the mode it runs in first, and the
+      # Plus/4 its model and RAM.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
+        info("MACHINE", @computer.model_label) if plus4?
         row("RESET", :reset)
         row("POWER CYCLE", :power_cycle)
         skip

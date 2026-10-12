@@ -402,14 +402,19 @@ describe Badline::Options do
     end
 
     {
-      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20"],
+      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20 or plus4"],
       "an unknown RAM expansion" => [%w[vic20 --ram 4k], "invalid argument: --ram 4k"],
       "an NTSC VIC-20" => [%w[vic20 --ntsc], "the NTSC VIC-20 isn't emulated yet"],
       "an NTSC VIC-20 by name" => [%w[vic20 --model ntsc], "the NTSC VIC-20 isn't emulated yet"],
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
       "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
-      "the Plus/4" => [%w[plus4], "the Plus/4 isn't emulated yet"]
+      "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
+      "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
+      "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
+      "a SID for the Plus/4" => [%w[plus4 --sid 8580], "--sid needs the C64"],
+      "a cartridge slot for the C64" => [%w[--c1lo game.bin], "--c1lo needs plus4"],
+      "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
@@ -417,6 +422,40 @@ describe Badline::Options do
         it "raises" do
           expect { options }.to raise_error(described_class::Error, message)
         end
+      end
+    end
+
+    context "with plus4" do
+      let(:argv) { ["plus4", "--model", "c116", "--ram", "32k", program_path] }
+
+      it "runs the model given, with the RAM given, on the media given" do
+        expect([options.family, options.model, options.ram_kb, options.media_path])
+          .to eq([:plus4, "c116", 32, program_path])
+      end
+    end
+
+    context "with plus4 and the cartridge slots" do
+      let(:rom_path) { File.join(dir, "game.bin").tap { |path| File.binwrite(path, "\xff") } }
+      let(:argv) { ["plus4", "--c1lo", rom_path, "--c2hi=#{rom_path}"] }
+
+      it "takes a ROM image for each slot named" do
+        expect(options.cartridges).to eq({ "c1lo" => rom_path, "c2hi" => rom_path })
+      end
+    end
+
+    context "with a cartridge slot given something other than a ROM image" do
+      let(:argv) { ["plus4", "--c1lo", program_path] }
+
+      it "raises" do
+        expect { options }.to raise_error(described_class::Error, "not a .bin ROM image: #{program_path}")
+      end
+    end
+
+    context "with a .sid tune for the Plus/4" do
+      let(:argv) { ["plus4", tune_path] }
+
+      it "takes it for the window, not the SID player" do
+        expect([options.sid_command?, options.window?]).to eq([false, true])
       end
     end
 

@@ -151,6 +151,17 @@ describe Badline::Frontend do
       expect(machine("vic20", "--true-drive").drive1541).not_to be_nil
     end
 
+    it "is the Plus/4 --model names with plus4, with the RAM --ram names" do
+      computer = machine("plus4", "--model", "c16", "--ram", "64k")
+      expect([computer.family, computer.model_label]).to eq([:plus4, "C16 PAL, 64K RAM"])
+    end
+
+    it "puts a ROM image in the Plus/4's slot named" do
+      File.binwrite("game.bin", "\x11" * 16)
+      allow($stdout).to receive(:write)
+      expect(machine("plus4", "--c2hi", "game.bin").cartridge_slots).to eq(%w[c2hi])
+    end
+
     it "is an SX-64 with its KERNAL and no datasette with --model sx64" do
       computer = machine("--model", "sx64")
       expect([computer.address_bus.kernal, computer.datasette.connected?]).to eq([:sx64, false])
@@ -160,6 +171,11 @@ describe Badline::Frontend do
   it "warns that an SX-64 takes no tape and returns 1" do
     File.binwrite("game.tap", "C64-TAPE-RAW".b + [1, 0, 0, 0, 1].pack("C4V") + "\x30".b)
     expect { run("--model", "sx64", "game.tap") }.to output(/game.tap: this machine has no datasette/).to_stderr
+  end
+
+  it "warns that a Plus/4 takes no .sid tune and returns 1" do
+    File.binwrite("tune.sid", "PSID")
+    expect { run("plus4", "tune.sid") }.to output(%r{tune.sid: doesn't go in a Plus/4}).to_stderr
   end
 
   it "warns that a VIC-20 takes no .sid tune and returns 1" do

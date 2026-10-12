@@ -55,10 +55,9 @@ describe Badline::Machine do
     expect(described_class.build(:c128, model: "c128", sid_model: :mos8580).sound_source.model).to eq(:mos8580)
   end
 
-  it "refuses the Plus/4 until it runs" do
-    expect do
-      described_class.build(:plus4, model: "plus4")
-    end.to raise_error(ArgumentError, "the Plus/4 isn't emulated yet")
+  it "builds a Plus/4 of the model named, with its RAM" do
+    machine = described_class.build(:plus4, model: "c116")
+    expect([machine.class, machine.model, machine.ram_kb]).to eq([Badline::Plus4, Badline::Plus4::Model::C16, 16])
   end
 
   it "refuses a family it can't build" do
@@ -82,6 +81,15 @@ describe Badline::Machine do
         .to yield_with_args("RAM expansion: 8k")
     ensure
       File.delete(program.path)
+    end
+
+    it "gives a Plus/4 the RAM --ram names" do
+      expect(described_class.for_options(options("plus4", "--model", "c16", "--ram", "64k"), nil).ram_kb).to eq(64)
+    end
+
+    it "refuses media a Plus/4 doesn't take" do
+      expect { described_class.for_options(options("plus4"), "tune.sid") }
+        .to raise_error(Badline::Machine::Unsupported, %r{Plus/4})
     end
 
     it "refuses media a VIC-20 doesn't take" do

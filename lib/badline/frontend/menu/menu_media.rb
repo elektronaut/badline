@@ -87,6 +87,13 @@ module Badline
         insert(:disk, set[index + step])
       end
 
+      # The extensions of the cartridges the machine takes: .crt, and on
+      # the Plus/4 raw .bin ROM images too.
+      def cartridge_extensions
+        extensions = Media::Extensions.of(%i[cartridge])
+        @computer.family == :plus4 ? extensions + [Media::Plus4Media::ROM_IMAGE] : extensions
+      end
+
       # Swaps the cartridge for the one at `path`, which power cycles the
       # machine, and says whether it went in.
       def attach_cartridge(path)
@@ -95,10 +102,11 @@ module Badline
 
       # What a save of the machine is named after: the cartridge, the disk,
       # the tape, or BASIC, without the bracketed parts of a file's name. A
-      # VIC-20's are named after its disk, or else the machine.
+      # VIC-20's are named after its disk, or else the machine, and a
+      # Plus/4's after its disk or tape.
       def game_name
         vic20 = @computer.family == :vic20
-        name = vic20 ? "" : cartridge_name
+        name = vic20 || @computer.family == :plus4 ? "" : cartridge_name
         disk = disk_path
         name = File.basename(disk, File.extname(disk)) if name.empty? && !disk.empty?
         name = tape_name if name.empty? && !vic20
@@ -114,8 +122,10 @@ module Badline
       end
 
       # The name the cartridge in the expansion port gives itself, or an
-      # empty one.
+      # empty one. A Plus/4's names the slots with a ROM in them.
       def cartridge_name
+        return @computer.cartridge_slots.map(&:upcase).join(", ") if @computer.family == :plus4
+
         cartridge = @computer.address_bus.cartridge
         cartridge.nil? ? "" : cartridge.name
       end

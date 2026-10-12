@@ -320,6 +320,16 @@ describe Badline::Frontend::Timeline do
     end
   end
 
+  describe "the Plus/4's cartridges" do
+    let(:computer) { Badline::Plus4.new }
+    let(:argv) { at("1:eject=cartridge") }
+
+    it "come out" do
+      computer.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
+      expect { run_to(1) }.to output(/Ejected the cartridge/).to_stdout.and(change(computer, :cartridge_slots).to([]))
+    end
+  end
+
   describe "the reset" do
     let(:argv) { at("3:reset") }
 

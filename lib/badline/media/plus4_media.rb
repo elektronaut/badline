@@ -42,7 +42,9 @@ module Badline
           return [slot_chip(bytes, slot)] if slot
 
           size = bytes.length
-          raise ArgumentError, "a #{size}-byte image is no Plus/4 cartridge" unless size.between?(1, 2 * SLOT_SIZE)
+          unless size.between?(1, 2 * SLOT_SIZE)
+            raise Machine::Unsupported, "a #{size}-byte image is no Plus/4 cartridge"
+          end
 
           chips = [chip(0, 0x8000, bytes[0, SLOT_SIZE])]
           chips << chip(0, 0xc000, bytes[SLOT_SIZE..]) if size > SLOT_SIZE
@@ -54,7 +56,7 @@ module Badline
         def slot_chip(bytes, slot)
           bank, address = SLOTS.fetch(slot) { raise ArgumentError, "no Plus/4 cartridge slot named #{slot}" }
           size = bytes.length
-          raise ArgumentError, "a #{size}-byte image doesn't fit a 16K slot" unless size.between?(1, SLOT_SIZE)
+          raise Machine::Unsupported, "a #{size}-byte image doesn't fit a 16K slot" unless size.between?(1, SLOT_SIZE)
 
           chip(bank, address, bytes)
         end

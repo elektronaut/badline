@@ -21,6 +21,12 @@ module Badline
         RAM_CONFIGURATIONS[value]
       end
 
+      def plus4_ram(value)
+        raise Error, "invalid argument: --ram #{value}" unless PLUS4_RAM.key?(value)
+
+        PLUS4_RAM[value]
+      end
+
       def reu_size(value)
         raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
 
@@ -59,12 +65,15 @@ module Badline
       end
 
       def validate_family
-        raise Error, "the Plus/4 isn't emulated yet" if @family == :plus4
-
         if @family == :vic20
           validate_vic20
         elsif !@ram.nil?
-          raise Error, "--ram needs vic20"
+          raise Error, "--ram needs vic20 or plus4"
+        end
+        if @family == :plus4
+          validate_plus4
+        elsif !@cartridges.empty?
+          raise Error, "--#{@cartridges.keys.first} needs plus4"
         end
         if @family == :c128
           validate_c128
@@ -89,6 +98,19 @@ module Badline
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the VIC-20 needs the window" if headless?
+      end
+
+      # The Plus/4 runs in the window, without the C64's SID and REU, its
+      # NTSC models have names of their own, and its cartridge slots take
+      # raw ROM images.
+      def validate_plus4
+        raise Error, "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc" if @models.include?("ntsc")
+        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the Plus/4 needs the window" if headless?
+
+        image = @cartridges.values.find { |path| !File.extname(path).casecmp?(".bin") }
+        raise Error, "not a .bin ROM image: #{image}" unless image.nil?
       end
 
       # `sid` takes directories as well as tunes.
@@ -120,7 +142,7 @@ module Badline
       end
 
       def validate_paths
-        missing = tune_paths.find { |path| !File.exist?(path) }
+        missing = (tune_paths + @cartridges.values).find { |path| !File.exist?(path) }
         raise Error, "no such file or directory: #{missing}" unless missing.nil?
         raise Error, "no such file or directory: #{@songlengths}" unless @songlengths.nil? || File.exist?(@songlengths)
       end

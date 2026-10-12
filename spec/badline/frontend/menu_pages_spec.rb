@@ -151,5 +151,26 @@ describe Badline::Frontend::MenuPages do
       pages.draw(:sound, 0, 0)
       expect(buttons).to have_received(:toggle).once
     end
+
+    it "names its model and RAM on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "PLUS/4 PAL, 64K RAM", anything)
+    end
+
+    it "names the cartridge slots filled on the expansion port" do
+      computer.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "C1LO", anything)
+    end
+
+    it "offers no freezer or REU on the expansion port" do
+      pages.draw(:expansion, 0, 0)
+      expect(buttons).to have_received(:row).twice
+    end
+
+    it "has no snapshots yet" do
+      pages.draw(:snapshots, 0, 0)
+      expect(painter).to have_received(:text).with(0, 0, "NOT ON THE PLUS/4 YET", anything)
+    end
   end
 end

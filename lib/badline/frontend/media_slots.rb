@@ -31,8 +31,18 @@ module Badline
           drive.nil? ? computer.unmount : drive.insert(nil)
         end
 
-        # Takes the cartridge out with the power off.
+        # Whether the expansion port has a cartridge in, on the Plus/4 in
+        # either cartridge's slots.
+        def cartridge?(computer)
+          return !computer.cartridge_slots.empty? if computer.family == :plus4
+
+          !computer.address_bus.cartridge.nil?
+        end
+
+        # Takes the cartridge out with the power off, on the Plus/4 both.
         def remove_cartridge(computer)
+          return computer.detach_cartridges if computer.family == :plus4
+
           computer.address_bus.detach_cartridge
           computer.power_cycle!
         end

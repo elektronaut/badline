@@ -29,7 +29,33 @@ describe Badline::Frontend::Snapshots do
     $stdout = stdout
   end
 
+  def silently
+    stderr = $stderr
+    $stderr = StringIO.new
+    yield
+  ensure
+    $stderr = stderr
+  end
+
   def quicksave(times = 1) = times.times { snapshots.quicksave }
+
+  context "with a Plus/4" do
+    let(:computer) { Badline::Plus4.new }
+
+    it "warns that it can't save it yet" do
+      expect { snapshots.save(slot(1)) }.to output(%r{snapshots: not yet on the Plus/4}).to_stderr
+    end
+
+    it "saves nothing" do
+      silently { snapshots.save(slot(1)) }
+      expect(File).not_to exist(slot(1))
+    end
+
+    it "doesn't autosave it" do
+      snapshots.tick(described_class::AUTOSAVE_FRAMES)
+      expect(snapshots.list("autosaves")).to eq([])
+    end
+  end
 
   def slot(number) = File.join(quicksaves, "quicksave-#{number}.vsf")
 

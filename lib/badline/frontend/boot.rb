@@ -55,11 +55,13 @@ module Badline
 
     # A new machine built from the options (Machine.for_options), with
     # `media`, if not nil, attached and started as the command line does,
-    # its disk writable if `writable`. The VIC-20 raises
+    # its disk writable if `writable`, after the Plus/4's cartridges the
+    # options put in its slots. The VIC-20 and the Plus/4 raise
     # Machine::Unsupported for a .sid tune.
     def self.start(options, media, writable)
       computer = build(options, media)
       Media::TrueDrive.plug(computer) if options.true_drive?
+      options.cartridges.each { |slot, path| puts Media.attach(computer, path, cartridge: { slot: }) }
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
                                            disk: { read_only: !writable })

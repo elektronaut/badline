@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`, and the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, and the Plus/4, the C16 and the C116, as `badline plus4`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -69,8 +69,8 @@ from it.
 
 The first argument can name the machine, as in `badline c64 game.prg`.
 The C64 is the default, and `--model` picks which C64. See
-[The VIC-20](#the-vic-20) for `badline vic20` and [The C128](#the-c128)
-for `badline c128`.
+[The VIC-20](#the-vic-20) for `badline vic20`, [The C128](#the-c128)
+for `badline c128` and [The Plus/4](#the-plus4) for `badline plus4`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -84,9 +84,10 @@ differences noted in the table. `--help` lists the options for either.
 | `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps. See [Media](#media) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
-| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20) |
+| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own |
+| `--c1lo FILE`, `--c1hi FILE`, `--c2lo FILE`, `--c2hi FILE` | Put a raw `.bin` ROM image in one of the Plus/4's cartridge slots: cartridge 1 or 2, low (`$8000`) or high (`$C000`). See [The Plus/4](#the-plus4) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
-| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place |
+| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128 and the Plus/4 have models of their own: see their sections |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
@@ -221,6 +222,43 @@ no host key yet: `Tab` and the arrows keep their C64 uses.
 `F11`, `F12` and the pause menu save and load the C128 in badline's own
 snapshots, and x128's `.vsf` files don't load.
 
+## The Plus/4
+
+`badline plus4` runs a PAL Plus/4, with BASIC 3.5 and the 3-plus-1
+function ROMs, and takes the same media as the C64 apart from SID tunes:
+
+```sh
+badline plus4                       # READY., in BASIC 3.5
+badline plus4 game.prg              # Load and run a program
+badline plus4 game.d64              # Mount a disk image as device 8 and load it
+badline plus4 game.tap              # Insert a tape and load it
+badline plus4 game.crt              # Attach a cartridge
+badline plus4 --model c16 game.bin  # A C16 with a cartridge's ROM image
+```
+
+`--model` picks the machine: `plus4` (the default, PAL with 64K of RAM),
+`c16` (PAL with 16K, without the function ROMs, the ACIA and the user
+port), `c116`, which is the C16 in another case, and `plus4ntsc` and
+`c16ntsc` for their NTSC versions. `--ram 16k`, `32k` or `64k` fits other
+RAM in place of the model's own.
+
+A program loads at the start of BASIC 3.5, `$1001`, and runs. A tape's
+`LOAD` reads the datasette, as the 264 KERNAL's does by default. A
+cartridge is a `.crt` or a raw `.bin` ROM image. A `.bin` goes in
+cartridge 1, its low slot for up to 16K and both slots for 32K, and
+`--c1lo`, `--c1hi`, `--c2lo` and `--c2hi` put one in the slot they name,
+as xplus4's options do:
+
+```sh
+badline plus4 --c1lo game-low.bin --c1hi game-high.bin
+```
+
+Disks go through the KERNAL traps or, with `--true-drive`, a 1541 or a
+1581 on the serial bus. There is no 1551 yet. The pause menu's Power
+page names the model and its RAM, and its Expansion port page shows the
+slots that hold a cartridge and takes them all out. `F11` and the
+Snapshots page don't save the Plus/4 yet. [Input](#input) lists its keys.
+
 ## Snapshots
 
 `F11` quicksaves the whole machine to the next of five slots in
@@ -329,10 +367,10 @@ too.
 | Snapshots | Quicksave, save under a name, load a named save, and the latest quicksaves and autosaves |
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
-| Expansion port | The cartridge: insert, remove, and its freeze button if it has one |
+| Expansion port | The cartridge: insert, remove, and its freeze button if it has one. On the Plus/4, the slots that hold one |
 | Ports | The device in each control port, and where the keys go |
 | Sound | Mute, and the SID's model |
-| Power | Reset, power cycle and quit, and on a C128 its model and mode |
+| Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 its model and RAM |
 
 INSERT opens a file browser. A disk's set is the `.m3u` or `.vfl` list it
 was opened from, or one in its folder that lists it. Without one, it comes
@@ -372,12 +410,18 @@ program or `.sid` dropped on it opens the menu to ask first.
   port, FAST mode, the VIC-IIe with its extra keyboard lines, the 8722
   MMU, the 8563 or 8568 VDC with its 80 column display, and 128K of RAM
   (`badline c128`), and the Z80, which boots the machine.
+- **Plus/4, C16 and C116**: the 7501, the TED with its picture, sound,
+  timers and the CPU's single and double clock, 16K to 64K of RAM, ROM
+  banking with the 3-plus-1 function ROMs, the keyboard and both
+  joysticks, cartridges in both slots, the datasette and the serial bus
+  to device 8, PAL and NTSC (`badline plus4`). The ACIA's registers are
+  there but send and receive nothing.
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
   mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial
   (burst) to a C128 in C128 mode (`badline c128 --true-drive`).
 - **1581**: the 3.5" drive running its own DOS on its WD1772 and 8520,
-  reading and writing `.d81` images, on the C64, the VIC-20 and the C128
+  reading and writing `.d81` images, on the C64, the VIC-20, the C128 and the Plus/4
   (`--true-drive` with a `.d81`).
 - **Cartridges**: standard 8K, 16K and Ultimax, Simons' BASIC, Ocean,
   Fun Play / Power Play, Super Games, Epyx FastLoad, Westermann

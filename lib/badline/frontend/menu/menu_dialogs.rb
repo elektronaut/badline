@@ -37,7 +37,8 @@ module Badline
       # :program, or :snapshot, which starts in the saves folder.
       def browse(kind)
         @browsing = kind
-        @browser.open(kind == :snapshot ? Badline.data_folder("saves") : @browse_from, EXTENSIONS.fetch(kind))
+        extensions = kind == :cartridge ? @media.cartridge_extensions : EXTENSIONS.fetch(kind)
+        @browser.open(kind == :snapshot ? Badline.data_folder("saves") : @browse_from, extensions)
       end
 
       # Asks for a save's name, starting from `name`.
