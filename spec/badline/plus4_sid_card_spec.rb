@@ -19,7 +19,7 @@ describe Badline::Plus4, "#sid_card" do
 
   it "puts a SID at $FD40-$FD5F" do
     machine.poke(0xfd58, 0x0f)
-    expect(machine.sid_card.register(0x18)).to eq(0x0f)
+    expect(machine.sid_card.sid.register(0x18)).to eq(0x0f)
   end
 
   # A C64's clock would read 76 after the frame, and xplus4's SID card,
@@ -51,7 +51,7 @@ describe Badline::Plus4, "#sid_card" do
   it "resets the card's SID with the machine" do
     machine.poke(0xfd58, 0x0f)
     machine.reset!
-    expect(machine.sid_card.register(0x18)).to eq(0)
+    expect(machine.sid_card.sid.register(0x18)).to eq(0)
   end
 
   # Voice 3's sawtooth gated at full volume, sustained.
@@ -70,7 +70,7 @@ describe Badline::Plus4, "#sid_card" do
   it "saves the card's SID and its model in a snapshot" do
     machine.poke(0xfd58, 0x0f)
     restored = machine.snapshot.load
-    expect([restored.sid_card.model, restored.sid_card.register(0x18)]).to eq([:mos6581, 0x0f])
+    expect([restored.sid_card.model, restored.sid_card.sid.register(0x18)]).to eq([:mos6581, 0x0f])
   end
 
   it "runs on from a snapshot as the saved machine does" do

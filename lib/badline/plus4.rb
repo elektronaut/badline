@@ -10,6 +10,7 @@ require "badline/plus4/keyboard_port"
 require "badline/plus4/user_port"
 require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
+require "badline/plus4/sid_card"
 require "badline/plus4/sound_mix"
 require "badline/plus4/bus"
 require "badline/plus4/tcbm_drive"
@@ -118,7 +119,7 @@ module Badline
       @acia_irq = false
       @acia_due = ACIA::NEVER
       @due = INIT_THRESHOLD
-      @sid_card = sid_card ? Chips::SID.new(model: sid_card, at: 0xfd40) : nil
+      @sid_card = sid_card ? SIDCard.new(self, sid_card) : nil
       @acia = plus4_parts ? ACIA.new(self, @model.ted.clock_hz) : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
       io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
@@ -149,8 +150,6 @@ module Badline
       ted = @ted
       ted.cycle!
       @datasette.cycle!
-      sid_card = @sid_card
-      sid_card&.cycle!
       @cpu.irq = ted.irq? || @acia_irq
       slots = ted.cpu_slots
       if slots.zero?
