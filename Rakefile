@@ -67,6 +67,7 @@ def spinel_check(media)
   SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
   SpinelCheck.check_c128_boots
   SpinelCheck.check_plus4_boots
+  SpinelCheck.check_plus4_snapshots
 end
 
 namespace :vendor do
