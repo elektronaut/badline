@@ -30,7 +30,8 @@ CRuby.
   argument picks the model.
 - `plus4_snapshot.rb` saves a 264 series machine's snapshot in memory
   part way through a run, loads it into a new machine and runs both on.
-  It prints the snapshot's size and digest, whether the new machine saves
+  It prints the size and digest of the snapshot's records, inflated,
+  since Spinel's build deflates them differently, whether the new machine saves
   it again the same, digests of both machines every 250,000 cycles, and
   whether both save the same snapshot at the end. Arguments pick the
   cycle it saves at, the cycles to run and the model.
