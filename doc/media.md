@@ -99,6 +99,21 @@ the entries after a `UNIT 8` line, or before any `UNIT` line, count.
 `Media.attach` and the command line take a list as media and attach its
 first disk.
 
+## Recording to tape
+
+From Ruby, a blank tape made with
+`Badline::Storage::TAP.create(path, platform:)` (0 for the C64, 1 for
+the VIC-20, 2 for the Plus/4 and the C16) goes in the datasette with
+`computer.datasette.insert`, `record!` presses RECORD and PLAY, and
+`stop!` lets them up and writes the tape to its file. The C64 and the
+VIC-20 record version 1 TAPs, and the Plus/4 and the C16 version 2 TAPs
+of half waves.
+
+A program SAVEd that way on the C64 loads and runs in VICE's x64sc, on
+the VIC-20 in xvic, and on the Plus/4 or the C16 in xplus4 as a Plus/4.
+Neither the Plus/4's tape nor the C16's ran on xplus4's C16 model.
+Checked with VICE 3.10.
+
 ## The light pen
 
 Control port 1's fire line is also the VIC-II's light pen input, so
