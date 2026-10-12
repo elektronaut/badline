@@ -14,6 +14,12 @@ module Badline
         SID_MODELS[value]
       end
 
+      def sid_card_address_for(value)
+        raise Error, "invalid argument: --sid-card-address #{value}" unless SID_CARD_ADDRESSES.key?(value.downcase)
+
+        SID_CARD_ADDRESSES[value.downcase]
+      end
+
       def sid_model_for(value)
         return if value == "auto"
         raise Error, "invalid argument: --sid #{value}" unless SID_MODELS.key?(value)
@@ -122,6 +128,7 @@ module Badline
       def refuse_plus4_options
         raise Error, "--#{@cartridges.keys.first} needs plus4" unless @cartridges.empty?
         raise Error, "--sid-card needs plus4" unless @sid_card.nil?
+        raise Error, "--sid-card-address needs plus4" unless @sid_card_address.nil?
         raise Error, "--ram-expansion needs plus4" unless @ram_expansion.nil?
       end
 
@@ -133,10 +140,17 @@ module Badline
         raise Error, "--sid needs the C64; the Plus/4's is --sid-card" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the Plus/4 needs the window" if headless?
-        raise Error, "--ram-expansion needs 64k" unless @ram_expansion.nil? || [nil, 64].include?(@ram_kb)
 
+        validate_plus4_expansions
         image = @cartridges.values.find { |path| !File.extname(path).casecmp?(".bin") }
         raise Error, "not a .bin ROM image: #{image}" unless image.nil?
+      end
+
+      # A RAM expansion goes over 64K, and a SID card's address needs a
+      # card.
+      def validate_plus4_expansions
+        raise Error, "--ram-expansion needs 64k" unless @ram_expansion.nil? || [nil, 64].include?(@ram_kb)
+        raise Error, "--sid-card-address needs --sid-card" unless @sid_card_address.nil? || @sid_card
       end
 
       # `sid` takes directories as well as tunes.

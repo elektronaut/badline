@@ -122,6 +122,7 @@ module Badline
 
     class SIDCard
       @clocked: Integer
+      @address: Integer
     end
 
     class RAMExpansion

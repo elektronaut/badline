@@ -51,6 +51,9 @@ module Badline
     # The Plus/4's RAM sizes as --ram names them, in K.
     PLUS4_RAM = { "16k" => 16, "32k" => 32, "64k" => 64 }.freeze
 
+    # Where --sid-card-address puts the Plus/4's SID card.
+    SID_CARD_ADDRESSES = { "fd40" => 0xfd40, "fe80" => 0xfe80 }.freeze
+
     # The Plus/4's RAM expansions as --ram-expansion names them.
     PLUS4_RAM_EXPANSIONS = { "hannes256" => :hannes256, "hannes1m" => :hannes1m, "csory256" => :csory256 }.freeze
 
@@ -87,6 +90,10 @@ module Badline
     # :mos8580, or nil without one.
     attr_reader :sid_card
 
+    # Where --sid-card-address puts the Plus/4's SID card, $FD40 without
+    # it.
+    attr_reader :sid_card_address
+
     # The Plus/4's RAM expansion --ram-expansion names, a key of
     # Plus4::RAMExpansion::KINDS, or nil without one.
     attr_reader :ram_expansion
@@ -108,6 +115,7 @@ module Badline
       @subtune = nil
       @sid_model = nil
       @sid_card = nil
+      @sid_card_address = nil
       @ram_expansion = nil
       @models = []
       @reu = nil
@@ -291,6 +299,7 @@ module Badline
       when "--subtune" then @subtune = number(flag, value)
       when "--sid" then @sid_model = sid_model_for(value)
       when "--sid-card" then @sid_card = sid_card_for(value)
+      when "--sid-card-address" then @sid_card_address = sid_card_address_for(value)
       when "--ram-expansion" then @ram_expansion = plus4_ram_expansion(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
