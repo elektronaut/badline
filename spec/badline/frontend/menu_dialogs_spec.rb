@@ -70,7 +70,7 @@ describe Badline::Frontend::MenuDialogs do
     subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["plus4", bin_path]), nil) }
 
     let(:computer) { Badline::Plus4.new }
-    let(:media) { Badline::Frontend::MenuMedia.new("", false).tap { |menu_media| menu_media.computer = computer } }
+    let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = computer } }
 
     it "asks before a dropped ROM image goes in" do
       expect([dialogs.drop(bin_path), dialogs.open?]).to eq([true, true])
