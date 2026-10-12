@@ -1,0 +1,25 @@
+
+ commodore basic v7.0 122365 bytes free
+   (c)1986 commodore electronics, ltd.
+         (c)1977 microsoft corp.
+           all rights reserved
+
+ready.
+print 6*7
+ 42
+
+ready.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

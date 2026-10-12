@@ -1,0 +1,25 @@
+
+    **** commodore 64 basic v2 ****
+
+ 64k ram system  38911 basic bytes free
+
+ready.
+load"$",8
+
+searching for $
+loading
+ready.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
