@@ -424,6 +424,9 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `playing` | bool | false |
 | `motor` | bool | false |
 | `countdown` | int | 0 |
+| `recording` | bool | false |
+| `since` | int | 0 |
+| `write_high` | bool | C64: false; VIC-20: true; C128: false; Plus/4: true |
 | `rise_at` | int | 0 |
 | `low_recorded` | bool | false |
 | `tape.bytes` | bytes | [] |

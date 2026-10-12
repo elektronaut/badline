@@ -45,6 +45,43 @@ describe Badline::Drives::Datasette::KeyedState do
     expect([saved_fields(target), target.read_high?]).to eq([saved_fields(level), level.read_high?])
   end
 
+  describe "a datasette recording" do
+    # Partway through a pulse: the write line low for 50 cycles since the
+    # rising edge that ended the pulse before.
+    let(:recording) do
+      blank = Badline::Storage::TAP.create(File.join(dir, "saved.tap"), platform: 0)
+      Badline::Drives::Datasette.new(blank).tap do |deck|
+        deck.record!
+        deck.motor = true
+        [100, 50].each { |cycles| finish_pulse(deck, cycles) }
+        deck.write_line = false
+        50.times { deck.cycle! }
+      end
+    end
+
+    def finish_pulse(deck, cycles)
+      deck.write_line = false
+      cycles.times { deck.cycle! }
+      deck.write_line = true
+    end
+
+    def ends_the_pulse(deck)
+      30.times { deck.cycle! }
+      deck.write_line = true
+      deck.tape.bytes
+    end
+
+    it "goes on recording the pulse in flight" do
+      target = Badline::Drives::Datasette.new.tap { |deck| keyed_round_trip(recording, deck) }
+      expect(ends_the_pulse(target)).to eq(ends_the_pulse(recording))
+    end
+
+    it "keeps the keys down for the recording" do
+      target = Badline::Drives::Datasette.new.tap { |deck| keyed_round_trip(recording, deck) }
+      expect([target.recording?, saved_fields(target)]).to eq([true, saved_fields(recording)])
+    end
+  end
+
   it "takes the tape out when the module holds none" do
     target = Badline::Drives::Datasette.new(Badline::Storage::TAP.new(path))
     keyed_round_trip(Badline::Drives::Datasette.new, target)

@@ -81,6 +81,21 @@ module SnapshotSetups
     run(machine, 1_000_003)
   end
 
+  # A blank tape for the platform in the datasette, and a program SAVEd to
+  # it typed at the prompt.
+  def saving_to_tape(machine, dir, platform)
+    machine.datasette.insert(Badline::Storage::TAP.create(File.join(dir, "saved.tap"), platform:))
+    typing(machine, "10 print\"hello\"\rsave\"test\"\r")
+  end
+
+  # RECORD and PLAY pressed while the KERNAL asks for them, and the SAVE
+  # run partway, so the datasette is recording at the save point.
+  def recording(machine)
+    run(machine, 4_000_000)
+    machine.datasette.record!
+    run(machine, 4_000_000)
+  end
+
   # A version 2 tape of half waves, as the 264 series' datasette plays
   # them, with nothing on it the KERNAL finds.
   def tap264_file(dir)
@@ -164,7 +179,9 @@ module SnapshotMachines
       Scenario.new("c64-t64", :c64, ->(dir) { Badline::C64.new.tap { |m| Badline::Media.attach(m, copy(T64, dir)) } },
                    ->(m) { run(m, 3_500_000) }),
       Scenario.new("c64-tape", :c64, ->(dir) { Badline::C64.new.tap { |m| Badline::Media.attach(m, tap_file(dir)) } },
-                   ->(m) { run(m, 3_500_000) })
+                   ->(m) { run(m, 3_500_000) }),
+      Scenario.new("c64-tape-save", :c64, ->(dir) { saving_to_tape(Badline::C64.new, dir, 0) },
+                   ->(m) { recording(m) })
     ]
   end
 
@@ -202,7 +219,9 @@ module SnapshotMachines
       }, ->(m) { run(m, 3_000_000) }),
       Scenario.new("vic20-tape", :vic20,
                    ->(dir) { Badline::Vic20.new(ram: :unexpanded).tap { |m| Badline::Media.attach(m, tap_file(dir)) } },
-                   ->(m) { run(m, 3_000_000) })
+                   ->(m) { run(m, 3_000_000) }),
+      Scenario.new("vic20-tape-save", :vic20, ->(dir) { saving_to_tape(Badline::Vic20.new(ram: :unexpanded), dir, 1) },
+                   ->(m) { recording(m) })
     ]
   end
 
@@ -240,6 +259,8 @@ module SnapshotMachines
       Scenario.new("plus4-c16-tape", :plus4, lambda { |dir|
         Badline::Plus4.new(model: "c16").tap { |m| Badline::Media.attach(m, tap264_file(dir)) }
       }, ->(m) { run(m, 1_500_000) }),
+      Scenario.new("plus4-c16-tape-save", :plus4, ->(dir) { saving_to_tape(Badline::Plus4.new(model: "c16"), dir, 2) },
+                   ->(m) { recording(m) }),
       Scenario.new("plus4-cartridge", :plus4, lambda { |dir|
         Badline::Plus4.new.tap { |m| Badline::Media.attach(m, plus4_cartridge(dir)) }
       }, ->(m) { run(m, 300_000) }),
