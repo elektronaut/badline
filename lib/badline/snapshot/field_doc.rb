@@ -37,7 +37,7 @@ module Badline
       # The machines the doc is made from: each family at power-on, the C64
       # with each kind of expansion, cartridge and media, and a second SID,
       # and the 264 series' models, its TCBM interface, cartridge, tape and
-      # true drive.
+      # true drives, the 1541 and the 1551.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -46,7 +46,7 @@ module Badline
           "vic20" => [Vic20.new, with_rom],
           "c128" => [C128.new(mode: :c128), with_drive(:d71)],
           "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), plus4_with_cartridge,
-                      plus4_with_tape, plus4_with_drive]
+                      plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")]
         }
       end
 
@@ -110,8 +110,8 @@ module Badline
         Plus4.new(model: "c16").tap { |machine| machine.datasette.insert(Storage::TAP.new("", bytes:)) }
       end
 
-      def self.plus4_with_drive
-        Plus4.new.tap do |machine|
+      def self.plus4_with_drive(model = "1541")
+        Plus4.new(true_drive_model: model).tap do |machine|
           image = Storage::D64Image.new("", bytes: blank(174_848))
           machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
         end

@@ -47,6 +47,32 @@ describe Badline::Plus4 do
       expect(machine.snapshot.load.tias[0].ports[0]).to eq(0x42)
     end
 
+    context "with a 1551" do
+      let(:machine) do
+        saved("plus4").tap do |plus4|
+          plus4.attach_drive1551(Badline::Drives::Model1551.new)
+          plus4.run_cycles(3_000)
+        end
+      end
+
+      it "names the drive's modules after its device" do
+        expect(machine.snapshot.sections.map(&:name).grep(/BL-D8/))
+          .to eq(%w[BL-D8 BL-D8-RAM BL-D8-PORT BL-D8-TIA BL-D8-HOSTTIA BL-D8-CPU BL-D8-MECH])
+      end
+
+      it "restores a drive that runs on as the saved one" do
+        restored = machine.snapshot.load
+        [machine, restored].each { |each_machine| each_machine.run_cycles(5_000) }
+        expect(restored.snapshot).to eq(machine.snapshot)
+      end
+
+      it "puts the drive's interface back at $FEE0" do
+        machine.poke(0xfef3, 0xff)
+        machine.poke(0xfef0, 0x5a)
+        expect(machine.snapshot.load.drive1551.tia.peek(0x4000)).to eq(0x5a)
+      end
+    end
+
     it "saves to a .vsf whose machine is PLUS4, with badline's modules alone" do
       saved("plus4").save_snapshot(path)
       snapshot = Badline::Snapshot.read(path)

@@ -32,9 +32,9 @@ module TrueDrive
   end
 
   # The true drive's CPU, cycle counts, head, chips and the first 2K of its
-  # RAM, or nil without one: a 1581 ahead of a 1571 ahead of a 1541, as
-  # the machine's true_drive picks it. The 1541 and 1571 add their VIAs,
-  # the 1571 and 1581 their CIA.
+  # RAM, or nil without one, as the machine's true_drive picks it. The
+  # 1541 and 1571 add their VIAs, the 1571 and 1581 their CIA, and the
+  # 1551 its port and TIAs.
   def digest(computer)
     drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
@@ -54,6 +54,8 @@ module TrueDrive
   end
 
   def chip_values(drive)
+    return tia_values(drive) if drive.model_name == "1551"
+
     values = []
     unless drive.model_name == "1581"
       [drive.via1, drive.via2].each do |via|
@@ -63,6 +65,12 @@ module TrueDrive
     end
     values.concat(Badline::Support::Checkpoint.cia_state(drive.cia)) unless drive.model_name == "1541"
     values
+  end
+
+  # The 1551's port and both TIAs, the drive's and its interface's.
+  def tia_values(drive)
+    port = drive.port
+    [port.ddr, port.data, *[drive.tia, drive.host_tia].flat_map { |tia| tia.ports + tia.directions + tia.inputs }]
   end
 
   # A checkpoint's line, with the drive's digest when there is one.

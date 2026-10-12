@@ -8,8 +8,8 @@ module Badline
     # at $FEE0 for device 8 or $FEC0 for device 9. Each sits in a field of
     # its own, so none makes another's per-cycle call a union.
     #
-    # The KERNAL tries TCBM first for devices 8 and 9, so a 1551 answers
-    # ahead of a serial drive with the same number.
+    # A device number has one drive at a time: a 1551 takes the place of a
+    # serial drive with its number, and the other way round.
     module TCBMDrive
       # The true drive models plug_true_drive builds.
       TRUE_DRIVE_MODELS = %w[1541 1551].freeze
@@ -21,10 +21,14 @@ module Badline
       attr_reader :true_drive_model
 
       # Plugs in a Drives::Model1551, its interface's TIA where its device
-      # number puts it, in place of the TCBM interface's own there. The
-      # traps stop answering device 8 when the drive is device 8.
+      # number puts it, in place of the TCBM interface's own there, and in
+      # place of a serial drive with its number. The traps stop answering
+      # device 8 when the drive is device 8.
       def attach_drive1551(drive)
         detach_drive1551
+        device = drive.device
+        detach_drive1541 if @drive1541&.device == device
+        detach_drive1581 if @drive1581&.device == device
         drive.host_clock_hz = timing.clock_hz
         @drive1551 = drive
         @bus.plug_tia(drive.device, drive.host_tia)
@@ -46,18 +50,19 @@ module Badline
       # The true drive: a 1581 ahead of a 1551 ahead of a 1541.
       def true_drive = @drive1581 || @drive1551 || @drive1541
 
-      # Plugs in the model true_drive_model names as device 8, in place of a
-      # 1581 there, and returns it.
+      # Plugs in the model true_drive_model names as device 8, in place of
+      # the drive there, and returns it.
       def plug_true_drive
-        detach_drive1581 if drive1581_on_device8?
         return plug_drive1551 if @true_drive_model == "1551"
 
+        unplug_device8
+        detach_drive1581 if drive1581_on_device8?
         Badline::Drives::Model1541.new.tap { |drive| attach_drive1541(drive) }
       end
 
-      # Plugs in a 1551 as device 8, in place of a 1581 there, and returns it.
+      # Plugs in a 1551 as device 8, in place of the drive there, and
+      # returns it.
       def plug_drive1551
-        detach_drive1581 if drive1581_on_device8?
         Badline::Drives::Model1551.new.tap { |drive| attach_drive1551(drive) }
       end
 
@@ -72,6 +77,20 @@ module Badline
         @drive1541 = nil
         @drive1551 = nil
         @drive1581 = nil
+      end
+
+      def save_drive1551_modules(sections)
+        drive = @drive1551
+        drive&.save_modules(sections, "BL-D#{drive.device}")
+        sections
+      end
+
+      def load_drive1551_modules(modules, input, device)
+        return input.adjust("a 1551 as device #{device}, left out") unless [8, 9].include?(device)
+
+        detach_drive1551 if @drive1551 && @drive1551.device != device
+        attach_drive1551(Badline::Drives::Model1551.new(device:)) unless @drive1551
+        @drive1551.load_modules(modules, input, "BL-D#{device}")
       end
 
       # The TCBM interface's own TIA for +device+, or nil without one.

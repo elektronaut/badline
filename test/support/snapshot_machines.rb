@@ -55,6 +55,13 @@ module SnapshotSetups
     File.join(dir, "ef.crt").tap { |path| File.binwrite(path, Badline::Storage::CRTFile.encode(image)) }
   end
 
+  # +machine+ with the disk image at +path+ in its true drive, typing
+  # LOAD"$" and LIST once booted.
+  def listing(machine, path)
+    Badline::Media::TrueDrive.insert(machine, path)
+    typing(machine, "load\"$\",8\rlist\r")
+  end
+
   def typing(machine, text)
     machine.on_init { machine.type_text(text) }
     machine
@@ -201,9 +208,7 @@ module SnapshotMachines
       Scenario.new("c64-1581", :c64, lambda { |dir|
         path = File.join(dir, "blank.d81")
         DriveScenarios::Images1581.blank_d81(path, "BLANK", "BL")
-        machine = Badline::C64.new
-        Badline::Media::TrueDrive.insert(machine, path)
-        typing(machine, "load\"$\",8\rlist\r")
+        listing(Badline::C64.new, path)
       }, ->(m) { run(m, 5_000_000) })
     ]
   end
@@ -266,17 +271,25 @@ module SnapshotMachines
       }, ->(m) { run(m, 300_000) }),
       Scenario.new("plus4-traps-d64", :plus4, lambda { |dir|
         Badline::Plus4.new.tap { |m| Badline::Media.attach(m, copy(D64, dir)) }
-      }, ->(m) { run(m, 1_500_000) }),
-      Scenario.new("plus4-1541", :plus4, lambda { |dir|
-        machine = Badline::Plus4.new
-        Badline::Media::TrueDrive.insert(machine, copy(D64, dir))
-        typing(machine, "load\"$\",8\rlist\r")
-      }, ->(m) { run(m, 2_500_000) })
+      }, ->(m) { run(m, 1_500_000) })
+    ]
+  end
+
+  # The 264's true drives: a 1541 on the serial bus and a 1551 on TCBM,
+  # saved part way through a LOAD.
+  def plus4_drive_scenarios
+    [
+      Scenario.new("plus4-1541", :plus4, ->(dir) { listing(Badline::Plus4.new, copy(D64, dir)) },
+                   ->(m) { run(m, 2_500_000) }),
+      Scenario.new("plus4-1551", :plus4, lambda { |dir|
+        listing(Badline::Plus4.new(true_drive_model: "1551"), copy(D64, dir))
+      }, ->(m) { run(m, 2_400_000) })
     ]
   end
 
   def all
-    c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios
+    c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
+      plus4_drive_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }
