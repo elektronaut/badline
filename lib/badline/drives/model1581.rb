@@ -39,6 +39,7 @@ module Badline
     # on either chip: the drive's CIA gets no TOD pulses (CIA's tod_hz).
     class Model1581
       include Engine::Core
+      include Engine::SerialConnection
       include Engine::FastSerial
 
       CLOCK_HZ = 2_000_000

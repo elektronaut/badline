@@ -18,6 +18,24 @@ module Badline
            @address, @pointer, @dummy_address, @value, @rmw_result]
         end
 
+        # idle_state but for the byte a read-modify-write read and the one
+        # it wrote, which a pass that counts in RAM leaves one higher each
+        # time (Drives::Engine::Idle's pass counter).
+        def counting_state
+          [@program_counter, @stack_pointer, @a, @x, @y, @status.value,
+           @irq, @nmi, @irq_sample, @irq_pending, @nmi_sample, @nmi_pending, @skip_poll,
+           @boundary_irq, @boundary_nmi, @so_high, @interrupt, @brk, @pending_write, @stalled_at, @traps,
+           @operation, @optional_dummy, @boundary_crossed, @branch_taken,
+           @address, @pointer, @dummy_address]
+        end
+
+        # The working registers as the increment that brought a counter to
+        # +count+ left them.
+        def counted(count)
+          @value = (count - 1) & 0xff
+          @rmw_result = count
+        end
+
         # Counts +cycles+ cycles and +instructions+ instructions that ran
         # without changing anything idle_state holds.
         def fast_forward(cycles, instructions)

@@ -5,14 +5,17 @@ module Badline
     class Model1551
       # The drive's own fields in a keyed snapshot module (BL-D8): its
       # model, its clock phase, its cycle count, the 555's count to its
-      # next pulse and the byte the gate array latched.
+      # next pulse and the byte the gate array latched. A save settles the
+      # drive first, so it is awake; a load forgets its orbits.
       module KeyedState
         def save_fields(out)
+          settle!
           out.text("model", model_name).int("phase", @phase).int("cycles", @cycles).int("irq_timer", @irq_timer)
           out.int("latched_byte", @mechanism.latched_byte)
         end
 
         def load_fields(input)
+          settle!
           input.choice("model", [model_name], model_name)
           @phase = input.int("phase", @phase)
           @cycles = input.int("cycles", @cycles)
@@ -50,8 +53,9 @@ module Badline
           disk_input = modules.optional("#{name}-DISK")
           disk = disk_input.nil? ? nil : Model1541::Disk.from_fields(disk_input, detached: modules.detached?)
           @mechanism.load_fields(modules.required("#{name}-MECH"), disk)
-          @cable.moved
+          @cable.relatch
           @cpu.restored!
+          forget_orbits
         end
       end
 

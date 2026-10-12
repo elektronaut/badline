@@ -79,3 +79,5 @@ plus4-1551-save/trap-readable	PASS
 plus4-1551-autostart/loads-and-runs	PASS
 plus4-1551-error-channel/power-on-message	PASS
 plus4-1551-c16-error-channel/power-on-message	PASS
+plus4-1551-idle/sleeps	PASS
+plus4-1551-idle/matches-stepping	PASS

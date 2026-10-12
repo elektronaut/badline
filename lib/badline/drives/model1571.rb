@@ -26,6 +26,7 @@ module Badline
     # (CIA#quiet?).
     class Model1571
       include Engine::Core
+      include Engine::SerialConnection
       include Engine::VIAs
       include Engine::FastSerial
 

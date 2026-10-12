@@ -7,6 +7,7 @@ module Badline
       # Bus.
       class CPU
         include Badline::Chips::CPU::Core
+        include Engine::IdleCPU
       end
     end
   end

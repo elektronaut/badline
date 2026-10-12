@@ -8,10 +8,22 @@ describe Badline::Drives::Model1551::Cable do
   let(:host) { drive.host_tia }
   let(:tia) { drive.tia }
 
-  it "carries the computer's data lines to the drive" do
+  it "carries the computer's data lines to the drive once it latches them" do
     host.poke(0x03, 0xff)
     host.poke(0x00, 0x84)
+    drive.cable.latch_host
     expect(tia.peek(0x00)).to eq(0x84)
+  end
+
+  it "keeps the computer's lines from the drive until it latches them" do
+    host.poke(0x03, 0xff)
+    host.poke(0x00, 0x04)
+    expect(tia.peek(0x00)).to eq(0xff)
+  end
+
+  it "says the computer moved its lines" do
+    host.poke(0x03, 0xff)
+    expect(drive.cable.atn_moved?).to be(true)
   end
 
   it "carries the drive's data lines to the computer" do
@@ -39,6 +51,7 @@ describe Badline::Drives::Model1551::Cable do
   it "carries the computer's DAV to the drive's PC7" do
     host.poke(0x05, 0x40)
     host.poke(0x02, 0x00)
+    drive.cable.latch_host
     expect(tia.peek(0x02) & 0x80).to eq(0)
   end
 

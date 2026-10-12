@@ -18,6 +18,7 @@ module Badline
     # clocks it against the host and sleeps through the DOS's idle loop.
     class Model1541
       include Engine::Core
+      include Engine::SerialConnection
       include Engine::VIAs
 
       CLOCK_HZ = 1_000_000
