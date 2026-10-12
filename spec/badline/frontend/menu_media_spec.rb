@@ -29,6 +29,14 @@ describe Badline::Frontend::MenuMedia do
 
   def storage = computer.instance_variable_get(:@dos).instance_variable_get(:@storage)
 
+  def start_quietly(path)
+    stdout = $stdout
+    $stdout = StringIO.new
+    media.start(Badline::Options.parse([]), path)
+  ensure
+    $stdout = stdout
+  end
+
   it "puts a disk in write-protected unless told otherwise" do
     media.insert(:disk, first)
     expect([media.disk_path, storage.read_only?]).to eq([first, true])
@@ -143,9 +151,13 @@ describe Badline::Frontend::MenuMedia do
   end
 
   it "starts a file in a new machine, as the command line does" do
-    started = media.start(Badline::Options.parse([]), first)
+    started = start_quietly(first)
     media.computer = started
     expect([started.equal?(computer), started.mounted?, media.disk_path]).to eq([false, true, first])
+  end
+
+  it "says what it put in the new machine" do
+    expect { media.start(Badline::Options.parse([]), first) }.to output(/Mounted .*disk1\.d64 as device 8/).to_stdout
   end
 
   it "starts nothing from a file it can't read" do
