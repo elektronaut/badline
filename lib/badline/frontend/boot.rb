@@ -17,7 +17,11 @@ module Badline
       end
 
       computer = nil
-      problem = media_problem { computer = boot(options) }
+      problem = if cartridge?(options)
+                  cartridge_problem { computer = boot(options) }
+                else
+                  media_problem { computer = boot(options) }
+                end
       unless problem.empty?
         warn "#{options.program}: #{options.media_path}: #{problem}"
         return 1
@@ -47,6 +51,12 @@ module Badline
       media_problem(&)
     rescue ArgumentError => e
       e.message
+    end
+
+    # Whether the media the options start is a .crt.
+    def self.cartridge?(options)
+      media = options.media_path
+      !media.nil? && Media::Extensions.kind(media) == :cartridge
     end
 
     # The machine a .vsf snapshot holds, built as the saved one was, or a
