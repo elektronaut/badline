@@ -317,6 +317,17 @@ Recorded output of the headless hardware suites, one file per suite:
     the banner and the `A>` prompt on the 40-column screen
     (`boots-to-prompt`), and `DIR` typed through the keyboard matrix
     listing `CCP.COM` and `ZEXDOC` (`lists-disk`).
+  - `plus4-format`, `plus4-save`, `plus4-1581-save`, `plus4-read-only`,
+    `plus4-autostart`, `plus4-1581-autostart` and `plus4-error-channel`
+    run the same checks on a PAL Plus/4 with a true 1541 or 1581 on its
+    serial bus (`test/support/drive_scenarios_plus4.rb`), and
+    `plus4-c16-error-channel` reads the error channel on a C16.
+  - `plus4-tape` SAVEs a program to a blank version 2 tape with RECORD
+    and PLAY down (`saves`), then rewinds it and LOADs and LISTs it back
+    through the KERNAL's tape routines, which time the read line's half
+    waves with the TED's timers (`loads-back`). `plus4-c16-tape` does the
+    same on a C16, whose cassette sense reaches the bus without the
+    Plus/4's 6529.
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1571.rom` and `dos1581.rom` in the ROM
   path.

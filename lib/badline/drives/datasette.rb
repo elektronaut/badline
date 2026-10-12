@@ -27,6 +27,7 @@ module Badline
         @motor = false
         @countdown = 0
         @rise_at = 0
+        @low_recorded = false
         @flag_handler = nil
         @sense_handler = nil
       end
@@ -78,6 +79,7 @@ module Badline
         press(true)
         @recording = true
         @since = 0
+        @low_recorded = false
       end
 
       def recording? = @recording
@@ -85,14 +87,21 @@ module Badline
       # The machine's tape write line. While the deck records with its motor
       # running, each rising edge ends a pulse on the tape, as long as the
       # time since the edge before, and plays back as a falling edge on the
-      # read line.
+      # read line. A datasette built with +level: true+ records a version 2
+      # tape's half waves instead: a rising edge ends the low half and a
+      # falling edge the high half after it, so the tape plays back the
+      # levels it recorded (#read_high?).
       def write_line=(high)
-        rose = high && !@write_high
+        edge = high != @write_high
         @write_high = high
-        return unless rose && @recording && running?
+        return unless edge && @recording && running?
 
-        @tape.record_pulse(@since)
-        @since = 0
+        if @level && @tape.half_waves?
+          record_half_wave(high)
+        elsif high
+          @tape.record_pulse(@since)
+          @since = 0
+        end
       end
 
       # Sets the write line's level without recording an edge, as a
@@ -151,6 +160,14 @@ module Badline
         first = @tape.next_half_wave.to_i
         @rise_at = @tape.next_half_wave.to_i
         @countdown = first + @rise_at
+      end
+
+      # A high half wave goes on the tape only after the low half before it,
+      # so the tape starts with a whole pulse.
+      def record_half_wave(rose)
+        @tape.record_half_wave(@since) if rose || @low_recorded
+        @low_recorded = rose
+        @since = 0
       end
 
       def press(down)

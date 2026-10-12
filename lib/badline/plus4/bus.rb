@@ -82,12 +82,14 @@ module Badline
 
       # Page $FD: the ACIA, the user port, the keyboard port and the ROM
       # bank latch, by the address's bits 4-7. +acia+ and +user_port+ are
-      # nil where the machine has none.
+      # nil where the machine has none, and +cassette_sense+ answers in the
+      # user port's place on a machine without one (CassetteSense).
       class IOPage
-        def initialize(keyboard_port:, acia: nil, user_port: nil)
+        def initialize(keyboard_port:, acia: nil, user_port: nil, cassette_sense: nil)
           @bus = nil
           @acia = acia
           @user_port = user_port
+          @cassette_sense = cassette_sense
           @keyboard_port = keyboard_port
         end
 
@@ -100,7 +102,7 @@ module Badline
         def peek(addr)
           case addr & 0xf0
           when 0x00 then @acia ? @acia.peek(addr) : @bus.data
-          when 0x10 then @user_port ? @user_port.peek(addr) : @bus.data
+          when 0x10 then user_port_peek(addr)
           when 0x30 then @keyboard_port.peek(addr)
           else @bus.data
           end
@@ -113,6 +115,15 @@ module Badline
           when 0x30 then @keyboard_port.poke(addr, value)
           when 0xd0 then @bus.select_banks(addr)
           end
+        end
+
+        private
+
+        def user_port_peek(addr)
+          return @user_port.peek(addr) if @user_port
+          return @cassette_sense.read(@bus.data) if @cassette_sense
+
+          @bus.data
         end
       end
 

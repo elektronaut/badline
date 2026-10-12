@@ -819,5 +819,28 @@ describe Badline::Media do
     it "refuses a .sid tune" do
       expect { described_class.attach(computer, sid_tune) }.to raise_error(ArgumentError, %r{Plus/4})
     end
+
+    context "with a C16 tape" do
+      let(:path) { Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 2).path }
+
+      it "plays it on the datasette" do
+        described_class.attach(computer, path)
+        expect(computer.datasette.playing?).to be(true)
+      end
+
+      it "loads and runs from it" do
+        described_class.attach(computer, path)
+        expect(computer).to have_received(:type_text).with("lO\rrun\r")
+      end
+
+      it "says where it went" do
+        expect(described_class.attach(computer, path)).to eq("Inserted #{path} in the datasette")
+      end
+    end
+
+    it "says when a tape was made for another machine" do
+      path = Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 0).path
+      expect(described_class.attach(computer, path)).to include("another machine than the Plus/4")
+    end
   end
 end

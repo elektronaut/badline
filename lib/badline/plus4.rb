@@ -7,6 +7,7 @@ require "badline/plus4/cpu"
 require "badline/plus4/cpu_port"
 require "badline/plus4/keyboard_port"
 require "badline/plus4/user_port"
+require "badline/plus4/cassette_sense"
 require "badline/plus4/acia"
 require "badline/plus4/bus"
 
@@ -19,8 +20,9 @@ module Badline
   #
   # The TED paints the picture a front end shows (#video, #timing). Device 8
   # serves disks through the KERNAL traps (C64::KernalTraps), or a true
-  # 1541 or 1581 on the serial bus does (C64::TrueDrives), and cartridges
-  # go in cartridge 1's slots.
+  # 1541 or 1581 on the serial bus does (C64::TrueDrives), cartridges go
+  # in cartridge 1's slots, and tapes play on the datasette, whose read
+  # line's level the KERNAL times with the TED's timers.
   class Plus4
     include IntegerHelper
     include Machine::KeyboardBuffer
@@ -95,7 +97,8 @@ module Badline
       plus4_parts = @model.plus4_parts
       @acia = plus4_parts ? ACIA.new : nil
       @user_port = plus4_parts ? UserPort.new(@datasette) : nil
-      io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port)
+      io = Bus::IOPage.new(keyboard_port: @keyboard_port, acia: @acia, user_port: @user_port,
+                           cassette_sense: plus4_parts ? nil : CassetteSense.new(@datasette))
       @bus = Bus.new(ted: @ted, port: @port, io:, model: @model, ram_kb: @ram_kb)
       @ted.connect(@bus)
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []

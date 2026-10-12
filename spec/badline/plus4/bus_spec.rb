@@ -163,5 +163,16 @@ describe Badline::Plus4::Bus do
       bus.poke(0x0002, 0x55)
       expect(bus.peek(0xfd01)).to eq(0x55)
     end
+
+    it "reads the cassette sense high on bit 2 of $FD10-$FD1F with the deck's keys up" do
+      bus.poke(0x0002, 0x50)
+      expect(bus.peek(0xfd1f)).to eq(0x54)
+    end
+
+    it "reads the cassette sense low with PLAY down" do
+      machine.datasette.play!
+      bus.poke(0x0002, 0xff)
+      expect(bus.peek(0xfd10)).to eq(0xfb)
+    end
   end
 end

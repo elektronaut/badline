@@ -10,6 +10,7 @@ require "badline/media/disk_list"
 require "badline/media/vic20_basic"
 require "badline/media/vic20_cartridge"
 require "badline/media/vic20_media"
+require "badline/media/plus4_media"
 require "badline/media/tune"
 require "badline/media/program"
 
@@ -172,15 +173,19 @@ module Badline
         "Attached cartridge #{path}"
       end
 
-      # A VIC-20 says when the tape was made for another machine
-      # (Vic20Media.tape_message).
+      # A VIC-20 or a 264 says when the tape was made for another machine
+      # (Vic20Media.tape_message, Plus4Media.tape_message).
       def attach_tape(computer, path, autostart:)
         tape = Storage::TAP.new(path)
         computer.datasette.insert(tape)
         computer.datasette.play!
         computer.type_text(TAPE_AUTOSTART) if autostart
         message = "Inserted #{path} in the datasette"
-        computer.family == :vic20 ? Vic20Media.tape_message(tape, message) : message
+        case computer.family
+        when :vic20 then Vic20Media.tape_message(tape, message)
+        when :plus4 then Plus4Media.tape_message(tape, message)
+        else message
+        end
       end
 
       # A VIC-20 has programs of its own (Vic20Media.attach_program).
