@@ -11,6 +11,8 @@ module Badline
       D71 = 2
       D81 = 3
       T64_ARCHIVE = 4
+      D80 = 5
+      D82 = 6
 
       module_function
 
@@ -18,6 +20,8 @@ module Badline
         return D71 if image.is_a?(Storage::D71Image)
         return D64 if image.is_a?(Storage::D64Image)
         return D81 if image.is_a?(Storage::D81Image)
+        return D82 if image.is_a?(Storage::D82Image)
+        return D80 if image.is_a?(Storage::D80Image)
 
         raise ArgumentError, "#{image.class} can't go in a snapshot"
       end
@@ -37,7 +41,7 @@ module Badline
         end
       end
 
-      KIND_NAMES = %w[directory d64 d71 d81 t64].freeze
+      KIND_NAMES = %w[directory d64 d71 d81 t64 d80 d82].freeze
 
       # Opens the storage write_fields wrote: the same directory by its
       # path, an archive with the bytes it held, or a disk image with the
@@ -55,6 +59,8 @@ module Badline
         case kind
         when D64 then Storage::D64Image.new(path, read_only:, bytes:)
         when D71 then Storage::D71Image.new(path, read_only:, bytes:)
+        when D80 then Storage::D80Image.new(path, read_only:, bytes:)
+        when D82 then Storage::D82Image.new(path, read_only:, bytes:)
         else Storage::D81Image.new(path, read_only:, bytes:)
         end
       end

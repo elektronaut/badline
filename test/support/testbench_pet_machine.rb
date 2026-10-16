@@ -34,7 +34,9 @@ module Testbench
   end
 
   # Runs one test on a machine from Testbench.pet_machine: loads the
-  # program, then runs until the test writes $8BFF or the budget runs out.
+  # program, or mounts a .d82 as device 8 and loads its first program as
+  # Media does, then runs until the test writes $8BFF or the budget runs
+  # out.
   class PETExecution
     attr_reader :exit_code
 
@@ -45,7 +47,13 @@ module Testbench
     end
 
     def run(directory, prg, budget)
-      basic_load(File.binread(File.join(directory, prg)).bytes)
+      path = File.join(directory, prg)
+      if prg.end_with?(".d82")
+        @machine.mount(Badline::Storage::D82Image.new(path, read_only: true))
+        @machine.type_text(Badline::Media::PETMedia::AUTOSTART)
+      else
+        basic_load(File.binread(path).bytes)
+      end
       @machine.run_until(budget) { @exit_code }
       @exit_code
     end

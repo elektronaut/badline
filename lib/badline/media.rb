@@ -11,6 +11,7 @@ require "badline/media/vic20_basic"
 require "badline/media/vic20_cartridge"
 require "badline/media/vic20_media"
 require "badline/media/plus4_media"
+require "badline/media/pet_media"
 require "badline/media/tune"
 require "badline/media/program"
 
@@ -25,7 +26,9 @@ module Badline
       ".d64" => Storage::D64Image,
       ".d71" => Storage::D71Image,
       ".d81" => Storage::D81Image,
-      ".t64" => Storage::T64
+      ".t64" => Storage::T64,
+      ".d80" => Storage::D80Image,
+      ".d82" => Storage::D82Image
     }.freeze
 
     class << self
@@ -48,8 +51,10 @@ module Badline
       # disk autostart of its own, and takes no .sid tunes, and the 264
       # series loads programs at the start of its BASIC (Program), takes
       # .crt cartridges and raw .bin ROM images in its two cartridges'
-      # slots (Plus4Media), and no .sid tunes either. The
-      # C128 in C64 mode takes a C64's.
+      # slots (Plus4Media), and no .sid tunes either. The PET mounts .d80
+      # and .d82 disks too, which no other machine takes, and has no
+      # cartridges, tunes or true drives (PETMedia). The C128 in C64 mode
+      # takes a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
         refuse_unsupported(computer, path)
@@ -99,7 +104,7 @@ module Badline
         return :cartridge if computer.family == :plus4 && Plus4Media.rom_image?(path)
 
         kind = Extensions.kind(path)
-        %i[disk archive].include?(kind) ? :storage : kind
+        %i[disk archive ieee_disk].include?(kind) ? :storage : kind
       end
 
       # What device 8 serves through the traps for a host directory, a disk
@@ -121,15 +126,20 @@ module Badline
       private
 
       # The VIC-20 and the 264 series have no SID to play a .sid tune on,
-      # and no machine yet has the IEEE-488 drive a .d80 or .d82 goes in.
+      # and only the PET has the IEEE-488 drive a .d80 or .d82 goes in.
       def refuse_unsupported(computer, path)
-        raise ArgumentError, "#{path} needs a PET's IEEE-488 drive" if Extensions.kind(path) == :ieee_disk
-        return unless Vic20Media::UNSUPPORTED.include?(File.extname(path).downcase)
-
-        case computer.family
-        when :vic20 then raise ArgumentError, "#{path} doesn't go in a VIC-20"
-        when :plus4 then raise ArgumentError, "#{path} doesn't go in a Plus/4"
+        family = computer.family
+        if Extensions.kind(path) == :ieee_disk && family != :pet
+          raise ArgumentError, "#{path} needs a PET's IEEE-488 drive"
         end
+
+        refused, name = case family
+                        when :vic20 then [Vic20Media::UNSUPPORTED, "a VIC-20"]
+                        when :plus4 then [Vic20Media::UNSUPPORTED, "a Plus/4"]
+                        when :pet then [PETMedia::UNSUPPORTED, "a PET"]
+                        else [[], ""]
+                        end
+        raise ArgumentError, "#{path} doesn't go in #{name}" if refused.include?(File.extname(path).downcase)
       end
 
       def attach_kind(computer, path, autostart:, subtune:, **options)
@@ -145,7 +155,7 @@ module Badline
         end
       end
 
-      def disk?(path) = File.directory?(path) || Extensions.kind(path) == :disk
+      def disk?(path) = File.directory?(path) || %i[disk ieee_disk].include?(Extensions.kind(path))
 
       def attach_true_drive(computer, path, disk, autostart:)
         message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
@@ -156,7 +166,11 @@ module Badline
       def mount(computer, path, disk, autostart:)
         storage = open_storage(path, disk)
         computer.mount(storage)
-        computer.type_text(disk_autostart(computer) { storage.read_file("*") }) if autostart
+        if autostart && computer.family == :pet
+          PETMedia.disk_autostart(computer, storage)
+        elsif autostart
+          computer.type_text(disk_autostart(computer) { storage.read_file("*") })
+        end
         "Mounted #{path} as device 8"
       end
 

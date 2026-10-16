@@ -548,7 +548,7 @@ Written by the C64.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `storage.kind` | text: directory d64 d71 d81 t64 | "directory" |
+| `storage.kind` | text: directory d64 d71 d81 t64 d80 d82 | "directory" |
 | `storage.path` | text | "" |
 | `storage.bytes` | bytes | [] |
 | `storage.read_only` | bool | false |

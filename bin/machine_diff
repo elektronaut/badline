@@ -14,7 +14,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] --family vic20 [--ram RAM]
 #   ruby --yjit bin/machine_diff [scenario|media] --family c128 [--mode c64|c128]
 #   ruby --yjit bin/machine_diff [scenario|media] --family plus4 [--model c16|c116] [--ram K]
-#   ruby --yjit bin/machine_diff [boot|type|demo] --family pet [--model MODEL] [--ram K]
+#   ruby --yjit bin/machine_diff [scenario|media] --family pet [--model MODEL] [--ram K]
 #
 # Scenarios:
 #   boot   power on and sit at the READY prompt
@@ -57,9 +57,9 @@
 #   pet    an 8032, or the PET --model names (Badline::PET::Model::ALL), with
 #          the RAM in K --ram names (4, 8, 16 or 32), the model's own
 #          otherwise. The demo runs VIA timer 1 and the VIA's shift
-#          register free and loops, writing to the screen RAM. It goes in
-#          at the start of BASIC once the machine has booted, since Media
-#          doesn't take a PET program yet, and there is no disk scenario.
+#          register free and loops, writing to the screen RAM. The disk
+#          scenario loads it with LOAD"*",8 through the traps on the
+#          IEEE-488 primitives, which on the 2001's BASIC 1 finds no drive.
 #          Checkpoints digest the CPU, RAM, the screen RAM, both PIAs, the
 #          VIA, the CRTC and the 8096's board (Badline::Support::PETCheckpoint)
 #
@@ -318,7 +318,6 @@ require "badline"
 end
 problem = MachineFamilies.invalid(options)
 abort "machine_diff: #{problem}" if problem
-abort "machine_diff: the PET has no disk scenario" if options[:family] == "pet" && scenario == "disk"
 
 MachineDiff.alias_old_names
 MachineDiff.backport_readers

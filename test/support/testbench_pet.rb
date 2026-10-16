@@ -12,6 +12,11 @@ module Testbench
   PET_MODEL = "8096"
   PET_DISCRETE_MODELS = %w[2001 3032].freeze
 
+  # A row the testlist doesn't have: the pass program from the selftest's
+  # .d82, which the 8096 loads from device 8 through the traps on its
+  # IEEE-488 primitives.
+  PET_DISK_ROW = "./selftest/,pet-pass.d82,exitcode,10000000"
+
   # The option that names a row's model, which only --pet-discrete adds.
   PET_MODEL_OPTION = "pet-model:"
 
@@ -78,16 +83,18 @@ module Testbench
     end
   end
 
-  # The PET testlist's exitcode and screenshot rows on the 8096, or its
-  # exitcode rows with +discrete+ on each of PET_DISCRETE_MODELS, as the
-  # references show an 8096's screen. Interactive rows are left out as on
-  # the C64.
+  # The PET testlist's exitcode and screenshot rows on the 8096, with
+  # PET_DISK_ROW, or its exitcode rows with +discrete+ on each of
+  # PET_DISCRETE_MODELS, as the references show an 8096's screen.
+  # Interactive rows are left out as on the C64.
   module PETTestlist
     module_function
 
     def tests(filters, discrete: false, scope: nil, exclude: nil)
       models = discrete ? PET_DISCRETE_MODELS : [nil]
-      rows = File.readlines(PET_TESTLIST).flat_map { |line| models.filter_map { |model| parse(line, model) } }
+      lines = File.readlines(PET_TESTLIST)
+      lines << PET_DISK_ROW unless discrete
+      rows = lines.flat_map { |line| models.filter_map { |model| parse(line, model) } }
       Testlist.numbered(rows).select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end
 
