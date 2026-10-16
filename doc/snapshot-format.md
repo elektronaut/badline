@@ -533,6 +533,7 @@ Written by the C64, VIC-20, Plus/4.
 | `active` | bool | C64: true |
 | `ram` | bytes | C64: 8192 × 0 |
 | `ram<N>.data` | bytes | C64: 8192 × 0 |
+| `name` | text | VIC-20: "" |
 | `roms` | int | VIC-20: 0 |
 | `rom0.bytes` | bytes | VIC-20: [] |
 | `rom0.start` | word | VIC-20: 0 |

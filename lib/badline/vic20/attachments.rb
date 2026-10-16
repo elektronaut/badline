@@ -23,11 +23,16 @@ module Badline
       # Puts a cartridge's ROM chips, each a CRTFile::Chip with its address
       # and bytes, into their blocks, and switches the machine off and on,
       # as a cartridge goes in with the power off. The KERNAL then starts
-      # the cartridge in BLK5 that signs itself with A0CBM.
-      def attach_cartridge(chips)
+      # the cartridge in BLK5 that signs itself with A0CBM. +name+ is the
+      # name it goes by (#cartridge_name).
+      def attach_cartridge(chips, name = "")
         chips.each { |chip| @bus.map_rom(chip.address, chip.data) }
+        @bus.cartridge_name = name
         power_cycle!
       end
+
+      # The name of the cartridge in the expansion blocks, or an empty one.
+      def cartridge_name = @bus.cartridge_name
 
       private
 

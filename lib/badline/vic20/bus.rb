@@ -160,6 +160,10 @@ module Badline
       # The last byte on the V-bus.
       attr_reader :video_data
 
+      # The name of the cartridge whose ROM chips are in the expansion
+      # blocks, or an empty one.
+      attr_accessor :cartridge_name
+
       # +vic+, +via1+ and +via2+ are the chips in I/O 0, each answering
       # peek and poke with the CPU's address. +blocks+ names the expansion
       # blocks that hold RAM (BLOCKS), and +kernal+ the KERNAL ROM's file.
@@ -177,6 +181,7 @@ module Badline
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @open_bus)
         @roms = []
+        @cartridge_name = ""
         @debug_register = nil
         @via_write_handler = nil
         self.blocks = blocks

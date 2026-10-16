@@ -61,11 +61,11 @@ module Badline
 
         # Loads the program, `bytes` from the file at `path`, as Vic20Basic
         # has it once the KERNAL has booted, or attaches the cartridge it's
-        # a part of (Vic20Cartridge), and says which.
+        # a part of (Vic20Cartridge), named after the file, and says which.
         def attach_program(machine, path, bytes, autostart:)
           chips = Vic20Cartridge.chips(path, bytes)
           if chips
-            machine.attach_cartridge(chips)
+            machine.attach_cartridge(chips, File.basename(path, File.extname(path)))
             return "Attached cartridge #{path}"
           end
 

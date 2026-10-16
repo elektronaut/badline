@@ -52,6 +52,18 @@ describe Badline::Vic20 do
       expect(machine.snapshot.load.bus.peek(0xa000)).to eq(0xaa)
     end
 
+    it "carries the cartridge's name over" do
+      machine = saved(:unexpanded).tap { |with_rom| with_rom.bus.map_rom(0xa000, Array.new(0x2000, 0xaa)) }
+      machine.bus.cartridge_name = "GAME"
+      expect(machine.snapshot.load.cartridge_name).to eq("GAME")
+    end
+
+    it "loads a cartridge saved without a name as unnamed" do
+      bus = saved(:unexpanded).bus.tap { |named| named.cartridge_name = "GAME" }
+      bus.load_rom_fields(Badline::Snapshot::Keyed::Reader.new("BL-CART"))
+      expect(bus.cartridge_name).to eq("")
+    end
+
     it "carries the disk device 8 serves over" do
       machine = saved(:unexpanded)
       Badline::Media.attach(machine, blank_d64(File.join(Dir.mktmpdir, "blank.d64")), autostart: false)

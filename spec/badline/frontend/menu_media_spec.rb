@@ -297,6 +297,13 @@ describe Badline::Frontend::MenuMedia do
       expect(media.cartridge_name).to eq("game")
     end
 
+    it "names the cartridge of a machine restored from a snapshot" do
+      path = File.join(dir, "game.a0").tap { |file| File.binwrite(file, "\x00\xa0".b + ("\x42" * 0x1000)) }
+      media.attach_cartridge(path)
+      media.computer = computer.snapshot.load
+      expect(media.cartridge_name).to eq("game")
+    end
+
     it "names no cartridge on another machine than the one it named" do
       path = File.join(dir, "game.a0").tap { |file| File.binwrite(file, "\x00\xa0".b + ("\x42" * 0x1000)) }
       media = described_class.new(path, false, {}).tap { |menu_media| menu_media.computer = computer }

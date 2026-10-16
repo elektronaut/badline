@@ -118,7 +118,7 @@ describe Badline::Media::Vic20Media do
 
       it "puts it in as a cartridge's ROM, padded to a page" do
         expect(machine).to have_received(:attach_cartridge)
-          .with([have_attributes(address: 0xa000, data: [0x01, 0x02] + ([0xff] * 254))])
+          .with([have_attributes(address: 0xa000, data: [0x01, 0x02] + ([0xff] * 254))], "game")
       end
     end
 
@@ -130,7 +130,7 @@ describe Badline::Media::Vic20Media do
 
       it "puts in both parts" do
         expect(machine).to have_received(:attach_cartridge)
-          .with([have_attributes(address: 0xa000), have_attributes(address: 0x6000)])
+          .with([have_attributes(address: 0xa000), have_attributes(address: 0x6000)], "game-6000")
       end
     end
 
@@ -142,7 +142,7 @@ describe Badline::Media::Vic20Media do
 
       it "puts in both parts" do
         expect(machine).to have_received(:attach_cartridge)
-          .with([have_attributes(address: 0xa000), have_attributes(address: 0x6000)])
+          .with([have_attributes(address: 0xa000), have_attributes(address: 0x6000)], "GAME")
       end
     end
 
@@ -164,8 +164,8 @@ describe Badline::Media::Vic20Media do
 
       before { attach(path) }
 
-      it "puts its chips in" do
-        expect(machine).to have_received(:attach_cartridge).with([have_attributes(address: 0xa000)])
+      it "puts its chips in, named after the file when it names none" do
+        expect(machine).to have_received(:attach_cartridge).with([have_attributes(address: 0xa000)], "game")
       end
     end
 
