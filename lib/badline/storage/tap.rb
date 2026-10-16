@@ -3,7 +3,7 @@
 module Badline
   module Storage
     # Raw datasette pulse stream. The header holds the signature, the
-    # version at $0c, the platform at $0d (0 C64, 1 VIC-20, 2 C16) and the
+    # version at $0c, the platform at $0d (0 C64, 1 VIC-20, 2 C16, 3 PET) and the
     # data size at $10; the data runs from $14, every byte the time to the
     # next falling edge on the tape read line, in units of 8 cycles. A
     # version 2 tape, the C16's and the Plus/4's, times half waves instead,
@@ -16,16 +16,29 @@ module Badline
       HEADER_SIZE = 0x14
       OVERFLOW = 0x100 * 8
 
+      # The platform byte of a PET tape, a version 1 tape timed in PET
+      # cycles.
+      PET_PLATFORM = 3
+
       # The file it was read from, expanded, and the file's bytes.
       attr_reader :version, :platform, :path, :bytes
 
       # A blank tape for `platform` at `path`, written to the host file: a
-      # version 1 tape for the C64 (0) or the VIC-20 (1), and a version 2
-      # C16 tape for the 264 series (2).
+      # version 1 tape for the C64 (0), the VIC-20 (1) or the PET (3), and
+      # a version 2 C16 tape for the 264 series (2).
       def self.create(path, platform:)
         header = platform == 2 ? C16_SIGNATURE + [2] : SIGNATURE + [1]
         File.binwrite(path, (header + [platform, 0, 0, 0, 0, 0, 0]).pack("C*"))
         new(path)
+      end
+
+      # The platform byte of the tape at `path`, or nil when it isn't a
+      # TAP file, read from its header alone.
+      def self.platform_of(path)
+        header = File.binread(path, HEADER_SIZE)&.bytes || []
+        return unless [SIGNATURE, C16_SIGNATURE].include?(header[0, SIGNATURE.length]) && header.length > 0x0d
+
+        header[0x0d]
       end
 
       # `bytes` stands in for the host file's contents, as a snapshot

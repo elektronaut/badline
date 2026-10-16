@@ -170,9 +170,27 @@ describe Badline::Storage::TAP do
       expect([blank.version, blank.platform, File.size(blank.path), blank.end?]).to eq([1, 1, 20, true])
     end
 
+    it "writes a version 1 tape for the PET" do
+      pet = described_class.create(File.join(dir, "pet.tap"), platform: described_class::PET_PLATFORM)
+      expect([File.binread(pet.path, 12), pet.version, pet.platform]).to eq(["C64-TAPE-RAW", 1, 3])
+    end
+
     it "writes a version 2 C16 tape for the 264 series" do
       c16 = described_class.create(File.join(dir, "c16.tap"), platform: 2)
       expect([File.binread(c16.path, 12), c16.version, c16.platform]).to eq(["C16-TAPE-RAW", 2, 2])
+    end
+  end
+
+  describe ".platform_of" do
+    let(:platform) { described_class::PET_PLATFORM }
+
+    it "reads a PET tape's platform from its header" do
+      expect(described_class.platform_of(path)).to eq(3)
+    end
+
+    it "finds no platform in a file that isn't a tape" do
+      File.binwrite(path, "\x01\x04")
+      expect(described_class.platform_of(path)).to be_nil
     end
   end
 
