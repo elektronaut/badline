@@ -55,6 +55,31 @@ describe Badline::Drives::Model1551::Cable do
     expect(tia.peek(0x02) & 0x80).to eq(0)
   end
 
+  it "moves the drive to device 9 while DEV is low" do
+    tia.poke(0x05, 0x1f)
+    tia.poke(0x02, 0x00)
+    expect(drive.device).to eq(9)
+  end
+
+  it "moves the drive back to device 8 once DEV goes high" do
+    tia.poke(0x05, 0x1f)
+    tia.poke(0x02, 0x00)
+    tia.poke(0x02, 0x04)
+    expect(drive.device).to eq(8)
+  end
+
+  it "tells the drive's host the device number DEV moved it from" do
+    moved_from = []
+    drive.on_renumber { |old| moved_from << old }
+    tia.poke(0x05, 0x1f)
+    tia.poke(0x02, 0x00)
+    expect(moved_from).to eq([8])
+  end
+
+  it "leaves a device 9 drive where it is while DEV floats high" do
+    expect(Badline::Drives::Model1551.new(device: 9).device).to eq(9)
+  end
+
   it "reads 0 on the computer's pins the cable doesn't carry" do
     expect([host.peek(0x01) & 0xfc, host.peek(0x02) & 0x3f]).to eq([0, 0])
   end
