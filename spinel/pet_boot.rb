@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Boots a PET headless to READY.
+# Boots a PET headless and types `print 6*7` once it is up.
 # Prints digests of the CPU, the RAM, the screen, the PIAs, the VIA and the
 # CRTC every quarter million cycles, then the screen, counts and
 # registers, and the speed from timed_from on. Builds with Spinel as well
@@ -51,6 +51,7 @@ model = ARGV[2] || "8032"
 refresh_hz = ARGV[3] ? ARGV[3].to_i : 50
 
 machine = Badline::PET.new(model:, refresh_hz:)
+machine.on_init { machine.type_text("print 6*7\r") }
 elapsed = BootSupport.run(machine, cycles, timed_from, CHECKPOINT) do |i|
   puts checkpoint(machine) if (i % CHECKPOINT).zero?
 end

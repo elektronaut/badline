@@ -3,7 +3,9 @@
 require_relative "taken_once"
 
 # PETs booted once for every spec that reads them, run to the cycle their
-# KERNAL has booted by.
+# KERNAL has booted by. Each of the other values runs a booted machine on
+# from wherever an earlier one left it, idle at READY, and keeps what it
+# found for every spec that asks again.
 module PETBoot
   # How far the jiffy clock moved and how many times the vertical drive
   # line fell over some cycles.
@@ -25,6 +27,30 @@ module PETBoot
       jiffies = jiffy_clock(pet)
       retraces = count_retraces(pet, cycles)
       Rates.new(jiffies: jiffy_clock(pet) - jiffies, retraces:)
+    end
+  end
+
+  # The booted machine's screen after it types +text+ and runs on for
+  # +cycles+.
+  def typed_once(model, text, cycles, refresh_hz: 50, ram_kb: nil)
+    TakenOnce.fetch([:pet_typed, model, refresh_hz, ram_kb, text, cycles]) do
+      pet, = booted_once(model, refresh_hz:, ram_kb:)
+      pet.type_text(text)
+      pet.run_cycles(cycles)
+      screen_of(pet, 10)
+    end
+  end
+
+  # The booted machine's screen after it holds +key+ down on its key
+  # matrix for +cycles+, and lets go.
+  def pressed_once(model, key, cycles, refresh_hz: 50, ram_kb: nil)
+    TakenOnce.fetch([:pet_pressed, model, refresh_hz, ram_kb, key, cycles]) do
+      pet, = booted_once(model, refresh_hz:, ram_kb:)
+      pet.keyboard.press(key)
+      pet.run_cycles(cycles)
+      pet.keyboard.release(key)
+      pet.run_cycles(cycles)
+      screen_of(pet, 10)
     end
   end
 

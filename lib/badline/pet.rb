@@ -4,6 +4,7 @@ require "badline/pet/model"
 require "badline/pet/cpu"
 require "badline/pet/via"
 require "badline/pet/via_ports"
+require "badline/pet/keyboard_ports"
 require "badline/pet/discrete_video"
 require "badline/pet/bus"
 
@@ -20,12 +21,16 @@ module Badline
   # (DiscreteVideo), and the CRTC boards take it from the CRTC's vertical
   # sync, inverted.
   #
-  # It runs headless, to READY, with no picture, keyboard, sound or media
-  # yet.
+  # The key matrix hangs off PIA 1 (KeyboardPorts), the graphics one or
+  # the business one as the model has, and type_text types through the
+  # editor's keyboard buffer.
+  #
+  # It runs headless, with no picture, sound or media yet.
   class PET
+    include Machine::KeyboardBuffer
     include Machine::Clocking
 
-    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :cycles, :init_threshold
+    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :cycles, :init_threshold
 
     # The editor's frame rate: 50 or 60 on a CRTC board, 60 on the others.
     attr_reader :refresh_hz
@@ -52,7 +57,11 @@ module Badline
       @crtc = Chips::CRTC.new
       @discrete = DiscreteVideo.new
       @vertical_drive = true
-      @pia1 = Chips::PIA.new
+      matrix = @model.keyboard == :business ? KeyboardPorts::BUSINESS_MATRIX : KeyboardPorts::GRAPHICS_MATRIX
+      @keyboard = Input::Keyboard.new(matrix:)
+      keyboard_ports = KeyboardPorts.new(@keyboard)
+      @pia1 = Chips::PIA.new(peripheral: keyboard_ports)
+      keyboard_ports.connect(@pia1)
       @pia2 = Chips::PIA.new
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
       @bus = Bus.new(model: @model, ram_kb:, editor: @model.editor(@refresh_hz), pia1: @pia1, pia2: @pia2,
@@ -60,6 +69,7 @@ module Badline
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
+      @pending_keys = nil
       @init_threshold = boot_cycles(ram_kb)
     end
 
@@ -70,6 +80,7 @@ module Badline
     # and the VIA clock, ahead of the CPU.
     def cycle!
       handle_init if @cycles == @init_threshold
+      feed_keyboard if @pending_keys
 
       if @crtc_video
         @crtc.cycle!
@@ -103,6 +114,12 @@ module Badline
     def power_cycle!
       @bus.power_on!
       reset!
+    end
+
+    # Where the editor keeps its keyboard buffer: in page 2 under BASIC 1,
+    # in the zero page and page 2 under BASIC 2 and 4.
+    def keyboard_buffer
+      @model.basic1? ? Machine::KeyboardBuffer::PET_BASIC1_LAYOUT : Machine::KeyboardBuffer::PET_LAYOUT
     end
 
     private

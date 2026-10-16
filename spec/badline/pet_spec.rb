@@ -61,6 +61,21 @@ describe Badline::PET do
       end
     end
 
+    %w[2001 3032 4032 8032 8096].each do |model|
+      it "prints 42 for PRINT 6*7 on the #{model}" do
+        expect(typed_once(model, "print 6*7\r", 300_000)[5, 4]).to eq(["PRINT 6*7", " 42", "", "READY."])
+      end
+    end
+
+    # The 4032 has the graphics keyboard and the 8032 the business one.
+    # Each key held goes on the line after READY, after the keys held
+    # before it.
+    [["4032", :a, "A"], ["8032", :a, "A"], ["4032", :*, "*"], ["8032", :kp1, "1"]].each do |model, key, typed|
+      it "types #{key} held down on the #{model}'s key matrix" do
+        expect(pressed_once(model, key, 50_000, refresh_hz: 60, ram_kb: 4)[5]).to include(typed)
+      end
+    end
+
     # Over the 300,000 cycles after the boot, which are 18 jiffies at 60 a
     # second. The 60 Hz editors' machines boot with 4K, which is quicker.
     [["2001", 50, nil, 60], ["4032", 50, nil, 50], ["8032", 50, nil, 50], ["4032", 60, 4, 60],
