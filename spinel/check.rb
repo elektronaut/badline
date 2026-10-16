@@ -12,7 +12,7 @@ require_relative "../test/support/lorenz_run"
 module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
-                 plus4_lorenz plus4_snapshot sid].freeze
+                 plus4_lorenz plus4_snapshot pet_boot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -58,6 +58,11 @@ module SpinelCheck
   # and the noise first, recorded at 44.1 kHz.
   def check_plus4_boots
     [[], %w[1000000 500000 c16], %w[1000000 500000 plus4 44100]].each { |args| compare("plus4_boot", args) }
+  end
+
+  # The 8032 and the 2001 booting to READY.
+  def check_pet_boots
+    [[], %w[1000000 500000 2001]].each { |args| compare("pet_boot", args) }
   end
 
   # A Plus/4's snapshot taken once the line it types plays the sound, and

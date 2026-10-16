@@ -35,7 +35,11 @@ CRuby.
   it again the same, digests of both machines every 250,000 cycles, and
   whether both save the same snapshot at the end. Arguments pick the
   cycle it saves at, the cycles to run and the model.
-- `boot_support.rb` holds what the four boots share: the loop that runs
+- `pet_boot.rb` boots a PET headless to READY. It prints digests of the
+  CPU, the RAM, the screen, both PIAs, the VIA and the CRTC every 250,000
+  cycles, then the screen, the counts and the registers. Arguments pick
+  the model and the CRTC editor's frame rate.
+- `boot_support.rb` holds what the five boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
@@ -82,7 +86,8 @@ is in the core, but the C128 isn't, so the C64's harnesses never see
 it: `c128_boot.rb` and `c128_testbench.rb` require `badline/c128` on top
 of the core, as
 `lib/badline.rb` does, and `plus4_boot.rb` requires `badline/plus4` the
-same way. The checkpoints and digests the boots print aren't in
+same way. `pet_boot.rb` requires `badline/pet`, which `lib/badline.rb`
+doesn't load yet. The checkpoints and digests the boots print aren't in
 the core either, so they require `badline/support`. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.
@@ -96,7 +101,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
