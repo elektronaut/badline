@@ -30,6 +30,16 @@ module Badline
         # The BASIC 1 KERNAL keeps its keyboard buffer and jiffy clock in
         # page 2; BASIC 2 and 4 keep them where each other does.
         def basic1? = basic == "pet/basic1.rom"
+
+        # Where the KERNAL keeps its IEEE-488 primitives
+        # (KernalTrap::IEEELayout).
+        def trap_layout
+          case kernal
+          when "pet/kernal1.rom" then KernalTrap::PET_BASIC1_LAYOUT
+          when "pet/kernal2.rom" then KernalTrap::PET_BASIC2_LAYOUT
+          else KernalTrap::PET_BASIC4_LAYOUT
+          end
+        end
       end
 
       PET2001 = Profile.new(name: "2001", ram_kb: 8, basic: "pet/basic1.rom", editor_50hz: "pet/editor1.rom",

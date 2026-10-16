@@ -10,11 +10,60 @@ module Badline
     # ORed with FA. UNTALK and UNLISTEN send $5F and $3F through the same
     # code, and SECOND, TKSA, UNTALK and UNLISTEN end by letting go of ATN
     # (VIA PB2) themselves. Each handshake times out on VIA timer 1, which
-    # the ROM starts with a write of $FF to $E845. Nothing banks the KERNAL
-    # out, and LOAD and SAVE run in the ROM, through the primitives.
-    IEEELayout = Data.define(:talk, :listen, :second, :tksa, :ciout, :untalk, :unlisten, :acptr, :zero_page) do
-      # The KERNAL is always mapped.
-      def kernal_mapped?(_bus) = true
+    # the ROM starts with a write of $FF to $E845. LOAD and SAVE run in the
+    # ROM, through the primitives. +overwrites_device+ says UNTALK and
+    # UNLISTEN store their command in FA before they send it.
+    #
+    # The ROM drives the bus's control lines from three chips: ATN from VIA
+    # PB2 and NRFD from PB1 at $E840, NDAC from PIA 2's CA2 and DAV from its
+    # CB2, through the control registers at $E821 and $E823, which the ROM
+    # writes $34 to pull a line low and $3C to let it go, and the data lines
+    # from PIA 2's port B at $E822. The steps below leave the lines as each
+    # primitive leaves them.
+    IEEELayout = Data.define(:talk, :listen, :second, :tksa, :ciout, :untalk, :unlisten, :acptr, :overwrites_device,
+                             :zero_page) do
+      # The KERNAL is mapped unless an 8096's board lies over it.
+      def kernal_mapped?(bus) = bus.kernal_mapped?
+
+      # Starts VIA timer 1, which times out the handshake of each byte.
+      def time_serial_byte(bus, _timer_high)
+        bus.poke(0xe845, 0xff)
+      end
+
+      # TALK and LISTEN: NRFD and NDAC let go, then ATN pulled low.
+      def attention(bus)
+        bus.poke(0xe840, bus.peek(0xe840) | 0x02)
+        bus.poke(0xe821, 0x3c)
+        bus.poke(0xe840, bus.peek(0xe840) & 0xfb)
+      end
+
+      # The end of a byte sent: DAV and the data lines let go.
+      def byte_sent(bus)
+        bus.poke(0xe823, 0x3c)
+        bus.poke(0xe822, 0xff)
+      end
+
+      # The end of SECOND, TKSA, UNTALK and UNLISTEN: ATN let go. Returns
+      # the value written, which the ROM leaves in A.
+      def release_attention(bus)
+        value = bus.peek(0xe840) | 0x04
+        bus.poke(0xe840, value)
+        value
+      end
+
+      # TKSA and ACPTR end listening: NRFD and NDAC pulled low.
+      def listen_to_talker(bus)
+        bus.poke(0xe840, bus.peek(0xe840) & 0xfd)
+        bus.poke(0xe821, 0x34)
+      end
+
+      # The end of UNTALK and UNLISTEN, which address the bus as TALK and
+      # LISTEN do, send their command and let ATN go.
+      def release_serial_lines(bus)
+        attention(bus)
+        byte_sent(bus)
+        release_attention(bus)
+      end
     end
 
     # The file variables of the BASIC 2 and BASIC 4 KERNALs, which keep
@@ -41,21 +90,24 @@ module Badline
     # LISTEN without a secondary address.
     PET_BASIC1_LAYOUT = IEEELayout.new(
       talk: 0xf0b6, listen: 0xf0ba, second: 0xf12c, tksa: 0xf15b,
-      ciout: 0xf167, untalk: 0xf17a, unlisten: 0xf17e, acptr: 0xf187, zero_page: PET_BASIC1_ZERO_PAGE
+      ciout: 0xf167, untalk: 0xf17a, unlisten: 0xf17e, acptr: 0xf187, overwrites_device: true,
+      zero_page: PET_BASIC1_ZERO_PAGE
     )
 
     # BASIC 2, 901465-03. Its LOAD sends the secondary address after TALK
     # with SECOND, not TKSA.
     PET_BASIC2_LAYOUT = IEEELayout.new(
       talk: 0xf0b6, listen: 0xf0ba, second: 0xf128, tksa: 0xf164,
-      ciout: 0xf16f, untalk: 0xf17f, unlisten: 0xf183, acptr: 0xf18c, zero_page: PET_ZERO_PAGE
+      ciout: 0xf16f, untalk: 0xf17f, unlisten: 0xf183, acptr: 0xf18c, overwrites_device: false,
+      zero_page: PET_ZERO_PAGE
     )
 
     # BASIC 4, 901465-22. LISTEN at $F0D5 is the operand of the BIT
     # instruction that skips it on the way from TALK.
     PET_BASIC4_LAYOUT = IEEELayout.new(
       talk: 0xf0d2, listen: 0xf0d5, second: 0xf143, tksa: 0xf193,
-      ciout: 0xf19e, untalk: 0xf1ae, unlisten: 0xf1b9, acptr: 0xf1c0, zero_page: PET_ZERO_PAGE
+      ciout: 0xf19e, untalk: 0xf1ae, unlisten: 0xf1b9, acptr: 0xf1c0, overwrites_device: false,
+      zero_page: PET_ZERO_PAGE
     )
   end
 end

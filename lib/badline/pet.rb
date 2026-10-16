@@ -5,6 +5,8 @@ require "badline/pet/cpu"
 require "badline/pet/via"
 require "badline/pet/via_ports"
 require "badline/pet/keyboard_ports"
+require "badline/pet/ieee_ports"
+require "badline/pet/ieee_traps"
 require "badline/pet/characters"
 require "badline/pet/canvas"
 require "badline/pet/discrete_video"
@@ -37,8 +39,9 @@ module Badline
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include IEEETraps
 
-    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :cycles, :init_threshold
+    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :ieee, :cycles, :init_threshold
 
     # The editor's frame rate: 50 or 60 on a CRTC board, 60 on the others.
     attr_reader :refresh_hz
@@ -70,13 +73,15 @@ module Badline
       keyboard_ports = KeyboardPorts.new(@keyboard)
       registers = Array.new(Chips::CRTC::MASKS.length, 0)
       @pia1 = Chips::PIA.new(peripheral: keyboard_ports)
-      keyboard_ports.connect(@pia1)
-      @pia2 = Chips::PIA.new
+      @ieee = IEEEPorts.new(Drives::IEEEBus.new)
+      keyboard_ports.connect(@pia1, @ieee)
+      @pia2 = Chips::PIA.new(peripheral: @ieee)
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
       @sound = Sound.new(@via)
       characters = Characters.new(@model.characters)
       @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80)
       @crtc = Chips::CRTC.new(@crtc_output, registers:)
+      @ieee.connect(@pia1, @pia2, @via)
       @bus = Bus.new(model: @model, ram_kb:, editor: @model.editor(@refresh_hz), pia1: @pia1, pia2: @pia2,
                      via: @via, crtc: @crtc)
       @crtc_output.cells = @bus.screen.cells
@@ -86,6 +91,9 @@ module Badline
       @cycles = 0
       @init_handlers = []
       @pending_keys = nil
+      @dos = nil
+      @ieee_trap = nil
+      @capture_output = nil
       @init_threshold = boot_cycles(ram_kb)
     end
 

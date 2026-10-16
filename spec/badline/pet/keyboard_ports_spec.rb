@@ -6,7 +6,8 @@ describe Badline::PET::KeyboardPorts do
   subject(:ports) { described_class.new(keyboard) }
 
   let(:keyboard) { Badline::Input::Keyboard.new(matrix: described_class::GRAPHICS_MATRIX) }
-  let(:pia) { Badline::Chips::PIA.new(peripheral: ports).tap { |pia| ports.connect(pia) } }
+  let(:ieee) { instance_double(Badline::PET::IEEEPorts, eoi_input: 0xff) }
+  let(:pia) { Badline::Chips::PIA.new(peripheral: ports).tap { |pia| ports.connect(pia, ieee) } }
 
   # What $E812 reads with +row+ written to $E810, as the editor sets it up.
   def scan(row)
