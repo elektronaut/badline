@@ -22,6 +22,14 @@ describe Badline::PET do
     expect(described_class.new(model: "3032", refresh_hz: 50).refresh_hz).to eq(60)
   end
 
+  it "plays the VIA's CB2 once recorded" do
+    pet = described_class.new
+    pet.sound_source.record(rate: 44_100)
+    pet.via.poke(0xe84c, 0xc0)
+    pet.run_cycles(1_000)
+    expect(pet.sound_source.drain_samples.min).to be < -10_000
+  end
+
   describe "on a discrete board" do
     subject(:pet) { described_class.new(model: "3032") }
 
