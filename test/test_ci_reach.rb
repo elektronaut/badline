@@ -35,20 +35,25 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/c128/keyed_modules.rb])
   end
 
-  def test_rom_files_no_machine_maps_reach_only_the_spinel_check
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/pet/kernal4.rom lib/badline/roms/README])
+  def test_the_rom_readme_reaches_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/README])
   end
 
-  def test_the_pet_reaches_only_the_spinel_check
-    files = %w[lib/badline/pet.rb lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb]
+  def test_the_pet_and_its_roms_reach_the_pet_testbenches
+    files = %w[lib/badline/pet.rb lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
+               lib/badline/roms/pet/kernal4.rom]
 
-    assert_equal %w[spinel:check], CIReach.suites(files)
+    assert_equal %w[spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
+  end
+
+  def test_the_via_reaches_the_pet_testbenches
+    assert_empty %w[testbench-pet testbench-pet-discrete] - CIReach.suites(%w[lib/badline/chips/via.rb])
   end
 
   def test_input_reaches_a_suite_of_every_family
     reached = CIReach.suites(%w[lib/badline/input/keyboard.rb lib/badline/input.rb])
 
-    assert_empty %w[lorenz testbench-vic20 testbench-c128 testbench-plus4 sid] - reached
+    assert_empty %w[lorenz testbench-vic20 testbench-c128 testbench-plus4 testbench-pet sid] - reached
   end
 
   def test_media_reaches_the_suites_that_attach_through_it

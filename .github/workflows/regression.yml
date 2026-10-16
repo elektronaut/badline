@@ -40,6 +40,8 @@ on:
           - testbench-plus4
           - testbench-c16
           - testbench-plus4-ntsc
+          - testbench-pet
+          - testbench-pet-discrete
           - lorenz-plus4
           - lorenz-plus4-1
           - lorenz-plus4-2

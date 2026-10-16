@@ -72,6 +72,8 @@ CRuby.
   `Testbench::Execution`.
 - `plus4_testbench.rb` does the same for `bin/testbench --plus4`'s and
   `--c16`'s rows, with `test/support/testbench_plus4_machine.rb`.
+- `pet_testbench.rb` does the same for `bin/testbench --pet`'s and
+  `--pet-discrete`'s rows, with `test/support/testbench_pet_machine.rb`.
 - `drive_scenarios.rb` runs the true-drive scenarios with the same code
   as `bin/drive_scenarios` (`test/support/drive_scenarios.rb`) and prints a
   baseline row per check. See [The drive scenarios](#the-drive-scenarios)
@@ -100,7 +102,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -327,6 +329,12 @@ lines of the VIC-20's text screen. It runs each test with
 are `KEY TYPE BUDGET CARTRIDGE PROGRAM DIRECTORY MODEL`, where MODEL
 names one of `Badline::C128::Model::ALL`, and its records are the C64's:
 a C128 in C64 mode runs each test with `Testbench::Execution`.
+
+`testbench-pet` and `testbench-pet-discrete` run on `pet_testbench`. Its
+lines are `KEY TYPE BUDGET PROGRAM DIRECTORY MODEL`, where MODEL names
+one of `Badline::PET::Model::ALL`, and its records carry the 25 lines of
+the PET's text screen, 40 or 80 columns. It runs each test with
+`Testbench::PETExecution` (`test/support/testbench_pet_machine.rb`).
 
 `--engine` takes `bin/testbench`'s filters like any other run:
 

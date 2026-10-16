@@ -1,0 +1,2 @@
+selftest/pet-pass.prg	PASS
+selftest/pet-fail.prg	PASS
