@@ -86,8 +86,7 @@ is in the core, but the C128 isn't, so the C64's harnesses never see
 it: `c128_boot.rb` and `c128_testbench.rb` require `badline/c128` on top
 of the core, as
 `lib/badline.rb` does, and `plus4_boot.rb` requires `badline/plus4` the
-same way. `pet_boot.rb` requires `badline/pet`, which `lib/badline.rb`
-doesn't load yet. The checkpoints and digests the boots print aren't in
+same way. The PET is in the core too. The checkpoints and digests the boots print aren't in
 the core either, so they require `badline/support`. Spinel only
 warns about a constant the program uses but never defines, so the build
 tasks fail on that warning.

@@ -14,7 +14,6 @@
 # hz the CRTC editor's frame rate, 50 or 60.
 
 require "badline/core"
-require "badline/pet"
 require "badline/support"
 require_relative "boot_support"
 

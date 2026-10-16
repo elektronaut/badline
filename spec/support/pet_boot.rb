@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/pet"
 require_relative "taken_once"
 
 # PETs booted once for every spec that reads them, run to the cycle their

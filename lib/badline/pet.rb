@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "badline/chips/pia"
-require "badline/chips/crtc"
 require "badline/pet/model"
 require "badline/pet/cpu"
 require "badline/pet/via"

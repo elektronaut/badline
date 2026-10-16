@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "badline/pet"
 
 describe Badline::PET::Bus do
   subject(:bus) { bus_for(model_name) }

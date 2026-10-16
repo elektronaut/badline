@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "badline/pet"
 
 describe Badline::Chips::CRTC do
   subject(:crtc) { described_class.new }
