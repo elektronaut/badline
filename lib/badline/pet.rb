@@ -10,6 +10,7 @@ require "badline/pet/canvas"
 require "badline/pet/discrete_video"
 require "badline/pet/crtc_video"
 require "badline/pet/bus"
+require "badline/pet/sound"
 
 module Badline
   # The Commodore PET and CBM: a 6502 at 1 MHz, two 6520 PIAs at $E810 and
@@ -30,7 +31,9 @@ module Badline
   #
   # The discrete boards paint their picture (DiscreteVideo) on a Canvas.
   # The CRTC boards paint theirs from the CRTC's outputs (CRTCVideo).
-  # It runs headless, with no sound or media yet.
+  # The VIA's CB2 is the sound (Sound).
+  #
+  # It runs headless, with no media yet.
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
@@ -70,6 +73,7 @@ module Badline
       keyboard_ports.connect(@pia1)
       @pia2 = Chips::PIA.new
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
+      @sound = Sound.new(@via)
       characters = Characters.new(@model.characters)
       @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80)
       @crtc = Chips::CRTC.new(@crtc_output, registers:)
@@ -122,11 +126,16 @@ module Badline
       @pia1.cycle!
       @pia2.cycle!
       @via.cycle!
+      @sound.cycle! if @sound.recording?
       @cpu.irq = @pia1.irq? || @pia2.irq? || @via.irq?
       @cpu.cycle!
 
       @cycles += 1
     end
+
+    # What a front end plays: the VIA's CB2 (Sound), which answers #record
+    # and #drain_samples.
+    def sound_source = @sound
 
     # The RES line reaches the CPU, the PIAs, the VIA, the CRTC and the
     # 8096's control register.

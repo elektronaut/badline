@@ -60,9 +60,10 @@ module SpinelCheck
     [[], %w[1000000 500000 c16], %w[1000000 500000 plus4 44100]].each { |args| compare("plus4_boot", args) }
   end
 
-  # The 8032 and the 2001 typing print 6*7.
+  # The 8032 and the 2001 typing print 6*7, and the 8032 ringing the bell
+  # first, recorded at 44.1 kHz.
   def check_pet_boots
-    [[], %w[1000000 500000 2001]].each { |args| compare("pet_boot", args) }
+    [[], %w[1000000 500000 2001], %w[2700000 2200000 8032 50 44100]].each { |args| compare("pet_boot", args) }
   end
 
   # A Plus/4's snapshot taken once the line it types plays the sound, and
