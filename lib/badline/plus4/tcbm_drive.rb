@@ -32,6 +32,7 @@ module Badline
         drive.host_clock_hz = timing.clock_hz
         @drive1551 = drive
         @bus.plug_tia(drive.device, drive.host_tia)
+        drive.on_renumber { |old| drive1551_renumbered(old) }
         @serial_trap&.device = serial_trap_device
         @init_threshold = [@init_threshold, Badline::Drives::Model1551::BOOT_CYCLES].max if @cycles < @init_threshold
       end
@@ -43,6 +44,7 @@ module Badline
         return unless drive
 
         @bus.plug_tia(drive.device, tcbm_tia(drive.device))
+        drive.on_renumber
         @drive1551 = nil
         @serial_trap&.device = serial_trap_device
       end
@@ -91,6 +93,18 @@ module Badline
         detach_drive1551 if @drive1551 && @drive1551.device != device
         attach_drive1551(Badline::Drives::Model1551.new(device:)) unless @drive1551
         @drive1551.load_modules(modules, input, "BL-D#{device}")
+      end
+
+      # The 1551's DEV line moved it from device +old+ to the other: its
+      # interface's TIA moves with it, and the TCBM interface's own takes
+      # its old place.
+      def drive1551_renumbered(old)
+        drive = @drive1551
+        return unless drive
+
+        @bus.plug_tia(old, tcbm_tia(old))
+        @bus.plug_tia(drive.device, drive.host_tia)
+        @serial_trap&.device = serial_trap_device
       end
 
       # The TCBM interface's own TIA for +device+, or nil without one.

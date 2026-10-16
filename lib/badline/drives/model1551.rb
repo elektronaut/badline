@@ -26,7 +26,10 @@ module Badline
     # The drive comes with its interface for the computer's expansion port,
     # a second 6523 (#host_tia), which the cable joins to the drive's
     # (Cable). The computer puts it at $FEE0 for device 8 and at $FEC0 for
-    # device 9.
+    # device 9, as the drive's DEV line (PC2) says: high for device 8 and
+    # low for device 9. The DOS sets DEV from the jumper at reset, and again
+    # when a command renumbers the drive. The device number follows each
+    # change on the line (#device).
     #
     # A 555 timer pulls IRQ low for about 7 µs every 8.3 ms, its R1 120K,
     # R2 100R and C1 0.1 µF, which runs the DOS's job loop. Nothing
@@ -101,8 +104,27 @@ module Badline
         @irq_timer = IRQ_PERIOD
         init_idle(debug)
         @pass_counter = PASS_COUNTER
+        @dev_high = true
+        @on_renumber = nil
         @cable = Cable.new(@host_tia, @tia.chip, self)
         @serial_port = @cable
+      end
+
+      # Calls the block with the old device number each time the DEV line
+      # moves the drive to the other one.
+      def on_renumber(&block)
+        @on_renumber = block
+      end
+
+      # The cable's DEV line, high or not. A change moves the drive to
+      # device 8 while it's high, and to device 9 while it's low.
+      def dev_line(high)
+        return if high == @dev_high
+
+        @dev_high = high
+        old = @device
+        @device = high ? 8 : 9
+        @on_renumber&.call(old) unless @device == old
       end
 
       # Puts in a Disk from the .d64 or .g64 image at +path+, write-protected

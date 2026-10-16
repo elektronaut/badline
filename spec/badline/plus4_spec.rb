@@ -176,6 +176,21 @@ describe Badline::Plus4 do
       expect(nine.host_tia.ports[0]).to eq(0x66)
     end
 
+    it "moves the drive's interface TIA to $FEC0 when its DEV line goes low" do
+      drive.tia.poke(0x4005, 0x1f)
+      drive.tia.poke(0x4002, 0x00)
+      machine.poke(0xfec3, 0xff)
+      machine.poke(0xfec0, 0x66)
+      expect(drive.host_tia.ports[0]).to eq(0x66)
+    end
+
+    it "leaves $FEE0-$FEFF open once the drive moves to device 9" do
+      drive.tia.poke(0x4005, 0x1f)
+      drive.tia.poke(0x4002, 0x00)
+      machine.poke(0x0002, 0x66)
+      expect(machine.peek(0xfef0)).to eq(0x66)
+    end
+
     it "waits for the drive to boot before the on_init handlers" do
       expect(machine.init_threshold).to eq(Badline::Drives::Model1551::BOOT_CYCLES)
     end

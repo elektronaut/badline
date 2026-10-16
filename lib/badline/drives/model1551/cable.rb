@@ -10,7 +10,8 @@ module Badline
       # - the eight data lines join the two port As;
       # - the drive's STATUS0 and STATUS1 (PC0-1) reach the computer's PB0-1;
       # - the drive's ACK (PC3) reaches the computer's PC7;
-      # - the computer's DAV (PC6) reaches the drive's PC7.
+      # - the computer's DAV (PC6) reaches the drive's PC7;
+      # - the drive's DEV (PC2) picks the interface's address (Model1551).
       #
       # The drive pulls every line up, so a line neither side drives low
       # reads 1. The computer's other port B and C pins read 0.
@@ -23,6 +24,7 @@ module Badline
       # wakes a drive asleep in its idle loop (atn_moved?).
       class Cable
         STATUS = 0x03
+        DEV = 0x04
         ACK = 0x08
         DAV = 0x40
 
@@ -93,6 +95,7 @@ module Badline
           drive_inputs = drive.inputs
           drive_inputs[0] = @data & drive_data
           drive_inputs[2] = (drive_inputs[2] & 0x7f) | (@dav << 1)
+          @unit.dev_line(drive_lines.anybits?(DEV))
           return if @moved || (host_data == @data && (host_lines & DAV) == @dav)
 
           @moved = true
