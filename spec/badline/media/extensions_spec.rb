@@ -25,8 +25,8 @@ describe Badline::Media::Extensions do
     expect(described_class::DISKS).to eq(%w[.d64 .d71 .d81 .g64 .g71])
   end
 
-  it "leaves the PET's disk images out of what Media.attach takes" do
-    expect(described_class::ALL & %w[.d80 .d82]).to be_empty
+  it "has the PET's disk images among what Media.attach takes" do
+    expect(described_class::ALL & %w[.d80 .d82]).to eq(%w[.d80 .d82])
   end
 
   it "has what the traps mount, which Media opens" do

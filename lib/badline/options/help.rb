@@ -49,7 +49,8 @@ module Badline
     # wrapped as the banner is.
     def media_kinds
       text = "Media can be #{listed(Media::Extensions::PROGRAMS)} program, #{listed(%i[disk])} disk image, " \
-             "#{listed(%i[gcr])} disk image for a true drive, #{listed(%i[disk_list])} list of disk images, " \
+             "#{listed(%i[ieee_disk])} disk image for a PET, #{listed(%i[gcr])} disk image for a true drive, " \
+             "#{listed(%i[disk_list])} list of disk images, " \
              "#{listed(%i[archive])} tape archive, #{listed(%i[tape])} tape, #{listed(%i[cartridge])} " \
              "cartridge, #{listed(%i[tune])} tune, #{listed(%w[.vsf])} snapshot, or a directory to mount as device 8."
       wrap(text)

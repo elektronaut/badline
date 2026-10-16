@@ -14,3 +14,4 @@ CRTC/crtc10.prg	FAIL	diff=10980px exit=$00
 CRTC/crtc11.prg	PASS
 CRTC/crtc12.prg	PASS
 CRTC/crtc13.prg	FAIL	diff=3545px exit=$00
+selftest/pet-pass.d82	PASS

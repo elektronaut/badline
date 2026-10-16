@@ -210,8 +210,10 @@ Recorded output of the headless hardware suites, one file per suite:
   is green. `crtc3`, `crtc10` and `crtc13` fail: their references are 258
   lines high, from an older xpet, and today's xpet doesn't match them
   either; today's xpet shifts some of `crtc3`'s lines by part of a
-  character, which badline doesn't. On Spinel the rows run on
-  `spinel/pet_testbench.rb`.
+  character, which badline doesn't. One row isn't in the testlist:
+  `selftest/pet-pass.d82`, the selftest's disk mounted as device 8, its
+  program loaded with `LOAD"*",8` through the traps on the IEEE-488
+  primitives and run. On Spinel the rows run on `spinel/pet_testbench.rb`.
 - `testbench-pet-discrete.txt` — the `exitcode` rows with `--pet-discrete`, on
   a 2001 and on a 3032, the boards with the discrete video, each id
   ending in `@2001` or `@3032`. badline answers `$8BFF` on the 2001 too,
@@ -540,7 +542,7 @@ what the suite cost before it was sharded:
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |
 | `testbench-plus4` | 8 | — | 0.3 min | 0.3 min |
 | `testbench-c16` | 8 | — | 0.1 min | 0.1 min |
-| `testbench-pet` | 16 | — | 0.7 min | 0.3 min |
+| `testbench-pet` | 17 | — | 0.7 min | 0.3 min |
 | `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,

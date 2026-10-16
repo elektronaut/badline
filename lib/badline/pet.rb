@@ -163,6 +163,16 @@ module Badline
       reset!
     end
 
+    # Puts a program file's bytes where its first two say, through the bus,
+    # and returns that address.
+    def load_prg(data)
+      load_addr = data[0] | (data[1] << 8)
+      bytes = data[2..] || []
+      bytes = bytes[0, 0x10000 - load_addr] if load_addr + bytes.length > 0x10000
+      bytes.each_with_index { |byte, i| @bus.poke(load_addr + i, byte) }
+      load_addr
+    end
+
     # Where the editor keeps its keyboard buffer: in page 2 under BASIC 1,
     # in the zero page and page 2 under BASIC 2 and 4.
     def keyboard_buffer

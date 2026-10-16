@@ -293,19 +293,9 @@ module MachineFamilies
     end
   end
 
-  # Loads the demo and runs it. Media doesn't take a PET program yet, so
-  # the PET's goes to the start of BASIC once booted, with the end of the
-  # program set as LOAD sets it, and RUN is typed.
+  # Loads the demo and runs it.
   def attach_demo(computer, options, dir)
-    return Badline::Media.attach(computer, write_demo(dir, options)) unless options[:family] == "pet"
-
-    computer.on_init do
-      program = PET_DEMO_PRG.bytes.drop(2)
-      finish = 0x0401 + program.length
-      computer.ram.write(0x0401, program)
-      computer.ram.write(computer.model.basic1? ? 0x7c : 0x2a, [finish & 0xff, finish >> 8])
-    end
-    computer.type_text("run\r")
+    Badline::Media.attach(computer, write_demo(dir, options))
   end
 
   # Writes the demo into `dir` as demo.prg, and returns its path.
@@ -317,9 +307,11 @@ module MachineFamilies
 
   # What loads and runs the demo from device 8.
   def disk_text(options)
-    return Badline::Media::AUTOSTART unless options[:family] == "vic20"
-
-    Badline::Media::Vic20Media.disk_autostart(VIC20_DEMO_PRG.bytes)
+    case options[:family]
+    when "vic20" then Badline::Media::Vic20Media.disk_autostart(VIC20_DEMO_PRG.bytes)
+    when "pet" then Badline::Media::PETMedia::AUTOSTART
+    else Badline::Media::AUTOSTART
+    end
   end
 
   # What takes and parses the family's checkpoints.

@@ -29,6 +29,14 @@ describe Badline::Snapshot::StorageSetup do
     expect(reopened(Badline::Storage::D64Image.new(disk), detached: true)).not_to be_writable
   end
 
+  { "an 8050's" => [Badline::Storage::D80Image, 1],
+    "an 8250's" => [Badline::Storage::D82Image, 2] }.each do |name, (kind, sides)|
+    it "opens #{name} disk image as the same kind" do
+      image = kind.new(blank_d80(File.join(dir, "disk.d8#{2 * (sides - 1)}"), sides:))
+      expect(reopened(image, detached: false).class).to be(kind)
+    end
+  end
+
   describe "a .t64 archive" do
     let(:archive) do
       entry = [1, 0x82, 0x01, 0x08, 0x03, 0x08, 0, 0, 0x60, 0, 0, 0, 0, 0, 0, 0]

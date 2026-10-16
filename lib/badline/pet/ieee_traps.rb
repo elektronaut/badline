@@ -33,6 +33,10 @@ module Badline
       # The path of the disk or directory device 8 serves, or an empty one.
       def mounted_path = @dos.nil? ? "" : @dos.path
 
+      # The true drive on the bus, which a PET has none of yet: every disk
+      # goes in device 8 through the traps.
+      def true_drive = nil
+
       # Records what the KERNAL prints through CHROUT (KernalTrap::Chrout).
       def capture_output
         @capture_output ||= KernalTrap::Chrout.new(cpu:, bus:, layout: trap_layout).tap do |trap|
