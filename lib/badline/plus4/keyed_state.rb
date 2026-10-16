@@ -4,9 +4,9 @@ module Badline
   class Plus4
     # The machine's own fields in a keyed snapshot module (Snapshot::Keyed,
     # BL-MACHINE): the family, its setup by name (Snapshot::Plus4Setup), the
-    # cycle count, and the host's typing still to feed and on_init handlers
-    # still to run under host.*. The badline version that wrote it is
-    # written for reports and never read.
+    # cycle count, and the host's typing still to feed, on_init handlers
+    # still to run and the model plug_true_drive plugs in under host.*. The
+    # badline version that wrote it is written for reports and never read.
     module KeyedState
       # How many more on_init handlers the machine a snapshot was taken of had
       # yet to run than this one has. Nil until the machine is restored.
@@ -29,6 +29,7 @@ module Badline
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
         out.int("host.init_pending", booting? ? @init_handlers.length : 0)
+        out.text("host.true_drive_model", @true_drive_model)
       end
 
       def load_machine_fields(input)
@@ -36,6 +37,7 @@ module Badline
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max
+        @true_drive_model = input.choice("host.true_drive_model", TCBMDrive::TRUE_DRIVE_MODELS, @true_drive_model)
       end
     end
 

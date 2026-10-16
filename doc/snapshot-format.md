@@ -65,6 +65,7 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `sid_card` | text: none mos6581 mos8580 | Plus/4: "none" |
 | `tcbm` | bool | Plus/4: false |
 | `sid_card_address` | int | Plus/4: 64832 |
+| `host.true_drive_model` | text: 1541 1551 | Plus/4: "1551" |
 
 ## BL-RAM
 
