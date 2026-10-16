@@ -200,7 +200,7 @@ describe Badline::Vic20 do
 
   it "shows xvic's view of the PAL frame, from line 28 on, each pixel two wide" do
     expect(machine.timing.to_h).to eq(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312,
-                                      crop: [0, 28, 284, 284], pixel_width: 2)
+                                      crop: [0, 28, 284, 284], pixel_width: 2, dots: 1)
   end
 
   describe "#reset!" do

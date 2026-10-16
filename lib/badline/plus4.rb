@@ -89,7 +89,7 @@ module Badline
       ntsc = profile == Chips::TED::NTSC
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: Chips::TED::Beam::CYCLES_PER_LINE,
                  lines_per_frame: ntsc ? 262 : 312, crop: ntsc ? [0, 248, 384, 242] : [0, 276, 384, 288],
-                 pixel_width: 1)
+                 pixel_width: 1, dots: 1)
     end
 
     # Reads and writes memory as the CPU sees it, through the bus.
