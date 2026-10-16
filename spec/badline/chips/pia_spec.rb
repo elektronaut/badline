@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "badline/chips/pia"
 
 describe Badline::Chips::PIA do
   subject(:pia) { described_class.new(peripheral:) }
