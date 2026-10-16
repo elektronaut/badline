@@ -20,6 +20,14 @@ module Badline
       # ($D86E).
       PLUS4_LAYOUT = Layout.new(address: 0x0527, count: 0xef, capacity: 10)
 
+      # The PET's, under BASIC 2 and BASIC 4. Every editor's GETIN takes
+      # ten keys from it, though the CRTC editors' keyboard scans stop at
+      # nine (XMAX).
+      PET_LAYOUT = Layout.new(address: 0x026f, count: 0x9e, capacity: 10)
+
+      # The PET's under BASIC 1, outside the zero page.
+      PET_BASIC1_LAYOUT = Layout.new(address: 0x020f, count: 0x020d, capacity: 10)
+
       def type_text(text)
         codes = text.bytes.map { |b| ascii_to_petscii(b) }
         on_init { @pending_keys = codes }
