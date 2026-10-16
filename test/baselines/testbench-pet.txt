@@ -1,2 +1,16 @@
 selftest/pet-pass.prg	PASS
 selftest/pet-fail.prg	PASS
+selftest/pet-pass.prg#2	PASS
+selftest/pet-fail.prg#2	PASS
+CRTC/crtc0.prg	PASS
+CRTC/crtc3.prg	FAIL	diff=5681px exit=$00
+CRTC/crtc4.prg	PASS
+CRTC/crtc5.prg	PASS
+CRTC/crtc6.prg	PASS
+CRTC/crtc7.prg	PASS
+CRTC/crtc8.prg	PASS
+CRTC/crtc9.prg	PASS
+CRTC/crtc10.prg	FAIL	diff=10980px exit=$00
+CRTC/crtc11.prg	PASS
+CRTC/crtc12.prg	PASS
+CRTC/crtc13.prg	FAIL	diff=3545px exit=$00

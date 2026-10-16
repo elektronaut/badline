@@ -9,7 +9,7 @@ describe Badline::PET::Bus do
   let(:ram_kb) { nil }
   let(:keyboard_pia) { Badline::Chips::PIA.new }
   let(:ieee_pia) { Badline::Chips::PIA.new }
-  let(:crtc) { Badline::Chips::CRTC.new }
+  let(:crtc) { Badline::Chips::CRTC.new(double(character: nil, hsync: nil, line_end: nil, rows_end: nil, frame_start: nil)) }
 
   def bus_for(name)
     model = Badline::PET::Model.named(name)

@@ -665,8 +665,23 @@ class TestTestbenchPET < Minitest::Test
     assert_equal ["2001", "t.prg@2001"], [parse("2001").pet_model, parse("2001").id.split("/").last]
   end
 
-  def test_takes_exitcode_rows_alone
-    assert_nil parse(type: "screenshot")
+  def test_takes_screenshot_rows_on_the_8096_alone
+    assert_equal ["screenshot", nil], [parse(type: "screenshot").type, parse("2001", type: "screenshot")]
+  end
+
+  # VICE compares from (32, 33) on, and a reference dot is lit where it is
+  # green.
+  def test_compares_a_screenshot_from_32_33_on
+    reference = File.join(@dir, "t.png")
+    png = ChunkyPNG::Image.new(40, 40, ChunkyPNG::Color::BLACK)
+    png[32, 33] = ChunkyPNG::Color.rgb(0x41, 0xff, 0)
+    png[0, 0] = ChunkyPNG::Color.rgb(0x41, 0xff, 0)
+    png.save(reference)
+    rows = Array.new(40) { Array.new(40, 0) }
+    rows[33][32] = 1
+    test = Struct.new(:reference, :key).new(reference, "t")
+
+    assert_equal 0, Testbench::PETScreenshot.new(rows).compare(test)
   end
 
   def test_hands_the_engine_its_model

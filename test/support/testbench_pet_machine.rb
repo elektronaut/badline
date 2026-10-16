@@ -5,7 +5,7 @@ require_relative "testbench_machine"
 # The machine-driving half of bin/testbench --pet and --pet-discrete:
 # building the PET a row asks for, loading its program to the start of
 # BASIC, running it until it reports through $8BFF or its budget runs out,
-# and reading back the text screen. It stays inside the Ruby subset Spinel
+# and reading back the text screen or the picture. It stays inside the Ruby subset Spinel
 # compiles, so bin/testbench on CRuby and spinel/pet_testbench.rb on a
 # Spinel build run each test the same way.
 module Testbench
@@ -22,6 +22,15 @@ module Testbench
     screen = machine.bus.screen
     width = screen.cells.length == 0x800 ? 80 : 40
     Array.new(25) { |row| screen_line(screen, row * width, width) }
+  end
+
+  # The picture, its rows of palette indices, as xpet's screenshots frame
+  # it.
+  def self.pet_screenshot(machine)
+    canvas = machine.video
+    display = canvas.display
+    width = canvas.width
+    Array.new(canvas.height) { |row| display[row * width, width] }
   end
 
   # Runs one test on a machine from Testbench.pet_machine: loads the

@@ -101,13 +101,19 @@ describe Badline::PET do
       end
     end
 
-    %w[2001 3032].each do |model|
+    # The top row of the first character on the screen.
+    def first_row(pet)
+      set = pet.via.ca2_output ? Badline::PET::Characters::TEXT : 0
+      Badline::PET::Characters.new(pet.model.characters).rows[set | (pet.bus.screen.cells[0] << 3)]
+    end
+
+    # Where the first character's top row sits, as in xpet's screenshots.
+    { "2001" => 8, "3032" => 8, "4032" => 36, "8032" => 11 }.each do |model, top|
       it "paints the #{model}'s first character on its canvas" do
         pet, = booted_once(model)
         canvas = pet.video
-        rows = Badline::PET::Characters.new(pet.model.characters).rows
-        dots = canvas.display[(8 * canvas.width) + 32, 8].reduce(0) { |bits, dot| (bits << 1) | dot }
-        expect(dots).to eq(rows[pet.bus.screen.cells[0] << 3])
+        dots = canvas.display[(top * canvas.width) + 32, 8].reduce(0) { |bits, dot| (bits << 1) | dot }
+        expect(dots).to eq(first_row(pet))
       end
     end
 

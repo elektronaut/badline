@@ -31,15 +31,57 @@ module Testbench
     def pet_machine = Testbench.pet_machine(pet_model)
 
     # Runs the row on +machine+, returning the exit code and the text
-    # screen.
+    # screen, or the picture for a screenshot row.
     def run_pet(machine)
-      [PETExecution.new(machine).run(dir_abs, prg, budget), Testbench.pet_screen_text(machine)]
+      exit_code = PETExecution.new(machine).run(dir_abs, prg, budget)
+      [exit_code, type == "screenshot" ? Testbench.pet_screenshot(machine) : Testbench.pet_screen_text(machine)]
     end
   end
 
-  # The PET testlist's exitcode rows, on the 8096, or with +discrete+ on
-  # each of PET_DISCRETE_MODELS. Screenshot rows wait for the video, and
-  # interactive rows are left out as on the C64.
+  # A PET screenshot against its reference. VICE's testbench compares the
+  # two from (32, 33) on, over the lines and dots both have, and so does
+  # this. A reference dot counts as lit where it is more green than not.
+  class PETScreenshot
+    LEFT = 32
+    TOP = 33
+
+    attr_reader :rows
+
+    def initialize(rows)
+      @rows = rows
+    end
+
+    # The number of mismatched dots.
+    def compare(test)
+      png = ChunkyPNG::Image.from_file(test.reference)
+      width = [png.width, rows.first.length].min
+      diff = 0
+      (TOP...[png.height, rows.length].min).each do |y|
+        row = rows[y]
+        (LEFT...width).each { |x| diff += 1 unless (ChunkyPNG::Color.g(png[x, y]) > 0x80 ? 1 : 0) == row[x] }
+      end
+      write_actual(test) if diff.positive?
+      diff
+    end
+
+    private
+
+    def write_actual(test)
+      png = ChunkyPNG::Image.new(rows.first.length, rows.length)
+      rows.each_with_index do |row, y|
+        row.each_with_index do |index, x|
+          color = Badline::PET::Canvas::PALETTE[index]
+          png[x, y] = ChunkyPNG::Color.rgb(color >> 16, (color >> 8) & 0xff, color & 0xff)
+        end
+      end
+      png.save(File.join(ARTIFACT_DIR, "#{test.key.tr('/', '-')}.actual.png"))
+    end
+  end
+
+  # The PET testlist's exitcode and screenshot rows on the 8096, or its
+  # exitcode rows with +discrete+ on each of PET_DISCRETE_MODELS, as the
+  # references show an 8096's screen. Interactive rows are left out as on
+  # the C64.
   module PETTestlist
     module_function
 
@@ -54,7 +96,7 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless type == "exitcode"
+      return unless type == "exitcode" || (type == "screenshot" && model.nil?)
 
       options << "#{PET_MODEL_OPTION}#{model}" if model
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, nil)

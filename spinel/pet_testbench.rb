@@ -2,8 +2,8 @@
 
 # Runs PET testbench tests the way bin/testbench --pet and --pet-discrete
 # do, with the same Testbench::PETExecution, and prints what each one left
-# behind for CRuby to score (Testbench::Engine): its exit code and the
-# text screen. Reads the tests from a list bin/testbench writes, one per
+# behind for CRuby to score (Testbench::Engine): its exit code, and the
+# text screen or, for a screenshot row, the picture. Reads the tests from a list bin/testbench writes, one per
 # line. Builds with Spinel as well as running on CRuby:
 #
 #   ruby --yjit -Ilib spinel/pet_testbench.rb tests.txt
@@ -23,6 +23,8 @@ module Testbench
     fields = test.chomp.split("\t")
     machine = pet_machine(fields[5])
     exit_code = PETExecution.new(machine).run(fields[4], fields[3], fields[2].to_i)
+
+    return Record.screen(fields[0], exit_code, machine.cycles, pet_screenshot(machine)) if fields[1] == "screenshot"
 
     Record.text(fields[0], exit_code, machine.cycles, pet_screen_text(machine))
   end
