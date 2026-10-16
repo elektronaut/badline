@@ -19,7 +19,7 @@ module Badline
             @channels.close(secondary)
             return report(FILE_EXISTS)
           end
-          return refuse_write(secondary) unless writable_disk?
+          return refuse_write(secondary) unless writable_disk? || channel_save?(secondary)
 
           open_writer(secondary, WriteFile.new(file, type || :seq, mode: replace ? :replace : :write))
         end
@@ -40,6 +40,8 @@ module Badline
         end
 
         def writable_disk? = @storage.respond_to?(:writable?) && @storage.writable?
+
+        def channel_save?(secondary) = @channel_saves && secondary == 1 && saves?
 
         # Runs a write to the disk and reports how it went. Returns whether
         # the disk took it.

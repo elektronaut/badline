@@ -153,6 +153,10 @@ module Badline
         @write_pages[addr >> 8].poke(addr, value)
       end
 
+      # Whether the CPU reads the KERNAL ROM at $F000-$FFFF, which an 8096's
+      # board covers while its control register turns it on.
+      def kernal_mapped? = @expansion.nil? || @expansion.control.nobits?(0x80)
+
       # Calls the block with each byte written to $8BFF (DebugRegister).
       def install_debug_register(&)
         @debug_register = DebugRegister.new(&)

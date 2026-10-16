@@ -49,8 +49,14 @@ describe Badline::KernalTrap::IEEELayout do
         end
       end
 
-      it "always finds the KERNAL" do
-        expect(layout.kernal_mapped?(nil)).to be(true)
+      it "finds the KERNAL on a PET with no 64K board" do
+        expect(layout.kernal_mapped?(Badline::PET.new(model: "8032").bus)).to be(true)
+      end
+
+      it "finds no KERNAL while an 8096's board lies over it" do
+        pet = Badline::PET.new(model: "8096")
+        pet.poke(0xfff0, 0x80)
+        expect(layout.kernal_mapped?(pet.bus)).to be(false)
       end
     end
   end

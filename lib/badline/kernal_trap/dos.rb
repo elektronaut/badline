@@ -68,7 +68,12 @@ module Badline
 
       # A drive powers on reporting its DOS version, as a reset does. It
       # can take the RAM of a drive it replaces, and initializes its disk.
-      def initialize(storage, memory = Memory.new)
+      # With +channel_saves+, SAVE's channel, secondary address 1, takes a
+      # program for storage that saves only whole files, such as a host
+      # directory, and saves it when the channel closes: a PET's SAVE sends
+      # it through the bus with no trap of its own.
+      def initialize(storage, memory = Memory.new, channel_saves: false)
+        @channel_saves = channel_saves
         @channels = Channels.new
         @status = Status.new
         @memory = memory

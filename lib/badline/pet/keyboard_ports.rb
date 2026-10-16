@@ -45,16 +45,20 @@ module Badline
       def initialize(keyboard)
         @keyboard = keyboard
         @pia = nil
+        @ieee = nil
       end
 
-      # The PIA these ports hang off, whose port A selects the row.
-      def connect(pia)
+      # The PIA these ports hang off, whose port A selects the row, and the
+      # PET's IEEEPorts, which answer PA6.
+      def connect(pia, ieee)
         @pia = pia
+        @ieee = ieee
       end
 
-      # Port A's other lines, the cassette sense switches, IEEE EOI and the
-      # diagnostic sense, float high with nothing on them.
-      def read_a(_lines) = 0xff
+      # Port A's other lines: PA6 reads the IEEE bus's EOI, and the
+      # cassette sense switches and the diagnostic sense float high with
+      # nothing on them.
+      def read_a(_lines) = @ieee.eoi_input
 
       def read_b(lines)
         row = @pia.port_a_output & 0x0f
