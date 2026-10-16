@@ -8,6 +8,7 @@ require "badline/pet/keyboard_ports"
 require "badline/pet/characters"
 require "badline/pet/canvas"
 require "badline/pet/discrete_video"
+require "badline/pet/crtc_video"
 require "badline/pet/bus"
 
 module Badline
@@ -28,7 +29,8 @@ module Badline
   # editor's keyboard buffer.
   #
   # The discrete boards paint their picture (DiscreteVideo) on a Canvas.
-  # It runs headless, with no CRTC picture, sound or media yet.
+  # The CRTC boards paint theirs from the CRTC's outputs (CRTCVideo).
+  # It runs headless, with no sound or media yet.
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
@@ -59,20 +61,23 @@ module Badline
 
       @refresh_hz = @model.crtc? ? refresh_hz : 60
       @crtc_video = @model.crtc?
-      @crtc = Chips::CRTC.new
       @vertical_drive = true
       matrix = @model.keyboard == :business ? KeyboardPorts::BUSINESS_MATRIX : KeyboardPorts::GRAPHICS_MATRIX
       @keyboard = Input::Keyboard.new(matrix:)
       keyboard_ports = KeyboardPorts.new(@keyboard)
+      registers = Array.new(Chips::CRTC::MASKS.length, 0)
       @pia1 = Chips::PIA.new(peripheral: keyboard_ports)
       keyboard_ports.connect(@pia1)
       @pia2 = Chips::PIA.new
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
+      characters = Characters.new(@model.characters)
+      @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80)
+      @crtc = Chips::CRTC.new(@crtc_output, registers:)
       @bus = Bus.new(model: @model, ram_kb:, editor: @model.editor(@refresh_hz), pia1: @pia1, pia2: @pia2,
                      via: @via, crtc: @crtc)
-      @discrete = DiscreteVideo.new(@bus.screen.cells, Characters.new(@model.characters), @via)
-      @canvas = @discrete.canvas
-      @canvas = Canvas.new(@model.video == :crtc80 ? 704 : 384, 273) if @crtc_video
+      @crtc_output.cells = @bus.screen.cells
+      @discrete = DiscreteVideo.new(@bus.screen.cells, characters, @via)
+      @canvas = @crtc_video ? @crtc_output.canvas : @discrete.canvas
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []

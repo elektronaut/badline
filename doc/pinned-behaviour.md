@@ -49,6 +49,7 @@ only catches the rows that happen to move.
 - [SID envelope](#sid-envelope)
 - [`.sid` tune banking](#sid-tune-banking)
 - [PET discrete video](#pet-discrete-video)
+- [PET CRTC](#pet-crtc)
 
 ## CPU interrupt recognition
 
@@ -2185,3 +2186,46 @@ testprogs named.
     drive line falls as the display ends.
   - Spec guard: *shows a line's characters in its last 40 cycles* in
     [`pet/discrete_video_spec.rb`](../spec/badline/pet/discrete_video_spec.rb).
+
+## PET CRTC
+
+- The 6545's counters step once a cycle, ahead of the CPU, and compare
+  with the registers as they stand that cycle, so a write lands from the
+  next character. Vertical sync starts at the first character of row R7
+  and lasts 16 lines, and its start is PIA 1 CB1's falling edge, the
+  editor's IRQ. Every editor leaves R3's upper four bits 0, and nothing
+  has checked another value.
+  - Pinned by `CRTC/crtc0`, `crtc4`-`crtc9`, `crtc11` and `crtc12`
+    (`testbench-pet`), which time their register writes from that IRQ
+    with VIA T1 and loops: all eight match their references dot for dot.
+    The 16 lines match xpet's frame probe on every editor (vertical drive
+    low for 800 cycles of 50-cycle lines, 1,024 of 64).
+  - Spec guard:
+    [`chips/crtc_spec.rb`](../spec/badline/chips/crtc_spec.rb).
+- A compare the counter has already passed doesn't happen: R1 written
+  below the character counter leaves the display on to the line's end,
+  MA counting on, and on a row's last line leaves the next row's start
+  where it was, so the row repeats. R9 written below the line counter
+  runs the row on to 32 lines, and R6 written below the row counter
+  leaves the display on to the frame's end.
+  - Pinned by `CRTC/crtc6` and `crtc7` (R1), `crtc10` (R9, which matches
+    today's xpet dot for dot; its reference is an older xpet's) and
+    `crtc13` (R6).
+  - Spec guard: *past an R1 it missed*, *repeats a row*, *past an R9 it
+    missed* and *past an R6 it missed* in
+    [`chips/crtc_spec.rb`](../spec/badline/chips/crtc_spec.rb).
+- The picture is framed as xpet frames its screenshots: R1's characters
+  in the middle of 704 dots (80 columns) or 384 (40); each character as
+  far right as it comes after its line's horizontal sync, so lines whose
+  sync moves mid-frame move against the rest; the frame's first line
+  where the last frame's lines up to the R6 stop would sit in the middle
+  of 273, unchanged after a frame where the display never stopped; each
+  horizontal sync starting the next line of the picture; nothing within
+  8 dots of either side.
+  - Pinned by `CRTC/crtc4` and `crtc5` (sync moved for some lines),
+    `crtc6` and `crtc7` (display through horizontal sync), `crtc10`
+    (a frame of 232 displayed lines framed from line 20) and the boot
+    screens of the 4032 and the 8032, which match xpet's at the same
+    cycle dot for dot.
+  - Spec guard:
+    [`pet/crtc_video_spec.rb`](../spec/badline/pet/crtc_video_spec.rb).

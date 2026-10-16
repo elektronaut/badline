@@ -8,10 +8,33 @@ module Badline
     # R17, and the cursor address, R14 and R15, read back; every other read
     # finds 0.
     #
-    # Its counters run one character a cycle. A line is R0 + 1 characters,
-    # a character row R9 + 1 lines, and a frame R4 + 1 rows and R5 lines of
-    # vertical adjust. Vertical sync starts with row R7 and lasts 16 lines.
-    # The picture it addresses isn't drawn yet.
+    # Its counters run one character a cycle, and compare with the
+    # registers as they stand that cycle, so a write lands from the next
+    # character on:
+    #
+    # - The character counter runs from 0 to R0, then a line ends. The
+    #   display shows from character 0 until the counter equals R1, and
+    #   horizontal sync starts where it equals R2. A compare the counter has
+    #   already passed doesn't happen that line: the display then runs on
+    #   to the line's end.
+    # - The line counter (RA, five bits) counts a character row's lines. A
+    #   row ends after the line where it equals R9; past R9 it runs on to
+    #   31 and wraps.
+    # - The row counter (seven bits) counts rows to R4. R5 more lines of
+    #   vertical adjust follow, then the frame starts again. The display
+    #   stops at the start of the row the counter equals R6, and comes back
+    #   at the next frame; vertical sync starts with row R7 and lasts
+    #   VSYNC_LINES lines.
+    # - The memory address (MA, fourteen bits) starts each frame at
+    #   R12:R13 and counts one a character. Each line starts again from its
+    #   row's start, which the last line of a row moves on to the address
+    #   where the counter equals R1.
+    #
+    # Each displayed character goes to the output's #character with MA, RA
+    # and the characters since horizontal sync last started; the output
+    # also hears of each #hsync as it starts, each #line_end, the
+    # #rows_end where the display stops for the rest of the frame, and each
+    # #frame_start.
     class CRTC
       # The bits each register keeps.
       MASKS = [0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xff, 0x1f, 0x7f, 0x1f,
@@ -19,10 +42,15 @@ module Badline
 
       VSYNC_LINES = 16
 
-      attr_reader :registers, :column, :line, :row
+      attr_reader :registers, :column, :line, :row, :address
 
-      def initialize
-        @registers = Array.new(MASKS.length, 0)
+      # The characters since horizontal sync last started.
+      attr_reader :since_hsync
+
+      # +registers+ is the register file, which the output may read too.
+      def initialize(output, registers: Array.new(MASKS.length, 0))
+        @output = output
+        @registers = registers
         reset!
       end
 
@@ -31,14 +59,16 @@ module Badline
       def reset!
         @selected = 0
         @column = 0
-        @line = 0
-        @row = 0
-        @adjusting = false
+        @since_hsync = 0
         @vsync_lines = 0
+        start_frame
       end
 
       # Whether vertical sync is on.
       def vsync? = @vsync_lines.positive?
+
+      # Whether the display shows the character the counters are at.
+      def display? = @row_display && @column_display
 
       def peek(addr)
         return 0 if addr.nobits?(0x01) || @selected < 14 || @selected >= MASKS.length
@@ -55,48 +85,75 @@ module Badline
       end
 
       def cycle!
-        if @column < @registers[0]
-          @column += 1
+        regs = @registers
+        column = @column
+        if column == regs[1]
+          @column_display = false
+          @row_start = @address if @line == regs[9]
+        end
+        @output.character(@address, @line, @since_hsync) if @column_display && @row_display
+        if column == regs[2]
+          @since_hsync = 1
+          @output.hsync
         else
+          @since_hsync += 1
+        end
+        @address = (@address + 1) & 0x3fff
+        if column == regs[0]
           @column = 0
-          next_line
+          end_line
+        else
+          @column = (column + 1) & 0xff
         end
       end
 
       private
 
-      def next_line
+      def end_line
+        @output.line_end
         @vsync_lines -= 1 if @vsync_lines.positive?
+        @column_display = true
         if @adjusting
           @line += 1
-          new_frame if @line >= @registers[5]
-        elsif @line < @registers[9]
-          @line += 1
+          @line >= @registers[5] ? start_frame : @address = @row_start
+        elsif @line == @registers[9]
+          end_row
         else
-          next_row
+          @line = (@line + 1) & 0x1f
+          @address = @row_start
         end
       end
 
-      def next_row
+      def end_row
         @line = 0
-        if @row < @registers[4]
-          @row += 1
-          start_row
-        elsif @registers[5].positive?
+        if @row == @registers[4]
+          return start_frame if @registers[5].zero?
+
           @adjusting = true
         else
-          new_frame
+          @row = (@row + 1) & 0x7f
+          start_row
         end
+        @address = @row_start
       end
 
-      def new_frame
+      def start_frame
         @line = 0
         @row = 0
         @adjusting = false
+        @row_display = true
+        @column_display = true
+        @row_start = ((@registers[12] << 8) | @registers[13]) & 0x3fff
+        @address = @row_start
         start_row
+        @output.frame_start
       end
 
       def start_row
+        if @row == @registers[6] && @row_display
+          @row_display = false
+          @output.rows_end
+        end
         @vsync_lines = VSYNC_LINES if @row == @registers[7]
       end
     end

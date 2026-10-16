@@ -199,13 +199,20 @@ Recorded output of the headless hardware suites, one file per suite:
   18, is compared with the PAL reference on the lines both show, the
   window's corners lined up. Every row passes.
 - `testbench-pet.txt` — the same runner with `--pet`, over the `exitcode`
-  rows of `vendor/VICE-testprogs/testbench/pet-testlist.in`, the
-  `selftest` pair, on an 8096 with the 50 Hz editor, as xpet's hook
+  and `screenshot` rows of
+  `vendor/VICE-testprogs/testbench/pet-testlist.in`, the `selftest` pairs
+  and the `CRTC` rows, on an 8096 with the 50 Hz editor, as xpet's hook
   starts it. The program goes to the start of BASIC with BASIC's end
   pointers set as LOAD sets them, RUN is typed once the machine has
-  booted, and the test reports through `$8BFF`. Screenshot rows wait for
-  the PET's video. On Spinel the rows run on `spinel/pet_testbench.rb`.
-- `testbench-pet-discrete.txt` — the same rows with `--pet-discrete`, on
+  booted, and the test reports through `$8BFF`. A screenshot is compared
+  with its reference from (32, 33) on, as VICE's hook offsets say, over
+  the lines and dots both have, a reference dot counting as lit where it
+  is green. `crtc3`, `crtc10` and `crtc13` fail: their references are 258
+  lines high, from an older xpet, and today's xpet doesn't match them
+  either; today's xpet shifts some of `crtc3`'s lines by part of a
+  character, which badline doesn't. On Spinel the rows run on
+  `spinel/pet_testbench.rb`.
+- `testbench-pet-discrete.txt` — the `exitcode` rows with `--pet-discrete`, on
   a 2001 and on a 3032, the boards with the discrete video, each id
   ending in `@2001` or `@3032`. badline answers `$8BFF` on the 2001 too,
   ahead of the screen RAM it repeats there, where xpet's 2001 lets the
@@ -533,7 +540,7 @@ what the suite cost before it was sharded:
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |
 | `testbench-plus4` | 8 | — | 0.3 min | 0.3 min |
 | `testbench-c16` | 8 | — | 0.1 min | 0.1 min |
-| `testbench-pet` | 2 | — | 0.1 min | 0.1 min |
+| `testbench-pet` | 16 | — | 0.7 min | 0.3 min |
 | `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
