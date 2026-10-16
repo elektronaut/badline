@@ -106,7 +106,7 @@ module Badline
         @pass_counter = PASS_COUNTER
         @dev_high = true
         @on_renumber = nil
-        @cable = Cable.new(@host_tia, @tia.chip, self)
+        @cable = Cable.new(@host_tia, @tia, self)
         @serial_port = @cable
       end
 
@@ -170,8 +170,8 @@ module Badline
       end
 
       def idle_state
-        chip = @tia.chip
-        [*@cpu.counting_state, @bus.data, *@mechanism.idle_state, *chip.ports, *chip.directions, *chip.inputs,
+        tia = @tia
+        [*@cpu.counting_state, @bus.data, *@mechanism.idle_state, *tia.ports, *tia.directions, *tia.inputs,
          @port.ddr, @port.data]
       end
 
