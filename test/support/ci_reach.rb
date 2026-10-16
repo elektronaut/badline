@@ -59,6 +59,8 @@ module CIReach
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
     ["lib/badline/{c128.rb,c128/**/*}", C128],
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
+    # No suite runs the PET yet.
+    ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", []],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],

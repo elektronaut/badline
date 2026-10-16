@@ -39,6 +39,12 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/pet/kernal4.rom lib/badline/roms/README])
   end
 
+  def test_the_pet_reaches_only_the_spinel_check
+    files = %w[lib/badline/pet.rb lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb]
+
+    assert_equal %w[spinel:check], CIReach.suites(files)
+  end
+
   def test_input_reaches_a_suite_of_every_family
     reached = CIReach.suites(%w[lib/badline/input/keyboard.rb lib/badline/input.rb])
 
