@@ -28,7 +28,11 @@ describe Badline::Vic20::Attachments do
 
     before do
       machine.run_cycles(100)
-      machine.attach_cartridge([chip])
+      machine.attach_cartridge([chip], "GAME")
+    end
+
+    it "keeps the cartridge's name" do
+      expect(machine.cartridge_name).to eq("GAME")
     end
 
     it "puts the chip's ROM in its block" do

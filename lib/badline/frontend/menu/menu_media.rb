@@ -136,14 +136,15 @@ module Badline
       end
 
       # The name the cartridge in the expansion port gives itself, or an
-      # empty one. A VIC-20's or a Plus/4's is the name of the file it came
-      # from: a .crt's own, or else the file's. A Plus/4 names each of its
+      # empty one. A VIC-20 keeps its own (Vic20#cartridge_name). A Plus/4's
+      # is the name of the file it came from: a .crt's own, or else the
+      # file's. It names each of its
       # cartridges with a ROM in, and a slot filled from elsewhere, such as
       # a snapshot, by the slot.
       def cartridge_name
         case @computer.family
         when :plus4 then @computer.cartridge_slots.map { |slot| slot_name(slot) }.uniq.join(", ")
-        when :vic20 then named? ? @names.fetch("", "") : ""
+        when :vic20 then @computer.cartridge_name
         else
           cartridge = @computer.address_bus.cartridge
           cartridge.nil? ? "" : cartridge.name
@@ -200,28 +201,16 @@ module Badline
 
       def slot_name(slot) = named? ? @names.fetch(slot, slot.upcase) : slot.upcase
 
-      # Keeps the name of the cartridge at `path` in `computer` by the
-      # slots it fills: a Plus/4's by xplus4's names, a raw image's in
-      # `slot` if it names one, and a VIC-20's in the one slot "". Other
-      # media, and other machines' cartridges, leave the names alone.
+      # Keeps the name of the cartridge at `path` in a Plus/4 by the slots
+      # it fills, by xplus4's names, a raw image's in `slot` if it names
+      # one. Other media, and other machines' cartridges, leave the names
+      # alone.
       def note_cartridge(computer, path, slot)
-        case computer.family
-        when :plus4
-          return unless Media.kind(computer, path) == :cartridge
+        return unless computer.family == :plus4 && Media.kind(computer, path) == :cartridge
 
-          name = file_name(path)
-          Media::Plus4Media.cartridge_chips(path, slot: slot.empty? ? nil : slot).each do |chip|
-            @names["c#{chip.bank + 1}#{chip.address < 0xc000 ? 'lo' : 'hi'}"] = name
-          end
-        when :vic20 then @names[""] = file_name(path) if vic20_cartridge?(path)
-        end
-      end
-
-      def vic20_cartridge?(path)
-        case Media::Extensions.kind(path)
-        when :cartridge then true
-        when :program then File.file?(path) && !Media::Vic20Cartridge.chips(path, Media.program_bytes(path)).nil?
-        else false
+        name = file_name(path)
+        Media::Plus4Media.cartridge_chips(path, slot: slot.empty? ? nil : slot).each do |chip|
+          @names["c#{chip.bank + 1}#{chip.address < 0xc000 ? 'lo' : 'hi'}"] = name
         end
       end
 

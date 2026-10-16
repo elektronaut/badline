@@ -170,7 +170,9 @@ module Badline
       # (Plus4Media.cartridge_chips).
       def attach_cartridge(computer, path, options)
         case computer.family
-        when :vic20 then computer.attach_cartridge(Storage::CRTFile.new(path, machine: :vic20).chips)
+        when :vic20
+          crt = Storage::CRTFile.new(path, machine: :vic20)
+          computer.attach_cartridge(crt.chips, crt.name.empty? ? File.basename(path, File.extname(path)) : crt.name)
         when :plus4 then computer.attach_cartridge(Plus4Media.cartridge_chips(path, slot: options.fetch(:slot, nil)))
         else
           computer.attach_cartridge(C64::Cartridge.from_file(path, **options))

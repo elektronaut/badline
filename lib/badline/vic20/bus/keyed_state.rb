@@ -11,9 +11,9 @@ module Badline
       end
 
       # The bytes each side's data lines hold, under `prefix`, and a
-      # cartridge's ROM chips as rom<N>.start and rom<N>.bytes, in a keyed
-      # snapshot module (Snapshot::Keyed). The pages are mapped again once
-      # they are loaded.
+      # cartridge's name and its ROM chips as rom<N>.start and rom<N>.bytes,
+      # in a keyed snapshot module (Snapshot::Keyed). The pages are mapped
+      # again once they are loaded.
       module KeyedState
         def save_fields(out, prefix)
           out.int("#{prefix}data", @data).int("#{prefix}video_data", @video_data)
@@ -28,7 +28,7 @@ module Badline
         def cartridge? = !@roms.empty?
 
         def save_rom_fields(out)
-          out.int("roms", @roms.length)
+          out.text("name", @cartridge_name).int("roms", @roms.length)
           @roms.each_with_index do |rom, number|
             out.int("rom#{number}.start", rom.start)
             rom.save_fields(out, "rom#{number}.bytes")
@@ -37,6 +37,7 @@ module Badline
 
         def load_rom_fields(input)
           @roms = []
+          @cartridge_name = input.text("name", "")
           input.int("roms", 0).times do |number|
             bytes = input.bytes("rom#{number}.bytes", "".b).bytes
             @roms << ROM.new(bytes, length: bytes.length, start: input.word("rom#{number}.start", 0))
