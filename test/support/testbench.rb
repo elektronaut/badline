@@ -9,6 +9,7 @@ require "badline"
 require "badline/vic20"
 require "badline/c128"
 require "badline/plus4"
+require "badline/pet"
 require "chunky_png"
 require "etc"
 require "tmpdir"
@@ -24,6 +25,8 @@ require_relative "testbench_c128"
 require_relative "testbench_c128_machine"
 require_relative "testbench_plus4"
 require_relative "testbench_plus4_machine"
+require_relative "testbench_pet"
+require_relative "testbench_pet_machine"
 require_relative "cli"
 
 module Testbench
@@ -95,7 +98,7 @@ module Testbench
   # the x128c64 list, and nil for the C64's.
   TestCase = Struct.new(:dir, :prg, :type, :timeout, :options, :cartridge, :occurrence, :disk, :family) do
     def id
-      "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}"
+      "#{dir.delete_prefix('../').delete_prefix('./')}/#{name}#{model_suffix}"
     end
 
     # The CIA the row asks for: the 6526A for cia-new, else the 6526.
@@ -124,18 +127,23 @@ module Testbench
     include Vic20Row
     include C128Row
     include Plus4Row
+    include PETRow
 
-    # The machine a VIC-20, C128 or 264 series row forks from.
+    # The machine a VIC-20, C128, 264 series or PET row forks from.
     def family_machine
       return vic20_machine if vic20?
+      return pet_machine if pet?
 
       plus4? ? plus4_machine : c128_machine
     end
 
-    # What tells a VIC-20, C128 or 264 series row's machine apart: the
-    # family, the VIC-20's RAM, the C128's true drive and the 264's model
-    # and RAM expansion.
-    def family_key = [family, ram_configuration, c128_drive, (plus4_model if plus4?), (plus4_ram_expansion if plus4?)]
+    # What tells a VIC-20, C128, 264 series or PET row's machine apart:
+    # the family, the VIC-20's RAM, the C128's true drive, the 264's model
+    # and RAM expansion and the PET's model.
+    def family_key
+      [family, ram_configuration, c128_drive, (plus4_model if plus4?), (plus4_ram_expansion if plus4?),
+       (pet_model if pet?)]
+    end
 
     def name
       return cartridge if prg.empty?
@@ -621,6 +629,7 @@ module Testbench
     def run_test(test, computer)
       return score(test, *test.run_vic20(computer)) if test.vic20?
       return score(test, *test.run_plus4(computer)) if test.plus4?
+      return score(test, *test.run_pet(computer)) if test.pet?
 
       Dir.mktmpdir("testbench-disk") do |scratch|
         exitcode = test.type == "exitcode"
@@ -761,18 +770,12 @@ module Testbench
     [argv.delete("--cia-new") ? :mos6526a : :mos6526, argv.delete("--vicii-new") ? :mos8565 : :mos6569]
   end
 
-  # :vic20, :c128c64, :c128_z80, :c128, :plus4, :c16 or nil for the C64,
-  # deleting every machine flag from argv.
+  # :vic20, :c128c64, :c128_z80, :c128, :plus4, :c16, :pet, :pet_discrete
+  # or nil for the C64, deleting every machine flag from argv.
   def self.command_line_machine(argv)
-    flags = %w[--vic20 --c128c64 --c128-z80 --c128 --plus4 --c16]
-    vic20, c128c64, c128_z80, c128, plus4, c16 = flags.map { |flag| argv.delete(flag) }
-    if vic20 then :vic20
-    elsif c128c64 then :c128c64
-    elsif c128_z80 then :c128_z80
-    elsif c128 then :c128
-    elsif plus4 then :plus4
-    elsif c16 then :c16
-    end
+    flags = { "--vic20" => :vic20, "--c128c64" => :c128c64, "--c128-z80" => :c128_z80, "--c128" => :c128,
+              "--plus4" => :plus4, "--c16" => :c16, "--pet" => :pet, "--pet-discrete" => :pet_discrete }
+    flags.filter_map { |flag, machine| machine if argv.delete(flag) }.first
   end
 
   def self.command_line_tests(argv, machine, rows, scope:, exclude:)
@@ -781,6 +784,7 @@ module Testbench
     when :c128c64 then C128Testlist.tests(argv, scope:, exclude:)
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
     when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:, ntsc: rows.standard == :ntsc)
+    when :pet, :pet_discrete then PETTestlist.tests(argv, discrete: machine == :pet_discrete, scope:, exclude:)
     else Testlist.tests(argv, scope:, exclude:, rows:)
     end
   end

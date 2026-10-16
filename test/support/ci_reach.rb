@@ -16,6 +16,7 @@ module CIReach
   VIC20 = %w[testbench-vic20 drive-scenarios].freeze
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
   PLUS4 = %w[testbench-plus4 testbench-c16 testbench-plus4-ntsc lorenz-plus4 drive-scenarios].freeze
+  PET = %w[testbench-pet testbench-pet-discrete].freeze
   VIC = %w[testbench testbench-vicii-new testbench-ntsc testbench-ntsc-vicii-new testbench-drean
            testbench-interrupts testbench-irqdma testbench-general testbench-expansions testbench-carts
            testbench-c128c64 testbench-c128].freeze
@@ -23,11 +24,13 @@ module CIReach
            testbench-general testbench-c128c64 testbench-c128 drive-scenarios].freeze
   SID = %w[sid sid-8580 spinel:check_sid].freeze
   DRIVES = %w[testbench-drive drive-scenarios testbench-vic20].freeze
+  # The PET's VIA is a Chips::VIA.
+  VIA = (DRIVES + PET).freeze
   CARTRIDGES = %w[testbench-carts testbench-expansions testbench-general].freeze
   # Every family's keyboard is an Input::Keyboard, which the C64, VIC-20
   # and C128 read their joysticks beside through the CIA and VIA ports and
   # the C128 types through, and the paddles and mouse feed the SID's pots.
-  INPUT = (C64 + VIC20 + C128 + PLUS4 + SID).uniq.freeze
+  INPUT = (C64 + VIC20 + C128 + PLUS4 + PET + SID).uniq.freeze
   # Media.attach loads the C64 and C128 testbench rows' programs and
   # cartridges, the SID testprogs and every drive scenario. The VIC-20 and
   # Plus/4 testbenches load their programs themselves, and the Lorenz
@@ -46,12 +49,13 @@ module CIReach
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
     ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version}.rb", []],
-    ["lib/badline/roms/{README,pet/**/*}", []],
+    ["lib/badline/roms/README", []],
+    ["lib/badline/roms/pet/**/*", PET],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],
     ["lib/badline/chips/sid{.rb,/**/*}", SID],
-    ["lib/badline/chips/via{.rb,/**/*}", DRIVES],
+    ["lib/badline/chips/via{.rb,/**/*}", VIA],
     ["lib/badline/chips/vic_i{.rb,/**/*}", VIC20],
     ["lib/badline/chips/{z80,vdc}{.rb,/**/*}", C128],
     ["lib/badline/c64/{cartridge,reu,banked_ram}{.rb,/**/*}", CARTRIDGES],
@@ -59,8 +63,7 @@ module CIReach
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
     ["lib/badline/{c128.rb,c128/**/*}", C128],
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
-    # No suite runs the PET yet.
-    ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", []],
+    ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", PET],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],

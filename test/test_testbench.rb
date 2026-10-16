@@ -639,6 +639,49 @@ class TestTestbenchPlus4 < Minitest::Test
   end
 end
 
+class TestTestbenchPET < Minitest::Test
+  # 10 POKE35839,0, which reports a pass through $8BFF.
+  REPORTS_PASS = [0x01, 0x04, 0x0d, 0x04, 0x0a, 0x00, 0x97, *"35839,0".bytes, 0x00, 0x00, 0x00].freeze
+
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), REPORTS_PASS.pack("C*"))
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(model = nil, type: "exitcode")
+    Testbench::PETTestlist.parse("#{@dir}/,t.prg,#{type},1000000", model)
+  end
+
+  def test_runs_a_row_on_the_model_of_xpets_hook
+    assert_equal [:pet, "8096", "t.prg"], [parse.family, parse.pet_model, parse.id.split("/").last]
+    refute_predicate Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000"), :pet?
+  end
+
+  def test_names_a_discrete_rows_model_in_its_id
+    assert_equal ["2001", "t.prg@2001"], [parse("2001").pet_model, parse("2001").id.split("/").last]
+  end
+
+  def test_takes_exitcode_rows_alone
+    assert_nil parse(type: "screenshot")
+  end
+
+  def test_hands_the_engine_its_model
+    assert Testbench::Engine.spec(parse("3032")).end_with?("\tt.prg\t#{@dir}\t3032\n")
+  end
+
+  # The 2001 repeats its screen RAM over $8800-$8FFF, where the debug
+  # register answers first.
+  def test_reports_through_8bff_over_the_2001s_screen
+    exit_code, screen = parse("2001").then { |test| test.run_pet(test.pet_machine) }
+
+    assert_equal [0, "*** commodore basic ***"], [exit_code, screen[0].rstrip]
+  end
+end
+
 class TestTestbenchC128 < Minitest::Test
   def parse(options, dir: "../VICII/border", prg: "t.prg", type: "screenshot")
     Testbench::C128Testlist.parse("#{dir}/,#{prg},#{type},1000,#{options}")
@@ -1188,6 +1231,7 @@ class TestTestbenchEngine < Minitest::Test
     def vic20? = false
     def c128? = false
     def plus4? = false
+    def pet? = false
   end
 
   def setup

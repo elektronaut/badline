@@ -14,6 +14,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] --family vic20 [--ram RAM]
 #   ruby --yjit bin/machine_diff [scenario|media] --family c128 [--mode c64|c128]
 #   ruby --yjit bin/machine_diff [scenario|media] --family plus4 [--model c16|c116] [--ram K]
+#   ruby --yjit bin/machine_diff [boot|type|demo] --family pet [--model MODEL] [--ram K]
 #
 # Scenarios:
 #   boot   power on and sit at the READY prompt
@@ -28,7 +29,7 @@
 # media, on the family each one names. Anything else is a path handed to
 # Badline::Media.attach: a PRG, a disk or tape image, a CRT or a directory.
 #
-# --family picks the machine: c64 (the default), vic20, c128 or plus4, with
+# --family picks the machine: c64 (the default), vic20, c128, plus4 or pet, with
 # --model naming its model (Badline::Machine.build). Each family runs the
 # same scenarios with a demo of its own:
 #
@@ -53,6 +54,14 @@
 #          step the border colour and the voice's pitch. Checkpoints digest
 #          the CPU, RAM, the TED's picture and registers, its sound, and
 #          the CPU's port with the ROM banks (Badline::Support::Plus4Checkpoint)
+#   pet    an 8032, or the PET --model names (Badline::PET::Model::ALL), with
+#          the RAM in K --ram names (4, 8, 16 or 32), the model's own
+#          otherwise. The demo runs VIA timer 1 and the VIA's shift
+#          register free and loops, writing to the screen RAM. It goes in
+#          at the start of BASIC once the machine has booted, since Media
+#          doesn't take a PET program yet, and there is no disk scenario.
+#          Checkpoints digest the CPU, RAM, the screen RAM, both PIAs, the
+#          VIA, the CRTC and the 8096's board (Badline::Support::PETCheckpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
@@ -132,7 +141,7 @@ module MachineDiff
     case scenario
     when "boot" then nil
     when "type" then computer.on_init { computer.type_text(options[:text]) }
-    when "demo" then Badline::Media.attach(computer, MachineFamilies.write_demo(dir, options))
+    when "demo" then MachineFamilies.attach_demo(computer, options, dir)
     when "disk"
       MachineFamilies.write_demo(dir, options)
       Badline::Media.attach(computer, dir)
@@ -309,6 +318,7 @@ require "badline"
 end
 problem = MachineFamilies.invalid(options)
 abort "machine_diff: #{problem}" if problem
+abort "machine_diff: the PET has no disk scenario" if options[:family] == "pet" && scenario == "disk"
 
 MachineDiff.alias_old_names
 MachineDiff.backport_readers

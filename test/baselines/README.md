@@ -198,6 +198,18 @@ Recorded output of the headless hardware suites, one file per suite:
   references, so a screenshot, 384 by 242 lines with the window from line
   18, is compared with the PAL reference on the lines both show, the
   window's corners lined up. Every row passes.
+- `testbench-pet.txt` — the same runner with `--pet`, over the `exitcode`
+  rows of `vendor/VICE-testprogs/testbench/pet-testlist.in`, the
+  `selftest` pair, on an 8096 with the 50 Hz editor, as xpet's hook
+  starts it. The program goes to the start of BASIC with BASIC's end
+  pointers set as LOAD sets them, RUN is typed once the machine has
+  booted, and the test reports through `$8BFF`. Screenshot rows wait for
+  the PET's video. On Spinel the rows run on `spinel/pet_testbench.rb`.
+- `testbench-pet-discrete.txt` — the same rows with `--pet-discrete`, on
+  a 2001 and on a 3032, the boards with the discrete video, each id
+  ending in `@2001` or `@3032`. badline answers `$8BFF` on the 2001 too,
+  ahead of the screen RAM it repeats there, where xpet's 2001 lets the
+  screen take the write.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
@@ -521,6 +533,8 @@ what the suite cost before it was sharded:
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |
 | `testbench-plus4` | 8 | — | 0.3 min | 0.3 min |
 | `testbench-c16` | 8 | — | 0.1 min | 0.1 min |
+| `testbench-pet` | 2 | — | 0.1 min | 0.1 min |
+| `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

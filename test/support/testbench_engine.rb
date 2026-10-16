@@ -26,6 +26,7 @@ module Testbench
     def self.spec(test)
       return vic20_spec(test) if test.vic20?
       return plus4_spec(test) if test.plus4?
+      return pet_spec(test) if test.pet?
       return c128_spec(test) if test.c128?
 
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
@@ -44,6 +45,10 @@ module Testbench
                 test.plus4_model]
       fields.push(test.plus4_ram_expansion, ("border" if test.border_result?)) if test.plus4_ram_expansion
       fields.join("\t") << "\n"
+    end
+
+    def self.pet_spec(test)
+      [test.key, test.type, test.budget, test.prg, test.dir_abs, test.pet_model].join("\t") << "\n"
     end
 
     def self.c128_spec(test)

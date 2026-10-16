@@ -42,6 +42,8 @@ module Badline
 
     def poke(addr, value) = @bus.poke(addr, value)
 
+    def install_debug_register(&) = @bus.install_debug_register(&)
+
     def family = :pet
 
     # +model+ names one of Model::ALL, with +ram_kb+ of RAM below $8000

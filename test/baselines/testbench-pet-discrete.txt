@@ -1,0 +1,4 @@
+selftest/pet-pass.prg@2001	PASS
+selftest/pet-pass.prg@3032	PASS
+selftest/pet-fail.prg@2001	PASS
+selftest/pet-fail.prg@3032	PASS

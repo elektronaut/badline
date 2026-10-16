@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../../lib/badline/support/plus4_checkpoint"
+require_relative "../../lib/badline/support/pet_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -211,11 +212,38 @@ PLUS4_DEMO_PRG = [
   0x00                    # the pitch
 ].pack("C*").freeze
 
+# The PET demo: 10 SYS1037, then the demo at $040D, which runs on every
+# model. It runs VIA timer 1 free and the VIA's shift register free on
+# CB2, the PET's sound, then loops, counting at $8000 and copying the
+# timer and the keyboard row PIA 1 reads to $8001 and $8002, while the
+# KERNAL's IRQ runs on.
+PET_DEMO_PRG = [
+  0x01, 0x04, # load address
+  0x0b, 0x04, 0x0a, 0x00, 0x9e, 0x31, 0x30, 0x33, 0x37, 0x00, 0x00, 0x00,
+  0x78,                   # sei
+  0xa9, 0x50,             # lda #$50
+  0x8d, 0x4b, 0xe8,       # sta $e84b
+  0xa9, 0xff,             # lda #$ff
+  0x8d, 0x44, 0xe8,       # sta $e844
+  0x8d, 0x45, 0xe8,       # sta $e845
+  0xa9, 0x0f,             # lda #$0f
+  0x8d, 0x4a, 0xe8,       # sta $e84a
+  0xa9, 0x20,             # lda #$20
+  0x8d, 0x48, 0xe8,       # sta $e848
+  0x58,                   # cli
+  0xee, 0x00, 0x80,       # inc $8000
+  0xad, 0x44, 0xe8,       # lda $e844
+  0x8d, 0x01, 0x80,       # sta $8001
+  0xad, 0x12, 0xe8,       # lda $e812
+  0x8d, 0x02, 0x80,       # sta $8002
+  0x4c, 0x26, 0x04        # jmp $0426
+].pack("C*").freeze
+
 # The machine bin/machine_diff's --family, --model, --mode and --ram
 # build, the demo program each family runs, and the checkpoint that
 # digests it. bin/snapshot_check digests its machines the same way.
 module MachineFamilies
-  NAMES = %w[c64 vic20 c128 plus4].freeze
+  NAMES = %w[c64 vic20 c128 plus4 pet].freeze
   MODES = %w[c128 c64].freeze
 
   module_function
@@ -227,14 +255,19 @@ module MachineFamilies
     family = options[:family]
     return TrueDrive.computer(options) if family == "c64" && options[:model].nil?
 
-    machine = case family
-              when "vic20" then vic20(options, media)
-              when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
-              when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
-              else Badline::Machine.build(:c64, model: options[:model])
-              end
+    machine = family_machine(family, options, media)
     plug_drive(machine, options) if options[:true_drive]
     machine
+  end
+
+  def family_machine(family, options, media)
+    case family
+    when "vic20" then vic20(options, media)
+    when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
+    when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
+    when "pet" then Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
+    else Badline::Machine.build(:c64, model: options[:model])
+    end
   end
 
   def vic20(options, media)
@@ -255,8 +288,24 @@ module MachineFamilies
     when "vic20" then VIC20_DEMO_PRG
     when "c128" then options[:mode] == "c128" ? C128_DEMO_PRG : DEMO_PRG
     when "plus4" then PLUS4_DEMO_PRG
+    when "pet" then PET_DEMO_PRG
     else DEMO_PRG
     end
+  end
+
+  # Loads the demo and runs it. Media doesn't take a PET program yet, so
+  # the PET's goes to the start of BASIC once booted, with the end of the
+  # program set as LOAD sets it, and RUN is typed.
+  def attach_demo(computer, options, dir)
+    return Badline::Media.attach(computer, write_demo(dir, options)) unless options[:family] == "pet"
+
+    computer.on_init do
+      program = PET_DEMO_PRG.bytes.drop(2)
+      finish = 0x0401 + program.length
+      computer.ram.write(0x0401, program)
+      computer.ram.write(computer.model.basic1? ? 0x7c : 0x2a, [finish & 0xff, finish >> 8])
+    end
+    computer.type_text("run\r")
   end
 
   # Writes the demo into `dir` as demo.prg, and returns its path.
@@ -279,6 +328,7 @@ module MachineFamilies
     when "vic20" then Badline::Support::Vic20Checkpoint
     when "c128" then Badline::Support::C128Checkpoint
     when "plus4" then Badline::Support::Plus4Checkpoint
+    when "pet" then Badline::Support::PETCheckpoint
     else Badline::Support::Checkpoint
     end
   end
@@ -303,7 +353,9 @@ module MachineFamilies
     end
     opts.on("--mode MODE", "The C128's mode: #{MODES.join(', ')} (default: c128)") { |mode| options[:mode] = mode }
     opts.on("--ram RAM", "The VIC-20's RAM expansion (default: what the media needs), " \
-                         "or the Plus/4's RAM in K (default: the model's own)") { |ram| options[:ram] = ram }
+                         "or the Plus/4's or the PET's RAM in K (default: the model's own)") do |ram|
+      options[:ram] = ram
+    end
     opts.separator ""
     opts.separator "Scenarios, on every family: boot, type (--text at the prompt), demo (a program built"
     opts.separator "here for the family, and for the C128's mode) and disk (the demo loaded from a host"
@@ -318,11 +370,12 @@ module MachineFamilies
     return "no C128 mode named #{options[:mode]} (#{MODES.join(', ')})" unless MODES.include?(options[:mode])
 
     return unless options[:ram]
-    return "--ram is the VIC-20's or the Plus/4's" unless %w[vic20 plus4].include?(family)
+    return "--ram is the VIC-20's, the Plus/4's or the PET's" unless %w[vic20 plus4 pet].include?(family)
+    return if family == "vic20"
 
-    sizes = Badline::Plus4::Model::RAM_SIZES
-    return if family == "vic20" || sizes.include?(options[:ram].to_i)
+    sizes = family == "pet" ? Badline::PET::Model::RAM_SIZES : Badline::Plus4::Model::RAM_SIZES
+    return if sizes.include?(options[:ram].to_i)
 
-    "no Plus/4 RAM size of #{options[:ram]}K (#{sizes.join(', ')})"
+    "no #{family == 'pet' ? 'PET' : 'Plus/4'} RAM size of #{options[:ram]}K (#{sizes.join(', ')})"
   end
 end

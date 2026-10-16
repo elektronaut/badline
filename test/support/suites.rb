@@ -95,6 +95,10 @@ module Suites
   # same rows on an NTSC Plus/4, its screenshots compared with the PAL
   # references on the lines both show. Their Spinel build is
   # spinel/plus4_testbench.rb.
+  # testbench-pet is the PET testlist's exitcode rows on an 8096, as xpet's
+  # hook starts it, and testbench-pet-discrete the same rows on a 2001 and
+  # a 3032, the boards with the discrete video, each row once on each.
+  # Their Spinel build is spinel/pet_testbench.rb.
   # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
   # PAL Plus/4, cut at the same tests as lorenz. The chain resumes past the
   # tests it sticks on from trap4 on, which keeps the last stretch, trap1 to
@@ -135,6 +139,8 @@ module Suites
     "testbench-plus4" => { runner: "bin/testbench", args: %w[--plus4], engine: "plus4_testbench" },
     "testbench-c16" => { runner: "bin/testbench", args: %w[--c16], engine: "plus4_testbench" },
     "testbench-plus4-ntsc" => { runner: "bin/testbench", args: %w[--plus4 --ntsc], engine: "plus4_testbench" },
+    "testbench-pet" => { runner: "bin/testbench", args: %w[--pet], engine: "pet_testbench" },
+    "testbench-pet-discrete" => { runner: "bin/testbench", args: %w[--pet-discrete], engine: "pet_testbench" },
     "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: %w[rola cmpix insay] },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },
