@@ -58,8 +58,9 @@ module Badline
       # isn't past `from`, and blacks out what its last one covered beyond
       # it.
       def span(line, from, to)
-        from = from.clamp(0, @width)
-        to = to.clamp(0, @width)
+        width = @width
+        from = 0 if from.negative?
+        to = width if to > width
         from = to = 0 if to <= from
         old_from = @span_from[line]
         old_to = @span_to[line]

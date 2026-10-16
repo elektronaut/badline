@@ -86,4 +86,11 @@ describe Badline::PET::CRTCVideo do
     first
     expect(dots(32, (273 - 121) / 2)).to eq(a_row(0))
   end
+
+  it "blacks out the lines a frame showed once the next frame shows others" do
+    cells[0] = 1
+    show_lines(120)
+    2.times { video.frame_start }
+    expect(dots(32, 36)).to eq(0)
+  end
 end

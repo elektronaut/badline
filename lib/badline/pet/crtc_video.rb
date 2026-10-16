@@ -45,6 +45,8 @@ module Badline
         @y = 0
         @from_y = 0
         @to_y = 0
+        @shown_from = 0
+        @shown_to = HEIGHT
         @on_canvas = false
         @origin = 0
         @from = 0
@@ -88,8 +90,10 @@ module Badline
 
       def frame_start
         end_canvas_line
-        sweep(0, @from_y)
-        sweep(@to_y, HEIGHT)
+        sweep(@shown_from, [@from_y, @shown_to].min)
+        sweep([@to_y, @shown_from].max, @shown_to)
+        @shown_from = @from_y
+        @shown_to = @to_y
         @frame_displayed = 0
         regs = @registers
         @origin = ((@canvas.width - (regs[1] << @char_shift)) >> 1) - ((regs[0] + 1 - regs[2]) << @char_shift)
