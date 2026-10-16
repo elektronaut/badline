@@ -80,6 +80,17 @@ describe Badline::Plus4 do
       expect([loaded.true_drive.model_name, loaded.drive1551]).to eq(["1541", nil])
     end
 
+    it "plugs in the saved machine's true drive model once restored" do
+      restored = described_class.new(true_drive_model: "1541").snapshot.load
+      expect(restored.plug_true_drive.model_name).to eq("1541")
+    end
+
+    it "keeps its own true drive model for a snapshot that names none" do
+      machine = described_class.new(true_drive_model: "1541")
+      machine.load_machine_fields(Badline::Snapshot::Keyed::Reader.new("BL-MACHINE"))
+      expect(machine.true_drive_model).to eq("1541")
+    end
+
     it "saves to a .vsf whose machine is PLUS4, with badline's modules alone" do
       saved("plus4").save_snapshot(path)
       snapshot = Badline::Snapshot.read(path)
