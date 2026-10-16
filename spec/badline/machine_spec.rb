@@ -60,8 +60,12 @@ describe Badline::Machine do
     expect([machine.class, machine.model, machine.ram_kb]).to eq([Badline::Plus4, Badline::Plus4::Model::C16, 16])
   end
 
+  it "refuses the PET until it runs" do
+    expect { described_class.build(:pet, model: "8032") }.to raise_error(ArgumentError, "the PET isn't emulated yet")
+  end
+
   it "refuses a family it can't build" do
-    expect { described_class.build(:pet, model: "c64") }.to raise_error(ArgumentError, /pet/)
+    expect { described_class.build(:cbm2, model: "c64") }.to raise_error(ArgumentError, /cbm2/)
   end
 
   describe ".for_options" do

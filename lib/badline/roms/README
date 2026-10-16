@@ -179,3 +179,129 @@ plus4/function-high.rom
 The Plus/4's 3-plus-1 function ROM, high half, 317054-01
 (3-plus-1.317054-01.bin), for $C000-$FFFF in ROM bank 1.
 SHA-1 0ad7ac2db7da692d972e586ca0dfd747d82c7693.
+
+Commodore PET/CBM ROMs
+======================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/pet/
+Each BASIC and KERNAL pair is one ROM set, and the editors and the
+character sets are files of their own, so a model's stock set and the
+upgrade ROMs Commodore sold can be picked apart. Nothing maps them yet.
+
+pet/basic1.rom
+--------------
+BASIC 1 for $C000-$DFFF, four 2K chips concatenated:
+901447-09 (rom-2-c000.901447-09.bin, the revision that replaced
+901447-01), 901447-02, 901447-03 and 901447-04 (rom-1-c800, rom-1-d000,
+rom-1-d800).
+SHA-1 3be9cd41b646fefa00d80f1c3433a06146e97c59.
+
+pet/editor1.rom
+---------------
+The BASIC 1 screen editor, 901447-05 (rom-1-e000.901447-05.bin), for
+$E000-$E7FF.
+SHA-1 f02f5fb492ba93dbbd390f24c10f7a832dec432a.
+
+pet/kernal1.rom
+---------------
+The BASIC 1 KERNAL for $F000-$FFFF, 901447-06 and 901447-07
+(rom-1-f000.901447-06.bin, rom-1-f800.901447-07.bin) concatenated.
+SHA-1 32dc08828e88c74d6433156e64d402b564556308.
+
+pet/characters1.rom
+-------------------
+The 2001's character generator, 901447-08 (characters-1.901447-08.bin),
+with upper and lower case swapped against 901447-10.
+SHA-1 3e067cc621e4beafca2b90cb8f6dba975df2855b.
+
+pet/basic2.rom
+--------------
+BASIC 2 for $C000-$DFFF, 901465-01 and 901465-02
+(basic-2-c000.901465-01.bin, basic-2-d000.901465-02.bin) concatenated.
+The 2K chips of the 6540 boards (rom-3-*) hold the same bytes.
+SHA-1 9322a9f0354b9049847d98d3a045fbec860a6264.
+
+pet/kernal2.rom
+---------------
+The BASIC 2 KERNAL, 901465-03 (kernal-2.901465-03.bin), for $F000-$FFFF.
+SHA-1 38742bdf449f629bcba6276ef24d3daeb7da6e84.
+
+pet/editor2-n.rom
+-----------------
+The BASIC 2 editor for the graphics keyboard, 901447-24
+(edit-2-n.901447-24.bin), for $E000-$E7FF.
+SHA-1 5e5502ce32f5a7e387d65efe058916282041e54b.
+
+pet/editor2-b.rom
+-----------------
+The BASIC 2 editor for the business keyboard, 901474-01
+(edit-2-b.901474-01.bin), for $E000-$E7FF.
+SHA-1 174ace3a8c0348cd21d39cc864e2adc58b0101a9.
+
+pet/characters2.rom
+-------------------
+The character generator of BASIC 2 and 4 machines, 901447-10
+(characters-2.901447-10.bin).
+SHA-1 0157a2d55b7ac4eaeb38475889ebeea52e2593db.
+
+pet/basic4.rom
+--------------
+BASIC 4 for $B000-$DFFF, 901465-23, 901465-20 and 901465-21
+(basic-4-b000.901465-23.bin, basic-4-c000.901465-20.bin,
+basic-4-d000.901465-21.bin) concatenated. 901465-23 is the patched
+$B000 chip that replaced 901465-19. The 8296's 324746-01 holds the same
+four chips.
+SHA-1 d70bec479e1e3a0d0908a4897066e9959bbc11c8.
+
+pet/kernal4.rom
+---------------
+The BASIC 4 KERNAL, 901465-22 (kernal-4.901465-22.bin), for
+$F000-$FFFF.
+SHA-1 96a0fa56e0c937da92971d9c99d504e44e898806.
+
+pet/editor4-n.rom
+-----------------
+The BASIC 4 editor for the graphics keyboard without a CRTC, 901447-29
+(edit-4-n.901447-29.bin), for $E000-$E7FF.
+SHA-1 e88f56e5c54b0e8d8d4e8cb39a4647c803c1f51c.
+
+pet/editor4-b.rom
+-----------------
+The BASIC 4 editor for the business keyboard without a CRTC, 901474-02
+(edit-4-b.901474-02.bin), for $E000-$E7FF.
+SHA-1 0ca5c4e8f532f914cb0bf86ea9900f20f0a655ce.
+
+pet/editor4-40-n-50hz.rom
+-------------------------
+The 4032's 50 Hz editor, 40 columns on a CRTC, graphics keyboard,
+901498-01 (edit-4-40-n-50Hz.901498-01.bin), for $E000-$E7FF.
+SHA-1 05af284c914d53a52987b5f602466de75765f650.
+
+pet/editor4-40-n-60hz.rom
+-------------------------
+The 4032's 60 Hz editor, 901499-01 (edit-4-40-n-60Hz.901499-01.bin),
+for $E000-$E7FF.
+SHA-1 8cbf086c1ce4dfb2a2fe24c47476dfb878493dee.
+
+pet/editor4-80-b-50hz.rom
+-------------------------
+The 8032's 50 Hz editor, 80 columns on a CRTC, business keyboard,
+901474-04, the chip dated 3681
+(edit-4-80-b-50Hz.901474-04-3681.bin), for $E000-$E7FF.
+SHA-1 7040b283ba39e9630e3d147f7d076b7abc39bc70.
+
+zimmers.net has three dumps of 901474-04 that differ. This one is the
+60 Hz 901474-03 below with the 50 Hz jiffy clock patch at $E431-$E441
+and $E455, the CRTC's vertical registers (R4, R5 and R7) changed in both
+of its register tables at $E72A, and the byte at $E787 changed to keep
+the ROM's byte sum at $8A, the same as 901474-03's. The line length (R0)
+stays the 60 Hz editor's. A second chip, dated 0384, reads the same
+(8296/edit-50hz-324243-02b.txt). The -0283 dump changes R0 and sums to
+$AE, and the _alt dump changes R0 and $E787.
+
+pet/editor4-80-b-60hz.rom
+-------------------------
+The 8032's 60 Hz editor, 901474-03 (edit-4-80-b-60Hz.901474-03.bin),
+for $E000-$E7FF.
+SHA-1 c605fa343fd77c73cbe1e0e9567e2f014f6e7e30.
