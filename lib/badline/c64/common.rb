@@ -10,7 +10,7 @@ module Badline
       def timing
         region = address_bus.region
         Timing.new(clock_hz: region.clock_hz, cycles_per_line: region.cycles_per_line,
-                   lines_per_frame: region.lines_per_frame, crop: region.crop, pixel_width: 1)
+                   lines_per_frame: region.lines_per_frame, crop: region.crop, pixel_width: 1, dots: 1)
       end
 
       def load_prg(data)

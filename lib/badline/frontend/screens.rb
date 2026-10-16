@@ -71,7 +71,8 @@ module Badline
         else
           timing = @computer.timing
           @screen = Screen.new(@computer.video, timing.crop,
-                               pixel_width: timing.pixel_width, frame_lines: timing.lines_per_frame)
+                               pixel_width: timing.pixel_width, dots: timing.dots,
+                               frame_lines: timing.lines_per_frame)
         end
       end
 

@@ -16,6 +16,11 @@ describe Badline::Frontend::Screens do
     frames.times { screens.follow }
   end
 
+  it "builds a machine's screen with the dots its timing shares a window pixel between" do
+    allow(computer).to receive(:timing).and_return(computer.timing.with(dots: 2))
+    expect(screens.screen.width).to eq(2 * Badline::Frontend::Screen::MIN_WIDTH)
+  end
+
   it "switches to the VDC once the C128 has printed there for FOLLOW_FRAMES frames" do
     follow(true)
     expect(screens.vdc_shown?).to be(true)

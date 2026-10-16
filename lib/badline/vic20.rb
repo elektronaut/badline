@@ -120,7 +120,7 @@ module Badline
       blanked = profile.blanked_lines
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
                  lines_per_frame: profile.lines_per_frame,
-                 crop: [0, blanked, width, profile.lines_per_frame - blanked], pixel_width: 2)
+                 crop: [0, blanked, width, profile.lines_per_frame - blanked], pixel_width: 2, dots: 1)
     end
 
     # The RESTORE key pulls VIA 1's CA1 low while it is held. The KERNAL
