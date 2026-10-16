@@ -7,6 +7,8 @@ module Badline
     # It loads on its own, for Options.
     #
     # - :disk, a disk image that the traps mount and a true drive reads
+    # - :ieee_disk, an 8050's or 8250's disk image, for a PET's IEEE-488
+    #   drive
     # - :gcr, a disk's raw GCR, which only a true drive reads
     # - :archive, a .t64, which the traps mount read-only
     # - :tape, :cartridge and :tune
@@ -14,7 +16,8 @@ module Badline
     module Extensions
       KINDS = {
         ".d64" => :disk, ".d71" => :disk, ".d81" => :disk, ".g64" => :gcr, ".g71" => :gcr, ".t64" => :archive,
-        ".tap" => :tape, ".crt" => :cartridge, ".sid" => :tune, ".m3u" => :disk_list, ".vfl" => :disk_list
+        ".d80" => :ieee_disk, ".d82" => :ieee_disk, ".tap" => :tape, ".crt" => :cartridge, ".sid" => :tune,
+        ".m3u" => :disk_list, ".vfl" => :disk_list
       }.freeze
 
       # The kind of the medium at `path`, by its extension.
@@ -36,8 +39,9 @@ module Badline
       # Programs, which load on their own.
       PROGRAMS = %w[.prg .p00].freeze
 
-      # Every medium Media.attach takes by its extension.
-      ALL = (KINDS.keys + PROGRAMS).freeze
+      # Every medium Media.attach takes by its extension. No machine takes
+      # an :ieee_disk yet.
+      ALL = (KINDS.keys - of(%i[ieee_disk]) + PROGRAMS).freeze
     end
   end
 end

@@ -120,8 +120,10 @@ module Badline
 
       private
 
-      # The VIC-20 and the 264 series have no SID to play a .sid tune on.
+      # The VIC-20 and the 264 series have no SID to play a .sid tune on,
+      # and no machine yet has the IEEE-488 drive a .d80 or .d82 goes in.
       def refuse_unsupported(computer, path)
+        raise ArgumentError, "#{path} needs a PET's IEEE-488 drive" if Extensions.kind(path) == :ieee_disk
         return unless Vic20Media::UNSUPPORTED.include?(File.extname(path).downcase)
 
         case computer.family
