@@ -5,6 +5,7 @@
 # empty directory. Each writes the image to the path and returns it.
 module BlankDisk
   D64_SECTORS = ([21] * 17) + ([19] * 7) + ([18] * 6) + ([17] * 5)
+  D80_SECTORS = ([29] * 39) + ([27] * 14) + ([25] * 11) + ([23] * 13)
 
   def blank_d64(path, name: "BLANK")
     bytes = Array.new(174_848, 0)
@@ -36,6 +37,33 @@ module BlankDisk
     File.binwrite(path, bytes.pack("C*"))
     path
   end
+
+  # As VICE's c1541 formats them: the header at 39/0, an empty directory
+  # at 39/1, and the BAM in blocks 0 and 3 of track 38, and 6 and 9 on an
+  # 8250, each covering 50 tracks.
+  def blank_d80(path, name: "BLANK", id: "AB", sides: 1)
+    sectors = D80_SECTORS * sides
+    bytes = Array.new(sectors.sum * 256, 0)
+    offset = ->(track, sector) { (sectors.first(track - 1).sum + sector) * 256 }
+    bytes[offset[39, 0], 3] = [38, 0, 0x43]
+    bytes[offset[39, 0] + 0x06, 27] = padded(name) + [0xa0, 0xa0] + id.bytes + [0xa0, 0x32, 0x43] + ([0xa0] * 4)
+    bytes[offset[39, 1], 2] = [0, 0xff]
+    groups = (1..sectors.length).each_slice(50).to_a
+    groups.each_with_index do |tracks, block|
+      bam = offset[38, 3 * block]
+      link = block == groups.length - 1 ? [39, 1] : [38, 3 * (block + 1)]
+      bytes[bam, 6] = link + [0x43, 0, tracks.first, tracks.last + 1]
+      tracks.each_with_index do |track, i|
+        used = { 38 => (0...groups.length).map { |b| 3 * b }, 39 => [0, 1] }.fetch(track, [])
+        count = sectors[track - 1]
+        bytes[bam + 6 + (5 * i), 5] = [count - used.length, *free_bitmap(count, used, 4)]
+      end
+    end
+    File.binwrite(path, bytes.pack("C*"))
+    path
+  end
+
+  def blank_d82(path, name: "BLANK", id: "AB") = blank_d80(path, name:, id:, sides: 2)
 
   def d64_offset(track, sector)
     (D64_SECTORS.first(track - 1).sum + sector) * 256

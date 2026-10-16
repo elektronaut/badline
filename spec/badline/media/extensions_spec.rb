@@ -6,7 +6,8 @@ describe Badline::Media::Extensions do
   describe ".kind" do
     {
       "game.d64" => :disk, "GAME.D81" => :disk, "game.g71" => :gcr, "game.t64" => :archive, "game.tap" => :tape,
-      "game.crt" => :cartridge, "tune.sid" => :tune, "set.vfl" => :disk_list, "game.p00" => :program, "game" => :program
+      "game.crt" => :cartridge, "tune.sid" => :tune, "set.vfl" => :disk_list, "game.p00" => :program,
+      "game" => :program, "game.d80" => :ieee_disk, "GAME.D82" => :ieee_disk
     }.each do |name, kind|
       it "takes #{name} for #{kind}" do
         expect(described_class.kind("/media/#{name}")).to eq(kind)

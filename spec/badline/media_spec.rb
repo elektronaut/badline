@@ -72,6 +72,11 @@ describe Badline::Media do
   end
 
   describe ".attach" do
+    it "refuses an 8250 disk, which needs a PET's IEEE-488 drive" do
+      path = File.join(dir, "disk.d82").tap { |disk| File.binwrite(disk, "\x00") }
+      expect { described_class.attach(computer, path) }.to raise_error(ArgumentError, /IEEE-488/)
+    end
+
     context "with a directory" do
       it "mounts it as device 8" do
         allow(computer).to receive(:mount)
