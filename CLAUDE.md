@@ -14,8 +14,8 @@ directory: `chips/vic.rb` is `Badline::Chips::VIC`.
   the VIC holds BA low). `c64/` holds the rest of the C64's board:
   `c64/bus.rb` handles banking and page-table dispatch, and
   `c64/banked_ram.rb` and `c64/banked_ram/` the +60K and +256K boards
-  that bank in extra RAM through `$D100`. `vic20.rb` and `vic20/`, and
-  `c128.rb` and `c128/`, are the other two families, and `machine.rb`
+  that bank in extra RAM through `$D100`. `vic20.rb` and `vic20/`, `c128.rb` and `c128/`,
+  `plus4.rb` and `plus4/`, and `pet.rb` and `pet/` are the other families, and `machine.rb`
   builds each by name. Every family reads and writes memory as its CPU
   sees it with `peek` and `poke`
 - **CPU**: `chips/cpu.rb` and `chips/cpu/`: the 6502 core
@@ -25,10 +25,11 @@ directory: `chips/vic.rb` is `Badline::Chips::VIC`.
   C128's Z80
 - **VIC-II**: `chips/vic.rb` and `chips/vic/`, covering the sequencer,
   sprites, graphics modes, border and register timing. `chips/vic_i.rb`
-  is the VIC-20's VIC-I and its sound, and `chips/vdc.rb` the C128's VDC
+  is the VIC-20's VIC-I and its sound, `chips/vdc.rb` the C128's VDC,
+  and `chips/crtc.rb` the PET's 6545 CRTC
 - **CIA**: `chips/cia.rb` and `chips/cia/` (timers, serial and the TOD
-  clock, `time_of_day.rb`). `chips/via.rb` is the 6522 of the VIC-20 and
-  the drives
+  clock, `time_of_day.rb`). `chips/via.rb` is the 6522 of the VIC-20, the
+  drives and the PET, and `chips/pia.rb` the PET's 6520 PIA
 - **REU**: `c64/reu.rb` and `c64/reu/`, the RAM Expansion Unit's
   registers and its DMA, which `C64#cycle!` clocks in place of the CPU
   while it holds the bus
@@ -70,7 +71,7 @@ file: `core.rb` requires their members one by one.
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | SingleStepTests z80 | `rake test` (the first 100 cases per opcode, `Z80_SAMPLE=all` for all 1,604,000) | `Z80`: registers, flags, ports and the bus pins on every T-state |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts; its plus4 build with `--plus4`: the CPU on the 264's bus, the TED's clock, DMA, timers and interrupt |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4` and the C16 with `--c16` |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4`, the C16 with `--c16`, and the PET with `--pet` (8096) and `--pet-discrete` (2001, 3032) |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart; the `plus4-*` rows on the Plus/4 and C16, with the 1541 and 1581 on their serial bus and a tape saved and loaded back on the datasette |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/chips/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
@@ -274,7 +275,7 @@ serial bus, its media, the CPU port or the datasette.
 Its tests run one at a time as the C64's do, with
 `ruby --yjit bin/lorenz --plus4 --resume <test> --stop-after <test>`; the C128 (`c128.rb`, `c128/`), or
 the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`
-(`bin/testbench --c128c64`); the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
+(`bin/testbench --c128c64`); the PET (`pet.rb`, `pet/`), its 6520 PIA (`chips/pia.rb`) or its CRTC (`chips/crtc.rb`) → `testbench-pet` (`bin/testbench --pet`) and `testbench-pet-discrete` (`bin/testbench --pet-discrete`); the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the
