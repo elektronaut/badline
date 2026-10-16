@@ -69,11 +69,12 @@ module Badline
     # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
-    # the model's own RAM.
+    # the model's own RAM. :pet is refused until the PET runs.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
+      raise ArgumentError, "the PET isn't emulated yet" if family == :pet
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)

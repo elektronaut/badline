@@ -46,6 +46,7 @@ module CIReach
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
     ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version}.rb", []],
+    ["lib/badline/roms/{README,pet/**/*}", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],

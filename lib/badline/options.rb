@@ -14,8 +14,9 @@ module Badline
   # first, plays .sid tunes and directories of them in the terminal.
   # `c64`, `vic20`, `c128` or `plus4`, given first, names the machine
   # family, and without one the family is the C64, or the C128 for a program
-  # that loads where C128 BASIC starts. The native build adds --no-sound and
-  # --version, and badline-ruby adds --disable-jit.
+  # that loads where C128 BASIC starts. `pet` is refused until the PET runs.
+  # The native build adds --no-sound and --version, and badline-ruby adds
+  # --disable-jit.
   #
   # TABLE lists the options, and both the parser and the help read it. It
   # parses by hand, inside the subset of Ruby Spinel compiles. Values come

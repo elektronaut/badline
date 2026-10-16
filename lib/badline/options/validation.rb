@@ -92,6 +92,8 @@ module Badline
       end
 
       def validate_family
+        raise Error, "the PET isn't emulated yet" if @family == :pet
+
         if @family == :vic20
           validate_vic20
         elsif !@ram.nil?
