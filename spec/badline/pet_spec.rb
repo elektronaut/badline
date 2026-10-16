@@ -45,6 +45,31 @@ describe Badline::PET do
       pet.run_cycles(200 * 64)
       expect(pet.pia1.crb & 0x80).to eq(0x80)
     end
+
+    it "shows its 384 by 217 dot canvas whole, a dot to a pixel" do
+      expect(pet.timing.to_h.slice(:crop, :pixel_width, :dots)).to eq(crop: [0, 0, 384, 217], pixel_width: 1, dots: 1)
+    end
+
+    it "runs 260 lines of 64 cycles a frame" do
+      expect([pet.timing.cycles_per_line, pet.timing.lines_per_frame]).to eq([64, 260])
+    end
+  end
+
+  describe "on an 80-column board" do
+    subject(:pet) { described_class.new(model: "8032") }
+
+    it "shows its 704 dots wide canvas two dots to a pixel" do
+      expect(pet.timing.to_h.slice(:crop, :dots)).to eq(crop: [0, 0, 704, 273], dots: 2)
+    end
+
+    it "times its 50 Hz editor's frames" do
+      expect(pet.timing.cycles_per_line * pet.timing.lines_per_frame).to eq(20_000)
+    end
+
+    it "times its 60 Hz editor's frames" do
+      timing = described_class.new(model: "8032", refresh_hz: 60).timing
+      expect(timing.cycles_per_line * timing.lines_per_frame).to eq(16_650)
+    end
   end
 
   describe "booted", :slow do
@@ -73,6 +98,16 @@ describe Badline::PET do
     [["4032", :a, "A"], ["8032", :a, "A"], ["4032", :*, "*"], ["8032", :kp1, "1"]].each do |model, key, typed|
       it "types #{key} held down on the #{model}'s key matrix" do
         expect(pressed_once(model, key, 50_000, refresh_hz: 60, ram_kb: 4)[5]).to include(typed)
+      end
+    end
+
+    %w[2001 3032].each do |model|
+      it "paints the #{model}'s first character on its canvas" do
+        pet, = booted_once(model)
+        canvas = pet.video
+        rows = Badline::PET::Characters.new(pet.model.characters).rows
+        dots = canvas.display[(8 * canvas.width) + 32, 8].reduce(0) { |bits, dot| (bits << 1) | dot }
+        expect(dots).to eq(rows[pet.bus.screen.cells[0] << 3])
       end
     end
 

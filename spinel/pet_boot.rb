@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Boots a PET headless and types `print 6*7` once it is up.
-# Prints digests of the CPU, the RAM, the screen, the PIAs, the VIA and the
-# CRTC every quarter million cycles, then the screen, counts and
+# Prints digests of the CPU, the RAM, the screen, the PIAs, the VIA, the
+# CRTC and the picture every quarter million cycles, then the screen, counts and
 # registers, and the speed from timed_from on. Builds with Spinel as well
 # as running on CRuby:
 #
@@ -39,7 +39,8 @@ def checkpoint(machine)
     "pia1" => fnv1a(pia_state(machine.pia1)),
     "pia2" => fnv1a(pia_state(machine.pia2)),
     "via" => fnv1a(via_state(machine.via)),
-    "crtc" => fnv1a(crtc.registers + [crtc.column, crtc.line, crtc.row])
+    "crtc" => fnv1a(crtc.registers + [crtc.column, crtc.line, crtc.row]),
+    "video" => fnv1a(machine.video.display)
   }
   fields = digests.map { |name, digest| "#{name}=#{digest.to_s(16).rjust(8, '0')}" }
   "#{machine.cycles} #{fields.join(' ')}"
