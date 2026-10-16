@@ -35,10 +35,10 @@ CRuby.
   it again the same, digests of both machines every 250,000 cycles, and
   whether both save the same snapshot at the end. Arguments pick the
   cycle it saves at, the cycles to run and the model.
-- `pet_boot.rb` boots a PET headless to READY. It prints digests of the
-  CPU, the RAM, the screen, both PIAs, the VIA and the CRTC every 250,000
-  cycles, then the screen, the counts and the registers. Arguments pick
-  the model and the CRTC editor's frame rate.
+- `pet_boot.rb` boots a PET headless and types `print 6*7`. It prints
+  digests of the CPU, the RAM, the screen, both PIAs, the VIA and the CRTC
+  every 250,000 cycles, then the screen, the counts and the registers.
+  Arguments pick the model and the CRTC editor's frame rate.
 - `boot_support.rb` holds what the five boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
