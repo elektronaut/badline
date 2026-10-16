@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/kernal_trap/layout"
+require "badline/kernal_trap/ieee_layout"
 require "badline/kernal_trap/routine"
 require "badline/kernal_trap/dos"
 require "badline/kernal_trap/file_routine"
