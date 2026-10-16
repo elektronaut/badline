@@ -5,6 +5,8 @@ require "badline/pet/cpu"
 require "badline/pet/via"
 require "badline/pet/via_ports"
 require "badline/pet/keyboard_ports"
+require "badline/pet/characters"
+require "badline/pet/canvas"
 require "badline/pet/discrete_video"
 require "badline/pet/bus"
 
@@ -25,7 +27,8 @@ module Badline
   # the business one as the model has, and type_text types through the
   # editor's keyboard buffer.
   #
-  # It runs headless, with no picture, sound or media yet.
+  # The discrete boards paint their picture (DiscreteVideo) on a Canvas.
+  # It runs headless, with no CRTC picture, sound or media yet.
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
@@ -57,7 +60,6 @@ module Badline
       @refresh_hz = @model.crtc? ? refresh_hz : 60
       @crtc_video = @model.crtc?
       @crtc = Chips::CRTC.new
-      @discrete = DiscreteVideo.new
       @vertical_drive = true
       matrix = @model.keyboard == :business ? KeyboardPorts::BUSINESS_MATRIX : KeyboardPorts::GRAPHICS_MATRIX
       @keyboard = Input::Keyboard.new(matrix:)
@@ -68,6 +70,9 @@ module Badline
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
       @bus = Bus.new(model: @model, ram_kb:, editor: @model.editor(@refresh_hz), pia1: @pia1, pia2: @pia2,
                      via: @via, crtc: @crtc)
+      @discrete = DiscreteVideo.new(@bus.screen.cells, Characters.new(@model.characters), @via)
+      @canvas = @discrete.canvas
+      @canvas = Canvas.new(@model.video == :crtc80 ? 704 : 384, 273) if @crtc_video
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
@@ -77,6 +82,24 @@ module Badline
 
     # The vertical drive line, high but in the retrace.
     def vertical_drive? = @vertical_drive
+
+    # The Canvas a front end shows.
+    def video = @canvas
+
+    # The 1 MHz clock and the frame the editor sets up, and all of the
+    # Canvas. The CRTC editors' lines are 50 cycles, 400 of them a frame at
+    # 50 Hz and 333 at 60 Hz, which a program can change. 80 columns show
+    # two dots to a window pixel.
+    def timing
+      crop = [0, 0, @canvas.width, @canvas.height]
+      if @crtc_video
+        Timing.new(clock_hz: 1_000_000, cycles_per_line: 50, lines_per_frame: @refresh_hz == 50 ? 400 : 333,
+                   crop:, pixel_width: 1, dots: @model.video == :crtc80 ? 2 : 1)
+      else
+        Timing.new(clock_hz: 1_000_000, cycles_per_line: DiscreteVideo::CYCLES_PER_LINE,
+                   lines_per_frame: DiscreteVideo::LINES_PER_FRAME, crop:, pixel_width: 1, dots: 1)
+      end
+    end
 
     # The video counts and moves the vertical drive line, then the PIAs
     # and the VIA clock, ahead of the CPU.

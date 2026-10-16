@@ -48,6 +48,7 @@ only catches the rows that happen to move.
 - [SID data bus](#sid-data-bus)
 - [SID envelope](#sid-envelope)
 - [`.sid` tune banking](#sid-tune-banking)
+- [PET discrete video](#pet-discrete-video)
 
 ## CPU interrupt recognition
 
@@ -2162,3 +2163,25 @@ testprogs named.
   in `$19` and goes silent when BASIC writes `$0a` there.
   - Spec guard:
     [`sid_tune/file/driver_spec.rb`](../spec/badline/sid_tune/file/driver_spec.rb).
+
+## PET discrete video
+
+- The 2001's and 3000 series' frame is 260 lines of 64 cycles, 16,640
+  cycles, and the vertical drive line is low for 3,840 of them, 60 lines.
+  - Pinned by xpet's 2001 and 3032 as a black box: the falling edges of
+    VIA PB5, timed with VIA T1 over 64 frames, come 16,640 cycles apart,
+    each low for 3,840. Nothing checks the 64-cycle line itself.
+  - Spec guard: *the vertical drive line* in
+    [`pet/discrete_video_spec.rb`](../spec/badline/pet/discrete_video_spec.rb).
+- A line's 40 characters come in its last 40 cycles, 24 cycles after the
+  line starts, and the vertical drive line falls right after line 199's
+  last character. Each character reads the screen RAM as it stands before
+  the CPU's access in the same cycle.
+  - Pinned by `PET/hi-res`, which rewrites the screen RAM as the beam
+    reads it: its picture matches `hi-res.bitmap` (all but the bitmap's
+    tenth column, which `hi-res.py` makes from an immediate that isn't a
+    screen write) with the characters anywhere from 6 to 32 cycles after
+    the line starts. 24 puts them at the end of the line, so the vertical
+    drive line falls as the display ends.
+  - Spec guard: *shows a line's characters in its last 40 cycles* in
+    [`pet/discrete_video_spec.rb`](../spec/badline/pet/discrete_video_spec.rb).
