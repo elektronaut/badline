@@ -84,6 +84,28 @@ module Badline
         end
       end
 
+      # VICE's debug cartridge register at $8BFF, which a write calls the
+      # handler with, the exit code the VICE testprogs report. It answers
+      # on every model, ahead of the 2001's screen RAM there and the
+      # 8096's banks, and every other write to its page passes to what
+      # the page holds.
+      class DebugRegister
+        ADDRESS = 0x8bff
+
+        attr_accessor :under
+
+        def initialize(&handler)
+          @handler = handler
+          @under = nil
+        end
+
+        def poke(addr, value)
+          return @handler.call(value) if addr == ADDRESS
+
+          @under.poke(addr, value)
+        end
+      end
+
       attr_reader :ram, :screen, :expansion
 
       # The last byte the CPU read or wrote.
@@ -107,6 +129,7 @@ module Badline
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @open_bus)
         @expansion = model.expansion ? Expansion.new(self) : nil
+        @debug_register = nil
         map_pages
       end
 
@@ -130,6 +153,12 @@ module Badline
         @write_pages[addr >> 8].poke(addr, value)
       end
 
+      # Calls the block with each byte written to $8BFF (DebugRegister).
+      def install_debug_register(&)
+        @debug_register = DebugRegister.new(&)
+        map_pages
+      end
+
       # Lays the pages out again, for the 8096's control register.
       def map_pages
         map(@open_bus, 0x00, 0x100)
@@ -140,9 +169,15 @@ module Badline
         map(@io, 0xe8, 0x01)
         @read_pages.fill(@kernal_rom, 0xf0, 0x10)
         @expansion&.map(@read_pages, @write_pages)
+        map_debug_register if @debug_register
       end
 
       private
+
+      def map_debug_register
+        @debug_register.under = @write_pages[0x8b]
+        @write_pages[0x8b] = @debug_register
+      end
 
       def map(chip, first, count)
         @read_pages.fill(chip, first, count)

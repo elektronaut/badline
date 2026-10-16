@@ -183,4 +183,39 @@ describe Badline::PET::Bus do
       expect(bus.peek(0xfffc)).to eq(0x16)
     end
   end
+
+  describe "the debug register" do
+    # The bytes the debug register took from +writes+, address and value
+    # pairs poked in turn.
+    def debug_writes(*writes)
+      written = []
+      bus.install_debug_register { |value| written << value }
+      writes.each_slice(2) { |addr, value| bus.poke(addr, value) }
+      written
+    end
+
+    it "takes a write to $8BFF" do
+      expect(debug_writes(0x8bff, 0xff)).to eq([0xff])
+    end
+
+    context "with the 2001's screen RAM there" do
+      let(:model_name) { "2001" }
+
+      it "keeps the write from the screen" do
+        expect([debug_writes(0x8bff, 0x01), bus.screen.cells[0x3ff]]).to eq([[0x01], 0x00])
+      end
+
+      it "passes the page's other writes on to the screen" do
+        expect([debug_writes(0x8bfe, 0x41), bus.screen.cells[0x3fe]]).to eq([[], 0x41])
+      end
+    end
+
+    context "with the 8096's banks laid over it" do
+      let(:model_name) { "8096" }
+
+      it "still takes the write" do
+        expect([debug_writes(0xfff0, 0x80, 0x8bff, 0x01), bus.expansion.cells[0x0bff]]).to eq([[0x01], 0x00])
+      end
+    end
+  end
 end
