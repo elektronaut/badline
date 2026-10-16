@@ -39,8 +39,9 @@ module Badline
       # Programs, which load on their own.
       PROGRAMS = %w[.prg .p00].freeze
 
-      # Every medium Media.attach takes by its extension.
-      ALL = (KINDS.keys + PROGRAMS).freeze
+      # Every medium Media.attach takes by its extension. No machine takes
+      # an :ieee_disk yet.
+      ALL = (KINDS.keys - of(%i[ieee_disk]) + PROGRAMS).freeze
     end
   end
 end
