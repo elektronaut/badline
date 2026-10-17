@@ -120,6 +120,38 @@ describe Badline::Frontend::MenuPages do
     end
   end
 
+  describe "with a PET" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::PET.new(model: "3032") }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    it "names its keyboard on the ports page" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "GRAPHICS", anything)
+    end
+
+    it "says where RUN/STOP is" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "ESC: RUN/STOP", anything)
+    end
+
+    it "offers no joysticks" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).not_to have_received(:toggle)
+    end
+
+    context "with the business keyboard" do
+      let(:computer) { Badline::PET.new(model: "8032") }
+
+      it "says where REPEAT is" do
+        pages.draw(:ports, 0, 0)
+        expect(painter).to have_received(:text).with(0, anything, "PAGE UP: REPEAT", anything)
+      end
+    end
+  end
+
   describe "with a Plus/4" do
     subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
 

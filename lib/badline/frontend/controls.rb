@@ -7,7 +7,9 @@ module Badline
     # - The keys: every host key goes to the machine's keyboard, or, as Tab
     #   switches, the arrow cluster and space drive one joystick and WASD
     #   and left shift the other. The arrows start on joystick 2, and
-    #   #swap_ports swaps them. The VIC-20's one joystick takes both.
+    #   #swap_ports swaps them. The VIC-20's one joystick takes both. The
+    #   PET has no joystick, and its keys go by the character they type
+    #   (PETKeyboard).
     # - A pot device the pause menu plugs into a C64 control port: a 1351
     #   mouse or a pair of paddles, which the host mouse drives. Motion
     #   turns the paddles or moves the mouse, and the host's left and right
@@ -30,6 +32,7 @@ module Badline
         @mouse = Input::Mouse1351.new
         @paddles = Input::Paddles.new
         @held = {}
+        @pet_keyboard = pet_keyboard(computer)
       end
 
       # Routes the input to another machine, the pot device going into its
@@ -37,6 +40,7 @@ module Badline
       def computer=(computer)
         release_all
         @computer = computer
+        @pet_keyboard = pet_keyboard(computer)
         attach_pot_device
       end
 
@@ -48,9 +52,15 @@ module Badline
         release_all
       end
 
+      # Switches between the keyboard and the joysticks, on a machine with
+      # joysticks.
       def toggle_keys
-        self.joystick_mode = !@joystick
+        self.joystick_mode = !@joystick if tab_toggles?
       end
+
+      # Whether Tab switches the keys to the joysticks, or on the PET, which
+      # has none, is a key of its own.
+      def tab_toggles? = @computer.family != :pet
 
       # Plugs in one of POTS, in place of the one before.
       def plug(pot)
@@ -106,6 +116,8 @@ module Badline
       # A host key lets go of the key it pressed, though the C128 has
       # switched between C64 and C128 mode since and maps it elsewhere.
       def machine_key(scancode, down)
+        return @pet_keyboard.key(scancode, down) if @computer.family == :pet
+
         @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
         key = @held[scancode]
         @held.delete(scancode) unless down
@@ -147,7 +159,7 @@ module Badline
       # A fresh pot device on its port, and none on the other. A machine
       # without the ports takes none.
       def attach_pot_device
-        ports = @computer.control_ports
+        ports = @computer.family == :pet ? nil : @computer.control_ports
         if ports.nil?
           @pot = :none
           return
@@ -199,7 +211,15 @@ module Badline
         down ? joystick.press(direction) : joystick.release(direction)
       end
 
+      # The PET's keyboard for a PET, and for any other machine one it never
+      # uses.
+      def pet_keyboard(computer)
+        PETKeyboard.new(computer.keyboard, computer.family == :pet ? computer.model.keyboard : :graphics)
+      end
+
       def release_all
+        return @pet_keyboard.release_all if @computer.family == :pet
+
         Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
         Keys::WASD.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
         Keys::ARROWS.each_value do |direction|
