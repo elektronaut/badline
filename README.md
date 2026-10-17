@@ -325,7 +325,8 @@ A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
 program that loads at `$0401` starts a C64, since a VIC-20 with 3K loads
 there too. Disks go through the KERNAL traps on the IEEE-488 bus as
 device 8, and tapes play on cassette port 1. The keys type what the host's
-keys type, on either keyboard: [Input](#input) lists the rest. The pause
+keys type, on either keyboard, and `Alt` adds the PET's `SHIFT`:
+[Input](#input) lists the rest. The pause
 menu's Power page names the model, its RAM and its frame rate, and its
 Expansion port page its RAM and the 8096's 64K board. The PET has no
 joysticks. `F11` and the Snapshots page save it as they do the others,
@@ -400,8 +401,12 @@ press nothing.
 The PET types the characters on the host's keys, so Shift and `'` type
 `"` on the graphics keyboard, where `"` has a key of its own, and on the
 business keyboard, where it's `SHIFT` and `2`. Shift with a letter types
-the graphics character on its key. The keys without a character are
-here, with the pause menu's Ports page listing them too:
+the graphics character on its key. Either `Alt` with a key presses the
+PET's `SHIFT` and the key its unshifted character is on, so `Alt` and
+`'` type the graphics character on the graphics keyboard's `'` key, and
+on the business keyboard the character `SHIFT` gives that key. The keys
+without a character are here, with the pause menu's Keyboard page
+listing them too:
 
 | PET | Host |
 |-----|------|
@@ -460,7 +465,7 @@ too.
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
-| Ports | The device in each control port, and where the keys go |
+| Ports | The device in each control port, and where the keys go. On the PET, Keyboard: where its keys are |
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 or a PET its model and RAM |
 

@@ -137,6 +137,11 @@ describe Badline::Frontend::MenuPages do
       expect(painter).to have_received(:text).with(0, anything, "ESC: RUN/STOP", anything)
     end
 
+    it "says Alt types the graphics on the symbol keys" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "ALT+SYMBOL: GRAPHIC", anything)
+    end
+
     it "offers no joysticks" do
       pages.draw(:ports, 0, 0)
       expect(buttons).not_to have_received(:toggle)
@@ -163,6 +168,11 @@ describe Badline::Frontend::MenuPages do
       it "says where REPEAT is" do
         pages.draw(:ports, 0, 0)
         expect(painter).to have_received(:text).with(0, anything, "PAGE UP: REPEAT", anything)
+      end
+
+      it "says Alt adds SHIFT" do
+        pages.draw(:ports, 0, 0)
+        expect(painter).to have_received(:text).with(0, anything, "ALT+KEY: SHIFT+KEY", anything)
       end
     end
   end

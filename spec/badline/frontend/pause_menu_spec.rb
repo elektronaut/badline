@@ -58,4 +58,16 @@ describe Badline::Frontend::PauseMenu do
   it "asks the app to quit from the power section" do
     expect(press(*[81] * 6, 79, 81, 81, 40)).to eq(:quit)
   end
+
+  it "names the ports section PORTS" do
+    expect(painter).to have_received(:text).with(anything, anything, "PORTS".ljust(14), anything)
+  end
+
+  context "with a PET" do
+    let(:computer) { Badline::PET.new(model: "3032") }
+
+    it "names the ports section KEYBOARD" do
+      expect(painter).to have_received(:text).with(anything, anything, "KEYBOARD".ljust(14), anything)
+    end
+  end
 end

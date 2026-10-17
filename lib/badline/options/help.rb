@@ -121,8 +121,9 @@ module Badline
 
         The PET and the CBM take programs, disks, .d80 and .d82 among them,
         and tapes, and a .d80, a .d82 or a PET tape starts one without
-        `pet`. Their keys type what the host's keys type, and the pause
-        menu's PORTS page says where the rest are. --basic and --editor fit
+        `pet`. Their keys type what the host's keys type, Alt with a key
+        presses the PET's SHIFT and the key its unshifted character is on,
+        and the pause menu's KEYBOARD page says where the rest are. --basic and --editor fit
         the upgrades Commodore sold, as in --model 2001 --basic 2.
 
         --headless plays a .sid tune on the host's audio device without the

@@ -6,7 +6,8 @@ module Badline
     # control port has plugged in, a joystick or a pot device, and whether
     # the keys type or drive the joysticks. The VIC-20 has one port, a
     # joystick's, and the Plus/4 two joysticks and no pot devices. The PET
-    # has no ports, and the page says where its keys are instead.
+    # has no ports, and the page, KEYBOARD there, says where its keys are
+    # instead.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -17,8 +18,8 @@ module Badline
       # keyboards, and then on the graphics one and on the business one.
       PET_KEYS = ["PAGE DOWN: RUN/STOP", "HOME: CLR/HOME", "BACKSPACE: INST/DEL", "CTRL: RVS",
                   "ARROWS: CURSOR", "^: UP ARROW", "_: LEFT ARROW"].freeze
-      PET_GRAPHICS_KEYS = ["ESC: RUN/STOP", "SHIFT+LETTER: GRAPHIC"].freeze
-      PET_BUSINESS_KEYS = ["ESC: ESC", "TAB: TAB", "PAGE UP: REPEAT", "KEYPAD: KEYPAD"].freeze
+      PET_GRAPHICS_KEYS = ["ESC: RUN/STOP", "SHIFT+LETTER: GRAPHIC", "ALT+SYMBOL: GRAPHIC"].freeze
+      PET_BUSINESS_KEYS = ["ESC: ESC", "TAB: TAB", "PAGE UP: REPEAT", "KEYPAD: KEYPAD", "ALT+KEY: SHIFT+KEY"].freeze
 
       private
 

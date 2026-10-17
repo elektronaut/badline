@@ -89,6 +89,52 @@ describe Badline::Frontend::PETKeyboard do
     end
   end
 
+  describe "with Alt down" do
+    let(:alt) { described_class::LALT }
+
+    it "shifts the key a symbol's unshifted character is on" do
+      keys.key(alt, true)
+      keys.key(52, true)
+      expect(keyboard.keys).to contain_exactly(:lshift, :"'")
+    end
+
+    it "shifts the key with the host's SHIFT up" do
+      keys.key(described_class::RALT, true)
+      keys.key(30, true)
+      expect(keyboard.keys).to contain_exactly(:lshift, :"1")
+    end
+
+    it "keeps SHIFT down until the key comes up, though Alt goes up first" do
+      keys.key(alt, true)
+      keys.key(54, true)
+      keys.key(alt, false)
+      expect(keyboard.keys).to contain_exactly(:lshift, :",")
+    end
+
+    it "leaves the cursor keys alone" do
+      keys.key(alt, true)
+      keys.key(81, true)
+      expect(keyboard.keys).to eq([:cursor_v])
+    end
+
+    it "leaves the keys without a character alone" do
+      keys.key(alt, true)
+      keys.key(40, true)
+      expect(keyboard.keys).to eq([:return])
+    end
+
+    context "with the business keyboard" do
+      let(:layout) { :business }
+      let(:matrix) { Badline::PET::KeyboardPorts::BUSINESS_MATRIX }
+
+      it "shifts the key the unshifted character is on" do
+        keys.key(alt, true)
+        keys.key(47, true)
+        expect(keyboard.keys).to contain_exactly(:lshift, :"[")
+      end
+    end
+  end
+
   describe "#release_all" do
     it "lets go of every key, SHIFT among them" do
       keys.key(shift, true)
@@ -137,6 +183,19 @@ describe Badline::Frontend::PETKeyboard do
       pet.run_cycles(21_000)
     end
 
+    # The booted PET's screen codes, after the host's keys type the
+    # scancodes with Alt down.
+    def alt_typed(model, refresh_hz, scancodes)
+      TakenOnce.fetch([:pet_alt_keys, model, refresh_hz, scancodes]) do
+        pet, = booted_once(model, refresh_hz:, ram_kb: 8)
+        host = described_class.new(pet.keyboard, pet.model.keyboard)
+        host.key(described_class::LALT, true)
+        scancodes.each { |scancode| type(pet, host, scancode, false) }
+        host.key(described_class::LALT, false)
+        pet.bus.screen.cells.to_a
+      end
+    end
+
     def screen_text(pet)
       columns = pet.model.screen_bytes == 0x800 ? 80 : 40
       cells = pet.bus.screen.cells
@@ -153,6 +212,16 @@ describe Badline::Frontend::PETKeyboard do
         screen = typed_by_host(model, refresh_hz, "?\"!#&'(*+:;<=>?@[\\]^_a1\"\r")
         expect(screen).to include("!#&'(*+:;<=>?@[\\]^_A1")
       end
+    end
+
+    it "prints the graphics on a 3032's symbol keys with Alt" do
+      cells = alt_typed("3032", 60, [30, 52, 51])
+      expect(cells.each_cons(3)).to include([0x71, 0x67, 0x7b])
+    end
+
+    it "prints a graphic and a shifted symbol on an 8032 with Alt" do
+      cells = alt_typed("8032", 50, [4, 30])
+      expect(cells.each_cons(2)).to include([0x41, 0x21])
     end
   end
 end
