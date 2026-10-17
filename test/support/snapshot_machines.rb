@@ -26,7 +26,10 @@ module SnapshotSetups
     File.join(dir, File.basename(path)).tap { |copy| FileUtils.cp(path, copy) }
   end
 
-  def demo(dir) = MachineFamilies.write_demo(dir, { family: "c64" })
+  def demo(dir, family = "c64") = MachineFamilies.write_demo(dir, { family: })
+
+  # +machine+ with the media at +path+ attached.
+  def attached(machine, path) = machine.tap { Badline::Media.attach(machine, path) }
 
   def demo_dir(dir)
     File.join(dir, "host").tap do |host|
@@ -110,6 +113,28 @@ module SnapshotSetups
     File.join(dir, "tape264.tap").tap do |path|
       File.binwrite(path, "C16-TAPE-RAW".b + [2, 2, 0, 0].pack("C*") + [data.bytesize].pack("V") + data)
     end
+  end
+
+  # A tape for the PET, platform 3, with nothing on it the KERNAL finds.
+  def pet_tap_file(dir)
+    data = (([0x30] * 20_000) + ([0x42, 0x56] * 4000) + ([0x30] * 5000)).pack("C*")
+    File.join(dir, "pet.tap").tap do |path|
+      File.binwrite(path, "C64-TAPE-RAW".b + [1, 3, 0, 0].pack("C*") + [data.bytesize].pack("V") + data)
+    end
+  end
+
+  # An 8096 once BASIC runs, with a pattern written to each of its board's
+  # four banks through the control register at $FFF0, the register cleared
+  # again and the program run on.
+  def pet_banks(machine)
+    run(machine, 2_600_000)
+    [0x80, 0x8c].each do |control|
+      machine.poke(0xfff0, control)
+      0x100.times { |offset| machine.poke(0x9000 + offset, control ^ offset) }
+      0x100.times { |offset| machine.poke(0xc000 + offset, (control + offset) & 0xff) }
+    end
+    machine.poke(0xfff0, 0)
+    run(machine, 100_001)
   end
 
   # A 16K cartridge for the 264 series' cartridge 1 slot, signed for the
@@ -288,9 +313,36 @@ module SnapshotMachines
     ]
   end
 
+  # A program that rings the bell and keeps writing the screen RAM, where
+  # the video shows it, while the jiffy clock runs.
+  PET_BASIC = "10 print chr$(7);\r20 t=tiand255:poke32768+t,t:goto20\rrun\r"
+
+  # The PETs: a CRTC board with 80 columns and one with 40, the 2001's
+  # discrete video, an 8096 with its board written, and the media a PET
+  # takes: a disk through the traps, a program and a tape played and
+  # recorded on cassette #1.
+  def pet_scenarios
+    basic = [["8032", 50, 2_600_001], ["4032", 60, 2_600_001], ["2001", 60, 900_001]].map do |model, refresh_hz, cycles|
+      Scenario.new("pet-#{model}-basic", :pet, ->(_dir) { typing(Badline::PET.new(model:, refresh_hz:), PET_BASIC) },
+                   ->(m) { run(m, cycles) })
+    end
+    basic + [
+      Scenario.new("pet-8096-banks", :pet, ->(_dir) { typing(Badline::PET.new(model: "8096"), PET_BASIC) },
+                   ->(m) { pet_banks(m) }),
+      Scenario.new("pet-demo", :pet, ->(dir) { attached(Badline::PET.new(model: "3032"), demo(dir, "pet")) },
+                   ->(m) { run(m, 2_000_001) }),
+      Scenario.new("pet-traps-d64", :pet, ->(dir) { attached(Badline::PET.new, copy(D64, dir)) },
+                   ->(m) { run(m, 2_600_001) }),
+      Scenario.new("pet-tape", :pet, ->(dir) { attached(Badline::PET.new, pet_tap_file(dir)) },
+                   ->(m) { run(m, 3_000_000) }),
+      Scenario.new("pet-tape-save", :pet, ->(dir) { saving_to_tape(Badline::PET.new(model: "3032"), dir, 3) },
+                   ->(m) { recording(m) })
+    ]
+  end
+
   def all
     c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
-      plus4_drive_scenarios
+      plus4_drive_scenarios + pet_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }

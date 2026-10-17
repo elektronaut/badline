@@ -39,6 +39,9 @@ CRuby.
   digests of the CPU, the RAM, the screen, both PIAs, the VIA and the CRTC
   every 250,000 cycles, then the screen, the counts and the registers.
   Arguments pick the model and the CRTC editor's frame rate.
+- `pet_snapshot.rb` does for a PET what `plus4_snapshot.rb` does for the
+  264 series, with the picture among the digests. Arguments pick the
+  cycle it saves at, the cycles to run and the model.
 - `boot_support.rb` holds what the five boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
@@ -102,7 +105,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 

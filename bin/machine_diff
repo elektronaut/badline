@@ -100,7 +100,7 @@ module MachineDiff
   ROOT = File.expand_path("..", __dir__)
   SCENARIOS = %w[boot type demo disk].freeze
   # bin/snapshot_check's scenarios: c64-plain, vic20-tape and so on.
-  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4)-/
+  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet)-/
 
   module_function
 

@@ -37,6 +37,28 @@ module Badline
       # goes in device 8 through the traps.
       def true_drive = nil
 
+      # Device 8 through the traps in a keyed snapshot module (BL-TRAPDOS):
+      # the storage under storage.*, the DOS, and the IEEE-488 trap under
+      # ieee.*. Nothing mounted writes nothing.
+      def save_trap_dos_fields(out)
+        dos = @dos
+        return unless dos
+
+        Snapshot::StorageSetup.write_fields(dos.storage, out)
+        dos.save_fields(out)
+        @ieee_trap&.save_fields(out, "ieee.")
+      end
+
+      # `detached` mounts a disk image write-protected and no directory.
+      def load_trap_dos_fields(input, detached: false)
+        unmount
+        return if input.missing?
+
+        mount(Snapshot::StorageSetup.read_fields(input, detached:))
+        @dos&.load_fields(input)
+        @ieee_trap&.load_fields(input, "ieee.")
+      end
+
       # Records what the KERNAL prints through CHROUT (KernalTrap::Chrout).
       def capture_output
         @capture_output ||= KernalTrap::Chrout.new(cpu:, bus:, layout: trap_layout).tap do |trap|

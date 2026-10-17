@@ -3,7 +3,7 @@
 
 # Checks that snapshots restore the machine exactly, on the scenarios in
 # test/support/snapshot_machines.rb: a C64 with each kind of media and
-# expansion, the VIC-20, the C128, and the Plus/4 and the C16.
+# expansion, the VIC-20, the C128, the Plus/4 and the C16, and the PETs.
 #
 #   ruby --yjit bin/snapshot_check [filter] [--cycles N] [--every K]
 #   ruby --yjit bin/snapshot_check --carts [filter]
@@ -105,17 +105,25 @@ module SnapshotCheck
   end
 
   # The text screen in RAM: 40 by 25 at $0400 on a C64 or a C128 and at
-  # $0C00 on the 264 series, and on a VIC-20 22 by 23 at the page the
-  # KERNAL keeps in $0288.
+  # $0C00 on the 264 series, on a VIC-20 22 by 23 at the page the KERNAL
+  # keeps in $0288, and on a PET 40 or 80 by 25 in its screen RAM.
   def screen(machine)
+    if machine.family == :pet
+      return screen_text(machine.bus.screen.cells, machine.model.video == :crtc80 ? 80 : 40, 25)
+    end
+
     ram = machine.ram
     base, columns, rows = case machine.family
                           when :vic20 then [ram.peek(0x0288) << 8, 22, 23]
                           when :plus4 then [0x0c00, 40, 25]
                           else [0x0400, 40, 25]
                           end
+    screen_text(Array.new(rows * columns) { |index| ram.peek(base + index) }, columns, rows)
+  end
+
+  def screen_text(codes, columns, rows)
     Array.new(rows) do |row|
-      Array.new(columns) { |column| screen_char(ram.peek(base + (row * columns) + column)) }.join.rstrip
+      Array.new(columns) { |column| screen_char(codes[(row * columns) + column]) }.join.rstrip
     end.join("\n")
   end
 

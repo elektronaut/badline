@@ -22,11 +22,11 @@ key only some of them have names them.
 
 ## BL-MACHINE
 
-Written by the C64, VIC-20, C128, Plus/4.
+Written by the C64, VIC-20, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `family` | text: c64 vic20 c128 plus4 | "c64" |
+| `family` | text: c64 vic20 c128 plus4 pet | "c64" |
 | `region` | text: pal ntsc ntscold drean | C64: "pal" |
 | `vic_model` | text: mos6569 mos8565 mos8566 mos8564 | C64: "mos6569" |
 | `cia_model` | text: mos6526 mos6526a | C64: "mos6526" |
@@ -49,7 +49,7 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
 | `bus.data` | byte | VIC-20: 253; C128: 255 |
 | `bus.video_data` | byte | VIC-20: 0 |
-| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4" |
+| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4"; PET: "8032" |
 | `mode` | text: c64 c128 | C128: "c64" |
 | `bus.address` | word | C128: 65533 |
 | `clock_bits` | int | C128: 0 |
@@ -61,23 +61,32 @@ Written by the C64, VIC-20, C128, Plus/4.
 | `host.typist.code` | int, optional | C128: absent |
 | `host.typist.wait` | int | C128: 0 |
 | `host.typist.typing` | bool | C128: false |
-| `ram_kb` | int | Plus/4: 64 or 16 |
+| `ram_kb` | int | Plus/4: 64 or 16; PET: 32 or 8 |
 | `sid_card` | text: none mos6581 mos8580 | Plus/4: "none" |
 | `tcbm` | bool | Plus/4: false |
 | `sid_card_address` | int | Plus/4: 64832 |
 | `host.true_drive_model` | text: 1541 1551 | Plus/4: "1551" |
+| `refresh_hz` | int | PET: 50 or 60 |
+| `rom.basic` | text | PET: "pet/basic4.rom" or "pet/basic1.rom" |
+| `rom.editor` | text | PET: "pet/editor4-80-b-50hz.rom" or "pet/editor1.rom" |
+| `rom.kernal` | text | PET: "pet/kernal4.rom" or "pet/kernal1.rom" |
+| `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
+| `vertical_drive` | bool | PET: true |
 
 ## BL-RAM
 
-Written by the C64, VIC-20, C128, Plus/4.
+Written by the C64, VIC-20, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values; Plus/4: 65536 × 0 or 16384 × 0 |
+| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values; Plus/4: 65536 × 0 or 16384 × 0; PET: 32768 × 0 or 8192 × 0 |
 | `bus.low_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.high_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.rom_selected` | bool | Plus/4: true |
-| `bus.data` | byte | Plus/4: 255 |
+| `bus.data` | byte | Plus/4: 255; PET: 253 |
+| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 |
+| `expansion.control` | byte | PET: 0 |
+| `expansion.ram` | bytes | PET: 65536 × 0 |
 
 ## BL-COLORRAM
 
@@ -90,14 +99,14 @@ Written by the C64, VIC-20, C128.
 
 ## BL-CPU
 
-Written by the C64, C128, Plus/4, VIC-20.
+Written by the C64, C128, Plus/4, VIC-20, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
 | `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526 |
+| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -544,7 +553,7 @@ Written by the C64, VIC-20, Plus/4.
 
 ## BL-TRAPDOS
 
-Written by the C64.
+Written by the C64, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -564,13 +573,19 @@ Written by the C64.
 | `status.error` | ints | [] |
 | `status.bytes` | bytes | [] |
 | `channels` | ints | [] |
-| `serial.listening` | bool | false |
-| `serial.talking` | bool | false |
-| `serial.listen_channel` | int, optional | absent |
-| `serial.talk_channel` | int, optional | absent |
-| `serial.frame` | int | 240 |
-| `serial.buffer` | bytes | [] |
-| `save.saving` | bool | false |
+| `serial.listening` | bool | C64: false |
+| `serial.talking` | bool | C64: false |
+| `serial.listen_channel` | int, optional | C64: absent |
+| `serial.talk_channel` | int, optional | C64: absent |
+| `serial.frame` | int | C64: 240 |
+| `serial.buffer` | bytes | C64: [] |
+| `save.saving` | bool | C64: false |
+| `ieee.listening` | bool | PET: false |
+| `ieee.talking` | bool | PET: false |
+| `ieee.listen_channel` | int, optional | PET: absent |
+| `ieee.talk_channel` | int, optional | PET: absent |
+| `ieee.frame` | int | PET: 240 |
+| `ieee.buffer` | bytes | PET: [] |
 
 ## BL-D8
 
@@ -1245,3 +1260,181 @@ Written by the Plus/4.
 | `ports` | ints | [0, 0, 0] |
 | `directions` | ints | [0, 0, 0] |
 | `inputs` | ints | [255, 3, 192] |
+
+## BL-PIA1
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `ca.control` | int & 0x3f | 0 |
+| `ca.c1_high` | bool | true |
+| `ca.c2_high` | bool | true |
+| `ca.c1_flag` | bool | false |
+| `ca.c2_flag` | bool | false |
+| `ca.handshake_low` | bool | false |
+| `ca.pulse` | int & 0x3 | 0 |
+| `cb.control` | int & 0x3f | 0 |
+| `cb.c1_high` | bool | true |
+| `cb.c2_high` | bool | true |
+| `cb.c1_flag` | bool | false |
+| `cb.c2_flag` | bool | false |
+| `cb.handshake_low` | bool | false |
+| `cb.pulse` | int & 0x3 | 0 |
+
+## BL-PIA2
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `ca.control` | int & 0x3f | 0 |
+| `ca.c1_high` | bool | true |
+| `ca.c2_high` | bool | true |
+| `ca.c1_flag` | bool | false |
+| `ca.c2_flag` | bool | false |
+| `ca.handshake_low` | bool | false |
+| `ca.pulse` | int & 0x3 | 0 |
+| `cb.control` | int & 0x3f | 0 |
+| `cb.c1_high` | bool | true |
+| `cb.c2_high` | bool | true |
+| `cb.c1_flag` | bool | false |
+| `cb.c2_flag` | bool | false |
+| `cb.handshake_low` | bool | false |
+| `cb.pulse` | int & 0x3 | 0 |
+
+## BL-VIA
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `latch_a` | byte | 255 |
+| `latch_b` | byte | 255 |
+| `acr` | byte | 0 |
+| `pcr` | byte | 0 |
+| `pb6_high` | bool | true |
+| `t<N>.counter` | word | 65535 |
+| `t1.latch` | word | 65535 |
+| `t<N>.hold` | bool | false |
+| `t1.reload` | bool | false |
+| `t<N>.armed` | bool | false |
+| `t1.pb7` | bool | true |
+| `t2.latch_low` | byte | 255 |
+| `t2.low_reload` | bool | false |
+| `t2.low_underflowed` | bool | false |
+| `t2.count_pulses` | bool | false |
+| `t2.counting_pulses` | bool | false |
+| `sr.mode` | int & 0x7 | 0 |
+| `sr.data` | byte | 0 |
+| `sr.bits` | int | 0 |
+| `sr.delay` | int | 0 |
+| `sr.clock` | bool | true |
+| `sr.cb2` | bool | true |
+| `sr.cb2_input` | bool | true |
+| `ifr.flags` | int & 0x7f | 0 |
+| `ifr.enable` | int & 0x7f | 0 |
+| `ca.control` | int & 0xf | 0 |
+| `ca.c1_high` | bool | true |
+| `ca.c2_high` | bool | true |
+| `ca.handshake_low` | bool | false |
+| `ca.pulse` | int | 0 |
+| `ca.c2_output` | bool | true |
+| `cb.control` | int & 0xf | 0 |
+| `cb.c1_high` | bool | true |
+| `cb.c2_high` | bool | true |
+| `cb.handshake_low` | bool | false |
+| `cb.pulse` | int | 0 |
+| `cb.c2_output` | bool | true |
+
+## BL-CRTC
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `registers` | bytes | 18 × 0 |
+| `selected` | int & 0x1f | 0 |
+| `column` | byte | 0 |
+| `since_hsync` | int | 0 |
+| `line` | int & 0x1f | 0 |
+| `row` | int & 0x7f | 0 |
+| `vsync_lines` | int | 16 |
+| `adjusting` | bool | false |
+| `row_display` | bool | false |
+| `column_display` | bool | true |
+| `row_start` | int & 0x3fff | 0 |
+| `address` | int & 0x3fff | 0 |
+
+## BL-VIDEO
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `displayed` | int | 0 |
+| `frame_displayed` | int | 0 |
+| `line_shown` | bool | false |
+| `y` | int | 136 |
+| `from_y` | int | 136 |
+| `to_y` | int | 136 |
+| `shown_from` | int | 36 |
+| `shown_to` | int | 37 |
+| `on_canvas` | bool | true |
+| `origin` | int | 336 |
+| `from` | int | 704 |
+| `to` | int | -704 |
+| `canvas.dots` | bytes | 192192 × 0 or 83328 × 0 |
+| `canvas.painted` | ints | 48048 × 0 or 20832 × 0 |
+| `canvas.span_from` | ints | 273 × 0 or 217 × 0 |
+| `canvas.span_to` | ints | 273 × 0 or 217 × 0 |
+| `column` | int | 0 |
+| `line` | int | 0 |
+
+## BL-TAPE1
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `playing` | bool | false |
+| `motor` | bool | false |
+| `countdown` | int | 0 |
+| `recording` | bool | false |
+| `since` | int | 0 |
+| `write_high` | bool | true |
+| `rise_at` | int | 0 |
+| `low_recorded` | bool | false |
+| `tape.bytes` | bytes | [] |
+| `tape.path` | text | "" |
+| `tape.position` | int | 0 |
+
+## BL-TAPE2
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `playing` | bool | false |
+| `motor` | bool | false |
+| `countdown` | int | 0 |
+| `recording` | bool | false |
+| `since` | int | 0 |
+| `write_high` | bool | true |
+| `rise_at` | int | 0 |
+| `low_recorded` | bool | false |
+| `tape.bytes` | bytes | [] |
+| `tape.path` | text | "" |
+| `tape.position` | int | 0 |

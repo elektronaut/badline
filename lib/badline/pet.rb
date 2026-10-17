@@ -14,6 +14,10 @@ require "badline/pet/discrete_video"
 require "badline/pet/crtc_video"
 require "badline/pet/bus"
 require "badline/pet/sound"
+require "badline/snapshot/pet_setup"
+require "badline/pet/keyed_parts"
+require "badline/pet/keyed_state"
+require "badline/pet/keyed_modules"
 
 module Badline
   # The Commodore PET and CBM: a 6502 at 1 MHz, two 6520 PIAs at $E810 and
@@ -42,6 +46,7 @@ module Badline
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
     include IEEETraps
 
     attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :ieee, :cassettes, :cycles, :init_threshold

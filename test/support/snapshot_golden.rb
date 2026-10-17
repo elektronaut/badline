@@ -8,10 +8,10 @@ require_relative "../../spec/support/blank_disk"
 
 # The golden snapshot fixtures each release saves once, under
 # spec/fixtures/snapshots/<version>/, for snapshot_load_golden_spec to load
-# in every later badline: a C64, a VIC-20, a C128 and a Plus/4 typing PRINT
-# 6*7, a C64 loading the directory from a true 1541, and a C64 running the
-# Super Games cartridge test from VICE-testprogs, whose mapper has a
-# register.
+# in every later badline: a C64, a VIC-20, a C128, a Plus/4 and a PET
+# typing PRINT 6*7, a C64 loading the directory from a true 1541, and a
+# C64 running the Super Games cartridge test from VICE-testprogs, whose
+# mapper has a register.
 # Beside each snapshot goes the text screen 100,000 cycles after it, as
 # this release runs on from it.
 module SnapshotGolden
@@ -22,6 +22,7 @@ module SnapshotGolden
     "vic20" => -> { typed(Badline::Vic20.new, "print 6*7\r", 3_000_000) },
     "c128" => -> { typed(Badline::C128.new(mode: :c128), "print 6*7\r", 3_000_000) },
     "plus4" => -> { typed(Badline::Plus4.new, "print 6*7\r", 1_000_000) },
+    "pet" => -> { typed(Badline::PET.new, "print 6*7\r", 2_500_000) },
     "c64-1541" => -> { directory_listing(4_400_000) },
     "c64-cartridge" => -> { cartridge(3_000_000) }
   }.freeze
@@ -43,12 +44,14 @@ module SnapshotGolden
   end
 
   # The text screen in RAM, as bin/snapshot_check reads it, which
-  # snapshot_load_golden_spec compares against the .txt.
+  # snapshot_load_golden_spec compares against the .txt. A PET's is in its
+  # screen RAM at $8000, 40 or 80 columns wide.
   def screen(machine)
-    ram = machine.ram
+    ram = machine.family == :pet ? machine : machine.ram
     base, columns, rows = case machine.family
                           when :vic20 then [ram.peek(0x0288) << 8, 22, 23]
                           when :plus4 then [0x0c00, 40, 25]
+                          when :pet then [0x8000, machine.model.video == :crtc80 ? 80 : 40, 25]
                           else [0x0400, 40, 25]
                           end
     lines = Array.new(rows) do |row|

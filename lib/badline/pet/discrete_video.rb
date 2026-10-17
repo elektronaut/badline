@@ -67,6 +67,12 @@ module Badline
       def next_line
         @line += 1
         @line = 0 if @line == LINES_PER_FRAME
+        follow_line
+      end
+
+      # Where the line puts the beam: the character row and its ROM row,
+      # the line of the picture, and whether characters show on it.
+      def follow_line
         @row_line = @line & 0x07
         @row_base = (@line >> 3) * COLUMNS
         @y = BORDER_TOP + @line
