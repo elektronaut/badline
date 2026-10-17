@@ -129,7 +129,10 @@ module Badline
         starts its first program, and BASIC 2 can. The 8032 and the 8096
         have two 50 Hz editors: 4-80-b-50hz, the default, and
         4-80-b-50hz-0283, another chip's, with 64-cycle lines and 313 lines
-        a frame.
+        a frame. The 8296 runs its own, 4-80-b-50hz-8296, and takes the
+        8032's too. --characters din fits it with the DIN character ROM, and
+        --jumpers ram9,rama puts RAM at $9000 and $A000, as xpet's -petram9
+        and -petramA do.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

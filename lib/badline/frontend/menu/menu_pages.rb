@@ -156,10 +156,19 @@ module Badline
         toggle(plus4? ? "SID CARD" : "SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], model == :mos8580 ? 1 : 0])
       end
 
-      # The PET's memory: its RAM, and the 8096's 64K board.
+      # The PET's memory: its RAM, the 8096's 64K board, and the 8296's
+      # 128K with the jumpers that put RAM under its ROMs.
       def draw_pet_memory
+        model = @computer.model
+        return draw_8296_memory if model.cbm8296?
+
         info("RAM", "#{@computer.ram_kb}K")
-        info("EXPANSION RAM", @computer.model.expansion ? "64K BOARD" : "")
+        info("EXPANSION RAM", model.expansion ? "64K BOARD" : "")
+      end
+
+      def draw_8296_memory
+        info("RAM", "128K, 64K OF IT BANKED")
+        info("JUMPERS", @computer.jumpers.join(", ").upcase)
       end
 
       # Saving now and by name, loading a named save, and the quicksaves

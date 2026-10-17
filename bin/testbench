@@ -121,7 +121,8 @@
 # (Testbench::Plus4Screenshot).
 #
 # --pet runs the exitcode rows of pet-testlist.in instead, each on an
-# 8096 with the 50 Hz editor, as xpet's hook starts it, and --pet-discrete
+# 8096 with the 50 Hz editor, as xpet's hook starts it, and again on an
+# 8296, its id ending in @8296, and --pet-discrete
 # runs each of them on a 2001 and on a 3032, the boards with the discrete
 # video, its id ending in @2001 or @3032. The program goes to the start of
 # BASIC, with BASIC's end pointers set as LOAD sets them, and RUN is typed

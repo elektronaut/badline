@@ -20,7 +20,7 @@ module Testbench
   # The text screen, 25 lines of 40 or 80 characters from $8000.
   def self.pet_screen_text(machine)
     screen = machine.bus.screen
-    width = screen.cells.length == 0x800 ? 80 : 40
+    width = machine.model.video == :crtc80 ? 80 : 40
     Array.new(25) { |row| screen_line(screen, row * width, width) }
   end
 

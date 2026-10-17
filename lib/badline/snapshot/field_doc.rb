@@ -37,8 +37,8 @@ module Badline
       # The machines the doc is made from: each family at power-on, the C64
       # with each kind of expansion, cartridge and media, and a second SID,
       # the 264 series' models, its TCBM interface, cartridge, tape and
-      # true drives, the 1541 and the 1551, and a CRTC PET, a 2001, an 8096
-      # and a PET with a disk and tapes.
+      # true drives, the 1541 and the 1551, and a CRTC PET, a 2001, an 8096,
+      # an 8296 with its user port jumpered and a PET with a disk and tapes.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -50,7 +50,8 @@ module Badline
                       Plus4.new(sid_card: :mos8580, sid_card_address: 0xfe80),
                       Plus4.new(ram_expansion: :csory256),
                       plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
-          "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"), pet_with_media]
+          "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
+                    PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media]
         }
       end
 

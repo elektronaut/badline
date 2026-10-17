@@ -56,7 +56,7 @@ module PETBoot
 
   # The screen's first +rows+ rows, as text.
   def screen_of(pet, rows = 6)
-    columns = pet.model.screen_bytes == 0x800 ? 80 : 40
+    columns = pet.model.video == :crtc80 ? 80 : 40
     Array.new(rows) do |row|
       Array.new(columns) { |column| character(pet.bus.screen.cells[(row * columns) + column]) }.join.rstrip
     end

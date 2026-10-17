@@ -20,7 +20,7 @@ module Badline
 
     # The PETs and CBMs, as PET::Model names them, the 8032 first, the
     # default.
-    PET_MODELS = %w[8032 8096 4032 3032 3032b 2001].freeze
+    PET_MODELS = %w[8032 8096 8296 4032 3032 3032b 2001].freeze
 
     # The true drives --drive-type names for the Plus/4.
     PLUS4_DRIVE_TYPES = %w[1541 1551].freeze
@@ -69,6 +69,12 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--editor NAME", "Fit a PET with an editor ROM its board and BASIC take: " \
                                   "#{PET::ROMSets::EDITORS.keys.join(', ')}",
+                 section: "Window options", needs: :window),
+      Option.new("--characters NAME", "Fit an 8296 with a character ROM: ascii or din (default: ascii)",
+                 section: "Window options", needs: :window),
+      Option.new("--jumpers LIST", "Fit an 8296's board with jumpers, comma-separated: ram9 and rama for RAM at " \
+                                   "$9000 and $A000, userport for the user port's PA0-PA2 to switch in " \
+                                   "the RAM under the ROMs",
                  section: "Window options", needs: :window),
       Option.new("--c1lo FILE", "Put a .bin ROM image in the Plus/4's cartridge 1, low slot ($8000)",
                  section: "Window options", needs: :window),

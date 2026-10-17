@@ -302,7 +302,8 @@ badline pet --model 2001            # The first PET, with BASIC 1
 
 `--model` picks the machine: `8032` (the default, 32K, 80 columns and
 the business keyboard), `8096` (an 8032 with the 64K board at `$FFF0`),
-`4032` (40 columns on a CRTC and the graphics keyboard), `3032` (the
+`8296` (128K on one board, below), `4032` (40 columns on a CRTC and the
+graphics keyboard), `3032` (the
 discrete 40-column board with BASIC 2), `3032b` (the same with the
 business keyboard) and `2001` (8K, BASIC 1 and the chiclet keyboard).
 `--ram 4k`, `8k` or `16k` fits less RAM in place of the model's own, as
@@ -324,7 +325,22 @@ cycles, 400 to a frame. `4-80-b-50hz-0283`, the chip dated 0283, runs
 lines of 64 cycles, 313 to a frame, with the screen's rows a scanline
 closer together and lower down. Both boot to the same READY.
 
+The 8296 is an 8032 on a board of its own, with 128K: 32K below
+`$8000`, 32K above it, whose first 4K hold the screen and the rest lies
+under the ROMs, and a 64K board banked through `$FFF0` as the 8096's is.
+Writes from `$8000` up go to the RAM under the ROMs, and `--jumpers`
+fits the jumpers that let reads find it there: `ram9` and `rama` for RAM
+at `$9000` and `$A000`, as xpet's `-petram9` and `-petramA`, and
+`userport` for the user port's PA0 to PA2 to switch it in over BASIC,
+the editor and the KERNAL. Its CRTC's RA4 is an address line, so the
+lines past the 16th of a tall character row show RAM from `$C000`. It
+runs its own 50 Hz editor, `4-80-b-50hz-8296`, with lines of 59 cycles,
+339 to a frame, and takes the 8032's editors too. `--characters din`
+fits the German boards' 4K character ROM, whose two halves R12's bit 5
+picks between.
+
 ```sh
+badline pet --model 8296 --jumpers ram9,rama  # An 8296 with RAM at $9000 and $A000
 badline pet --model 2001 --basic 2   # A 2001 with BASIC 2
 badline pet --model 3032 --basic 4   # A 3032 with BASIC 4, without a CRTC
 badline pet --editor 4-80-b-60hz     # An 8032 at 60 Hz, as --60hz runs it
@@ -345,7 +361,8 @@ device 8, and tapes play on cassette port 1. The keys type what the host's
 keys type, on either keyboard, and `Alt` adds the PET's `SHIFT`:
 [Input](#input) lists the rest. The pause
 menu's Power page names the model, its RAM and its frame rate, and its
-Expansion port page its RAM and the 8096's 64K board. The PET has no
+Expansion port page its RAM and the 8096's 64K board, or the 8296's
+jumpers. The PET has no
 joysticks. `F11` and the Snapshots page save it as they do the others,
 but not for VICE.
 
@@ -534,10 +551,11 @@ in cartridge 1 as it does from the command line.
   receives at its baud rates, with nothing on the user port; Ruby code
   driving the machine can plug in a terminal, whose bytes it feeds and
   drains, or a loopback plug (`Plus4::ACIA#plug`).
-- **PET and CBM**: the 2001, 3032, 3032b, 4032, 8032 and 8096, with
-  BASIC 1, 2 or 4, the discrete video and the 6545 CRTC on 40 and 80
+- **PET and CBM**: the 2001, 3032, 3032b, 4032, 8032, 8096 and 8296,
+  with BASIC 1, 2 or 4, the discrete video and the 6545 CRTC on 40 and 80
   columns, both 6520 PIAs and the 6522 VIA, the graphics and business
-  keyboards, the sound on the VIA's CB2, the 8096's 64K board, both
+  keyboards, the sound on the VIA's CB2, the 8096's 64K board, the
+  8296's 128K with its jumpers, RA4 and 4K character ROM, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks (`badline pet`).
 - **1541**: an emulated drive running its own DOS (`--true-drive`).

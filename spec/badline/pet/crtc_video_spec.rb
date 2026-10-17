@@ -51,6 +51,34 @@ describe Badline::PET::CRTCVideo do
     expect(dots(32, 36)).to eq(a_row(1))
   end
 
+  describe "on the 8296's board" do
+    subject(:video) { described_class.new(characters, via, registers, columns80: true, board8296: true) }
+
+    let(:cells) { Array.new(0x8000, 0x20) }
+
+    it "shows RA4's lines from the RAM $4000 on" do
+      cells[0x4000] = 1
+      first(raster: 17)
+      expect(dots(32, 36)).to eq(a_row(1))
+    end
+
+    it "counts MA10 and MA11 into the RAM" do
+      cells[0x1800] = 1
+      first(address: 0x1c00)
+      expect(dots(32, 36)).to eq(a_row(0))
+    end
+
+    context "with the DIN character ROM" do
+      let(:characters) { Badline::PET::Characters.new("pet/characters-din.rom") }
+
+      it "shows its second half while MA13 is high" do
+        cells[0] = 0
+        first(address: 0x3000)
+        expect(dots(32, 36)).to eq(characters.rows[Badline::PET::Characters::HALF])
+      end
+    end
+  end
+
   it "shows the text set while VIA CA2 is high" do
     allow(via).to receive(:ca2_output).and_return(true)
     cells[0] = 1

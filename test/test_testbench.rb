@@ -665,8 +665,10 @@ class TestTestbenchPET < Minitest::Test
     assert_equal ["2001", "t.prg@2001"], [parse("2001").pet_model, parse("2001").id.split("/").last]
   end
 
-  def test_takes_screenshot_rows_on_the_8096_alone
-    assert_equal ["screenshot", nil], [parse(type: "screenshot").type, parse("2001", type: "screenshot")]
+  def test_takes_screenshot_rows_on_the_80_column_boards_alone
+    assert_equal ["screenshot", "t.prg@8296", nil],
+                 [parse(type: "screenshot").type, parse("8296", type: "screenshot").id.split("/").last,
+                  parse("2001", type: "screenshot")]
   end
 
   # VICE compares from (32, 33) on, and a reference dot is lit where it is

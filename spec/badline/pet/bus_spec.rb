@@ -11,10 +11,10 @@ describe Badline::PET::Bus do
   let(:ieee_pia) { Badline::Chips::PIA.new }
   let(:crtc) { Badline::Chips::CRTC.new(double(character: nil, hsync: nil, line_end: nil, rows_end: nil, frame_start: nil)) }
 
-  def bus_for(name)
+  def bus_for(name, jumpers = [])
     model = Badline::PET::Model.named(name)
     described_class.new(model:, ram_kb: ram_kb || model.ram_kb, editor: model.editor_50hz, pia1: keyboard_pia,
-                        pia2: ieee_pia, via: Badline::PET::VIA.new(start: 0xe800), crtc:)
+                        pia2: ieee_pia, via: Badline::PET::VIA.new(start: 0xe800), crtc:, jumpers:)
   end
 
   # What a read of +addr+ finds just after the bus carried +last+.
@@ -181,6 +181,100 @@ describe Badline::PET::Bus do
       control(0x80)
       bus.reset!
       expect(bus.peek(0xfffc)).to eq(0x16)
+    end
+  end
+
+  describe "the 8296's board" do
+    let(:model_name) { "8296" }
+
+    def basic = Badline::ROM.read("pet/basic4.rom")
+
+    def control(value) = bus.poke(0xfff0, value)
+
+    # Drives the user port's PA0-PA2 low where +low+ has a bit set.
+    def user_port_low(low)
+      bus.poke(0xe843, 0x07)
+      bus.poke(0xe841, 0x07 & ~low)
+    end
+
+    it "has RAM at $8800-$8FFF past the screen" do
+      bus.poke(0x8fff, 0x5c)
+      expect([bus.peek(0x8fff), bus.screen.cells[0x0fff]]).to eq([0x5c, 0x5c])
+    end
+
+    it "reads the last byte on the bus from the empty socket at $9000" do
+      expect(read_after(0x91, 0x9000)).to eq(0x91)
+    end
+
+    it "writes under BASIC, which reads on" do
+      bus.poke(0xc000, 0x00)
+      expect([bus.peek(0xc000), bus.screen.cells[0x4000]]).to eq([basic[0x1000], 0x00])
+    end
+
+    it "reads the editor again at $E900-$EFFF" do
+      expect(bus.peek(0xe901)).to eq(Badline::ROM.read("pet/editor4-80-b-50hz-8296.rom")[0x101])
+    end
+
+    it "keeps the I/O page at $E800" do
+      bus.poke(0xe811, 0x3c)
+      expect(keyboard_pia.cra).to eq(0x3c)
+    end
+
+    it "lays the banks over $8000-$FFFF as the 8096's does" do
+      control(0x8c)
+      bus.poke(0x9000, 0x12)
+      expect(bus.expansion.cells[0x9000]).to eq(0x12)
+    end
+
+    it "shows the editor through with the I/O page" do
+      control(0xc0)
+      expect(bus.peek(0xe901)).to eq(Badline::ROM.read("pet/editor4-80-b-50hz-8296.rom")[0x101])
+    end
+
+    it "follows no user port lines without the jumpers" do
+      user_port_low(0x07)
+      expect(bus.peek(0xb000)).to eq(basic[0])
+    end
+
+    context "with RAM jumpered at $9000 and $A000" do
+      subject(:bus) { bus_for(model_name, %w[ram9 rama]) }
+
+      it "reads it there" do
+        bus.poke(0x9000, 0x19)
+        bus.poke(0xa000, 0x1a)
+        expect([bus.peek(0x9000), bus.peek(0xa000)]).to eq([0x19, 0x1a])
+      end
+
+      it "still reads BASIC" do
+        expect(bus.peek(0xb000)).to eq(basic[0])
+      end
+    end
+
+    context "with the user port jumpered" do
+      subject(:bus) { bus_for(model_name, %w[userport]) }
+
+      before { bus.screen.cells.fill(0x77) }
+
+      it "reads RAM through $DFFF with RAMON alone" do
+        user_port_low(0x04)
+        expect([bus.peek(0xd000), bus.peek(0xe000) == 0x77, bus.kernal_mapped?]).to eq([0x77, false, true])
+      end
+
+      it "reads RAM through $EFFF but the I/O page with RAMON and RAMSEL9" do
+        user_port_low(0x06)
+        expect([bus.peek(0xe900), bus.peek(0xf000) == 0x77]).to eq([0x77, false])
+      end
+
+      it "reads RAM over the KERNAL with RAMON and RAMSELA" do
+        user_port_low(0x05)
+        expect([bus.peek(0xfffc), bus.kernal_mapped?]).to eq([0x77, false])
+      end
+
+      it "puts the ROMs back once the lines float high" do
+        user_port_low(0x07)
+        bus.poke(0xe843, 0x00)
+        expect(bus.peek(0xfffc)).to eq(0x16)
+      end
     end
   end
 

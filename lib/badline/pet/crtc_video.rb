@@ -9,6 +9,11 @@ module Badline
     # address and the one after, and shows them side by side, 16 dots to a
     # cycle. MA12 low inverts the picture, and RA3 high blanks the line.
     #
+    # The 8296's board (+board8296+) reads the screen from the 32K of RAM
+    # from $8000 on: MA0-MA11 count two bytes each from $8000, and RA4
+    # adds $4000, so lines 16 to 23 of a row taller than 16 show the RAM
+    # under BASIC at $C000. MA13 picks the half of a 4K character ROM.
+    #
     # The picture is a Canvas 273 lines high, 704 dots wide on 80 columns
     # and 384 on 40, framed as xpet frames it. Across, R1's characters sit
     # in the middle as R1, R0 and R2 stand at the start of the frame, and
@@ -31,9 +36,12 @@ module Badline
       # The screen RAM's bytes.
       attr_writer :cells
 
-      def initialize(characters, via, crtc_registers, columns80:)
+      def initialize(characters, via, crtc_registers, columns80:, board8296: false)
         @cells = []
         @rows = characters.rows
+        @cell_mask = board8296 ? 0xfff : 0x3ff
+        @ra4 = board8296 ? 0x10 : 0
+        @half = characters.halves? ? 0x2000 : 0
         @via = via
         @registers = crtc_registers
         @wide = columns80
@@ -109,11 +117,12 @@ module Badline
       def row_bits(address, raster)
         set = @via.ca2_output ? Characters::TEXT : 0
         invert = address.anybits?(0x1000) ? 0 : 0xffff
-        line = set | (raster & 0x07)
-        cell = address & 0x3ff
+        line = set | (raster & 0x07) | ((address & @half) >> 1)
+        cell = address & @cell_mask
         if @wide
-          left = @rows[line | (@cells[cell << 1] << 3)]
-          right = @rows[line | (@cells[(cell << 1) | 1] << 3)]
+          base = (cell << 1) | ((raster & @ra4) << 10)
+          left = @rows[line | (@cells[base] << 3)]
+          right = @rows[line | (@cells[base | 1] << 3)]
           ((left << 8) | right) ^ invert
         else
           (@rows[line | (@cells[cell] << 3)] ^ invert) & 0xff

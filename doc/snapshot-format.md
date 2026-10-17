@@ -68,9 +68,10 @@ Written by the C64, VIC-20, C128, Plus/4, PET.
 | `host.true_drive_model` | text: 1541 1551 | Plus/4: "1551" |
 | `refresh_hz` | int | PET: 50 or 60 |
 | `rom.basic` | text | PET: "pet/basic4.rom" or "pet/basic1.rom" |
-| `rom.editor` | text | PET: "pet/editor4-80-b-50hz.rom" or "pet/editor1.rom" |
+| `rom.editor` | text | PET: "pet/editor4-80-b-50hz.rom" or "pet/editor1.rom" or "pet/editor4-80-b-50hz-8296.rom" |
 | `rom.kernal` | text | PET: "pet/kernal4.rom" or "pet/kernal1.rom" |
 | `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
+| `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
 
 ## BL-RAM
@@ -84,9 +85,10 @@ Written by the C64, VIC-20, C128, Plus/4, PET.
 | `bus.high_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.rom_selected` | bool | Plus/4: true |
 | `bus.data` | byte | Plus/4: 255; PET: 253 |
-| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 |
+| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 or 32768 × 0 |
 | `expansion.control` | byte | PET: 0 |
 | `expansion.ram` | bytes | PET: 65536 × 0 |
+| `expansion.user_port` | int | PET: 7 |
 
 ## BL-COLORRAM
 

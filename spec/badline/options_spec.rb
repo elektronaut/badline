@@ -431,6 +431,14 @@ describe Badline::Options do
                                             "--60hz takes a 60 Hz editor, not 4-80-b-50hz-0283"],
       "the 8032's other editor on a 4032" => [%w[pet --model 4032 --editor 4-80-b-50hz-0283],
                                               "the 4032 with BASIC 4 takes no editor 4-80-b-50hz-0283"],
+      "the 8296's editor on an 8032" => [%w[pet --editor 4-80-b-50hz-8296],
+                                         "the 8032 with BASIC 4 takes no editor 4-80-b-50hz-8296"],
+      "--characters for the C64" => [%w[--characters din], "--characters needs pet"],
+      "the DIN characters on an 8032" => [%w[pet --characters din], "the 8032 takes no character ROM din"],
+      "--jumpers for the Plus/4" => [%w[plus4 --jumpers ram9], "--jumpers needs pet"],
+      "jumpers on an 8096" => [%w[pet --model 8096 --jumpers ram9], "the 8096 has no jumper ram9"],
+      "an unknown 8296 jumper" => [%w[pet --model 8296 --jumpers ram9,ramb], "the 8296 has no jumper ramb"],
+      "less RAM on an 8296" => [%w[pet --model 8296 --ram 16k], "the 8296 has 32k of RAM"],
       "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
       "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
@@ -497,6 +505,14 @@ describe Badline::Options do
 
       it "runs at 50 Hz" do
         expect([options.editor, options.refresh_hz]).to eq(["4-80-b-50hz-0283", 50])
+      end
+    end
+
+    context "with an 8296 and its options" do
+      let(:argv) { %w[pet --model 8296 --characters din --jumpers ram9,userport] }
+
+      it "fits the character ROM and the jumpers named" do
+        expect([options.model, options.characters, options.jumpers]).to eq(["8296", "din", %w[ram9 userport]])
       end
     end
 

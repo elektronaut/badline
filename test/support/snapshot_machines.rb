@@ -137,6 +137,18 @@ module SnapshotSetups
     run(machine, 100_001)
   end
 
+  # An 8296 with its user port jumpered, its banks written as the 8096's
+  # are, a pattern written under BASIC and at $9000-$90FF, and the user
+  # port's PA0 and PA1 driven low to show the RAM at $9000 and $A000.
+  def pet_8296_board(machine)
+    pet_banks(machine)
+    0x100.times { |offset| machine.poke(0xb000 + offset, offset ^ 0x5a) }
+    0x100.times { |offset| machine.poke(0x9000 + offset, offset ^ 0xa5) }
+    machine.poke(0xe843, 0x07)
+    machine.poke(0xe841, 0x04)
+    run(machine, 100_001)
+  end
+
   # A 16K cartridge for the 264 series' cartridge 1 slot, signed for the
   # KERNAL to start at reset, that counts at $0C00 and shows the count in
   # the border colour.
@@ -318,7 +330,8 @@ module SnapshotMachines
   PET_BASIC = "10 print chr$(7);\r20 t=tiand255:poke32768+t,t:goto20\rrun\r"
 
   # The PETs: a CRTC board with 80 columns and one with 40, the 2001's
-  # discrete video, an 8096 with its board written, and the media a PET
+  # discrete video, an 8096 and an 8296 with their boards written, and the
+  # media a PET
   # takes: a disk through the traps, a program and a tape played and
   # recorded on cassette #1.
   def pet_scenarios
@@ -329,6 +342,9 @@ module SnapshotMachines
     basic + [
       Scenario.new("pet-8096-banks", :pet, ->(_dir) { typing(Badline::PET.new(model: "8096"), PET_BASIC) },
                    ->(m) { pet_banks(m) }),
+      Scenario.new("pet-8296-board", :pet,
+                   ->(_dir) { typing(Badline::PET.new(model: "8296", jumpers: %w[userport]), PET_BASIC) },
+                   ->(m) { pet_8296_board(m) }),
       Scenario.new("pet-demo", :pet, ->(dir) { attached(Badline::PET.new(model: "3032"), demo(dir, "pet")) },
                    ->(m) { run(m, 2_000_001) }),
       Scenario.new("pet-traps-d64", :pet, ->(dir) { attached(Badline::PET.new, copy(D64, dir)) },
