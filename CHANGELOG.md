@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.16.0](https://github.com/elektronaut/badline/compare/v0.15.1...v0.16.0) (2026-10-17)
+
+
+### Features
+
+* add the 6520 PIA ([329bf8c](https://github.com/elektronaut/badline/commit/329bf8c04a6f8cc666ea1dfded4ec1a8431e07cc))
+* add the PET's IEEE trap layouts and keyboard buffer layouts ([f628ba2](https://github.com/elektronaut/badline/commit/f628ba26c661d1c539c28506e48a95504afd7fd3))
+* answer the debug register at $8BFF on every PET ([76f47ab](https://github.com/elektronaut/badline/commit/76f47ab67f834eb89451fb95134fae2abcadde36))
+* attach programs, disks and archives to the PET, .d80 and .d82 among them ([2094ee5](https://github.com/elektronaut/badline/commit/2094ee53ec3e94a1a7571d38b598212476cf738b))
+* boot the PET to READY headless ([b86044a](https://github.com/elektronaut/badline/commit/b86044a149cde620b41eac3c5a77db252e68c10c))
+* bundle the PET ROMs and refuse badline pet until it runs ([76591ff](https://github.com/elektronaut/badline/commit/76591ffc72c615f0c78649e4b29f0dc8e4a3775f))
+* count the PET's CRTC to the cycle and paint its picture ([59a010f](https://github.com/elektronaut/badline/commit/59a010fc1e5250f543c796ab0de464241b28dcae))
+* fit the 8032's other 50 Hz editor, 901474-04 dated 0283, with --editor 4-80-b-50hz-0283 ([b7b230f](https://github.com/elektronaut/badline/commit/b7b230f4032ba7145358cb60f1be1e370997c0e0))
+* let any machine's timing share a window pixel between its dots ([55f04e8](https://github.com/elektronaut/badline/commit/55f04e86871423f1b0121a4570763f501cb08db1))
+* paint the PET's discrete 40-column video ([2d4f5e6](https://github.com/elektronaut/badline/commit/2d4f5e6caac7c2a3d4e3abe5e8ef37185962dbc9))
+* play and record tapes on the PET's two cassette ports ([aea1a9d](https://github.com/elektronaut/badline/commit/aea1a9de8008ceb576e006520234fa7dc6b4a5e3))
+* play the PET's VIA CB2 as its sound ([cd24520](https://github.com/elektronaut/badline/commit/cd24520a8e87bce7938cae12d153e332f9be1f99))
+* read and write 8050 and 8250 disk images ([2196736](https://github.com/elektronaut/badline/commit/2196736d0e9c84146ce259e322c991a14e1fe69d))
+* run the PET and the CBM in the window with badline pet ([0ee8585](https://github.com/elektronaut/badline/commit/0ee8585ef6a2d789dbbbbf06af3a54a9f33fbbff))
+* save and restore the PET in keyed snapshots ([1dcbb75](https://github.com/elektronaut/badline/commit/1dcbb75785ce70ca6de7b6596970ce06a2275a30))
+* serve device 8 to the PET through traps on its IEEE-488 primitives ([7f72c7d](https://github.com/elektronaut/badline/commit/7f72c7d3d58e5520f32c62120a4ce0270f02893a))
+* show the PET in the window, with its keys, memory and model in the pause menu ([7e90498](https://github.com/elektronaut/badline/commit/7e9049864015e511c3db8455b2d5d6749ffc6ea3))
+* type on the PET's graphics and business keyboards by character from the window ([0797790](https://github.com/elektronaut/badline/commit/079779011880ffca5ecc7c67e6bcef9620147ca5))
+* type the PET's shifted keys with Alt, and name its pause-menu page KEYBOARD ([22b3059](https://github.com/elektronaut/badline/commit/22b305966dd44bdd813af71c3bb5e0a4e2202761))
+* wire the PET's key matrices and type into its keyboard buffer ([1f22475](https://github.com/elektronaut/badline/commit/1f22475b581ac95776a86c1dd27f2671afcfb90c))
+* write PET tapes and read a tape's platform from its header ([29ccd99](https://github.com/elektronaut/badline/commit/29ccd99629bb98c311842628be39c298aab12eb9))
+
+
+### Bug Fixes
+
+* keep the VIC-20's cartridge name in the machine and its snapshots ([4837ab1](https://github.com/elektronaut/badline/commit/4837ab10049309f39d1b5d3b2170e55ab9d21c76))
+* move a 1551's TCBM interface with its DEV line ([f934bcf](https://github.com/elektronaut/badline/commit/f934bcf6cd2058a4528521fb1e14f75b7d15021c))
+* record the Plus/4's true drive model in its snapshots ([9c8ddb1](https://github.com/elektronaut/badline/commit/9c8ddb1b355145382df4a2813a3e55769839f0c9))
+
+
+### Performance Improvements
+
+* sweep only the lines the last PET CRTC frame showed ([026b26a](https://github.com/elektronaut/badline/commit/026b26afc97ed72f32b2e6517a8df18de5d863d1))
+
 ## [0.15.1](https://github.com/elektronaut/badline/compare/v0.15.0...v0.15.1) (2026-10-12)
 
 
