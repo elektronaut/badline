@@ -19,7 +19,8 @@ module Badline
         # The models badline builds by the board PETMEM names (PETMem): the
         # discrete board is a 2001's where xpet's settings say so, and a
         # 3032 otherwise.
-        MODELS = { PETMem::CRTC40 => "4032", PETMem::CRTC80 => "8032", PETMem::CBM8096 => "8096" }.freeze
+        MODELS = { PETMem::CRTC40 => "4032", PETMem::CRTC80 => "8032", PETMem::CBM8096 => "8096",
+                   PETMem::CBM8296 => "8296" }.freeze
         # The modules xpet resets the machine without, for the parts badline
         # doesn't model in VICE's terms, each as xpet leaves them with
         # nothing attached: no file system drive open, both cassette ports
@@ -53,24 +54,25 @@ module Badline
         # How the machine xpet saved was built: the model from PETMEM's
         # board, the RAM, and on a CRTC board the editor's frame rate, and
         # for an 8032's 50 Hz editor which one, from the CRTC's registers.
-        # xpet doesn't save the keyboard or the ROMs, so a discrete board
-        # is a 3032 with the graphics keyboard unless it is a 2001, and each
-        # model has its own ROMs.
+        # xpet doesn't save the keyboard, the ROMs or an 8296's jumpers, so
+        # a discrete board is a 3032 with the graphics keyboard unless it is
+        # a 2001, each model has its own ROMs, and an 8296 none of its
+        # jumpers, as xpet's own has.
         def setup(container)
           memory = memory(container)
           ram_kb = PETMem.ram_kb(memory)
           name = model_name(memory)
-          unless Badline::PET::Model::RAM_SIZES.include?(ram_kb)
+          profile = Badline::PET::Model.named(name)
+          unless Badline::PET::Model.ram_fits?(profile, ram_kb)
             raise FormatError, "#{memory}: a #{name} with #{ram_kb}K of RAM, which badline doesn't build"
           end
 
-          profile = Badline::PET::Model.named(name)
           crtc = container[CRTC::NAME]
           crtc = nil unless crtc.nil? || CRTC.reads?(crtc)
           refresh_hz = refresh_hz(crtc, profile)
           profile = Badline::PET::Model.upgraded(profile, nil, editor(crtc, profile, refresh_hz))
           PETSetup.new(model: name, ram_kb:, refresh_hz:, basic: profile.basic, editor: profile.editor(refresh_hz),
-                       kernal: profile.kernal, characters: profile.characters)
+                       kernal: profile.kernal, characters: profile.characters, jumpers: "")
         end
 
         def memory(container)
@@ -89,7 +91,6 @@ module Badline
           return name unless name.nil?
 
           what = board == PETMem::SUPERPET ? "a SuperPET" : "board #{board}"
-          what = "an 8296" if board == PETMem::CBM8296
           raise FormatError, "#{memory}: #{what}, which badline doesn't build"
         end
 

@@ -6,8 +6,9 @@ module Badline
       module PET
         # PETMEM 1.3: the board, the RAM below $8000 in K and the 8096's
         # control register at $FFF0, then the RAM, the screen RAM, 1K or 2K
-        # as the board has, an 8096's 64K board, and 24 bytes of xpet's own
-        # settings, which name the 2001.
+        # as the board has, or on the 8296 its 32K from $8000, an 8096's or
+        # 8296's 64K board, and 24 bytes of xpet's own settings, which name
+        # the 2001.
         #
         # The board is 0 for the discrete video, 1 for a 40-column CRTC, 2
         # for an 80-column one, 3 for the SuperPET, 4 for the 8096 and 5 for
@@ -36,6 +37,7 @@ module Badline
           def reads?(section) = section.major == MAJOR && section.minor == MINOR
 
           def board(model)
+            return CBM8296 if model.cbm8296?
             return CBM8096 if model.expansion
 
             case model.video
@@ -68,7 +70,8 @@ module Badline
             data.bytesize >= SETTINGS.length && data.getbyte(data.bytesize - SETTINGS.length + 1).to_i.anybits?(0x01)
           end
 
-          # The RAM, the screen RAM and an 8096's board and control register
+          # The RAM, the screen RAM and an 8096's or 8296's board and control
+          # register
           # by their BL-RAM keys, in a keyed module's writer, for a machine
           # with `screen_bytes` of screen RAM.
           def import(section, out, screen_bytes)
@@ -79,7 +82,7 @@ module Badline
             control = fields.byte
             fields.skip(1)
             out.bytes("ram", fields.string(ram_kb * 1024)).bytes("screen", fields.string(screen_bytes))
-            return unless board == CBM8096
+            return unless [CBM8096, CBM8296].include?(board)
 
             out.int("expansion.control", control).bytes("expansion.ram", fields.string(EXPANSION))
           end

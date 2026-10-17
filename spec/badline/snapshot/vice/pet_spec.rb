@@ -43,13 +43,17 @@ describe Badline::Snapshot::Vice::PET do
       expect(section_bytes(container("8096"))["PETMEM 1.3"]).to eq(100_381)
     end
 
+    it "writes an 8296's 32K from $8000 and its board" do
+      expect(section_bytes(container("8296"))["PETMEM 1.3"]).to eq(131_101)
+    end
+
     it "names the file format xpet reads, 1.0, and the machine PET" do
       expect(container.to_s.byteslice(19, 18)).to eq("\x01\x00PET".b + ("\0" * 13))
     end
   end
 
   describe "a machine restored from xpet's modules alone" do
-    %w[8032 4032 2001 8096].each do |model|
+    %w[8032 4032 2001 8096 8296].each do |model|
       it "runs on as the saved #{model} does, the picture too once two frames are drawn" do
         saved = machine(model)
         restored = image(XpetSnapshots.exported(saved)).load { nil }
@@ -101,6 +105,12 @@ describe Badline::Snapshot::Vice::PET do
     it "builds an 8032 with xpet's 50 Hz editor, 901474-04 dated 0283, for its 64-cycle lines" do
       patched = XpetSnapshots.with_section(container, "CRTC", &crtc_registers([0x3f, 0x28, 0x32, 0x08, 0x20, 0x10]))
       expect(setup(patched).editor).to eq("pet/editor4-80-b-50hz-0283.rom")
+    end
+
+    it "builds an 8296 with xpet's 50 Hz editor, the 8032's, for its 64-cycle lines" do
+      registers = crtc_registers([0x3f, 0x28, 0x32, 0x08, 0x20, 0x10])
+      patched = XpetSnapshots.with_section(container("8296"), "CRTC", &registers)
+      expect([setup(patched).model, setup(patched).editor]).to eq(%w[8296 pet/editor4-80-b-50hz-0283.rom])
     end
 
     it "runs a CRTC board's editor at 60 Hz for a frame of 333 lines" do

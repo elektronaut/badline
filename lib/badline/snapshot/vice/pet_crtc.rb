@@ -34,6 +34,8 @@ module Badline
           # it latches (BOARD_ATTRIBUTES), then the bytes a character reads
           # and whether the board is a 2001's.
           SETTINGS = [0xff, 0x03, 0x00, 0x20, 0x00, 0x20, 0x00, 0x10, 0xff, 0x1f].freeze
+          # The 8296's, whose screen RAM spans 4K.
+          SETTINGS_8296 = [0xff, 0x0f, 0x00, 0x20, 0x00, 0x20, 0xff, 0x0f, 0xff, 0x1f].freeze
           # The 2001's and 3000 series' video as xpet's CRTC runs it: 64
           # cycles a line, 32 rows of 8 lines and 4 more, the first 25 rows
           # shown.
@@ -82,7 +84,8 @@ module Badline
                    else
                      crtc_beam(run_on(machine, crtc_input, -CRTC_LEAD % frame_cycles(registers)), registers)
                    end
-            fields = FieldWriter.new.bytes(SETTINGS).word(attributes(model)).byte(0).byte(columns(model))
+            fields = FieldWriter.new.bytes(model.cbm8296? ? SETTINGS_8296 : SETTINGS).word(attributes(model))
+            fields.byte(0).byte(columns(model))
             fields.byte(model.basic1? ? 1 : 0).bytes(registers).byte(discrete ? 0 : crtc_input.int("selected", 0))
             beam_fields(fields, beam, registers, model)
             picture(fields, model)
