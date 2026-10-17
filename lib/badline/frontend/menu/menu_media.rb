@@ -99,11 +99,20 @@ module Badline
         insert(:disk, set[index + step])
       end
 
-      # The extensions of the cartridges the machine takes: .crt, and on
-      # the Plus/4 raw .bin ROM images too.
+      # The extensions of the cartridges the machine takes: .crt, on the
+      # Plus/4 raw .bin ROM images too, and none on the PET.
       def cartridge_extensions
-        extensions = Media::Extensions.of(%i[cartridge])
+        extensions = Media::Extensions.of(@computer.family == :pet ? %i[none] : %i[cartridge])
         @computer.family == :plus4 ? extensions + [Media::Plus4Media::ROM_IMAGE] : extensions
+      end
+
+      # The extensions of what goes in device 8: on the PET the 8050's and
+      # 8250's disk images besides the others, and no raw GCR, which only
+      # a serial true drive reads.
+      def disk_extensions
+        return Media::Extensions.of(%i[disk ieee_disk archive disk_list]) if @computer.family == :pet
+
+        Media::Extensions::DEVICE8
       end
 
       # Swaps the cartridge for the one at `path`, which power cycles the
@@ -117,10 +126,10 @@ module Badline
       # What a save of the machine is named after: the cartridge, the disk,
       # the tape, or BASIC, without the bracketed parts of a file's name. A
       # VIC-20's are named after its disk, or else the machine, and a
-      # Plus/4's after its disk or tape.
+      # Plus/4's or a PET's after its disk or tape.
       def game_name
         vic20 = @computer.family == :vic20
-        name = vic20 || @computer.family == :plus4 ? "" : cartridge_name
+        name = vic20 || %i[plus4 pet].include?(@computer.family) ? "" : cartridge_name
         disk = disk_path
         name = File.basename(disk, File.extname(disk)) if name.empty? && !disk.empty?
         name = tape_name if name.empty? && !vic20
@@ -145,6 +154,7 @@ module Badline
         case @computer.family
         when :plus4 then @computer.cartridge_slots.map { |slot| slot_name(slot) }.uniq.join(", ")
         when :vic20 then @computer.cartridge_name
+        when :pet then ""
         else
           cartridge = @computer.address_bus.cartridge
           cartridge.nil? ? "" : cartridge.name

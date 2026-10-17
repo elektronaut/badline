@@ -18,6 +18,10 @@ describe Badline::PET do
     expect { described_class.new(model: "3032", ram_kb: 24) }.to raise_error(ArgumentError, /24K/)
   end
 
+  it "names its model, RAM and frame rate for the pause menu" do
+    expect(described_class.new(model: "4032", ram_kb: 16, refresh_hz: 60).model_label).to eq("4032, 16K RAM, 60 HZ")
+  end
+
   it "runs a discrete board at 60 Hz whatever it's asked" do
     expect(described_class.new(model: "3032", refresh_hz: 50).refresh_hz).to eq(60)
   end

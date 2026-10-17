@@ -39,6 +39,7 @@ module Badline
         @browsing = kind
         extensions = case kind
                      when :cartridge then @media.cartridge_extensions
+                     when :disk then @media.disk_extensions
                      when :program then programs
                      else EXTENSIONS.fetch(kind)
                      end
@@ -64,7 +65,7 @@ module Badline
       # starts, and says whether it asks. Other files are left alone.
       def drop(path)
         extension = File.extname(path).downcase
-        return @media.insert(:disk, path) && false if EXTENSIONS[:disk].include?(extension)
+        return @media.insert(:disk, path) && false if @media.disk_extensions.include?(extension)
         return @media.insert(:tape, path) && false if EXTENSIONS[:tape].include?(extension)
         return false unless programs.include?(extension)
 
