@@ -153,13 +153,14 @@ module Badline
 
     # A PET with the RAM --ram names (PET::Model::RAM_SIZES), or with the
     # model's own without it, the editor at the frame rate --60hz or
-    # --editor asks for, and the ROMs --basic and --editor fit it with.
+    # --editor asks for, the ROMs --basic, --editor and --characters fit it
+    # with, and the 8296 board's jumpers --jumpers names.
     def self.pet_for(media, options)
       unsupported = !media.nil? && Media::PETMedia::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a PET" if unsupported
 
       PET.new(model: options.model, ram_kb: options.ram_kb, refresh_hz: options.refresh_hz, basic: options.basic,
-              editor: options.editor)
+              editor: options.editor, characters: options.characters, jumpers: options.jumpers)
     end
     private_class_method :pet_for
 

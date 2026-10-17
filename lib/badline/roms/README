@@ -253,7 +253,9 @@ BASIC 4 for $B000-$DFFF, 901465-23, 901465-20 and 901465-21
 (basic-4-b000.901465-23.bin, basic-4-c000.901465-20.bin,
 basic-4-d000.901465-21.bin) concatenated. 901465-23 is the patched
 $B000 chip that replaced 901465-19. The 8296's 324746-01 holds the same
-four chips.
+four chips (8296/kernal-basic-324746-01.bin, SHA-1
+e3e1431969bf317c885e47f3790e0bcbdf61fe77, $C000, $D000, $B000 and
+$F000 in that order), so the 8296 runs this file and kernal4.rom.
 SHA-1 d70bec479e1e3a0d0908a4897066e9959bbc11c8.
 
 pet/kernal4.rom
@@ -316,3 +318,21 @@ pet/editor4-80-b-60hz.rom
 The 8032's 60 Hz editor, 901474-03 (edit-4-80-b-60Hz.901474-03.bin),
 for $E000-$E7FF.
 SHA-1 c605fa343fd77c73cbe1e0e9567e2f014f6e7e30.
+
+pet/editor4-80-b-50hz-8296.rom
+------------------------------
+The 8296's 50 Hz editor, 324243-02B, the EPROM marked "8296 UE8" in
+Andre Fachat's working 8296 (8296/edit-50hz-324243-02b.bin), for
+$E000-$E7FF. The 8296 parts list names it the ASCII board's. It is
+901474-04 with the CRTC's register tables at $E72A changed to lines of
+59 cycles and frames of 339 lines (8296/edit-50hz-324243-02b.txt).
+SHA-1 b715db83fd26458dfd254bef5c4aae636753f7f5.
+
+pet/characters-din.rom
+----------------------
+The 8296's 4K character generator for the DIN board, 324242-01
+(8296/characters-324242-01.bin), which --characters din fits. Its
+second half is 901447-10 byte for byte, and its first a DIN set, with
+the German letters and the section sign in place of @ [ \ ] and in
+some of the graphics. The CRTC's MA13, bit 5 of R12, picks the half.
+SHA-1 9616f7f18757cccefb702a945f954b644d5b17d1.

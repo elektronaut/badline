@@ -3,8 +3,8 @@
 module Badline
   class PET
     # The PETs and CBMs badline builds by name, after xpet's -model names:
-    # the board's RAM, its stock ROM set and video, and whether the 8096's
-    # 64K board is fitted.
+    # the board's RAM, its stock ROM set and video, and whether a 64K
+    # board banked through $FFF0 is fitted, the 8096's or the 8296's own.
     #
     # +video+ is :discrete, the fixed 40-column, 60 Hz generator of the
     # 2001 and 3000 series, :crtc40 or :crtc80, a 6545 the editor ROM
@@ -14,7 +14,10 @@ module Badline
     #
     # The 2001's 1K of screen RAM repeats four times through $8000-$8FFF.
     # Later boards decode $8000-$87FF alone, the 40-column ones with their
-    # 1K twice over and the 80-column ones with 2K.
+    # 1K twice over and the 80-column ones with 2K. The 8296 has 128K of
+    # dynamic RAM, the 32K below $8000, the 32K above it, of which the
+    # screen is the start and the rest lies under the ROMs, and the 64K
+    # board (Bus::Expansion).
     module Model
       Profile = Data.define(:name, :ram_kb, :basic, :editor_50hz, :editor_60hz, :kernal, :characters, :keyboard,
                             :video, :expansion) do
@@ -22,10 +25,18 @@ module Badline
 
         def editor(refresh_hz) = refresh_hz == 50 ? editor_50hz : editor_60hz
 
-        def screen_bytes = video == :crtc80 ? 0x800 : 0x400
+        # The 8296, whose board decodes its memory in a PLA.
+        def cbm8296? = name == "8296"
+
+        # The screen RAM's bytes, and on the 8296 all 32K of RAM from $8000.
+        def screen_bytes
+          return 0x8000 if cbm8296?
+
+          video == :crtc80 ? 0x800 : 0x400
+        end
 
         # How many pages from $8000 on the screen RAM answers in.
-        def screen_pages = name == "2001" ? 0x10 : 0x08
+        def screen_pages = name == "2001" || cbm8296? ? 0x10 : 0x08
 
         # The BASIC 1 KERNAL keeps its keyboard buffer and jiffy clock in
         # page 2; BASIC 2 and 4 keep them where each other does.
@@ -70,7 +81,12 @@ module Badline
                             kernal: "pet/kernal4.rom", characters: "pet/characters2.rom", keyboard: :business,
                             video: :crtc80, expansion: true)
 
-      ALL = [PET2001, PET3032, PET3032B, PET4032, CBM8032, CBM8096].freeze
+      CBM8296 = Profile.new(name: "8296", ram_kb: 32, basic: "pet/basic4.rom",
+                            editor_50hz: "pet/editor4-80-b-50hz-8296.rom", editor_60hz: "pet/editor4-80-b-60hz.rom",
+                            kernal: "pet/kernal4.rom", characters: "pet/characters2.rom", keyboard: :business,
+                            video: :crtc80, expansion: true)
+
+      ALL = [PET2001, PET3032, PET3032B, PET4032, CBM8032, CBM8096, CBM8296].freeze
 
       DEFAULT = "8032"
 
@@ -83,6 +99,40 @@ module Badline
         raise ArgumentError, "no PET model named #{name}" if model.nil?
 
         model
+      end
+
+      # Whether the +profile+'s board takes +ram_kb+ below $8000: the 8296
+      # has its 32K soldered on.
+      def self.ram_fits?(profile, ram_kb)
+        profile.cbm8296? ? ram_kb == 32 : RAM_SIZES.include?(ram_kb)
+      end
+
+      # The +jumpers+ the +profile+'s board has fitted, which only the
+      # 8296's takes (ROMSets::JUMPERS), in that order. Raises
+      # ArgumentError for any it doesn't have.
+      def self.checked_jumpers(profile, jumpers)
+        known = ROMSets.jumpers(profile.name)
+        unknown = jumpers.reject { |jumper| known.include?(jumper) }
+        raise ArgumentError, "the #{profile.name} has no jumper #{unknown.first}" unless unknown.empty?
+
+        known.select { |jumper| jumpers.include?(jumper) }
+      end
+
+      # The +profile+ with the character ROM ROMSets::CHARACTERS names in
+      # place of its own, nil for its own. Raises ArgumentError for one the
+      # model doesn't take.
+      def self.fitted(profile, characters)
+        return profile if characters.nil?
+
+        name = profile.name
+        unless ROMSets.characters(name).include?(characters)
+          raise ArgumentError, "the #{name} takes no character ROM #{characters}"
+        end
+
+        Profile.new(name:, ram_kb: profile.ram_kb, basic: profile.basic, editor_50hz: profile.editor_50hz,
+                    editor_60hz: profile.editor_60hz, kernal: profile.kernal,
+                    characters: ROMSets::CHARACTERS.fetch(characters), keyboard: profile.keyboard,
+                    video: profile.video, expansion: profile.expansion)
       end
 
       # The +profile+ with the BASIC and the editor ROMSets names in place

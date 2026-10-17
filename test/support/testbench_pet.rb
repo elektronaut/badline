@@ -7,14 +7,16 @@
 module Testbench
   PET_TESTLIST = File.expand_path("../../vendor/VICE-testprogs/testbench/pet-testlist.in", __dir__)
 
-  # The testlist's machine, as xpet's hook starts it, and the discrete
-  # video boards --pet-discrete runs the same rows on.
+  # The testlist's machine, as xpet's hook starts it, the 8296 --pet runs
+  # the same rows on, its CRTC's RA4 an address line, and the discrete
+  # video boards --pet-discrete runs them on.
   PET_MODEL = "8096"
+  PET_8296 = "8296"
   PET_DISCRETE_MODELS = %w[2001 3032].freeze
 
   # A row the testlist doesn't have: the pass program from the selftest's
-  # .d82, which the 8096 loads from device 8 through the traps on its
-  # IEEE-488 primitives.
+  # .d82, which the 8096 and the 8296 load from device 8 through the traps
+  # on their IEEE-488 primitives.
   PET_DISK_ROW = "./selftest/,pet-pass.d82,exitcode,10000000"
 
   # The option that names a row's model, which only --pet-discrete adds.
@@ -29,8 +31,8 @@ module Testbench
       option ? option.delete_prefix(PET_MODEL_OPTION) : PET_MODEL
     end
 
-    # What a --pet-discrete row's id ends in, as one program runs on each
-    # model: @2001 or @3032.
+    # What the id of a row on another model than the 8096 ends in, as one
+    # program runs on each model: @8296, @2001 or @3032.
     def model_suffix = pet? && pet_model != PET_MODEL ? "@#{pet_model}" : ""
 
     def pet_machine = Testbench.pet_machine(pet_model)
@@ -83,15 +85,15 @@ module Testbench
     end
   end
 
-  # The PET testlist's exitcode and screenshot rows on the 8096, with
-  # PET_DISK_ROW, or its exitcode rows with +discrete+ on each of
-  # PET_DISCRETE_MODELS, as the references show an 8096's screen.
-  # Interactive rows are left out as on the C64.
+  # The PET testlist's exitcode and screenshot rows on the 8096 and the
+  # 8296, with PET_DISK_ROW, or its exitcode rows with
+  # +discrete+ on each of PET_DISCRETE_MODELS, as the references show an
+  # 80-column screen. Interactive rows are left out as on the C64.
   module PETTestlist
     module_function
 
     def tests(filters, discrete: false, scope: nil, exclude: nil)
-      models = discrete ? PET_DISCRETE_MODELS : [nil]
+      models = discrete ? PET_DISCRETE_MODELS : [nil, PET_8296]
       lines = File.readlines(PET_TESTLIST)
       lines << PET_DISK_ROW unless discrete
       rows = lines.flat_map { |line| models.filter_map { |model| parse(line, model) } }
@@ -103,7 +105,7 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless type == "exitcode" || (type == "screenshot" && model.nil?)
+      return unless type == "exitcode" || (type == "screenshot" && [nil, PET_8296].include?(model))
 
       options << "#{PET_MODEL_OPTION}#{model}" if model
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, nil)

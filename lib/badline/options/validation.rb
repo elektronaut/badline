@@ -176,6 +176,8 @@ module Badline
         raise Error, "--60hz needs pet" unless @refresh_hz.nil?
         raise Error, "--basic needs pet" unless @basic.nil?
         raise Error, "--editor needs pet" unless @editor.nil?
+        raise Error, "--characters needs pet" unless @characters.nil?
+        raise Error, "--jumpers needs pet" unless @jumpers.empty?
       end
 
       # The PET runs in the window, without the C64's SID and REU or a true
@@ -187,7 +189,22 @@ module Badline
         raise Error, "the PET has no true drive yet" if @true_drive
         raise Error, "the PET needs the window" if headless?
 
-        validate_pet_roms if PET_MODELS.include?(model)
+        return unless PET_MODELS.include?(model)
+
+        validate_pet_roms
+        validate_pet_board
+      end
+
+      # --characters names a character ROM the board takes, --jumpers the
+      # 8296 board's jumpers, and the 8296 has all of its RAM soldered on.
+      def validate_pet_board
+        unless @characters.nil? || PET::ROMSets.characters(model).include?(@characters)
+          raise Error, "the #{model} takes no character ROM #{@characters}"
+        end
+
+        unknown = @jumpers.find { |jumper| !PET::ROMSets.jumpers(model).include?(jumper) }
+        raise Error, "the #{model} has no jumper #{unknown}" unless unknown.nil?
+        raise Error, "the 8296 has 32k of RAM" if model == "8296" && ![nil, 32].include?(@ram_kb)
       end
 
       # --basic and --editor name ROMs the model's board takes

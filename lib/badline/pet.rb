@@ -58,6 +58,9 @@ module Badline
     # The RAM below $8000, in K.
     attr_reader :ram_kb
 
+    # The 8296's board jumpers that are fitted, by name.
+    attr_reader :jumpers
+
     def ram = @bus.ram
 
     # Reads and writes memory as the CPU sees it, through the bus.
@@ -75,14 +78,17 @@ module Badline
     # +model+ names one of Model::ALL, with +ram_kb+ of RAM below $8000
     # (Model::RAM_SIZES) in place of the model's own when not nil. A CRTC
     # model runs its 50 Hz editor, or its 60 Hz one for +refresh_hz+ 60.
-    # +basic+ and +editor+ name ROMs the board takes in place of its own
-    # (Model.upgraded).
-    def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false, basic: nil, editor: nil)
-      @model = Model.upgraded(Model.named(model), basic, editor)
+    # +basic+, +editor+ and +characters+ name ROMs the board takes in place
+    # of its own (Model.upgraded, Model.fitted), and +jumpers+ the 8296's
+    # board jumpers (ROMSets::JUMPERS).
+    def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false, basic: nil, editor: nil,
+                   characters: nil, jumpers: [])
+      @model = Model.fitted(Model.upgraded(Model.named(model), basic, editor), characters)
       ram_kb ||= @model.ram_kb
-      raise ArgumentError, "a PET has no #{ram_kb}K RAM board" unless Model::RAM_SIZES.include?(ram_kb)
+      raise ArgumentError, "the #{@model.name} has no #{ram_kb}K RAM board" unless Model.ram_fits?(@model, ram_kb)
 
       @ram_kb = ram_kb
+      @jumpers = Model.checked_jumpers(@model, jumpers)
 
       @refresh_hz = @model.crtc? ? refresh_hz : 60
       @crtc_video = @model.crtc?
@@ -99,11 +105,12 @@ module Badline
       @cassettes = Cassettes.new(@pia1, @via)
       keyboard_ports.connect(@pia1, @ieee, @cassettes)
       characters = Characters.new(@model.characters)
-      @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80)
+      @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80,
+                                                                board8296: @model.cbm8296?)
       @crtc = Chips::CRTC.new(@crtc_output, registers:)
       @ieee.connect(@pia1, @pia2, @via)
       @bus = Bus.new(model: @model, ram_kb:, editor: @model.editor(@refresh_hz), pia1: @pia1, pia2: @pia2,
-                     via: @via, crtc: @crtc)
+                     via: @via, crtc: @crtc, jumpers: @jumpers)
       @crtc_output.cells = @bus.screen.cells
       @discrete = DiscreteVideo.new(@bus.screen.cells, characters, @via)
       @canvas = @crtc_video ? @crtc_output.canvas : @discrete.canvas
@@ -123,8 +130,8 @@ module Badline
     def vertical_drive? = @vertical_drive
 
     # The model, its RAM and its editor's frame rate as the pause menu
-    # names them, such as "8032, 32K RAM, 50 HZ".
-    def model_label = "#{@model.name.upcase}, #{@ram_kb}K RAM, #{@refresh_hz} HZ"
+    # names them, such as "8032, 32K RAM, 50 HZ", all 128K on an 8296.
+    def model_label = "#{@model.name.upcase}, #{@model.cbm8296? ? 128 : @ram_kb}K RAM, #{@refresh_hz} HZ"
 
     # The Canvas a front end shows.
     def video = @canvas

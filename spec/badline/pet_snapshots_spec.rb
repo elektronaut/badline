@@ -70,6 +70,25 @@ describe Badline::PET do
       end
     end
 
+    context "with an 8296's board" do
+      let(:machine) do
+        described_class.new(model: "8296", characters: "din", jumpers: %w[userport]).tap do |pet|
+          pet.poke(0xc000, 0x5a)
+          pet.poke(0xe843, 0x07)
+          pet.poke(0xe841, 0x03)
+        end
+      end
+
+      it "carries the RAM under the ROMs and the user port lines that show it over" do
+        expect(machine.snapshot.load.peek(0xc000)).to eq(0x5a)
+      end
+
+      it "builds the machine with the same jumpers and character ROM" do
+        restored = machine.snapshot.load
+        expect([restored.jumpers, restored.model.characters]).to eq([%w[userport], "pet/characters-din.rom"])
+      end
+    end
+
     it "carries the disk in device 8 over" do
       machine = saved("8032")
       machine.mount(Badline::Storage::D64Image.new("game.d64", read_only: true, bytes: Array.new(174_848, 0)))

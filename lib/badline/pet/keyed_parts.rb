@@ -80,26 +80,30 @@ module Badline
 
     class Bus
       class Expansion
-        # The control register and the board's 64K, under `prefix`. The
-        # banks are laid over the pages again once the bus is loaded.
+        # The control register and the board's 64K, under `prefix`, and
+        # on the 8296 the user port lines its RAM last followed. The banks
+        # are laid over the pages again once the bus is loaded.
         module KeyedState
           def save_fields(out, prefix)
             out.int("#{prefix}control", @control).bytes("#{prefix}ram", @cells)
+            out.int("#{prefix}user_port", @lines) if @board8296
           end
 
           def load_fields(input, prefix)
             @control = input.byte("#{prefix}control", @control)
             input.bytes_into("#{prefix}ram", @cells)
+            @lines = input.int("#{prefix}user_port", USER_PORT_LINES) & USER_PORT_LINES
           end
         end
 
         include KeyedState
       end
 
-      # The RAM below $8000, the screen RAM, the last byte on the bus under
-      # bus.* and an 8096's board under expansion.*, in a keyed snapshot
-      # module (BL-RAM). The pages are laid out again once they are loaded
-      # (#restored!). The ROMs come with the model.
+      # The RAM below $8000, the screen RAM, all 32K from $8000 on an 8296,
+      # the last byte on the bus under bus.* and an 8096's or 8296's board
+      # under expansion.*, in a keyed snapshot module (BL-RAM). The pages
+      # are laid out again once they are loaded (#restored!). The ROMs come
+      # with the model.
       module KeyedState
         def save_fields(out)
           @ram.save_fields(out, "ram")

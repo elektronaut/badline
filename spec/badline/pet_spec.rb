@@ -89,6 +89,44 @@ describe Badline::PET do
     end
   end
 
+  describe "on the 8296's board" do
+    it "times its own editor's 59-cycle lines, 339 a frame" do
+      timing = described_class.new(model: "8296").timing
+      expect([timing.cycles_per_line, timing.lines_per_frame]).to eq([59, 339])
+    end
+
+    it "takes the 8032's 60 Hz editor" do
+      expect(described_class.new(model: "8296", refresh_hz: 60).model.editor(60)).to eq("pet/editor4-80-b-60hz.rom")
+    end
+
+    it "has all its RAM soldered on" do
+      expect { described_class.new(model: "8296", ram_kb: 16) }.to raise_error(ArgumentError, /8296 has no 16K/)
+    end
+
+    it "takes the DIN character ROM" do
+      expect(described_class.new(model: "8296", characters: "din").model.characters).to eq("pet/characters-din.rom")
+    end
+
+    it "refuses the DIN character ROM on other boards" do
+      expect { described_class.new(characters: "din") }.to raise_error(ArgumentError, /8032 takes no character ROM/)
+    end
+
+    it "keeps its jumpers in the board's order" do
+      expect(described_class.new(model: "8296", jumpers: %w[userport ram9]).jumpers).to eq(%w[ram9 userport])
+    end
+
+    it "lets go of the RAM under the KERNAL once a reset lets the user port's lines float high" do
+      pet = described_class.new(model: "8296", jumpers: %w[userport]).tap { |machine| machine.poke(0xe843, 0x07) }
+      pet.poke(0xe841, 0x00)
+      pet.reset!
+      expect(pet.peek(0xfffc)).to eq(0x16)
+    end
+
+    it "refuses jumpers on other boards" do
+      expect { described_class.new(model: "8096", jumpers: %w[ram9]) }.to raise_error(ArgumentError, /no jumper ram9/)
+    end
+  end
+
   describe "booted", :slow do
     {
       "2001" => ["*** COMMODORE BASIC ***", " 7167 BYTES FREE"],
@@ -96,14 +134,15 @@ describe Badline::PET do
       "3032b" => ["### COMMODORE BASIC ###", " 31743 BYTES FREE"],
       "4032" => ["*** COMMODORE BASIC 4.0 ***", " 31743 BYTES FREE"],
       "8032" => ["*** COMMODORE BASIC 4.0 ***", " 31743 BYTES FREE"],
-      "8096" => ["*** COMMODORE BASIC 4.0 ***", " 31743 BYTES FREE"]
+      "8096" => ["*** COMMODORE BASIC 4.0 ***", " 31743 BYTES FREE"],
+      "8296" => ["*** COMMODORE BASIC 4.0 ***", " 31743 BYTES FREE"]
     }.each do |model, (banner, bytes_free)|
       it "shows the #{model}'s banner and BYTES FREE, then READY, as xpet does" do
         expect(booted_once(model).last.first(5)).to eq([banner, "", bytes_free, "", "READY."])
       end
     end
 
-    %w[2001 3032 4032 8032 8096].each do |model|
+    %w[2001 3032 4032 8032 8096 8296].each do |model|
       it "prints 42 for PRINT 6*7 on the #{model}" do
         expect(typed_once(model, "print 6*7\r", 300_000)[5, 4]).to eq(["PRINT 6*7", " 42", "", "READY."])
       end

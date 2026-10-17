@@ -175,6 +175,20 @@ describe Badline::Frontend::MenuPages do
         expect(painter).to have_received(:text).with(0, anything, "ALT+KEY: SHIFT+KEY", anything)
       end
     end
+
+    context "with an 8296" do
+      let(:computer) { Badline::PET.new(model: "8296", jumpers: %w[ram9 rama]) }
+
+      it "names all 128K on the power page" do
+        pages.draw(:power, 0, 0)
+        expect(painter).to have_received(:text).with(0, 12, "8296, 128K RAM, 50 HZ", anything)
+      end
+
+      it "names its jumpers on the expansion page" do
+        pages.draw(:expansion, 0, 0)
+        expect(painter).to have_received(:text).with(0, anything, "RAM9, RAMA", anything)
+      end
+    end
   end
 
   describe "with a Plus/4" do

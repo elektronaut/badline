@@ -19,7 +19,8 @@ module Badline
     # empty spot finds it, mostly the high byte of the address just
     # fetched, as PET/unconnected shows on a real 3016. Writes to ROM and
     # to empty spots go nowhere. An 8096 banks its 64K board over
-    # $8000-$FFFF (Expansion).
+    # $8000-$FFFF (Expansion), and an 8296 its board and the RAM under its
+    # ROMs.
     class Bus
       include Addressable
 
@@ -33,7 +34,8 @@ module Badline
         def poke(_addr, _value); end
       end
 
-      # Screen RAM, repeated over the pages it answers in.
+      # Screen RAM, repeated over the pages it answers in. On the 8296 it is
+      # all 32K of RAM from $8000, which the board lays under the ROMs.
       class ScreenRAM
         attr_reader :cells
 
@@ -107,29 +109,31 @@ module Badline
         end
       end
 
-      attr_reader :ram, :screen, :expansion
+      attr_reader :ram, :screen, :expansion, :editor_rom, :open_bus
 
       # The last byte the CPU read or wrote.
       attr_reader :data
 
       # +model+ is a Model::Profile, +ram_kb+ the RAM below $8000 and
       # +editor+ the editor ROM's file. The CRTC answers only on a board
-      # the model fits one on.
-      def initialize(model:, ram_kb:, editor:, pia1:, pia2:, via:, crtc:)
+      # the model fits one on. +jumpers+ are the 8296's (ROMSets::JUMPERS).
+      def initialize(model:, ram_kb:, editor:, pia1:, pia2:, via:, crtc:, jumpers: [])
         addressable_at(0, length: 2**16)
         @ram = Memory.new([], length: ram_kb * 1024, start: 0)
         @screen = ScreenRAM.new(model.screen_bytes)
         @screen_pages = model.screen_pages
         basic = ROM.read(model.basic)
         @basic_rom = ROM.new(basic, length: basic.length, start: 0xe000 - basic.length)
-        @editor_rom = ROM.load(editor, 0xe000)
+        @editor_rom = model.cbm8296? ? editor_socket(editor) : ROM.load(editor, 0xe000)
         @kernal_rom = ROM.load(model.kernal, 0xf000)
         @io = IO.new(self, pia1:, pia2:, via:, crtc:, crtc_fitted: model.crtc?)
         @open_bus = OpenBus.new(self)
         @data = 0
         @read_pages = Array.new(256, @open_bus)
         @write_pages = Array.new(256, @open_bus)
-        @expansion = model.expansion ? Expansion.new(self) : nil
+        @expansion = model.expansion ? Expansion.new(self, board8296: model.cbm8296?, jumpers:) : nil
+        @via = via
+        @user_port = !@expansion.nil? && @expansion.user_port?
         @debug_register = nil
         @io_write_handler = nil
         map_pages
@@ -143,11 +147,16 @@ module Badline
 
       def io_written
         @io_write_handler&.call
+        @expansion.lines = @via.port_a_output if @user_port
       end
 
-      # The RES line reaches the 8096's control register.
+      # The RES line reaches the board's control register, and the user
+      # port's lines float high with the VIA's.
       def reset!
-        @expansion&.reset!
+        return if @expansion.nil?
+
+        @expansion.reset!
+        @expansion.lines = @via.port_a_output if @user_port
       end
 
       def power_on!
@@ -166,8 +175,9 @@ module Badline
       end
 
       # Whether the CPU reads the KERNAL ROM at $F000-$FFFF, which an 8096's
-      # board covers while its control register turns it on.
-      def kernal_mapped? = @expansion.nil? || @expansion.control.nobits?(0x80)
+      # board covers while its control register turns it on, and an 8296's
+      # RAM too.
+      def kernal_mapped? = @expansion.nil? || @expansion.kernal_mapped?
 
       # Calls the block with each byte written to $8BFF (DebugRegister).
       def install_debug_register(&)
@@ -175,7 +185,7 @@ module Badline
         map_pages
       end
 
-      # Lays the pages out again, for the 8096's control register.
+      # Lays the pages out again, for the board's control register.
       def map_pages
         map(@open_bus, 0x00, 0x100)
         map(@ram, 0x00, @ram.length >> 8)
@@ -189,6 +199,14 @@ module Badline
       end
 
       private
+
+      # The 8296's editor socket, which answers at $E000-$E7FF and
+      # $E900-$EFFF: a 4K ROM's halves there, or a 2K one twice over.
+      def editor_socket(file)
+        bytes = ROM.read(file)
+        bytes += bytes if bytes.length == 0x800
+        ROM.new(bytes, length: 0x1000, start: 0xe000)
+      end
 
       def map_debug_register
         @debug_register.under = @write_pages[0x8b]

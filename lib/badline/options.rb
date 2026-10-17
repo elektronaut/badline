@@ -80,9 +80,13 @@ module Badline
     # :plus4 or :pet.
     attr_reader :family
 
-    # The ROMs --basic and --editor fit a PET with, keys of
-    # PET::ROMSets::BASICS and PET::ROMSets::EDITORS, or nil for its own.
-    attr_reader :basic, :editor
+    # The ROMs --basic, --editor and --characters fit a PET with, keys of
+    # PET::ROMSets::BASICS, PET::ROMSets::EDITORS and
+    # PET::ROMSets::CHARACTERS, or nil for its own.
+    attr_reader :basic, :editor, :characters
+
+    # The 8296's board jumpers --jumpers names (PET::Bus::Expansion::JUMPERS).
+    attr_reader :jumpers
 
     # The VIC-20's RAM expansion --ram names, a key of
     # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
@@ -132,9 +136,7 @@ module Badline
       @ram = nil
       @ram_kb = nil
       @ram_name = nil
-      @refresh_hz = nil
-      @basic = nil
-      @editor = nil
+      initialize_pet
       @cartridges = {}
       @autostart = true
       @writable = false
@@ -322,8 +324,7 @@ module Badline
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--ram" then @ram_name = value
-      when "--basic" then @basic = value
-      when "--editor" then @editor = value
+      when "--basic", "--editor", "--characters", "--jumpers" then pet_option(name, value)
       when "--drive-type" then @drive_type = drive_type_for(value)
       when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
       when "--frames" then @frames = number(flag, value)
@@ -335,6 +336,24 @@ module Badline
       when "--songlengths" then @songlengths = value
       when "--rate" then @rate = number(flag, value)
       else @filter_chunk = number(flag, value)
+      end
+    end
+
+    # The PET's frame rate, ROMs and board jumpers, its own until named.
+    def initialize_pet
+      @refresh_hz = nil
+      @basic = nil
+      @editor = nil
+      @characters = nil
+      @jumpers = []
+    end
+
+    def pet_option(name, value)
+      case name
+      when "--basic" then @basic = value
+      when "--editor" then @editor = value
+      when "--characters" then @characters = value
+      else @jumpers = value.split(",")
       end
     end
 

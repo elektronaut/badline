@@ -96,7 +96,7 @@ module Suites
   # references on the lines both show. Their Spinel build is
   # spinel/plus4_testbench.rb.
   # testbench-pet is the PET testlist's exitcode and screenshot rows on an
-  # 8096, as xpet's hook starts it, and testbench-pet-discrete its exitcode
+  # 8096, as xpet's hook starts it, and on an 8296, and testbench-pet-discrete its exitcode
   # rows on a 2001 and a 3032, the boards with the discrete video, each row once on each.
   # Their Spinel build is spinel/pet_testbench.rb.
   # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
