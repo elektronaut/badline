@@ -6,67 +6,38 @@
 ### Features
 
 * add the 6520 PIA ([329bf8c](https://github.com/elektronaut/badline/commit/329bf8c04a6f8cc666ea1dfded4ec1a8431e07cc))
-* add the 6520 PIA ([3267453](https://github.com/elektronaut/badline/commit/326745321d80313a20c5942a3aa7bad8cddacd0c))
 * add the PET's IEEE trap layouts and keyboard buffer layouts ([f628ba2](https://github.com/elektronaut/badline/commit/f628ba26c661d1c539c28506e48a95504afd7fd3))
-* add the PET's IEEE trap layouts and keyboard buffer layouts ([5789aeb](https://github.com/elektronaut/badline/commit/5789aebb0e45d67b11e476eaef31db9bbad99c4f))
 * answer the debug register at $8BFF on every PET ([76f47ab](https://github.com/elektronaut/badline/commit/76f47ab67f834eb89451fb95134fae2abcadde36))
 * attach programs, disks and archives to the PET, .d80 and .d82 among them ([2094ee5](https://github.com/elektronaut/badline/commit/2094ee53ec3e94a1a7571d38b598212476cf738b))
-* attach programs, disks and archives to the PET, .d80 and .d82 among them ([38c913a](https://github.com/elektronaut/badline/commit/38c913a7dd3abf74c09cbacbc2d5703c5fdae287))
 * boot the PET to READY headless ([b86044a](https://github.com/elektronaut/badline/commit/b86044a149cde620b41eac3c5a77db252e68c10c))
-* boot the PET to READY headless ([a15325b](https://github.com/elektronaut/badline/commit/a15325bab7255f21e1db0293df787d275127e7ad))
 * bundle the PET ROMs and refuse badline pet until it runs ([76591ff](https://github.com/elektronaut/badline/commit/76591ffc72c615f0c78649e4b29f0dc8e4a3775f))
-* bundle the PET ROMs and refuse badline pet until it runs ([9b1a3b3](https://github.com/elektronaut/badline/commit/9b1a3b3b8075d9b6d2e960f5d959ea8cc70c40ea))
 * count the PET's CRTC to the cycle and paint its picture ([59a010f](https://github.com/elektronaut/badline/commit/59a010fc1e5250f543c796ab0de464241b28dcae))
-* count the PET's CRTC to the cycle and paint its picture ([ded5d86](https://github.com/elektronaut/badline/commit/ded5d868d29326840c7750eec1bc57c588aa053c))
-* diff the PET's state with bin/machine_diff --family pet ([f006185](https://github.com/elektronaut/badline/commit/f006185321ddd48f6d7205eca3557cfa30669b4e))
 * fit the 8032's other 50 Hz editor, 901474-04 dated 0283, with --editor 4-80-b-50hz-0283 ([b7b230f](https://github.com/elektronaut/badline/commit/b7b230f4032ba7145358cb60f1be1e370997c0e0))
-* fit the 8032's other 50 Hz editor, 901474-04 dated 0283, with --editor 4-80-b-50hz-0283 ([791aad6](https://github.com/elektronaut/badline/commit/791aad62fc99a4f0826dead09191d490681f276c))
 * let any machine's timing share a window pixel between its dots ([55f04e8](https://github.com/elektronaut/badline/commit/55f04e86871423f1b0121a4570763f501cb08db1))
-* let any machine's timing share a window pixel between its dots ([84bde78](https://github.com/elektronaut/badline/commit/84bde78fb82be7f33b73cf1c0df80995592dac1c))
 * paint the PET's discrete 40-column video ([2d4f5e6](https://github.com/elektronaut/badline/commit/2d4f5e6caac7c2a3d4e3abe5e8ef37185962dbc9))
-* paint the PET's discrete 40-column video ([6938190](https://github.com/elektronaut/badline/commit/69381907029ede9ccf907f461a952703aef46601))
 * play and record tapes on the PET's two cassette ports ([aea1a9d](https://github.com/elektronaut/badline/commit/aea1a9de8008ceb576e006520234fa7dc6b4a5e3))
-* play and record tapes on the PET's two cassette ports ([44b2471](https://github.com/elektronaut/badline/commit/44b247167b8f4070455e5cfbbebb75e1c164bd1c))
 * play the PET's VIA CB2 as its sound ([cd24520](https://github.com/elektronaut/badline/commit/cd24520a8e87bce7938cae12d153e332f9be1f99))
-* play the PET's VIA CB2 as its sound ([3dae9e4](https://github.com/elektronaut/badline/commit/3dae9e410f77172d4546cc8da04b00198f8b6bf7))
 * read and write 8050 and 8250 disk images ([2196736](https://github.com/elektronaut/badline/commit/2196736d0e9c84146ce259e322c991a14e1fe69d))
-* read and write 8050 and 8250 disk images ([4b99424](https://github.com/elektronaut/badline/commit/4b994249f6e3b799dd3ac54514a8ed3f06b0c1c7))
 * run the PET and the CBM in the window with badline pet ([0ee8585](https://github.com/elektronaut/badline/commit/0ee8585ef6a2d789dbbbbf06af3a54a9f33fbbff))
-* run the PET and the CBM in the window with badline pet ([232db7e](https://github.com/elektronaut/badline/commit/232db7ececda68f07269d7047b3e348026078fe9))
-* run the PET testbench's exitcode rows ([2f9d3db](https://github.com/elektronaut/badline/commit/2f9d3dbdef3e08a64cb98a0bf8f3003da506cc97))
-* run the PET testlist's exitcode rows with bin/testbench --pet ([66879c6](https://github.com/elektronaut/badline/commit/66879c61277d177e27c9c3b072d08d6db554ec0d))
 * save and restore the PET in keyed snapshots ([1dcbb75](https://github.com/elektronaut/badline/commit/1dcbb75785ce70ca6de7b6596970ce06a2275a30))
-* save and restore the PET in keyed snapshots ([6afdf9f](https://github.com/elektronaut/badline/commit/6afdf9fb56bdb2d517298a2ab4b5ee6d685430ba))
 * serve device 8 to the PET through traps on its IEEE-488 primitives ([7f72c7d](https://github.com/elektronaut/badline/commit/7f72c7d3d58e5520f32c62120a4ce0270f02893a))
-* serve device 8 to the PET through traps on its IEEE-488 primitives ([df8aada](https://github.com/elektronaut/badline/commit/df8aadad70c7c44554679e6f41a4b6b8b6fd62d3))
 * show the PET in the window, with its keys, memory and model in the pause menu ([7e90498](https://github.com/elektronaut/badline/commit/7e9049864015e511c3db8455b2d5d6749ffc6ea3))
-* show the PET in the window, with its keys, memory and model in the pause menu ([422c061](https://github.com/elektronaut/badline/commit/422c061691fae4993e816670b06ac0192bcff7b5))
 * type on the PET's graphics and business keyboards by character from the window ([0797790](https://github.com/elektronaut/badline/commit/079779011880ffca5ecc7c67e6bcef9620147ca5))
-* type on the PET's graphics and business keyboards by character from the window ([a6ef248](https://github.com/elektronaut/badline/commit/a6ef2485a2a38a85974475ab83e2864059c6c607))
 * type the PET's shifted keys with Alt, and name its pause-menu page KEYBOARD ([22b3059](https://github.com/elektronaut/badline/commit/22b305966dd44bdd813af71c3bb5e0a4e2202761))
-* type the PET's shifted keys with Alt, and name its pause-menu page KEYBOARD ([9bd9686](https://github.com/elektronaut/badline/commit/9bd968644e45014e9e22c057b92a9bcdeef9d6d2))
 * wire the PET's key matrices and type into its keyboard buffer ([1f22475](https://github.com/elektronaut/badline/commit/1f22475b581ac95776a86c1dd27f2671afcfb90c))
-* wire the PET's key matrices and type into its keyboard buffer ([44484fe](https://github.com/elektronaut/badline/commit/44484fe4257b994ecabc9b02a4b3181c45bba807))
 * write PET tapes and read a tape's platform from its header ([29ccd99](https://github.com/elektronaut/badline/commit/29ccd99629bb98c311842628be39c298aab12eb9))
-* write PET tapes and read a tape's platform from its header ([26fb9f4](https://github.com/elektronaut/badline/commit/26fb9f484c7e3e9076219566f799e16abb98ce55))
 
 
 ### Bug Fixes
 
-* keep the PET's disk images out of the help and the program dialog ([b019b08](https://github.com/elektronaut/badline/commit/b019b089d252327d5db0b0cdb48fd8bfe98399c6))
 * keep the VIC-20's cartridge name in the machine and its snapshots ([4837ab1](https://github.com/elektronaut/badline/commit/4837ab10049309f39d1b5d3b2170e55ab9d21c76))
-* keep the VIC-20's cartridge name in the machine and its snapshots ([5c51349](https://github.com/elektronaut/badline/commit/5c5134970e12fbde264e944a59b9e1409bfdd7f6))
 * move a 1551's TCBM interface with its DEV line ([f934bcf](https://github.com/elektronaut/badline/commit/f934bcf6cd2058a4528521fb1e14f75b7d15021c))
-* move a 1551's TCBM interface with its DEV line ([4640a41](https://github.com/elektronaut/badline/commit/4640a411cad17810547f87c1dc4291dd38e34aab))
 * record the Plus/4's true drive model in its snapshots ([9c8ddb1](https://github.com/elektronaut/badline/commit/9c8ddb1b355145382df4a2813a3e55769839f0c9))
-* record the Plus/4's true drive model in its snapshots ([bb88bbd](https://github.com/elektronaut/badline/commit/bb88bbd9f2d6facbdce666763654ab2463e9905b))
-* time the PET's frames by the editor fitted, 64 x 313 for 901474-04 dated 0283 ([8dc2219](https://github.com/elektronaut/badline/commit/8dc2219af505603446b09e2aece938aa000ec8cb))
 
 
 ### Performance Improvements
 
 * sweep only the lines the last PET CRTC frame showed ([026b26a](https://github.com/elektronaut/badline/commit/026b26afc97ed72f32b2e6517a8df18de5d863d1))
-* sweep only the lines the last PET CRTC frame showed ([1b0d2a6](https://github.com/elektronaut/badline/commit/1b0d2a6547c15ec2fcae5239ad7e79718e76b3a5))
 
 ## [0.15.1](https://github.com/elektronaut/badline/compare/v0.15.0...v0.15.1) (2026-10-12)
 
