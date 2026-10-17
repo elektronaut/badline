@@ -112,7 +112,7 @@ module Badline
       end
 
       def handle_key(scancode, down)
-        if [Keys::TAB, Keys::F8, Keys::F9, Keys::F10].include?(scancode)
+        if [Keys::F8, Keys::F9, Keys::F10].include?(scancode) || (scancode == Keys::TAB && @controls.tab_toggles?)
           handle_toggle(scancode) if down
         elsif down && @snapshots.key(scancode)
           swap(@snapshots.computer)

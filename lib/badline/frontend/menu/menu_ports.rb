@@ -5,18 +5,27 @@ module Badline
     # The pause menu's PORTS page, which MenuPages draws: what each C64
     # control port has plugged in, a joystick or a pot device, and whether
     # the keys type or drive the joysticks. The VIC-20 has one port, a
-    # joystick's, and the Plus/4 two joysticks and no pot devices.
+    # joystick's, and the Plus/4 two joysticks and no pot devices. The PET
+    # has no ports, and the page says where its keys are instead.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
       PORT_ACTIONS = [%i[port1_joystick port1_mouse port1_paddles], %i[port2_joystick port2_mouse port2_paddles]].freeze
       POTS = [%i[none mouse1 paddles1], %i[none mouse2 paddles2]].freeze
 
+      # Where the PET's keys without a character of their own are, on both
+      # keyboards, and then on the graphics one and on the business one.
+      PET_KEYS = ["PAGE DOWN: RUN/STOP", "HOME: CLR/HOME", "BACKSPACE: INST/DEL", "CTRL: RVS",
+                  "ARROWS: CURSOR", "^: UP ARROW", "_: LEFT ARROW"].freeze
+      PET_GRAPHICS_KEYS = ["ESC: RUN/STOP", "SHIFT+LETTER: GRAPHIC"].freeze
+      PET_BUSINESS_KEYS = ["ESC: ESC", "TAB: TAB", "PAGE UP: REPEAT", "KEYPAD: KEYPAD"].freeze
+
       private
 
       def draw_ports
         return draw_vic20_port if @computer.family == :vic20
         return draw_plus4_ports if @computer.family == :plus4
+        return draw_pet_keys if @computer.family == :pet
 
         toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
         toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
@@ -47,6 +56,17 @@ module Badline
         arrows = @controls.arrows_port
         info("ARROWS, SPACE", "JOYSTICK #{arrows}")
         info("WASD, LEFT SHIFT", "JOYSTICK #{3 - arrows}")
+      end
+
+      # The PET's keyboard, whose keys type the characters on the host's
+      # (PETKeyboard), and the keys that stand for the rest of its keys.
+      def draw_pet_keys
+        business = @computer.model.keyboard == :business
+        info("KEYBOARD", business ? "BUSINESS" : "GRAPHICS")
+        (PET_KEYS + (business ? PET_BUSINESS_KEYS : PET_GRAPHICS_KEYS)).each do |line|
+          @painter.text(@left, @top, line, MenuTheme::TEXT)
+          @top += MenuPages::LINE
+        end
       end
 
       # The toggle between the keyboard named and the joysticks, and

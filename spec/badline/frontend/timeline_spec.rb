@@ -69,6 +69,23 @@ describe Badline::Frontend::Timeline do
       expect(error("1:key=cursor_up", family: :plus4)).to eq("no such key: cursor_up")
     end
 
+    it "takes the PET's keys of either keyboard on the PET" do
+      keys = %w[rvs clr_home cursor_h run_stop escape tab repeat kp1 left]
+      expect(error(*keys.map { |key| "1:key=#{key}" }, family: :pet)).to eq("")
+    end
+
+    it "turns RESTORE away on the PET" do
+      expect(error("1:key=restore", family: :pet)).to eq("no such key: restore")
+    end
+
+    it "turns the joysticks away on the PET" do
+      expect(error("1:key=joy1-fire", family: :pet)).to eq("no such key: joy1-fire")
+    end
+
+    it "turns the matrix's empty places away on the PET" do
+      expect(error("1:key=none", family: :pet)).to eq("no such key: none")
+    end
+
     it "takes the pause menu's pages, or none" do
       expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
     end

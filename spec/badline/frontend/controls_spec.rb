@@ -179,6 +179,45 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a PET" do
+    let(:computer) { Badline::PET.new(model: "3032") }
+
+    it "types the host's \" on the PET's own key" do
+      controls.key(225, true)
+      controls.key(52, true)
+      expect(computer.keyboard.keys).to eq([:'"'])
+    end
+
+    it "keeps the keys on the keyboard when Tab is pressed" do
+      controls.toggle_keys
+      expect(controls.joystick_mode?).to be(false)
+    end
+
+    it "leaves Tab to the machine" do
+      expect(controls.tab_toggles?).to be(false)
+    end
+
+    it "plugs no pot device in" do
+      controls.plug(:mouse1)
+      expect(controls.pot).to eq(:none)
+    end
+
+    it "lets go of the keys as it goes over to another machine" do
+      controls.key(4, true)
+      controls.computer = Badline::C64.new
+      expect(computer.keyboard.keys).to eq([])
+    end
+  end
+
+  describe "with a business PET" do
+    let(:computer) { Badline::PET.new(model: "8032") }
+
+    it "presses TAB for Tab" do
+      controls.key(43, true)
+      expect(computer.keyboard.keys).to eq([:tab])
+    end
+  end
+
   describe "with a C128" do
     let(:computer) { Badline::C128.new }
 

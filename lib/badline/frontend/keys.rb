@@ -65,6 +65,59 @@ module Badline
         79 => :crsr_right, 80 => :crsr_left, 81 => :crsr_down, 82 => :crsr_up, 229 => :lshift, 75 => :none
       }.freeze
 
+      # The characters the keys other than the letters type on a US
+      # layout, unshifted and then shifted, and the keypad's.
+      US_CHARACTERS = {
+        30 => "1!", 31 => "2@", 32 => "3#", 33 => "4$", 34 => "5%", 35 => "6^", 36 => "7&", 37 => "8*", 38 => "9(",
+        39 => "0)", 45 => "-_", 46 => "=+", 47 => "[{", 48 => "]}", 49 => "\\|", 51 => ";:", 52 => "'\"", 53 => "`~",
+        54 => ",<", 55 => ".>", 56 => "/?", 84 => "//", 85 => "**", 86 => "--", 87 => "++", 89 => "11", 90 => "22",
+        91 => "33", 92 => "44", 93 => "55", 94 => "66", 95 => "77", 96 => "88", 97 => "99", 98 => "00", 99 => "..",
+        103 => "=="
+      }.freeze
+
+      # The PET's keys for the characters a host key types, on either
+      # keyboard without SHIFT: each has a key of its own on the graphics
+      # keyboard, where SHIFT turns it into a graphics character. ↑ and ←
+      # are on ^, and on _ and `.
+      PET_GRAPHICS_CHARACTERS = {
+        "!" => :!, "\"" => :'"', "#" => :"#", "$" => :"$", "%" => :%, "&" => :&, "'" => :"'", "(" => :"(",
+        ")" => :")", "\\" => :"\\", "^" => :up, "_" => :left, "`" => :left, "/" => :/, ":" => :":", "*" => :*,
+        ";" => :";", "?" => :"?", "," => :",", "+" => :+, "@" => :"@", "[" => :"[", "]" => :"]", "<" => :<,
+        ">" => :>, "-" => :-, "=" => :"=", "." => :".", "1" => :"1", "2" => :"2", "3" => :"3", "4" => :"4",
+        "5" => :"5", "6" => :"6", "7" => :"7", "8" => :"8", "9" => :"9", "0" => :"0"
+      }.freeze
+
+      # The business keyboard's: the characters it types without SHIFT,
+      # then those it types with it.
+      PET_BUSINESS_CHARACTERS = {
+        "1" => :"1", "2" => :"2", "3" => :"3", "4" => :"4", "5" => :"5", "6" => :"6", "7" => :"7", "8" => :"8",
+        "9" => :"9", "0" => :"0", "-" => :-, ":" => :":", ";" => :";", "," => :",", "." => :".", "/" => :/,
+        "@" => :"@", "[" => :"[", "]" => :"]", "\\" => :"\\", "^" => :up, "_" => :left, "`" => :left
+      }.freeze
+
+      PET_BUSINESS_SHIFTED = {
+        "!" => :"1", "\"" => :"2", "#" => :"3", "$" => :"4", "%" => :"5", "&" => :"6", "'" => :"7", "(" => :"8",
+        ")" => :"9", "=" => :-, "*" => :":", "+" => :";", "<" => :",", ">" => :".", "?" => :/
+      }.freeze
+
+      # The PET's keys that don't type a character, which keep the host's
+      # SHIFT: RETURN, INST/DEL on Backspace, CLR/HOME on Home, RUN/STOP on
+      # Page Down, and RVS on Control. Esc is RUN/STOP on the graphics
+      # keyboard. The business keyboard's ESC, TAB, REPEAT and keypad are
+      # on Esc, Tab, Page Up and the keypad.
+      PET_KEYS = {
+        40 => :return, 88 => :return, 42 => :delete, 44 => :space, 74 => :clr_home, 78 => :run_stop, 224 => :rvs,
+        228 => :rvs
+      }.freeze
+
+      PET_BUSINESS_KEYS = {
+        41 => :escape, 43 => :tab, 75 => :repeat, 89 => :kp1, 90 => :kp2, 91 => :kp3, 92 => :kp4, 93 => :kp5,
+        94 => :kp6, 95 => :kp7, 96 => :kp8, 97 => :kp9, 98 => :kp0, 99 => :kp_period
+      }.freeze
+
+      # The cursor keys, CRSR ⇔ and CRSR ⇕, each with SHIFT for left or up.
+      PET_CURSORS = { RIGHT => :cursor_h, LEFT => :cursor_h, DOWN => :cursor_v, UP => :cursor_v }.freeze
+
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze
 
@@ -88,6 +141,41 @@ module Badline
 
       # The 264's key for the scancode: one of PLUS4_OTHERS or the C64's.
       def self.plus4_key(scancode) = PLUS4_OTHERS[scancode] || c64_key(scancode)
+
+      # The PET key for the scancode on the +keyboard+, :graphics or
+      # :business, with the host's SHIFT down if +shift+, and how the
+      # PET's SHIFT goes with it: :on or :off for a key that types the host
+      # key's character or moves the cursor its way only so, and :host to
+      # follow the host's. A letter is the PET's letter, and any other key
+      # the PET key that types the same character, or :none.
+      def self.pet_key(scancode, shift, keyboard)
+        return [LETTERS[scancode - 4], :host] if scancode.between?(4, 29)
+
+        cursor = PET_CURSORS[scancode]
+        return [cursor, [LEFT, UP].include?(scancode) ? :on : :off] unless cursor.nil?
+
+        business = keyboard == :business
+        key = business ? PET_BUSINESS_KEYS[scancode] : nil
+        key = PET_KEYS[scancode] if key.nil?
+        key = :run_stop if key.nil? && scancode == ESCAPE
+        return [key, :host] unless key.nil?
+
+        pet_character(scancode, shift, business)
+      end
+
+      # The PET key that types the character the scancode types on a US
+      # layout, and the SHIFT it takes.
+      def self.pet_character(scancode, shift, business)
+        characters = US_CHARACTERS[scancode]
+        return %i[none host] if characters.nil?
+
+        character = characters[shift ? 1 : 0]
+        unshifted = business ? PET_BUSINESS_CHARACTERS[character] : PET_GRAPHICS_CHARACTERS[character]
+        return [unshifted, :off] unless unshifted.nil?
+
+        shifted = business ? PET_BUSINESS_SHIFTED[character] : nil
+        shifted.nil? ? %i[none host] : [shifted, :on]
+      end
 
       # The character the key types on a US layout: a letter, a capital
       # with `shift`, or a digit, and "" for any other key.
