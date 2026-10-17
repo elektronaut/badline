@@ -120,7 +120,11 @@ module Badline
 
           # The discrete video's module, or the CRTC's, run on from xpet's
           # counters to where badline's drops the vertical drive line on the
-          # cycle xpet's does (CRTC::CRTC_LEAD).
+          # cycle xpet's does (CRTC::CRTC_LEAD). The CRTC runs on from the
+          # start of the beam's line, or for a beam in the first cycles of
+          # its line, a frame less those cycles on, which lands on the same
+          # counters while the registers stood through the frame as they
+          # stand.
           def video(crtc, computer)
             return [] if crtc.nil?
 

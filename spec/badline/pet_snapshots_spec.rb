@@ -157,14 +157,15 @@ describe Badline::PET do
         .to raise_error(Badline::Snapshot::FormatError, /of a C64, not a PET/)
     end
 
-    it "refuses a PET snapshot without badline's modules" do
+    it "refuses a PET snapshot with neither badline's modules nor xpet's memory" do
       File.binwrite(path, Badline::Snapshot::Container.new([], machine: "PET").to_s)
-      expect { Badline::Snapshot.load(path) }.to raise_error(Badline::Snapshot::FormatError, /xpet/)
+      expect { Badline::Snapshot.load(path) }.to raise_error(Badline::Snapshot::FormatError, /no PETMEM module/)
     end
 
-    it "refuses to export a snapshot for VICE" do
-      expect { described_class.new.export_snapshot(path) }
-        .to raise_error(Badline::Snapshot::FormatError, /doesn't export a PET's snapshot for VICE/)
+    it "exports a snapshot with xpet's modules ahead of badline's" do
+      described_class.new.export_snapshot(path)
+      names = Badline::Snapshot::Container.parse(File.binread(path)).sections.map(&:name)
+      expect(names.values_at(0, 7, 10)).to eq(%w[MAINCPU FSDRIVE BL-MACHINE])
     end
   end
 end
