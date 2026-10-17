@@ -40,10 +40,17 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_pet_and_its_roms_reach_the_pet_testbenches
-    files = %w[lib/badline/pet.rb lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
+    files = %w[lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
                lib/badline/roms/pet/kernal4.rom]
 
     assert_equal %w[spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
+  end
+
+  def test_the_2031_and_the_pets_bus_reach_the_drive_scenarios_too
+    files = %w[lib/badline/pet.rb lib/badline/pet/ieee_ports.rb lib/badline/drives/model2031/ieee_port.rb
+               lib/badline/drives/ieee_bus.rb lib/badline/roms/dos2031.rom]
+
+    assert_equal %w[drive-scenarios spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
   end
 
   def test_the_via_reaches_the_pet_testbenches

@@ -4,7 +4,8 @@
 # Headless runner for the true-drive scenarios in test/support/drive_scenarios.rb:
 # the C64 and a true 1541 running the real DOS ROM through a save, a
 # format, the error channel, the idle loop, a write-protected disk and an
-# autostart.
+# autostart, and the same on the other machines' true drives, the PET's
+# 2031 among them.
 #
 #   ruby --yjit bin/drive_scenarios [filter...] [--list] [--results PATH]
 #                                   [--shards N] [--engine BINARY]
