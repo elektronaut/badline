@@ -126,13 +126,14 @@ module Badline
         and the pause menu's KEYBOARD page says where the rest are. --basic
         and --editor fit the upgrades Commodore sold, as in --model 2001
         --basic 2. BASIC 1 can't LOAD from a disk drive, though a disk still
-        starts its first program, and BASIC 2 can. The 8032 and the 8096
-        have two 50 Hz editors: 4-80-b-50hz, the default, and
-        4-80-b-50hz-0283, another chip's, with 64-cycle lines and 313 lines
-        a frame. The 8296 runs its own, 4-80-b-50hz-8296, and takes the
-        8032's too. --characters din fits it with the DIN character ROM, and
-        --jumpers ram9,rama puts RAM at $9000 and $A000, as xpet's -petram9
-        and -petramA do.
+        starts its first program, and BASIC 2 can. Their --true-drive makes
+        device 8 an emulated 2031 on the IEEE-488 bus, which reads .d64 and
+        .g64 images. The 8032 and the 8096 have two 50 Hz editors:
+        4-80-b-50hz, the default, and 4-80-b-50hz-0283, another chip's,
+        with 64-cycle lines and 313 lines a frame. The 8296 runs its own,
+        4-80-b-50hz-8296, and takes the 8032's too. --characters din fits
+        it with the DIN character ROM, and --jumpers ram9,rama puts RAM at
+        $9000 and $A000, as xpet's -petram9 and -petramA do.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

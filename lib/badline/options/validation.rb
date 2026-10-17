@@ -180,13 +180,12 @@ module Badline
         raise Error, "--jumpers needs pet" unless @jumpers.empty?
       end
 
-      # The PET runs in the window, without the C64's SID and REU or a true
-      # drive, at the frame rate its editor sets.
+      # The PET runs in the window, without the C64's SID and REU, at the
+      # frame rate its editor sets.
       def validate_pet
         raise Error, "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz" if @models.include?("ntsc")
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
-        raise Error, "the PET has no true drive yet" if @true_drive
         raise Error, "the PET needs the window" if headless?
 
         return unless PET_MODELS.include?(model)
