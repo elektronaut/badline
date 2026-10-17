@@ -7,7 +7,8 @@ module Badline
     # the screen RAM, the last byte on the bus and an 8096's board, both
     # PIAs, the VIA, the CRTC where the model has one, the picture with
     # the video's beam, the CPU, the datasettes at cassette ports #1 and
-    # #2, and device 8 through the traps.
+    # #2, a 2031 on the IEEE-488 bus (IEEEDrive), and device 8 through the
+    # traps.
     #
     # A load lays the pages out before the chips load, and works out what
     # each unit derives from its fields once every unit is loaded.
@@ -24,6 +25,7 @@ module Badline
         cassettes = @cassettes
         sections << Snapshot::Keyed.section("BL-TAPE1") { |out| cassettes.datasette1.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-TAPE2") { |out| cassettes.datasette2.save_fields(out) }
+        save_drive_modules(sections)
         sections << Snapshot::Keyed.section("BL-TRAPDOS") { |out| save_trap_dos_fields(out) } if mounted?
         sections
       end
@@ -43,6 +45,7 @@ module Badline
         @cpu.load_fields(modules.required("BL-CPU"))
         @cassettes.datasette1.load_fields(modules.required("BL-TAPE1"))
         @cassettes.datasette2.load_fields(modules.required("BL-TAPE2"))
+        load_drive_modules(modules)
         trap_dos = modules.optional("BL-TRAPDOS")
         trap_dos ? load_trap_dos_fields(trap_dos, detached: modules.detached?) : unmount
         @cpu.restored!

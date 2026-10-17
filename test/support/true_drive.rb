@@ -33,8 +33,8 @@ module TrueDrive
 
   # The true drive's CPU, cycle counts, head, chips and the first 2K of its
   # RAM, or nil without one, as the machine's true_drive picks it. The
-  # 1541 and 1571 add their VIAs, the 1571 and 1581 their CIA, and the
-  # 1551 its port and TIAs.
+  # 1541, 1571 and 2031 add their VIAs, the 1571 and 1581 their CIA, and
+  # the 1551 its port and TIAs.
   def digest(computer)
     drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
@@ -63,7 +63,7 @@ module TrueDrive
                     via.pcr, via.port_a_output, via.port_b_output)
       end
     end
-    values.concat(Badline::Support::Checkpoint.cia_state(drive.cia)) unless drive.model_name == "1541"
+    values.concat(Badline::Support::Checkpoint.cia_state(drive.cia)) unless %w[1541 2031].include?(drive.model_name)
     values
   end
 
