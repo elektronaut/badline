@@ -3,10 +3,11 @@
 module Badline
   module Support
     # A Checkpoint of a PET: its CPU, the RAM below $8000, the screen RAM,
-    # both PIAs, the VIA, the CRTC's registers and counters, and the
-    # 8096's control register and 64K board, or nothing on another model.
+    # the picture the video paints, both PIAs, the VIA, the CRTC's
+    # registers and counters, and the 8096's control register and 64K
+    # board, or nothing on another model.
     module PETCheckpoint
-      COMPONENTS = %w[cpu ram screen pia1 pia2 via crtc expansion].freeze
+      COMPONENTS = %w[cpu ram screen display pia1 pia2 via crtc expansion].freeze
 
       def self.take(machine)
         ram = machine.ram
@@ -14,6 +15,7 @@ module Badline
                          Checkpoint.fnv1a(Checkpoint.cpu_state(machine.cpu)),
                          Checkpoint.fnv1a(Checkpoint.ram(ram, ram.length)),
                          Checkpoint.fnv1a(machine.bus.screen.cells),
+                         Checkpoint.fnv1a(machine.video.display),
                          Checkpoint.fnv1a(pia_state(machine.pia1)),
                          Checkpoint.fnv1a(pia_state(machine.pia2)),
                          Checkpoint.fnv1a(Vic20Checkpoint.via_state(machine.via)),
