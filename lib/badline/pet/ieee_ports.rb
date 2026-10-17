@@ -15,8 +15,12 @@ module Badline
     # The outputs go through inverting drivers onto the bus, so a 0 on a
     # data line's port bit pulls the line low, and the inputs read the
     # lines as they are, a 0 for a low line. It is PIA 2's peripheral, and
-    # answers what PIA 1 and the VIA read of the bus.
+    # answers what PIA 1 and the VIA read of the bus. It pushes the lines
+    # the PET pulls into the bus for the drives on it after every write to
+    # the chips (lines_written).
     class IEEEPorts
+      attr_reader :bus
+
       def initialize(bus)
         @bus = bus
         @pia1 = @pia2 = @via = nil
@@ -44,6 +48,13 @@ module Badline
         value &= 0xbf if low.anybits?(Drives::IEEEBus::NRFD)
         value &= 0x7f if low.anybits?(Drives::IEEEBus::DAV)
         value
+      end
+
+      # The PET wrote one of its chips: the drives on the bus see the lines
+      # it pulls now.
+      def lines_written
+        bus = @bus
+        bus.host_lines = controller_lines unless bus.drives.empty?
       end
 
       private

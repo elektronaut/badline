@@ -8,6 +8,7 @@ require "badline/pet/via_ports"
 require "badline/pet/keyboard_ports"
 require "badline/pet/ieee_ports"
 require "badline/pet/ieee_traps"
+require "badline/pet/ieee_drive"
 require "badline/pet/cassettes"
 require "badline/pet/characters"
 require "badline/pet/canvas"
@@ -42,13 +43,15 @@ module Badline
   # The VIA's CB2 is the sound (Sound).
   #
   # Device 8 answers through traps on the KERNAL's IEEE-488 primitives
-  # (IEEETraps), on a bus nothing else is plugged into (IEEEPorts), and
-  # each cassette port has a datasette (Cassettes). It runs headless.
+  # (IEEETraps), on the IEEE-488 bus (IEEEPorts), or a true 2031 on the
+  # bus answers (IEEEDrive), and each cassette port has a datasette
+  # (Cassettes). It runs headless.
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
     include Machine::Settling
     include IEEETraps
+    include IEEEDrive
 
     attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :ieee, :cassettes, :cycles, :init_threshold
 
@@ -108,7 +111,11 @@ module Badline
       @discrete = DiscreteVideo.new(@bus.screen.cells, characters, @via)
       @canvas = @crtc_video ? @crtc_output.canvas : @discrete.canvas
       cassettes = @cassettes
-      @bus.on_io_write { cassettes.lines_written }
+      ieee = @ieee
+      @bus.on_io_write do
+        cassettes.lines_written
+        ieee.lines_written
+      end
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
@@ -116,6 +123,7 @@ module Badline
       @dos = nil
       @ieee_trap = nil
       @capture_output = nil
+      @drive2031 = nil
       @init_threshold = boot_cycles(ram_kb)
     end
 
@@ -146,7 +154,7 @@ module Badline
     end
 
     # The video counts and moves the vertical drive line, then the PIAs
-    # and the VIA clock, ahead of the CPU.
+    # and the VIA clock, ahead of the CPU, and the drive after it.
     def cycle!
       handle_init if @cycles == @init_threshold
       feed_keyboard if @pending_keys
@@ -165,6 +173,7 @@ module Badline
       @cassettes.cycle!
       @cpu.irq = @pia1.irq? || @pia2.irq? || @via.irq?
       @cpu.cycle!
+      @drive2031&.host_cycle!
 
       @cycles += 1
     end
@@ -173,14 +182,16 @@ module Badline
     # and #drain_samples.
     def sound_source = @sound
 
-    # The RES line reaches the CPU, the PIAs, the VIA, the CRTC and the
-    # 8096's control register.
+    # The RES line reaches the CPU, the PIAs, the VIA, the CRTC, the
+    # 8096's control register and, as IFC, the drive.
     def reset!
       @pia1.reset!
       @pia2.reset!
       @via.reset!
       @crtc.reset!
       @bus.reset!
+      @drive2031&.reset!
+      @ieee.lines_written
       @cpu.reset!
     end
 
