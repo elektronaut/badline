@@ -53,16 +53,18 @@ module Badline
         new(Container.new(computer.save_modules, machine: machine_name(computer)))
       end
 
-      # The snapshot with VICE's modules ahead of the BL-* ones for a C64,
-      # so x64sc opens it too. Raises FormatError for a Plus/4 or a PET,
-      # whose snapshots badline doesn't write for xplus4 or xpet.
+      # The snapshot with VICE's modules ahead of the BL-* ones for a C64
+      # or a PET, so x64sc or xpet opens it too. Raises FormatError for a
+      # Plus/4, whose snapshots badline doesn't write for xplus4.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
-        raise FormatError, "badline doesn't export a PET's snapshot for VICE" if computer.family == :pet
 
         computer.settle_for_snapshot!
         sections = computer.save_modules
-        sections = Vice.export(computer) + sections if computer.family == :c64
+        case computer.family
+        when :c64 then sections = Vice.export(computer) + sections
+        when :pet then sections = Vice::PET.export(computer, sections) + sections
+        end
         new(Container.new(sections, machine: machine_name(computer)))
       end
 
@@ -100,16 +102,16 @@ module Badline
 
       # A new machine, built as the snapshot's was and restored from it. A
       # badline snapshot restores from its BL-* modules alone, and a VICE
-      # one through the modules badline reads. xvic's, x128's, xplus4's and
-      # xpet's own modules aren't read. Yields a line for each thing left
-      # out, or warns it without a block. `detached` restores it without
-      # the host's files (Keyed::Modules).
+      # one through the modules badline reads, x64sc's or xpet's. xvic's,
+      # x128's and xplus4's own modules aren't read. Yields a line for
+      # each thing left out, or warns it without a block. `detached`
+      # restores it without the host's files (Keyed::Modules).
       def load(detached: false, &)
         refuse_old_layout
         raise FormatError, "badline reads only its own VIC-20 snapshots, not xvic's" if vic20? && !badline?
         raise FormatError, "badline reads only its own C128 snapshots, not x128's" if c128? && !badline?
         raise FormatError, "badline reads only its own Plus/4 snapshots, not xplus4's" if plus4? && !badline?
-        raise FormatError, "badline reads only its own PET snapshots, not xpet's" if pet? && !badline?
+        return load_xpet(&) if pet? && !badline?
         return load_vice(&) unless badline?
 
         modules = Keyed::Modules.new(sections, detached:)
@@ -135,7 +137,10 @@ module Badline
       # a machine built another way, leaves `computer` as it was.
       def restore(computer, &)
         refuse_old_layout
-        report = badline? ? restore_modules(computer) : Vice::Restore.import(@container, computer)
+        report = if badline? then restore_modules(computer)
+                 elsif pet? then Vice::PET::Restore.import(@container, computer)
+                 else Vice::Restore.import(@container, computer)
+                 end
         tell(report, &)
         report
       end
@@ -145,6 +150,12 @@ module Badline
       def load_vice(&)
         computer = Vice.setup(@container).build
         tell(Vice::Restore.apply(@container, computer), &)
+        computer
+      end
+
+      def load_xpet(&)
+        computer = Vice::PET.setup(@container).build
+        tell(Vice::PET::Restore.apply(@container, computer), &)
         computer
       end
 

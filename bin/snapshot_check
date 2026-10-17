@@ -6,6 +6,7 @@
 # expansion, the VIC-20, the C128, the Plus/4 and the C16, and the PETs.
 #
 #   ruby --yjit bin/snapshot_check [filter] [--cycles N] [--every K]
+#   ruby --yjit bin/snapshot_check --vice [filter]
 #   ruby --yjit bin/snapshot_check --carts [filter]
 #   ruby --yjit bin/snapshot_check --write DIR [filter]
 #   ruby --yjit bin/snapshot_check --read DIR [filter]
@@ -26,6 +27,12 @@
 #
 # Where two snapshots differ it names the module, and in a BL-* module the
 # keys whose records differ.
+#
+# --vice checks the divergence of the PET scenarios through xpet's
+# modules: it saves each with xpet's modules (Snapshot::Vice::PET), loads
+# a new machine from those alone, and runs the two side by side. The first
+# checkpoint comes after the picture, which a load from xpet's modules
+# paints again, has caught up.
 #
 # --carts saves every cartridge mapper's module after register writes,
 # reads and freezes (test/support/snapshot_cartridges.rb), builds a
@@ -52,6 +59,7 @@ parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/snapshot_check [filter] [options]"
   opts.on("--cycles N", Integer, "Cycles to run after the save point (default: 2000000)") { |n| options[:cycles] = n }
   opts.on("--every K", Integer, "Cycles between checkpoints (default: 500000)") { |n| options[:every] = n }
+  opts.on("--vice", "Check the PET scenarios through xpet's modules alone") { options[:mode] = :vice }
   opts.on("--carts", "Check every cartridge mapper's state") { options[:mode] = :carts }
   opts.on("--write DIR", "Save each scenario's snapshot and screen into DIR") do |dir|
     options[:mode] = :write
@@ -182,6 +190,50 @@ module SnapshotCheck
     passed?("run on #{options[:cycles]} cycles", SnapshotTracing.differences(dump(machine), dump(restored)))
   end
 
+  # A new machine from the VICE modules alone of the machine's snapshot
+  # for VICE, and the lines its restore left out.
+  def load_vice(machine)
+    sections = Badline::Snapshot::Image.exported(machine).sections.reject { |section| section.name.start_with?("BL-") }
+    container = Badline::Snapshot::Container.new(sections, machine: Badline::Snapshot::Image.machine_name(machine))
+    ignored = []
+    [Badline::Snapshot::Image.new(container).load { |line| ignored << line }, ignored]
+  end
+
+  # Divergence through xpet's modules for one PET scenario, at each
+  # checkpoint: xpet's modules don't carry what badline keeps for itself
+  # alone, such as its instruction count. A scenario with a tape or a disk,
+  # which xpet's modules don't carry either, is skipped. Returns whether
+  # it passed.
+  def restores_through_vice?(scenario, options)
+    Dir.mktmpdir do |dir|
+      machine = scenario.build.call(dir)
+      scenario.advance.call(machine)
+      if machine.mounted? || machine.cassettes.datasette1.tape
+        puts "#{scenario.name}: skipped, as xpet's modules don't carry its tape or disk"
+        next true
+      end
+
+      restored, ignored = load_vice(machine)
+      puts "#{scenario.name}: saved for xpet at cycle #{machine.cycles}"
+      ignored.each { |line| puts "  left out: #{line}" }
+      checkpoints_alike?(machine, restored, options)
+    end
+  end
+
+  def checkpoints_alike?(machine, restored, options)
+    every = options[:every]
+    (options[:cycles] / every).times do
+      run(machine, every)
+      run(restored, every)
+      ours = checkpoint(machine)
+      theirs = checkpoint(restored)
+      next if ours == theirs
+
+      return passed?("run on", ["at cycle #{machine.cycles}", "saved:    #{ours}", "restored: #{theirs}"])
+    end
+    passed?("run on #{options[:cycles]} cycles", [])
+  end
+
   def carts_identical?(filter)
     scenarios = SnapshotCartridges.scenarios.select { |name, _| filter.nil? || name.include?(filter) }
     failed = scenarios.reject do |name, cartridge|
@@ -239,6 +291,12 @@ passed =
   case options[:mode]
   when :list then SnapshotMachines.all.each { |scenario| puts scenario.name }
   when :carts then SnapshotCheck.carts_identical?(ARGV.first)
+  when :vice
+    scenarios = SnapshotMachines.matching(ARGV.first).select { |scenario| scenario.family == :pet }
+    abort "snapshot_check: no PET scenario matches #{ARGV.first}" if scenarios.empty?
+    results = scenarios.map { |scenario| SnapshotCheck.restores_through_vice?(scenario, options) }
+    puts "#{results.count(true)} of #{results.size} scenarios run on alike through xpet's modules"
+    results.all?
   when :write
     SnapshotCheck.write(SnapshotMachines.matching(ARGV.first), options)
     true

@@ -38,6 +38,9 @@ module Badline
       PLUS4 = "PLUS4"
       # xpet names its machine PET, for every model.
       PET = "PET"
+      # The file format version each machine's VICE emulator reads, where
+      # it isn't FORMAT_MAJOR.0: xpet refuses any other than 1.0.
+      FORMAT_MAJORS = { PET => 1 }.freeze
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version
@@ -67,7 +70,7 @@ module Badline
       def [](name) = @sections.find { |section| section.name == name }
 
       def to_s
-        header = MAGIC + [FORMAT_MAJOR, FORMAT_MINOR].pack("CC") + padded(@machine)
+        header = MAGIC + [FORMAT_MAJORS.fetch(@machine, FORMAT_MAJOR), FORMAT_MINOR].pack("CC") + padded(@machine)
         header += VERSION_MAGIC + @vice_version if @vice_version
         header + @sections.map { |section| encode(section) }.join
       end
