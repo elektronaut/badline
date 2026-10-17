@@ -300,6 +300,15 @@ stays the 60 Hz editor's. A second chip, dated 0384, reads the same
 (8296/edit-50hz-324243-02b.txt). The -0283 dump changes R0 and sums to
 $AE, and the _alt dump changes R0 and $E787.
 
+pet/editor4-80-b-50hz-0283.rom
+------------------------------
+The 8032's other 50 Hz editor, 901474-04, the chip dated 0283
+(edit-4-80-b-50Hz.901474-04-0283.bin), for $E000-$E7FF, which
+--editor 4-80-b-50hz-0283 fits. It differs from the 3681 dump only in
+the CRTC's register tables at $E72A and $E73C: lines of 64 cycles (R0
+63) and frames of 313 lines, with nine scanlines a character row.
+SHA-1 81975eab31a8f4f51ae2a20d099a567c7b3f2dd1.
+
 pet/editor4-80-b-60hz.rom
 -------------------------
 The 8032's 60 Hz editor, 901474-03 (edit-4-80-b-60Hz.901474-03.bin),
