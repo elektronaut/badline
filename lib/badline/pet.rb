@@ -130,13 +130,14 @@ module Badline
     def video = @canvas
 
     # The 1 MHz clock and the frame the editor sets up, and all of the
-    # Canvas. The CRTC editors' lines are 50 cycles, 400 of them a frame at
-    # 50 Hz and 333 at 60 Hz, which a program can change. 80 columns show
+    # Canvas. The CRTC editors' lines and frames are their ROM's
+    # (ROMSets.crtc_frame), which a program can change. 80 columns show
     # two dots to a window pixel.
     def timing
       crop = [0, 0, @canvas.width, @canvas.height]
       if @crtc_video
-        Timing.new(clock_hz: 1_000_000, cycles_per_line: 50, lines_per_frame: @refresh_hz == 50 ? 400 : 333,
+        cycles_per_line, lines_per_frame = ROMSets.crtc_frame(@model.editor(@refresh_hz), @refresh_hz)
+        Timing.new(clock_hz: 1_000_000, cycles_per_line:, lines_per_frame:,
                    crop:, pixel_width: 1, dots: @model.video == :crtc80 ? 2 : 1)
       else
         Timing.new(clock_hz: 1_000_000, cycles_per_line: DiscreteVideo::CYCLES_PER_LINE,

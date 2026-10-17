@@ -312,13 +312,30 @@ The 4032, 8032 and 8096 run their 50 Hz editor, and `--60hz` their
 60 Hz one. The others always run at 60 Hz. `--basic` fits the upgrade
 ROMs Commodore sold, with the editor that goes with them: BASIC 2 for the
 2001, and BASIC 4 for the 3032 and the 3032b. `--editor` names the editor
-instead, among those the board and its BASIC take:
+instead, among those the board and its BASIC take. Each name is the
+BASIC, the keyboard, `n` for graphics or `b` for business, and on a CRTC
+board the columns and the frame rate: `1`, `2-n`, `2-b`, `4-n`, `4-b`,
+`4-40-n-50hz`, `4-40-n-60hz`, `4-80-b-50hz`, `4-80-b-50hz-0283` and
+`4-80-b-60hz`.
+
+The 8032 and the 8096 take two 50 Hz editors, both 901474-04 and read
+from different chips. `4-80-b-50hz`, the default, runs lines of 50
+cycles, 400 to a frame. `4-80-b-50hz-0283`, the chip dated 0283, runs
+lines of 64 cycles, 313 to a frame, with the screen's rows a scanline
+closer together and lower down. Both boot to the same READY.
 
 ```sh
 badline pet --model 2001 --basic 2   # A 2001 with BASIC 2
 badline pet --model 3032 --basic 4   # A 3032 with BASIC 4, without a CRTC
 badline pet --editor 4-80-b-60hz     # An 8032 at 60 Hz, as --60hz runs it
+badline pet --editor 4-80-b-50hz-0283  # An 8032 with the other 50 Hz editor
 ```
+
+BASIC 1, on the 2001, can't LOAD from a disk drive: its own ROM breaks
+the transfer, so `LOAD"NAME",8` finds the file and loads nothing. A
+disk given to `badline` still starts its first program on a 2001, which
+goes into memory as a program file does. `--basic 2`, the upgrade
+Commodore sold, loads from disk.
 
 A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
 `.d82` or a tape made for the PET starts a PET without `pet`, but a

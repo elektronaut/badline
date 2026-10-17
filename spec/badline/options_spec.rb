@@ -427,6 +427,10 @@ describe Badline::Options do
                                              "the 3032 with BASIC 2 takes no editor 2-b"],
       "a 50 Hz editor at 60 Hz" => [%w[pet --60hz --editor 4-80-b-50hz],
                                     "--60hz takes a 60 Hz editor, not 4-80-b-50hz"],
+      "the other 50 Hz editor at 60 Hz" => [%w[pet --60hz --editor 4-80-b-50hz-0283],
+                                            "--60hz takes a 60 Hz editor, not 4-80-b-50hz-0283"],
+      "the 8032's other editor on a 4032" => [%w[pet --model 4032 --editor 4-80-b-50hz-0283],
+                                              "the 4032 with BASIC 4 takes no editor 4-80-b-50hz-0283"],
       "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
       "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
@@ -485,6 +489,14 @@ describe Badline::Options do
 
       it "runs at 60 Hz" do
         expect(options.refresh_hz).to eq(60)
+      end
+    end
+
+    context "with pet and the 8032's other 50 Hz editor" do
+      let(:argv) { %w[pet --editor 4-80-b-50hz-0283] }
+
+      it "runs at 50 Hz" do
+        expect([options.editor, options.refresh_hz]).to eq(["4-80-b-50hz-0283", 50])
       end
     end
 

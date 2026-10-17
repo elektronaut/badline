@@ -82,6 +82,11 @@ describe Badline::PET do
       timing = described_class.new(model: "8032", refresh_hz: 60).timing
       expect(timing.cycles_per_line * timing.lines_per_frame).to eq(16_650)
     end
+
+    it "times the 0283 editor's lines and frames" do
+      timing = described_class.new(model: "8032", editor: "4-80-b-50hz-0283").timing
+      expect([timing.cycles_per_line, timing.lines_per_frame]).to eq([64, 313])
+    end
   end
 
   describe "booted", :slow do
@@ -143,6 +148,29 @@ describe Badline::PET do
         it "ticks the jiffy clock 60 times a second" do
           expect(rates.jiffies).to eq(18)
         end
+      end
+    end
+
+    context "with the 8032's 901474-04 editor dated 0283" do
+      # The cycles between the vertical drive line's falls after the boot,
+      # and the CRTC's line length and lines a frame.
+      let(:frame) do
+        TakenOnce.fetch(:pet_editor0283_frame) do
+          pet = described_class.new(model: "8032", ram_kb: 4, editor: "4-80-b-50hz-0283")
+          pet.run_cycles(pet.init_threshold)
+          falls = []
+          60_000.times do |cycle|
+            high = pet.vertical_drive?
+            pet.cycle!
+            falls << cycle if high && !pet.vertical_drive?
+          end
+          r = pet.crtc.registers
+          [falls[1] - falls[0], r[0] + 1, ((r[4] + 1) * (r[9] + 1)) + r[5]]
+        end
+      end
+
+      it "runs frames of 313 lines of 64 cycles" do
+        expect(frame).to eq([20_032, 64, 313])
       end
     end
   end

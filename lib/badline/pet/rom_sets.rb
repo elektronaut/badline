@@ -23,19 +23,30 @@ module Badline
         "1" => "pet/editor1.rom", "2-n" => "pet/editor2-n.rom", "2-b" => "pet/editor2-b.rom",
         "4-n" => "pet/editor4-n.rom", "4-b" => "pet/editor4-b.rom", "4-40-n-50hz" => "pet/editor4-40-n-50hz.rom",
         "4-40-n-60hz" => "pet/editor4-40-n-60hz.rom", "4-80-b-50hz" => "pet/editor4-80-b-50hz.rom",
-        "4-80-b-60hz" => "pet/editor4-80-b-60hz.rom"
+        "4-80-b-50hz-0283" => "pet/editor4-80-b-50hz-0283.rom", "4-80-b-60hz" => "pet/editor4-80-b-60hz.rom"
       }.freeze
 
       # The BASICs each model takes, its own first, and the editors that
-      # fit each, the 50 Hz one first on a CRTC board.
+      # fit each, the 50 Hz one first and the 60 Hz one last on a CRTC
+      # board. The 8032's other 50 Hz editor, 901474-04 dated 0283, sits
+      # between them.
       FITS = {
         "2001" => { "1" => %w[1], "2" => %w[2-n] },
         "3032" => { "2" => %w[2-n], "4" => %w[4-n] },
         "3032b" => { "2" => %w[2-b], "4" => %w[4-b] },
         "4032" => { "4" => %w[4-40-n-50hz 4-40-n-60hz] },
-        "8032" => { "4" => %w[4-80-b-50hz 4-80-b-60hz] },
-        "8096" => { "4" => %w[4-80-b-50hz 4-80-b-60hz] }
+        "8032" => { "4" => %w[4-80-b-50hz 4-80-b-50hz-0283 4-80-b-60hz] },
+        "8096" => { "4" => %w[4-80-b-50hz 4-80-b-50hz-0283 4-80-b-60hz] }
       }.freeze
+
+      # The cycles a line and the lines a frame the CRTC editors set up
+      # where they differ from 50-cycle lines, 400 a frame at 50 Hz and 333
+      # at 60 Hz, by the editor's ROM.
+      CRTC_FRAMES = { "pet/editor4-80-b-50hz-0283.rom" => [64, 313] }.freeze
+
+      # The cycles a line and the lines a frame the CRTC editor in the ROM
+      # named sets up at +refresh_hz+.
+      def self.crtc_frame(editor, refresh_hz) = CRTC_FRAMES[editor] || [50, refresh_hz == 50 ? 400 : 333]
 
       # The BASIC the model has, without --basic.
       def self.stock_basic(model) = FITS.fetch(model).keys.first

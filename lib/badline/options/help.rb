@@ -123,8 +123,13 @@ module Badline
         and tapes, and a .d80, a .d82 or a PET tape starts one without
         `pet`. Their keys type what the host's keys type, Alt with a key
         presses the PET's SHIFT and the key its unshifted character is on,
-        and the pause menu's KEYBOARD page says where the rest are. --basic and --editor fit
-        the upgrades Commodore sold, as in --model 2001 --basic 2.
+        and the pause menu's KEYBOARD page says where the rest are. --basic
+        and --editor fit the upgrades Commodore sold, as in --model 2001
+        --basic 2. BASIC 1 can't LOAD from a disk drive, though a disk still
+        starts its first program, and BASIC 2 can. The 8032 and the 8096
+        have two 50 Hz editors: 4-80-b-50hz, the default, and
+        4-80-b-50hz-0283, another chip's, with 64-cycle lines and 313 lines
+        a frame.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
