@@ -82,6 +82,11 @@ describe Badline::PET do
       timing = described_class.new(model: "8032", refresh_hz: 60).timing
       expect(timing.cycles_per_line * timing.lines_per_frame).to eq(16_650)
     end
+
+    it "times the 0283 editor's lines and frames" do
+      timing = described_class.new(model: "8032", editor: "4-80-b-50hz-0283").timing
+      expect([timing.cycles_per_line, timing.lines_per_frame]).to eq([64, 313])
+    end
   end
 
   describe "booted", :slow do

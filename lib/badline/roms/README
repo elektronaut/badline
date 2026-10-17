@@ -187,7 +187,9 @@ Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/pet/
 Each BASIC and KERNAL pair is one ROM set, and the editors and the
 character sets are files of their own, so a model's stock set and the
-upgrade ROMs Commodore sold can be picked apart. Nothing maps them yet.
+upgrade ROMs Commodore sold can be picked apart. PET::ROMSets
+(pet/rom_sets.rb) names them for --basic and --editor and says which
+fit each model, and PET::Bus maps the ones fitted.
 
 pet/basic1.rom
 --------------

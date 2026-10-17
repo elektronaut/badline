@@ -39,6 +39,15 @@ module Badline
         "8096" => { "4" => %w[4-80-b-50hz 4-80-b-50hz-0283 4-80-b-60hz] }
       }.freeze
 
+      # The cycles a line and the lines a frame the CRTC editors set up
+      # where they differ from 50-cycle lines, 400 a frame at 50 Hz and 333
+      # at 60 Hz, by the editor's ROM.
+      CRTC_FRAMES = { "pet/editor4-80-b-50hz-0283.rom" => [64, 313] }.freeze
+
+      # The cycles a line and the lines a frame the CRTC editor in the ROM
+      # named sets up at +refresh_hz+.
+      def self.crtc_frame(editor, refresh_hz) = CRTC_FRAMES[editor] || [50, refresh_hz == 50 ? 400 : 333]
+
       # The BASIC the model has, without --basic.
       def self.stock_basic(model) = FITS.fetch(model).keys.first
 
