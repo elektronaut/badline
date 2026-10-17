@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/storage/p00"
+require "badline/storage/tap"
 
 module Badline
   class Options
@@ -32,19 +33,28 @@ module Badline
         when :vic20 then VIC20_MODELS
         when :c128 then C128_MODELS
         when :plus4 then PLUS4_MODELS
+        when :pet then PET_MODELS
         else MODELS
         end
       end
 
       # Without a family named, a program that loads at C128_BASIC_START is
-      # the C128's.
+      # the C128's, and an 8050's or 8250's disk or a PET tape the PET's. A
+      # program that loads where PET BASIC starts could be a VIC-20's too.
       def pick_family
-        return if @family_named || @sid_command || @media_path.nil?
+        return if @family_named || @sid_command || @media_path.nil? || !File.file?(@media_path)
 
-        program = Media::Extensions::PROGRAMS.include?(File.extname(@media_path).downcase)
-        return unless program && File.file?(@media_path)
+        if pet_media?
+          @family = :pet
+        elsif Media::Extensions::PROGRAMS.include?(File.extname(@media_path).downcase)
+          @family = :c128 if Storage::P00.load_address(@media_path) == C128_BASIC_START
+        end
+      end
 
-        @family = :c128 if Storage::P00.load_address(@media_path) == C128_BASIC_START
+      # Whether the media is an 8050's or 8250's disk or a PET tape.
+      def pet_media?
+        kind = Media::Extensions.kind(@media_path)
+        kind == :ieee_disk || (kind == :tape && Storage::TAP.platform_of(@media_path) == Storage::TAP::PET_PLATFORM)
       end
     end
   end

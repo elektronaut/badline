@@ -60,8 +60,9 @@ describe Badline::Machine do
     expect([machine.class, machine.model, machine.ram_kb]).to eq([Badline::Plus4, Badline::Plus4::Model::C16, 16])
   end
 
-  it "refuses the PET until it runs" do
-    expect { described_class.build(:pet, model: "8032") }.to raise_error(ArgumentError, "the PET isn't emulated yet")
+  it "builds a PET of the model named" do
+    machine = described_class.build(:pet, model: "3032b")
+    expect([machine.class, machine.model.name, machine.refresh_hz]).to eq([Badline::PET, "3032b", 60])
   end
 
   it "refuses a family it can't build" do
@@ -108,6 +109,26 @@ describe Badline::Machine do
     it "refuses media a Plus/4 doesn't take" do
       expect { described_class.for_options(options("plus4"), "tune.sid") }
         .to raise_error(Badline::Machine::Unsupported, %r{Plus/4})
+    end
+
+    it "gives a PET the RAM --ram names" do
+      expect(described_class.for_options(options("pet", "--model", "3032", "--ram", "8k"), nil).ram_kb).to eq(8)
+    end
+
+    it "runs a PET's 60 Hz editor with --60hz" do
+      machine = described_class.for_options(options("pet", "--60hz"), nil)
+      expect([machine.refresh_hz, machine.model.editor(60)]).to eq([60, "pet/editor4-80-b-60hz.rom"])
+    end
+
+    it "fits a PET with the BASIC --basic names" do
+      machine = described_class.for_options(options("pet", "--model", "2001", "--basic", "2"), nil)
+      expect([machine.model.basic, machine.model.kernal, machine.model.editor(60)])
+        .to eq(%w[pet/basic2.rom pet/kernal2.rom pet/editor2-n.rom])
+    end
+
+    it "refuses media a PET doesn't take" do
+      expect { described_class.for_options(options("pet"), "tune.sid") }
+        .to raise_error(Badline::Machine::Unsupported, /PET/)
     end
 
     it "refuses media a VIC-20 doesn't take" do

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/pet/rom_sets"
 require "badline/pet/model"
 require "badline/pet/cpu"
 require "badline/pet/via"
@@ -74,8 +75,10 @@ module Badline
     # +model+ names one of Model::ALL, with +ram_kb+ of RAM below $8000
     # (Model::RAM_SIZES) in place of the model's own when not nil. A CRTC
     # model runs its 50 Hz editor, or its 60 Hz one for +refresh_hz+ 60.
-    def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false)
-      @model = Model.named(model)
+    # +basic+ and +editor+ name ROMs the board takes in place of its own
+    # (Model.upgraded).
+    def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false, basic: nil, editor: nil)
+      @model = Model.upgraded(Model.named(model), basic, editor)
       ram_kb ||= @model.ram_kb
       raise ArgumentError, "a PET has no #{ram_kb}K RAM board" unless Model::RAM_SIZES.include?(ram_kb)
 

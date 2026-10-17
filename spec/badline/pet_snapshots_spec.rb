@@ -121,6 +121,11 @@ describe Badline::PET do
         .to raise_error(Badline::Snapshot::FormatError, /at 60 Hz, not/)
     end
 
+    it "restores a 2001 upgraded to BASIC 2 with its ROMs" do
+      described_class.new(model: "2001", basic: "2").save_snapshot(path)
+      expect(Badline::Snapshot.load(path).model.basic).to eq("pet/basic2.rom")
+    end
+
     it "refuses a snapshot of ROMs it doesn't fit" do
       out = Badline::Snapshot::Keyed::Writer.new.text("family", "pet").text("rom.basic", "pet/basic2.rom")
       setup = Badline::Snapshot::PETSetup.read_fields(Badline::Snapshot::Keyed::Reader.parse(out.section("BL-MACHINE")))

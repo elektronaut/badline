@@ -39,6 +39,12 @@ module Badline
         PLUS4_RAM[value]
       end
 
+      def pet_ram(value)
+        raise Error, "invalid argument: --ram #{value}" unless PET_RAM.key?(value)
+
+        PET_RAM[value]
+      end
+
       def plus4_ram_expansion(value)
         raise Error, "invalid argument: --ram-expansion #{value}" unless PLUS4_RAM_EXPANSIONS.key?(value)
 
@@ -92,18 +98,27 @@ module Badline
       end
 
       def validate_family
-        raise Error, "the PET isn't emulated yet" if @family == :pet
-
-        if @family == :vic20
-          validate_vic20
-        elsif !@ram.nil?
-          raise Error, "--ram needs vic20 or plus4"
-        end
+        ram_option
+        validate_vic20 if @family == :vic20
         @family == :plus4 ? validate_plus4 : refuse_plus4_options
+        @family == :pet ? validate_pet : refuse_pet_options
         if @family == :c128
           validate_c128
         elsif @c64_mode
           raise Error, "--c64 needs c128"
+        end
+      end
+
+      # --ram names the VIC-20's RAM expansion, or the Plus/4's or the PET's
+      # RAM.
+      def ram_option
+        return if @ram_name.nil?
+
+        case @family
+        when :vic20 then @ram = ram_configuration(@ram_name)
+        when :plus4 then @ram_kb = plus4_ram(@ram_name)
+        when :pet then @ram_kb = pet_ram(@ram_name)
+        else raise Error, "--ram needs vic20, plus4 or pet"
         end
       end
 
@@ -153,6 +168,52 @@ module Badline
       def validate_plus4_expansions
         raise Error, "--ram-expansion needs 64k" unless @ram_expansion.nil? || [nil, 64].include?(@ram_kb)
         raise Error, "--sid-card-address needs --sid-card" unless @sid_card_address.nil? || @sid_card
+      end
+
+      # Only the PET has a frame rate to pick and BASIC and editor ROMs to
+      # fit.
+      def refuse_pet_options
+        raise Error, "--60hz needs pet" unless @refresh_hz.nil?
+        raise Error, "--basic needs pet" unless @basic.nil?
+        raise Error, "--editor needs pet" unless @editor.nil?
+      end
+
+      # The PET runs in the window, without the C64's SID and REU or a true
+      # drive, at the frame rate its editor sets.
+      def validate_pet
+        raise Error, "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz" if @models.include?("ntsc")
+        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the PET has no true drive yet" if @true_drive
+        raise Error, "the PET needs the window" if headless?
+
+        validate_pet_roms if PET_MODELS.include?(model)
+      end
+
+      # --basic and --editor name ROMs the model's board takes
+      # (PET::ROMSets), and an editor named sets the frame rate.
+      def validate_pet_roms
+        raise Error, "invalid argument: --basic #{@basic}" unless @basic.nil? || PET::ROMSets::BASICS.key?(@basic)
+        raise Error, "invalid argument: --editor #{@editor}" unless @editor.nil? || PET::ROMSets::EDITORS.key?(@editor)
+
+        basic = @basic || PET::ROMSets.stock_basic(model)
+        fitting = PET::ROMSets.editors(model, basic)
+        raise Error, "the #{model} takes no BASIC #{basic}" if fitting.empty?
+        return if @editor.nil?
+        raise Error, "the #{model} with BASIC #{basic} takes no editor #{@editor}" unless fitting.include?(@editor)
+
+        editor_rate(fitting)
+      end
+
+      # The frame rate of the editor named, on a CRTC board, which has a 50
+      # Hz and a 60 Hz one.
+      def editor_rate(fitting)
+        return if fitting.size == 1
+
+        editor_hz = @editor == fitting.last ? 60 : 50
+        raise Error, "--60hz takes a 60 Hz editor, not #{@editor}" if @refresh_hz == 60 && editor_hz == 50
+
+        @refresh_hz = editor_hz
       end
 
       # `sid` takes directories as well as tunes.

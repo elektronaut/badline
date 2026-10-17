@@ -8,8 +8,9 @@ module Badline
   # = Machine
   #
   # The machines badline builds by family, as the command line's
-  # subcommand names them: the C64, Badline::C64, the VIC-20, Vic20, and the
-  # C128 in C64 mode, C128, and the 264 series, Plus4.
+  # subcommand names them: the C64, Badline::C64, the VIC-20, Vic20, the
+  # C128 in C64 mode, C128, the 264 series, Plus4, and the PET and CBM,
+  # PET.
   #
   # A machine answers what the front end, Media, the runners and the
   # snapshots call on it:
@@ -57,24 +58,31 @@ module Badline
   # and +capture_output+, and besides +model_label+, +cartridge_slots+ and
   # +detach_cartridges+ for its two cartridges.
   #
+  # The PET answers the identity, clocking, lifecycle, video, sound and
+  # keyboard parts, with no joysticks, RESTORE or control ports, and of
+  # the rest +ram+, +load_prg+, +type_text+, +mount+, +unmount+,
+  # +mounted?+, +datasette+, +true_drive+, nil, +install_debug_register+
+  # and +capture_output+, and besides +model_label+ and +ram_kb+.
+  #
   # Each machine includes Machine::Clocking for the clocking part.
   module Machine
     # Media the machine named doesn't take.
     class Unsupported < ArgumentError; end
 
-    # A new machine of `family`, :c64, :vic20, :c128 or :plus4, the model
-    # of it `model` names. A C64's model is one of Model::ALL, with its SID
+    # A new machine of `family`, :c64, :vic20, :c128, :plus4 or :pet, the
+    # model of it `model` names. A C64's model is one of Model::ALL, with its SID
     # `sid_model` when not nil and an REU of `reu` K when not nil. A
     # VIC-20's is "pal", with the RAM expansion `ram` names
     # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
-    # the model's own RAM. :pet is refused until the PET runs.
+    # the model's own RAM. A PET's is one of PET::Model::ALL, with its own
+    # RAM and ROMs, its CRTC's editor the 50 Hz one.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
-      raise ArgumentError, "the PET isn't emulated yet" if family == :pet
+      return PET.new(model:) if family == :pet
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)
@@ -90,11 +98,12 @@ module Badline
     # only C64 mode runs: a .sid tune or a program that loads at the C64's
     # BASIC start. A VIC-20 without RAM named gets the expansion the media
     # needs (Media::Vic20Media.ram_for) and yields a line saying so. Raises
-    # Unsupported for media a VIC-20 or a Plus/4 doesn't take.
+    # Unsupported for media a VIC-20, a Plus/4 or a PET doesn't take.
     def self.for_options(options, media, &)
       family = options.family
       return vic20_for(media, options.model, options.ram, &) if family == :vic20
       return plus4_for(media, options) if family == :plus4
+      return pet_for(media, options) if family == :pet
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -141,6 +150,18 @@ module Badline
                 ram_expansion: options.ram_expansion)
     end
     private_class_method :plus4_for
+
+    # A PET with the RAM --ram names (PET::Model::RAM_SIZES), or with the
+    # model's own without it, the editor at the frame rate --60hz or
+    # --editor asks for, and the ROMs --basic and --editor fit it with.
+    def self.pet_for(media, options)
+      unsupported = !media.nil? && Media::PETMedia::UNSUPPORTED.include?(File.extname(media).downcase)
+      raise Unsupported, "doesn't go in a PET" if unsupported
+
+      PET.new(model: options.model, ram_kb: options.ram_kb, refresh_hz: options.refresh_hz, basic: options.basic,
+              editor: options.editor)
+    end
+    private_class_method :pet_for
 
     def self.c64_media?(media)
       return false if media.nil? || !File.file?(media)

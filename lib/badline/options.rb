@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/pet/rom_sets"
 require "badline/options/option"
 require "badline/options/event"
 require "badline/options/table"
@@ -12,9 +13,10 @@ module Badline
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. `sid`, given
   # first, plays .sid tunes and directories of them in the terminal.
-  # `c64`, `vic20`, `c128` or `plus4`, given first, names the machine
-  # family, and without one the family is the C64, or the C128 for a program
-  # that loads where C128 BASIC starts. `pet` is refused until the PET runs.
+  # `c64`, `vic20`, `c128`, `plus4` or `pet`, given first, names the
+  # machine family, and without one the family is the C64, the C128 for a
+  # program that loads where C128 BASIC starts, or the PET for an 8050's
+  # or 8250's disk or a PET tape.
   # The native build adds --no-sound and --version, and badline-ruby adds
   # --disable-jit.
   #
@@ -52,6 +54,9 @@ module Badline
     # The Plus/4's RAM sizes as --ram names them, in K.
     PLUS4_RAM = { "16k" => 16, "32k" => 32, "64k" => 64 }.freeze
 
+    # The PET's, below $8000.
+    PET_RAM = { "4k" => 4, "8k" => 8, "16k" => 16, "32k" => 32 }.freeze
+
     # Where --sid-card-address puts the Plus/4's SID card.
     SID_CARD_ADDRESSES = { "fd40" => 0xfd40, "fe80" => 0xfe80 }.freeze
 
@@ -71,16 +76,20 @@ module Badline
     attr_reader :program, :media_path, :tune_paths, :subtune, :sid_model, :reu, :frames, :screenshot, :save_snapshot,
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
-    # The machine family to build (Badline::Machine), :c64, :vic20, :c128
-    # or :plus4.
+    # The machine family to build (Badline::Machine), :c64, :vic20, :c128,
+    # :plus4 or :pet.
     attr_reader :family
+
+    # The ROMs --basic and --editor fit a PET with, keys of
+    # PET::ROMSets::BASICS and PET::ROMSets::EDITORS, or nil for its own.
+    attr_reader :basic, :editor
 
     # The VIC-20's RAM expansion --ram names, a key of
     # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
     attr_reader :ram
 
-    # The Plus/4's RAM in K --ram names, one of PLUS4_RAM's, or nil without
-    # --ram.
+    # The Plus/4's or the PET's RAM in K --ram names, one of PLUS4_RAM's or
+    # PET_RAM's, or nil without --ram.
     attr_reader :ram_kb
 
     # The Plus/4's cartridge ROM images --c1lo, --c1hi, --c2lo and --c2hi
@@ -122,6 +131,10 @@ module Badline
       @reu = nil
       @ram = nil
       @ram_kb = nil
+      @ram_name = nil
+      @refresh_hz = nil
+      @basic = nil
+      @editor = nil
       @cartridges = {}
       @autostart = true
       @writable = false
@@ -230,6 +243,10 @@ module Badline
     # power-on.
     def c64_mode? = @c64_mode
 
+    # The frame rate of a CRTC PET's editor: 60 with --60hz or a 60 Hz
+    # --editor, else 50.
+    def refresh_hz = @refresh_hz || 50
+
     def help? = @help
 
     def version? = @version
@@ -245,7 +262,7 @@ module Badline
     # A .sid on its own plays in the SID player, as `sid` would, unless an
     # option of the emulator's window asks for the machine.
     def play_lone_tune
-      return if @sid_command || %i[vic20 plus4].include?(@family) || headless? || !@window_only.empty?
+      return if @sid_command || %i[vic20 plus4 pet].include?(@family) || headless? || !@window_only.empty?
       return if @media_path.nil?
 
       @sid_command = File.extname(@media_path).casecmp?(".sid")
@@ -304,7 +321,9 @@ module Badline
       when "--ram-expansion" then @ram_expansion = plus4_ram_expansion(value)
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
-      when "--ram" then ram_option(value)
+      when "--ram" then @ram_name = value
+      when "--basic" then @basic = value
+      when "--editor" then @editor = value
       when "--drive-type" then @drive_type = drive_type_for(value)
       when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
       when "--frames" then @frames = number(flag, value)
@@ -316,15 +335,6 @@ module Badline
       when "--songlengths" then @songlengths = value
       when "--rate" then @rate = number(flag, value)
       else @filter_chunk = number(flag, value)
-      end
-    end
-
-    # --ram names the VIC-20's RAM expansion, or the Plus/4's RAM.
-    def ram_option(value)
-      if @family == :plus4
-        @ram_kb = plus4_ram(value)
-      else
-        @ram = ram_configuration(value)
       end
     end
 
@@ -340,6 +350,7 @@ module Badline
       when "--vice" then @vice = true
       when "--ntsc" then @models << "ntsc"
       when "--c64" then @c64_mode = true
+      when "--60hz" then @refresh_hz = 60
       when "--unpaced" then @paced = false
       when "--disable-jit" then @jit = false
       when "--help" then @help = true

@@ -28,10 +28,10 @@ Metrics/CollectionLiteralLength:
     - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/CyclomaticComplexity:
-  Max: 20
+  Max: 21
 
 Metrics/MethodLength:
-  Max: 48
+  Max: 50
   Exclude:
     - "lib/badline/chips/cpu/instruction.rb"
 

@@ -18,6 +18,10 @@ module Badline
     # another name for the C16.
     PLUS4_MODELS = %w[plus4 plus4ntsc c16 c16ntsc c116].freeze
 
+    # The PETs and CBMs, as PET::Model names them, the 8032 first, the
+    # default.
+    PET_MODELS = %w[8032 8096 4032 3032 3032b 2001].freeze
+
     # The true drives --drive-type names for the Plus/4.
     PLUS4_DRIVE_TYPES = %w[1541 1551].freeze
 
@@ -50,13 +54,21 @@ module Badline
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),
       Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal; " \
-                                 "C128: #{C128_MODELS.join(', ')}; Plus/4: #{PLUS4_MODELS.join(', ')}",
+                                 "C128: #{C128_MODELS.join(', ')}; Plus/4: #{PLUS4_MODELS.join(', ')}; " \
+                                 "PET: #{PET_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
       Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
                  section: "Window options", needs: :window),
       Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \
-                               "Plus/4 RAM: 16k, 32k or 64k (default: the model's own)",
+                               "Plus/4 RAM: 16k, 32k or 64k; PET RAM: 4k, 8k, 16k or 32k (default: the model's own)",
+                 section: "Window options", needs: :window),
+      Option.new("--60hz", "Run a CRTC PET's 60 Hz editor instead of its 50 Hz one",
+                 section: "Window options", needs: :window),
+      Option.new("--basic VERSION", "Fit a PET with BASIC 1, 2 or 4, as its board takes (default: its own)",
+                 section: "Window options", needs: :window),
+      Option.new("--editor NAME", "Fit a PET with an editor ROM its board and BASIC take: " \
+                                  "#{PET::ROMSets::EDITORS.keys.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--c1lo FILE", "Put a .bin ROM image in the Plus/4's cartridge 1, low slot ($8000)",
                  section: "Window options", needs: :window),
