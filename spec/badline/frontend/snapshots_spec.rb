@@ -54,6 +54,21 @@ describe Badline::Frontend::Snapshots do
     end
   end
 
+  describe "with a PET" do
+    let(:computer) { Badline::PET.new }
+
+    it "quicksaves it" do
+      quicksave
+      expect(File).to exist(slot(1))
+    end
+
+    it "restores it as a PET" do
+      quicksave
+      snapshots.restore
+      expect(snapshots.computer.family).to eq(:pet)
+    end
+  end
+
   def slot(number) = File.join(quicksaves, "quicksave-#{number}.vsf")
 
   # Writes a snapshot of the machine at path, modified the given seconds ago.

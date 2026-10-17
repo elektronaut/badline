@@ -24,6 +24,23 @@ describe Badline::Frontend::Gamepads do
   # Joystick 2 sits on CIA 1 port A, low bits clear while pressed.
   def port2 = computer.control_ports.read_a(0xff, 0xff) & 0x1f
 
+  context "with a PET" do
+    let(:computer) { Badline::PET.new }
+
+    it "steers nothing, the PET having no joysticks" do
+      buttons << 11
+      expect { gamepads.poll }.not_to raise_error
+    end
+
+    it "goes over to a machine with joysticks" do
+      c64 = Badline::C64.new
+      gamepads.computer = c64
+      buttons << 11
+      gamepads.poll
+      expect(c64.control_ports.read_a(0xff, 0xff) & 0x1f).to eq(0b11110)
+    end
+  end
+
   it "steers joystick 2 with the D-pad" do
     buttons << 11
     gamepads.poll

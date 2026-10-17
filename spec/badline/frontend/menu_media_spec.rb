@@ -198,6 +198,30 @@ describe Badline::Frontend::MenuMedia do
     expect([media.insert(:disk, tape), media.problem]).to eq([false, "#{tape} is not a disk image or a directory"])
   end
 
+  describe "on a PET" do
+    let(:computer) { Badline::PET.new(model: "3032") }
+
+    it "takes no cartridges" do
+      expect(media.cartridge_extensions).to eq([])
+    end
+
+    it "lists the 8050's and 8250's disks for device 8" do
+      expect(media.disk_extensions).to include(".d80", ".d82", ".d64")
+    end
+
+    it "lists no raw GCR for device 8" do
+      expect(media.disk_extensions).not_to include(".g64")
+    end
+
+    it "names a save after BASIC with nothing in" do
+      expect(media.game_name).to eq("BASIC")
+    end
+
+    it "names no cartridge" do
+      expect(media.cartridge_name).to eq("")
+    end
+  end
+
   describe "on a Plus/4" do
     let(:computer) { Badline::Plus4.new }
 

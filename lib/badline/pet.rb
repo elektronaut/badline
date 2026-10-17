@@ -54,6 +54,9 @@ module Badline
     # The editor's frame rate: 50 or 60 on a CRTC board, 60 on the others.
     attr_reader :refresh_hz
 
+    # The RAM below $8000, in K.
+    attr_reader :ram_kb
+
     def ram = @bus.ram
 
     # Reads and writes memory as the CPU sees it, through the bus.
@@ -75,6 +78,8 @@ module Badline
       @model = Model.named(model)
       ram_kb ||= @model.ram_kb
       raise ArgumentError, "a PET has no #{ram_kb}K RAM board" unless Model::RAM_SIZES.include?(ram_kb)
+
+      @ram_kb = ram_kb
 
       @refresh_hz = @model.crtc? ? refresh_hz : 60
       @crtc_video = @model.crtc?
@@ -113,6 +118,10 @@ module Badline
 
     # The vertical drive line, high but in the retrace.
     def vertical_drive? = @vertical_drive
+
+    # The model, its RAM and its editor's frame rate as the pause menu
+    # names them, such as "8032, 32K RAM, 50 HZ".
+    def model_label = "#{@model.name.upcase}, #{@ram_kb}K RAM, #{@refresh_hz} HZ"
 
     # The Canvas a front end shows.
     def video = @canvas

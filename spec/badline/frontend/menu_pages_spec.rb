@@ -142,6 +142,21 @@ describe Badline::Frontend::MenuPages do
       expect(buttons).not_to have_received(:toggle)
     end
 
+    it "names its model, RAM and frame rate on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "3032, 32K RAM, 60 HZ", anything)
+    end
+
+    it "shows its RAM on the expansion page" do
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "32K", anything)
+    end
+
+    it "offers no cartridge on the expansion page" do
+      pages.draw(:expansion, 0, 0)
+      expect(buttons).not_to have_received(:row)
+    end
+
     context "with the business keyboard" do
       let(:computer) { Badline::PET.new(model: "8032") }
 

@@ -91,6 +91,8 @@ module Badline
 
       def plus4? = @computer.family == :plus4
 
+      def pet? = @computer.family == :pet
+
       def draw_drive
         media = @media
         inserted = media.inserted?
@@ -122,6 +124,8 @@ module Badline
       end
 
       def draw_expansion
+        return draw_pet_memory if pet?
+
         info("CARTRIDGE", @media.cartridge_name)
         return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
 
@@ -151,6 +155,12 @@ module Badline
         toggle(plus4? ? "SID CARD" : "SID", :sid, [%w[6581 8580], %i[sid6581 sid8580], model == :mos8580 ? 1 : 0])
       end
 
+      # The PET's memory: its RAM, and the 8096's 64K board.
+      def draw_pet_memory
+        info("RAM", "#{@computer.ram_kb}K")
+        info("EXPANSION RAM", @computer.model.expansion ? "64K BOARD" : "")
+      end
+
       # Saving now and by name, loading a named save, and the quicksaves
       # and autosaves, newest first, which a press loads.
       def draw_snapshots
@@ -166,10 +176,12 @@ module Badline
         end
       end
 
-      # The C128 names its model and the mode it runs in first, and the
-      # Plus/4 its model and RAM, and its RAM expansion if it has one.
+      # The C128 names its model and the mode it runs in first, the Plus/4
+      # and the PET their model and RAM, and the Plus/4 its RAM expansion if
+      # it has one.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
+        info("MACHINE", @computer.model_label) if pet?
         if plus4?
           info("MACHINE", @computer.model_label)
           expansion = @computer.ram_expansion_label

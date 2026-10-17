@@ -21,6 +21,20 @@ describe Badline::Frontend::Screens do
     expect(screens.screen.width).to eq(2 * Badline::Frontend::Screen::MIN_WIDTH)
   end
 
+  context "with an 8032" do
+    let(:computer) { Badline::PET.new(model: "8032") }
+
+    it "shows its 80 columns two dots to a window pixel" do
+      expect(screens.screen.window_width).to eq(Badline::Frontend::Screen::MIN_WIDTH)
+    end
+
+    it "shows the green phosphor" do
+      computer.video.paint(8, 0, 0xff)
+      screens.screen.update
+      expect(screens.screen.pixels).to include(0x41ff00 | (0x41ff00 << 32))
+    end
+  end
+
   it "switches to the VDC once the C128 has printed there for FOLLOW_FRAMES frames" do
     follow(true)
     expect(screens.vdc_shown?).to be(true)

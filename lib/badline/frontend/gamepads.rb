@@ -7,14 +7,15 @@ module Badline
     # second one joystick 1. PadPort holds the mapping.
     #
     # The controllers are polled every frame, and rescanned whenever SDL
-    # reports one added or removed.
+    # reports one added or removed. The PET has no joysticks, and the
+    # controllers steer two that nothing reads.
     class Gamepads
       PORTS = [2, 1].freeze
 
       def initialize(computer, verbose)
         @verbose = verbose
         @controllers = []
-        @ports = [PadPort.new(computer.joystick2), PadPort.new(computer.joystick1)]
+        @ports = [PadPort.new(joystick(computer, 2)), PadPort.new(joystick(computer, 1))]
         @buttons = Array.new(PadPort::BUTTON_COUNT, 0)
         @available = SDL.SDL_InitSubSystem(SDL::INIT_GAMECONTROLLER).zero?
         puts "No game controllers: #{SDL.SDL_GetError}" if @verbose && !@available
@@ -24,7 +25,7 @@ module Badline
       # what they hold on the next poll.
       def computer=(computer)
         @ports.each(&:release)
-        @ports = [PadPort.new(computer.joystick2), PadPort.new(computer.joystick1)]
+        @ports = [PadPort.new(joystick(computer, 2)), PadPort.new(joystick(computer, 1))]
       end
 
       def rescan
@@ -50,6 +51,12 @@ module Badline
       end
 
       private
+
+      def joystick(computer, port)
+        return Input::Joystick.new if computer.family == :pet
+
+        port == 1 ? computer.joystick1 : computer.joystick2
+      end
 
       def open_controller(index)
         controller = SDL.SDL_GameControllerOpen(index)
