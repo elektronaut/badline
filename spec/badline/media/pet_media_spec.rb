@@ -84,6 +84,26 @@ describe Badline::Media::PETMedia do
     end
   end
 
+  describe "a PET tape" do
+    let(:message) do
+      Badline::Media.attach(pet, Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 3).path)
+    end
+
+    it "plays on cassette #1" do
+      message
+      expect(pet.cassettes.datasette1.playing?).to be(true)
+    end
+
+    it "loads and runs the tape's first program" do
+      message
+      expect(pet).to have_received(:type_text).with("load\rrun\r")
+    end
+
+    it "says nothing of another machine" do
+      expect(message).not_to include("another machine")
+    end
+  end
+
   it "mounts a .t64 archive as device 8" do
     entry = [1, 0x82, 0x01, 0x04, 0x03, 0x04, 0, 0, 0x60, 0, 0, 0, 0, 0, 0, 0]
     header = "C64S tape image file".ljust(0x20, "\0").b + [0x0100, 1, 1, 0].pack("vvvv") + "TAPE".ljust(24)
@@ -92,7 +112,7 @@ describe Badline::Media::PETMedia do
     expect(pet.mounted_path).to eq(path)
   end
 
-  %w[game.crt tune.sid game.g64 game.tap].each do |name|
+  %w[game.crt tune.sid game.g64].each do |name|
     it "refuses a #{File.extname(name)}" do
       path = write(name, [0])
       expect { Badline::Media.attach(pet, path) }.to raise_error(ArgumentError, /doesn't go in a PET/)

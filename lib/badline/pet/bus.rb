@@ -81,6 +81,7 @@ module Badline
           @pia2.poke(addr, value) if addr.anybits?(0x20)
           @via.poke(addr, value) if addr.anybits?(0x40)
           @crtc.poke(addr, value) if addr.anybits?(@lines & 0x80)
+          @bus.io_written
         end
       end
 
@@ -130,7 +131,18 @@ module Badline
         @write_pages = Array.new(256, @open_bus)
         @expansion = model.expansion ? Expansion.new(self) : nil
         @debug_register = nil
+        @io_write_handler = nil
         map_pages
+      end
+
+      # Calls the block after each write to the I/O chips, which may have
+      # moved the lines their ports drive.
+      def on_io_write(&handler)
+        @io_write_handler = handler
+      end
+
+      def io_written
+        @io_write_handler&.call
       end
 
       # The RES line reaches the 8096's control register.

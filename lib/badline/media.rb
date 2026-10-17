@@ -196,17 +196,19 @@ module Badline
         "Attached cartridge #{path}"
       end
 
-      # A VIC-20 or a 264 says when the tape was made for another machine
-      # (Vic20Media.tape_message, Plus4Media.tape_message).
+      # A VIC-20, a 264 or a PET says when the tape was made for another
+      # machine (Vic20Media.tape_message, Plus4Media.tape_message,
+      # PETMedia.tape_message).
       def attach_tape(computer, path, autostart:)
         tape = Storage::TAP.new(path)
         computer.datasette.insert(tape)
         computer.datasette.play!
-        computer.type_text(TAPE_AUTOSTART) if autostart
+        computer.type_text(computer.family == :pet ? PETMedia::TAPE_AUTOSTART : TAPE_AUTOSTART) if autostart
         message = "Inserted #{path} in the datasette"
         case computer.family
         when :vic20 then Vic20Media.tape_message(tape, message)
         when :plus4 then Plus4Media.tape_message(tape, message)
+        when :pet then PETMedia.tape_message(tape, message)
         else message
         end
       end

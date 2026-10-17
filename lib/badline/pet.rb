@@ -7,6 +7,7 @@ require "badline/pet/via_ports"
 require "badline/pet/keyboard_ports"
 require "badline/pet/ieee_ports"
 require "badline/pet/ieee_traps"
+require "badline/pet/cassettes"
 require "badline/pet/characters"
 require "badline/pet/canvas"
 require "badline/pet/discrete_video"
@@ -35,13 +36,15 @@ module Badline
   # The CRTC boards paint theirs from the CRTC's outputs (CRTCVideo).
   # The VIA's CB2 is the sound (Sound).
   #
-  # It runs headless, with no media yet.
+  # Device 8 answers through traps on the KERNAL's IEEE-488 primitives
+  # (IEEETraps), on a bus nothing else is plugged into (IEEEPorts), and
+  # each cassette port has a datasette (Cassettes). It runs headless.
   class PET
     include Machine::KeyboardBuffer
     include Machine::Clocking
     include IEEETraps
 
-    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :ieee, :cycles, :init_threshold
+    attr_reader :model, :bus, :cpu, :pia1, :pia2, :via, :crtc, :keyboard, :ieee, :cassettes, :cycles, :init_threshold
 
     # The editor's frame rate: 50 or 60 on a CRTC board, 60 on the others.
     attr_reader :refresh_hz
@@ -56,6 +59,9 @@ module Badline
     def install_debug_register(&) = @bus.install_debug_register(&)
 
     def family = :pet
+
+    # The datasette on cassette port #1, where a tape goes in (Cassettes).
+    def datasette = @cassettes.datasette1
 
     # +model+ names one of Model::ALL, with +ram_kb+ of RAM below $8000
     # (Model::RAM_SIZES) in place of the model's own when not nil. A CRTC
@@ -74,10 +80,11 @@ module Badline
       registers = Array.new(Chips::CRTC::MASKS.length, 0)
       @pia1 = Chips::PIA.new(peripheral: keyboard_ports)
       @ieee = IEEEPorts.new(Drives::IEEEBus.new)
-      keyboard_ports.connect(@pia1, @ieee)
       @pia2 = Chips::PIA.new(peripheral: @ieee)
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
       @sound = Sound.new(@via)
+      @cassettes = Cassettes.new(@pia1, @via)
+      keyboard_ports.connect(@pia1, @ieee, @cassettes)
       characters = Characters.new(@model.characters)
       @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80)
       @crtc = Chips::CRTC.new(@crtc_output, registers:)
@@ -87,6 +94,8 @@ module Badline
       @crtc_output.cells = @bus.screen.cells
       @discrete = DiscreteVideo.new(@bus.screen.cells, characters, @via)
       @canvas = @crtc_video ? @crtc_output.canvas : @discrete.canvas
+      cassettes = @cassettes
+      @bus.on_io_write { cassettes.lines_written }
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
       @init_handlers = []
@@ -135,6 +144,7 @@ module Badline
       @pia2.cycle!
       @via.cycle!
       @sound.cycle! if @sound.recording?
+      @cassettes.cycle!
       @cpu.irq = @pia1.irq? || @pia2.irq? || @via.irq?
       @cpu.cycle!
 
