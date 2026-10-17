@@ -13,6 +13,7 @@ require "badline/snapshot/vice/peripherals"
 require "badline/snapshot/vice/vicii"
 require "badline/snapshot/vice/vicii_import"
 require "badline/snapshot/vice/restore"
+require "badline/snapshot/vice/pet"
 
 module Badline
   module Snapshot
