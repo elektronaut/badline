@@ -136,6 +136,14 @@ describe Badline::Snapshot::Vice::PET do
       expect(checkpoint(target)).to eq(checkpoint(restored))
     end
 
+    it "keeps the tape in the datasette" do
+      Dir.mktmpdir do |dir|
+        target = Badline::PET.new.tap { |pet| pet.datasette.insert(Badline::Storage::TAP.create("#{dir}/t.tap", platform: 3)) }
+        image(container).restore(target) { nil }
+        expect(target.datasette.tape).not_to be_nil
+      end
+    end
+
     it "fails for a PET built another way" do
       expect { image(container).restore(Badline::PET.new(model: "4032")) }
         .to raise_error(Badline::Snapshot::FormatError, /the snapshot is of a 8032 with 32K at 50 Hz, not a 4032/)
