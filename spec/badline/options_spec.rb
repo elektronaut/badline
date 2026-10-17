@@ -402,14 +402,31 @@ describe Badline::Options do
     end
 
     {
-      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20 or plus4"],
+      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20, plus4 or pet"],
       "an unknown RAM expansion" => [%w[vic20 --ram 4k], "invalid argument: --ram 4k"],
       "an NTSC VIC-20" => [%w[vic20 --ntsc], "the NTSC VIC-20 isn't emulated yet"],
       "an NTSC VIC-20 by name" => [%w[vic20 --model ntsc], "the NTSC VIC-20 isn't emulated yet"],
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
       "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
-      "the PET" => [%w[pet], "the PET isn't emulated yet"],
+      "a VIC-20 expansion for the PET" => [%w[pet --ram 24k], "invalid argument: --ram 24k"],
+      "a C64 model for the PET" => [%w[pet --model c64], "invalid argument: --model c64"],
+      "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
+      "a SID for the PET" => [%w[pet --sid 8580], "--sid needs the C64"],
+      "an REU for the PET" => [%w[pet --reu 512], "--reu needs the C64"],
+      "a true drive for the PET" => [%w[pet --true-drive], "the PET has no true drive yet"],
+      "--60hz for the C64" => [%w[--60hz], "--60hz needs pet"],
+      "--basic for the C64" => [%w[--basic 2], "--basic needs pet"],
+      "--editor for the Plus/4" => [%w[plus4 --editor 2-n], "--editor needs pet"],
+      "an unknown BASIC" => [%w[pet --basic 3], "invalid argument: --basic 3"],
+      "an unknown editor" => [%w[pet --editor 5-n], "invalid argument: --editor 5-n"],
+      "a BASIC the board doesn't take" => [%w[pet --model 4032 --basic 2], "the 4032 takes no BASIC 2"],
+      "an editor the BASIC doesn't take" => [%w[pet --model 2001 --basic 2 --editor 4-n],
+                                             "the 2001 with BASIC 2 takes no editor 4-n"],
+      "an editor for the other keyboard" => [%w[pet --model 3032 --editor 2-b],
+                                             "the 3032 with BASIC 2 takes no editor 2-b"],
+      "a 50 Hz editor at 60 Hz" => [%w[pet --60hz --editor 4-80-b-50hz],
+                                    "--60hz takes a 60 Hz editor, not 4-80-b-50hz"],
       "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
       "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
@@ -435,6 +452,47 @@ describe Badline::Options do
         it "raises" do
           expect { options }.to raise_error(described_class::Error, message)
         end
+      end
+    end
+
+    context "with pet" do
+      let(:argv) { ["pet", "--model", "3032", "--ram", "16k", "--basic", "4", program_path] }
+
+      it "runs the model given, with the RAM and BASIC given, on the media given" do
+        expect([options.family, options.model, options.ram_kb, options.basic, options.media_path])
+          .to eq([:pet, "3032", 16, "4", program_path])
+      end
+    end
+
+    context "with pet alone" do
+      let(:argv) { %w[pet] }
+
+      it "runs an 8032 at 50 Hz with its own ROMs" do
+        expect([options.model, options.refresh_hz, options.basic, options.editor]).to eq(["8032", 50, nil, nil])
+      end
+    end
+
+    context "with pet and --60hz" do
+      let(:argv) { %w[pet --60hz] }
+
+      it "runs the 60 Hz editor" do
+        expect(options.refresh_hz).to eq(60)
+      end
+    end
+
+    context "with pet and a 60 Hz editor" do
+      let(:argv) { %w[pet --model 4032 --editor 4-40-n-60hz] }
+
+      it "runs at 60 Hz" do
+        expect(options.refresh_hz).to eq(60)
+      end
+    end
+
+    context "with a .sid tune for the PET" do
+      let(:argv) { ["pet", tune_path] }
+
+      it "takes it for the window, not the SID player" do
+        expect([options.sid_command?, options.window?]).to eq([false, true])
       end
     end
 
@@ -567,6 +625,60 @@ describe Badline::Options do
 
       it "runs the C128" do
         expect(options.family).to eq(:c128)
+      end
+    end
+
+    context "with an 8250's disk" do
+      let(:disk_path) { File.join(dir, "disk.d82") }
+      let(:argv) { [disk_path] }
+
+      before { File.binwrite(disk_path, "") }
+
+      it "runs the PET" do
+        expect(options.family).to eq(:pet)
+      end
+    end
+
+    context "with a PET tape" do
+      let(:tape_path) { File.join(dir, "game.tap") }
+      let(:argv) { [tape_path] }
+
+      before { File.binwrite(tape_path, "C64-TAPE-RAW\x01\x03\x00\x00\x00\x00\x00\x00") }
+
+      it "runs the PET" do
+        expect(options.family).to eq(:pet)
+      end
+    end
+
+    context "with a C64 tape" do
+      let(:tape_path) { File.join(dir, "game.tap") }
+      let(:argv) { [tape_path] }
+
+      before { File.binwrite(tape_path, "C64-TAPE-RAW\x01\x00\x00\x00\x00\x00\x00\x00") }
+
+      it "runs the C64" do
+        expect(options.family).to eq(:c64)
+      end
+    end
+
+    context "with a program that loads where PET BASIC starts" do
+      let(:argv) { [program_path] }
+
+      before { File.binwrite(program_path, "\x01\x04") }
+
+      it "runs the C64, the VIC-20 loading there too" do
+        expect(options.family).to eq(:c64)
+      end
+    end
+
+    context "with c64 and an 8250's disk" do
+      let(:disk_path) { File.join(dir, "disk.d82") }
+      let(:argv) { ["c64", disk_path] }
+
+      before { File.binwrite(disk_path, "") }
+
+      it "runs the C64" do
+        expect(options.family).to eq(:c64)
       end
     end
 

@@ -85,6 +85,7 @@ module Badline
                #{@program} vic20 [options] [media]
                #{@program} c128 [options] [media]
                #{@program} plus4 [options] [media]
+               #{@program} pet [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -94,6 +95,7 @@ module Badline
             vic20                            Run a PAL VIC-20, with the RAM --ram names
             c128                             Run a C128 in C128 mode, the one --model names
             plus4                            Run a Plus/4 or a C16, the one --model names
+            pet                              Run a PET or a CBM, the one --model names
             sid                              Play .sid tunes and directories of them
 
         #{media_kinds}
@@ -117,6 +119,12 @@ module Badline
         --drive-type 1541 a 1541 on the serial bus instead. There Escape is
         ESC, Page Down RUN/STOP and F4 HELP.
 
+        The PET and the CBM take programs, disks, .d80 and .d82 among them,
+        and tapes, and a .d80, a .d82 or a PET tape starts one without
+        `pet`. Their keys type what the host's keys type, and the pause
+        menu's PORTS page says where the rest are. --basic and --editor fit
+        the upgrades Commodore sold, as in --model 2001 --basic 2.
+
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
@@ -137,8 +145,9 @@ module Badline
         --at and --script run events once a number of frames has run, as
         in --at 3500:key=space or --at 250,500:screenshot=shot%05d.bmp.
         key=NAME presses a key (space, return, a, f1, run_stop, restore, and
-        on the C128 esc, help, keypad1 and the rest, and on the Plus/4
-        esc, help and f1 to f3) or a joystick's
+        on the C128 esc, help, keypad1 and the rest, on the Plus/4
+        esc, help and f1 to f3, and on the PET rvs, escape and kp1) or a
+        joystick's
         direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
         pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
         types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's

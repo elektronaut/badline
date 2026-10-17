@@ -49,8 +49,14 @@ module Badline
             characters: input.text("rom.characters", profile.characters))
       end
 
-      # A machine built this way, at power-on.
-      def build = PET.new(model:, ram_kb:, refresh_hz:)
+      # A machine built this way, at power-on, with the BASIC and editor
+      # PET::ROMSets names for its ROMs.
+      def build
+        version = PET::ROMSets::BASICS.find { |_, roms| roms.first == basic }&.first
+        PET.new(model:, ram_kb:, refresh_hz:, basic: version, editor: PET::ROMSets::EDITORS.key(editor))
+      rescue ArgumentError => e
+        raise FormatError, "the snapshot is of a #{self}, which badline doesn't build: #{e.message}"
+      end
 
       # The ROMs are named where they aren't the model's own.
       def to_s

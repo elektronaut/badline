@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, and the Plus/4, the C16 and the C116, as `badline plus4`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, and the PET and CBM, as `badline pet`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -70,7 +70,8 @@ from it.
 The first argument can name the machine, as in `badline c64 game.prg`.
 The C64 is the default, and `--model` picks which C64. See
 [The VIC-20](#the-vic-20) for `badline vic20`, [The C128](#the-c128)
-for `badline c128` and [The Plus/4](#the-plus4) for `badline plus4`.
+for `badline c128`, [The Plus/4](#the-plus4) for `badline plus4` and
+[The PET](#the-pet) for `badline pet`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -85,13 +86,15 @@ differences noted in the table. `--help` lists the options for either.
 | `--drive-type 1541` | On the Plus/4, make the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
-| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own |
+| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, and on the PET `4k`, `8k`, `16k` or `32k` |
+| `--60hz` | Run a CRTC PET's 60 Hz editor in place of its 50 Hz one. See [The PET](#the-pet) |
+| `--basic VERSION`, `--editor NAME` | Fit a PET with an upgrade ROM its board takes: BASIC `1`, `2` or `4`, or an editor. See [The PET](#the-pet) |
 | `--c1lo FILE`, `--c1hi FILE`, `--c2lo FILE`, `--c2hi FILE` | Put a raw `.bin` ROM image in one of the Plus/4's cartridge slots: cartridge 1 or 2, low (`$8000`) or high (`$C000`). See [The Plus/4](#the-plus4) |
 | `--sid-card 6581`, `--sid-card 8580` | Fit a Plus/4 or C16 with a SID card at `$FD40`. See [The Plus/4](#the-plus4) |
 | `--sid-card-address fd40`, `--sid-card-address fe80` | Put the SID card at `$FD40` (the default) or at `$FE80` |
 | `--ram-expansion NAME` | Fit a Plus/4 or C16 with a RAM expansion: `hannes256`, `hannes1m` or `csory256`. See [The Plus/4](#the-plus4) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
-| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128 and the Plus/4 have models of their own: see their sections |
+| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128, the Plus/4 and the PET have models of their own: see their sections |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
@@ -283,6 +286,51 @@ out. `F11` and the
 Snapshots page save it as they do the others, but not for VICE.
 [Input](#input) lists its keys.
 
+## The PET
+
+`badline pet` runs a CBM 8032, with BASIC 4 and 80 columns on a green
+screen, and takes programs, disks and tapes:
+
+```sh
+badline pet                         # READY., in BASIC 4
+badline pet game.prg                # Load and run a program
+badline pet game.d64                # Mount a disk image as device 8 and load it
+badline pet game.d82                # The same with an 8250's disk
+badline pet game.tap                # Insert a tape and load it
+badline pet --model 2001            # The first PET, with BASIC 1
+```
+
+`--model` picks the machine: `8032` (the default, 32K, 80 columns and
+the business keyboard), `8096` (an 8032 with the 64K board at `$FFF0`),
+`4032` (40 columns on a CRTC and the graphics keyboard), `3032` (the
+discrete 40-column board with BASIC 2), `3032b` (the same with the
+business keyboard) and `2001` (8K, BASIC 1 and the chiclet keyboard).
+`--ram 4k`, `8k` or `16k` fits less RAM in place of the model's own, as
+the 3008, 3016 and 4016 had.
+
+The 4032, 8032 and 8096 run their 50 Hz editor, and `--60hz` their
+60 Hz one. The others always run at 60 Hz. `--basic` fits the upgrade
+ROMs Commodore sold, with the editor that goes with them: BASIC 2 for the
+2001, and BASIC 4 for the 3032 and the 3032b. `--editor` names the editor
+instead, among those the board and its BASIC take:
+
+```sh
+badline pet --model 2001 --basic 2   # A 2001 with BASIC 2
+badline pet --model 3032 --basic 4   # A 3032 with BASIC 4, without a CRTC
+badline pet --editor 4-80-b-60hz     # An 8032 at 60 Hz, as --60hz runs it
+```
+
+A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
+`.d82` or a tape made for the PET starts a PET without `pet`, but a
+program that loads at `$0401` starts a C64, since a VIC-20 with 3K loads
+there too. Disks go through the KERNAL traps on the IEEE-488 bus as
+device 8, and tapes play on cassette port 1. The keys type what the host's
+keys type, on either keyboard: [Input](#input) lists the rest. The pause
+menu's Power page names the model, its RAM and its frame rate, and its
+Expansion port page its RAM and the 8096's 64K board. The PET has no
+joysticks. `F11` and the Snapshots page save it as they do the others,
+but not for VICE.
+
 ## Snapshots
 
 `F11` quicksaves the whole machine to the next of five slots in
@@ -349,6 +397,26 @@ and put their own here:
 They have no `RESTORE`, `←` or `↑` key, so `Page Up`, `` ` `` and `]`
 press nothing.
 
+The PET types the characters on the host's keys, so Shift and `'` type
+`"` on the graphics keyboard, where `"` has a key of its own, and on the
+business keyboard, where it's `SHIFT` and `2`. Shift with a letter types
+the graphics character on its key. The keys without a character are
+here, with the pause menu's Ports page listing them too:
+
+| PET | Host |
+|-----|------|
+| `RUN/STOP` | `Page Down`, or `Escape` on the graphics keyboard |
+| `ESC` | `Escape`, on the business keyboard |
+| `CLR/HOME` | `Home` |
+| `INST/DEL` | `Backspace` |
+| `RVS` | `Ctrl` |
+| `CRSR ⇔` / `CRSR ⇕` | `Left`, `Right` / `Up`, `Down`, with `SHIFT` where they go left or up |
+| `↑` / `←` | `^` / `_` or `` ` `` |
+| `TAB`, `REPEAT` | `Tab`, `Page Up`, on the business keyboard |
+| Keypad | The keypad |
+
+On the PET `Tab` is a key, since there are no joysticks to switch to.
+
 `Tab` switches the keys between the C64 keyboard and the joysticks. The
 window title shows where they go, and any device plugged into a control
 port:
@@ -394,7 +462,7 @@ too.
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
 | Ports | The device in each control port, and where the keys go |
 | Sound | Mute, and the SID's model |
-| Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 its model and RAM |
+| Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 or a PET its model and RAM |
 
 INSERT opens a file browser. A disk's set is the `.m3u` or `.vfl` list it
 was opened from, or one in its folder that lists it. Without one, it comes
@@ -444,6 +512,12 @@ in cartridge 1 as it does from the command line.
   receives at its baud rates, with nothing on the user port; Ruby code
   driving the machine can plug in a terminal, whose bytes it feeds and
   drains, or a loopback plug (`Plus4::ACIA#plug`).
+- **PET and CBM**: the 2001, 3032, 3032b, 4032, 8032 and 8096, with
+  BASIC 1, 2 or 4, the discrete video and the 6545 CRTC on 40 and 80
+  columns, both 6520 PIAs and the 6522 VIA, the graphics and business
+  keyboards, the sound on the VIA's CB2, the 8096's 64K board, both
+  cassette ports and device 8 on the IEEE-488 bus through the KERNAL
+  traps, `.d80` and `.d82` among its disks (`badline pet`).
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
   mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial

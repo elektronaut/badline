@@ -31,6 +31,9 @@ module Badline
         # page 2; BASIC 2 and 4 keep them where each other does.
         def basic1? = basic == "pet/basic1.rom"
 
+        # The BASIC's version, "1", "2" or "4" (ROMSets::BASICS).
+        def basic_version = ROMSets::BASICS.find { |_, roms| roms.first == basic }.first
+
         # Where the KERNAL keeps its IEEE-488 primitives
         # (KernalTrap::IEEELayout).
         def trap_layout
@@ -80,6 +83,30 @@ module Badline
         raise ArgumentError, "no PET model named #{name}" if model.nil?
 
         model
+      end
+
+      # The +profile+ with the BASIC and the editor ROMSets names in place
+      # of its own: +basic+ a key of ROMSets::BASICS and +editor+ one of
+      # ROMSets::EDITORS, each nil for the one that fits. An editor named
+      # serves at either frame rate, so the machine's has to be its own.
+      # Raises ArgumentError for ROMs the model doesn't take.
+      def self.upgraded(profile, basic, editor)
+        return profile if basic.nil? && editor.nil?
+
+        name = profile.name
+        basic ||= ROMSets.stock_basic(name)
+        fitting = ROMSets.editors(name, basic)
+        raise ArgumentError, "the #{name} takes no BASIC #{basic}" if fitting.empty?
+        unless editor.nil? || fitting.include?(editor)
+          raise ArgumentError, "the #{name} with BASIC #{basic} takes no editor #{editor}"
+        end
+
+        basic_rom, kernal = ROMSets::BASICS.fetch(basic)
+        Profile.new(name:, ram_kb: profile.ram_kb, basic: basic_rom,
+                    editor_50hz: ROMSets::EDITORS.fetch(editor || fitting.first),
+                    editor_60hz: ROMSets::EDITORS.fetch(editor || fitting.last), kernal:,
+                    characters: profile.characters, keyboard: profile.keyboard, video: profile.video,
+                    expansion: profile.expansion)
       end
     end
   end
