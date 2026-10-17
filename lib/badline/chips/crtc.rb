@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/chips/crtc/keyed_state"
+
 module Badline
   module Chips
     # The MOS 6545 CRTC, as the later PETs drive their screens with: an

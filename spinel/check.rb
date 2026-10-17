@@ -12,7 +12,7 @@ require_relative "../test/support/lorenz_run"
 module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
-                 plus4_lorenz plus4_snapshot pet_boot pet_testbench sid].freeze
+                 plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -71,6 +71,13 @@ module SpinelCheck
   # each loaded into a new machine that runs on beside the saved one.
   def check_plus4_snapshots
     [[], %w[200100 700000 c16]].each { |args| compare("plus4_snapshot", args) }
+  end
+
+  # An 8032's snapshot taken as the line it types runs, and a 2001's
+  # taken while the keys are still going into its keyboard buffer, each
+  # loaded into a new machine that runs on beside the saved one.
+  def check_pet_snapshots
+    [[], %w[550000 1200000 2001]].each { |args| compare("pet_snapshot", args) }
   end
 
   # The C128 typing print 6*7, the C128DCR typing the line that writes the

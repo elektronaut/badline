@@ -140,6 +140,20 @@ KERNAL and function ROMs come with the model. Its file names its machine
 doesn't open it, and badline doesn't open xplus4's. `--vice` and
 `computer.export_snapshot(path)` refuse a Plus/4.
 
+## The PET
+
+Every PET and CBM model saves and restores the same way. A snapshot of
+one holds its RAM, the screen RAM, an 8096's 64K board with its control
+register, both PIAs, the VIA, the CPU, the CRTC on the boards that have
+one, the picture with where the video is in its frame, the tapes in both
+datasettes with their places on them, and the disk or directory device 8
+serves through the IEEE-488 traps. It restores into a machine of the same
+model with the same RAM, the same editor frame rate and the same ROMs,
+which come with the model. Its file names its machine `PET`, as xpet's
+do, and holds only badline's modules, so xpet doesn't open it, and
+badline doesn't open xpet's. `--vice` and
+`computer.export_snapshot(path)` refuse a PET.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format, and badline's own modules are named

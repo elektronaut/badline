@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/chips/pia/control_lines"
+require "badline/chips/pia/keyed_parts"
 
 module Badline
   module Chips

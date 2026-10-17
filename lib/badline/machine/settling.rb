@@ -4,7 +4,7 @@ module Badline
   module Machine
     # Brings the machine to the point a snapshot file is saved at: the main
     # CPU between instructions, or jammed, with no REU transfer holding the
-    # bus. C64, Vic20, C128 and Plus4 each include it, and answer
+    # bus. C64, Vic20, C128, Plus4 and PET each include it, and answer
     # #settled_for_snapshot? and #settle_chips_for_snapshot, which brings
     # what each chip defers up to the cycle without running one.
     module Settling

@@ -36,6 +36,8 @@ module Badline
       C128 = "C128"
       # xplus4 names its machine PLUS4, for the C16 too.
       PLUS4 = "PLUS4"
+      # xpet names its machine PET, for every model.
+      PET = "PET"
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version

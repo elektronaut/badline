@@ -117,10 +117,10 @@ module Badline
       end
     end
 
-    class Serial
-      # The serial trap's fields under `prefix`: whether device 8 listens
-      # or talks, on which channel, the frame it is in and the bytes it has
-      # gathered.
+    module Frames
+      # The serial or IEEE-488 trap's fields under `prefix`: whether device
+      # 8 listens or talks, on which channel, the frame it is in and the
+      # bytes it has gathered.
       def save_fields(out, prefix)
         out.bool("#{prefix}listening", @listening).bool("#{prefix}talking", @talking)
         out.optional_int("#{prefix}listen_channel", @listen_channel)

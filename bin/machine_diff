@@ -60,8 +60,9 @@
 #          register free and loops, writing to the screen RAM. The disk
 #          scenario loads it with LOAD"*",8 through the traps on the
 #          IEEE-488 primitives, which on the 2001's BASIC 1 finds no drive.
-#          Checkpoints digest the CPU, RAM, the screen RAM, both PIAs, the
-#          VIA, the CRTC and the 8096's board (Badline::Support::PETCheckpoint)
+#          Checkpoints digest the CPU, RAM, the screen RAM, the picture,
+#          both PIAs, the VIA, the CRTC and the 8096's board
+#          (Badline::Support::PETCheckpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
@@ -99,7 +100,7 @@ module MachineDiff
   ROOT = File.expand_path("..", __dir__)
   SCENARIOS = %w[boot type demo disk].freeze
   # bin/snapshot_check's scenarios: c64-plain, vic20-tape and so on.
-  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4)-/
+  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet)-/
 
   module_function
 

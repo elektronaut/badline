@@ -36,8 +36,9 @@ module Badline
 
       # The machines the doc is made from: each family at power-on, the C64
       # with each kind of expansion, cartridge and media, and a second SID,
-      # and the 264 series' models, its TCBM interface, cartridge, tape and
-      # true drives, the 1541 and the 1551.
+      # the 264 series' models, its TCBM interface, cartridge, tape and
+      # true drives, the 1541 and the 1551, and a CRTC PET, a 2001, an 8096
+      # and a PET with a disk and tapes.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -48,8 +49,20 @@ module Badline
           "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), Plus4.new(sid_card: :mos6581),
                       Plus4.new(sid_card: :mos8580, sid_card_address: 0xfe80),
                       Plus4.new(ram_expansion: :csory256),
-                      plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")]
+                      plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
+          "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"), pet_with_media]
         }
+      end
+
+      # A PET with a disk in device 8 through the traps and a tape in each
+      # datasette.
+      def self.pet_with_media
+        bytes = "C64-TAPE-RAW".bytes + [1, 3, 0, 0, 4, 0, 0, 0, 0x30, 0x30, 0x30, 0x30]
+        PET.new.tap do |machine|
+          machine.mount(Storage::D64Image.new("", read_only: true, bytes: blank(174_848)))
+          machine.cassettes.datasette1.insert(Storage::TAP.new("", bytes:))
+          machine.cassettes.datasette2.insert(Storage::TAP.new("", bytes:))
+        end
       end
 
       def self.blank(length) = Array.new(length, 0)
