@@ -109,7 +109,6 @@ module Badline
       @due: Integer
 
       def take: (Integer) -> void
-      def feed: (Array[Integer]) -> void
 
       module Frames
         @command: Integer

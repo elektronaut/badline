@@ -31,7 +31,7 @@ module Badline
         attr_reader :host, :drive
 
         # Plugs the cable into +host+, the computer's Chips::TIA, and
-        # +drive+, the drive's (Model1551::TIA#chip), for +unit+, the drive.
+        # +drive+, the drive's (Model1551::TIA), for +unit+, the drive.
         def initialize(host, drive, unit)
           @host = host
           @drive = drive
