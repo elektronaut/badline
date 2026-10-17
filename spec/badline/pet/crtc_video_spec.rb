@@ -45,10 +45,10 @@ describe Badline::PET::CRTCVideo do
     expect(dots(32, 36)).to eq(0)
   end
 
-  it "shows RA4's lines as the first eight" do
-    cells[0] = 1
+  it "blanks the lines with RA4 set" do
+    cells[0] = 0xa0
     first(raster: 17)
-    expect(dots(32, 36)).to eq(a_row(1))
+    expect(dots(32, 36)).to eq(0)
   end
 
   describe "on the 8296's board" do

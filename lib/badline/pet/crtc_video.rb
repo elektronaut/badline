@@ -7,12 +7,15 @@ module Badline
     # and the character ROM's row RA0-RA2 from the half VIA CA2 selects.
     # On the 80-column boards each character reads two bytes, at twice the
     # address and the one after, and shows them side by side, 16 dots to a
-    # cycle. MA12 low inverts the picture, and RA3 high blanks the line.
+    # cycle. MA12 low inverts the picture, and RA3 or RA4 high blanks the
+    # line (NO ROW on the 8032029 and 8032087 schematics' sheet 10), so a
+    # row taller than eight lines shows its first eight alone.
     #
     # The 8296's board (+board8296+) reads the screen from the 32K of RAM
-    # from $8000 on: MA0-MA11 count two bytes each from $8000, and RA4
-    # adds $4000, so lines 16 to 23 of a row taller than 16 show the RAM
-    # under BASIC at $C000. MA13 picks the half of a 4K character ROM.
+    # from $8000 on: MA0-MA11 count two bytes each from $8000, RA3 alone
+    # blanks the line, and RA4 adds $4000, so lines 16 to 23 of a row
+    # taller than 16 show the RAM under BASIC at $C000. MA13 picks the half
+    # of a 4K character ROM.
     #
     # The picture is a Canvas 273 lines high, 704 dots wide on 80 columns
     # and 384 on 40, framed as xpet frames it. Across, R1's characters sit
@@ -41,6 +44,7 @@ module Badline
         @rows = characters.rows
         @cell_mask = board8296 ? 0xfff : 0x3ff
         @ra4 = board8296 ? 0x10 : 0
+        @no_row = board8296 ? 0x08 : 0x18
         @half = characters.halves? ? 0x2000 : 0
         @via = via
         @registers = crtc_registers
@@ -69,7 +73,7 @@ module Badline
         x = @origin + (since_hsync << @char_shift)
         @from = x if x < @from
         @to = x if x > @to
-        bits = raster.anybits?(0x08) ? 0 : row_bits(address, raster)
+        bits = raster.anybits?(@no_row) ? 0 : row_bits(address, raster)
         if @wide
           @canvas.paint(x, @y, bits >> 8)
           @canvas.paint(x + 8, @y, bits & 0xff)
