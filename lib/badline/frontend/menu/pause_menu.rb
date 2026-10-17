@@ -238,6 +238,7 @@ module Badline
       def draw_sections
         top = @top + 32
         SECTIONS.each_with_index do |name, index|
+          name = "KEYBOARD" if PAGES[index] == :ports && @pages.pet?
           @buttons.plain(@left + 6, top, name.ljust(14), PAGES[index], on: index == @section)
           top += Buttons::HEIGHT + 2
         end

@@ -85,13 +85,14 @@ module Badline
       # Whether the machine is a C128, whose F8 switches its screens.
       def c128? = @computer.family == :c128
 
+      # Whether the machine is a PET, whose ports page shows its keyboard.
+      def pet? = @computer.family == :pet
+
       private
 
       def vic20? = @computer.family == :vic20
 
       def plus4? = @computer.family == :plus4
-
-      def pet? = @computer.family == :pet
 
       def draw_drive
         media = @media
