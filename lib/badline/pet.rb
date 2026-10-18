@@ -106,6 +106,7 @@ module Badline
       @via = VIA.new(start: 0xe800, peripheral: VIAPorts.new(self))
       @sound = Sound.new(@via)
       @cassettes = Cassettes.new(@pia1, @via)
+      watch_tapes
       keyboard_ports.connect(@pia1, @ieee, @cassettes)
       characters = Characters.new(@model.characters)
       @crtc_output = CRTCVideo.new(characters, @via, registers, columns80: @model.video == :crtc80,
@@ -177,7 +178,7 @@ module Badline
       @pia2.cycle!
       @via.cycle!
       @sound.cycle! if @sound.recording?
-      @cassettes.cycle!
+      @cassettes.cycle! if @tapes_running
       @cpu.irq = @pia1.irq? || @pia2.irq? || @via.irq?
       @cpu.cycle!
       @drive2031&.host_cycle!
@@ -233,6 +234,16 @@ module Badline
     # before it: READY is up by about 440,000 on a 2001 with 8K, 1,450,000
     # on a 3032 and 1,980,000 on an 8032.
     def boot_cycles(ram_kb) = (@model.basic == "pet/basic4.rom" ? 700_000 : 150_000) + (46_000 * ram_kb)
+
+    # The decks are clocked only while a tape runs.
+    def watch_tapes
+      @tapes_running = false
+      @cassettes.on_running_change { tapes_changed }
+    end
+
+    def tapes_changed
+      @tapes_running = @cassettes.running?
+    end
 
     def drive_retrace(high)
       return if high == @vertical_drive

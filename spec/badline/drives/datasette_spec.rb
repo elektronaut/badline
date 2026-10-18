@@ -24,6 +24,20 @@ describe Badline::Drives::Datasette do
     datasette.motor = true
   end
 
+  describe "#on_running_change" do
+    let(:changes) { [] }
+
+    before { datasette.on_running_change { changes << datasette.running? } }
+
+    it "hears the tape start and stop" do
+      datasette.play!
+      datasette.motor = true
+      datasette.motor = true
+      datasette.eject
+      expect(changes).to eq([true, false])
+    end
+  end
+
   describe "on a machine without one" do
     before { datasette.disconnect! }
 

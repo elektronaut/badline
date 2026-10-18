@@ -10,7 +10,8 @@ module Badline
       # bytes and how far it has played. A tape that isn't in leaves tape.* out. A datasette that
       # times the read line's level adds when in the countdown the line
       # rises, and whether a recording's low half wave is on the tape. The
-      # sense and flag handlers don't fire on load.
+      # sense and flag handlers don't fire on load, and the running handler
+      # does when the load starts or stops the tape.
       module KeyedState
         def save_fields(out)
           out.bool("playing", @playing).bool("motor", @motor).int("countdown", @countdown)
@@ -33,6 +34,13 @@ module Badline
           @write_high = input.bool("write_high", @write_high)
           @rise_at = input.int("rise_at", @rise_at)
           @low_recorded = input.bool("low_recorded", @low_recorded)
+          load_tape(input)
+          update_running
+        end
+
+        private
+
+        def load_tape(input)
           bytes = input.bytes("tape.bytes", "".b).bytes
           return @tape = nil if bytes.empty?
 
