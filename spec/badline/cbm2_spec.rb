@@ -142,6 +142,28 @@ describe Badline::CBM2 do
     expect(machine.cpu.cycles).to eq(2_200)
   end
 
+  # xcbm2 plays $1000 on voice 1 at 488 Hz, by its zero crossings.
+  def tone_samples
+    machine = looping
+    machine.sid.record(rate: 44_100, clock_hz: machine.timing.clock_hz)
+    { 0xda18 => 0x0f, 0xda06 => 0xf0, 0xda01 => 0x10, 0xda04 => 0x11 }.each { |addr, value| machine.poke(addr, value) }
+    machine.run_cycles(100_000)
+    machine.sid.drain_samples.last(2_000)
+  end
+
+  it "plays the SID at its 2 MHz clock" do
+    expect(tone_samples.each_cons(2).count { |was, now| was.negative? && !now.negative? }).to be_within(1).of(22)
+  end
+
+  it "reads DCD and DSR high and the transmitter empty with nothing on the RS-232 port" do
+    expect(described_class.new.peek(0xdd01)).to eq(0x70)
+  end
+
+  it "reads the user port's lines high with nothing on it" do
+    machine = described_class.new
+    expect([machine.peek(0xdc00), machine.peek(0xdc01)]).to eq([0xff, 0xff])
+  end
+
   it "latches the CIA's interrupt on TPI1's I2" do
     machine = looping
     machine.poke(0xde06, 0x01)
