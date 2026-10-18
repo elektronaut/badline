@@ -71,15 +71,30 @@ module Badline
         end
 
         # A chain's first block goes on the free track nearest the
-        # directory. Each block after it goes the interleave further round
-        # the same track, or on the next track out once that one is full.
+        # directory, from its sector 0. Each block after it looks from the
+        # interleave further round the track (#next_sector), on the same
+        # track or, once that one is full, from the same sector on the next
+        # track out.
         def next_block(track = nil, sector = nil)
           candidates = track ? [track, *tracks_after(track)] : allocation_order
+          start = track ? next_sector(track, sector) : 0
           candidates.each do |candidate|
-            free = free_sector(candidate, candidate == track ? sector + interleave : 0)
+            free = free_sector(candidate, start)
             return [candidate, free] if free
           end
           nil
+        end
+
+        # The interleave on from the sector. Past the track's last sector
+        # it comes round again one short, but never below sector 0, as
+        # the 2031, 8050, 8250 and 1581 DOS do.
+        def next_sector(track, sector)
+          start = sector + interleave
+          count = sectors_in(track)
+          return start if start < count
+
+          start -= count
+          start.positive? ? start - 1 : start
         end
 
         def free_sector(track, first)

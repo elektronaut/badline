@@ -23,7 +23,7 @@ describe Badline::PET::IEEEDrive do
   def session_once(model, lines)
     TakenOnce.fetch([:pet_2031_session, model, lines]) do
       Dir.mktmpdir do |dir|
-        path = formatted_d64(File.join(dir, "blank.d64"))
+        path = blank_d64(File.join(dir, "blank.d64"), id: "XY")
         Badline::Storage::D64Image.new(path).write_file("HELLO", hello, type: :prg)
         pet = Badline::PET.new(model:, ram_kb: 4)
         pet.plug_true_drive.insert_image(path)
@@ -33,15 +33,6 @@ describe Badline::PET::IEEEDrive do
         [screens, Badline::Storage::D64Image.new(path).read_file("saved")]
       end
     end
-  end
-
-  # A blank disk with the ID and DOS type the DOS's NEW writes, which BASIC
-  # 2's LOAD of the directory needs to chain its lines.
-  def formatted_d64(path)
-    bytes = File.binread(blank_d64(path)).bytes
-    bytes[d64_offset(18, 0) + 0xa0, 7] = [0xa0, 0xa0, *"XY".bytes, 0xa0, *"2A".bytes]
-    File.binwrite(path, bytes.pack("C*"))
-    path
   end
 
   # Types +line+ and runs until the screen's last line says READY.
