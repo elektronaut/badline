@@ -3,6 +3,7 @@
 require "badline/cbm2/p500/model"
 require "badline/cbm2/p500/pages"
 require "badline/cbm2/p500/control_ports"
+require "badline/cbm2/p500/ieee_layout"
 require "badline/cbm2/p500/keyed_state"
 
 module Badline
@@ -24,12 +25,17 @@ module Badline
     # TPI1 is the interrupt controller as on the B series, with the mains
     # on I0, the CIA on I2 and the ACIA on I4. TPI2 scans the B series'
     # key matrix (KeyboardPorts), and the CIA reads the two control ports
-    # (ControlPorts). Nothing answers on the IEEE-488 bus yet. It runs
-    # headless.
+    # (ControlPorts). Device 8 answers through traps on the KERNAL's
+    # IEEE-488 primitives as on the B series (IEEETraps, with the P500's
+    # IEEELayout), and nothing else answers on the bus. It runs headless.
     class P500
       include Machine::KeyboardBuffer
       include Machine::Clocking
       include Machine::Settling
+      include IEEETraps
+
+      # The segment BASIC keeps its program text in.
+      TEXT_SEGMENT = 0
 
       # The ACIA at $DD00, whose IRQ reaches TPI1's I4.
       class ACIA < Chips::ACIA
@@ -99,6 +105,9 @@ module Badline
         @acia_due = Chips::ACIA::NEVER
         @init_handlers = []
         @pending_keys = nil
+        @dos = nil
+        @ieee_trap = nil
+        @capture_output = nil
         @init_threshold = INIT_THRESHOLD
         update_video_bus
       end
@@ -161,6 +170,19 @@ module Badline
         @bus.reset!
         @cpu.reset!
       end
+
+      # Puts a program file's bytes where its first two say in BASIC's text
+      # segment, segment 0, and returns that address.
+      def load_prg(data)
+        load_addr = data[0] | (data[1] << 8)
+        bytes = data[2..] || []
+        bytes = bytes[0, 0x10000 - load_addr] if load_addr + bytes.length > 0x10000
+        bytes.each_with_index { |byte, i| @bus.poke_bank(TEXT_SEGMENT, load_addr + i, byte) }
+        load_addr
+      end
+
+      # The IEEELayout of 901234-02.
+      def trap_layout = IEEELayout::LAYOUT
 
       # Puts a cartridge's ROM chips in (Bus#attach_cartridge) and switches
       # the machine off and on, for the KERNAL to find it as it starts.
