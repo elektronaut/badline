@@ -8,9 +8,9 @@ module Badline
         # reads become the PET's own keyed modules (Keyed), which it loads
         # as it loads its own snapshot. Whatever they don't set stays as the
         # machine has it at power-on, and the datasettes' tapes and the
-        # disk device 8 serves stay as they are. A snapshot with a true 2031
-        # puts one on the bus, with the disk badline's 2031 had in it, and
-        # one without takes badline's 2031 off.
+        # disk device 8 serves stay as they are. A snapshot with a true 2031,
+        # 8050 or 8250 puts one on the bus, with the disks badline's drive
+        # of that model had in it, and one without takes badline's off.
         module Restore
           # MAINCPU and PETMEM hold the machine itself, so a version badline
           # doesn't read fails the restore. The others are left out and
@@ -18,6 +18,8 @@ module Badline
           READ = [MainCPU::NAME, PETMem::NAME, CRTC::NAME, "PIA1", "PIA2", VIA::NAME].freeze
           # The host's media, which a restore keeps.
           KEPT = %w[BL-TAPE1 BL-TAPE2 BL-TRAPDOS].freeze
+          # The disks in a true drive's drives, which a restore keeps.
+          DISKS = %w[BL-D8-DISK BL-D8-DISK1].freeze
 
           module_function
 
@@ -63,30 +65,65 @@ module Badline
                 ignored << "#{section}: badline doesn't read this version, left out"
               end
             end
-            disk = nil
+            disks = []
             computer.save_modules.each do |section|
               sections << section if KEPT.include?(section.name)
-              disk = section if section.name == "BL-D8-DISK" && computer.drive2031
+              disks << section if DISKS.include?(section.name)
             end
-            sections += drive(container, applied, ignored, disk)
+            sections += drive(container, applied, ignored, kept_disks(container, computer, disks))
             computer.load_modules(Keyed::Modules.new(modules(container, computer, applied) + sections))
             Report.new(applied:, ignored: ignored + left_out(container, applied))
           end
 
-          # The 2031's modules where the snapshot has one badline reads, or
-          # none.
-          def drive(container, applied, ignored, disk)
+          # The disks badline's true drive has, which stay in the drive the
+          # snapshot puts on the bus when it is of the same model.
+          def kept_disks(container, computer, disks)
+            drive = computer.true_drive
+            return [] if drive.nil?
+
+            if Drive8050.present?(container)
+              Drive8050.model(container) == drive.model_name ? disks : []
+            else
+              drive.model_name == "2031" ? disks.first(1) : []
+            end
+          end
+
+          # The true drive's modules where the snapshot has one badline
+          # reads, or none.
+          def drive(container, applied, ignored, disks)
+            return drive8050(container, applied, ignored, disks) if Drive8050.present?(container)
             return [] unless Drive2031.present?(container)
 
             names = [Drive2031::UNITS.first, Drive2031::CPU, Drive2031::VIA1, Drive2031::VIA2]
-            unread = names.map { |name| container[name] }.reject { |section| section && Drive2031.reads?(section) }
-            unless unread.empty?
-              ignored << "the true 2031: badline doesn't read #{unread.compact.join(', ')}, left out"
+            return [] unless readable?(container, names, "2031", ignored) { |section| Drive2031.reads?(section) }
+
+            applied.concat(names)
+            Drive2031.import(container, disks.first)
+          end
+
+          def drive8050(container, applied, ignored, disks)
+            model = Drive8050.model(container)
+            return [] unless readable?(container, Drive8050::NAMES, model || "8050", ignored) do |section|
+              Drive8050.reads?(section)
+            end
+
+            if model.nil?
+              ignored << "the true drive: badline doesn't read its #{Drive8050::UNIT}'s type, left out"
               return []
             end
 
-            applied.concat(names)
-            Drive2031.import(container, disk)
+            applied.concat(Drive8050::NAMES)
+            Drive8050.import(container, Drive8050.reference(model), disks)
+          end
+
+          # Whether the snapshot has every module `names` lists at a version
+          # badline reads, saying which it doesn't in `ignored`.
+          def readable?(container, names, model, ignored, &reads)
+            unread = names.map { |name| container[name] }.reject { |section| section && reads.call(section) }
+            return true if unread.empty?
+
+            ignored << "the true #{model}: badline doesn't read #{unread.compact.join(', ')}, left out"
+            false
           end
 
           def required?(name) = [MainCPU::NAME, PETMem::NAME].include?(name)

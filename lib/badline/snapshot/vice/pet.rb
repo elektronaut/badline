@@ -6,6 +6,7 @@ require "badline/snapshot/vice/pet_pias"
 require "badline/snapshot/vice/pet_via"
 require "badline/snapshot/vice/pet_crtc"
 require "badline/snapshot/vice/pet_drive"
+require "badline/snapshot/vice/pet_drive8050"
 require "badline/snapshot/vice/pet_restore"
 
 module Badline
@@ -48,7 +49,7 @@ module Badline
            CRTC.export(machine, reader(readers, "BL-CRTC"), reader(readers, "BL-VIDEO")),
            PIAs.export("PIA1", machine.pia1, reader(readers, "BL-PIA1")),
            PIAs.export("PIA2", machine.pia2, reader(readers, "BL-PIA2")), VIA.export(reader(readers, "BL-VIA")),
-           *Drive2031.export(machine, readers)] +
+           *Drive2031.export(machine, readers), *Drive8050.export(machine, readers)] +
             PERIPHERALS.map { |name, major, minor, bytes| FieldWriter.new.bytes(bytes).section(name, major, minor) }
         end
 

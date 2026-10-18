@@ -199,24 +199,23 @@ module SnapshotCheck
   end
 
   # A new machine from the VICE modules alone of the machine's snapshot
-  # for VICE, and the lines its restore left out. A PET's 2031 keeps its
-  # disk, which xpet's modules don't carry: they are restored into a copy
-  # of the machine, as into a running PET.
+  # for VICE, and the lines its restore left out. A PET's true drive
+  # keeps its disks, which xpet's modules don't carry: they are restored
+  # into a copy of the machine, as into a running PET.
   def load_vice(machine)
     sections = Badline::Snapshot::Image.exported(machine).sections.reject { |section| section.name.start_with?("BL-") }
     container = Badline::Snapshot::Container.new(sections, machine: Badline::Snapshot::Image.machine_name(machine))
     ignored = []
     vice = Badline::Snapshot::Image.new(container)
-    return [vice.load { |line| ignored << line }, ignored] unless machine.family == :pet && machine.drive2031
+    return [vice.load { |line| ignored << line }, ignored] unless machine.family == :pet && machine.true_drive
 
     restored = load(dump(machine)).first
     vice.restore(restored) { |line| ignored << line }
     [restored, ignored]
   end
 
-  # Why VICE's modules can't carry the machine, or nil: a tape, a disk, a
-  # cartridge or an 8050, or a CBM-II 700 at 60 Hz, which xcbm2 doesn't
-  # build.
+  # Why VICE's modules can't carry the machine, or nil: a tape, a disk or
+  # a cartridge, or a CBM-II 700 at 60 Hz, which xcbm2 doesn't build.
   def unsaved(machine)
     return "its media" if machine.mounted?
     return unsaved_pet(machine) if machine.family == :pet
@@ -226,18 +225,16 @@ module SnapshotCheck
     Badline::Snapshot::Keyed::Reader.parse(ram).ints("cartridge.addresses", []).empty? ? nil : "its media"
   end
 
-  def unsaved_pet(machine)
-    return "its media" if machine.cassettes.datasette1.tape
-
-    machine.drive8050 ? "an 8050" : nil
-  end
+  def unsaved_pet(machine) = machine.cassettes.datasette1.tape ? "its media" : nil
 
   # The records VICE's modules don't carry, by module: a CBM-II's mains,
   # which xcbm2 ticks where its CRTC says, and its TPIs' priority stacks,
   # and the phase a 2031's stepper is offset by, with the port that drives
-  # it (Snapshot::Vice::PET::Drive2031).
+  # it (Snapshot::Vice::PET::Drive2031). An 8050's controller comes back
+  # as a unit switched on has it, whole (Snapshot::Vice::PET::Drive8050).
   UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high], "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack],
               "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb] }.freeze
+  CONTROLLER = %w[BL-D8 BL-D8-FDCCPU BL-D8-VIA BL-D8-RRIOT BL-D8-MECH].freeze
 
   # Takes the machine's state that VICE's modules don't carry (UNSAVED) to
   # what a load from them makes of it. Each module gains those records of
@@ -245,8 +242,10 @@ module SnapshotCheck
   def conform(machine)
     theirs = load_vice(machine).first.save_modules
     sections = machine.save_modules.map do |section|
-      keys = UNSAVED.fetch(section.name, [])
       other = theirs.find { |each| each.name == section.name }
+      next other if other && machine.family == :pet && machine.drive8050 && CONTROLLER.include?(section.name)
+
+      keys = UNSAVED.fetch(section.name, [])
       next section if keys.empty? || other.nil?
 
       section.with(data: Zlib.deflate(Zlib.inflate(section.data) + records(other, keys)))

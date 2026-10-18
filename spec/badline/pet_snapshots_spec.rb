@@ -188,7 +188,7 @@ describe Badline::PET do
         expect([machine.true_drive, machine.ieee.bus.drives]).to eq([nil, []])
       end
 
-      it "leaves the unit out of xpet's modules" do
+      it "leaves a unit still starting up out of xpet's modules", :slow do
         names = Badline::Snapshot::Image.exported(with_unit).sections.map(&:name)
         expect(names.grep(/\ADRIVE|VIA2D0|2031/)).to be_empty
       end
@@ -201,7 +201,7 @@ describe Badline::PET do
         expect([machine.true_drive, lines.last]).to eq([nil, "the 8050 on device 8 is taken off the bus"])
       end
 
-      it "exports a .vsf that loads back with the unit, which xpet's modules leave out" do
+      it "exports a .vsf that loads back with a unit still starting up, which xpet's modules leave out", :slow do
         machine = with_unit
         machine.export_snapshot(path)
         expect(Badline::Snapshot.load(path).snapshot).to eq(machine.snapshot)
