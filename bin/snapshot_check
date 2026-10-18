@@ -231,15 +231,17 @@ module SnapshotCheck
   def unsaved_pet(machine) = machine.cassettes.datasette1.tape ? "its media" : nil
 
   # The records VICE's modules don't carry, by module: the cycles a CPU has
-  # run, which a P500's VIC stalls it for, a CBM-II's mains,
-  # which xcbm2 ticks where its CRTC says, and its TPIs' priority stacks,
-  # and the phase a 2031's stepper is offset by, with the port that drives
-  # it (Snapshot::Vice::PET::Drive2031). An 8050's controller comes back
-  # as a unit switched on has it, whole (Snapshot::Vice::PET::Drive8050),
-  # and a P500's VIC as xcbm5x0's line-based VIC-II leaves it, whole
-  # (Snapshot::Vice::P500::VICII).
-  UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high], "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack],
-              "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb], "BL-CPU" => %w[cycles] }.freeze
+  # run, which a P500's VIC stalls it for, a CBM-II's mains, which xcbm2
+  # ticks where its CRTC says, its DRAM refresh's count, the last byte on
+  # its bus, the keys the host has yet to type and its TPIs' priority
+  # stacks, and the phase a 2031's stepper is offset by, with the port
+  # that drives it (Snapshot::Vice::PET::Drive2031). An 8050's controller
+  # comes back as a unit switched on has it, whole
+  # (Snapshot::Vice::PET::Drive8050), and a P500's VIC as xcbm5x0's
+  # line-based VIC-II leaves it, whole (Snapshot::Vice::P500::VICII).
+  UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high refresh host.pending_keys], "BL-RAM" => %w[data],
+              "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack], "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb],
+              "BL-CPU" => %w[cycles] }.freeze
   CONTROLLER = %w[BL-D8 BL-D8-FDCCPU BL-D8-VIA BL-D8-RRIOT BL-D8-MECH].freeze
 
   # The modules a load from VICE's modules makes afresh, whole.
@@ -276,6 +278,7 @@ module SnapshotCheck
       when Badline::Snapshot::Keyed::INT then out.int(key, reader.int(key, 0))
       when Badline::Snapshot::Keyed::BOOL then out.bool(key, reader.bool(key, false))
       when Badline::Snapshot::Keyed::INTS then out.ints(key, reader.ints(key, []))
+      when nil then out.ints(key, []) if key.start_with?("host.")
       end
     end
     out.to_s
