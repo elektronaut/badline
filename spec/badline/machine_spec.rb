@@ -121,6 +121,11 @@ describe Badline::Machine do
       expect([machine.model.name, machine.kernal, machine.mains_hz]).to eq(["620", "03b", 60])
     end
 
+    it "builds a P500 for --model 510ntsc, on its region's mains" do
+      machine = described_class.for_options(options("cbm2", "--model", "510ntsc"), nil)
+      expect([machine.class, machine.mains_hz]).to eq([Badline::CBM2::P500, 60])
+    end
+
     it "turns a tape away from the CBM-II" do
       expect { described_class.for_options(options("cbm2"), "game.tap") }
         .to raise_error(Badline::Machine::Unsupported, /CBM-II/)

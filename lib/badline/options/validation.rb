@@ -58,7 +58,7 @@ module Badline
       end
 
       def kernal_for(value)
-        raise Error, "invalid argument: --kernal #{value}" unless CBM2_KERNALS.include?(value)
+        raise Error, "invalid argument: --kernal #{value}" unless (CBM2_KERNALS + P500_KERNALS).include?(value)
 
         value
       end
@@ -244,12 +244,16 @@ module Badline
         raise Error, "--kernal needs cbm2" unless @kernal.nil?
       end
 
-      # The CBM-II runs in the window, without the C64's SID and REU.
+      # The CBM-II runs in the window, without the C64's SID and REU, and
+      # its model takes the KERNAL named.
       def validate_cbm2
         raise Error, "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz" if @models.include?("ntsc")
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the CBM-II needs the window" if headless?
+
+        kernals = p500? ? P500_KERNALS : CBM2_KERNALS
+        raise Error, "the #{model} takes KERNAL #{kernals.join(' or ')}" unless kernals.include?(kernal)
       end
 
       # `sid` takes directories as well as tunes.

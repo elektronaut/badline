@@ -248,12 +248,19 @@ module Badline
     def c64_mode? = @c64_mode
 
     # The frame rate of a CRTC PET's editor: 60 with --60hz or a 60 Hz
-    # --editor, else 50. A CBM-II's mains, which its editor follows.
+    # --editor, else 50. A B series CBM-II's mains, which its editor
+    # follows.
     def refresh_hz = @refresh_hz || 50
 
-    # The CBM-II's KERNAL --kernal names, one of CBM2_KERNALS, 04a without
-    # it.
-    def kernal = @kernal || CBM2_KERNALS.first
+    # The CBM-II's mains, 60 with --60hz, or nil for the model's own.
+    def mains_hz = @refresh_hz
+
+    # The CBM-II's KERNAL --kernal names, one of CBM2_KERNALS or, on the
+    # P500, P500_KERNALS, the first of them without it.
+    def kernal = @kernal || (p500? ? P500_KERNALS : CBM2_KERNALS).first
+
+    # Whether the CBM-II to run is a P500, a 510 of either region.
+    def p500? = @family == :cbm2 && model.start_with?("510")
 
     def help? = @help
 

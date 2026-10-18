@@ -457,11 +457,13 @@ describe Badline::Options do
       "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
       "a drive type the Plus/4 has none of" => [%w[plus4 --drive-type 1571], "invalid argument: --drive-type 1571"],
       "a KERNAL for the PET" => [%w[pet --kernal 04a], "--kernal needs cbm2"],
-      "an unknown CBM-II KERNAL" => [%w[cbm2 --kernal 02], "invalid argument: --kernal 02"],
+      "an unknown CBM-II KERNAL" => [%w[cbm2 --kernal 01], "invalid argument: --kernal 01"],
       "a PET model for the CBM-II" => [%w[cbm2 --model 8032], "invalid argument: --model 8032"],
       "an NTSC CBM-II" => [%w[cbm2 --ntsc], "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz"],
       "a SID for the CBM-II" => [%w[cbm2 --sid 8580], "--sid needs the C64"],
-      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"]
+      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"],
+      "a B series KERNAL for the P500" => [%w[cbm2 --model 510 --kernal 04a], "the 510 takes KERNAL 02"],
+      "the P500's KERNAL for a 610" => [%w[cbm2 --kernal 02], "the 610 takes KERNAL 04a or 03b"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
@@ -535,6 +537,14 @@ describe Badline::Options do
 
       it "puts a true drive on its IEEE-488 bus" do
         expect(options.true_drive?).to be(true)
+      end
+    end
+
+    context "with cbm2 and a P500" do
+      let(:argv) { %w[cbm2 --model 510] }
+
+      it "runs the P500 with its KERNAL and its region's mains" do
+        expect([options.p500?, options.kernal, options.mains_hz]).to eq([true, "02", nil])
       end
     end
 

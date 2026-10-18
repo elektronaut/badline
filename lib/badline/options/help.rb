@@ -97,7 +97,7 @@ module Badline
             c128                             Run a C128 in C128 mode, the one --model names
             plus4                            Run a Plus/4 or a C16, the one --model names
             pet                              Run a PET or a CBM, the one --model names
-            cbm2                             Run a CBM-II of the B series, the one --model names
+            cbm2                             Run a CBM-II, a B series or a P500, the one --model names
             sid                              Play .sid tunes and directories of them
 
         #{media_kinds}
@@ -145,7 +145,9 @@ module Badline
         or a .d82 then goes in an emulated 8050 or 8250. Its keys type what
         the host's keys type, F12 is RUN/STOP, Alt with F9 or F10 presses
         its F9 or F10, and the pause menu's KEYBOARD page says where the
-        rest are.
+        rest are. --model 510 or 510ntsc runs the P500, on the VIC-II with
+        KERNAL 02, whose keys are the B series' and whose two joysticks Tab
+        switches to.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
