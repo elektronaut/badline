@@ -36,8 +36,7 @@ module Badline
         return draw_p500_ports if Controls.p500?(@computer)
         return draw_cbm2_keys if @computer.family == :cbm2
 
-        toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
-        toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
+        draw_pot_ports
         return unless draw_keys(@computer.family == :c128 ? "C128" : "C64")
 
         row("SWAP JOYSTICKS", :swap)
@@ -78,13 +77,18 @@ module Badline
         end
       end
 
-      # The P500's two joysticks, one for each set of keys, and while the
-      # keys type, where its keys are.
+      # What each control port has plugged in, a joystick, a mouse or
+      # paddles.
+      def draw_pot_ports
+        toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
+        toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
+      end
+
+      # The P500's two ports, its joysticks one for each set of keys, and
+      # while the keys type, where its keys are.
       def draw_p500_ports
-        unless draw_keys("P500")
-          skip
-          return draw_cbm2_keys
-        end
+        draw_pot_ports
+        return draw_cbm2_keys unless draw_keys("P500")
 
         row("SWAP JOYSTICKS", :swap)
         skip

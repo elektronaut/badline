@@ -259,6 +259,16 @@ describe Badline::Frontend::MenuPages do
       expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[P500 JOYSTICK], anything, 0])
     end
 
+    it "offers a mouse or paddles on each port" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "PORT 2", :port2, [%w[JOY MOUSE PADDLES], anything, 0])
+    end
+
+    it "plugs paddles into the port picked" do
+      pages.perform(:port1_paddles)
+      expect(computer.control_ports.device1.class).to eq(Badline::Input::Paddles)
+    end
+
     it "says where RUN/STOP is while the keys type" do
       pages.draw(:ports, 0, 0)
       expect(painter).to have_received(:text).with(0, anything, "F12: RUN/STOP", anything)

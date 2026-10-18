@@ -277,9 +277,27 @@ describe Badline::Frontend::Controls do
       expect(computer.joystick2.port_bits).to eq(0xff)
     end
 
-    it "plugs no pot device in" do
+    it "puts paddles on port 2" do
+      controls.plug(:paddles2)
+      expect([ports.device1, ports.device2.class]).to eq([nil, Badline::Input::Paddles])
+    end
+
+    it "turns the paddles with the host mouse" do
+      controls.plug(:paddles1)
+      controls.mouse_motion(40, -40)
+      expect([ports.device1.pot_x, ports.device1.pot_y]).to eq([0x94, 0x6c])
+    end
+
+    it "holds port 1's fire line low with the mouse's left button" do
       controls.plug(:mouse1)
-      expect(controls.pot).to eq(:none)
+      controls.mouse_button(1, true)
+      expect(ports.fire1_high?).to be(false)
+    end
+
+    it "keeps the paddles in as the machine is powered on again" do
+      controls.plug(:paddles1)
+      controls.computer = Badline::CBM2::P500.new
+      expect(controls.pot).to eq(:paddles1)
     end
 
     it "takes F12 from the window" do

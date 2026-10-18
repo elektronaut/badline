@@ -416,8 +416,9 @@ colour, 128K of RAM and its own KERNAL, 901234-02. `510` is PAL on
 50 Hz mains, and `510ntsc` NTSC on 60 Hz. A program loads at `$0003` in
 segment 0. Its keys are the B series', and it has two joysticks on its
 control ports: `Tab` switches the keys to them, as on the C64, and game
-controllers drive them. The pause menu's Ports page has the joysticks,
-and while the keys type, where its keys are.
+controllers drive them. The pause menu's Ports page plugs a 1351 mouse
+or a pair of paddles into either port, as on the C64, and while the
+keys type, says where its keys are.
 
 ## Snapshots
 
@@ -578,7 +579,7 @@ too.
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
-| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 its joysticks and keys |
+| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 also where its keys are while they type |
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit, on a C128 its model and mode, on a Plus/4 or a PET its model and RAM, and on a CBM-II its model, RAM, mains and KERNAL |
 
@@ -645,7 +646,8 @@ in cartridge 1 as it does from the command line.
   KERNAL traps (`badline cbm2`).
 - **P500**: the CBM 510, PAL and NTSC, with the B series' 6509, SID,
   CIA, ACIA and TPIs at the VIC-II's clock, the VIC-II on the P500's
-  video bus, 128K of RAM, the keyboard and both joysticks, and device 8
+  video bus, 128K of RAM, the keyboard, both joysticks, a 1351 mouse or
+  paddles on either port, and device 8
   on the IEEE-488 bus through the KERNAL traps
   (`badline cbm2 --model 510`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
