@@ -95,6 +95,14 @@ describe Badline::Frontend::Timeline do
       expect(error("1:key=joy2-fire", family: :cbm2)).to eq("no such key: joy2-fire")
     end
 
+    it "takes the CBM-II's keys and the joysticks on the P500" do
+      expect(error("1:key=norm_graph", "2:key=joy1-fire", family: :p500)).to eq("")
+    end
+
+    it "turns RESTORE away on the P500" do
+      expect(error("1:key=restore", family: :p500)).to eq("no such key: restore")
+    end
+
     it "takes the pause menu's pages, or none" do
       expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
     end

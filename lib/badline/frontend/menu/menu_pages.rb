@@ -92,6 +92,10 @@ module Badline
       # too.
       def cbm2? = @computer.family == :cbm2
 
+      # Whether the machine is the CBM-II's B series, whose ports page is
+      # its keyboard's alone.
+      def b_series? = cbm2? && !Controls.p500?(@computer)
+
       private
 
       def vic20? = @computer.family == :vic20
@@ -196,11 +200,12 @@ module Badline
 
       # The C128 names its model and the mode it runs in first, the Plus/4,
       # the PET and the CBM-II their model and RAM, the Plus/4 its RAM
-      # expansion if it has one, and the CBM-II its KERNAL.
+      # expansion if it has one, and the CBM-II its KERNAL, the B series'
+      # 901244 or the P500's 901234.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
-        info("MACHINE", @computer.model_label) if pet? || cbm2?
-        info("KERNAL", "901244-#{@computer.kernal.upcase}") if cbm2?
+        info("MACHINE", @computer.model_label.upcase) if pet? || cbm2?
+        info("KERNAL", "#{Controls.p500?(@computer) ? 901_234 : 901_244}-#{@computer.kernal.upcase}") if cbm2?
         if plus4?
           info("MACHINE", @computer.model_label)
           expansion = @computer.ram_expansion_label

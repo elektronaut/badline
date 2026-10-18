@@ -234,6 +234,43 @@ describe Badline::Frontend::MenuPages do
     end
   end
 
+  describe "with a P500" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::CBM2::P500.new(model: "510ntsc") }
+    let(:controls) { Badline::Frontend::Controls.new(computer) }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    before { pages.machine(computer, controls, nil) }
+
+    it "names its model, RAM and mains on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "510NTSC, 128K RAM, 60 HZ", anything)
+    end
+
+    it "names its KERNAL on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "901234-02", anything)
+    end
+
+    it "offers the joysticks on the ports page" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "KEYS", :keys, [%w[P500 JOYSTICK], anything, 0])
+    end
+
+    it "says where RUN/STOP is while the keys type" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "F12: RUN/STOP", anything)
+    end
+
+    it "says where the joysticks are while the keys drive them" do
+      controls.toggle_keys
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "JOYSTICK 2", anything)
+    end
+  end
+
   describe "with a Plus/4" do
     subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
 
