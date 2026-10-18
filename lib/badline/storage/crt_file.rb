@@ -8,6 +8,7 @@ module Badline
       SIGNATURE = "C64 CARTRIDGE   ".b
       VIC20_SIGNATURE = "VIC20 CARTRIDGE ".b
       PLUS4_SIGNATURE = "PLUS4 CARTRIDGE ".b
+      CBM2_SIGNATURE = "CBM2 CARTRIDGE  ".b
       CHIP_SIGNATURE = "CHIP".b
       CHIP_HEADER_SIZE = 0x10
       RAM_CHIP = 1
@@ -36,7 +37,8 @@ module Badline
       end
 
       # `bytes` stands in for the file's contents. `machine` is the one the
-      # image has to be for, :c64, :vic20 or :plus4, or nil for any.
+      # image has to be for, :c64, :vic20, :plus4 or :cbm2, or nil for
+      # any.
       def initialize(path = nil, bytes: nil, machine: :c64)
         parse(bytes || File.binread(path))
         return if machine.nil? || @machine == machine
@@ -60,6 +62,7 @@ module Badline
         return :c64 if bytes.start_with?(SIGNATURE)
         return :vic20 if bytes.start_with?(VIC20_SIGNATURE)
         return :plus4 if bytes.start_with?(PLUS4_SIGNATURE)
+        return :cbm2 if bytes.start_with?(CBM2_SIGNATURE)
 
         raise FormatError, "Missing CRT signature"
       end
