@@ -56,6 +56,14 @@ describe Badline::Chips::TPI do
     end
   end
 
+  # The register table on page 2-81 has DDRC's bits 0-4 as the mask in
+  # mode 1: DDRC keeps all eight bits written.
+  it "reads back DDRC's eight bits in mode 1, its low five the mask" do
+    mode1
+    tpi.poke(5, 0xe1)
+    expect([tpi.peek(5), tpi.mask]).to eq([0xe1, 0x01])
+  end
+
   describe "the interrupt inputs" do
     it "latch on a falling edge of I0-I2 in mode 1" do
       mode1

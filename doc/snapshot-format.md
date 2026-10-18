@@ -1726,7 +1726,6 @@ Written by the CBM-II.
 | `directions` | ints | [0, 0, 0] |
 | `control` | byte | 0 |
 | `latches` | int & 0x1f | 0 |
-| `mask` | int & 0x1f | 0 |
 | `air` | int & 0x1f | 0 |
 | `stack` | ints | [] |
 | `ca` | bool | false |
@@ -1743,7 +1742,6 @@ Written by the CBM-II.
 | `directions` | ints | [0, 0, 0] |
 | `control` | byte | 0 |
 | `latches` | int & 0x1f | 0 |
-| `mask` | int & 0x1f | 0 |
 | `air` | int & 0x1f | 0 |
 | `stack` | ints | [] |
 | `ca` | bool | false |

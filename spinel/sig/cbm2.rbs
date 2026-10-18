@@ -9,7 +9,6 @@ module Badline
       @ddrc: Integer
       @control: Integer
       @latches: Integer
-      @mask: Integer
       @air: Integer
       @lines: Integer
       @stack: Array[Integer]
