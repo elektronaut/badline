@@ -348,3 +348,83 @@ second half is 901447-10 byte for byte, and its first a DIN set, with
 the German letters and the section sign in place of @ [ \ ] and in
 some of the graphics. The CRTC's MA13, bit 5 of R12, picks the half.
 SHA-1 9616f7f18757cccefb702a945f954b644d5b17d1.
+
+Commodore CBM-II ROMs
+=====================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/b/
+for the B series (610, 620, 710 and 720) and the P500 (510). Each BASIC
+is its two 8K chips concatenated, $8000-$9FFF followed by $A000-$BFFF,
+as the PET's are. Nothing maps them yet.
+
+cbm2/kernal-04a.rom
+-------------------
+The B series KERNAL, 901244-04a (kernal.901244-04a.bin), for
+$E000-$FFFF in segment 15. The default, the one VICE runs on every B
+model.
+SHA-1 abb26418b9e1614a8f52bdeee0822d4a96071439.
+
+cbm2/kernal-03b.rom
+-------------------
+The B series KERNAL of the 1983 release, 901244-03b
+(kernal.901244-03b.bin), for $E000-$FFFF in segment 15. Its entry
+points and page 3 vectors are 901244-04a's.
+SHA-1 a624899c236bc4458570144d25aaf0b3be08b2cd.
+
+cbm2/basic128.rom
+-----------------
+BASIC 128 for the 610 and 710, 901243-04a and 901242-04a
+(b128-8000.901243-04a.bin, SHA-1
+08d333208060ee2ce84d4532028d94f71c016b96, and b128-a000.901242-04a.bin,
+SHA-1 7c6de17d46a3343dc597d9b9519cf63037b31908) concatenated, for
+$8000-$BFFF in segment 15. The default, paired with kernal-04a.rom.
+SHA-1 9409f92e167984096fe4d5913714bff6214c3b2d.
+
+cbm2/basic128-02b.rom
+---------------------
+BASIC 128 of the 1983 release, 901243-02b and 901242-02b
+(b128-8000.901243-02b.bin, SHA-1
+625f7337ea972a8bce2bdf2daababc0ed0b3b69b, and b128-a000.901242-02b.bin,
+SHA-1 56e8d2f86bf73ba36b3d3cb84dd75806b66c530a) concatenated, for
+$8000-$BFFF in segment 15. Paired with kernal-03b.rom.
+SHA-1 0da8311666521a1d5d7c80561550f9037f652989.
+
+cbm2/basic256.rom
+-----------------
+BASIC 256 for the 620 and 720, 901241-03 and 901240-03
+(b256-8000.901241-03.bin, SHA-1
+2d46be2cd89594b718cdd0a86d51b6f628343f42, and b256-a000.901240-03.bin,
+SHA-1 0d7f77746290afba8d0abeb87c9caab9a3ad89ce) concatenated, for
+$8000-$BFFF in segment 15. Both KERNALs run it.
+SHA-1 53314b4d565cc405a67a0936b935e6e08955580d.
+
+cbm2/characters-600.rom
+-----------------------
+The 600's character generator, 901237-01 (characters.901237-01.bin),
+4K: two sets of 128 glyphs, 16 bytes each, an 8x8 matrix in the first
+eight rows.
+SHA-1 e63bf18da48e5a53c99ef127c1ae721333d1d102.
+
+cbm2/characters-700.rom
+-----------------------
+The 700's character generator, 901232-01 (characters.901232-01.bin),
+4K: two sets of 128 glyphs, 16 bytes each, an 8x16 matrix.
+SHA-1 e7f3cbc8e282f79a00c3e95d75c8d725ee3c6287.
+
+cbm2/p500-kernal.rom
+--------------------
+The P500's KERNAL, 901234-02 (kernal.901234-02.bin), for $E000-$FFFF in
+segment 15. The P500's character generator is the C64's,
+character.rom above.
+SHA-1 097197d4d08e0b82e0466a5f1fbd49a24f3d2523.
+
+cbm2/p500-basic.rom
+-------------------
+The P500's BASIC 128, 901236-02 and 901235-02
+(p500-basic-lo.901236-02.bin, SHA-1
+f50240407bade901144f7e9f489fa9c607834eca, and
+p500-basic-hi.901235-02.bin, SHA-1
+1b9a55f12f8cf025754d8029cc5324b474c35841) concatenated, for
+$8000-$BFFF in segment 15.
+SHA-1 e69531d45f5993f8e53c6bd9ab2a7bc10fe2d02f.
