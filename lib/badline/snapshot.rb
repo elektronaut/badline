@@ -52,7 +52,7 @@ module Badline
     def restore(computer, path, &) = read(path).restore(computer, &)
 
     # A machine's snapshots, as .vsf files and in memory. C64, Vic20, C128,
-    # Plus4, PET and CBM2 each include it.
+    # Plus4, PET, CBM2 and CBM2::P500 each include it.
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
 
@@ -102,5 +102,9 @@ module Badline
 
   class CBM2
     include Snapshot::Files
+
+    class P500
+      include Snapshot::Files
+    end
   end
 end
