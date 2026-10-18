@@ -7,3 +7,4 @@ selftest/cbm510-fail.crt	PASS
 selftest/cbm510-pass.crt#2	PASS
 selftest/cbm510-fail.crt#2	PASS
 selftest/cbm510-pass.d82	PASS
+CBM2/p500-burnin.d80	PASS

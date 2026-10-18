@@ -240,10 +240,13 @@ Recorded output of the headless hardware suites, one file per suite:
   `cbm510-testlist.in` with `--cbm5x0`, on a PAL 510 as xcbm5x0's hook
   starts it: the selftest's program, loaded into BASIC's text in segment
   0 and run, and its cartridge at $2000. The VIC-II's screenshots are
-  compared as a C64's are. One row isn't in the testlist:
+  compared as a C64's are. Two rows aren't in the testlist:
   `selftest/cbm510-pass.d82`, the 510's selftest disk mounted as device
-  8 and its program loaded and run through the traps, as on the 610. On
-  Spinel the rows run on `spinel/p500_testbench.rb`.
+  8 and its program loaded and run through the traps, as on the 610, and
+  `CBM2/p500-burnin.d80`, the P500's burn-in, graded after 75 million
+  cycles: all 50 boxes of its grid drawn, none filled BAD, and its first
+  pass counted. xcbm5x0 with a true 8050 shows the same grid. On Spinel
+  the rows run on `spinel/p500_testbench.rb`.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
@@ -593,7 +596,7 @@ what the suite cost before it was sharded:
 | `testbench-pet` | 17 | — | 0.7 min | 0.3 min |
 | `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
 | `testbench-cbm2` | 10 | — | 1.1 min | 0.3 min |
-| `testbench-cbm5x0` | 9 | — | 2.9 min | 0.8 min |
+| `testbench-cbm5x0` | 10 | — | 5.5 min | 2.6 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a
