@@ -99,11 +99,13 @@ module Badline
       attr_reader :data
 
       # +basic+ and +kernal+ are ROM files for $8000-$BFFF and
-      # $E000-$FFFF, and +ram_segments+ the segments the RAM board fills.
-      def initialize(basic:, kernal:, ram_segments:)
+      # $E000-$FFFF, +ram_segments+ the segments the RAM board fills, and
+      # +screen_length+ the bytes of screen RAM from $D000 on.
+      def initialize(basic:, kernal:, ram_segments:, screen_length: 0x800)
         addressable_at(0, length: 2**16)
         @ram = Memory.new([], length: 0x800, start: 0)
-        @screen = Memory.new([], length: 0x800, start: 0xd000)
+        @screen = Memory.new([], length: screen_length, start: 0xd000)
+        @screen_pages = screen_length >> 8
         @basic_rom = ROM.load(basic, 0x8000)
         @kernal_rom = ROM.load(kernal, 0xe000)
         @open_bus = OpenBus.new(self)
@@ -113,6 +115,8 @@ module Badline
         end
         @io = Array.new(8, @open_bus)
         @cartridge = []
+        @video = Array.new(0x18, nil)
+        @video_writable = Array.new(0x18, false)
         @debug_register = nil
         @reads = Array.new(SEGMENTS) { Array.new(256, @open_bus) }
         @writes = Array.new(SEGMENTS) { Array.new(256, @open_bus) }
@@ -176,6 +180,18 @@ module Badline
         map_pages
       end
 
+      # Puts +chip+ at +count+ pages of segment 15 from +page+ on, between
+      # $C000 and $D7FF, over what was there: the P500's character ROM, and
+      # its colour RAM, which takes writes as well (+writable+). The chip
+      # hears the whole address.
+      def map_video(chip, page, count, writable: false)
+        count.times do |i|
+          @video[page + i - 0xc0] = chip
+          @video_writable[page + i - 0xc0] = writable
+        end
+        map_pages
+      end
+
       # Puts the cartridge's ROM chips, Storage::CRTFile::Chips, at their
       # load addresses in segment 15, from $1000 to $7FFF, in place of what
       # was there.
@@ -216,10 +232,16 @@ module Badline
         map(SYSTEM, @ram, 0x00, 0x08)
         @cartridge.each { |rom| @reads[SYSTEM].fill(rom, rom.start >> 8, rom.length >> 8) }
         @reads[SYSTEM].fill(@basic_rom, 0x80, 0x40)
-        map(SYSTEM, @screen, 0xd0, 0x08)
+        map(SYSTEM, @screen, 0xd0, @screen_pages)
+        @video.each_with_index { |chip, i| map_video_page(chip, 0xc0 + i, @video_writable[i]) if chip }
         @io.each_with_index { |chip, i| map(SYSTEM, chip, 0xd8 + i, 1) }
         @reads[SYSTEM].fill(@kernal_rom, 0xe0, 0x20)
         map_debug_register if @debug_register
+      end
+
+      def map_video_page(chip, page, writable)
+        @reads[SYSTEM][page] = chip
+        @writes[SYSTEM][page] = writable ? chip : @open_bus
       end
 
       def map_registers(segment)
