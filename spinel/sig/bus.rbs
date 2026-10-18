@@ -69,6 +69,7 @@ module Badline
         def peek: (Integer) -> Integer
         def peek_phi2: (Integer) -> Integer
         def peek_color: (Integer) -> Integer
+        def peek_sprite: (Integer) -> Integer
       end
     end
 
