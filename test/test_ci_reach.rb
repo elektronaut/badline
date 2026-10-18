@@ -40,10 +40,16 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_cbm2_its_roms_tpi_and_testlist_reach_its_testbench
-    files = %w[lib/badline/cbm2.rb lib/badline/cbm2/bus.rb lib/badline/roms/cbm2/kernal-04a.rom
+    files = %w[lib/badline/cbm2/model.rb lib/badline/cbm2/bus.rb lib/badline/roms/cbm2/kernal-04a.rom
                lib/badline/chips/tpi.rb test/support/testbench_cbm2_machine.rb]
 
     assert_equal %w[spinel:check testbench-cbm2], CIReach.suites(files)
+  end
+
+  def test_the_cbm2_and_its_ieee_ports_reach_the_drive_scenarios_too
+    files = %w[lib/badline/cbm2.rb lib/badline/cbm2/ieee_ports.rb lib/badline/cbm2/ieee_drive.rb]
+
+    assert_equal %w[drive-scenarios spinel:check testbench-cbm2], CIReach.suites(files)
   end
 
   def test_the_chips_the_cbm2_shares_reach_its_testbench

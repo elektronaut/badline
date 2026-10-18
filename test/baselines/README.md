@@ -396,6 +396,12 @@ Recorded output of the headless hardware suites, one file per suite:
     cycles: N: writes and verifies every track, 77 on the 8050 and 154
     on the 8250. `pet-8050-idle` runs two 4032s side by side, a sleeping
     8050 beside a stepping one, as `pet-2031-idle` does.
+  - `cbm2-2031-*`, `cbm2-8050-*` and `cbm2-8250-*` run the same format,
+    save, idle and error-channel checks on a 610, with the drive on the
+    CBM-II's own IEEE-488 ports (`test/support/drive_scenarios_cbm2.rb`),
+    and `cbm2-8050-autostart` an autostart. A 610's first LOAD from a
+    2031 after power-on finds no file, on xcbm2 too, so the 2031 has no
+    autostart. BASIC prints READY. after a LOAD there, so the runs count it.
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom`,
   `dos1581.rom`, `dos2031.rom` and `8050/` in the ROM path.

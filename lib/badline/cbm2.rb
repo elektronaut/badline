@@ -11,6 +11,8 @@ require "badline/cbm2/crtc_video"
 require "badline/cbm2/sid_page"
 require "badline/cbm2/ieee_layout"
 require "badline/cbm2/ieee_traps"
+require "badline/cbm2/ieee_ports"
+require "badline/cbm2/ieee_drive"
 require "badline/snapshot/cbm2_setup"
 require "badline/cbm2/keyed_state"
 require "badline/cbm2/keyed_modules"
@@ -32,13 +34,14 @@ module Badline
   #
   # The CRTC paints its picture from the screen RAM and the character ROM
   # (CRTCVideo). Device 8 answers through traps on the KERNAL's IEEE-488
-  # primitives (IEEETraps), and nothing else answers on the bus, whose
-  # lines float high. It runs headless.
+  # primitives (IEEETraps), or a true 2031, 8050 or 8250 on the bus
+  # (IEEEPorts, IEEEDrive) answers. It runs headless.
   class CBM2
     include Machine::KeyboardBuffer
     include Machine::Clocking
     include Machine::Settling
     include IEEETraps
+    include IEEEDrive
 
     CLOCK_HZ = 2_000_000
 
@@ -49,7 +52,7 @@ module Badline
     # $D1, the same in 901244-03b and -04a.
     KEYBOARD_LAYOUT = Machine::KeyboardBuffer::Layout.new(address: 0x03ab, count: 0xd1, capacity: 10)
 
-    attr_reader :model, :bus, :cpu, :crtc, :sid, :cia, :acia, :tpi1, :tpi2, :keyboard, :mains_hz, :kernal,
+    attr_reader :model, :bus, :cpu, :crtc, :sid, :cia, :acia, :tpi1, :tpi2, :keyboard, :ieee, :mains_hz, :kernal,
                 :cycles, :init_threshold
 
     def ram = @bus.ram
@@ -85,13 +88,16 @@ module Badline
       @mains_hz = mains_hz
       @bus = Bus.new(basic: Model.basic(@model, kernal), kernal: Model::KERNALS.fetch(kernal),
                      ram_segments: @model.ram_segments)
-      @tpi1 = Chips::TPI.new
+      @ieee = IEEEPorts.new(Drives::IEEEBus.new)
+      @tpi1 = Chips::TPI.new(peripheral: @ieee)
       registers = Array.new(Chips::CRTC::MASKS.length, 0)
       @video = CRTCVideo.new(ROM.read(@model.characters), @bus.screen, @tpi1, registers,
                              high_profile: @model.high_profile)
       @crtc = Chips::CRTC.new(@video, registers:)
       @sid = Chips::SID.new(model: :mos6581, at: 0xda00)
-      @cia = Chips::CIA.new(start: 0xdc00, region: Region::PAL.with(clock_hz: CLOCK_HZ), tod_hz: mains_hz)
+      @cia = Chips::CIA.new(start: 0xdc00, peripheral: @ieee.data, region: Region::PAL.with(clock_hz: CLOCK_HZ),
+                            tod_hz: mains_hz)
+      @ieee.connect(@cia, @tpi1)
       @acia = ACIA.new(self, CLOCK_HZ)
       @keyboard = Input::Keyboard.new(matrix: KeyboardPorts::MATRIX)
       keyboard_ports = KeyboardPorts.new(@keyboard, jumpers)
@@ -110,6 +116,7 @@ module Badline
       @dos = nil
       @ieee_trap = nil
       @capture_output = nil
+      init_ieee_drives
       @init_threshold = boot_cycles
     end
 
@@ -143,6 +150,7 @@ module Badline
       tpi1.interrupt_line(4, !@acia_irq)
       @cpu.irq = tpi1.irq?
       @cpu.cycle!
+      clock_ieee_drives
 
       @cycles += 1
     end
@@ -164,6 +172,7 @@ module Badline
       @tpi2.reset!
       @bus.reset!
       @cpu.reset!
+      reset_ieee_drives
     end
 
     # Puts a program file's bytes where its first two say in BASIC's text
