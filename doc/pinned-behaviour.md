@@ -51,7 +51,7 @@ only catches the rows that happen to move.
 - [PET discrete video](#pet-discrete-video)
 - [PET CRTC](#pet-crtc)
 - [CBM-II DRAM refresh](#cbm-ii-dram-refresh)
-- [CIA TOD latch](#cia-tod-latch)
+- [6509 indirection segment](#6509-indirection-segment)
 
 ## CPU interrupt recognition
 
@@ -2266,15 +2266,27 @@ testprogs named.
   - Spec guard: *takes a cycle for the DRAM's refresh* in
     [`cbm2_spec.rb`](../spec/badline/cbm2_spec.rb).
 
-## CIA TOD latch
+## 6509 indirection segment
 
-- A write to the clock's tenths releases the read latch the hours read
-  set, as a read of the tenths does. A write to the alarm's tenths
-  leaves it.
-  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 TOD test, which reads the
-    hours, writes $0F to the tenths, sets 01:00:01.9 and waits for
-    01:00:02.0, reading the tenths first: with the latch held it reads
-    the tenths of the time it latched and fails. The CIA testprogs
-    leave writing while latched untested (`CIA/tod/readme.txt`).
-  - Spec guard: *releases the latch when the tenths are written* in
-    [`chips/cia/time_of_day_spec.rb`](../spec/badline/chips/cia/time_of_day_spec.rb).
+- LDA (zp),Y and STA (zp),Y take the indirection segment for every
+  access at the address they index: the dummy read before the data, as
+  well as the data. The opcode and the zero-page pointer stay in the
+  execution segment.
+  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 TOD test. It sets the time
+    with STA (zp),Y into segment 15, hours first, polls the tenths until
+    they leave the value written, then checks the tenths, seconds,
+    minutes and hours against the time one tenth on, which leaves the
+    clock latched. In the run that steps the seconds from 01:00:01.9,
+    each step starts latched at the previous step's result, tenths 0,
+    and with that latch held the first poll reads the stale 0, matches
+    the expected tenths and fails on the live seconds, one short. The
+    store's dummy read of the tenths releases the latch before they are
+    written. With the dummy read in the execution segment it reads RAM,
+    and the burn-in's grid grades $FF.
+  - The CIA keeps its latch through writes: `CIA/ciavarious/cia15.prg`'s
+    test B sets X:59:59.8 with absolute stores, hours first, after
+    reading the hours, and its reference has the hour unchanged for odd
+    X, where the first wait reads the stale latched tenths 0 and falls
+    through. A write to the tenths that released the latch fails it.
+  - Spec guard: *makes STA (zp),Y's dummy read in the indirection
+    segment* in [`cbm2/cpu_spec.rb`](../spec/badline/cbm2/cpu_spec.rb).
