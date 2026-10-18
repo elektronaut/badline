@@ -394,7 +394,8 @@ Recorded output of the headless hardware suites, one file per suite:
     with a true 8050 on a .d80 or an 8250 on a .d82
     (`test/support/drive_scenarios_8050.rb`). The formats take the most
     cycles: N: writes and verifies every track, 77 on the 8050 and 154
-    on the 8250.
+    on the 8250. `pet-8050-idle` runs two 4032s side by side, a sleeping
+    8050 beside a stepping one, as `pet-2031-idle` does.
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom`,
   `dos1581.rom`, `dos2031.rom` and `8050/` in the ROM path.

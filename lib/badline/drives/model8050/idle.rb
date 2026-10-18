@@ -157,18 +157,20 @@ module Badline
         end
 
         # What the IP sees: its CPU, its RIOTs but for their counters, its
-        # bus's last byte and the common RAM.
+        # bus's last byte and the common RAM, as the count of the writes
+        # that changed it.
         def ip_state
-          [*@ip_cpu.idle_state, *@data_riot.idle_state, *@control_riot.idle_state, @ip_bus.data,
-           *@common.snapshot]
+          [*@ip_cpu.idle_state, *@data_riot.idle_state, *@control_riot.idle_state, @ip_bus.data, common_changes]
         end
 
         # What the FDC sees: its CPU, the VIA and the 6530 but for their
         # counters, its bus's last byte, the drives and the common RAM.
         def fdc_state
           [*@fdc_cpu.idle_state, *@via.idle_state, *@rriot.idle_state, @fdc_bus.data, *@mechanism.idle_state,
-           *@common.snapshot]
+           common_changes]
         end
+
+        def common_changes = @ip_bus.common_changes + @fdc_bus.common_changes
       end
     end
   end

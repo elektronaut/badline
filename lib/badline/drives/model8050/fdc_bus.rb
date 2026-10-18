@@ -22,6 +22,10 @@ module Badline
 
         attr_reader :common, :via, :rriot, :data
 
+        # How many writes have changed a byte of the common RAM
+        # (Model8050::Idle).
+        attr_reader :common_changes
+
         # Whether a counter or an interrupt flag has been read since it was
         # last cleared (Model8050::Idle).
         attr_accessor :volatile
@@ -33,6 +37,7 @@ module Badline
           @rriot = rriot
           @data = 0
           @volatile = false
+          @common_changes = 0
         end
 
         def peek(addr)
@@ -54,11 +59,16 @@ module Badline
           if addr < 0x0400
             poke_chips(addr, value)
           elsif addr < 0x1400
-            @common.poke(addr - 0x0400, value)
+            poke_common(addr - 0x0400, value)
           end
         end
 
         private
+
+        def poke_common(index, value)
+          @common_changes += 1 if @common.peek(index) != value
+          @common.poke(index, value)
+        end
 
         def peek_chips(addr)
           if addr.anybits?(0x80)

@@ -106,6 +106,8 @@ pet-8250-save/no-error	PASS
 pet-8250-save/loads-back	PASS
 pet-8250-save/file-in-image	PASS
 pet-8250-save/trap-readable	PASS
+pet-8050-idle/sleeps	PASS
+pet-8050-idle/matches-stepping	PASS
 pet-8050-save/no-error	PASS
 pet-8050-save/loads-back	PASS
 pet-8050-save/file-in-image	PASS
