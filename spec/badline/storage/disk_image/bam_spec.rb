@@ -39,6 +39,33 @@ describe Badline::Storage::DiskImage::Bam do
     end
   end
 
+  describe "a .d64 with its last two free blocks far apart" do
+    subject(:image) { Badline::Storage::D64Image.new(path) }
+
+    # Every block in use but 17/20 and 35/16, as the BAM has it.
+    let(:path) do
+      file = blank_d64(File.join(dir, "a.d64"))
+      bytes = File.binread(file).bytes
+      (1..35).each do |track|
+        next if track == 18
+
+        free = { 17 => 20, 35 => 16 }[track]
+        bytes[d64_offset(18, 0) + (4 * track), 4] = free ? [1, *[1 << free].pack("V").bytes.first(3)] : [0, 0, 0, 0]
+      end
+      File.binwrite(file, bytes.pack("C*"))
+      file
+    end
+
+    it "takes both, the second from the outermost track" do
+      image.write_file("two", blocks(2))
+      expect(chain(image, "two")).to eq([[17, 20], [35, 16]])
+    end
+
+    it "fails a third block as DISK FULL" do
+      expect { image.write_file("three", blocks(3)) }.to raise_error(Badline::Storage::WriteError, "DOS error 72")
+    end
+  end
+
   describe "a file past a full track 38 on a .d80" do
     subject(:image) { Badline::Storage::D80Image.new(blank_d80(File.join(dir, "a.d80"))) }
 
