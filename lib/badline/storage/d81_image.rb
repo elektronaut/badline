@@ -21,6 +21,20 @@ module Badline
       def bam_tracks = 1..80
       def bam_count(track) = [40, track > 40 ? 2 : 1, 0x10 + (((track - 1) % 40) * 6)]
       def bam_bitmap(track) = [40, track > 40 ? 2 : 1, 0x11 + (((track - 1) % 40) * 6)]
+      def bitmap_size = 5
+
+      # The header links the directory's first block, at 40/3. Each BAM
+      # block links the next, names the format and its complement, and
+      # holds the ID and the I/O byte.
+      def header_link = [40, 3]
+      def dos_type = "3D"
+      def header_tail = 2
+
+      def bam_headers(id)
+        [[40, 1, [40, 2]], [40, 2, [0, 0xff]]].map do |track, sector, link|
+          [track, sector, [*link, 0x44, 0xbb, *id, 0xc0, 0]]
+        end
+      end
 
       def sectors_in(_track) = 40
     end

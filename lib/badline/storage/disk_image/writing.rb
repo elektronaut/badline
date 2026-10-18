@@ -51,6 +51,39 @@ module Badline
           files.length
         end
 
+        # Gives a file a new name in its directory entry. A missing file
+        # fails as FILE NOT FOUND, and a new name already on the disk as
+        # FILE EXISTS.
+        def rename(old_name, new_name)
+          entry = existing_entry(old_name)
+          raise WriteError, WriteError::FILE_EXISTS if entry_named(new_name)
+
+          update_image { @bytes[entry[:offset] + 5, Directory::NAME_LENGTH] = encode_name(new_name) }
+        end
+
+        # Writes a new file holding the files named, one after another, as
+        # the type of the first. A missing file fails as FILE NOT FOUND, and
+        # a new name already on the disk as FILE EXISTS.
+        def copy(new_name, names)
+          sources = names.map { |name| existing_entry(name) }
+          raise WriteError, WriteError::FILE_EXISTS if entry_named(new_name)
+
+          bytes = sources.flat_map { |entry| read_chain(entry[:track], entry[:sector]) }
+          update_image { add_file(new_name, bytes, sources.first[:type]) }
+        end
+
+        # Adds the files named to the end of a SEQ file. A missing file fails
+        # as FILE NOT FOUND, and a file of another type as FILE TYPE
+        # MISMATCH.
+        def concat(name, names)
+          entry = existing_entry(name)
+          sources = names.map { |source| existing_entry(source) }
+          raise WriteError, WriteError::FILE_TYPE_MISMATCH unless entry[:type] == :seq
+
+          bytes = [entry, *sources].flat_map { |source| read_chain(source[:track], source[:sector]) }
+          update_image { rewrite(entry, bytes, :seq) }
+        end
+
         # Raw block access for the DOS `U2` command. A block that the error
         # table marks bad reads cleanly once written.
         def write_block(track, sector, data)
@@ -80,6 +113,8 @@ module Badline
         def free_block(track, sector) = update_image { mark(track, sector, true) }
 
         private
+
+        def existing_entry(name) = entry_named(name) || raise(WriteError, WriteError::FILE_NOT_FOUND)
 
         def update_image
           raise WriteError, WriteError::WRITE_PROTECT_ON unless writable?
