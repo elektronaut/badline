@@ -7,6 +7,7 @@ require "badline/drives/model8050/ip_bus"
 require "badline/drives/model8050/fdc_bus"
 require "badline/drives/model8050/parts"
 require "badline/drives/model8050/ieee_port"
+require "badline/drives/model8050/disk"
 require "badline/drives/model8050/mechanism"
 
 module Badline
@@ -83,6 +84,27 @@ module Badline
 
       def led_on? = leds.anybits?(0x03)
 
+      # Puts a Disk in +drive+, 0 or 1. Nil takes the disk out.
+      def insert(disk, drive: 0)
+        @mechanism.insert(disk, drive)
+      end
+
+      # Puts in the .d80 or .d82 image at +path+, write-protected with
+      # `read_only`.
+      def insert_image(path, drive: 0, read_only: false)
+        image_class = File.extname(path).casecmp?(".d82") ? Storage::D82Image : Storage::D80Image
+        insert(Disk.new(image_class.new(path, read_only:)), drive:)
+      end
+
+      # The Disk in +drive+, or nil.
+      def disk(drive = 0) = @mechanism.disk(drive)
+
+      # Stores what the heads wrote in the disks' images, as the motors
+      # stopping do.
+      def flush
+        @mechanism.flush
+      end
+
       def power_led_on? = true
 
       # Runs the drive cycles that fall in one host cycle, then takes the
@@ -134,6 +156,8 @@ module Badline
         @via = ControllerVIA.new(start: 0x0040, peripheral: ReadLines.new(@mechanism))
         @rriot = ControllerRRIOT.new(rom:, peripheral: StatusLines.new(@mechanism))
         @fdc_bus = FDCBus.new(common: @common, via: @via, rriot: @rriot)
+        @mechanism.via = @via
+        @mechanism.rriot = @rriot
       end
 
       # One cycle of the board: the drives, then the chips, then the IP and
