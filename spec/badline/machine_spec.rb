@@ -33,9 +33,9 @@ describe Badline::Machine do
     expect(described_class.build(:c64, model: "c64", reu: 512).reu).not_to be_nil
   end
 
-  it "refuses the CBM-II, which it can't build yet" do
-    expect { described_class.build(:cbm2, model: "610") }
-      .to raise_error(Badline::Machine::NotYet, "the CBM-II isn't emulated yet")
+  it "builds a CBM-II of the model named" do
+    machine = described_class.build(:cbm2, model: "720")
+    expect([machine.class, machine.model.name]).to eq([Badline::CBM2, "720"])
   end
 
   it "builds a VIC-20 with the RAM expansion named" do

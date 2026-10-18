@@ -747,7 +747,7 @@ module Testbench
     end
 
     if CBM2_MODELS.key?(machine)
-      warn "The CBM-II isn't emulated yet, so its rows can only be listed (--list)."
+      warn "The CBM-II's rows don't run yet, so they can only be listed (--list)."
       return 2
     end
 

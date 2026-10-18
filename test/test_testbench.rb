@@ -1407,7 +1407,7 @@ class TestTestbenchCBM2 < Minitest::Test
     assert_nil parse(prg: "gone.prg")
   end
 
-  def test_says_the_cbm2_isnt_emulated_yet
-    assert_raises(Badline::Machine::NotYet) { parse.family_machine }
+  def test_builds_the_model_of_the_row
+    assert_equal "610", parse.family_machine.model.name
   end
 end

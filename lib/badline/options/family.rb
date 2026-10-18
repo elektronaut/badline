@@ -14,10 +14,10 @@ module Badline
       private
 
       # Takes `sid`, `c64`, `vic20`, `c128`, `plus4` or `pet` when given
-      # first, and refuses `cbm2`, which badline can't build yet.
+      # first, and refuses `cbm2`, which has no window yet.
       def subcommand(args)
         case args.first
-        when "cbm2" then raise Error, "cbm2: the CBM-II isn't emulated yet"
+        when "cbm2" then raise Error, "cbm2: the CBM-II has no window yet"
         when "sid" then @sid_command = true
         when "c64" then @family = :c64
         when "vic20" then @family = :vic20
