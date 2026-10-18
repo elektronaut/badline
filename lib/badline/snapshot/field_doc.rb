@@ -38,7 +38,8 @@ module Badline
       # with each kind of expansion, cartridge and media, and a second SID,
       # the 264 series' models, its TCBM interface, cartridge, tape and
       # true drives, the 1541 and the 1551, and a CRTC PET, a 2001, an 8096,
-      # an 8296 with its user port jumpered and a PET with a disk and tapes.
+      # an 8296 with its user port jumpered, a PET with a disk and tapes and
+      # one with a true 2031.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -51,7 +52,8 @@ module Badline
                       Plus4.new(ram_expansion: :csory256),
                       plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
-                    PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media]
+                    PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
+                    pet_with_drive]
         }
       end
 
@@ -63,6 +65,14 @@ module Badline
           machine.mount(Storage::D64Image.new("", read_only: true, bytes: blank(174_848)))
           machine.cassettes.datasette1.insert(Storage::TAP.new("", bytes:))
           machine.cassettes.datasette2.insert(Storage::TAP.new("", bytes:))
+        end
+      end
+
+      # A PET with a 2031 holding a blank disk.
+      def self.pet_with_drive
+        PET.new.tap do |machine|
+          image = Storage::D64Image.new("", bytes: blank(174_848))
+          machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
         end
       end
 

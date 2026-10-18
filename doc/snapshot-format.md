@@ -591,11 +591,11 @@ Written by the C64, PET.
 
 ## BL-D8
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551" |
+| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551"; PET: "2031" |
 | `phase` | int | 0 |
 | `cycles` | int | 0 |
 | `so_pending` | bool | false |
@@ -603,19 +603,20 @@ Written by the C64, C128, Plus/4.
 | `atn` | bool | C64: true |
 | `irq_timer` | int | Plus/4: 16660 |
 | `latched_byte` | byte | Plus/4: 0 |
+| `ieee.host` | int | PET: 0 |
 
 ## BL-D8-RAM
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `data` | byte | C64: 234 or 175; C128: 234; Plus/4: 234 or 233 |
-| `ram` | bytes | C64: 2048 × 0 or 8192 × 0; C128: 2048 × 0; Plus/4: 2048 × 0 |
+| `data` | byte | C64: 234 or 175; C128: 234; Plus/4: 234 or 233; PET: 234 |
+| `ram` | bytes | C64: 2048 × 0 or 8192 × 0; C128: 2048 × 0; Plus/4: 2048 × 0; PET: 2048 × 0 |
 
 ## BL-D8-VIA1
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -649,7 +650,7 @@ Written by the C64, C128, Plus/4.
 | `ifr.flags` | int & 0x7f | 0 |
 | `ifr.enable` | int & 0x7f | 0 |
 | `ca.control` | int & 0xf | 0 |
-| `ca.c1_high` | bool | C64: true; C128: true; Plus/4: false |
+| `ca.c1_high` | bool | C64: true; C128: true; Plus/4: false; PET: false |
 | `ca.c2_high` | bool | true |
 | `ca.handshake_low` | bool | false |
 | `ca.pulse` | int | 0 |
@@ -663,7 +664,7 @@ Written by the C64, C128, Plus/4.
 
 ## BL-D8-VIA2
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -711,11 +712,11 @@ Written by the C64, C128, Plus/4.
 
 ## BL-D8-CPU
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | C64: 60064 or 44836; C128: 60064; Plus/4: 60064 or 59829 |
+| `pc` | word | C64: 60064 or 44836; C128: 60064; Plus/4: 60064 or 59829; PET: 60101 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -737,7 +738,7 @@ Written by the C64, C128, Plus/4.
 
 ## BL-D8-DISK
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -752,14 +753,14 @@ Written by the C64, C128, Plus/4.
 
 ## BL-D8-MECH
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `half_track` | int | C64: 35; C128: 37; Plus/4: 35 or 36 |
-| `slip` | int & 0x3 | C64: 0; C128: 2; Plus/4: 0 |
-| `side` | int | C64: 0 or 1; C128: 85; Plus/4: 0 |
-| `zone` | int & 0x3 | C64: 3; C128: 3; Plus/4: 3 or 0 |
+| `half_track` | int | C64: 35; C128: 37; Plus/4: 35 or 36; PET: 35 |
+| `slip` | int & 0x3 | C64: 0; C128: 2; Plus/4: 0; PET: 0 |
+| `side` | int | C64: 0 or 1; C128: 85; Plus/4: 0; PET: 0 |
+| `zone` | int & 0x3 | C64: 3; C128: 3; Plus/4: 3 or 0; PET: 3 |
 | `time` | int | 0 |
 | `read_clock_in` | int | 2097152 |
 | `clocks` | int | 0 |
@@ -767,8 +768,8 @@ Written by the C64, C128, Plus/4.
 | `ones` | int | 0 |
 | `bits` | int | 0 |
 | `write_shift` | int | 0 |
-| `motor` | bool | C64: true or false; C128: true; Plus/4: true or false |
-| `led` | bool | C64: true; C128: true; Plus/4: true or false |
+| `motor` | bool | C64: true or false; C128: true; Plus/4: true or false; PET: true |
+| `led` | bool | C64: true; C128: true; Plus/4: true or false; PET: true |
 | `sync` | bool | false |
 | `byte_ready` | bool | false |
 | `byte_latched` | bool | false |
