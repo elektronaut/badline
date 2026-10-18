@@ -250,6 +250,43 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a P500" do
+    let(:computer) { Badline::CBM2::P500.new }
+
+    it "types the host's \" as SHIFT and '" do
+      controls.key(225, true)
+      controls.key(52, true)
+      expect(computer.keyboard.keys).to eq(%i[shift '])
+    end
+
+    it "switches the keys to the joysticks with Tab" do
+      controls.toggle_keys
+      expect(controls.joystick_mode?).to be(true)
+    end
+
+    it "moves joystick 2 with the arrows in joystick mode" do
+      controls.toggle_keys
+      controls.key(82, true)
+      expect(computer.joystick2.port_bits).to eq(0xfe)
+    end
+
+    it "lets go of the joysticks as the keys go back to the keyboard" do
+      controls.toggle_keys
+      controls.key(82, true)
+      controls.toggle_keys
+      expect(computer.joystick2.port_bits).to eq(0xff)
+    end
+
+    it "plugs no pot device in" do
+      controls.plug(:mouse1)
+      expect(controls.pot).to eq(:none)
+    end
+
+    it "takes F12 from the window" do
+      expect(controls.claims?(Badline::Frontend::Keys::F12)).to be(true)
+    end
+  end
+
   describe "with a business PET" do
     let(:computer) { Badline::PET.new(model: "8032") }
 

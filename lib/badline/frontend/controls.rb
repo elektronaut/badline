@@ -8,8 +8,9 @@ module Badline
     #   switches, the arrow cluster and space drive one joystick and WASD
     #   and left shift the other. The arrows start on joystick 2, and
     #   #swap_ports swaps them. The VIC-20's one joystick takes both. The
-    #   PET and the CBM-II's B series have no joystick, and their keys go
-    #   by the character they type (PETKeyboard).
+    #   PET's and the CBM-II's keys go by the character they type
+    #   (PETKeyboard), and the PET and the CBM-II's B series have no
+    #   joystick.
     # - A pot device the pause menu plugs into a C64 control port: a 1351
     #   mouse or a pair of paddles, which the host mouse drives. Motion
     #   turns the paddles or moves the mouse, and the host's left and right
@@ -26,7 +27,14 @@ module Badline
 
       # Whether the machine has joysticks: all but the PET and the CBM-II's
       # B series.
-      def self.joysticks?(computer) = !%i[pet cbm2].include?(computer.family)
+      def self.joysticks?(computer)
+        family = computer.family
+        family != :pet && (family != :cbm2 || p500?(computer))
+      end
+
+      # Whether the machine is the CBM-II's P500, which has the B series'
+      # keyboard and two joysticks.
+      def self.p500?(computer) = computer.is_a?(CBM2::P500)
 
       # Whether the machine's keys go by the character they type: the PET's
       # and the CBM-II's.
@@ -175,9 +183,9 @@ module Badline
       def paddles? = POTS.index(@pot) >= 3
 
       # A fresh pot device on its port, and none on the other. A machine
-      # without the ports takes none.
+      # without the ports takes none, and the P500 none yet.
       def attach_pot_device
-        ports = Controls.joysticks?(@computer) ? @computer.control_ports : nil
+        ports = Controls.symbolic?(@computer) ? nil : @computer.control_ports
         if ports.nil?
           @pot = :none
           return
@@ -241,10 +249,14 @@ module Badline
       end
 
       def release_all
-        return @pet_keyboard.release_all if Controls.symbolic?(@computer)
+        if Controls.symbolic?(@computer)
+          @pet_keyboard.release_all
+        else
+          Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
+          Keys::WASD.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
+        end
+        return unless Controls.joysticks?(@computer)
 
-        Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
-        Keys::WASD.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
         Keys::ARROWS.each_value do |direction|
           @computer.joystick1.release(direction)
           @computer.joystick2.release(direction)

@@ -23,11 +23,14 @@ module Badline
     PET_MODELS = %w[8032 8096 8296 4032 3032 3032b 2001].freeze
 
     # The CBM-II's B series, as CBM2::Model names them, the 610 first, the
-    # default.
-    CBM2_MODELS = %w[610 620 710 720].freeze
+    # default, and the P500, as CBM2::P500::Model names them.
+    CBM2_MODELS = %w[610 620 710 720 510 510ntsc].freeze
 
-    # The CBM-II's KERNALs --kernal names, 901244-04a first, the default.
+    # The B series' KERNALs --kernal names, 901244-04a first, the default.
     CBM2_KERNALS = %w[04a 03b].freeze
+
+    # The P500's one KERNAL, 901234-02.
+    P500_KERNALS = %w[02].freeze
 
     # The true drives --drive-type names for the Plus/4.
     PLUS4_DRIVE_TYPES = %w[1541 1551].freeze
@@ -74,7 +77,7 @@ module Badline
       Option.new("--60hz", "Run a CRTC PET's 60 Hz editor instead of its 50 Hz one, or a CBM-II on 60 Hz mains",
                  section: "Window options", needs: :window),
       Option.new("--kernal VERSION", "Fit a CBM-II with KERNAL #{CBM2_KERNALS.join(' or ')} " \
-                                     "(default: #{CBM2_KERNALS.first})",
+                                     "(default: #{CBM2_KERNALS.first}); the P500 takes #{P500_KERNALS.first}",
                  section: "Window options", needs: :window),
       Option.new("--basic VERSION", "Fit a PET with BASIC 1, 2 or 4, as its board takes (default: its own)",
                  section: "Window options", needs: :window),

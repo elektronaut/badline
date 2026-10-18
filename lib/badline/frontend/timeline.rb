@@ -25,7 +25,8 @@ module Badline
       LOCKS = %w[caps_lock forty_eighty].freeze
 
       # What's wrong with the events for the family's machine, the first
-      # key or menu page that names nothing, or an empty string.
+      # key or menu page that names nothing, or an empty string. The
+      # CBM-II's P500 is family :p500 here, for its joysticks.
       def self.error(events, family)
         event = events.find { |candidate| candidate.action == "key" && !key?(candidate.argument, family) }
         return "no such key: #{event.argument}" unless event.nil?
@@ -38,11 +39,13 @@ module Badline
       # sound. An empty one is its first.
       def self.page?(name) = name.empty? || PauseMenu::PAGES.any? { |page| page.to_s == name }
 
-      # Whether the family's machine has a key of the name. The Plus/4 has
-      # no RESTORE, and the PET and the CBM-II neither that nor joysticks.
+      # Whether the family's machine has a key of the name, the CBM-II's
+      # P500's as family :p500. The Plus/4 has no RESTORE, the P500 none
+      # either, and the PET and the CBM-II's B series neither that nor
+      # joysticks.
       def self.key?(name, family)
         pet = %i[pet cbm2].include?(family)
-        (name == "restore" && !pet && family != :plus4) || (family == :c128 && LOCKS.include?(name)) ||
+        (name == "restore" && !pet && !%i[plus4 p500].include?(family)) || (family == :c128 && LOCKS.include?(name)) ||
           !keyboard_key(name, family).nil? || (!pet && !joystick_direction(name).nil?)
       end
 
@@ -55,7 +58,7 @@ module Badline
         return nil if name == "none"
 
         key = keyboard_matrix(family).flatten.find { |candidate| candidate.to_s == name }
-        return key unless key.nil? && !%i[plus4 pet cbm2].include?(family)
+        return key unless key.nil? && !%i[plus4 pet cbm2 p500].include?(family)
 
         Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name }
       end
@@ -65,7 +68,7 @@ module Badline
         when :c128 then C128::KEYBOARD_MATRIX
         when :plus4 then Plus4::KeyboardPort::MATRIX
         when :pet then PET::KeyboardPorts::GRAPHICS_MATRIX + PET::KeyboardPorts::BUSINESS_MATRIX
-        when :cbm2 then CBM2::KeyboardPorts::MATRIX
+        when :cbm2, :p500 then CBM2::KeyboardPorts::MATRIX
         else Input::Keyboard::C64_MATRIX
         end
       end

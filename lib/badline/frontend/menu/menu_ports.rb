@@ -7,7 +7,8 @@ module Badline
     # the keys type or drive the joysticks. The VIC-20 has one port, a
     # joystick's, and the Plus/4 two joysticks and no pot devices. The PET
     # and the CBM-II's B series have no ports, and the page, KEYBOARD
-    # there, says where their keys are instead.
+    # there, says where their keys are instead. The P500 has two joysticks,
+    # and the page says where its keys are while they type.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -23,8 +24,8 @@ module Badline
 
       # Where the CBM-II's keys without a character of their own are.
       CBM2_KEYS = ["ESC: ESC", "F12: RUN/STOP", "HOME: CLR/HOME", "BACKSPACE: INST/DEL", "F1-F8: F1-F8",
-                   "ALT+F9, ALT+F10: F9, F10", "KEYPAD: KEYPAD", "ALT+0: KEYPAD 00", "ALT+C: C=", "ALT+E: CE",
-                   "ALT+G: NORM/GRAPH", "ALT+R: OFF/RVS", "ALT+P: PI", "_: LEFT ARROW"].freeze
+                   "ALT+F9, ALT+F10: F9, F10", "KEYPAD: KEYPAD", "ALT+0: KEYPAD 00", "ALT+C: C=  ALT+E: CE",
+                   "ALT+G: NORM/GRAPH", "ALT+R: OFF/RVS  ALT+P: PI", "_: LEFT ARROW"].freeze
 
       private
 
@@ -32,6 +33,7 @@ module Badline
         return draw_vic20_port if @computer.family == :vic20
         return draw_plus4_ports if @computer.family == :plus4
         return draw_pet_keys if @computer.family == :pet
+        return draw_p500_ports if Controls.p500?(@computer)
         return draw_cbm2_keys if @computer.family == :cbm2
 
         toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
@@ -74,6 +76,21 @@ module Badline
           @painter.text(@left, @top, line, MenuTheme::TEXT)
           @top += MenuPages::LINE
         end
+      end
+
+      # The P500's two joysticks, one for each set of keys, and while the
+      # keys type, where its keys are.
+      def draw_p500_ports
+        unless draw_keys("P500")
+          skip
+          return draw_cbm2_keys
+        end
+
+        row("SWAP JOYSTICKS", :swap)
+        skip
+        arrows = @controls.arrows_port
+        info("ARROWS, SPACE", "JOYSTICK #{arrows}")
+        info("WASD, LEFT SHIFT", "JOYSTICK #{3 - arrows}")
       end
 
       # The CBM-II's keyboard, which types as the PET's does, and the keys

@@ -10,7 +10,7 @@ module Badline
     # attach, an --at key names nothing or an event fails, which it warns
     # about.
     def self.run(options)
-      error = Timeline.error(options.timeline, options.family)
+      error = Timeline.error(options.timeline, options.p500? ? :p500 : options.family)
       unless error.empty?
         warn "#{options.program}: #{error}"
         return 1

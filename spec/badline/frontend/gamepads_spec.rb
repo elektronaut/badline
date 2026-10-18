@@ -50,6 +50,16 @@ describe Badline::Frontend::Gamepads do
     end
   end
 
+  context "with a P500" do
+    let(:computer) { Badline::CBM2::P500.new }
+
+    it "steers joystick 2 with the D-pad" do
+      buttons << 11
+      gamepads.poll
+      expect(computer.joystick2.port_bits).to eq(0xfe)
+    end
+  end
+
   it "steers joystick 2 with the D-pad" do
     buttons << 11
     gamepads.poll

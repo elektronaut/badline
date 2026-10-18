@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, and the CBM-II's B series, as `badline cbm2`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, and the CBM-II, the B series and the P500, as `badline cbm2`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -89,7 +89,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, and on the PET `4k`, `8k`, `16k` or `32k` |
 | `--60hz` | Run a CRTC PET's 60 Hz editor in place of its 50 Hz one, or a CBM-II on 60 Hz mains. See [The PET](#the-pet) and [The CBM-II](#the-cbm-ii) |
-| `--kernal 04a`, `--kernal 03b` | Fit a CBM-II with KERNAL 901244-04a (the default) or 901244-03b. See [The CBM-II](#the-cbm-ii) |
+| `--kernal 04a`, `--kernal 03b` | Fit a B series CBM-II with KERNAL 901244-04a (the default) or 901244-03b. The P500 takes its own, `02`. See [The CBM-II](#the-cbm-ii) |
 | `--basic VERSION`, `--editor NAME` | Fit a PET with an upgrade ROM its board takes: BASIC `1`, `2` or `4`, or an editor. See [The PET](#the-pet) |
 | `--c1lo FILE`, `--c1hi FILE`, `--c2lo FILE`, `--c2hi FILE` | Put a raw `.bin` ROM image in one of the Plus/4's cartridge slots: cartridge 1 or 2, low (`$8000`) or high (`$C000`). See [The Plus/4](#the-plus4) |
 | `--sid-card 6581`, `--sid-card 8580` | Fit a Plus/4 or C16 with a SID card at `$FD40`. See [The Plus/4](#the-plus4) |
@@ -380,6 +380,7 @@ badline cbm2 game.prg               # Load and run a program
 badline cbm2 game.d82               # Mount an 8250's disk as device 8 and load it
 badline cbm2 game.crt               # Put a cartridge in and start the machine
 badline cbm2 --model 720            # A 720, with 256K and the 700's monitor
+badline cbm2 --model 510 game.d82   # A P500, the CBM 510, on the VIC-II
 ```
 
 `--model` picks the machine: `610` (the default, 128K), `620` (256K,
@@ -407,6 +408,15 @@ host has none for: [Input](#input) lists them. The pause menu's Power
 page names the model, its RAM, the mains and the KERNAL, and its
 Expansion port page its RAM. The B series has no joysticks. `F11` and
 the Snapshots page save it as they do the others, but not for VICE.
+
+`--model 510` runs the P500, the CBM 510: the B series' CPU, SID, CIA,
+ACIA and keyboard at about 1 MHz, with a VIC-II for 40 columns in
+colour, 128K of RAM and its own KERNAL, 901234-02. `510` is PAL on
+50 Hz mains, and `510ntsc` NTSC on 60 Hz. A program loads at `$0003` in
+segment 0. Its keys are the B series', and it has two joysticks on its
+control ports: `Tab` switches the keys to them, as on the C64, and game
+controllers drive them. The pause menu's Ports page has the joysticks,
+and while the keys type, where its keys are.
 
 ## Snapshots
 
@@ -567,7 +577,7 @@ too.
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
-| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II, Keyboard: where its keys are |
+| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 its joysticks and keys |
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit, on a C128 its model and mode, on a Plus/4 or a PET its model and RAM, and on a CBM-II its model, RAM, mains and KERNAL |
 
@@ -632,6 +642,11 @@ in cartridge 1 as it does from the command line.
   6526 CIA, the 6551 ACIA, both 6525 TPIs, the keyboard, the 50 or 60 Hz
   mains, cartridges, and device 8 on the IEEE-488 bus through the
   KERNAL traps (`badline cbm2`).
+- **P500**: the CBM 510, PAL and NTSC, with the B series' 6509, SID,
+  CIA, ACIA and TPIs at the VIC-II's clock, the VIC-II on the P500's
+  video bus, 128K of RAM, the keyboard and both joysticks, and device 8
+  on the IEEE-488 bus through the KERNAL traps
+  (`badline cbm2 --model 510`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
   IEEE-488 bus, with the bus's handshake on every line
   (`badline pet --true-drive`).
