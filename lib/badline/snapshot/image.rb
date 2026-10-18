@@ -41,7 +41,7 @@ module Badline
       # the machine their container names.
       UNREAD = {
         Container::VIC20 => "VIC-20 snapshots, not xvic's", Container::C128 => "C128 snapshots, not x128's",
-        Container::PLUS4 => "Plus/4 snapshots, not xplus4's"
+        Container::PLUS4 => "Plus/4 snapshots, not xplus4's", Container::CBM2_5X0 => "P500 snapshots, not xcbm5x0's"
       }.freeze
 
       attr_reader :container
@@ -62,11 +62,12 @@ module Badline
       end
 
       # The snapshot with VICE's modules ahead of the BL-* ones for a C64,
-      # a PET or a CBM-II, so x64sc, xpet or xcbm2 opens it too. Raises
-      # FormatError for a Plus/4, whose snapshots badline doesn't write for
-      # xplus4.
+      # a PET or a CBM-II's B series, so x64sc, xpet or xcbm2 opens it too.
+      # Raises FormatError for a Plus/4 or a P500, whose snapshots badline
+      # doesn't write for xplus4 or xcbm5x0.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
+        raise FormatError, "badline doesn't export a P500's snapshot for VICE" if computer.is_a?(CBM2::P500)
 
         computer.settle_for_vice!
         sections = computer.save_modules
@@ -85,7 +86,7 @@ module Badline
         when :c128 then Container::C128
         when :plus4 then Container::PLUS4
         when :pet then Container::PET
-        when :cbm2 then Container::CBM2
+        when :cbm2 then computer.is_a?(CBM2::P500) ? Container::CBM2_5X0 : Container::CBM2
         else Container::MACHINE
         end
       end
@@ -143,7 +144,8 @@ module Badline
       # Whether the machine is a PET, as the container names it.
       def pet? = @container.machine == Container::PET
 
-      # Whether the machine is a CBM-II, as the container names it.
+      # Whether the machine is a CBM-II's B series, as the container names
+      # it.
       def cbm2? = @container.machine == Container::CBM2
 
       # Restores `computer` from the snapshot, and returns the Report. The
@@ -151,6 +153,7 @@ module Badline
       # a machine built another way, leaves `computer` as it was.
       def restore(computer, &)
         refuse_old_layout
+        refuse_unread if @container.machine == Container::CBM2_5X0
         report = if badline? then restore_modules(computer)
                  elsif pet? then Vice::PET::Restore.import(@container, computer)
                  elsif cbm2? then Vice::CBM2::Restore.import(@container, computer)

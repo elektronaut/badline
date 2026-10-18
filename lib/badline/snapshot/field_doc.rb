@@ -40,7 +40,8 @@ module Badline
       # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
       # one with a true 2031, one with an 8050 and one with an 8250, and a
-      # 610, a 720, a 610 with a cartridge and one with a disk.
+      # 610, a 720, a 610 with a cartridge and one with a disk, and a PAL
+      # and an NTSC 510.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -56,7 +57,7 @@ module Badline
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
                     pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250")],
           "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
-                     cbm2_with_disk]
+                     cbm2_with_disk, CBM2::P500.new, CBM2::P500.new(model: "510ntsc")]
         }
       end
 

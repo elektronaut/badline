@@ -142,4 +142,45 @@ describe Badline::Chips::VIC::Bank do
       expect(vic_bank.peek_color(3)).to eq(0x0b)
     end
   end
+
+  # The P500's FPLA equations, sheet 15 of its schematic.
+  describe "#map_video_bus" do
+    subject(:vic_bank) { Badline::Chips::VIC.new.vic_bank }
+
+    let(:dram) { Badline::Memory.new(Array.new(2**16) { |addr| (addr >> 8) & 0xff }) }
+    let(:matrix) { Badline::Memory.new(Array.new(0x400) { |addr| addr & 0xff }, length: 0x400, start: 0xd000) }
+    let(:color_ram) { Badline::C64::ColorMemory.new(Badline::Chips::VIC.new, start: 0xd400) }
+    let(:rom) { Badline::ROM.new(Array.new(0x1000) { |addr| (addr >> 4) & 0xff }, length: 0x1000, start: 0xc000) }
+
+    before do
+      vic_bank.map_character_rom(rom, base: 0xc000)
+      vic_bank.map_video_bus(dram, matrix, color_ram, 0xd400)
+    end
+
+    def read(statvid, dotsel, bank, offset)
+      vic_bank.video_bus_lines(statvid, dotsel, bank)
+      [vic_bank.peek(offset), vic_bank.peek_phi2(offset)]
+    end
+
+    it "reads the character ROM in phi1 with VICDOTSEL high, from VA0-VA11" do
+      expect(read(false, true, 0, 0x3120).first).to eq(0x12)
+    end
+
+    it "reads the static matrix in phi2 with STATVID and VA12 high, from VA0-VA9" do
+      expect(read(true, false, 0, 0x1f05).last).to eq(0x05)
+    end
+
+    it "reads 0 in phi2 with STATVID high and VA12 low" do
+      expect(read(true, true, 2, 0x0f05).last).to eq(0)
+    end
+
+    it "reads the DRAM with both low, in the 16K bank VA14 and VA15 pick" do
+      expect(read(false, false, 2, 0x1234)).to eq([0x92, 0x92])
+    end
+
+    it "reads the colour nibbles from the colour RAM" do
+      color_ram.poke(0xd403, 0x0b)
+      expect(vic_bank.peek_color(3)).to eq(0x0b)
+    end
+  end
 end

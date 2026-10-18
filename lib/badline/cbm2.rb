@@ -3,6 +3,7 @@
 require "badline/chips/acia"
 require "badline/chips/tpi"
 require "badline/cbm2/model"
+require "badline/cbm2/p500/model"
 require "badline/cbm2/bus"
 require "badline/cbm2/cpu"
 require "badline/cbm2/acia"
@@ -16,6 +17,7 @@ require "badline/cbm2/ieee_drive"
 require "badline/snapshot/cbm2_setup"
 require "badline/cbm2/keyed_state"
 require "badline/cbm2/keyed_modules"
+require "badline/cbm2/p500"
 
 module Badline
   # The Commodore CBM-II's B series, the 610, 620, 710 and 720: a 6509 at

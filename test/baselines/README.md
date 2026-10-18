@@ -236,6 +236,12 @@ Recorded output of the headless hardware suites, one file per suite:
   chips after 75 million cycles: every one of 47 cells OK, the 6526's
   included, which xcbm2 shows BAD. On Spinel the rows run on
   `spinel/cbm2_testbench.rb`.
+- `testbench-cbm5x0.txt` — the `exitcode` and `screenshot` rows of
+  `cbm510-testlist.in` with `--cbm5x0`, on a PAL 510 as xcbm5x0's hook
+  starts it: the selftest's program, loaded into BASIC's text in segment
+  0 and run, and its cartridge at $2000. The VIC-II's screenshots are
+  compared as a C64's are. On Spinel the rows run on
+  `spinel/p500_testbench.rb`.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
@@ -585,6 +591,7 @@ what the suite cost before it was sharded:
 | `testbench-pet` | 17 | — | 0.7 min | 0.3 min |
 | `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
 | `testbench-cbm2` | 10 | — | 1.1 min | 0.3 min |
+| `testbench-cbm5x0` | 8 | — | 2.9 min | 0.8 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

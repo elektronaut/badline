@@ -10,6 +10,13 @@ module Badline
       # The machine's bus pushes in what the VIC sees through #connect,
       # #map_character_rom and #map whenever it changes. Until then the bank
       # has a CIA 2, RAM, colour RAM and character ROM of its own.
+      #
+      # The P500 wires the VIC another way (#map_video_bus): its phi1
+      # reads go to the character ROM while VICDOTSEL is high, and its phi2
+      # reads to the 1K static video matrix while STATVID is high, VA12
+      # high picking the matrix and VA12 low reading 0. Otherwise both go to
+      # the DRAM's 16K bank that VA14 and VA15 pick (#video_bus_lines). The
+      # colour nibbles come from the colour RAM in every phi2 read.
       class Bank
         include Addressable
 
@@ -30,6 +37,11 @@ module Badline
           map(Memory.new([], length: 2**16, start: 0))
           @lines = 0b11
           @swapped = false
+          @video_bus = false
+          @matrix = @ram
+          @statvid = false
+          @dotsel = false
+          @video_base = 0
         end
 
         # CIA 2, whose port A picks the bank, and the colour RAM, read from
@@ -57,9 +69,31 @@ module Badline
             @base = base
             @starts = BANK_STARTS.map { |start| base + start }.freeze
           end
-          @phi1_ultimax = phi1_ultimax
-          @ultimax = ultimax
           @romh = romh
+          @phi1_other = phi1_ultimax
+          @phi2_other = ultimax
+        end
+
+        # The P500's video bus: +dram+ is segment 0's 64K, +matrix+ the
+        # static video matrix, read from its start address on, and
+        # +color_ram+ the colour RAM, read from +color_base+ on. The
+        # character ROM is the one #map_character_rom gives, read from
+        # +base+ on.
+        def map_video_bus(dram, matrix, color_ram, color_base)
+          @ram = dram
+          @matrix = matrix
+          @color_ram = color_ram
+          @color_base = color_base
+          @video_bus = true
+          @phi1_other = true
+          @phi2_other = true
+        end
+
+        # STATVID, VICDOTSEL and VA14-VA15, as the P500's TPIs drive them.
+        def video_bus_lines(statvid, dotsel, bank)
+          @statvid = statvid
+          @dotsel = dotsel
+          @video_base = bank << 14
         end
 
         # On the 8565, a port A write that swaps the two bank lines, driving
@@ -74,7 +108,7 @@ module Badline
         end
 
         def peek(offset)
-          return ultimax_peek(offset) if @phi1_ultimax
+          return phi1_other(offset) if @phi1_other
 
           bits = bank_switch_register
           if (bits & @shadow_mask) == 0b01 && (offset & 0xf000) == 0x1000
@@ -88,7 +122,7 @@ module Badline
         # memory configuration the CPU does in that half. No cartridge drives
         # Ultimax mode in the first half alone, so otherwise it reads as #peek.
         def peek_phi2(offset)
-          @ultimax ? ultimax_peek(offset) : peek(offset)
+          @phi2_other ? phi2_other(offset) : peek(offset)
         end
 
         def peek_color(offset)
@@ -101,7 +135,7 @@ module Badline
 
         # True if the VIC reads the character ROM at this offset.
         def character_rom?(offset)
-          !@phi1_ultimax && (bank_switch_register & @shadow_mask) == 0b01 && (offset & 0xf000) == 0x1000
+          !@phi1_other && (bank_switch_register & @shadow_mask) == 0b01 && (offset & 0xf000) == 0x1000
         end
 
         def start
@@ -109,6 +143,21 @@ module Badline
         end
 
         private
+
+        def phi1_other(offset)
+          return ultimax_peek(offset) unless @video_bus
+          return @character_rom.peek(@character_base + (offset & 0x0fff)) if @dotsel
+
+          @ram.peek(@video_base + offset)
+        end
+
+        def phi2_other(offset)
+          return ultimax_peek(offset) unless @video_bus
+          return @ram.peek(@video_base + offset) unless @statvid
+          return 0 if offset.nobits?(0x1000)
+
+          @matrix.peek(@matrix.start + (offset & 0x03ff))
+        end
 
         # In Ultimax mode the cartridge ROMH replaces the character ROM
         # shadow, visible at $3000-$3FFF of the window. The MAX is in

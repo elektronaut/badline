@@ -68,7 +68,11 @@
 #          boot and type scenarios alone. Checkpoints digest the CPU with
 #          both segment registers, segment 15's RAM, the RAM board's
 #          segments, the screen RAM, the picture, the CRTC, the CIA, the ACIA and both
-#          TPIs (Badline::Support::CBM2Checkpoint)
+#          TPIs (Badline::Support::CBM2Checkpoint). --model 510 or 510ntsc builds a P500
+#          (Badline::CBM2::P500::Model::ALL), whose checkpoints digest the
+#          static video matrix, the colour RAM, the VIC and the SID in
+#          place of the screen RAM and the CRTC
+#          (Badline::Support::P500Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then

@@ -76,7 +76,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `vertical_drive` | bool | PET: true |
 | `mains_hz` | int | CBM-II: 50 |
 | `dram_refresh` | bool | CBM-II: true |
-| `mains_countdown` | int | CBM-II: 20000 or 16666 |
+| `mains_countdown` | int | CBM-II: varies |
 | `mains_high` | bool | CBM-II: true |
 | `refresh` | int | CBM-II: 0 |
 
@@ -91,7 +91,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `bus.high_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.rom_selected` | bool | Plus/4: true |
 | `bus.data` | byte | Plus/4: 255; PET: 253 |
-| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 or 32768 × 0; CBM-II: 2048 × 0 |
+| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 or 32768 × 0; CBM-II: 2048 × 0 or 1024 × 0 |
 | `expansion.control` | byte | PET: 0 |
 | `expansion.ram` | bytes | PET: 65536 × 0 |
 | `expansion.user_port` | int | PET: 7 |
@@ -105,11 +105,11 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 
 ## BL-COLORRAM
 
-Written by the C64, VIC-20, C128.
+Written by the C64, VIC-20, CBM-II, C128.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `ram` | bytes | C64: 1024 × 0; VIC-20: 1024 × 0 |
+| `ram` | bytes | C64: 1024 × 0; VIC-20: 1024 × 0; CBM-II: 1024 × 0 |
 | `bank<N>` | bytes | C128: 1024 × 0 |
 
 ## BL-CPU
@@ -121,7 +121,7 @@ Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II.
 | `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 |
+| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 or 63902 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -143,7 +143,7 @@ Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II.
 
 ## BL-VIC
 
-Written by the C64, C128.
+Written by the C64, C128, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -205,11 +205,11 @@ Written by the C64, C128.
 | `shifter.late_mcm` | bool | false |
 | `shifter.late_read` | bool | false |
 | `line.number` | int | 0 |
-| `line.colors` | bytes | 504 × 0 |
-| `line.fg` | ints | 504 × 0 |
-| `line.border.groups` | ints | 63 × 0 |
-| `line.border.mask` | ints | 504 × 1 |
-| `line.border.snapshot` | bytes | 504 × 0 |
+| `line.colors` | bytes | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
+| `line.fg` | ints | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
+| `line.border.groups` | ints | C64: 63 × 0; C128: 63 × 0; CBM-II: 63 × 0 or 65 × 0 |
+| `line.border.mask` | ints | C64: 504 × 1; C128: 504 × 1; CBM-II: 504 × 1 or 520 × 1 |
+| `line.border.snapshot` | bytes | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
 | `line.patches` | ints | [] |
 | `sprite<N>.dma` | bool | false |
 | `sprite<N>.display_on` | bool | false |
@@ -236,18 +236,18 @@ Written by the C64, C128.
 | `line.sprite<N>.reload_span` | int | 0 |
 | `sbus.lines` | int | 0 |
 | `sbus.ghost` | byte | 255 |
-| `sbus.value` | ints | 63 × 255 |
-| `sbus.line` | ints | 63 × -1 |
+| `sbus.value` | ints | C64: 63 × 255; C128: 63 × 255; CBM-II: 63 × 255 or 65 × 255 |
+| `sbus.line` | ints | C64: 63 × -1; C128: 63 × -1; CBM-II: 63 × -1 or 65 × -1 |
 | `collisions.cleared_sprite` | int | 0 |
 | `collisions.cleared_data` | int | 0 |
-| `line.collisions.hits` | bytes | 504 × 0 |
+| `line.collisions.hits` | bytes | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
 | `line.collisions.folded` | int | 0 |
 | `line.carried` | bool | false |
-| `line.lo` | int | 504 |
+| `line.lo` | int | C64: 504; C128: 504; CBM-II: 504 or 520 |
 | `line.hi` | int | 0 |
 | `line.sequenced` | int | -1 |
-| `line.win_color` | bytes | 504 × 0 |
-| `line.win_priority` | ints | 504 × 0 |
+| `line.win_color` | bytes | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
+| `line.win_priority` | ints | C64: 504 × 0; C128: 504 × 0; CBM-II: 504 × 0 or 520 × 0 |
 | `line.palette` | ints | [0, 0, 0, 0] |
 | `line.stopped_dma` | bool | false |
 | `line.carry<N>` | ints | [] |
@@ -257,7 +257,7 @@ Written by the C64, C128.
 | `line.log.values` | ints | 64 × 0 |
 | `line.log.cursor` | int | 0 |
 | `line.log.next_x` | int | 0 |
-| `display` | bytes | 157248 × 0 |
+| `display` | bytes | C64: 157248 × 0; C128: 157248 × 0; CBM-II: 157248 × 0 or 136760 × 0 |
 | `output_line` | int | C128: 0 |
 | `test_wrap` | bool | C128: false |
 

@@ -29,7 +29,7 @@ module CIMatrix
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
     "drive" => [%w[testbench-drive !viavarious], "drive-scenarios", "testbench-vic20", "testbench-plus4",
                 "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete",
-                "testbench-cbm2"],
+                "testbench-cbm2", "testbench-cbm5x0"],
     "lorenz-plus4-1-3" => [%w[lorenz-plus4 1 2 3]],
     "lorenz-plus4-4" => [%w[lorenz-plus4 4]],
     "c128c64" => %w[testbench-c128c64],
@@ -44,7 +44,7 @@ module CIMatrix
   # baseline, and the harnesses each needs.
   CHECKS = {
     "spinel:check" => %w[boot cpu_tests z80_tests vic20_boot c128_boot plus4_boot plus4_snapshot pet_boot pet_snapshot
-                         cbm2_boot cbm2_snapshot],
+                         cbm2_boot cbm2_snapshot p500_boot p500_snapshot],
     "spinel:check_sid" => %w[sid]
   }.freeze
 

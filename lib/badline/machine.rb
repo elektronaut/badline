@@ -78,12 +78,14 @@ module Badline
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
     # the model's own RAM. A PET's is one of PET::Model::ALL, with its own
     # RAM and ROMs, its CRTC's editor the 50 Hz one. A CBM-II's is one of
-    # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz.
+    # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz, or a 510,
+    # one of CBM2::P500::Model::ALL, with its region's mains.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
       return PET.new(model:) if family == :pet
+      return CBM2::P500.new(model:) if family == :cbm2 && model.start_with?("510")
       return CBM2.new(model:) if family == :cbm2
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 

@@ -29,6 +29,7 @@ require_relative "testbench_pet"
 require_relative "testbench_pet_machine"
 require_relative "testbench_cbm2"
 require_relative "testbench_cbm2_machine"
+require_relative "testbench_p500_machine"
 require_relative "cli"
 
 module Testbench
@@ -667,6 +668,7 @@ module Testbench
     def screenshot_of(test, rows)
       return Plus4Screenshot.new(rows) if test.plus4?
       return PETScreenshot.new(rows) if test.pet?
+      return Screenshot.new(rows) if test.cbm2? && test.p500?
       return CBM2Screenshot.new(rows) if test.cbm2?
 
       Screenshot.new(rows)
@@ -747,11 +749,6 @@ module Testbench
       tests.each { |test| puts "#{test.key} (#{test.type}, #{test.timeout})" }
       puts "#{tests.length} tests"
       return 0
-    end
-
-    if machine == :cbm5x0
-      warn "The P500's rows don't run yet, so they can only be listed (--list)."
-      return 2
     end
 
     run_tests(tests, results_path, drive: rows.drive, shards:, resume:, engine:)

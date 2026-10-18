@@ -146,8 +146,11 @@
 # row compares the CRTC's picture with the
 # reference from (32, 35) on, as xcbm2's hook does
 # (Testbench::CBM2Screenshot).
-# --cbm5x0 lists cbm510-testlist.in's exitcode and screenshot rows on
-# the 510, which only --list takes until the P500 runs.
+# --cbm5x0 runs cbm510-testlist.in's exitcode and screenshot rows on a
+# PAL 510, as xcbm5x0's hook starts it, the same way, with BASIC's text
+# in segment 0 and the 40-column text screen in the static video matrix
+# at $D000. A screenshot row compares the VIC-II's picture as a C64's is
+# compared (Testbench::Screenshot).
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs
