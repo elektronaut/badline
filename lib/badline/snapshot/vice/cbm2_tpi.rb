@@ -35,10 +35,7 @@ module Badline
             ddra, ddrb, ddrc = input.ints("directions", [0, 0, 0])
             control = input.int("control", 0)
             latches = input.int("latches", 0)
-            if control.anybits?(0x01)
-              prc = (prc & ~LATCHES) | latches
-              ddrc = (ddrc & ~LATCHES) | input.int("mask", 0)
-            end
+            prc = (prc & ~LATCHES) | latches if control.anybits?(0x01)
             lines = (input.bool("ca", false) ? CA : 0) | (input.bool("cb", false) ? CB : 0)
             FieldWriter.new.bytes([pra, prb, prc, ddra, ddrb, ddrc, control, input.int("air", 0), latches, lines])
                        .section(name, MAJOR, MINOR)
@@ -50,7 +47,7 @@ module Badline
             pra, prb, prc, ddra, ddrb, ddrc, control, air, _taken, edges = FieldReader.new(section).bytes(10)
             out.ints("ports", [pra, prb, prc]).ints("directions", [ddra, ddrb, ddrc]).int("control", control)
             mode1 = control.anybits?(0x01)
-            out.int("latches", mode1 ? prc & LATCHES : 0).int("mask", mode1 ? ddrc & LATCHES : 0)
+            out.int("latches", mode1 ? prc & LATCHES : 0)
             out.int("air", mode1 ? air & LATCHES : 0).ints("stack", [])
             out.bool("ca", edges.anybits?(CA)).bool("cb", edges.anybits?(CB)).int("lines", lines)
           end

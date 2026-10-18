@@ -8,12 +8,22 @@ describe Badline::CBM2::CPU do
 
   let(:bus) { Badline::CBM2::Bus.new(basic: "cbm2/basic128.rom", kernal: "cbm2/kernal-04a.rom", ram_segments: [0, 1, 2]) }
 
-  # Puts +code+ at $0400 of segment 15 and runs it to the BRK at its end,
-  # with the pointer at $FE in segment 15 pointing to $0634.
-  def run(code, indirect: 2)
+  # A chip at $DCxx that notes the addresses read from it.
+  let(:io_reads) { [] }
+  let(:io_chip) do
+    reads = io_reads
+    Class.new do
+      define_method(:peek) { |addr| reads.push(addr).length }
+      define_method(:poke) { |_addr, _value| nil }
+    end.new
+  end
+
+  # Puts +code+ at $0400 of the execution segment and runs it to the BRK
+  # at its end, with the pointer at $FE pointing to +pointer+.
+  def run(code, indirect: 2, pointer: 0x0634)
     bus.poke(0x0001, indirect)
-    bus.poke(0x00fe, 0x34)
-    bus.poke(0x00ff, 0x06)
+    bus.poke(0x00fe, pointer & 0xff)
+    bus.poke(0x00ff, pointer >> 8)
     code.each_with_index { |byte, i| bus.poke(0x0400 + i, byte) }
     cpu.program_counter = 0x0400
     cpu.step! until bus.peek(cpu.program_counter).zero?
@@ -28,6 +38,15 @@ describe Badline::CBM2::CPU do
   it "writes STA (zp),Y's data to the indirection segment" do
     run([0xa9, 0x99, 0xa0, 0x00, 0x91, 0xfe]) # LDA #$99, LDY #0, STA ($FE),Y
     expect([bus.peek_bank(2, 0x0634), bus.peek_bank(15, 0x0634)]).to eq([0x99, 0x00])
+  end
+
+  # Pinned by CBM2/cbm2-burnin.d80's 6526 TOD test, whose STA (zp),Y to the
+  # tenths has to read them first, which lets the clock's latch go.
+  it "makes STA (zp),Y's dummy read in the indirection segment" do
+    bus.map_io(0xdc, io_chip)
+    bus.execution_segment = 1
+    run([0xa0, 0x00, 0x91, 0xfe], indirect: 15, pointer: 0xdc08) # LDY #0, STA ($FE),Y
+    expect(io_reads).to eq([0xdc08])
   end
 
   it "reads the pointer from the execution segment" do

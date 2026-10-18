@@ -14,7 +14,8 @@ module Badline
     #     of IRQ, CA and CB (bits 5-7)
     # 3 - DDRA
     # 4 - DDRB
-    # 5 - DDRC, or in mode 1 the interrupt mask (bits 0-4, 1 enabling)
+    # 5 - DDRC, which in mode 1 is the interrupt mask, its bits 0-4 enabling
+    #     I0-I4 with a 1, and reads back all eight bits written
     # 6 - CR: bit 0 MC, the mode, bit 1 IP, the priority, bits 2-3 IE3 and
     #     IE4, the active edges of I3 and I4 (1 rising), bits 4-5 CA's mode
     #     and bits 6-7 CB's
@@ -50,7 +51,7 @@ module Badline
     class TPI
       STACK_DEPTH = 5
 
-      attr_reader :peripheral, :latches, :mask, :control, :stack
+      attr_reader :peripheral, :latches, :control, :stack
 
       def initialize(peripheral: nil)
         @peripheral = peripheral
@@ -65,11 +66,13 @@ module Badline
         @ddra = @ddrb = @ddrc = 0
         @control = 0
         @latches = 0
-        @mask = 0
         @air = 0
         @stack.clear
         @ca = @cb = false
       end
+
+      # The interrupt mask in mode 1: DDRC's bits 0-4.
+      def mask = @ddrc & 0x1f
 
       # Whether IRQ is pulled low.
       def irq? = @air != 0
@@ -109,7 +112,7 @@ module Badline
         when 2 then mode1? ? pins_c_mode1 : read_pins_c
         when 3 then @ddra
         when 4 then @ddrb
-        when 5 then mode1? ? @mask : @ddrc
+        when 5 then @ddrc
         when 6 then @control
         else read_air
         end
@@ -178,9 +181,7 @@ module Badline
       end
 
       def write_ddrc(value)
-        return @ddrc = value unless mode1?
-
-        @mask = value & 0x1f
+        @ddrc = value
         update_air
       end
 
@@ -215,7 +216,7 @@ module Badline
       # The AIR's bits from the latches, the mask and, with priority, the
       # interrupt in service.
       def update_air
-        pending = mode1? ? @latches & @mask : 0
+        pending = mode1? ? @latches & mask : 0
         return @air = pending unless priority?
 
         highest = highest_bit(pending)

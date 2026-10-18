@@ -75,8 +75,10 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
 | `mains_hz` | int | CBM-II: 50 |
+| `dram_refresh` | bool | CBM-II: true |
 | `mains_countdown` | int | CBM-II: 20000 or 16666 |
 | `mains_high` | bool | CBM-II: true |
+| `refresh` | int | CBM-II: 0 |
 
 ## BL-RAM
 
@@ -1724,7 +1726,6 @@ Written by the CBM-II.
 | `directions` | ints | [0, 0, 0] |
 | `control` | byte | 0 |
 | `latches` | int & 0x1f | 0 |
-| `mask` | int & 0x1f | 0 |
 | `air` | int & 0x1f | 0 |
 | `stack` | ints | [] |
 | `ca` | bool | false |
@@ -1741,7 +1742,6 @@ Written by the CBM-II.
 | `directions` | ints | [0, 0, 0] |
 | `control` | byte | 0 |
 | `latches` | int & 0x1f | 0 |
-| `mask` | int & 0x1f | 0 |
 | `air` | int & 0x1f | 0 |
 | `stack` | ints | [] |
 | `ca` | bool | false |

@@ -50,6 +50,8 @@ only catches the rows that happen to move.
 - [`.sid` tune banking](#sid-tune-banking)
 - [PET discrete video](#pet-discrete-video)
 - [PET CRTC](#pet-crtc)
+- [CBM-II DRAM refresh](#cbm-ii-dram-refresh)
+- [6509 indirection segment](#6509-indirection-segment)
 
 ## CPU interrupt recognition
 
@@ -2244,3 +2246,47 @@ testprogs named.
     cycle dot for dot.
   - Spec guard:
     [`pet/crtc_video_spec.rb`](../spec/badline/pet/crtc_video_spec.rb).
+
+## CBM-II DRAM refresh
+
+- The B series' DRAM refresh takes the 6509's clock away for one cycle:
+  a counter of the CPU's cycles asks for a refresh once it reaches 20
+  and stops there, the refresh comes on the next opcode fetch, which it
+  holds off a cycle, and it clears the counter. A JMP loop, fetching
+  every third cycle, loses one cycle in 22. Read off sheet 3 of
+  schematic 8256043 (U89, U88 and U55: the request at count 20, gated
+  with SYNC, clocked by SPhi1, driving RDY and REFEN) and sheet 2 (REFEN
+  clearing the CPU's phi2 flip-flop U57).
+  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 timer test, which starts
+    timer A at $8888 and counts a 12-cycle loop until its interrupt
+    flag rises, and passes only at exactly 10 pages and $DB: 2,779
+    loops. Without the refresh badline counts 2,895, and stealing a
+    cycle in every 24 or 25, or five a line, misses by one or more.
+    xcbm2, which steals nothing, shows the cell BAD.
+  - Spec guard: *takes a cycle for the DRAM's refresh* in
+    [`cbm2_spec.rb`](../spec/badline/cbm2_spec.rb).
+
+## 6509 indirection segment
+
+- LDA (zp),Y and STA (zp),Y take the indirection segment for every
+  access at the address they index: the dummy read before the data, as
+  well as the data. The opcode and the zero-page pointer stay in the
+  execution segment.
+  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 TOD test. It sets the time
+    with STA (zp),Y into segment 15, hours first, polls the tenths until
+    they leave the value written, then checks the tenths, seconds,
+    minutes and hours against the time one tenth on, which leaves the
+    clock latched. In the run that steps the seconds from 01:00:01.9,
+    each step starts latched at the previous step's result, tenths 0,
+    and with that latch held the first poll reads the stale 0, matches
+    the expected tenths and fails on the live seconds, one short. The
+    store's dummy read of the tenths releases the latch before they are
+    written. With the dummy read in the execution segment it reads RAM,
+    and the burn-in's grid grades $FF.
+  - The CIA keeps its latch through writes: `CIA/ciavarious/cia15.prg`'s
+    test B sets X:59:59.8 with absolute stores, hours first, after
+    reading the hours, and its reference has the hour unchanged for odd
+    X, where the first wait reads the stale latched tenths 0 and falls
+    through. A write to the tenths that released the latch fails it.
+  - Spec guard: *makes STA (zp),Y's dummy read in the indirection
+    segment* in [`cbm2/cpu_spec.rb`](../spec/badline/cbm2/cpu_spec.rb).

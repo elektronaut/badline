@@ -140,7 +140,9 @@
 # through $DAFF in segment 15, and a failure keeps the 80-column text
 # screen at $D000. One row isn't in the testlist: selftest/cbm610-pass.d82,
 # mounted as device 8 through the traps on the KERNAL's IEEE-488
-# primitives, its program loaded with LOAD"*",8 and run. A screenshot
+# primitives, its program loaded with LOAD"*",8 and run, and another
+# CBM2/cbm2-burnin.d80, Commodore's burn-in, which runs its test for the
+# row's budget and passes when its grid shows every chip OK. A screenshot
 # row compares the CRTC's picture with the
 # reference from (32, 35) on, as xcbm2's hook does
 # (Testbench::CBM2Screenshot).

@@ -126,6 +126,44 @@ describe Badline::CBM2 do
     end
   end
 
+  # Sheet 3 of schematic 8256043: the refresh counter asks after 20 of the
+  # CPU's cycles, and the refresh holds off the next opcode fetch a cycle.
+  # A JMP loop fetches every third cycle, so it waits a cycle for one: 21
+  # of the CPU's cycles and the refresh's, every 22.
+  it "takes a cycle for the DRAM's refresh at an opcode fetch after 20 of the CPU's" do
+    machine = looping
+    machine.run_cycles(2_200)
+    expect(machine.cpu.cycles).to eq(2_200 - 100)
+  end
+
+  it "leaves the CPU every cycle without the DRAM's refresh" do
+    machine = looping(refresh: false)
+    machine.run_cycles(2_200)
+    expect(machine.cpu.cycles).to eq(2_200)
+  end
+
+  # xcbm2 plays $1000 on voice 1 at 488 Hz, by its zero crossings.
+  def tone_samples
+    machine = looping
+    machine.sid.record(rate: 44_100, clock_hz: machine.timing.clock_hz)
+    { 0xda18 => 0x0f, 0xda06 => 0xf0, 0xda01 => 0x10, 0xda04 => 0x11 }.each { |addr, value| machine.poke(addr, value) }
+    machine.run_cycles(100_000)
+    machine.sid.drain_samples.last(2_000)
+  end
+
+  it "plays the SID at its 2 MHz clock" do
+    expect(tone_samples.each_cons(2).count { |was, now| was.negative? && !now.negative? }).to be_within(1).of(22)
+  end
+
+  it "reads DCD and DSR high and the transmitter empty with nothing on the RS-232 port" do
+    expect(described_class.new.peek(0xdd01)).to eq(0x70)
+  end
+
+  it "reads the user port's lines high with nothing on it" do
+    machine = described_class.new
+    expect([machine.peek(0xdc00), machine.peek(0xdc01)]).to eq([0xff, 0xff])
+  end
+
   it "latches the CIA's interrupt on TPI1's I2" do
     machine = looping
     machine.poke(0xde06, 0x01)

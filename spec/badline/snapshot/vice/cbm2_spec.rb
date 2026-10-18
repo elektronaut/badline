@@ -22,6 +22,13 @@ describe Badline::Snapshot::Vice::CBM2 do
 
   def load(model) = image(xcbm2(model)).load { nil }
 
+  def load_without_refresh(model)
+    container = xcbm2(model)
+    machine = Badline::Snapshot::Vice::CBM2.setup(container).with(refresh: false).build
+    Badline::Snapshot::Vice::CBM2::Restore.apply(container, machine)
+    machine
+  end
+
   def run_to(machine, address)
     start = machine.cycles
     machine.cycle! until machine.cpu.boundary? && machine.cpu.program_counter == address
@@ -54,10 +61,16 @@ describe Badline::Snapshot::Vice::CBM2 do
         expect([machine.model.name, machine.mains_hz, machine.kernal]).to eq([model, 50, "04a"])
       end
 
-      it "runs the program as xcbm2 did, the mains' tick and the CIA's timer cycle for cycle" do
-        expect(run_to(load(model), 0x0440)).to eq([25_945, File.binread(fixture("xcbm2-#{model}-probe.samples")).bytes])
+      it "runs the program as xcbm2 did, the mains' tick and the CIA's timer cycle for cycle, " \
+         "without the DRAM refresh VICE doesn't have" do
+        expect(run_to(load_without_refresh(model), 0x0440))
+          .to eq([25_945, File.binread(fixture("xcbm2-#{model}-probe.samples")).bytes])
       end
     end
+  end
+
+  it "runs the program about 4.9% slower than xcbm2 with the DRAM refresh" do
+    expect(run_to(load("610"), 0x0440).first).to eq(27_211)
   end
 
   it "reports the modules badline doesn't read" do
@@ -145,8 +158,13 @@ describe Badline::Snapshot::Vice::CBM2 do
     it "takes the TPI's latches, mask and AIR from PRC, DDRC and the AIR, with no interrupt in service" do
       machine = image(with_section(xcbm2("610"), "TPI1") { tpi }).load { nil }
       fields = keyed(machine, "BL-TPI1")
-      expect([fields.int("latches", 0), fields.int("mask", 0), fields.int("air", 0), fields.ints("stack", [9])])
+      expect([fields.int("latches", 0), machine.tpi1.mask, fields.int("air", 0), fields.ints("stack", [9])])
         .to eq([0x05, 0x1f, 0x04, []])
+    end
+
+    it "writes the TPI's mask back in DDRC" do
+      machine = image(with_section(xcbm2("610"), "TPI1") { tpi }).load { nil }
+      expect(exported(machine)["TPI1"].data.getbyte(5)).to eq(0xff)
     end
 
     it "takes CA from bit 7 of the TPI's last byte and CB from bit 6" do
