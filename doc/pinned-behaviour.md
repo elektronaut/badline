@@ -50,6 +50,8 @@ only catches the rows that happen to move.
 - [`.sid` tune banking](#sid-tune-banking)
 - [PET discrete video](#pet-discrete-video)
 - [PET CRTC](#pet-crtc)
+- [CBM-II DRAM refresh](#cbm-ii-dram-refresh)
+- [CIA TOD latch](#cia-tod-latch)
 
 ## CPU interrupt recognition
 
@@ -2244,3 +2246,35 @@ testprogs named.
     cycle dot for dot.
   - Spec guard:
     [`pet/crtc_video_spec.rb`](../spec/badline/pet/crtc_video_spec.rb).
+
+## CBM-II DRAM refresh
+
+- The B series' DRAM refresh takes the 6509's clock away for one cycle:
+  a counter of the CPU's cycles asks for a refresh once it reaches 20
+  and stops there, the refresh comes on the next opcode fetch, which it
+  holds off a cycle, and it clears the counter. A JMP loop, fetching
+  every third cycle, loses one cycle in 22. Read off sheet 3 of
+  schematic 8256043 (U89, U88 and U55: the request at count 20, gated
+  with SYNC, clocked by SPhi1, driving RDY and REFEN) and sheet 2 (REFEN
+  clearing the CPU's phi2 flip-flop U57).
+  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 timer test, which starts
+    timer A at $8888 and counts a 12-cycle loop until its interrupt
+    flag rises, and passes only at exactly 10 pages and $DB: 2,779
+    loops. Without the refresh badline counts 2,895, and stealing a
+    cycle in every 24 or 25, or five a line, misses by one or more.
+    xcbm2, which steals nothing, shows the cell BAD.
+  - Spec guard: *takes a cycle for the DRAM's refresh* in
+    [`cbm2_spec.rb`](../spec/badline/cbm2_spec.rb).
+
+## CIA TOD latch
+
+- A write to the clock's tenths releases the read latch the hours read
+  set, as a read of the tenths does. A write to the alarm's tenths
+  leaves it.
+  - Pinned by `CBM2/cbm2-burnin.d80`'s 6526 TOD test, which reads the
+    hours, writes $0F to the tenths, sets 01:00:01.9 and waits for
+    01:00:02.0, reading the tenths first: with the latch held it reads
+    the tenths of the time it latched and fails. The CIA testprogs
+    leave writing while latched untested (`CIA/tod/readme.txt`).
+  - Spec guard: *releases the latch when the tenths are written* in
+    [`chips/cia/time_of_day_spec.rb`](../spec/badline/chips/cia/time_of_day_spec.rb).
