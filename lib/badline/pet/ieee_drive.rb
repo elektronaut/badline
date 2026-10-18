@@ -71,6 +71,21 @@ module Badline
       # The true drive on the bus, or nil.
       def true_drive = @drive8050 || @drive2031
 
+      # Settles for a snapshot, then runs on until a 2031's CPU is between
+      # instructions with the PET's, as xpet saves both. It stands in for
+      # Machine::Settling's, which the PET includes first.
+      def settle_for_vice!
+        ran = settle_for_snapshot!
+        drive = @drive2031
+        return ran if drive.nil?
+
+        until ran >= Machine::Settling::LIMIT || (drive.cpu.boundary? && settled_for_snapshot?)
+          cycle!
+          ran += 1
+        end
+        ran
+      end
+
       # Plugs in a 2031 as device 8, in place of the drive there, and
       # returns it.
       def plug_true_drive

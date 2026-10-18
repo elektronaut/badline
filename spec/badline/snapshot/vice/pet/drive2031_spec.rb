@@ -50,6 +50,13 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
     it "put the head's half track in DRIVE8" do
       expect(exported["DRIVE8"].data.getbyte(0x10)).to eq(32)
     end
+
+    it "are taken with the drive's CPU between instructions as well as the PET's" do
+      pet = with_drive
+      pet.cycle! until !pet.drive2031.cpu.boundary? && pet.cpu.boundary?
+      Badline::Snapshot::Image.exported(pet)
+      expect([pet.cpu.boundary?, pet.drive2031.cpu.boundary?]).to eq([true, true])
+    end
   end
 
   describe "a PET with a 2031 restored from xpet's modules" do

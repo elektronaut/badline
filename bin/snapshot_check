@@ -33,10 +33,10 @@
 # (Snapshot::Vice::PET, Snapshot::Vice::CBM2), loads a new machine from
 # those alone, and runs the two side by side. The first checkpoint comes
 # after the picture, which a load from VICE's modules paints again, has
-# caught up. xcbm2 saves no mains, which it ticks where its CRTC says
-# (Snapshot::Vice::CBM2::Mains), and no TPI priority stacks, so a
-# CBM-II's mains is moved there and its stacks emptied before it is
-# saved.
+# caught up. What VICE's modules don't carry, such as a CBM-II's mains,
+# which xcbm2 ticks where its CRTC says (Snapshot::Vice::CBM2::Mains),
+# is taken to what a load from them makes of it before the machine is
+# saved, and a PET's 2031 keeps its disk.
 #
 # --carts saves every cartridge mapper's module after register writes,
 # reads and freezes (test/support/snapshot_cartridges.rb), builds a
@@ -199,12 +199,19 @@ module SnapshotCheck
   end
 
   # A new machine from the VICE modules alone of the machine's snapshot
-  # for VICE, and the lines its restore left out.
+  # for VICE, and the lines its restore left out. A PET's 2031 keeps its
+  # disk, which xpet's modules don't carry: they are restored into a copy
+  # of the machine, as into a running PET.
   def load_vice(machine)
     sections = Badline::Snapshot::Image.exported(machine).sections.reject { |section| section.name.start_with?("BL-") }
     container = Badline::Snapshot::Container.new(sections, machine: Badline::Snapshot::Image.machine_name(machine))
     ignored = []
-    [Badline::Snapshot::Image.new(container).load { |line| ignored << line }, ignored]
+    vice = Badline::Snapshot::Image.new(container)
+    return [vice.load { |line| ignored << line }, ignored] unless machine.family == :pet && machine.drive2031
+
+    restored = load(dump(machine)).first
+    vice.restore(restored) { |line| ignored << line }
+    [restored, ignored]
   end
 
   # Why VICE's modules can't carry the machine, or nil: a tape, a disk, a
@@ -225,23 +232,40 @@ module SnapshotCheck
     machine.drive8050 ? "an 8050" : nil
   end
 
-  # Takes a CBM-II's state that xcbm2's modules don't carry to what a load
-  # from them makes of it: the mains, which xcbm2 ticks where its CRTC
-  # says, and the TPIs' priority stacks, which it doesn't save. Each
-  # module gains those records of the load's, which count over its own.
+  # The records VICE's modules don't carry, by module: a CBM-II's mains,
+  # which xcbm2 ticks where its CRTC says, and its TPIs' priority stacks,
+  # and the phase a 2031's stepper is offset by, with the port that drives
+  # it (Snapshot::Vice::PET::Drive2031).
+  UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high], "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack],
+              "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb] }.freeze
+
+  # Takes the machine's state that VICE's modules don't carry (UNSAVED) to
+  # what a load from them makes of it. Each module gains those records of
+  # the load's, which count over its own.
   def conform(machine)
-    mains = Badline::Snapshot::Keyed::Reader.parse(load_vice(machine).first.save_modules.first)
+    theirs = load_vice(machine).first.save_modules
     sections = machine.save_modules.map do |section|
-      extra = Badline::Snapshot::Keyed::Writer.new
-      case section.name
-      when "BL-MACHINE"
-        extra.int("mains_countdown", mains.int("mains_countdown", 0)).bool("mains_high", mains.bool("mains_high", true))
-      when "BL-TPI1", "BL-TPI2" then extra.ints("stack", [])
-      else next section
-      end
-      section.with(data: Zlib.deflate(Zlib.inflate(section.data) + extra.to_s))
+      keys = UNSAVED.fetch(section.name, [])
+      other = theirs.find { |each| each.name == section.name }
+      next section if keys.empty? || other.nil?
+
+      section.with(data: Zlib.deflate(Zlib.inflate(section.data) + records(other, keys)))
     end
     machine.load_modules(Badline::Snapshot::Keyed::Modules.new(sections))
+  end
+
+  # The records `keys` name in `section`, encoded as they stand.
+  def records(section, keys)
+    reader = Badline::Snapshot::Keyed::Reader.parse(section)
+    out = Badline::Snapshot::Keyed::Writer.new
+    keys.each do |key|
+      case reader.tags[key]
+      when Badline::Snapshot::Keyed::INT then out.int(key, reader.int(key, 0))
+      when Badline::Snapshot::Keyed::BOOL then out.bool(key, reader.bool(key, false))
+      when Badline::Snapshot::Keyed::INTS then out.ints(key, reader.ints(key, []))
+      end
+    end
+    out.to_s
   end
 
   # Divergence through xpet's or xcbm2's modules for one PET or CBM-II
@@ -257,7 +281,7 @@ module SnapshotCheck
       reason = unsaved(machine)
       next puts("#{scenario.name}: skipped, as #{emulator}'s modules don't carry #{reason}") || true if reason
 
-      conform(machine) if machine.family == :cbm2
+      conform(machine)
       restored, ignored = load_vice(machine)
       puts "#{scenario.name}: saved for #{emulator} at cycle #{machine.cycles}"
       ignored.each { |line| puts "  left out: #{line}" }
