@@ -93,6 +93,22 @@ describe Badline::Chips::CIA::TimeOfDay do
     expect(tod.seconds).to eq(0x01)
   end
 
+  # The CBM-II burn-in's 6526 TOD test reads the hours, writes the tenths
+  # and sets the time, then reads it back.
+  it "releases the latch when the tenths are written" do
+    tod.hours
+    advance_tenths(10)
+    tod.write(:tenths, 0x05, alarm: false)
+    expect(tod.seconds).to eq(0x01)
+  end
+
+  it "keeps the latch when the alarm's tenths are written" do
+    tod.hours
+    advance_tenths(10)
+    tod.write(:tenths, 0x05, alarm: true)
+    expect(tod.seconds).to eq(0x00)
+  end
+
   describe "setting" do
     it "sets the hours with the AM/PM bit" do
       tod.write_hours(0x11 | 0x80, alarm: false)
