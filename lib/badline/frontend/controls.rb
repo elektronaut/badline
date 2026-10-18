@@ -11,8 +11,9 @@ module Badline
     #   PET's and the CBM-II's keys go by the character they type
     #   (PETKeyboard), and the PET and the CBM-II's B series have no
     #   joystick.
-    # - A pot device the pause menu plugs into a C64 control port: a 1351
-    #   mouse or a pair of paddles, which the host mouse drives. Motion
+    # - A pot device the pause menu plugs into a control port of a C64, a
+    #   C128 or a P500: a 1351 mouse or a pair of paddles, which the host
+    #   mouse drives. Motion
     #   turns the paddles or moves the mouse, and the host's left and right
     #   buttons go to whichever lines the device puts them on.
     class Controls
@@ -183,9 +184,9 @@ module Badline
       def paddles? = POTS.index(@pot) >= 3
 
       # A fresh pot device on its port, and none on the other. A machine
-      # without the ports takes none, and the P500 none yet.
+      # without the ports takes none.
       def attach_pot_device
-        ports = Controls.symbolic?(@computer) ? nil : @computer.control_ports
+        ports = Controls.p500?(@computer) || !Controls.symbolic?(@computer) ? @computer.control_ports : nil
         if ports.nil?
           @pot = :none
           return
