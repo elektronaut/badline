@@ -1,12 +1,23 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "tmpdir"
 require_relative "../support/cbm2_boot"
 
 describe Badline::CBM2 do
   it "is the 610 with VICE's KERNAL at 50 Hz by default" do
     machine = described_class.new
     expect([machine.model.name, machine.kernal, machine.mains_hz]).to eq(["610", "04a", 50])
+  end
+
+  it "takes no tape" do
+    expect { Badline::Media.attach(described_class.new, "game.tap") }
+      .to raise_error(ArgumentError, "game.tap doesn't go in a CBM-II")
+  end
+
+  it "loads a program into BASIC's text in segment 1" do
+    machine = described_class.new
+    expect([machine.load_prg([0x03, 0x00, 0x5a]), machine.bus.peek_bank(1, 0x0003)]).to eq([0x0003, 0x5a])
   end
 
   it "refuses a model, a KERNAL or a mains it doesn't know" do
@@ -167,6 +178,34 @@ describe Badline::CBM2 do
       machine.run_cycles(100_000)
       machine.keyboard.release(:q)
       expect(screen_lines(machine).last).to eq("q")
+    end
+
+    describe "device 8 through the traps" do
+      let(:dir) { Dir.mktmpdir }
+
+      # A booted 610 with +dir+ mounted, after typing +text+.
+      def typed(text, cycles)
+        machine = booted("610")
+        machine.mount(Badline::Storage::HostDirectory.new(dir))
+        machine.type_text(text)
+        machine.run_cycles(cycles)
+        machine
+      end
+
+      it "saves a program from segment 1 and loads it back" do
+        machine = typed("10 print 42\rsave\"t\",8\rnew\rload\"t\",8\rrun\r", 4_000_000)
+        expect(screen_lines(machine).last(2)).to eq([" 42", "ready."])
+      end
+
+      it "lists the directory" do
+        File.binwrite(File.join(dir, "game.prg"), "\x03\x00\x00\x00".b)
+        machine = typed("directory\r", 2_000_000)
+        expect(screen_lines(machine)).to include(a_string_matching(/"game" +prg/))
+      end
+
+      it "finds no device 9" do
+        expect(screen_lines(typed("load\"x\",9\r", 1_000_000))).to include("?device not present")
+      end
     end
   end
 end

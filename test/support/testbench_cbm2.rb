@@ -13,6 +13,11 @@ module Testbench
   }.freeze
   CBM2_MODELS = { cbm2: "610", cbm5x0: "510" }.freeze
 
+  # A row the testlist doesn't have: the pass program from the selftest's
+  # .d82, which the 610 loads from device 8 through the traps on its
+  # IEEE-488 primitives.
+  CBM2_DISK_ROW = "./selftest/,cbm610-pass.d82,exitcode,100000000"
+
   # A TestCase's machine, when the row is the CBM-II's, and its run.
   module CBM2Row
     def cbm2? = CBM2_MODELS.key?(family)
@@ -75,14 +80,15 @@ module Testbench
 
   # The CBM-II testlists' exitcode and screenshot rows, on the 610 for
   # --cbm2 and the 510 for --cbm5x0, which only --list takes until the
-  # P500 runs. Interactive rows are left out
-  # as on the C64. A mountcrt row starts from power-on with its cartridge
-  # in.
+  # P500 runs, and on the 610 CBM2_DISK_ROW. Interactive rows are left
+  # out as on the C64. A mountcrt row starts from power-on with its
+  # cartridge in.
   module CBM2Testlist
     module_function
 
     def tests(filters, family, scope: nil, exclude: nil)
       lines = File.readlines(CBM2_TESTLISTS.fetch(family))
+      lines << CBM2_DISK_ROW if family == :cbm2
       Testlist.numbered(lines.filter_map { |line| parse(line, family) })
               .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end

@@ -6,3 +6,4 @@ selftest/cbm610-pass.crt	PASS
 selftest/cbm610-fail.crt	PASS
 selftest/cbm610-pass.crt#2	PASS
 selftest/cbm610-fail.crt#2	PASS
+selftest/cbm610-pass.d82	PASS

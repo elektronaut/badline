@@ -2,8 +2,8 @@
 
 module Badline
   module Media
-    # A program loading into a C64, a C128, a 264 series machine or a PET
-    # once it has booted (Media.attach). The VIC-20 has its own
+    # A program loading into a C64, a C128, a 264 series machine, a PET or
+    # a CBM-II once it has booted (Media.attach). The VIC-20 has its own
     # (Vic20Basic).
     module Program
       # Where BASIC 3.5 starts on the 264 series.
@@ -35,10 +35,13 @@ module Badline
         # KERNAL's end address (EAL). BASIC 7.0 starts at $1C01 and keeps
         # the end of its text at $1210, and the 264 KERNAL keeps EAL at $9D.
         # PET BASIC 2 and 4 keep the end of their text at $2A and EAL at
-        # $C9, and BASIC 1 at $7C and $E5.
+        # $C9, and BASIC 1 at $7C and $E5. The CBM-II's BASIC starts at
+        # $0003 of segment 1 and keeps the end of its text at $2F, and its
+        # KERNAL EAL at $96, in segment 15.
         def basic(computer)
           return [PLUS4_BASIC_START, 0x2d, KernalTrap::PLUS4_ZERO_PAGE.end_address] if computer.family == :plus4
           return pet_basic(computer) if computer.family == :pet
+          return [CBM2Media::BASIC_START, CBM2Media::TEXT_END, CBM2Media::EAL] if computer.family == :cbm2
           return [0x1c01, 0x1210, 0xae] if computer.family == :c128 && computer.mode == :c128
 
           [BASIC_START, 0x2d, 0xae]

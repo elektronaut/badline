@@ -9,6 +9,8 @@ require "badline/cbm2/acia"
 require "badline/cbm2/keyboard_ports"
 require "badline/cbm2/crtc_video"
 require "badline/cbm2/sid_page"
+require "badline/cbm2/ieee_layout"
+require "badline/cbm2/ieee_traps"
 require "badline/snapshot/cbm2_setup"
 require "badline/cbm2/keyed_state"
 require "badline/cbm2/keyed_modules"
@@ -29,14 +31,19 @@ module Badline
   # keyboard buffer in segment 15.
   #
   # The CRTC paints its picture from the screen RAM and the character ROM
-  # (CRTCVideo). Nothing answers on the IEEE-488 bus yet, so its lines
-  # float high. It runs headless.
+  # (CRTCVideo). Device 8 answers through traps on the KERNAL's IEEE-488
+  # primitives (IEEETraps), and nothing else answers on the bus, whose
+  # lines float high. It runs headless.
   class CBM2
     include Machine::KeyboardBuffer
     include Machine::Clocking
     include Machine::Settling
+    include IEEETraps
 
     CLOCK_HZ = 2_000_000
+
+    # The segment BASIC keeps its program text in.
+    TEXT_SEGMENT = 1
 
     # The editor's keyboard buffer in segment 15, KEYD at $03AB and NDX at
     # $D1, the same in 901244-03b and -04a.
@@ -100,6 +107,9 @@ module Badline
       @acia_due = Chips::ACIA::NEVER
       @init_handlers = []
       @pending_keys = nil
+      @dos = nil
+      @ieee_trap = nil
+      @capture_output = nil
       @init_threshold = boot_cycles
     end
 
@@ -154,6 +164,16 @@ module Badline
       @tpi2.reset!
       @bus.reset!
       @cpu.reset!
+    end
+
+    # Puts a program file's bytes where its first two say in BASIC's text
+    # segment, segment 1, and returns that address.
+    def load_prg(data)
+      load_addr = data[0] | (data[1] << 8)
+      bytes = data[2..] || []
+      bytes = bytes[0, 0x10000 - load_addr] if load_addr + bytes.length > 0x10000
+      bytes.each_with_index { |byte, i| @bus.poke_bank(TEXT_SEGMENT, load_addr + i, byte) }
+      load_addr
     end
 
     # Puts a cartridge's ROM chips in (Bus#attach_cartridge) and switches

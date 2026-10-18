@@ -565,7 +565,7 @@ Written by the C64, VIC-20, Plus/4.
 
 ## BL-TRAPDOS
 
-Written by the C64, PET.
+Written by the C64, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -592,12 +592,12 @@ Written by the C64, PET.
 | `serial.frame` | int | C64: 240 |
 | `serial.buffer` | bytes | C64: [] |
 | `save.saving` | bool | C64: false |
-| `ieee.listening` | bool | PET: false |
-| `ieee.talking` | bool | PET: false |
-| `ieee.listen_channel` | int, optional | PET: absent |
-| `ieee.talk_channel` | int, optional | PET: absent |
-| `ieee.frame` | int | PET: 240 |
-| `ieee.buffer` | bytes | PET: [] |
+| `ieee.listening` | bool | PET: false; CBM-II: false |
+| `ieee.talking` | bool | PET: false; CBM-II: false |
+| `ieee.listen_channel` | int, optional | PET: absent; CBM-II: absent |
+| `ieee.talk_channel` | int, optional | PET: absent; CBM-II: absent |
+| `ieee.frame` | int | PET: 240; CBM-II: 240 |
+| `ieee.buffer` | bytes | PET: []; CBM-II: [] |
 
 ## BL-D8
 

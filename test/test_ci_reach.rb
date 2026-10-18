@@ -63,6 +63,10 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check testbench-cbm2 testbench-pet testbench-pet-discrete], CIReach.suites(files)
   end
 
+  def test_the_ieee_traps_reach_the_cbm2s_testbench_too
+    assert_includes CIReach.suites(%w[lib/badline/kernal_trap/ieee.rb]), "testbench-cbm2"
+  end
+
   def test_the_2031_and_the_pets_bus_reach_the_drive_scenarios_too
     files = %w[lib/badline/pet.rb lib/badline/pet/ieee_ports.rb lib/badline/drives/model2031/ieee_port.rb
                lib/badline/drives/ieee_bus.rb lib/badline/roms/dos2031.rom]
