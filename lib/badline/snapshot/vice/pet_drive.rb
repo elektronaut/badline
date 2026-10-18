@@ -80,11 +80,12 @@ module Badline
             end
           end
 
-          # xpet's modules for the drive whose BL-D8 modules `readers` holds,
-          # and none without one.
+          # xpet's modules for the 2031 whose BL-D8 modules `readers` holds,
+          # and none without one or for an 8050 or 8250, which they leave
+          # out.
           def export(machine, readers)
             drive = readers["BL-D8"]
-            return [] if drive.nil?
+            return [] if drive.nil? || drive.text("model", "2031") != "2031"
 
             via2 = readers.fetch("BL-D8-VIA2")
             mechanism = readers.fetch("BL-D8-MECH")

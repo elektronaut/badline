@@ -172,7 +172,8 @@ for a badline editor other than xpet's own, `-editor` naming badline's
 ROM. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
 8296 saved for it has to run that editor (`--editor 4-80-b-50hz-0283`),
 and xpet takes the 8296's jumpers from its own settings. It keeps its
-own datasettes and leaves out badline's tapes and disk. A 2031 needs
+own datasettes and leaves out badline's tapes and disk, and an 8050 or
+8250, whose modules the export leaves out, keeping only badline's. A 2031 needs
 `-drive8type 2031 -drive8truedrive` and the disk attached as `-8`. Its
 snapshot is settled with the 2031's CPU between instructions too, and
 one saved while the 2031 talks on the bus can stall there in xpet, as
@@ -198,7 +199,7 @@ fitted, at 50 or 60 Hz, and an 8032, 8096 or 8296 whose CRTC lines are
 SuperPET's snapshot fails. It reports the modules it leaves out, such
 as the drives past device 8, the datasettes and the keyboard, and
 carries on without them, and a snapshot without a 2031 takes badline's
-off the bus and says so. Restored into a running PET, an xpet snapshot fails for a PET
+true drive, a 2031, an 8050 or an 8250, off the bus and says so. Restored into a running PET, an xpet snapshot fails for a PET
 built another way, such as a 3032B, and otherwise switches the machine
 off and on, keeping its tapes and the disk device 8 serves.
 

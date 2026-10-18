@@ -3,6 +3,7 @@
 require "spec_helper"
 require "tmpdir"
 require_relative "../support/taken_once"
+require_relative "../support/xpet_snapshots"
 
 describe Badline::PET do
   describe "snapshots" do
@@ -185,6 +186,19 @@ describe Badline::PET do
         machine = with_unit
         machine.restore(saved("8032").snapshot)
         expect([machine.true_drive, machine.ieee.bus.drives]).to eq([nil, []])
+      end
+
+      it "leaves the unit out of xpet's modules" do
+        names = Badline::Snapshot::Image.exported(with_unit).sections.map(&:name)
+        expect(names.grep(/\ADRIVE|VIA2D0|2031/)).to be_empty
+      end
+
+      it "takes the unit off the bus for xpet's modules without a drive, and says so" do
+        machine = described_class.new.tap { |pet| pet.plug_drive8050("8050") }
+        lines = []
+        xpet = XpetSnapshots.to_boundary(described_class.new).tap { |pet| XpetSnapshots.set_up_crtc(pet, XpetSnapshots::CRTC80) }
+        Badline::Snapshot::Image.new(XpetSnapshots.exported(xpet)).restore(machine) { |line| lines << line }
+        expect([machine.true_drive, lines.last]).to eq([nil, "the 8050 on device 8 is taken off the bus"])
       end
 
       it "exports a .vsf that loads back with the unit, which xpet's modules leave out" do
