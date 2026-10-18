@@ -2214,6 +2214,21 @@ testprogs named.
   - Spec guard: *past an R1 it missed*, *repeats a row*, *past an R9 it
     missed* and *past an R6 it missed* in
     [`chips/crtc_spec.rb`](../spec/badline/chips/crtc_spec.rb).
+- The R5 lines of vertical adjust end no row: the line counter counts
+  them from 0 to R5, and passing R9 neither restarts it nor moves the
+  next row's start, so every adjust line starts where the last row left
+  off. The datasheets (MOS 6545-1, sheets 7-11) give R5 as extra scan
+  lines to complete the frame, apart from the R4 rows, and the address
+  sequence of their figure 4 moves on only per row. The 8032's 901474-04
+  editor dated 0283 sets R5 above R9 (16 lines against 9-line rows, 17
+  against 8 in graphics mode) and its 313-line frame runs on real 8032s,
+  so passing R9 can't end a row there, and the same compare moving the
+  start would be a row end that doesn't happen. xpet's black box agrees.
+  Only a frame whose display runs on through the adjust (R6 past R4)
+  shows it; no editor's does, and the PET has no light pen wired.
+  - Not pinned by a test row: no testbench row runs the 0283 editor.
+  - Spec guard: *with a vertical adjust longer than a row* in
+    [`chips/crtc_spec.rb`](../spec/badline/chips/crtc_spec.rb).
 - The picture is framed as xpet frames its screenshots: R1's characters
   in the middle of 704 dots (80 columns) or 384 (40); each character as
   far right as it comes after its line's horizontal sync, so lines whose

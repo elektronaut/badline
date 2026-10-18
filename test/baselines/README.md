@@ -210,7 +210,12 @@ Recorded output of the headless hardware suites, one file per suite:
   is green. `crtc3`, `crtc10` and `crtc13` fail: their references are 258
   lines high, from an older xpet, and today's xpet doesn't match them
   either; today's xpet shifts some of `crtc3`'s lines by part of a
-  character, which badline doesn't. One row isn't in the testlist:
+  character, which badline doesn't. `crtc13` also opens the vertical
+  border onto screen RAM the editor never clears, which badline powers on
+  at zero: its reference shows xpet's own RAM-init pattern there, and no
+  byte-level record of a real PET's power-on RAM exists to model instead
+  (Fachat's photo of the test on an 8296D, `CRTC/screenshots/crtc13.jpg`,
+  can't be read to the byte). One row isn't in the testlist:
   `selftest/pet-pass.d82`, the selftest's disk mounted as device 8, its
   program loaded with `LOAD"*",8` through the traps on the IEEE-488
   primitives and run. On Spinel the rows run on `spinel/pet_testbench.rb`.

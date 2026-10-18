@@ -23,7 +23,8 @@ module Badline
     #   row ends after the line where it equals R9; past R9 it runs on to
     #   31 and wraps.
     # - The row counter (seven bits) counts rows to R4. R5 more lines of
-    #   vertical adjust follow, then the frame starts again. The display
+    #   vertical adjust follow, then the frame starts again. The line
+    #   counter counts them, and they end no row, past R9 or not. The display
     #   stops at the start of the row the counter equals R6, and comes back
     #   at the next frame; vertical sync starts with row R7 and lasts
     #   VSYNC_LINES lines.
@@ -91,7 +92,7 @@ module Badline
         column = @column
         if column == regs[1]
           @column_display = false
-          @row_start = @address if @line == regs[9]
+          @row_start = @address if @line == regs[9] && !@adjusting
         end
         @output.character(@address, @line, @since_hsync) if @column_display && @row_display
         if column == regs[2]
