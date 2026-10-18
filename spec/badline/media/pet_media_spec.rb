@@ -132,9 +132,9 @@ describe Badline::Media::PETMedia do
       expect(pet).to have_received(:type_text).with(%(load"*",8\rrun\r))
     end
 
-    it "refuses an 8250 disk, which the 2031 doesn't read" do
-      path = blank_d80(File.join(dir, "game.d82"), sides: 2)
-      expect { Badline::Media.attach(pet, path) }.to raise_error(Badline::Media::TrueDrive::Error, /the 2031 reads/)
+    it "swaps the 2031 for an 8250 for an 8250 disk" do
+      Badline::Media.attach(pet, blank_d80(File.join(dir, "game.d82"), sides: 2))
+      expect([pet.drive2031, pet.true_drive.model_name]).to eq([nil, "8250"])
     end
 
     it "refuses a .d81" do

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/drives/model2031"
+require "badline/drives/model8050"
 
 module Badline
   class PET
@@ -12,9 +13,13 @@ module Badline
       # The 2031 on the bus, or nil.
       attr_reader :drive2031
 
+      # The 8050 or 8250 on the bus, or nil.
+      attr_reader :drive8050
+
       # Plugs in a Drives::Model2031, in place of the one there.
       def attach_drive2031(drive)
         detach_drive2031
+        detach_drive8050
         drive.host_clock_hz = 1_000_000
         drive.connect(@ieee.bus)
         @drive2031 = drive
@@ -33,8 +38,38 @@ module Badline
         @ieee_trap&.device = trap_device
       end
 
+      # Plugs in a Drives::Model8050 or Model8250, in place of the drive
+      # there.
+      def attach_drive8050(drive)
+        detach_drive2031
+        detach_drive8050
+        drive.host_clock_hz = 1_000_000
+        drive.connect(@ieee.bus)
+        @drive8050 = drive
+        @ieee.lines_written
+        @ieee_trap&.device = trap_device
+        @init_threshold = [@init_threshold, Badline::Drives::Model8050::BOOT_CYCLES].max if @cycles < @init_threshold
+      end
+
+      # Unplugs the 8050, leaving it on a bus of its own.
+      def detach_drive8050
+        drive = @drive8050
+        return unless drive
+
+        drive.connect(Badline::Drives::IEEEBus.new)
+        @drive8050 = nil
+        @ieee_trap&.device = trap_device
+      end
+
+      # Plugs in an 8050, or an 8250 for +model+ "8250", as device 8, in
+      # place of the drive there, and returns it.
+      def plug_drive8050(model = "8050")
+        drive = model == "8250" ? Badline::Drives::Model8250.new : Badline::Drives::Model8050.new
+        drive.tap { |unit| attach_drive8050(unit) }
+      end
+
       # The true drive on the bus, or nil.
-      def true_drive = @drive2031
+      def true_drive = @drive8050 || @drive2031
 
       # Plugs in a 2031 as device 8, in place of the drive there, and
       # returns it.
@@ -43,6 +78,23 @@ module Badline
       end
 
       private
+
+      def init_ieee_drives
+        @drive2031 = nil
+        @drive8050 = nil
+      end
+
+      # The true drive's cycles for one of the PET's.
+      def clock_ieee_drives
+        @drive2031&.host_cycle!
+        @drive8050&.host_cycle!
+      end
+
+      # The RES line reaches the true drive as IFC.
+      def reset_ieee_drives
+        @drive2031&.reset!
+        @drive8050&.reset!
+      end
 
       # The 2031 as keyed snapshot modules named from its device number:
       # BL-D8, BL-D8-CPU and so on for device 8.

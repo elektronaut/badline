@@ -62,6 +62,18 @@ module Badline
         irq? ? lines & 0x7f : lines
       end
 
+      # How many cycles the RRIOT can run with no counter pulling IRQ.
+      def quiet_cycles = @timer.quiet_cycles
+
+      # Runs +cycles+ cycles at once, which moves only the timer.
+      def fast_forward(cycles)
+        @timer.fast_forward(cycles)
+      end
+
+      # Everything the RRIOT holds but its timer's counter, for comparing
+      # it at two points.
+      def idle_state = [*@ram, @ora, @orb, @ddra, @ddrb, *@timer.state, @timer.flag]
+
       def read_rom(addr) = @rom[addr & 0x3ff]
 
       def read_ram(addr) = @ram[addr & 0x3f]

@@ -21,6 +21,14 @@ module Badline
 
         attr_reader :common, :rom, :data_riot, :control_riot, :data
 
+        # How many writes have changed a byte of the common RAM
+        # (Model8050::Idle).
+        attr_reader :common_changes
+
+        # Whether a timer or the interrupt flags have been read since it was
+        # last cleared (Model8050::Idle).
+        attr_accessor :volatile
+
         def initialize(rom:, common:, data_riot:, control_riot:)
           addressable_at(0, length: 2**16)
           @rom = rom
@@ -28,6 +36,8 @@ module Badline
           @data_riot = data_riot
           @control_riot = control_riot
           @data = 0
+          @volatile = false
+          @common_changes = 0
         end
 
         def peek(addr)
@@ -49,13 +59,19 @@ module Badline
           if addr < 0x1000
             poke_riots(addr, value)
           else
-            @common.poke((((addr >> 12) - 1) << 10) | (addr & 0x03ff), value)
+            poke_common((((addr >> 12) - 1) << 10) | (addr & 0x03ff), value)
           end
         end
 
         private
 
+        def poke_common(index, value)
+          @common_changes += 1 if @common.peek(index) != value
+          @common.poke(index, value)
+        end
+
         def peek_riots(addr)
+          @volatile = true if addr & 0x204 == 0x204
           if addr.anybits?(0x80)
             addr.anybits?(0x200) ? @control_riot.peek(addr & 0x1f) : @control_riot.read_ram(addr)
           else

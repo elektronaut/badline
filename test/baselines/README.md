@@ -389,9 +389,16 @@ Recorded output of the headless hardware suites, one file per suite:
     read the error channel on a 3032 and a 2001. `pet-2031-idle` runs two
     4032s side by side through the 2031's boot and a LOAD of the
     directory, as `plus4-1551-idle` does.
+  - `pet-8050-*` and `pet-8250-*` run the 2031's format, save,
+    autostart and error-channel checks, and the 8050 its read-only ones,
+    with a true 8050 on a .d80 or an 8250 on a .d82
+    (`test/support/drive_scenarios_8050.rb`). The formats take the most
+    cycles: N: writes and verifies every track, 77 on the 8050 and 154
+    on the 8250. `pet-8050-idle` runs two 4032s side by side, a sleeping
+    8050 beside a stepping one, as `pet-2031-idle` does.
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom`,
-  `dos1581.rom` and `dos2031.rom` in the ROM path.
+  `dos1581.rom`, `dos2031.rom` and `8050/` in the ROM path.
 - `drive-scenarios-cpm.txt` — `bin/drive_scenarios cpm-zex`: ZEXDOC and
   ZEXALL run from the same disk under that CP/M, each until it reports
   its tests complete. `cpm-zexdoc` and `cpm-zexall` check that it got

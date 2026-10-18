@@ -165,6 +165,24 @@ describe Badline::Drives::Model8050::Mechanism do
     end
   end
 
+  describe "#quiet?" do
+    it "is quiet with the motors off and no disk going in" do
+      drives(0x30)
+      expect(mechanism.quiet?).to be(true)
+    end
+
+    it "isn't with a motor on" do
+      spin
+      expect(mechanism.quiet?).to be(false)
+    end
+
+    it "isn't while a disk goes in" do
+      drives(0x30)
+      mechanism.insert(disk)
+      expect(mechanism.quiet?).to be(false)
+    end
+  end
+
   describe "the 6530's port B" do
     it "reads write protect high as a disk goes in" do
       mechanism.insert(disk)

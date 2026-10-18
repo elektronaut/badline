@@ -76,6 +76,10 @@ module Badline
         # Whether the controller has moved ATN since the last latch_host.
         def atn_moved? = (@bus.host_lines ^ @host).anybits?(IEEEBus::ATN)
 
+        # Whether the controller has moved any line since the last
+        # latch_host.
+        def lines_moved? = @bus.host_lines != @host
+
         def atn_low? = @host.anybits?(IEEEBus::ATN)
 
         # UC1's port A: the data lines.

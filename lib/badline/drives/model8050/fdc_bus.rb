@@ -22,12 +22,22 @@ module Badline
 
         attr_reader :common, :via, :rriot, :data
 
+        # How many writes have changed a byte of the common RAM
+        # (Model8050::Idle).
+        attr_reader :common_changes
+
+        # Whether a counter or an interrupt flag has been read since it was
+        # last cleared (Model8050::Idle).
+        attr_accessor :volatile
+
         def initialize(common:, via:, rriot:)
           addressable_at(0, length: 2**16)
           @common = common
           @via = via
           @rriot = rriot
           @data = 0
+          @volatile = false
+          @common_changes = 0
         end
 
         def peek(addr)
@@ -49,17 +59,31 @@ module Badline
           if addr < 0x0400
             poke_chips(addr, value)
           elsif addr < 0x1400
-            @common.poke(addr - 0x0400, value)
+            poke_common(addr - 0x0400, value)
           end
         end
 
         private
 
+        def poke_common(index, value)
+          @common_changes += 1 if @common.peek(index) != value
+          @common.poke(index, value)
+        end
+
         def peek_chips(addr)
-          return @rriot.peek(addr & 0x0f) if addr.anybits?(0x80)
-          return @via.peek(0x40 | (addr & 0x0f)) if addr.anybits?(0x40)
+          if addr.anybits?(0x80)
+            @volatile = true if addr.anybits?(0x04)
+            return @rriot.peek(addr & 0x0f)
+          end
+          return peek_via(addr & 0x0f) if addr.anybits?(0x40)
 
           @rriot.read_ram(addr)
+        end
+
+        # The VIA's counters, shift register and flags move on their own.
+        def peek_via(register)
+          @volatile = true if register.between?(0x04, 0x0a) || register == 0x0d
+          @via.peek(0x40 | register)
         end
 
         def poke_chips(addr, value)

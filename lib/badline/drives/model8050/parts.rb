@@ -24,11 +24,13 @@ module Badline
       # The interface processor's 6502, UN1, on the IPBus.
       class IPCPU
         include Badline::Chips::CPU::Core
+        include Engine::IdleCPU
       end
 
       # The floppy controller's 6502, UH3, on the FDCBus.
       class FDCCPU
         include Badline::Chips::CPU::Core
+        include Engine::IdleCPU
       end
     end
   end

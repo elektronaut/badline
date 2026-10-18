@@ -86,6 +86,14 @@ describe Badline::Chips::RRIOT do
     end
   end
 
+  describe "idling" do
+    it "runs only the timer on in fast_forward" do
+      rriot.poke(0x0d, 52)
+      rriot.fast_forward(213)
+      expect([rriot.timer.counter, rriot.quiet_cycles]).to eq([25, 415 - 213])
+    end
+  end
+
   describe "the timer" do
     it "loads with A2 high whatever A4, A1-A0 picking the divider" do
       rriot.poke(0x05, 2)

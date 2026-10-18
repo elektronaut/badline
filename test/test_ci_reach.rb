@@ -52,8 +52,11 @@ class TestCIReach < Minitest::Test
     assert_includes CIReach.suites(files), "testbench-cbm2"
   end
 
-  def test_the_8050_roms_reach_only_the_spinel_check
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/8050/fdc-901869-01.rom])
+  def test_the_8050_and_its_roms_reach_the_drive_scenarios
+    files = %w[lib/badline/roms/8050/fdc-901869-01.rom lib/badline/drives/model8050.rb lib/badline/chips/riot.rb
+               lib/badline/chips/rriot.rb]
+
+    assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)
   end
 
   def test_the_pet_and_its_roms_reach_the_pet_testbenches
@@ -82,10 +85,6 @@ class TestCIReach < Minitest::Test
 
   def test_the_via_reaches_the_pet_testbenches
     assert_empty %w[testbench-pet testbench-pet-discrete] - CIReach.suites(%w[lib/badline/chips/via.rb])
-  end
-
-  def test_the_riots_reach_only_the_spinel_check
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/riot.rb lib/badline/chips/riot/timer.rb])
   end
 
   def test_input_reaches_a_suite_of_every_family
