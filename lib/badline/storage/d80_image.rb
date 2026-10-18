@@ -31,7 +31,7 @@ module Badline
       def directory_track = 39
       def directory_sector = 1
       def directory_interleave = 3
-      def interleave = 6
+      def interleave = 5
 
       # Only the directory track is kept from files. The BAM's blocks on
       # track 38 are marked in use, and the rest of that track holds files.
