@@ -57,6 +57,10 @@ class TestCIReach < Minitest::Test
     assert_empty %w[testbench-pet testbench-pet-discrete] - CIReach.suites(%w[lib/badline/chips/via.rb])
   end
 
+  def test_the_riots_reach_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/riot.rb lib/badline/chips/riot/timer.rb])
+  end
+
   def test_input_reaches_a_suite_of_every_family
     reached = CIReach.suites(%w[lib/badline/input/keyboard.rb lib/badline/input.rb])
 
