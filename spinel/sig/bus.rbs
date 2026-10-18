@@ -279,4 +279,24 @@ module Badline
       def poke: (Integer, Integer) -> void
     end
   end
+
+  class CBM2
+    class Bus
+      @data: Integer
+      @execution_segment: Integer
+      @indirect_segment: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> void
+
+      class OpenBus
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+
+      class Registers
+        def peek: (Integer) -> Integer
+        def poke: (Integer, Integer) -> void
+      end
+    end
+  end
 end

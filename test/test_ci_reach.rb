@@ -15,6 +15,10 @@ class TestCIReach < Minitest::Test
     assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/kernal_trap/load.rb])
   end
 
+  def test_the_cbm2_reaches_only_the_spinel_check_until_it_has_suites
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/cbm2.rb lib/badline/cbm2/bus.rb])
+  end
+
   def test_specs_reach_nothing
     assert_empty CIReach.suites(%w[spec/badline/chips/cia_spec.rb])
   end
