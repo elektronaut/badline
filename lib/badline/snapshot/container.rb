@@ -41,8 +41,8 @@ module Badline
       # xcbm2 names its machine CBM-II, for every B series model.
       CBM2 = "CBM-II"
       # The file format version each machine's VICE emulator reads, where
-      # it isn't FORMAT_MAJOR.0: xpet refuses any other than 1.0.
-      FORMAT_MAJORS = { PET => 1 }.freeze
+      # it isn't FORMAT_MAJOR.0: xpet and xcbm2 refuse any other than 1.0.
+      FORMAT_MAJORS = { PET => 1, CBM2 => 1 }.freeze
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version

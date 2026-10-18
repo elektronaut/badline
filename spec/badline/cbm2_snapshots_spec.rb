@@ -52,8 +52,9 @@ describe Badline::CBM2 do
         .to raise_error(Badline::Snapshot::FormatError, /610 with KERNAL 04a at 50 Hz, not a 620/)
     end
 
-    it "refuses an export for VICE" do
-      expect { saved.export_snapshot(path) }.to raise_error(Badline::Snapshot::FormatError, /CBM-II/)
+    it "exports with xcbm2's modules ahead of badline's" do
+      saved.export_snapshot(path)
+      expect(Badline::Snapshot.read(path).sections.map(&:name).first(3)).to eq(%w[MAINCPU CBM2MEM CBM2CART])
     end
   end
 end

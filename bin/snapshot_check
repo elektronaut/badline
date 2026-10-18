@@ -28,11 +28,15 @@
 # Where two snapshots differ it names the module, and in a BL-* module the
 # keys whose records differ.
 #
-# --vice checks the divergence of the PET scenarios through xpet's
-# modules: it saves each with xpet's modules (Snapshot::Vice::PET), loads
-# a new machine from those alone, and runs the two side by side. The first
-# checkpoint comes after the picture, which a load from xpet's modules
-# paints again, has caught up.
+# --vice checks the divergence of the PET and CBM-II scenarios through
+# xpet's or xcbm2's modules: it saves each with VICE's modules
+# (Snapshot::Vice::PET, Snapshot::Vice::CBM2), loads a new machine from
+# those alone, and runs the two side by side. The first checkpoint comes
+# after the picture, which a load from VICE's modules paints again, has
+# caught up. xcbm2 saves no mains, which it ticks where its CRTC says
+# (Snapshot::Vice::CBM2::Mains), and no TPI priority stacks, so a
+# CBM-II's mains is moved there and its stacks emptied before it is
+# saved.
 #
 # --carts saves every cartridge mapper's module after register writes,
 # reads and freezes (test/support/snapshot_cartridges.rb), builds a
@@ -59,7 +63,7 @@ parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/snapshot_check [filter] [options]"
   opts.on("--cycles N", Integer, "Cycles to run after the save point (default: 2000000)") { |n| options[:cycles] = n }
   opts.on("--every K", Integer, "Cycles between checkpoints (default: 500000)") { |n| options[:every] = n }
-  opts.on("--vice", "Check the PET scenarios through xpet's modules alone") { options[:mode] = :vice }
+  opts.on("--vice", "Check the PET and CBM-II scenarios through VICE's modules alone") { options[:mode] = :vice }
   opts.on("--carts", "Check every cartridge mapper's state") { options[:mode] = :carts }
   opts.on("--write DIR", "Save each scenario's snapshot and screen into DIR") do |dir|
     options[:mode] = :write
@@ -203,22 +207,59 @@ module SnapshotCheck
     [Badline::Snapshot::Image.new(container).load { |line| ignored << line }, ignored]
   end
 
-  # Divergence through xpet's modules for one PET scenario, at each
-  # checkpoint: xpet's modules don't carry what badline keeps for itself
-  # alone, such as its instruction count. A scenario with a tape, a disk
-  # or an 8050, which xpet's modules don't carry either, is skipped.
-  # Returns whether it passed.
+  # Why VICE's modules can't carry the machine, or nil: a tape, a disk, a
+  # cartridge or an 8050, or a CBM-II 700 at 60 Hz, which xcbm2 doesn't
+  # build.
+  def unsaved(machine)
+    return "its media" if machine.mounted?
+    return unsaved_pet(machine) if machine.family == :pet
+    return "a 700 at 60 Hz" if machine.model.high_profile && machine.mains_hz == 60
+
+    ram = machine.save_modules.find { |section| section.name == "BL-RAM" }
+    Badline::Snapshot::Keyed::Reader.parse(ram).ints("cartridge.addresses", []).empty? ? nil : "its media"
+  end
+
+  def unsaved_pet(machine)
+    return "its media" if machine.cassettes.datasette1.tape
+
+    machine.drive8050 ? "an 8050" : nil
+  end
+
+  # Takes a CBM-II's state that xcbm2's modules don't carry to what a load
+  # from them makes of it: the mains, which xcbm2 ticks where its CRTC
+  # says, and the TPIs' priority stacks, which it doesn't save. Each
+  # module gains those records of the load's, which count over its own.
+  def conform(machine)
+    mains = Badline::Snapshot::Keyed::Reader.parse(load_vice(machine).first.save_modules.first)
+    sections = machine.save_modules.map do |section|
+      extra = Badline::Snapshot::Keyed::Writer.new
+      case section.name
+      when "BL-MACHINE"
+        extra.int("mains_countdown", mains.int("mains_countdown", 0)).bool("mains_high", mains.bool("mains_high", true))
+      when "BL-TPI1", "BL-TPI2" then extra.ints("stack", [])
+      else next section
+      end
+      section.with(data: Zlib.deflate(Zlib.inflate(section.data) + extra.to_s))
+    end
+    machine.load_modules(Badline::Snapshot::Keyed::Modules.new(sections))
+  end
+
+  # Divergence through xpet's or xcbm2's modules for one PET or CBM-II
+  # scenario, at each checkpoint: VICE's modules don't carry what badline
+  # keeps for itself alone, such as its instruction count. A scenario
+  # they can't carry either (#unsaved) is skipped. Returns whether it
+  # passed.
   def restores_through_vice?(scenario, options)
     Dir.mktmpdir do |dir|
       machine = scenario.build.call(dir)
       scenario.advance.call(machine)
-      if machine.mounted? || machine.cassettes.datasette1.tape || machine.drive8050
-        puts "#{scenario.name}: skipped, as xpet's modules don't carry its tape, disk or 8050"
-        next true
-      end
+      emulator = machine.family == :cbm2 ? "xcbm2" : "xpet"
+      reason = unsaved(machine)
+      next puts("#{scenario.name}: skipped, as #{emulator}'s modules don't carry #{reason}") || true if reason
 
+      conform(machine) if machine.family == :cbm2
       restored, ignored = load_vice(machine)
-      puts "#{scenario.name}: saved for xpet at cycle #{machine.cycles}"
+      puts "#{scenario.name}: saved for #{emulator} at cycle #{machine.cycles}"
       ignored.each { |line| puts "  left out: #{line}" }
       checkpoints_alike?(machine, restored, options)
     end
@@ -296,10 +337,10 @@ passed =
   when :list then SnapshotMachines.all.each { |scenario| puts scenario.name }
   when :carts then SnapshotCheck.carts_identical?(ARGV.first)
   when :vice
-    scenarios = SnapshotMachines.matching(ARGV.first).select { |scenario| scenario.family == :pet }
-    abort "snapshot_check: no PET scenario matches #{ARGV.first}" if scenarios.empty?
+    scenarios = SnapshotMachines.matching(ARGV.first).select { |scenario| %i[pet cbm2].include?(scenario.family) }
+    abort "snapshot_check: no PET or CBM-II scenario matches #{ARGV.first}" if scenarios.empty?
     results = scenarios.map { |scenario| SnapshotCheck.restores_through_vice?(scenario, options) }
-    puts "#{results.count(true)} of #{results.size} scenarios run on alike through xpet's modules"
+    puts "#{results.count(true)} of #{results.size} scenarios run on alike through VICE's modules"
     results.all?
   when :write
     SnapshotCheck.write(SnapshotMachines.matching(ARGV.first), options)
