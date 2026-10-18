@@ -114,10 +114,14 @@ module SnapshotCheck
 
   # The text screen in RAM: 40 by 25 at $0400 on a C64 or a C128 and at
   # $0C00 on the 264 series, on a VIC-20 22 by 23 at the page the KERNAL
-  # keeps in $0288, and on a PET 40 or 80 by 25 in its screen RAM.
+  # keeps in $0288, on a PET 40 or 80 by 25 in its screen RAM, and on a
+  # CBM-II 80 by 25 at $D000 of segment 15.
   def screen(machine)
     if machine.family == :pet
       return screen_text(machine.bus.screen.cells, machine.model.video == :crtc80 ? 80 : 40, 25)
+    end
+    if machine.family == :cbm2
+      return screen_text(Array.new(2000) { |index| machine.bus.screen.peek(0xd000 + index) }, 80, 25)
     end
 
     ram = machine.ram

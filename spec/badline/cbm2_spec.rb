@@ -1,19 +1,9 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require_relative "../support/taken_once"
+require_relative "../support/cbm2_boot"
 
 describe Badline::CBM2 do
-  # The text screen at $D000 of segment 15, 80 columns, in ASCII.
-  def screen(machine)
-    (0...25).map do |row|
-      (0...80).map do |column|
-        code = machine.bus.peek_bank(15, 0xd000 + (row * 80) + column) & 0x7f
-        (code < 0x20 ? code + 0x60 : code).chr
-      end.join.rstrip
-    end
-  end
-
   it "is the 610 with VICE's KERNAL at 50 Hz by default" do
     machine = described_class.new
     expect([machine.model.name, machine.kernal, machine.mains_hz]).to eq(["610", "04a", 50])
@@ -157,24 +147,26 @@ describe Badline::CBM2 do
   end
 
   describe "booted", :slow do
-    # A 610's screen's lines once BASIC is up, and after `print 6*7`.
-    def booted_once
-      TakenOnce.fetch(:cbm2_booted) do
-        machine = described_class.new
-        machine.type_text("print 6*7\r")
-        machine.run_cycles(machine.init_threshold)
-        ready = screen(machine).reject(&:empty?)
-        machine.run_cycles(500_000)
-        [ready, screen(machine).reject(&:empty?)]
-      end
-    end
+    include CBM2Boot
 
     it "shows BASIC 128's banner, then READY, once segments 1 and 2 are tested" do
-      expect(booted_once.first).to eq(["*** commodore basic 128, v4.0 ***", "ready."])
+      expect(screen_lines(booted("610"))).to eq(["*** commodore basic 128, v4.0 ***", "ready."])
     end
 
     it "prints 6*7" do
-      expect(booted_once.last).to eq(["*** commodore basic 128, v4.0 ***", "ready.", "print 6*7", " 42", "ready."])
+      machine = booted("610")
+      machine.type_text("print 6*7\r")
+      machine.run_cycles(500_000)
+      expect(screen_lines(machine).last(3)).to eq(["print 6*7", " 42", "ready."])
+    end
+
+    # The mains' interrupt scans the keyboard.
+    it "types a key held down on the matrix" do
+      machine = booted("610")
+      machine.keyboard.press(:q)
+      machine.run_cycles(100_000)
+      machine.keyboard.release(:q)
+      expect(screen_lines(machine).last).to eq("q")
     end
   end
 end

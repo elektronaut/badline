@@ -34,7 +34,15 @@ module Badline
     # of a machine in memory (.of).
     class Image
       MACHINE = "BL-MACHINE"
-      FAMILIES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4", "pet" => "PET" }.freeze
+      FAMILIES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4", "pet" => "PET",
+                   "cbm2" => "CBM-II" }.freeze
+
+      # The snapshots VICE's emulators write that badline doesn't read, by
+      # the machine their container names.
+      UNREAD = {
+        Container::VIC20 => "VIC-20 snapshots, not xvic's", Container::C128 => "C128 snapshots, not x128's",
+        Container::PLUS4 => "Plus/4 snapshots, not xplus4's", Container::CBM2 => "CBM-II snapshots, not xcbm2's"
+      }.freeze
 
       attr_reader :container
 
@@ -55,9 +63,11 @@ module Badline
 
       # The snapshot with VICE's modules ahead of the BL-* ones for a C64
       # or a PET, so x64sc or xpet opens it too. Raises FormatError for a
-      # Plus/4, whose snapshots badline doesn't write for xplus4.
+      # Plus/4 or a CBM-II, whose snapshots badline doesn't write for
+      # xplus4 or xcbm2.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
+        raise FormatError, "badline doesn't export a CBM-II's snapshot for VICE" if computer.family == :cbm2
 
         computer.settle_for_vice!
         sections = computer.save_modules
@@ -75,6 +85,7 @@ module Badline
         when :c128 then Container::C128
         when :plus4 then Container::PLUS4
         when :pet then Container::PET
+        when :cbm2 then Container::CBM2
         else Container::MACHINE
         end
       end
@@ -87,6 +98,7 @@ module Badline
         when "c128" then C128Setup.read_fields(machine)
         when "plus4" then Plus4Setup.read_fields(machine)
         when "pet" then PETSetup.read_fields(machine)
+        when "cbm2" then CBM2Setup.read_fields(machine)
         else C64Setup.read_fields(machine)
         end
       end
@@ -108,9 +120,7 @@ module Badline
       # restores it without the host's files (Keyed::Modules).
       def load(detached: false, &)
         refuse_old_layout
-        raise FormatError, "badline reads only its own VIC-20 snapshots, not xvic's" if vic20? && !badline?
-        raise FormatError, "badline reads only its own C128 snapshots, not x128's" if c128? && !badline?
-        raise FormatError, "badline reads only its own Plus/4 snapshots, not xplus4's" if plus4? && !badline?
+        refuse_unread
         return load_xpet(&) if pet? && !badline?
         return load_vice(&) unless badline?
 
@@ -132,11 +142,16 @@ module Badline
       # Whether the machine is a PET, as the container names it.
       def pet? = @container.machine == Container::PET
 
+      # Whether the machine is a CBM-II, as the container names it.
+      def cbm2? = @container.machine == Container::CBM2
+
       # Restores `computer` from the snapshot, and returns the Report. The
       # snapshot goes into a new machine first, so one that fails, or is of
       # a machine built another way, leaves `computer` as it was.
       def restore(computer, &)
         refuse_old_layout
+        raise FormatError, "badline reads only its own CBM-II snapshots, not xcbm2's" if cbm2? && !badline?
+
         report = if badline? then restore_modules(computer)
                  elsif pet? then Vice::PET::Restore.import(@container, computer)
                  else Vice::Restore.import(@container, computer)
@@ -173,6 +188,11 @@ module Badline
         opening { Image.setup(trial.machine).build.load_modules(trial) }
         opening { computer.load_modules(modules) }
         report(modules, computer)
+      end
+
+      def refuse_unread
+        unread = UNREAD[@container.machine]
+        raise FormatError, "badline reads only its own #{unread}" if unread && !badline?
       end
 
       # A snapshot from a badline before the keyed modules, which only the

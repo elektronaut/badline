@@ -9,6 +9,9 @@ require "badline/cbm2/acia"
 require "badline/cbm2/keyboard_ports"
 require "badline/cbm2/blank_video"
 require "badline/cbm2/sid_page"
+require "badline/snapshot/cbm2_setup"
+require "badline/cbm2/keyed_state"
+require "badline/cbm2/keyed_modules"
 
 module Badline
   # The Commodore CBM-II's B series, the 610, 620, 710 and 720: a 6509 at
@@ -30,6 +33,7 @@ module Badline
   class CBM2
     include Machine::KeyboardBuffer
     include Machine::Clocking
+    include Machine::Settling
 
     CLOCK_HZ = 2_000_000
 

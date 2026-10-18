@@ -36,8 +36,8 @@ module Badline
     # end of the instruction its CPU is in, and of an REU transfer under
     # way (Machine::Settling), so a save advances it by a few cycles, and a
     # second save straight after runs none. A VIC-20's, a C128's, a
-    # Plus/4's or a PET's snapshot is in a container named as xvic, x128,
-    # xplus4 or xpet names its machine.
+    # Plus/4's, a PET's or a CBM-II's snapshot is in a container named as
+    # xvic, x128, xplus4, xpet or xcbm2 names its machine.
     def dump(computer) = Image.of(computer).to_s
 
     def read(path) = Image.new(Container.parse(File.binread(path)), name: File.basename(path))
@@ -52,7 +52,7 @@ module Badline
     def restore(computer, path, &) = read(path).restore(computer, &)
 
     # A machine's snapshots, as .vsf files and in memory. C64, Vic20, C128,
-    # Plus4 and PET each include it.
+    # Plus4, PET and CBM2 each include it.
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
 
@@ -97,6 +97,10 @@ module Badline
   end
 
   class PET
+    include Snapshot::Files
+  end
+
+  class CBM2
     include Snapshot::Files
   end
 end

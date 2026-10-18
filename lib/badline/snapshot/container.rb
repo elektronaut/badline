@@ -38,6 +38,8 @@ module Badline
       PLUS4 = "PLUS4"
       # xpet names its machine PET, for every model.
       PET = "PET"
+      # xcbm2 names its machine CBM-II, for every B series model.
+      CBM2 = "CBM-II"
       # The file format version each machine's VICE emulator reads, where
       # it isn't FORMAT_MAJOR.0: xpet refuses any other than 1.0.
       FORMAT_MAJORS = { PET => 1 }.freeze
