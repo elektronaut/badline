@@ -48,7 +48,8 @@ module Badline
 
     # The machine's own fields in a keyed snapshot module (Snapshot::Keyed,
     # BL-MACHINE): the family, its setup by name (Snapshot::CBM2Setup), the
-    # cycle count, where the mains is in its period, and the host's typing
+    # cycle count, where the mains is in its period, the refresh counter,
+    # and the host's typing
     # still to feed and on_init handlers still to run under host.*. The
     # badline version that wrote it is written for reports and never read.
     module KeyedState
@@ -67,6 +68,7 @@ module Badline
         out.text("family", "cbm2").text("written_by", VERSION)
         Snapshot::CBM2Setup.of(self).write_fields(out)
         out.int("cycles", @cycles).int("mains_countdown", @mains_countdown).bool("mains_high", @mains_high)
+        out.int("refresh", @refresh)
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
         out.int("host.init_pending", @cycles <= @init_threshold ? @init_handlers.length : 0)
@@ -77,6 +79,7 @@ module Badline
         countdown = input.int("mains_countdown", @mains_countdown)
         @mains_countdown = countdown.between?(1, @mains_half_period) ? countdown : @mains_half_period
         @mains_high = input.bool("mains_high", @mains_high)
+        @refresh = input.int("refresh", 0).clamp(0, REFRESH_COUNT)
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max

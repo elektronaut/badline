@@ -32,6 +32,9 @@ module Badline
   # jumpers (KeyboardPorts), and type_text types through the editor's
   # keyboard buffer in segment 15.
   #
+  # The DRAM's refresh takes the CPU's clock away for a cycle (Refresh),
+  # every 20 cycles or so: about 4.5% of its time.
+  #
   # The CRTC paints its picture from the screen RAM and the character ROM
   # (CRTCVideo). Device 8 answers through traps on the KERNAL's IEEE-488
   # primitives (IEEETraps), or a true 2031, 8050 or 8250 on the bus
@@ -44,6 +47,14 @@ module Badline
     include IEEEDrive
 
     CLOCK_HZ = 2_000_000
+
+    # The DRAM refresh (sheet 3 of schematic 8256043, U89 and U55): a
+    # counter of the CPU's cycles asks for a refresh once it reaches 20,
+    # stops there, and the refresh comes on the next opcode fetch (SYNC),
+    # which it holds off a cycle with RDY while it stops the CPU's clock,
+    # and clears the counter. The burn-in's 6526 timer test counts loops
+    # against timer A and passes only with it.
+    REFRESH_COUNT = 20
 
     # The segment BASIC keeps its program text in.
     TEXT_SEGMENT = 1
@@ -109,6 +120,7 @@ module Badline
       @mains_half_period = CLOCK_HZ / (2 * mains_hz)
       @mains_countdown = @mains_half_period
       @mains_high = true
+      @refresh = 0
       @acia_irq = false
       @acia_due = Chips::ACIA::NEVER
       @init_handlers = []
@@ -149,7 +161,13 @@ module Badline
       tpi1.interrupt_line(2, !@cia.interrupted?)
       tpi1.interrupt_line(4, !@acia_irq)
       @cpu.irq = tpi1.irq?
-      @cpu.cycle!
+      if @refresh >= REFRESH_COUNT && @cpu.boundary?
+        @refresh = 0
+        @cpu.stall!
+      else
+        @refresh += 1 if @refresh < REFRESH_COUNT
+        @cpu.cycle!
+      end
       clock_ieee_drives
 
       @cycles += 1
@@ -236,8 +254,8 @@ module Badline
       @mains_hz == 60 ? [127, 262] : [128, 313]
     end
 
-    # The cycle by which the KERNAL has tested the RAM board, about 3.54
-    # million cycles a segment, and BASIC printed READY, with a margin.
-    def boot_cycles = 1_000_000 + (3_600_000 * @model.ram_segments.length)
+    # The cycle by which the KERNAL has tested the RAM board, about 3.7
+    # million cycles a segment with the refresh, and BASIC printed READY, with a margin.
+    def boot_cycles = 1_000_000 + (3_800_000 * @model.ram_segments.length)
   end
 end

@@ -126,6 +126,16 @@ describe Badline::CBM2 do
     end
   end
 
+  # Sheet 3 of schematic 8256043: the refresh counter asks after 20 of the
+  # CPU's cycles, and the refresh holds off the next opcode fetch a cycle.
+  # A JMP loop fetches every third cycle, so it waits a cycle for one: 21
+  # of the CPU's cycles and the refresh's, every 22.
+  it "takes a cycle for the DRAM's refresh at an opcode fetch after 20 of the CPU's" do
+    machine = looping
+    machine.run_cycles(2_200)
+    expect(machine.cpu.cycles).to eq(2_200 - 100)
+  end
+
   it "latches the CIA's interrupt on TPI1's I2" do
     machine = looping
     machine.poke(0xde06, 0x01)
