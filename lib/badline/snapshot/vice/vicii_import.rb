@@ -4,20 +4,24 @@ module Badline
   module Snapshot
     module Vice
       module VICII
-        # Reads a VIC-II module and puts it into badline's VIC.
+        # Reads a VIC-II module and puts it into badline's VIC. A reader of
+        # another layout passes no fields and sets the same state itself.
         class Import
           def initialize(fields)
             @fields = fields
+            return if fields.nil?
+
             read_beam
             read_counters
             read_sprites
           end
 
-          def apply(computer)
-            vic = computer.vic
-            computer.address_bus.color_ram.tap do |ram|
-              @color_ram.each_with_index { |value, offset| ram.poke(0xd800 + offset, value) }
-            end
+          def apply(computer) = apply_to(computer.vic, computer.address_bus.color_ram, 0xd800)
+
+          # Puts it into `vic`, with its colour RAM into `color_ram` from
+          # `base`.
+          def apply_to(vic, color_ram, base)
+            @color_ram.each_with_index { |value, offset| color_ram.poke(base + offset, value) }
             load_registers(vic)
             position(vic)
             load_counters(vic)

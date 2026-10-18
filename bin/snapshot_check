@@ -221,7 +221,8 @@ module SnapshotCheck
   def unsaved(machine)
     return "its media" if machine.mounted?
     return unsaved_pet(machine) if machine.family == :pet
-    return "a 700 at 60 Hz" if machine.model.high_profile && machine.mains_hz == 60
+    return "a 700 at 60 Hz" if machine.model.respond_to?(:high_profile) && machine.model.high_profile &&
+                               machine.mains_hz == 60
 
     ram = machine.save_modules.find { |section| section.name == "BL-RAM" }
     Badline::Snapshot::Keyed::Reader.parse(ram).ints("cartridge.addresses", []).empty? ? nil : "its media"
@@ -229,14 +230,27 @@ module SnapshotCheck
 
   def unsaved_pet(machine) = machine.cassettes.datasette1.tape ? "its media" : nil
 
-  # The records VICE's modules don't carry, by module: a CBM-II's mains,
-  # which xcbm2 ticks where its CRTC says, and its TPIs' priority stacks,
-  # and the phase a 2031's stepper is offset by, with the port that drives
-  # it (Snapshot::Vice::PET::Drive2031). An 8050's controller comes back
-  # as a unit switched on has it, whole (Snapshot::Vice::PET::Drive8050).
-  UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high], "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack],
-              "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb] }.freeze
+  # The records VICE's modules don't carry, by module: the cycles a CPU has
+  # run, which a P500's VIC stalls it for, a CBM-II's mains, which xcbm2
+  # ticks where its CRTC says, its DRAM refresh's count, the last byte on
+  # its bus, the keys the host has yet to type and its TPIs' priority
+  # stacks, and the phase a 2031's stepper is offset by, with the port
+  # that drives it (Snapshot::Vice::PET::Drive2031). An 8050's controller
+  # comes back as a unit switched on has it, whole
+  # (Snapshot::Vice::PET::Drive8050), and a P500's VIC as xcbm5x0's
+  # line-based VIC-II leaves it, whole (Snapshot::Vice::P500::VICII).
+  UNSAVED = { "BL-MACHINE" => %w[mains_countdown mains_high refresh host.pending_keys], "BL-RAM" => %w[data],
+              "BL-TPI1" => %w[stack], "BL-TPI2" => %w[stack], "BL-D8-MECH" => %w[slip], "BL-D8-VIA2" => %w[orb],
+              "BL-CPU" => %w[cycles] }.freeze
   CONTROLLER = %w[BL-D8 BL-D8-FDCCPU BL-D8-VIA BL-D8-RRIOT BL-D8-MECH].freeze
+
+  # The modules a load from VICE's modules makes afresh, whole.
+  def remade(machine)
+    return CONTROLLER if machine.family == :pet && machine.drive8050
+    return %w[BL-VIC] if machine.is_a?(Badline::CBM2::P500)
+
+    []
+  end
 
   # Takes the machine's state that VICE's modules don't carry (UNSAVED) to
   # what a load from them makes of it. Each module gains those records of
@@ -245,7 +259,7 @@ module SnapshotCheck
     theirs = load_vice(machine).first.save_modules
     sections = machine.save_modules.map do |section|
       other = theirs.find { |each| each.name == section.name }
-      next other if other && machine.family == :pet && machine.drive8050 && CONTROLLER.include?(section.name)
+      next other if other && remade(machine).include?(section.name)
 
       keys = UNSAVED.fetch(section.name, [])
       next section if keys.empty? || other.nil?
@@ -264,6 +278,7 @@ module SnapshotCheck
       when Badline::Snapshot::Keyed::INT then out.int(key, reader.int(key, 0))
       when Badline::Snapshot::Keyed::BOOL then out.bool(key, reader.bool(key, false))
       when Badline::Snapshot::Keyed::INTS then out.ints(key, reader.ints(key, []))
+      when nil then out.ints(key, []) if key.start_with?("host.")
       end
     end
     out.to_s
@@ -278,7 +293,7 @@ module SnapshotCheck
     Dir.mktmpdir do |dir|
       machine = scenario.build.call(dir)
       scenario.advance.call(machine)
-      emulator = machine.family == :cbm2 ? "xcbm2" : "xpet"
+      emulator = Badline::Snapshot::Image.vice_emulator(machine)
       reason = unsaved(machine)
       next puts("#{scenario.name}: skipped, as #{emulator}'s modules don't carry #{reason}") || true if reason
 

@@ -41,7 +41,7 @@ module Badline
       # the machine their container names.
       UNREAD = {
         Container::VIC20 => "VIC-20 snapshots, not xvic's", Container::C128 => "C128 snapshots, not x128's",
-        Container::PLUS4 => "Plus/4 snapshots, not xplus4's", Container::CBM2_5X0 => "P500 snapshots, not xcbm5x0's"
+        Container::PLUS4 => "Plus/4 snapshots, not xplus4's"
       }.freeze
 
       attr_reader :container
@@ -62,21 +62,35 @@ module Badline
       end
 
       # The snapshot with VICE's modules ahead of the BL-* ones for a C64,
-      # a PET or a CBM-II's B series, so x64sc, xpet or xcbm2 opens it too.
-      # Raises FormatError for a Plus/4 or a P500, whose snapshots badline
-      # doesn't write for xplus4 or xcbm5x0.
+      # a PET, a CBM-II's B series or a P500, so x64sc, xpet, xcbm2 or
+      # xcbm5x0 opens it too. Raises FormatError for a Plus/4, whose
+      # snapshots badline doesn't write for xplus4.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
-        raise FormatError, "badline doesn't export a P500's snapshot for VICE" if computer.is_a?(CBM2::P500)
 
         computer.settle_for_vice!
         sections = computer.save_modules
         case computer.family
         when :c64 then sections = Vice.export(computer) + sections
         when :pet then sections = Vice::PET.export(computer, sections) + sections
-        when :cbm2 then sections = Vice::CBM2.export(computer, sections) + sections
+        when :cbm2 then sections = cbm2_export(computer, sections) + sections
         end
         new(Container.new(sections, machine: machine_name(computer)))
+      end
+
+      # xcbm2's or xcbm5x0's modules for a CBM-II.
+      def self.cbm2_export(computer, sections)
+        computer.is_a?(CBM2::P500) ? Vice::P500.export(computer, sections) : Vice::CBM2.export(computer, sections)
+      end
+
+      # The VICE emulator a machine's VICE modules are for.
+      def self.vice_emulator(computer)
+        case machine_name(computer)
+        when Container::PET then "xpet"
+        when Container::CBM2 then "xcbm2"
+        when Container::CBM2_5X0 then "xcbm5x0"
+        else "x64sc"
+        end
       end
 
       # The machine as VICE's emulators name it.
@@ -115,7 +129,7 @@ module Badline
 
       # A new machine, built as the snapshot's was and restored from it. A
       # badline snapshot restores from its BL-* modules alone, and a VICE
-      # one through the modules badline reads, x64sc's, xpet's or xcbm2's. xvic's,
+      # one through the modules badline reads, x64sc's, xpet's, xcbm2's or xcbm5x0's. xvic's,
       # x128's and xplus4's own modules aren't read. Yields a line for
       # each thing left out, or warns it without a block. `detached`
       # restores it without the host's files (Keyed::Modules).
@@ -124,6 +138,7 @@ module Badline
         refuse_unread
         return load_xpet(&) if pet? && !badline?
         return load_xcbm2(&) if cbm2? && !badline?
+        return load_xcbm5x0(&) if p500? && !badline?
         return load_vice(&) unless badline?
 
         modules = Keyed::Modules.new(sections, detached:)
@@ -148,15 +163,18 @@ module Badline
       # it.
       def cbm2? = @container.machine == Container::CBM2
 
+      # Whether the machine is a P500, as the container names it.
+      def p500? = @container.machine == Container::CBM2_5X0
+
       # Restores `computer` from the snapshot, and returns the Report. The
       # snapshot goes into a new machine first, so one that fails, or is of
       # a machine built another way, leaves `computer` as it was.
       def restore(computer, &)
         refuse_old_layout
-        refuse_unread if @container.machine == Container::CBM2_5X0
         report = if badline? then restore_modules(computer)
                  elsif pet? then Vice::PET::Restore.import(@container, computer)
                  elsif cbm2? then Vice::CBM2::Restore.import(@container, computer)
+                 elsif p500? then Vice::P500::Restore.import(@container, computer)
                  else Vice::Restore.import(@container, computer)
                  end
         tell(report, &)
@@ -180,6 +198,12 @@ module Badline
       def load_xcbm2(&)
         computer = Vice::CBM2.setup(@container).build
         tell(Vice::CBM2::Restore.apply(@container, computer), &)
+        computer
+      end
+
+      def load_xcbm5x0(&)
+        computer = Vice::P500.setup(@container).build
+        tell(Vice::P500::Restore.apply(@container, computer), &)
         computer
       end
 
