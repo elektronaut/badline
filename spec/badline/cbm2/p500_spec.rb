@@ -62,6 +62,16 @@ describe Badline::CBM2::P500 do
     expect(machine.vic.register_file[0x20]).to eq(0x05)
   end
 
+  it "loads a program into BASIC's text in segment 0" do
+    machine = described_class.new
+    machine.load_prg([0x03, 0x00, 0x0b, 0x00])
+    expect([machine.bus.peek_bank(0, 0x0003), machine.bus.peek_bank(1, 0x0003)]).to eq([0x0b, 0x00])
+  end
+
+  it "traps the IEEE-488 primitives of 901234-02" do
+    expect(described_class.new.trap_layout.talk).to eq(0xf237)
+  end
+
   it "calls the debug register's handler with a write to $DAFF" do
     machine = described_class.new
     codes = []

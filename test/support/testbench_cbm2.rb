@@ -23,6 +23,9 @@ module Testbench
   # (CBM2Execution#burnin_grade).
   CBM2_BURNIN_ROW = "../CBM2/,cbm2-burnin.d80,exitcode,75000000"
 
+  # The same as CBM2_DISK_ROW for the 510, from its own .d82.
+  P500_DISK_ROW = "./selftest/,cbm510-pass.d82,exitcode,100000000"
+
   # A TestCase's machine, when the row is the CBM-II's, and its run.
   module CBM2Row
     def cbm2? = CBM2_MODELS.key?(family)
@@ -101,15 +104,16 @@ module Testbench
   end
 
   # The CBM-II testlists' exitcode and screenshot rows, on the 610 for
-  # --cbm2 and the 510 for --cbm5x0, and on the 610 CBM2_DISK_ROW and
-  # CBM2_BURNIN_ROW. Interactive rows are left out as on the C64. A
-  # mountcrt row starts from power-on with its cartridge in.
+  # --cbm2 and the 510 for --cbm5x0, CBM2_DISK_ROW and CBM2_BURNIN_ROW on
+  # the 610 and P500_DISK_ROW on the 510. Interactive rows are left out as
+  # on the C64. A mountcrt row starts from power-on with its cartridge in.
   module CBM2Testlist
     module_function
 
     def tests(filters, family, scope: nil, exclude: nil)
       lines = File.readlines(CBM2_TESTLISTS.fetch(family))
       lines.push(CBM2_DISK_ROW, CBM2_BURNIN_ROW) if family == :cbm2
+      lines << P500_DISK_ROW if family == :cbm5x0
       Testlist.numbered(lines.filter_map { |line| parse(line, family) })
               .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end

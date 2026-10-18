@@ -52,12 +52,21 @@ module Testbench
     def run(render, cartridge, directory, prg, budget)
       @machine.vic.render = render
       @machine.attach_cartridge(Badline::Storage::CRTFile.new(cartridge, machine: :cbm2).chips) if cartridge
-      basic_load(File.binread(File.join(directory, prg)).bytes) unless prg.empty?
+      load(File.join(directory, prg)) unless prg.empty?
       @machine.run_until(budget) { @exit_code }
       @exit_code
     end
 
     private
+
+    # A .d82 mounts as device 8 through the traps, and its first program
+    # loads and runs as Media does. Any other file is a program.
+    def load(path)
+      return basic_load(File.binread(path).bytes) unless path.end_with?(".d82")
+
+      @machine.mount(Badline::Storage::D82Image.new(path, read_only: true))
+      @machine.type_text(Badline::Media::CBM2Media::AUTOSTART)
+    end
 
     # The program goes to the start of BASIC's text in segment 0, whatever
     # its load address, BASIC's end of text and the KERNAL's end address
