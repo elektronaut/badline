@@ -56,6 +56,7 @@ module CIReach
     ["lib/badline/roms/pet/**/*", PET],
     ["lib/badline/roms/cbm2/**/*", []],
     ["lib/badline/{cbm2.rb,cbm2/**/*}", []],
+    ["lib/badline/roms/8050/**/*", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],

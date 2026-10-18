@@ -100,6 +100,24 @@ https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/2031/
 and concatenated.
 SHA-1 c53e180a96649ceb3f421739e8dc66faba7cba44.
 
+8050/fdc-901869-01.rom
+----------------------
+The 6530 of the 8050 and 8250's floppy controller with the DOS 2.7
+mask for MPI mechanisms, 901869-01 (6530-48): the 1 KB ROM the
+controller runs from $FC00-$FFFF. Chips::RRIOT holds it.
+SHA-1 3a9a80f72ce76e5f5c72513f8ef7553212912ae3.
+
+8050/fdc-901885-04.rom
+----------------------
+The same 6530 with the DOS 2.7 mask for Micropolis mechanisms,
+901885-04 (6530-47). It differs from 901869-01 in 104 bytes.
+SHA-1 0dc9a3b60f1b866c63eebd882403532fc59fe57f.
+
+Both downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/8050/
+and named by the 8050's parts list
+(https://www.zimmers.net/anonftp/pub/cbm/schematics/drives/old/8050/parts.txt).
+
 Commodore VIC-20 ROMs
 =====================
 
