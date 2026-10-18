@@ -20,7 +20,8 @@ module Badline
       class FDCBus
         include Addressable
 
-        attr_reader :common, :via, :rriot, :data
+        attr_reader :common, :via, :rriot
+        attr_accessor :data
 
         # How many writes have changed a byte of the common RAM
         # (Model8050::Idle).

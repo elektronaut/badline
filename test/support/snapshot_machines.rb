@@ -27,6 +27,14 @@ module SnapshotSetups
     File.join(dir, File.basename(path)).tap { |copy| FileUtils.cp(path, copy) }
   end
 
+  # A newly formatted .d80 in `dir`.
+  def blank_d80(dir)
+    File.join(dir, "blank.d80").tap do |path|
+      File.binwrite(path, "\0" * 533_248)
+      Badline::Storage::D80Image.new(path).format("blank", "ab".bytes)
+    end
+  end
+
   def demo(dir, family = "c64") = MachineFamilies.write_demo(dir, { family: })
 
   # +machine+ with the media at +path+ attached.
@@ -332,8 +340,9 @@ module SnapshotMachines
 
   # The PETs: a CRTC board with 80 columns and one with 40, the 2001's
   # discrete video, an 8096 and an 8296 with their boards written, and the
-  # media a PET takes: a disk through the traps and in a 2031 loading its
-  # directory, a program and a tape played and recorded on cassette #1.
+  # media a PET takes: a disk through the traps and in a 2031 or an 8050
+  # loading its directory, a program and a tape played and recorded on
+  # cassette #1.
   def pet_scenarios
     basic = [["8032", 50, 2_600_001], ["4032", 60, 2_600_001], ["2001", 60, 900_001]].map do |model, refresh_hz, cycles|
       Scenario.new("pet-#{model}-basic", :pet, ->(_dir) { typing(Badline::PET.new(model:, refresh_hz:), PET_BASIC) },
@@ -351,6 +360,8 @@ module SnapshotMachines
                    ->(m) { run(m, 2_600_001) }),
       Scenario.new("pet-2031", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), copy(D64, dir)) },
                    ->(m) { run(m, 2_600_001) }),
+      Scenario.new("pet-8050", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), blank_d80(dir)) },
+                   ->(m) { run(m, 3_000_001) }),
       Scenario.new("pet-tape", :pet, ->(dir) { attached(Badline::PET.new, pet_tap_file(dir)) },
                    ->(m) { run(m, 3_000_000) }),
       Scenario.new("pet-tape-save", :pet, ->(dir) { saving_to_tape(Badline::PET.new(model: "3032"), dir, 3) },

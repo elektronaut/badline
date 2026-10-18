@@ -13,7 +13,8 @@ machine built afresh has: the default below. `word`, `byte` and
 `int & 0x..` are ints cut to the latch's width. A text that lists
 its values takes one of them. An optional int is absent when the
 latch holds nothing. A true drive's modules are named from its
-device number, `BL-D8` to `BL-D11`, and the SIDs past the first
+device number, `BL-D8` to `BL-D11`, or to `BL-D15` for an 8050 or
+an 8250. The SIDs past the first
 are `BL-SID2` onwards, in the order they were fitted. Keys with
 `<N>` stand for each numbered unit. A default of "written only" is
 a key the load doesn't read, or reads only when the snapshot has
@@ -605,7 +606,7 @@ Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551"; PET: "2031" |
+| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551"; PET: "2031" or "8050" or "8250" |
 | `phase` | int | 0 |
 | `cycles` | int | 0 |
 | `so_pending` | bool | false |
@@ -614,6 +615,8 @@ Written by the C64, C128, Plus/4, PET.
 | `irq_timer` | int | Plus/4: 16660 |
 | `latched_byte` | byte | Plus/4: 0 |
 | `ieee.host` | int | PET: 0 |
+| `ip_data` | byte | PET: 242 |
+| `fdc_data` | byte | PET: 252 |
 
 ## BL-D8-RAM
 
@@ -760,6 +763,8 @@ Written by the C64, C128, Plus/4, PET.
 | `track<N>.zone` | int, optional | absent |
 | `written` | ints | [] |
 | `changed` | ints | C64: [] |
+| `image.format` | text: d80 d82 | PET: "d80" |
+| `track<N>` | ints | PET: [] |
 
 ## BL-D8-MECH
 
@@ -790,6 +795,16 @@ Written by the C64, C128, Plus/4, PET.
 | `cylinder` | int | C64: 0 |
 | `angle` | int | C64: 0 |
 | `changed` | bool | C64: true |
+| `cylinders` | ints | PET: [0, 0] |
+| `phases` | ints | PET: [0, 0] |
+| `positions` | ints | PET: [0, 0] |
+| `bit_clocks` | ints | PET: [0, 0] |
+| `changing` | ints | PET: [0, 0] |
+| `motors` | ints | PET: [0, 0] |
+| `syncs` | ints | PET: [0, 0] |
+| `so_pending` | bool | PET: false |
+| `ca1_low` | bool | PET: false |
+| `data_in` | byte | PET: 255 |
 
 ## BL-D8-CIA
 
@@ -1453,6 +1468,181 @@ Written by the PET.
 | `tape.bytes` | bytes | [] |
 | `tape.path` | text | "" |
 | `tape.position` | int | 0 |
+
+## BL-D8-COMMON
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 4096 × 0 |
+
+## BL-D8-RIOT1
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 128 × 0 |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `pa7_high` | bool | true |
+| `pa7_active` | bool | false |
+| `pa7_flag` | bool | false |
+| `edge_irq_enabled` | bool | false |
+| `rising_edge` | bool | false |
+| `timer.counter` | byte | 0 |
+| `timer.interval` | int & 0x3 | 0 |
+| `timer.prescale` | int | 1 |
+| `timer.expired` | bool | true |
+| `timer.flag` | bool | false |
+| `timer.irq_enabled` | bool | false |
+| `timer.fired` | bool | false |
+
+## BL-D8-RIOT2
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 128 × 0 |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `pa7_high` | bool | true |
+| `pa7_active` | bool | false |
+| `pa7_flag` | bool | false |
+| `edge_irq_enabled` | bool | false |
+| `rising_edge` | bool | false |
+| `timer.counter` | byte | 0 |
+| `timer.interval` | int & 0x3 | 0 |
+| `timer.prescale` | int | 1 |
+| `timer.expired` | bool | true |
+| `timer.flag` | bool | false |
+| `timer.irq_enabled` | bool | false |
+| `timer.fired` | bool | false |
+
+## BL-D8-IPCPU
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `pc` | word | 62135 |
+| `sp` | byte | 255 |
+| `a` | byte | 0 |
+| `x` | byte | 0 |
+| `y` | byte | 0 |
+| `p` | byte | 32 |
+| `nmi` | bool | false |
+| `so_high` | bool | true |
+| `irq.sample` | bool | false |
+| `irq.pending` | bool | false |
+| `irq.boundary` | bool | false |
+| `nmi.sample` | bool | false |
+| `nmi.pending` | bool | false |
+| `nmi.boundary` | bool | false |
+| `skip_poll` | bool | false |
+| `cycles` | int | 0 |
+| `instructions` | int | 0 |
+| `stalled` | int, optional | absent |
+| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+
+## BL-D8-FDCCPU
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `pc` | word | 64516 |
+| `sp` | byte | 255 |
+| `a` | byte | 0 |
+| `x` | byte | 0 |
+| `y` | byte | 0 |
+| `p` | byte | 32 |
+| `nmi` | bool | false |
+| `so_high` | bool | true |
+| `irq.sample` | bool | false |
+| `irq.pending` | bool | false |
+| `irq.boundary` | bool | false |
+| `nmi.sample` | bool | false |
+| `nmi.pending` | bool | false |
+| `nmi.boundary` | bool | false |
+| `skip_poll` | bool | false |
+| `cycles` | int | 0 |
+| `instructions` | int | 0 |
+| `stalled` | int, optional | absent |
+| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+
+## BL-D8-VIA
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `latch_a` | byte | 255 |
+| `latch_b` | byte | 255 |
+| `acr` | byte | 0 |
+| `pcr` | byte | 0 |
+| `pb6_high` | bool | true |
+| `t<N>.counter` | word | 65535 |
+| `t1.latch` | word | 65535 |
+| `t<N>.hold` | bool | false |
+| `t1.reload` | bool | false |
+| `t<N>.armed` | bool | false |
+| `t1.pb7` | bool | true |
+| `t2.latch_low` | byte | 255 |
+| `t2.low_reload` | bool | false |
+| `t2.low_underflowed` | bool | false |
+| `t2.count_pulses` | bool | false |
+| `t2.counting_pulses` | bool | false |
+| `sr.mode` | int & 0x7 | 0 |
+| `sr.data` | byte | 0 |
+| `sr.bits` | int | 0 |
+| `sr.delay` | int | 0 |
+| `sr.clock` | bool | true |
+| `sr.cb2` | bool | true |
+| `sr.cb2_input` | bool | true |
+| `ifr.flags` | int & 0x7f | 0 |
+| `ifr.enable` | int & 0x7f | 0 |
+| `ca.control` | int & 0xf | 0 |
+| `ca.c1_high` | bool | true |
+| `ca.c2_high` | bool | true |
+| `ca.handshake_low` | bool | false |
+| `ca.pulse` | int | 0 |
+| `ca.c2_output` | bool | true |
+| `cb.control` | int & 0xf | 0 |
+| `cb.c1_high` | bool | true |
+| `cb.c2_high` | bool | true |
+| `cb.handshake_low` | bool | false |
+| `cb.pulse` | int | 0 |
+| `cb.c2_output` | bool | true |
+
+## BL-D8-RRIOT
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 64 × 0 |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `timer.counter` | byte | 0 |
+| `timer.interval` | int & 0x3 | 0 |
+| `timer.prescale` | int | 1 |
+| `timer.expired` | bool | true |
+| `timer.flag` | bool | false |
+| `timer.irq_enabled` | bool | false |
+| `timer.fired` | bool | false |
 
 ## BL-CIA
 

@@ -205,15 +205,15 @@ module SnapshotCheck
 
   # Divergence through xpet's modules for one PET scenario, at each
   # checkpoint: xpet's modules don't carry what badline keeps for itself
-  # alone, such as its instruction count. A scenario with a tape or a disk,
-  # which xpet's modules don't carry either, is skipped. Returns whether
-  # it passed.
+  # alone, such as its instruction count. A scenario with a tape, a disk
+  # or an 8050, which xpet's modules don't carry either, is skipped.
+  # Returns whether it passed.
   def restores_through_vice?(scenario, options)
     Dir.mktmpdir do |dir|
       machine = scenario.build.call(dir)
       scenario.advance.call(machine)
-      if machine.mounted? || machine.cassettes.datasette1.tape
-        puts "#{scenario.name}: skipped, as xpet's modules don't carry its tape or disk"
+      if machine.mounted? || machine.cassettes.datasette1.tape || machine.drive8050
+        puts "#{scenario.name}: skipped, as xpet's modules don't carry its tape, disk or 8050"
         next true
       end
 

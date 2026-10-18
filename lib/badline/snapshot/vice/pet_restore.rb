@@ -35,11 +35,13 @@ module Badline
             raise FormatError, "the snapshot is of a #{setup}, not a #{ours}" unless setup == ours
 
             apply(container, setup.build)
-            had_drive = !computer.drive2031.nil?
+            had_drive = computer.true_drive
             computer.power_cycle!
             report = apply(container, computer)
             kept = computer.mounted? ? ["the disk mounted in device 8 stays mounted"] : []
-            kept << "the 2031 on device 8 is taken off the bus" if had_drive && computer.drive2031.nil?
+            if had_drive && !computer.true_drive.equal?(had_drive)
+              kept << "the #{had_drive.model_name} on device #{had_drive.device} is taken off the bus"
+            end
             Report.new(applied: report.applied, ignored: report.ignored + kept)
           end
 
@@ -64,7 +66,7 @@ module Badline
             disk = nil
             computer.save_modules.each do |section|
               sections << section if KEPT.include?(section.name)
-              disk = section if section.name == "BL-D8-DISK"
+              disk = section if section.name == "BL-D8-DISK" && computer.drive2031
             end
             sections += drive(container, applied, ignored, disk)
             computer.load_modules(Keyed::Modules.new(modules(container, computer, applied) + sections))

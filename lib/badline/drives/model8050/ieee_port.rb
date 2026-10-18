@@ -47,7 +47,7 @@ module Badline
         attr_reader :bus
 
         # The lines the controller pulled, as latch_host took them.
-        attr_reader :host
+        attr_accessor :host
 
         # The RIOTs on the data lines and on the control lines.
         attr_accessor :data_riot, :control_riot
