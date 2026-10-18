@@ -48,6 +48,33 @@ describe Badline::Drives::Model8050 do
     end
   end
 
+  describe "the buses' volatile reads" do
+    it "marks a read of a RIOT's timer" do
+      drive.ip_bus.peek(0x0284)
+      expect(drive.ip_bus.volatile).to be(true)
+    end
+
+    it "leaves a read of a RIOT's ports alone" do
+      drive.ip_bus.peek(0x0282)
+      expect(drive.ip_bus.volatile).to be(false)
+    end
+
+    it "marks a read of the VIA's timer 1" do
+      drive.fdc_bus.peek(0x0044)
+      expect(drive.fdc_bus.volatile).to be(true)
+    end
+
+    it "marks a read of the 6530's interrupt flag" do
+      drive.fdc_bus.peek(0x0087)
+      expect(drive.fdc_bus.volatile).to be(true)
+    end
+
+    it "leaves a read of the VIA's port A alone" do
+      drive.fdc_bus.peek(0x0041)
+      expect(drive.fdc_bus.volatile).to be(false)
+    end
+  end
+
   describe "the floppy controller's bus" do
     let(:bus) { drive.fdc_bus }
 
@@ -179,6 +206,38 @@ describe Badline::Drives::Model8050 do
     it "boots the 8250 alike" do
       unit = booted(Badline::Drives::Model8250)
       expect(unit.ip_cpu.program_counter).to be_between(0xc5a0, 0xc611)
+    end
+  end
+
+  # A unit sleeping through its idle loops beside one stepping every cycle,
+  # each on a bus of its own with the controller's lines released, through
+  # boot and on into the idle loops.
+  describe "idling", :slow do
+    def idle_pair
+      TakenOnce.fetch(:model8050_idle) do
+        units = [true, false].map { |skip| described_class.new.tap { |unit| unit.idle_skip = skip } }
+        asleep = 0
+        1_500_000.times do
+          units.each(&:host_cycle!)
+          asleep += 1 if units.first.asleep?
+        end
+        [units, asleep]
+      end
+    end
+
+    def state(unit)
+      [unit.cycles, unit.ip_cpu.cycles, unit.ip_cpu.instructions, *unit.ip_cpu.idle_state, unit.fdc_cpu.cycles,
+       unit.fdc_cpu.instructions, *unit.fdc_cpu.idle_state, unit.rriot.timer.counter, *unit.rriot.idle_state,
+       unit.control_riot.timer.counter, *unit.control_riot.idle_state, unit.via.timer1, *unit.common.snapshot]
+    end
+
+    it "sleeps through most of the idle loops after boot" do
+      expect(idle_pair.last).to be > 600_000
+    end
+
+    it "holds the same as a unit stepping every cycle" do
+      units = idle_pair.first
+      expect(state(units.first)).to eq(state(units.last))
     end
   end
 

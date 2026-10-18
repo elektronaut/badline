@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/chips/riot/timer"
+require "badline/chips/riot/fast_forward"
 require "badline/chips/riot/keyed_parts"
 
 module Badline
@@ -67,6 +68,21 @@ module Badline
       def pa7=(high)
         @pa7_high = high
         sense_pa7
+      end
+
+      # How many cycles the RIOT can run with no counter pulling IRQ.
+      def quiet_cycles = @timer.quiet_cycles
+
+      # Runs +cycles+ cycles at once, which moves only the timer.
+      def fast_forward(cycles)
+        @timer.fast_forward(cycles)
+      end
+
+      # Everything the RIOT holds but its timer's counter, for comparing it
+      # at two points.
+      def idle_state
+        [*@ram, @ora, @orb, @ddra, @ddrb, @pa7_high, @pa7_active, @pa7_flag, @edge_irq_enabled, @rising_edge,
+         *@timer.state, @timer.flag]
       end
 
       def read_ram(addr) = @ram[addr & 0x7f]

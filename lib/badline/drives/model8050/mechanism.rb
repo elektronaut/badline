@@ -90,6 +90,15 @@ module Badline
           turn(1, drives.nobits?(0x10), drives & 0x03)
         end
 
+        # Whether a cycle would change nothing: both motors off, no disk
+        # going in or out, and no byte ready under way.
+        def quiet?
+          !@motors[0] && !@motors[1] && @changing[0].zero? && @changing[1].zero? && !@ca1_low && !@so_pending
+        end
+
+        # What the drives hold, for comparing them at two points.
+        def idle_state = [*@cylinders, *@phases, *@motors, *@syncs, @data_in]
+
         # Whether byte ready pulses the controller's SO pin this cycle,
         # which takes the pulse.
         def take_so

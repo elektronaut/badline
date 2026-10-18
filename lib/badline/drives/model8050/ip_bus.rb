@@ -21,6 +21,10 @@ module Badline
 
         attr_reader :common, :rom, :data_riot, :control_riot, :data
 
+        # Whether a timer or the interrupt flags have been read since it was
+        # last cleared (Model8050::Idle).
+        attr_accessor :volatile
+
         def initialize(rom:, common:, data_riot:, control_riot:)
           addressable_at(0, length: 2**16)
           @rom = rom
@@ -28,6 +32,7 @@ module Badline
           @data_riot = data_riot
           @control_riot = control_riot
           @data = 0
+          @volatile = false
         end
 
         def peek(addr)
@@ -56,6 +61,7 @@ module Badline
         private
 
         def peek_riots(addr)
+          @volatile = true if addr & 0x204 == 0x204
           if addr.anybits?(0x80)
             addr.anybits?(0x200) ? @control_riot.peek(addr & 0x1f) : @control_riot.read_ram(addr)
           else

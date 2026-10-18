@@ -22,12 +22,17 @@ module Badline
 
         attr_reader :common, :via, :rriot, :data
 
+        # Whether a counter or an interrupt flag has been read since it was
+        # last cleared (Model8050::Idle).
+        attr_accessor :volatile
+
         def initialize(common:, via:, rriot:)
           addressable_at(0, length: 2**16)
           @common = common
           @via = via
           @rriot = rriot
           @data = 0
+          @volatile = false
         end
 
         def peek(addr)
@@ -56,10 +61,19 @@ module Badline
         private
 
         def peek_chips(addr)
-          return @rriot.peek(addr & 0x0f) if addr.anybits?(0x80)
-          return @via.peek(0x40 | (addr & 0x0f)) if addr.anybits?(0x40)
+          if addr.anybits?(0x80)
+            @volatile = true if addr.anybits?(0x04)
+            return @rriot.peek(addr & 0x0f)
+          end
+          return peek_via(addr & 0x0f) if addr.anybits?(0x40)
 
           @rriot.read_ram(addr)
+        end
+
+        # The VIA's counters, shift register and flags move on their own.
+        def peek_via(register)
+          @volatile = true if register.between?(0x04, 0x0a) || register == 0x0d
+          @via.peek(0x40 | register)
         end
 
         def poke_chips(addr, value)

@@ -136,6 +136,25 @@ describe Badline::Chips::RIOT do
     end
   end
 
+  describe "idling" do
+    before { riot.poke(0x1d, 52) }
+
+    it "stays quiet until the cycle before the timer's flag" do
+      expect(riot.quiet_cycles).to eq(415)
+    end
+
+    it "runs only the timer on in fast_forward" do
+      riot.fast_forward(213)
+      expect(riot.timer.counter).to eq(25)
+    end
+
+    it "leaves the timer's counter out of its idle state" do
+      before = riot.idle_state
+      riot.fast_forward(9)
+      expect(riot.idle_state).to eq(before)
+    end
+  end
+
   describe "#reset!" do
     before do
       riot.poke(0x01, 0xff)

@@ -7,7 +7,9 @@ require "badline/core"
 # the handshake run by both sides. On a 4032 with BASIC 4 they format a
 # disk, save and load a program, save to a write-protected disk, autostart
 # a disk and read the error channel, as the 2031's do
-# (drive_scenarios_pet.rb), the 8250 on its double-sided .d82.
+# (drive_scenarios_pet.rb), the 8250 on its double-sided .d82. The idle
+# scenario runs a PET with a sleeping 8050 beside one whose 8050 steps
+# every cycle.
 module DriveScenarios
   module PET8050Runs
     # The scenarios and the checks each makes, the longest-running first.
@@ -15,6 +17,7 @@ module DriveScenarios
       "pet-8250-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8050-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8250-save" => %w[no-error loads-back file-in-image trap-readable],
+      "pet-8050-idle" => %w[sleeps matches-stepping],
       "pet-8050-save" => %w[no-error loads-back file-in-image trap-readable],
       "pet-8050-read-only" => %w[write-protect-on image-unchanged],
       "pet-8050-autostart" => %w[loads-and-runs],
@@ -35,6 +38,7 @@ module DriveScenarios
       when "format" then format(report, dir, model)
       when "save" then save(report, dir, model)
       when "read-only" then read_only(report, dir, model)
+      when "idle" then idle(report, dir)
       when "autostart" then autostart(report, dir, model)
       else error_channel(report, model)
       end
@@ -95,6 +99,58 @@ module DriveScenarios
       Badline::Media.attach(machine, path)
       Runs.run_until(machine, 60_000_000) { output.output.upcase.include?("TRUE DRIVE\n") }
       report.check("loads-and-runs", output.output.upcase.include?("TRUE DRIVE\n"), "printed no TRUE DRIVE")
+    end
+
+    # The host cycles at which idle compares its two machines.
+    IDLE_CHECKPOINTS = [2_000_000, 6_000_000, 10_000_000, 14_000_000].freeze
+
+    # Two PETs with an 8050 side by side, one unit sleeping through its idle
+    # loops and one stepping every cycle, through the unit's boot, a LOAD of
+    # the directory, the motor's run-down and the idle after it. Both
+    # machines hold the same at every checkpoint.
+    def idle(report, dir)
+      skipping = idle_machine(blank(dir, "pet-8050-idle-a", "8050"), true)
+      stepping = idle_machine(blank(dir, "pet-8050-idle-b", "8050"), false)
+      drive = skipping.drive8050
+      asleep = 0
+      differs = []
+      IDLE_CHECKPOINTS.each do |checkpoint|
+        while skipping.cycles < checkpoint
+          skipping.cycle!
+          stepping.cycle!
+          asleep += 1 if drive.asleep?
+        end
+        differs << checkpoint unless idle_state(skipping) == idle_state(stepping)
+      end
+      report.check("sleeps", asleep > 4_000_000, "slept #{asleep} host cycles, not over 4000000")
+      report.check("matches-stepping", differs.empty?, "differs at #{differs.join(',')}")
+    end
+
+    def idle_machine(path, idle_skip)
+      machine = Badline::PET.new(model: "4032")
+      drive = machine.plug_drive8050("8050")
+      drive.idle_skip = idle_skip
+      drive.insert_image(path)
+      machine.on_init { machine.type_text("load\"$\",8\r") }
+      machine
+    end
+
+    # What the machine and the unit hold: the machine's CPU and RAM, and the
+    # unit's cycle counts, both processors, its chips with their counters,
+    # the drives and every RAM.
+    def idle_state(machine)
+      cpu = machine.cpu
+      drive = machine.drive8050
+      state = [machine.cycles, cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p, cpu.cycles,
+               drive.cycles]
+      [drive.ip_cpu, drive.fdc_cpu].each { |unit| state.push(unit.cycles, unit.instructions).concat(unit.idle_state) }
+      [drive.data_riot, drive.control_riot].each { |riot| state.push(riot.timer.counter).concat(riot.idle_state) }
+      state.push(drive.rriot.timer.counter).concat(drive.rriot.idle_state)
+      via = drive.via
+      state.push(via.timer1, via.timer2).concat(via.idle_state)
+      state.concat(drive.mechanism.idle_state)
+      state.concat(drive.common.read(0, 0x1000))
+      state.concat(machine.ram.read(0, machine.ram.length))
     end
 
     # BASIC reads the power-on message from the unit's error channel.

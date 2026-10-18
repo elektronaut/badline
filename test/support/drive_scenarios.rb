@@ -86,7 +86,7 @@ module DriveScenarios
     when "pet-2031-format", "pet-2031-save", "pet-2031-idle", "pet-2031-read-only", "pet-2031-autostart",
          "pet-2031-error-channel", "pet-2031-basic2-error-channel", "pet-2031-basic1-error-channel"
       PETRuns.run(report, name, dir)
-    when "pet-8050-format", "pet-8250-format", "pet-8050-save", "pet-8250-save", "pet-8050-read-only",
+    when "pet-8050-format", "pet-8250-format", "pet-8050-save", "pet-8250-save", "pet-8050-idle", "pet-8050-read-only",
          "pet-8050-autostart", "pet-8250-autostart", "pet-8050-error-channel", "pet-8250-error-channel"
       PET8050Runs.run(report, name, dir)
     when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")

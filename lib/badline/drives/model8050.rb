@@ -3,12 +3,14 @@
 require "badline/chips/riot"
 require "badline/chips/rriot"
 require "badline/drives/ieee_bus"
+require "badline/drives/engine"
 require "badline/drives/model8050/ip_bus"
 require "badline/drives/model8050/fdc_bus"
 require "badline/drives/model8050/parts"
 require "badline/drives/model8050/ieee_port"
 require "badline/drives/model8050/disk"
 require "badline/drives/model8050/mechanism"
+require "badline/drives/model8050/idle"
 
 module Badline
   module Drives
@@ -30,16 +32,44 @@ module Badline
     #
     # The drive clocks against the host through a phase accumulator, as
     # Drives::Engine::Core does: each host cycle adds 1 MHz of phase, and
-    # every whole host period in it runs a cycle of both processors.
+    # every whole host period in it runs a cycle of both processors. While
+    # both processors idle, it sleeps instead (Idle), and the readers of its
+    # parts catch it up first.
     class Model8050
+      include Idle
+
       CLOCK_HZ = 1_000_000
 
       # The host cycles by which a unit switched on with the machine has
       # run the IP's RAM test and the FDC's start-up and reads its jumpers.
       BOOT_CYCLES = 1_500_000
 
-      attr_reader :device, :ieee_bus, :ip_cpu, :fdc_cpu, :ip_bus, :fdc_bus, :common, :data_riot,
-                  :control_riot, :via, :rriot, :mechanism, :cycles
+      attr_reader :device, :ieee_bus
+
+      def ip_cpu = settled(@ip_cpu)
+
+      def fdc_cpu = settled(@fdc_cpu)
+
+      def ip_bus = settled(@ip_bus)
+
+      def fdc_bus = settled(@fdc_bus)
+
+      def common = settled(@common)
+
+      def data_riot = settled(@data_riot)
+
+      def control_riot = settled(@control_riot)
+
+      def via = settled(@via)
+
+      def rriot = settled(@rriot)
+
+      def mechanism = settled(@mechanism)
+
+      def cycles
+        settle!
+        @cycles
+      end
 
       attr_writer :host_clock_hz
 
@@ -60,11 +90,13 @@ module Badline
         build_fdc(fdc_rom || ROM.read("8050/fdc-901869-01.rom"))
         @ip_cpu = IPCPU.new(@ip_bus)
         @fdc_cpu = FDCCPU.new(@fdc_bus)
+        init_idle
         @ieee_bus.attach(self)
       end
 
       # Plugs the unit into an IEEE-488 bus, leaving the one it was on.
       def connect(ieee_bus)
+        settle!
         @ieee_bus.detach(self)
         @ieee_bus = ieee_bus
         @ieee_port.bus = ieee_bus
@@ -79,13 +111,15 @@ module Badline
       def host_written! = nil
 
       # Which LEDs are lit: bit 0 drive 1's, bit 1 drive 0's, bit 2 the
-      # error LED.
+      # error LED. They hold still while the unit sleeps, so reading them
+      # leaves it asleep.
       def leds = @ieee_port.leds
 
       def led_on? = leds.anybits?(0x03)
 
       # Puts a Disk in +drive+, 0 or 1. Nil takes the disk out.
       def insert(disk, drive: 0)
+        settle!
         @mechanism.insert(disk, drive)
       end
 
@@ -102,30 +136,35 @@ module Badline
       # Stores what the heads wrote in the disks' images, as the motors
       # stopping do.
       def flush
+        settle!
         @mechanism.flush
       end
 
       def power_led_on? = true
 
       # Runs the drive cycles that fall in one host cycle, then takes the
-      # controller's lines for the next.
+      # controller's lines for the next. Asleep, the unit owes the cycles
+      # instead, and wakes once the controller has moved a line.
       def host_cycle!
         phase = @phase + CLOCK_HZ
         while phase >= @host_clock_hz
-          step
+          @asleep ? owe_cycle : run_cycle
           phase -= @host_clock_hz
         end
         @phase = phase
+        settle! if @asleep && @ieee_port.lines_moved?
         @ieee_port.latch_host
       end
 
       def cycle!
-        step
+        settle!
+        run_cycle
       end
 
       # The bus's IFC line resets both processors and every chip. RAM keeps
       # its contents.
       def reset!
+        settle!
         @data_riot.reset!
         @control_riot.reset!
         @via.reset!
@@ -139,6 +178,16 @@ module Badline
       end
 
       private
+
+      def settled(part)
+        settle!
+        part
+      end
+
+      def run_cycle
+        step
+        watch_loops if @idle_skip
+      end
 
       def build_ip(rom)
         @common = Memory.new([], length: 0x1000)
