@@ -61,8 +61,8 @@ module Badline
       # instructions or jammed.
       def settled_for_snapshot? = @cpu.boundary? || @cpu.jammed?
 
-      # Nothing defers its work past the cycle.
-      def settle_chips_for_snapshot = nil
+      # The SID's deferred cycles and writes, run up to this cycle.
+      def settle_chips_for_snapshot = @sid.catch_up!
 
       def save_machine_fields(out)
         out.text("family", "cbm2").text("written_by", VERSION)

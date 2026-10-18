@@ -45,6 +45,13 @@ describe Badline::CBM2 do
       expect([machine.bus.execution_segment, machine.bus.indirect_segment]).to eq([15, 1])
     end
 
+    it "catches the SID up as it settles to save, as the other machines do" do
+      machine = described_class.new
+      allow(machine.sid).to receive(:catch_up!).and_call_original
+      machine.snapshot
+      expect(machine.sid).to have_received(:catch_up!)
+    end
+
     it "keeps a cartridge's ROM" do
       chip = Badline::Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address: 0x2000, data: [0x5a] * 0x2000)
       machine = described_class.new.tap { |cartridge| cartridge.attach_cartridge([chip]) }
