@@ -11,7 +11,7 @@ module Badline
       # after sector:
       #
       #   4 sync, $08, checksum, sector, track, ID 2, ID 1, $0F,
-      #   19 x $0F, 4 sync, $07, 256 data bytes, checksum, then $00
+      #   19 x $0F, 5 sync, $07, 256 data bytes, checksum, then $00
       #
       # the header checksum the EOR of the track, sector and IDs, and the
       # data block's that of its bytes. The $00 gaps share out what the
@@ -83,7 +83,7 @@ module Badline
             data = @image.read_block(number, sector)
             cells.push(SYNC, SYNC, SYNC, SYNC, 0x08, number ^ sector ^ id1 ^ id2, sector, number, id2, id1)
             cells.concat(Array.new(20, 0x0f))
-            cells.push(SYNC, SYNC, SYNC, SYNC, 0x07)
+            cells.push(SYNC, SYNC, SYNC, SYNC, SYNC, 0x07)
             cells.concat(data)
             cells << checksum(data)
           end
@@ -138,6 +138,7 @@ module Badline
           length = cells.length
           while index < length
             return index + 2 if cells[index] == SYNC && cells[(index + 1) % length] == mark
+
             index += 1
           end
           nil

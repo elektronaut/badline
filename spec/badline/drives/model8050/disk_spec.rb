@@ -37,13 +37,13 @@ describe Badline::Drives::Model8050::Disk do
     expect(cells[0, 11]).to eq([sync, sync, sync, sync, 0x08, 39 ^ 0 ^ 0x41 ^ 0x42, 0, 39, 0x42, 0x41, 0x0f])
   end
 
-  it "follows the header with 20 $0F, four syncs and the data block's $07" do
-    expect(disk.track(39)[10, 25]).to eq(Array.new(20, 0x0f) + [sync, sync, sync, sync, 0x07])
+  it "follows the header with 20 $0F, five syncs and the data block's $07" do
+    expect(disk.track(39)[10, 26]).to eq(Array.new(20, 0x0f) + [sync, sync, sync, sync, sync, 0x07])
   end
 
   it "ends the data block with the EOR of its bytes" do
     cells = disk.track(39)
-    expect(cells[35 + 256]).to eq(disk.image.read_block(39, 0).reduce(0, :^))
+    expect(cells[36 + 256]).to eq(disk.image.read_block(39, 0).reduce(0, :^))
   end
 
   it "has no second side on a .d80" do

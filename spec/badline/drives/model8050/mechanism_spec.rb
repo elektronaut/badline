@@ -114,7 +114,13 @@ describe Badline::Drives::Model8050::Mechanism do
     end
 
     it "pulses byte ready for each data cell of a 200,000-cycle turn", :slow do
-      expect(pulses_in(200_000)).to eq(9230 - (29 * 8))
+      expect(pulses_in(200_000)).to eq(9230 - (29 * 9))
+    end
+
+    it "shows no SYNC off the other drive, which has no disk" do
+      run(4 * 22)
+      select(drive: 1)
+      expect(mechanism.sync?).to be(false)
     end
 
     it "turns no disk with the motor off" do
