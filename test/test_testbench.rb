@@ -1370,3 +1370,44 @@ class TestTestbenchRecord < Minitest::Test
     assert Testbench::Record.screen("t", 0, 1, []).end_with?(Testbench::Engine::RECORD_END)
   end
 end
+
+class TestTestbenchCBM2 < Minitest::Test
+  def setup
+    @dir = Dir.mktmpdir
+    File.binwrite(File.join(@dir, "t.prg"), "\x03\x00".b)
+    File.binwrite(File.join(@dir, "t.crt"), "CBM2 CARTRIDGE  ".b)
+  end
+
+  def teardown
+    FileUtils.rm_rf(@dir)
+  end
+
+  def parse(family = :cbm2, prg: "t.prg", type: "exitcode", options: "")
+    Testbench::CBM2Testlist.parse("#{@dir}/,#{prg},#{type},100000000,#{options}", family)
+  end
+
+  def test_runs_a_row_on_the_model_of_each_hook
+    assert_equal [:cbm2, "610", :cbm5x0, "510"],
+                 [parse.family, parse.cbm2_model, parse(:cbm5x0).family, parse(:cbm5x0).cbm2_model]
+    refute_predicate Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000"), :cbm2?
+  end
+
+  def test_takes_exitcode_and_screenshot_rows
+    assert_equal %w[exitcode screenshot], [parse.type, parse(type: "screenshot").type]
+    assert_nil parse(type: "interactive")
+  end
+
+  def test_starts_a_mountcrt_row_from_its_cartridge
+    test = parse(prg: "", options: "mountcrt:t.crt,expect:error")
+
+    assert_equal ["t.crt", :error], [test.cartridge, test.expects]
+  end
+
+  def test_leaves_out_a_row_whose_program_is_missing
+    assert_nil parse(prg: "gone.prg")
+  end
+
+  def test_says_the_cbm2_isnt_emulated_yet
+    assert_raises(Badline::Machine::NotYet) { parse.family_machine }
+  end
+end

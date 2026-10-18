@@ -27,6 +27,7 @@ require_relative "testbench_plus4"
 require_relative "testbench_plus4_machine"
 require_relative "testbench_pet"
 require_relative "testbench_pet_machine"
+require_relative "testbench_cbm2"
 require_relative "cli"
 
 module Testbench
@@ -128,18 +129,21 @@ module Testbench
     include C128Row
     include Plus4Row
     include PETRow
+    include CBM2Row
 
-    # The machine a VIC-20, C128, 264 series or PET row forks from.
+    # The machine a VIC-20, C128, 264 series, PET or CBM-II row forks from.
     def family_machine
       return vic20_machine if vic20?
       return pet_machine if pet?
+      return cbm2_machine if cbm2?
 
       plus4? ? plus4_machine : c128_machine
     end
 
-    # What tells a VIC-20, C128, 264 series or PET row's machine apart:
-    # the family, the VIC-20's RAM, the C128's true drive, the 264's model
-    # and RAM expansion and the PET's model.
+    # What tells a VIC-20, C128, 264 series, PET or CBM-II row's machine
+    # apart: the family, the VIC-20's RAM, the C128's true drive, the 264's
+    # model and RAM expansion and the PET's model. The CBM-II's family
+    # names its model.
     def family_key
       [family, ram_configuration, c128_drive, (plus4_model if plus4?), (plus4_ram_expansion if plus4?),
        (pet_model if pet?)]
@@ -742,6 +746,11 @@ module Testbench
       return 0
     end
 
+    if CBM2_MODELS.key?(machine)
+      warn "The CBM-II isn't emulated yet, so its rows can only be listed (--list)."
+      return 2
+    end
+
     run_tests(tests, results_path, drive: rows.drive, shards:, resume:, engine:)
   end
 
@@ -775,11 +784,13 @@ module Testbench
     [argv.delete("--cia-new") ? :mos6526a : :mos6526, argv.delete("--vicii-new") ? :mos8565 : :mos6569]
   end
 
-  # :vic20, :c128c64, :c128_z80, :c128, :plus4, :c16, :pet, :pet_discrete
-  # or nil for the C64, deleting every machine flag from argv.
+  # :vic20, :c128c64, :c128_z80, :c128, :plus4, :c16, :pet, :pet_discrete,
+  # :cbm2, :cbm5x0 or nil for the C64, deleting every machine flag from
+  # argv.
   def self.command_line_machine(argv)
     flags = { "--vic20" => :vic20, "--c128c64" => :c128c64, "--c128-z80" => :c128_z80, "--c128" => :c128,
-              "--plus4" => :plus4, "--c16" => :c16, "--pet" => :pet, "--pet-discrete" => :pet_discrete }
+              "--plus4" => :plus4, "--c16" => :c16, "--pet" => :pet, "--pet-discrete" => :pet_discrete,
+              "--cbm2" => :cbm2, "--cbm5x0" => :cbm5x0 }
     flags.filter_map { |flag, machine| machine if argv.delete(flag) }.first
   end
 
@@ -790,6 +801,7 @@ module Testbench
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
     when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:, ntsc: rows.standard == :ntsc)
     when :pet, :pet_discrete then PETTestlist.tests(argv, discrete: machine == :pet_discrete, scope:, exclude:)
+    when :cbm2, :cbm5x0 then CBM2Testlist.tests(argv, machine, scope:, exclude:)
     else Testlist.tests(argv, scope:, exclude:, rows:)
     end
   end
