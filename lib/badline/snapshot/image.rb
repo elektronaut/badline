@@ -41,7 +41,7 @@ module Badline
       # the machine their container names.
       UNREAD = {
         Container::VIC20 => "VIC-20 snapshots, not xvic's", Container::C128 => "C128 snapshots, not x128's",
-        Container::PLUS4 => "Plus/4 snapshots, not xplus4's", Container::CBM2 => "CBM-II snapshots, not xcbm2's"
+        Container::PLUS4 => "Plus/4 snapshots, not xplus4's"
       }.freeze
 
       attr_reader :container
@@ -61,19 +61,19 @@ module Badline
         new(Container.new(computer.save_modules, machine: machine_name(computer)))
       end
 
-      # The snapshot with VICE's modules ahead of the BL-* ones for a C64
-      # or a PET, so x64sc or xpet opens it too. Raises FormatError for a
-      # Plus/4 or a CBM-II, whose snapshots badline doesn't write for
-      # xplus4 or xcbm2.
+      # The snapshot with VICE's modules ahead of the BL-* ones for a C64,
+      # a PET or a CBM-II, so x64sc, xpet or xcbm2 opens it too. Raises
+      # FormatError for a Plus/4, whose snapshots badline doesn't write for
+      # xplus4.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
-        raise FormatError, "badline doesn't export a CBM-II's snapshot for VICE" if computer.family == :cbm2
 
         computer.settle_for_vice!
         sections = computer.save_modules
         case computer.family
         when :c64 then sections = Vice.export(computer) + sections
         when :pet then sections = Vice::PET.export(computer, sections) + sections
+        when :cbm2 then sections = Vice::CBM2.export(computer, sections) + sections
         end
         new(Container.new(sections, machine: machine_name(computer)))
       end
@@ -114,7 +114,7 @@ module Badline
 
       # A new machine, built as the snapshot's was and restored from it. A
       # badline snapshot restores from its BL-* modules alone, and a VICE
-      # one through the modules badline reads, x64sc's or xpet's. xvic's,
+      # one through the modules badline reads, x64sc's, xpet's or xcbm2's. xvic's,
       # x128's and xplus4's own modules aren't read. Yields a line for
       # each thing left out, or warns it without a block. `detached`
       # restores it without the host's files (Keyed::Modules).
@@ -122,6 +122,7 @@ module Badline
         refuse_old_layout
         refuse_unread
         return load_xpet(&) if pet? && !badline?
+        return load_xcbm2(&) if cbm2? && !badline?
         return load_vice(&) unless badline?
 
         modules = Keyed::Modules.new(sections, detached:)
@@ -150,10 +151,9 @@ module Badline
       # a machine built another way, leaves `computer` as it was.
       def restore(computer, &)
         refuse_old_layout
-        raise FormatError, "badline reads only its own CBM-II snapshots, not xcbm2's" if cbm2? && !badline?
-
         report = if badline? then restore_modules(computer)
                  elsif pet? then Vice::PET::Restore.import(@container, computer)
+                 elsif cbm2? then Vice::CBM2::Restore.import(@container, computer)
                  else Vice::Restore.import(@container, computer)
                  end
         tell(report, &)
@@ -171,6 +171,12 @@ module Badline
       def load_xpet(&)
         computer = Vice::PET.setup(@container).build
         tell(Vice::PET::Restore.apply(@container, computer), &)
+        computer
+      end
+
+      def load_xcbm2(&)
+        computer = Vice::CBM2.setup(@container).build
+        tell(Vice::CBM2::Restore.apply(@container, computer), &)
         computer
       end
 

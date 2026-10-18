@@ -82,7 +82,8 @@ module Badline
             beam = if discrete
                      discrete_beam(video_input)
                    else
-                     crtc_beam(run_on(machine, crtc_input, -CRTC_LEAD % frame_cycles(registers)), registers)
+                     crtc_beam(run_on(fresh_crtc(machine), crtc_input, -CRTC_LEAD % frame_cycles(registers)),
+                               registers)
                    end
             fields = FieldWriter.new.bytes(model.cbm8296? ? SETTINGS_8296 : SETTINGS).word(attributes(model))
             fields.byte(0).byte(columns(model))
@@ -119,10 +120,12 @@ module Badline
 
           def frame_cycles(registers) = (registers[0] + 1) * frame_lines(registers)
 
-          # The BL-CRTC fields of a CRTC loaded with those in `input` and run
-          # `cycles` cycles on its own, in a machine built as `machine` was.
-          def run_on(machine, input, cycles)
-            crtc = PETSetup.of(machine).build.crtc
+          # The CRTC of a machine built as `machine` was, at power-on.
+          def fresh_crtc(machine) = PETSetup.of(machine).build.crtc
+
+          # The BL-CRTC fields of `crtc`, a CRTC of its own, loaded with those
+          # in `input` and run `cycles` cycles.
+          def run_on(crtc, input, cycles)
             crtc.load_fields(input)
             cycles.times { crtc.cycle! }
             Keyed::Reader.parse(Keyed.section("BL-CRTC") { |out| crtc.save_fields(out) })

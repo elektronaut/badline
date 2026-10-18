@@ -203,6 +203,67 @@ true drive, a 2031, an 8050 or an 8250, off the bus and says so. Restored into a
 built another way, such as a 3032B, and otherwise switches the machine
 off and on, keeping its tapes and the disk device 8 serves.
 
+## The CBM-II
+
+The B series, the 610, 620, 710 and 720, saves and restores the same
+way. A snapshot of one holds segment 15's RAM, the screen RAM, the RAM
+board's segments, both segment registers, a cartridge's ROMs, the CPU,
+the CRTC with the picture, the SID, the CIA, the ACIA, both TPIs with
+their priority stacks, the mains' place in its period, and the disk or
+directory device 8 serves through the IEEE-488 traps. It restores into
+a machine of the same model with the same KERNAL and mains. Its file
+names its machine `CBM-II`, as xcbm2's do, and holds only badline's
+modules, so xcbm2 doesn't open it unless it is saved with
+`computer.export_snapshot(path)` (see [xcbm2](#xcbm2)).
+
+### xcbm2
+
+A CBM-II snapshot saved with `computer.export_snapshot(path)` also holds
+xcbm2's modules for the CPU, the RAM with both segment registers, the
+CRTC, the CIA, both TPIs, the ACIA and the SID, and the ones xcbm2 3.10
+needs to open the file, with no cartridge, nothing open on the file
+system drive and nothing on the user port. The file says it is in
+VICE's snapshot format 1.0, the only one xcbm2 reads.
+
+xcbm2 3.10 opens those snapshots as long as its model matches: `-model
+610`, `620`, `710` or `720`. It takes a 600's 60 Hz from the snapshot,
+keeps its own drives and leaves out badline's cartridge and disk. It
+runs on from badline's snapshot just as it runs on from one it saved
+itself, cycle for cycle. Opening any snapshot, its own too, costs it a
+couple of hundred cycles of its CRTC, so the mains ticks that much later
+than in a run that didn't stop.
+
+xcbm2 saves no mains. It ticks the mains once a frame of its CRTC, as
+vertical sync ends, whatever its mains is set to, so its ticks come a
+frame apart: 40,064 cycles on a 600 at 50 Hz, where badline's come
+40,000 apart, and its 700 has no 60 Hz. A snapshot saved for xcbm2 ticks
+where xcbm2's CRTC says, not where badline's mains had it. Neither
+does xcbm2 save a TPI's priority stack, so the interrupts in service are
+lost both ways. Its cursor blinks 32 fields on and 32 off, where the
+6845 blinks 16 and 16, so it comes back showing or hidden as it was,
+with its place in the blink scaled.
+
+Snapshots xcbm2 saves open in badline through the same modules: the CPU
+at its instruction boundary, the RAM and both segment registers, the
+CRTC's registers and beam, the CIA's registers, timers and clock, both
+TPIs' registers, latches, mask, AIR, CA and CB, the ACIA's registers and
+the byte it waits to send, and the SID's registers and reSID voice
+state. The mains' next falling edge comes where xcbm2 would tick it, and
+the ones after at badline's 50 or 60 Hz, so the two part from the
+second tick on. Until then a program badline runs on from xcbm2's
+snapshot reads the mains, the CIA and the rest as xcbm2 does, cycle for
+cycle. The picture starts again with the next frame. xcbm2 doesn't
+save its ROMs, so the RAM board and the model line build the machine:
+a 610, 620, 710 or 720 with xcbm2's KERNAL, 901244-04a, at 60 Hz for a
+600 whose model line says so and at 50 Hz otherwise. A board of 512K or
+more, or RAM mapped into segment 15, fails. It reports the modules it
+leaves out, such as the drives, the datasette and the keyboard, and
+carries on without them. A snapshot saved while xcbm2's drive was
+sending on the IEEE-488 bus, part way into a `LOAD`, stalls there.
+Restored into a running CBM-II, an xcbm2 snapshot fails for a CBM-II
+built another way, and otherwise switches the machine off and on,
+keeping the disk device 8 serves.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format, and badline's own modules are named
