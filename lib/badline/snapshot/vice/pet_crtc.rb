@@ -135,16 +135,13 @@ module Badline
             %w[adjusting row_display column_display].each { |key| out.bool(key, input.bool(key, false)) }
           end
 
-          # Both move a row's start on at R1 of its last line, and badline's
-          # moves it again where the vertical adjust runs past R9 lines,
-          # which xpet's doesn't.
+          # Both move a row's start on at R1 of its last line.
           def crtc_beam(input, registers)
             column = input.int("column", 0)
             row = input.int("row", 0)
             line = input.int("line", 0)
             adjusting = input.bool("adjusting", false)
             start = input.int("row_start", 0)
-            start = (start - registers[1]) & 0x3fff if adjusting && moved?(line, column, registers)
             rows = registers[4] + 1
             lines = registers[9] + 1
             Beam.new(column:, row: adjusting ? rows : row, raster: adjusting ? 0 : line,
@@ -212,12 +209,7 @@ module Badline
             adjusting = beam.row >= rows
             line = adjusting ? beam.frame_line - (rows * (registers[9] + 1)) : beam.raster
             start = start_address(beam.start, registers, columns, attributes)
-            if adjusting
-              start += registers[1] if line > registers[9]
-            elsif moved?(line, column_of(section), registers)
-              start -= registers[1]
-            end
-            start &= 0x3fff
+            start = (start - registers[1]) & 0x3fff if !adjusting && moved?(line, column_of(section), registers)
             out.bytes("registers", registers.first(Chips::CRTC::MASKS.length)).int("selected", selected(section) & 0x1f)
             out.int("column", 0).int("line", [line, 0].max).int("row", adjusting ? rows - 1 : beam.row)
             out.int("since_hsync", registers[0] + 1 - registers[2]).int("vsync_lines", beam.vsync)

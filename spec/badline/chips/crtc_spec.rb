@@ -88,6 +88,21 @@ describe Badline::Chips::CRTC do
     expect(sync_period.last).to eq(50 * ((33 * 10) + 3))
   end
 
+  describe "with a vertical adjust longer than a row" do
+    # Lines of 10 characters, rows of 2 lines, 2 rows, 5 lines of adjust,
+    # every row shown, from $1000.
+    before do
+      program([9, 4, 6, 0x0f, 1, 5, 4, 3, 0, 1, 0, 0, 0x10, 0x00])
+      crtc.reset!
+      output.clear
+      90.times { crtc.cycle! }
+    end
+
+    it "shows each of its lines from where the last row left off" do
+      expect(output.characters.map(&:first).each_slice(4).to_a.last(5)).to eq([[0x1008, 0x1009, 0x100a, 0x100b]] * 5)
+    end
+  end
+
   it "starts over at the top of the frame after a reset" do
     program(text_mode)
     1234.times { crtc.cycle! }
