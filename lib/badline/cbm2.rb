@@ -7,7 +7,7 @@ require "badline/cbm2/bus"
 require "badline/cbm2/cpu"
 require "badline/cbm2/acia"
 require "badline/cbm2/keyboard_ports"
-require "badline/cbm2/blank_video"
+require "badline/cbm2/crtc_video"
 require "badline/cbm2/sid_page"
 require "badline/snapshot/cbm2_setup"
 require "badline/cbm2/keyed_state"
@@ -28,8 +28,9 @@ module Badline
   # jumpers (KeyboardPorts), and type_text types through the editor's
   # keyboard buffer in segment 15.
   #
-  # The CRTC counts but paints nothing yet (BlankVideo). Nothing answers
-  # on the IEEE-488 bus yet, so its lines float high. It runs headless.
+  # The CRTC paints its picture from the screen RAM and the character ROM
+  # (CRTCVideo). Nothing answers on the IEEE-488 bus yet, so its lines
+  # float high. It runs headless.
   class CBM2
     include Machine::KeyboardBuffer
     include Machine::Clocking
@@ -59,6 +60,12 @@ module Badline
 
     def sound_source = @sid
 
+    # The Canvas a front end shows (CRTCVideo).
+    def video = @video.canvas
+
+    # What paints the picture.
+    def crtc_video = @video
+
     # +model+ names one of Model::ALL, +kernal+ one of Model::KERNALS, and
     # +mains_hz+ the mains, 50 or 60, which also sets a 600's jumper for
     # the editor's 60 Hz CRTC table.
@@ -71,11 +78,14 @@ module Badline
       @mains_hz = mains_hz
       @bus = Bus.new(basic: Model.basic(@model, kernal), kernal: Model::KERNALS.fetch(kernal),
                      ram_segments: @model.ram_segments)
-      @crtc = Chips::CRTC.new(BlankVideo.new)
+      @tpi1 = Chips::TPI.new
+      registers = Array.new(Chips::CRTC::MASKS.length, 0)
+      @video = CRTCVideo.new(ROM.read(@model.characters), @bus.screen, @tpi1, registers,
+                             high_profile: @model.high_profile)
+      @crtc = Chips::CRTC.new(@video, registers:)
       @sid = Chips::SID.new(model: :mos6581, at: 0xda00)
       @cia = Chips::CIA.new(start: 0xdc00, region: Region::PAL.with(clock_hz: CLOCK_HZ), tod_hz: mains_hz)
       @acia = ACIA.new(self, CLOCK_HZ)
-      @tpi1 = Chips::TPI.new
       @keyboard = Input::Keyboard.new(matrix: KeyboardPorts::MATRIX)
       keyboard_ports = KeyboardPorts.new(@keyboard, jumpers)
       @tpi2 = Chips::TPI.new(peripheral: keyboard_ports)
@@ -98,10 +108,12 @@ module Badline
     def model_label = "#{@model.name}, #{@model.ram_kb}K RAM, #{@mains_hz} HZ"
 
     # The 2 MHz clock and the frame of the editor's CRTC table, nominal,
-    # since a program can program the CRTC otherwise.
+    # since a program can program the CRTC otherwise, and all of the
+    # Canvas, two dots to a window pixel.
     def timing
       cycles_per_line, lines_per_frame = crtc_frame
-      Timing.new(clock_hz: CLOCK_HZ, cycles_per_line:, lines_per_frame:, crop: [0, 0, 640, lines_per_frame],
+      canvas = @video.canvas
+      Timing.new(clock_hz: CLOCK_HZ, cycles_per_line:, lines_per_frame:, crop: [0, 0, canvas.width, canvas.height],
                  pixel_width: 1, dots: 2)
     end
 

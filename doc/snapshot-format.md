@@ -1393,28 +1393,30 @@ Written by the PET, CBM-II.
 
 ## BL-VIDEO
 
-Written by the PET.
+Written by the PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `displayed` | int | 0 |
-| `frame_displayed` | int | 0 |
+| `displayed` | int | PET: 0 |
+| `frame_displayed` | int | PET: 0 |
 | `line_shown` | bool | false |
-| `y` | int | 136 |
-| `from_y` | int | 136 |
-| `to_y` | int | 136 |
-| `shown_from` | int | 36 |
-| `shown_to` | int | 37 |
-| `on_canvas` | bool | true |
-| `origin` | int | 336 |
-| `from` | int | 704 |
-| `to` | int | -704 |
-| `canvas.dots` | bytes | 192192 × 0 or 83328 × 0 |
-| `canvas.painted` | ints | 48048 × 0 or 20832 × 0 |
-| `canvas.span_from` | ints | 273 × 0 or 217 × 0 |
-| `canvas.span_to` | ints | 273 × 0 or 217 × 0 |
-| `column` | int | 0 |
+| `y` | int | PET: 136 |
+| `from_y` | int | PET: 136 |
+| `to_y` | int | PET: 136 |
+| `shown_from` | int | PET: 36 |
+| `shown_to` | int | PET: 37 |
+| `on_canvas` | bool | PET: true |
+| `origin` | int | PET: 336; CBM-II: 24 |
+| `from` | int | PET: 704 |
+| `to` | int | PET: -704 |
+| `canvas.dots` | bytes | PET: 192192 × 0 or 83328 × 0; CBM-II: 187264 × 0 or 258368 × 0 |
+| `canvas.painted` | ints | PET: 48048 × 0 or 20832 × 0; CBM-II: 46816 × 0 or 64592 × 0 |
+| `canvas.span_from` | ints | PET: 273 × 0 or 217 × 0; CBM-II: 266 × 0 or 367 × 0 |
+| `canvas.span_to` | ints | PET: 273 × 0 or 217 × 0; CBM-II: 266 × 0 or 367 × 0 |
+| `column` | int | PET: 0 |
 | `line` | int | 0 |
+| `frames` | int | CBM-II: 2 |
+| `layout` | ints | CBM-II: 9 × 0 |
 
 ## BL-TAPE1
 

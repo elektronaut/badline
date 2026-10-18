@@ -224,11 +224,12 @@ Recorded output of the headless hardware suites, one file per suite:
   ending in `@2001` or `@3032`. badline answers `$8BFF` on the 2001 too,
   ahead of the screen RAM it repeats there, where xpet's 2001 lets the
   screen take the write.
-- `testbench-cbm2.txt` — the `exitcode` rows of `cbm610-testlist.in` with
-  `--cbm2`, on a 610 as xcbm2's hook starts it: the selftest's program,
-  loaded into BASIC's text in segment 1 and run, and its cartridge at
-  $2000, which the KERNAL's autostart starts. On Spinel the rows run on
-  `spinel/cbm2_testbench.rb`.
+- `testbench-cbm2.txt` — the `exitcode` and `screenshot` rows of
+  `cbm610-testlist.in` with `--cbm2`, on a 610 as xcbm2's hook starts it:
+  the selftest's program, loaded into BASIC's text in segment 1 and run,
+  and its cartridge at $2000, which the KERNAL's autostart starts. The
+  screenshots are compared with the references from (32, 35) on. On
+  Spinel the rows run on `spinel/cbm2_testbench.rb`.
 - `testbench-c128c64.txt` — the same runner with `--c128c64`, over a
   curated part of the x128c64 testlist: the rows of `c64-testlist.in`
   that VICE's Makefile keeps for x128 in C64 mode, with `cpuport.prg`
@@ -564,7 +565,7 @@ what the suite cost before it was sharded:
 | `testbench-c16` | 8 | — | 0.1 min | 0.1 min |
 | `testbench-pet` | 17 | — | 0.7 min | 0.3 min |
 | `testbench-pet-discrete` | 4 | — | 0.1 min | 0.1 min |
-| `testbench-cbm2` | 4 | — | 0.2 min | 0.1 min |
+| `testbench-cbm2` | 8 | — | 0.3 min | 0.1 min |
 
 The `testbench-cia-new`, `testbench-vicii-new`, `testbench-general`,
 `testbench-expansions` and three `testbench-ntsc` rows were measured on a

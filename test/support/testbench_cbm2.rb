@@ -24,17 +24,58 @@ module Testbench
     def cbm2_machine = Testbench.cbm2_machine(cbm2_model, cartridge.nil?)
 
     # Runs the row on +machine+, returning the exit code and the text
-    # screen.
+    # screen, or the picture for a screenshot row.
     def run_cbm2(machine)
-      exit_code = CBM2Execution.new(machine).run((cartridge_path if cartridge), dir_abs, prg, budget)
-      [exit_code, Testbench.cbm2_screen_text(machine)]
+      screenshot = type == "screenshot"
+      exit_code = CBM2Execution.new(machine).run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
+      [exit_code, screenshot ? Testbench.cbm2_screenshot(machine) : Testbench.cbm2_screen_text(machine)]
     end
   end
 
-  # The CBM-II testlists' rows, on the 610 for --cbm2 and the 510 for
-  # --cbm5x0: the 610's exitcode rows, its screenshot rows waiting for the
-  # B series' video, and the 510's exitcode and screenshot rows, which
-  # only --list takes until the P500 runs. Interactive rows are left out
+  # A CBM-II screenshot against its reference. VICE's testbench compares
+  # the two from (32, 35) on, over the lines and dots both have, and so
+  # does this. A reference dot counts as lit where it is more green than
+  # not.
+  class CBM2Screenshot
+    LEFT = 32
+    TOP = 35
+
+    attr_reader :rows
+
+    def initialize(rows)
+      @rows = rows
+    end
+
+    # The number of mismatched dots.
+    def compare(test)
+      png = ChunkyPNG::Image.from_file(test.reference)
+      width = [png.width, rows.first.length].min
+      diff = 0
+      (TOP...[png.height, rows.length].min).each do |y|
+        row = rows[y]
+        (LEFT...width).each { |x| diff += 1 unless (ChunkyPNG::Color.g(png[x, y]) > 0x80 ? 1 : 0) == row[x] }
+      end
+      write_actual(test) if diff.positive?
+      diff
+    end
+
+    private
+
+    def write_actual(test)
+      png = ChunkyPNG::Image.new(rows.first.length, rows.length)
+      rows.each_with_index do |row, y|
+        row.each_with_index do |index, x|
+          color = Badline::PET::Canvas::PALETTE[index]
+          png[x, y] = ChunkyPNG::Color.rgb(color >> 16, (color >> 8) & 0xff, color & 0xff)
+        end
+      end
+      png.save(File.join(ARTIFACT_DIR, "#{test.key.tr('/', '-')}.actual.png"))
+    end
+  end
+
+  # The CBM-II testlists' exitcode and screenshot rows, on the 610 for
+  # --cbm2 and the 510 for --cbm5x0, which only --list takes until the
+  # P500 runs. Interactive rows are left out
   # as on the C64. A mountcrt row starts from power-on with its cartridge
   # in.
   module CBM2Testlist
@@ -51,7 +92,7 @@ module Testbench
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
-      return unless type == "exitcode" || (type == "screenshot" && family == :cbm5x0)
+      return unless RUNNABLE_TYPES.include?(type)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, Testlist.cartridge(options))
       test.family = family

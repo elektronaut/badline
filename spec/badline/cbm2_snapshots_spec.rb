@@ -28,7 +28,7 @@ describe Badline::CBM2 do
       saved.save_snapshot(path)
       snapshot = Badline::Snapshot.read(path)
       expect([snapshot.container.machine, snapshot.sections.map(&:name)])
-        .to eq(["CBM-II", %w[BL-MACHINE BL-CPU BL-RAM BL-CRTC BL-SID BL-CIA BL-ACIA BL-TPI1 BL-TPI2]])
+        .to eq(["CBM-II", %w[BL-MACHINE BL-CPU BL-RAM BL-CRTC BL-VIDEO BL-SID BL-CIA BL-ACIA BL-TPI1 BL-TPI2]])
     end
 
     it "builds the model, KERNAL and mains the snapshot names" do

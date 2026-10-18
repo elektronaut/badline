@@ -437,7 +437,10 @@ SHA-1 e63bf18da48e5a53c99ef127c1ae721333d1d102.
 cbm2/characters-700.rom
 -----------------------
 The 700's character generator, 901232-01 (characters.901232-01.bin),
-4K: two sets of 128 glyphs, 16 bytes each, an 8x16 matrix.
+4K: two sets of 128 glyphs, 16 bytes each, an 8x16 matrix. zimmers.net
+also has 901232-02, from a 710, which differs in 139 bytes. xcbm2 runs
+-01 on its 710, and a 710's boot screen painted with it matches xcbm2's
+dot for dot.
 SHA-1 e7f3cbc8e282f79a00c3e95d75c8d725ee3c6287.
 
 cbm2/p500-kernal.rom

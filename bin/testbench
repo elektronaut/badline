@@ -138,7 +138,9 @@
 # mountcrt row starts from power-on with the cartridge's ROM at $2000 of
 # segment 15, where the KERNAL's autostart finds it. Tests report
 # through $DAFF in segment 15, and a failure keeps the 80-column text
-# screen at $D000. Screenshot rows wait for the B series' video.
+# screen at $D000. A screenshot row compares the CRTC's picture with the
+# reference from (32, 35) on, as xcbm2's hook does
+# (Testbench::CBM2Screenshot).
 # --cbm5x0 lists cbm510-testlist.in's exitcode and screenshot rows on
 # the 510, which only --list takes until the P500 runs.
 #

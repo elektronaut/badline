@@ -352,7 +352,7 @@ the PET's text screen, 40 or 80 columns. It runs each test with
 `testbench-cbm2` runs on `cbm2_testbench`. Its lines are `KEY TYPE
 BUDGET CARTRIDGE PROGRAM DIRECTORY MODEL`, where MODEL names one of
 `Badline::CBM2::Model::ALL`, and its records carry the 25 lines of the
-80-column text screen. It runs each test with `Testbench::CBM2Execution`
+80-column text screen, or for a screenshot row the picture. It runs each test with `Testbench::CBM2Execution`
 (`test/support/testbench_cbm2_machine.rb`).
 
 `--engine` takes `bin/testbench`'s filters like any other run:
