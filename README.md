@@ -83,7 +83,7 @@ differences noted in the table. `--help` lists the options for either.
 | --- | --- |
 | `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
 | `--writable` | Let the machine write to disk images. Without it, a disk goes in write-protected: the drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
-| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, a 1551 on the Plus/4, or a 2031 on the PET. See [Media](#media) |
+| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, a 1551 on the Plus/4, or a 2031 on the PET or the CBM-II, or for a `.d80` or `.d82` an 8050 or 8250. See [Media](#media) |
 | `--drive-type 1541` | On the Plus/4, make the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
@@ -393,11 +393,14 @@ time of day.
 
 A program loads at the start of BASIC, `$0003` in segment 1, and runs.
 Disks of every kind, `.d80` and `.d82` among them, go through the
-KERNAL traps on the IEEE-488 bus as device 8. A `.d80` or `.d82` on
-its own starts a PET, so `cbm2` names the machine for one, but a
-cartridge made for the CBM-II starts it without `cbm2`. The cartridge
-goes in from the command line or Quick open. There is no datasette and
-no true drive yet. The SID plays through the host's audio device at
+KERNAL traps on the IEEE-488 bus as device 8, or with `--true-drive` an
+emulated 2031 on the bus, which reads `.d64` and `.g64` images, and an
+8050 for a `.d80` or an 8250 for a `.d82`. A 610's first `LOAD` from a
+2031 after power-on finds no file, as on xcbm2, and the second loads.
+A `.d80` or `.d82` on its own starts a PET, so `cbm2` names the machine
+for one, but a cartridge made for the CBM-II starts it without `cbm2`.
+The cartridge goes in from the command line or Quick open. There is no
+datasette. The SID plays through the host's audio device at
 the machine's 2 MHz, as the C64's does. The keys type what the host's
 keys type, as on the PET, and `Alt` with a key presses the keys the
 host has none for: [Input](#input) lists them. The pause menu's Power

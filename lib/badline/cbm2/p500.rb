@@ -27,12 +27,14 @@ module Badline
     # key matrix (KeyboardPorts), and the CIA reads the two control ports
     # (ControlPorts). Device 8 answers through traps on the KERNAL's
     # IEEE-488 primitives as on the B series (IEEETraps, with the P500's
-    # IEEELayout), and nothing else answers on the bus. It runs headless.
+    # IEEELayout), or a true 2031, 8050 or 8250 on the bus answers, on the
+    # same ports as the B series' (IEEEPorts, IEEEDrive).
     class P500
       include Machine::KeyboardBuffer
       include Machine::Clocking
       include Machine::Settling
       include IEEETraps
+      include IEEEDrive
 
       # The segment BASIC keeps its program text in.
       TEXT_SEGMENT = 0
@@ -42,7 +44,7 @@ module Badline
       end
 
       attr_reader :model, :bus, :cpu, :vic, :sid, :cia, :acia, :tpi1, :tpi2, :keyboard, :joystick1, :joystick2,
-                  :color_ram, :mains_hz, :kernal, :cycles, :init_threshold
+                  :color_ram, :ieee, :mains_hz, :kernal, :cycles, :init_threshold
 
       def ram = @bus.ram
 
@@ -84,12 +86,14 @@ module Badline
         @vic = Chips::VIC.new(model: :mos6569, region: @model.region)
         @color_ram = C64::ColorMemory.new(@vic, start: 0xd400)
         map_video
-        @tpi1 = Chips::TPI.new
+        @ieee = IEEEPorts.new(Drives::IEEEBus.new)
+        @tpi1 = Chips::TPI.new(peripheral: @ieee)
         @sid = Chips::SID.new(model: :mos6581, at: 0xda00)
         @joystick1 = Input::Joystick.new
         @joystick2 = Input::Joystick.new
-        @cia = Chips::CIA.new(start: 0xdc00, peripheral: ControlPorts.new(@joystick1, @joystick2),
+        @cia = Chips::CIA.new(start: 0xdc00, peripheral: ControlPorts.new(@joystick1, @joystick2, @ieee.data),
                               region: @model.region, tod_hz: @mains_hz)
+        @ieee.connect(@cia, @tpi1)
         @acia = ACIA.new(self, clock_hz)
         @keyboard = Input::Keyboard.new(matrix: KeyboardPorts::MATRIX)
         keyboard_ports = KeyboardPorts.new(@keyboard, 0xc0)
@@ -111,6 +115,7 @@ module Badline
         @dos = nil
         @ieee_trap = nil
         @capture_output = nil
+        init_ieee_drives
         @init_threshold = INIT_THRESHOLD
         update_video_bus
       end
@@ -144,6 +149,7 @@ module Badline
         cpu = @cpu
         cpu.irq = tpi1.irq? || vic.interrupted?
         cpu.pending_write? || !vic.ba_low? ? cpu.cycle! : cpu.stall!
+        clock_ieee_drives
 
         @cycles += 1
       end
@@ -172,6 +178,7 @@ module Badline
         update_video_bus
         @bus.reset!
         @cpu.reset!
+        reset_ieee_drives
       end
 
       # Puts a program file's bytes where its first two say in BASIC's text

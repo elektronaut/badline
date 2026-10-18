@@ -8,7 +8,9 @@ require "badline/cbm2"
 # sides. As the PET's scenarios do (drive_scenarios_pet.rb and
 # drive_scenarios_8050.rb), they format a disk, save and load a program,
 # autostart a disk and read the error channel, and the idle scenario runs
-# a 610 with a sleeping 2031 beside one whose 2031 steps every cycle.
+# a 610 with a sleeping 2031 beside one whose 2031 steps every cycle. The
+# P500's scenarios save to an 8050 and read a 2031's error channel on a
+# 510, on the same ports.
 # BASIC's text is in segment 1, from $0003. BASIC prints READY. once
 # booted and after every command, LOAD included, so the runs count each.
 module DriveScenarios
@@ -23,7 +25,9 @@ module DriveScenarios
       "cbm2-8050-autostart" => %w[loads-and-runs],
       "cbm2-2031-error-channel" => %w[power-on-message],
       "cbm2-8050-error-channel" => %w[power-on-message],
-      "cbm2-8250-error-channel" => %w[power-on-message]
+      "cbm2-8250-error-channel" => %w[power-on-message],
+      "p500-8050-save" => %w[no-error loads-back file-in-image trap-readable],
+      "p500-2031-error-channel" => %w[power-on-message]
     }.freeze
 
     # 10 PRINT"HELLO", as SAVE writes it from the start of BASIC's text.
@@ -46,15 +50,19 @@ module DriveScenarios
     module_function
 
     def run(report, name, dir)
-      model = name[/\Acbm2-(\d{4})-/, 1]
-      case name.delete_prefix("cbm2-#{model}-")
+      p500 = name.start_with?("p500-")
+      model = name[/\A(?:cbm2|p500)-(\d{4})-/, 1]
+      case name.delete_prefix("#{p500 ? 'p500' : 'cbm2'}-#{model}-")
       when "format" then format(report, dir, model)
-      when "save" then save(report, dir, model)
+      when "save" then save(report, dir, model, p500)
       when "idle" then idle(report, dir)
       when "autostart" then autostart(report, dir, model)
-      else error_channel(report, model)
+      else error_channel(report, model, p500)
       end
     end
+
+    # A 610, or a 510 for the P500's scenarios.
+    def machine(p500) = p500 ? Badline::CBM2::P500.new : Badline::CBM2.new
 
     # N: on an image of zeros, then SAVE to it and LOAD the directory, which
     # the traps read back too.
@@ -63,7 +71,7 @@ module DriveScenarios
       File.binwrite(path, Array.new(image_size(model), 0).pack("C*"))
       text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\r" \
              "run\rsave\"prog\",8\rload\"$\",8\rlist\r"
-      output = write_run(path, model, text, 5)
+      output = write_run(path, model, text, 5, false)
       free = FREE_AFTER_PROG.fetch(model)
       report.check("no-error", Runs.number_before?(output, " 0", "OK"), "the error channel said no 0, OK")
       report.check("lists-new-disk", output.include?(NEW_DISK.fetch(model)) && output.include?("\"PROG\"") &&
@@ -72,9 +80,9 @@ module DriveScenarios
     end
 
     # SAVE through the DOS to a blank disk, then NEW, LOAD and LIST it back.
-    def save(report, dir, model)
-      path = blank(dir, "cbm2-#{model}-save", model)
-      output = write_run(path, model, PETRuns::SAVE_TEXT, 5)
+    def save(report, dir, model, p500)
+      path = blank(dir, "#{p500 ? 'p500' : 'cbm2'}-#{model}-save", model)
+      output = write_run(path, model, PETRuns::SAVE_TEXT, 5, p500)
       report.check("no-error", !output.include?("ERROR"), "printed an error")
       report.check("loads-back", output.include?("10 PRINT\"HELLO\""), "listed no 10 PRINT\"HELLO\"")
       report.check("file-in-image", open_image(path, model).read_file("test") == SAVED,
@@ -133,8 +141,8 @@ module DriveScenarios
     end
 
     # BASIC reads the power-on message from the drive's error channel.
-    def error_channel(report, model)
-      machine = Badline::CBM2.new
+    def error_channel(report, model, p500)
+      machine = machine(p500)
       plug(machine, model)
       output = machine.capture_output
       machine.on_init { machine.type_text(PETRuns::ERROR_CHANNEL_TEXT) }
@@ -143,11 +151,11 @@ module DriveScenarios
       report.check("power-on-message", output.output.upcase.include?(message), "printed no#{message}")
     end
 
-    # A 610 with the model on the bus and the image at path in it, typing
+    # A 610, or a 510, with the model on the bus and the image at path in it, typing
     # text once booted. Runs until BASIC has printed READY. readies times,
     # and then until the motor stops, and returns what it printed.
-    def write_run(path, model, text, readies)
-      machine = Badline::CBM2.new
+    def write_run(path, model, text, readies, p500)
+      machine = machine(p500)
       drive = plug(machine, model)
       drive.insert_image(path)
       output = machine.capture_output

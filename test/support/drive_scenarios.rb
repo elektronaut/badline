@@ -23,7 +23,7 @@ require_relative "drive_scenarios_cbm2"
 # (drive_scenarios_plus4_1551.rb), its datasette
 # (drive_scenarios_plus4_tape.rb), and the PET's 2031 on the IEEE-488 bus
 # (drive_scenarios_pet.rb) and its 8050 and 8250 (drive_scenarios_8050.rb),
-# and the CBM-II's 2031, 8050 and 8250 (drive_scenarios_cbm2.rb).
+# and the CBM-II's and the P500's 2031, 8050 and 8250 (drive_scenarios_cbm2.rb).
 # Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
@@ -93,7 +93,7 @@ module DriveScenarios
       PET8050Runs.run(report, name, dir)
     when "cbm2-8050-format", "cbm2-2031-format", "cbm2-8050-save", "cbm2-2031-save", "cbm2-2031-idle",
          "cbm2-8050-autostart", "cbm2-2031-error-channel", "cbm2-8050-error-channel",
-         "cbm2-8250-error-channel"
+         "cbm2-8250-error-channel", "p500-8050-save", "p500-2031-error-channel"
       CBM2Runs.run(report, name, dir)
     when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")
     when "plus4-c16-tape" then Plus4TapeRuns.run(report, dir, "c16")
