@@ -57,6 +57,13 @@ module Badline
         bus.host_lines = controller_lines unless bus.drives.empty?
       end
 
+      # The drives on the bus see the lines the PET pulls now.
+      def push_lines = lines_written
+
+      # Nothing to push once a cycle: the PET pushes its lines as its chips
+      # are written.
+      def cycle_lines = nil
+
       private
 
       def low_lines = @bus.low_lines(controller_lines)
