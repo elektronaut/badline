@@ -27,6 +27,7 @@ module Testbench
       return vic20_spec(test) if test.vic20?
       return plus4_spec(test) if test.plus4?
       return pet_spec(test) if test.pet?
+      return cbm2_spec(test) if test.cbm2?
       return c128_spec(test) if test.c128?
 
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
@@ -49,6 +50,11 @@ module Testbench
 
     def self.pet_spec(test)
       [test.key, test.type, test.budget, test.prg, test.dir_abs, test.pet_model].join("\t") << "\n"
+    end
+
+    def self.cbm2_spec(test)
+      [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
+       test.cbm2_model].join("\t") << "\n"
     end
 
     def self.c128_spec(test)

@@ -131,10 +131,16 @@
 # model, and a failure keeps the 40- or 80-column text screen at $8000.
 # Screenshot rows wait for the PET's video.
 #
-# --cbm2 and --cbm5x0 list the exitcode and screenshot rows of
-# cbm610-testlist.in and cbm510-testlist.in, on the 610 and the 510 as
-# xcbm2's and xcbm5x0's hooks start them, mountcrt rows from power-on
-# with the cartridge in. Only --list takes them until the CBM-II boots.
+# --cbm2 runs the exitcode rows of cbm610-testlist.in on a 610, as
+# xcbm2's hook starts it. The program goes to the start of BASIC's text
+# in segment 1, with BASIC's end of text and the KERNAL's end address set
+# as LOAD sets them, and RUN is typed once the machine has booted. A
+# mountcrt row starts from power-on with the cartridge's ROM at $2000 of
+# segment 15, where the KERNAL's autostart finds it. Tests report
+# through $DAFF in segment 15, and a failure keeps the 80-column text
+# screen at $D000. Screenshot rows wait for the B series' video.
+# --cbm5x0 lists cbm510-testlist.in's exitcode and screenshot rows on
+# the 510, which only --list takes until the P500 runs.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs

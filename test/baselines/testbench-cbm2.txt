@@ -1,0 +1,4 @@
+selftest/cbm610-pass.prg	PASS
+selftest/cbm610-fail.prg	PASS
+selftest/cbm610-pass.crt	PASS
+selftest/cbm610-fail.crt	PASS
