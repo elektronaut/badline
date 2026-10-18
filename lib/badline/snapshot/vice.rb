@@ -15,6 +15,8 @@ require "badline/snapshot/vice/vicii_import"
 require "badline/snapshot/vice/restore"
 require "badline/snapshot/vice/pet"
 require "badline/snapshot/vice/cbm2"
+require "badline/snapshot/vice/p500"
+require "badline/snapshot/vice/p500_restore"
 
 module Badline
   module Snapshot

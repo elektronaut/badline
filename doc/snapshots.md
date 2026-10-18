@@ -280,6 +280,44 @@ Restored into a running CBM-II, an xcbm2 snapshot fails for a CBM-II
 built another way, and otherwise switches the machine off and on,
 keeping the disk device 8 serves.
 
+### xcbm5x0
+
+The P500, the 510 on PAL and NTSC, saves and restores as the B series
+does, with the VIC-II and its colour RAM in place of the CRTC. Its file
+names its machine `CBM-II-5x0`, as xcbm5x0's do. Saved with `--vice`,
+or `computer.export_snapshot(path)`, it also holds xcbm5x0's modules
+for the CPU, the RAM with the video matrix, the colour RAM and both
+segment registers, the CIA, both TPIs, the ACIA, the SID, the VIC-II
+and the mains, and the ones xcbm5x0 3.10 needs to open the file, with
+no cartridge, nothing open on the file system drive and the joysticks
+released. The file says it is in VICE's snapshot format 0.0, as
+xcbm5x0 writes it.
+
+xcbm5x0 3.10 opens those snapshots with `-model 510`, and `-ntsc` for
+an NTSC 510, keeps its own drives and leaves out badline's cartridge and
+disk. It runs on from badline's snapshot as it runs on from its own,
+cycle for cycle. xcbm5x0 runs VICE's line-based VIC-II, not x64sc's, and
+its module is laid out otherwise: it carries the registers, colour RAM,
+the beam, VC, VCBASE, whether the sequencer is idle, the buffers and
+the sprites' DMA, and badline writes the rest as xcbm5x0 leaves it.
+xcbm5x0 saves the cycles to the mains' next tick, which badline reads
+and writes. It ticks the mains every 19,656 cycles, a PAL frame, on
+NTSC too, about 52 Hz there, where badline's NTSC 510 runs at 60 Hz, so
+a tick more than a 60 Hz period away comes back sooner.
+
+Snapshots xcbm5x0 saves open in badline through the same modules, as
+xcbm2's do, with the VIC-II's registers, beam, counters and colour RAM,
+and the mains' next tick on xcbm5x0's cycle. The row counter follows
+from the line, and the sprites' counters, the borders' flip-flops and
+the pixel pipeline start afresh. xcbm5x0's VIC isn't cycle exact as
+x64sc's is, so a program badline runs on from its snapshot reads the
+raster a cycle off now and then, and its cycles drift from xcbm5x0's by
+a few over a second. The picture starts again with the next frame. The
+RAM's size and the VIC's picture build the machine: a 510, on NTSC for
+NTSC's picture. More RAM fails. Restored into a running P500, an
+xcbm5x0 snapshot fails for a P500 built another way, and otherwise
+switches the machine off and on, keeping the disk device 8 serves.
+
 ## VICE
 
 Snapshots use VICE's `.vsf` format, and badline's own modules are named
