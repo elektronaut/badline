@@ -2,6 +2,7 @@
 
 require_relative "../../lib/badline/support/plus4_checkpoint"
 require_relative "../../lib/badline/support/pet_checkpoint"
+require_relative "../../lib/badline/support/cbm2_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -243,7 +244,11 @@ PET_DEMO_PRG = [
 # build, the demo program each family runs, and the checkpoint that
 # digests it. bin/snapshot_check digests its machines the same way.
 module MachineFamilies
-  NAMES = %w[c64 vic20 c128 plus4 pet].freeze
+  NAMES = %w[c64 vic20 c128 plus4 pet cbm2].freeze
+
+  # The families with no demo program yet, which run the boot and type
+  # scenarios and media alone.
+  NO_DEMO = %w[cbm2].freeze
   MODES = %w[c128 c64].freeze
 
   module_function
@@ -266,6 +271,7 @@ module MachineFamilies
     when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
     when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
     when "pet" then Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
+    when "cbm2" then Badline::CBM2.new(model: options[:model] || "610")
     else Badline::Machine.build(:c64, model: options[:model])
     end
   end
@@ -321,6 +327,7 @@ module MachineFamilies
     when "c128" then Badline::Support::C128Checkpoint
     when "plus4" then Badline::Support::Plus4Checkpoint
     when "pet" then Badline::Support::PETCheckpoint
+    when "cbm2" then Badline::Support::CBM2Checkpoint
     else Badline::Support::Checkpoint
     end
   end

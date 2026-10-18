@@ -42,6 +42,7 @@ on:
           - testbench-plus4-ntsc
           - testbench-pet
           - testbench-pet-discrete
+          - testbench-cbm2
           - lorenz-plus4
           - lorenz-plus4-1
           - lorenz-plus4-2

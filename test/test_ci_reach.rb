@@ -15,10 +15,6 @@ class TestCIReach < Minitest::Test
     assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/kernal_trap/load.rb])
   end
 
-  def test_the_cbm2_reaches_only_the_spinel_check_until_it_has_suites
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/cbm2.rb lib/badline/cbm2/bus.rb])
-  end
-
   def test_specs_reach_nothing
     assert_empty CIReach.suites(%w[spec/badline/chips/cia_spec.rb])
   end
@@ -43,12 +39,17 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/README])
   end
 
-  def test_the_cbm2_roms_reach_only_the_spinel_check
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/cbm2/kernal-04a.rom])
+  def test_the_cbm2_its_roms_tpi_and_testlist_reach_its_testbench
+    files = %w[lib/badline/cbm2.rb lib/badline/cbm2/bus.rb lib/badline/roms/cbm2/kernal-04a.rom
+               lib/badline/chips/tpi.rb test/support/testbench_cbm2_machine.rb]
+
+    assert_equal %w[spinel:check testbench-cbm2], CIReach.suites(files)
   end
 
-  def test_the_cbm2_testlists_reach_no_suite_yet
-    assert_empty CIReach.suites(%w[test/support/testbench_cbm2.rb])
+  def test_the_chips_the_cbm2_shares_reach_its_testbench
+    files = %w[lib/badline/chips/cia.rb lib/badline/chips/sid.rb lib/badline/chips/acia.rb lib/badline/chips/crtc.rb]
+
+    assert_includes CIReach.suites(files), "testbench-cbm2"
   end
 
   def test_the_8050_roms_reach_only_the_spinel_check
@@ -59,7 +60,7 @@ class TestCIReach < Minitest::Test
     files = %w[lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
                lib/badline/roms/pet/kernal4.rom]
 
-    assert_equal %w[spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
+    assert_equal %w[spinel:check testbench-cbm2 testbench-pet testbench-pet-discrete], CIReach.suites(files)
   end
 
   def test_the_2031_and_the_pets_bus_reach_the_drive_scenarios_too
@@ -77,10 +78,6 @@ class TestCIReach < Minitest::Test
 
   def test_the_via_reaches_the_pet_testbenches
     assert_empty %w[testbench-pet testbench-pet-discrete] - CIReach.suites(%w[lib/badline/chips/via.rb])
-  end
-
-  def test_the_tpi_reaches_only_the_spinel_check
-    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/tpi.rb])
   end
 
   def test_the_riots_reach_only_the_spinel_check
@@ -110,7 +107,8 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_sid_reaches_the_sid_suites
-    assert_equal %w[sid sid-8580 spinel:check spinel:check_sid], CIReach.suites(%w[lib/badline/chips/sid/voice.rb])
+    assert_equal %w[sid sid-8580 spinel:check spinel:check_sid testbench-cbm2],
+                 CIReach.suites(%w[lib/badline/chips/sid/voice.rb])
   end
 
   def test_a_baseline_reaches_its_suite

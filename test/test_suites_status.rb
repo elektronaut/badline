@@ -133,7 +133,7 @@ class TestSuitesStatus < Minitest::Test
   end
 
   def test_pulls_carry_the_suites_their_files_reach
-    assert_equal([[7, %w[sid sid-8580 spinel:check spinel:check_sid]]],
+    assert_equal([[7, %w[sid sid-8580 spinel:check spinel:check_sid testbench-cbm2]]],
                  SuitesStatus.pulls(pull_github, %w[m]).map { |each| [each.number, each.reach] })
   end
 

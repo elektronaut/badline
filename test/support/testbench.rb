@@ -28,6 +28,7 @@ require_relative "testbench_plus4_machine"
 require_relative "testbench_pet"
 require_relative "testbench_pet_machine"
 require_relative "testbench_cbm2"
+require_relative "testbench_cbm2_machine"
 require_relative "cli"
 
 module Testbench
@@ -634,6 +635,7 @@ module Testbench
       return score(test, *test.run_vic20(computer)) if test.vic20?
       return score(test, *test.run_plus4(computer)) if test.plus4?
       return score(test, *test.run_pet(computer)) if test.pet?
+      return score(test, *test.run_cbm2(computer)) if test.cbm2?
 
       Dir.mktmpdir("testbench-disk") do |scratch|
         exitcode = test.type == "exitcode"
@@ -746,8 +748,8 @@ module Testbench
       return 0
     end
 
-    if CBM2_MODELS.key?(machine)
-      warn "The CBM-II's rows don't run yet, so they can only be listed (--list)."
+    if machine == :cbm5x0
+      warn "The P500's rows don't run yet, so they can only be listed (--list)."
       return 2
     end
 

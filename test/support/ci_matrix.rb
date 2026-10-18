@@ -28,7 +28,8 @@ module CIMatrix
     "drive-via-1" => [%w[testbench-drive via1.prg via2.prg via3 via4.prg via5.prg via9.prg]],
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
     "drive" => [%w[testbench-drive !viavarious], "drive-scenarios", "testbench-vic20", "testbench-plus4",
-                "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete"],
+                "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete",
+                "testbench-cbm2"],
     "lorenz-plus4-1-3" => [%w[lorenz-plus4 1 2 3]],
     "lorenz-plus4-4" => [%w[lorenz-plus4 4]],
     "c128c64" => %w[testbench-c128c64],
@@ -42,7 +43,8 @@ module CIMatrix
   # The tasks that check the Spinel build against CRuby rather than a
   # baseline, and the harnesses each needs.
   CHECKS = {
-    "spinel:check" => %w[boot cpu_tests z80_tests vic20_boot c128_boot plus4_boot plus4_snapshot pet_boot pet_snapshot],
+    "spinel:check" => %w[boot cpu_tests z80_tests vic20_boot c128_boot plus4_boot plus4_snapshot pet_boot pet_snapshot
+                         cbm2_boot],
     "spinel:check_sid" => %w[sid]
   }.freeze
 

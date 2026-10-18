@@ -275,7 +275,7 @@ serial bus, its media, the CPU port or the datasette.
 Its tests run one at a time as the C64's do, with
 `ruby --yjit bin/lorenz --plus4 --resume <test> --stop-after <test>`; the C128 (`c128.rb`, `c128/`), or
 the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`
-(`bin/testbench --c128c64`); the PET (`pet.rb`, `pet/`), its 6520 PIA (`chips/pia.rb`) or its CRTC (`chips/crtc.rb`) → `testbench-pet` (`bin/testbench --pet`) and `testbench-pet-discrete` (`bin/testbench --pet-discrete`); the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
+(`bin/testbench --c128c64`); the PET (`pet.rb`, `pet/`), its 6520 PIA (`chips/pia.rb`) or its CRTC (`chips/crtc.rb`) → `testbench-pet` (`bin/testbench --pet`) and `testbench-pet-discrete` (`bin/testbench --pet-discrete`), plus `testbench-cbm2` for the CRTC; the CBM-II (`cbm2.rb`, `cbm2/`), its 6525 TPI (`chips/tpi.rb`) or the CIA, SID and ACIA it shares → `testbench-cbm2` (`bin/testbench --cbm2`); the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the

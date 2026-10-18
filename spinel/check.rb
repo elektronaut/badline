@@ -12,7 +12,8 @@ require_relative "../test/support/lorenz_run"
 module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
-                 plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot sid].freeze
+                 plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot cbm2_boot cbm2_testbench
+                 sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -73,6 +74,13 @@ module SpinelCheck
   # each loaded into a new machine that runs on beside the saved one.
   def check_plus4_snapshots
     [[], %w[200100 700000 c16]].each { |args| compare("plus4_snapshot", args) }
+  end
+
+  # A 610 booting to READY and typing print 6*7, and a 720 on 901244-03b
+  # at 60 Hz through the mains measurement, the 700's CRTC table and the
+  # start of the RAM test.
+  def check_cbm2_boots
+    [[], %w[2000000 1000000 720 60 03b]].each { |args| compare("cbm2_boot", args) }
   end
 
   # An 8032's snapshot taken as the line it types runs, and a 2001's

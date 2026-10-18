@@ -10,8 +10,9 @@ module Badline
     # Segment 15 is the system's:
     #
     # $0000-$07FF - 2K of static RAM
-    # $0800-$7FFF - nothing: the buffer RAM socket, the disk ROM and the
-    #               cartridge slots
+    # $0800-$0FFF - nothing: the buffer RAM socket
+    # $1000-$7FFF - the disk ROM's socket and the cartridge's three 8K
+    #               selects, nothing until a ROM is in (#attach_cartridge)
     # $8000-$BFFF - BASIC
     # $C000-$CFFF - nothing
     # $D000-$D7FF - the screen RAM
@@ -111,6 +112,7 @@ module Badline
           ram_segments.include?(segment) ? Memory.new([], length: 0x10000, start: 0) : nil
         end
         @io = Array.new(8, @open_bus)
+        @cartridge = []
         @debug_register = nil
         @reads = Array.new(SEGMENTS) { Array.new(256, @open_bus) }
         @writes = Array.new(SEGMENTS) { Array.new(256, @open_bus) }
@@ -174,6 +176,19 @@ module Badline
         map_pages
       end
 
+      # Puts the cartridge's ROM chips, Storage::CRTFile::Chips, at their
+      # load addresses in segment 15, from $1000 to $7FFF, in place of what
+      # was there.
+      def attach_cartridge(chips)
+        @cartridge = chips.map { |chip| ROM.new(chip.data, length: chip.data.length, start: chip.address) }
+        map_pages
+      end
+
+      def detach_cartridge
+        @cartridge = []
+        map_pages
+      end
+
       # Calls the block with each byte written to $DAFF (DebugRegister).
       def install_debug_register(&)
         @debug_register = DebugRegister.new(&)
@@ -199,6 +214,7 @@ module Badline
       def map_system
         map(SYSTEM, @open_bus, 0x00, 0x100)
         map(SYSTEM, @ram, 0x00, 0x08)
+        @cartridge.each { |rom| @reads[SYSTEM].fill(rom, rom.start >> 8, rom.length >> 8) }
         @reads[SYSTEM].fill(@basic_rom, 0x80, 0x40)
         map(SYSTEM, @screen, 0xd0, 0x08)
         @io.each_with_index { |chip, i| map(SYSTEM, chip, 0xd8 + i, 1) }

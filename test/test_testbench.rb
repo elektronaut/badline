@@ -1249,6 +1249,7 @@ class TestTestbenchEngine < Minitest::Test
     def c128? = false
     def plus4? = false
     def pet? = false
+    def cbm2? = false
   end
 
   def setup
@@ -1392,9 +1393,18 @@ class TestTestbenchCBM2 < Minitest::Test
     refute_predicate Testbench::Testlist.parse("../CIA/tod/,t.prg,exitcode,1000"), :cbm2?
   end
 
-  def test_takes_exitcode_and_screenshot_rows
-    assert_equal %w[exitcode screenshot], [parse.type, parse(type: "screenshot").type]
-    assert_nil parse(type: "interactive")
+  def test_takes_the_610s_exitcode_rows_until_it_has_video
+    assert_equal ["exitcode", nil, nil], [parse.type, parse(type: "screenshot"), parse(type: "interactive")]
+  end
+
+  def test_lists_the_510s_screenshot_rows
+    assert_equal "screenshot", parse(:cbm5x0, type: "screenshot").type
+  end
+
+  def test_hands_the_engine_its_model_and_cartridge
+    spec = Testbench::Engine.spec(parse(prg: "", options: "mountcrt:t.crt"))
+
+    assert spec.end_with?("\t#{@dir}/t.crt\t\t#{@dir}\t610\n")
   end
 
   def test_starts_a_mountcrt_row_from_its_cartridge

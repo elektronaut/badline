@@ -73,6 +73,12 @@ describe Badline::CBM2::Bus do
     expect(chip.peek(0xdc05)).to eq(0x21)
   end
 
+  it "reads a cartridge's ROM at its load address in segment 15" do
+    chip = Badline::Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address: 0x2000, data: [0x4c] * 0x2000)
+    bus.attach_cartridge([chip])
+    expect([bus.peek(0x2000), bus.peek(0x3fff), read_after(0x11, 0x4000)]).to eq([0x4c, 0x4c, 0x11])
+  end
+
   it "calls the debug register's handler with a write to $DAFF in segment 15" do
     codes = []
     bus.install_debug_register { |code| codes << code }

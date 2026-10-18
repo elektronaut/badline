@@ -17,6 +17,7 @@ module CIReach
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
   PLUS4 = %w[testbench-plus4 testbench-c16 testbench-plus4-ntsc lorenz-plus4 drive-scenarios].freeze
   PET = %w[testbench-pet testbench-pet-discrete].freeze
+  CBM2 = %w[testbench-cbm2].freeze
   VIC = %w[testbench testbench-vicii-new testbench-ntsc testbench-ntsc-vicii-new testbench-drean
            testbench-interrupts testbench-irqdma testbench-general testbench-expansions testbench-carts
            testbench-c128c64 testbench-c128].freeze
@@ -30,7 +31,7 @@ module CIReach
   # Every family's keyboard is an Input::Keyboard, which the C64, VIC-20
   # and C128 read their joysticks beside through the CIA and VIA ports and
   # the C128 types through, and the paddles and mouse feed the SID's pots.
-  INPUT = (C64 + VIC20 + C128 + PLUS4 + PET + SID).uniq.freeze
+  INPUT = (C64 + VIC20 + C128 + PLUS4 + PET + CBM2 + SID).uniq.freeze
   # Media.attach loads the C64 and C128 testbench rows' programs and
   # cartridges, the SID testprogs and every drive scenario. The VIC-20 and
   # Plus/4 testbenches load their programs themselves, and the Lorenz
@@ -43,7 +44,7 @@ module CIReach
     ["{spec,doc}/**/*", []],
     ["test/test_*.rb", []],
     ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families}.rb", []],
-    ["test/support/testbench_cbm2.rb", []],
+    ["test/support/testbench_cbm2{,_machine}.rb", CBM2],
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{bin/drive_scenarios,test/support/drive_scenarios*.rb}", %w[drive-scenarios drive-scenarios-cpm]],
     ["{native,exe}/**/*", []],
@@ -54,26 +55,27 @@ module CIReach
     ["lib/badline/support/{vic20,c128,plus4,pet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/**/*", PET],
-    ["lib/badline/roms/cbm2/**/*", []],
-    ["lib/badline/{cbm2.rb,cbm2/**/*}", []],
+    ["lib/badline/roms/cbm2/**/*", CBM2],
+    ["lib/badline/{cbm2.rb,cbm2/**/*,chips/tpi.rb,chips/tpi/**/*,support/cbm2_checkpoint.rb}", CBM2],
     ["lib/badline/roms/8050/**/*", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
-    ["lib/badline/chips/cia{.rb,/**/*}", CIA],
+    ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],
-    ["lib/badline/chips/sid{.rb,/**/*}", SID],
+    ["lib/badline/chips/sid{.rb,/**/*}", SID + CBM2],
     ["lib/badline/chips/via{.rb,/**/*}", VIA],
     ["lib/badline/chips/vic_i{.rb,/**/*}", VIC20],
     ["lib/badline/chips/{z80,vdc}{.rb,/**/*}", C128],
     # The 6532 and 6530 of the 8050 and 8250, which no machine has yet.
     ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", []],
-    ["lib/badline/chips/tpi{.rb,/**/*}", []],
     ["lib/badline/c64/{cartridge,reu,banked_ram}{.rb,/**/*}", CARTRIDGES],
     ["lib/badline/{c64.rb,c64/**/*}", C64 + %w[testbench-c128c64]],
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
     ["lib/badline/{c128.rb,c128/**/*}", C128],
-    ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb,chips/acia.rb,chips/acia/**/*}", PLUS4],
+    ["lib/badline/chips/acia{.rb,/**/*}", PLUS4 + CBM2],
+    ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
     ["lib/badline/{pet.rb,pet/ieee_ports.rb,pet/ieee_traps.rb,pet/ieee_drive.rb}", PET + %w[drive-scenarios]],
-    ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", PET],
+    ["lib/badline/chips/crtc{.rb,/**/*}", PET + CBM2],
+    ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*}", PET],
     ["lib/badline/{kernal_trap/ieee,kernal_trap/ieee_layout,drives/ieee_bus}.rb", PET + %w[drive-scenarios]],
     ["lib/badline/{drives/model2031.rb,drives/model2031/**/*,roms/dos2031.rom}", PET + %w[drive-scenarios]],
     # The 8050 and 8250, which no machine plugs in yet.

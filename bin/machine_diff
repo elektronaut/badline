@@ -29,7 +29,7 @@
 # media, on the family each one names. Anything else is a path handed to
 # Badline::Media.attach: a PRG, a disk or tape image, a CRT or a directory.
 #
-# --family picks the machine: c64 (the default), vic20, c128, plus4 or pet, with
+# --family picks the machine: c64 (the default), vic20, c128, plus4, pet or cbm2, with
 # --model naming its model (Badline::Machine.build). Each family runs the
 # same scenarios with a demo of its own:
 #
@@ -63,6 +63,12 @@
 #          Checkpoints digest the CPU, RAM, the screen RAM, the picture,
 #          both PIAs, the VIA, the CRTC and the 8096's board
 #          (Badline::Support::PETCheckpoint)
+#   cbm2   a 610, or the B series model --model names
+#          (Badline::CBM2::Model::ALL). It has no demo yet, so it runs the
+#          boot and type scenarios alone. Checkpoints digest the CPU with
+#          both segment registers, segment 15's RAM, the RAM board's
+#          segments, the screen RAM, the CRTC, the CIA, the ACIA and both
+#          TPIs (Badline::Support::CBM2Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
@@ -137,6 +143,10 @@ module MachineDiff
 
   def machine(scenario, options, dir)
     return SnapshotMachines.named(scenario).build.call(dir) if scenario.match?(SNAPSHOT_MACHINE)
+
+    if %w[demo disk].include?(scenario) && MachineFamilies::NO_DEMO.include?(options[:family])
+      abort "machine_diff: the #{options[:family]} has no #{scenario} scenario yet"
+    end
 
     computer = MachineFamilies.build(options, SCENARIOS.include?(scenario) ? nil : scenario)
     case scenario

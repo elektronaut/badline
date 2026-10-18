@@ -140,6 +140,13 @@ module Badline
       @cpu.reset!
     end
 
+    # Puts a cartridge's ROM chips in (Bus#attach_cartridge) and switches
+    # the machine off and on, for the KERNAL to find it as it starts.
+    def attach_cartridge(chips)
+      @bus.attach_cartridge(chips)
+      power_cycle!
+    end
+
     # Switches the machine off and on: RAM starts cleared, and the RES
     # line resets everything else.
     def power_cycle!
