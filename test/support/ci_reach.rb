@@ -52,6 +52,7 @@ module CIReach
     ["lib/badline/support/{vic20,c128,plus4,pet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/**/*", PET],
+    ["lib/badline/roms/cbm2/**/*", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],
