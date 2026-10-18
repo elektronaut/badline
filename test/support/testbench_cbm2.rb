@@ -17,7 +17,7 @@ module Testbench
 
     def cbm2_model = CBM2_MODELS.fetch(family)
 
-    def cbm2_machine = Badline::Machine.build(:cbm2, model: cbm2_model)
+    def cbm2_machine = Badline::CBM2.new(model: cbm2_model)
   end
 
   # The CBM-II testlists' exitcode and screenshot rows, on the 610 for

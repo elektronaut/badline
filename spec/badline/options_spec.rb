@@ -658,8 +658,8 @@ describe Badline::Options do
     context "with the cbm2 subcommand" do
       let(:argv) { %w[cbm2] }
 
-      it "says the CBM-II isn't emulated yet" do
-        expect { options }.to raise_error(described_class::Error, "cbm2: the CBM-II isn't emulated yet")
+      it "says the CBM-II has no window yet" do
+        expect { options }.to raise_error(described_class::Error, "cbm2: the CBM-II has no window yet")
       end
     end
 
