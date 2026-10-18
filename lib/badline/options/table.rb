@@ -128,7 +128,7 @@ module Badline
                  section: "Testing options", needs: :window),
       Option.new("--save-snapshot FILE", "Save the machine as a .vsf snapshot after the last frame",
                  section: "Testing options", needs: :window),
-      Option.new("--vice", "Add VICE's modules to --save-snapshot's C64 or PET snapshot, for x64sc or xpet",
+      Option.new("--vice", "Add VICE's modules to --save-snapshot's C64, PET or CBM-II snapshot",
                  section: "Testing options", needs: :window),
       Option.new("--at FRAME:EVENT", "Run EVENT once FRAME frames have run (see above)",
                  section: "Testing options", needs: :window),

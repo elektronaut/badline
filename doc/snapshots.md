@@ -227,12 +227,12 @@ their priority stacks, the mains' place in its period, and the disk or
 directory device 8 serves through the IEEE-488 traps. It restores into
 a machine of the same model with the same KERNAL and mains. Its file
 names its machine `CBM-II`, as xcbm2's do, and holds only badline's
-modules, so xcbm2 doesn't open it unless it is saved with
-`computer.export_snapshot(path)` (see [xcbm2](#xcbm2)).
+modules, so xcbm2 doesn't open it unless it is saved with `--vice` (see
+[xcbm2](#xcbm2)).
 
 ### xcbm2
 
-A CBM-II snapshot saved with `computer.export_snapshot(path)` also holds
+A CBM-II snapshot saved with `--vice`, or `computer.export_snapshot(path)`, also holds
 xcbm2's modules for the CPU, the RAM with both segment registers, the
 CRTC, the CIA, both TPIs, the ACIA and the SID, and the ones xcbm2 3.10
 needs to open the file, with no cartridge, nothing open on the file
