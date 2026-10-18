@@ -12,6 +12,7 @@ require "badline/media/vic20_cartridge"
 require "badline/media/vic20_media"
 require "badline/media/plus4_media"
 require "badline/media/pet_media"
+require "badline/media/cbm2_media"
 require "badline/media/tune"
 require "badline/media/program"
 
@@ -53,8 +54,9 @@ module Badline
       # .crt cartridges and raw .bin ROM images in its two cartridges'
       # slots (Plus4Media), and no .sid tunes either. The PET mounts .d80
       # and .d82 disks too, which no other machine takes, and has no
-      # cartridges, tunes or true drives (PETMedia). The C128 in C64 mode
-      # takes a C64's.
+      # cartridges, tunes or true drives (PETMedia), and so does the CBM-II,
+      # which takes its own .crt cartridges and no tapes (CBM2Media). The
+      # C128 in C64 mode takes a C64's.
       def attach(computer, path, autostart: true, subtune: nil, **)
         path = DiskList.disk(path)
         refuse_unsupported(computer, path)
@@ -126,17 +128,19 @@ module Badline
       private
 
       # The VIC-20 and the 264 series have no SID to play a .sid tune on,
-      # and only the PET has the IEEE-488 drive a .d80 or .d82 goes in.
+      # and only the PET and the CBM-II have the IEEE-488 drive a .d80 or
+      # .d82 goes in.
       def refuse_unsupported(computer, path)
         family = computer.family
-        if Extensions.kind(path) == :ieee_disk && family != :pet
-          raise ArgumentError, "#{path} needs a PET's IEEE-488 drive"
+        if Extensions.kind(path) == :ieee_disk && !%i[pet cbm2].include?(family)
+          raise ArgumentError, "#{path} needs a PET's or a CBM-II's IEEE-488 drive"
         end
 
         refused, name = case family
                         when :vic20 then [Vic20Media::UNSUPPORTED, "a VIC-20"]
                         when :plus4 then [Vic20Media::UNSUPPORTED, "a Plus/4"]
                         when :pet then [PETMedia::UNSUPPORTED, "a PET"]
+                        when :cbm2 then [CBM2Media::UNSUPPORTED, "a CBM-II"]
                         else [[], ""]
                         end
         raise ArgumentError, "#{path} doesn't go in #{name}" if refused.include?(File.extname(path).downcase)
@@ -182,7 +186,11 @@ module Badline
       # VIC-20 goes by that program, which the block gives
       # (Vic20Media.disk_autostart).
       def disk_autostart(computer)
-        computer.family == :vic20 ? Vic20Media.disk_autostart(yield) : AUTOSTART
+        case computer.family
+        when :vic20 then Vic20Media.disk_autostart(yield)
+        when :cbm2 then CBM2Media::AUTOSTART
+        else AUTOSTART
+        end
       end
 
       # A VIC-20 or 264 series cartridge is its ROM chips. On the 264, the
@@ -194,6 +202,7 @@ module Badline
           crt = Storage::CRTFile.new(path, machine: :vic20)
           computer.attach_cartridge(crt.chips, crt.name.empty? ? File.basename(path, File.extname(path)) : crt.name)
         when :plus4 then computer.attach_cartridge(Plus4Media.cartridge_chips(path, slot: options.fetch(:slot, nil)))
+        when :cbm2 then computer.attach_cartridge(CBM2Media.cartridge_chips(path))
         else
           computer.attach_cartridge(C64::Cartridge.from_file(path, **options))
         end

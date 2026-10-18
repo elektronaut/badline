@@ -4,8 +4,8 @@ module Badline
   class CBM2
     # The whole machine as keyed snapshot modules (Snapshot::Keyed), in the
     # order a load applies them: BL-MACHINE with the setup, the RAM with
-    # the segment registers, the CRTC, the SID, the CIA, the ACIA, both
-    # TPIs and the CPU.
+    # the segment registers, the CRTC, the picture, the SID, the CIA, the ACIA, both
+    # TPIs, the CPU and device 8 through the traps.
     #
     # A load lays the pages out before the chips load, and works out what
     # each unit derives from its fields once every unit is loaded.
@@ -16,11 +16,13 @@ module Badline
         sections << Snapshot::Keyed.section("BL-CPU") { |out| @cpu.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-RAM") { |out| bus.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-CRTC") { |out| @crtc.save_fields(out) }
+        sections << Snapshot::Keyed.section("BL-VIDEO") { |out| @video.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-SID") { |out| @sid.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-CIA") { |out| @cia.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-ACIA") { |out| @acia.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-TPI1") { |out| @tpi1.save_fields(out) }
         sections << Snapshot::Keyed.section("BL-TPI2") { |out| @tpi2.save_fields(out) }
+        sections << Snapshot::Keyed.section("BL-TRAPDOS") { |out| save_trap_dos_fields(out) } if mounted?
         sections
       end
 
@@ -32,12 +34,15 @@ module Badline
         @bus.load_fields(modules.required("BL-RAM"))
         @bus.restored!
         @crtc.load_fields(modules.required("BL-CRTC"))
+        @video.load_fields(modules.required("BL-VIDEO"))
         @sid.load_fields(modules.required("BL-SID"))
         @cia.load_fields(modules.required("BL-CIA"))
         @acia.load_fields(modules.required("BL-ACIA"))
         @tpi1.load_fields(modules.required("BL-TPI1"))
         @tpi2.load_fields(modules.required("BL-TPI2"))
         @cpu.load_fields(modules.required("BL-CPU"))
+        trap_dos = modules.optional("BL-TRAPDOS")
+        trap_dos ? load_trap_dos_fields(trap_dos, detached: modules.detached?) : unmount
         @cpu.restored!
         @sid.restored!
         @cia.restored!

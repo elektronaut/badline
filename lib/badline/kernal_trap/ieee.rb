@@ -54,7 +54,9 @@ module Badline
         address_device if @listening
       end
 
-      def addressed? = @bus.peek(zero_page.device) == @device
+      # The device TALK or LISTEN addresses: the one in A or in FA, as the
+      # layout says.
+      def addressed? = (@layout.device_in_a ? @cpu.a : @bus.peek(zero_page.device)) == @device
 
       # TALK and LISTEN end with the command sent under ATN, which stays
       # low, and A holding $FF.

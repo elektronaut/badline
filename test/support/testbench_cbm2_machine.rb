@@ -5,7 +5,7 @@ require_relative "testbench_machine"
 # The machine-driving half of bin/testbench --cbm2: building the CBM-II a
 # row asks for, loading its program into BASIC's text segment, running it
 # until it reports through $DAFF or its budget runs out, and reading back
-# the text screen. It stays inside the Ruby subset Spinel compiles, so
+# the text screen or the picture. It stays inside the Ruby subset Spinel compiles, so
 # bin/testbench on CRuby and spinel/cbm2_testbench.rb on a Spinel build
 # run each test the same way.
 module Testbench
@@ -26,9 +26,20 @@ module Testbench
     Array.new(25) { |row| screen_line(screen, CBM2_SCREEN + (row * 80), 80) }
   end
 
+  # The picture, its rows of palette indices, as xcbm2's screenshots frame
+  # it.
+  def self.cbm2_screenshot(machine)
+    canvas = machine.video
+    display = canvas.display
+    width = canvas.width
+    Array.new(canvas.height) { |row| display[row * width, width] }
+  end
+
   # Runs one test on a machine from Testbench.cbm2_machine: puts the
   # cartridge's ROM chips, if any, in at power-on, loads the program, if
-  # any, then runs until the test writes $DAFF or the budget runs out.
+  # any, then runs until the test writes $DAFF or the budget runs out. Only
+  # a screenshot test reads the picture, so the others run with it
+  # unpainted.
   class CBM2Execution
     # BASIC's segment for its text, and where in segment 15 BASIC keeps
     # TXTTAB and the end of the text, and the KERNAL EAL and its segment.
@@ -45,14 +56,24 @@ module Testbench
       machine.install_debug_register { |value| @exit_code = value }
     end
 
-    def run(cartridge, directory, prg, budget)
+    def run(render, cartridge, directory, prg, budget)
+      @machine.crtc_video.render = render
       @machine.attach_cartridge(Badline::Storage::CRTFile.new(cartridge, machine: :cbm2).chips) if cartridge
-      basic_load(File.binread(File.join(directory, prg)).bytes) unless prg.empty?
+      load(File.join(directory, prg)) unless prg.empty?
       @machine.run_until(budget) { @exit_code }
       @exit_code
     end
 
     private
+
+    # A .d82 mounts as device 8 through the traps, and its first program
+    # loads and runs as Media does. Any other file is a program.
+    def load(path)
+      return basic_load(File.binread(path).bytes) unless path.end_with?(".d82")
+
+      @machine.mount(Badline::Storage::D82Image.new(path, read_only: true))
+      @machine.type_text(Badline::Media::CBM2Media::AUTOSTART)
+    end
 
     # The program goes to the start of BASIC's text in segment 1, whatever
     # its load address, BASIC's end of text and the KERNAL's end address

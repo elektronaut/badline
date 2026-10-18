@@ -667,6 +667,7 @@ module Testbench
     def screenshot_of(test, rows)
       return Plus4Screenshot.new(rows) if test.plus4?
       return PETScreenshot.new(rows) if test.pet?
+      return CBM2Screenshot.new(rows) if test.cbm2?
 
       Screenshot.new(rows)
     end

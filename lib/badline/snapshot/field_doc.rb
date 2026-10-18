@@ -39,7 +39,8 @@ module Badline
       # the 264 series' models, its TCBM interface, cartridge, tape and
       # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
-      # one with a true 2031, and a 610, a 720 and a 610 with a cartridge.
+      # one with a true 2031, and a 610, a 720, a 610 with a cartridge and
+      # one with a disk.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -54,7 +55,8 @@ module Badline
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
                     pet_with_drive],
-          "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge]
+          "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
+                     cbm2_with_disk]
         }
       end
 
@@ -78,6 +80,11 @@ module Badline
       end
 
       def self.blank(length) = Array.new(length, 0)
+
+      # A 610 with a disk in device 8 through the traps.
+      def self.cbm2_with_disk
+        CBM2.new.tap { |machine| machine.mount(Storage::D64Image.new("", read_only: true, bytes: blank(174_848))) }
+      end
 
       # A 610 with an 8K cartridge ROM at $2000.
       def self.cbm2_with_cartridge

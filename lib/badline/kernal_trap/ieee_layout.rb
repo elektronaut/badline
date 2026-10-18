@@ -45,9 +45,10 @@ module Badline
     # same code, and SECOND, TKSA, UNTALK and UNLISTEN end by letting go of
     # ATN themselves. LOAD and SAVE run in the ROM, through the primitives.
     # +overwrites_device+ says UNTALK and UNLISTEN store their command in
-    # FA before they send it.
+    # FA before they send it. +device_in_a+ says TALK and LISTEN take the
+    # device in A, as the CBM-II's do, where a PET's ignore A and read FA.
     IEEELayout = Data.define(:talk, :listen, :second, :tksa, :ciout, :untalk, :unlisten, :acptr, :overwrites_device,
-                             :zero_page, :lines) do
+                             :device_in_a, :zero_page, :lines) do
       # The KERNAL is mapped unless something lies over it.
       def kernal_mapped?(bus) = bus.kernal_mapped?
 
@@ -134,7 +135,7 @@ module Badline
     # LISTEN without a secondary address.
     PET_BASIC1_LAYOUT = IEEELayout.new(
       talk: 0xf0b6, listen: 0xf0ba, second: 0xf12c, tksa: 0xf15b,
-      ciout: 0xf167, untalk: 0xf17a, unlisten: 0xf17e, acptr: 0xf187, overwrites_device: true,
+      ciout: 0xf167, untalk: 0xf17a, unlisten: 0xf17e, acptr: 0xf187, overwrites_device: true, device_in_a: false,
       zero_page: PET_BASIC1_ZERO_PAGE, lines: PET_LINES
     )
 
@@ -142,7 +143,7 @@ module Badline
     # with SECOND, not TKSA.
     PET_BASIC2_LAYOUT = IEEELayout.new(
       talk: 0xf0b6, listen: 0xf0ba, second: 0xf128, tksa: 0xf164,
-      ciout: 0xf16f, untalk: 0xf17f, unlisten: 0xf183, acptr: 0xf18c, overwrites_device: false,
+      ciout: 0xf16f, untalk: 0xf17f, unlisten: 0xf183, acptr: 0xf18c, overwrites_device: false, device_in_a: false,
       zero_page: PET_ZERO_PAGE, lines: PET_LINES
     )
 
@@ -150,7 +151,7 @@ module Badline
     # instruction that skips it on the way from TALK.
     PET_BASIC4_LAYOUT = IEEELayout.new(
       talk: 0xf0d2, listen: 0xf0d5, second: 0xf143, tksa: 0xf193,
-      ciout: 0xf19e, untalk: 0xf1ae, unlisten: 0xf1b9, acptr: 0xf1c0, overwrites_device: false,
+      ciout: 0xf19e, untalk: 0xf1ae, unlisten: 0xf1b9, acptr: 0xf1c0, overwrites_device: false, device_in_a: false,
       zero_page: PET_ZERO_PAGE, lines: PET_LINES
     )
   end

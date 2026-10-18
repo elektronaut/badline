@@ -4,10 +4,10 @@ module Badline
   module Support
     # A Checkpoint of a CBM-II: its CPU with both segment registers, the
     # 2K of segment 15's RAM, the RAM board's segments, the screen RAM, the
-    # CRTC's registers and counters, the CIA, the ACIA's registers and both
-    # TPIs.
+    # picture, the CRTC's registers and counters, the CIA, the ACIA's
+    # registers and both TPIs.
     module CBM2Checkpoint
-      COMPONENTS = %w[cpu ram segments screen crtc cia acia tpi1 tpi2].freeze
+      COMPONENTS = %w[cpu ram segments screen display crtc cia acia tpi1 tpi2].freeze
 
       def self.take(machine)
         bus = machine.bus
@@ -17,6 +17,7 @@ module Badline
                          Checkpoint.fnv1a(Checkpoint.ram(bus.ram, 0x800)),
                          Checkpoint.fnv1a(segments(bus)),
                          Checkpoint.fnv1a(Array.new(0x800) { |offset| bus.screen.peek(0xd000 + offset) }),
+                         Checkpoint.fnv1a(machine.video.display),
                          Checkpoint.fnv1a(crtc_state(machine.crtc)),
                          Checkpoint.fnv1a(Checkpoint.cia_state(machine.cia)),
                          Checkpoint.fnv1a(acia_state(machine.acia)),

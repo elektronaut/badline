@@ -99,7 +99,7 @@ module Suites
   # 8096, as xpet's hook starts it, and on an 8296, and testbench-pet-discrete its exitcode
   # rows on a 2001 and a 3032, the boards with the discrete video, each row once on each.
   # Their Spinel build is spinel/pet_testbench.rb.
-  # testbench-cbm2 is the CBM-II testlist's exitcode rows on a 610, as
+  # testbench-cbm2 is the CBM-II testlist's exitcode and screenshot rows on a 610, as
   # xcbm2's hook starts it. Its Spinel build is spinel/cbm2_testbench.rb.
   # lorenz-plus4 is bin/lorenz --plus4, the Lorenz suite's plus4 build on a
   # PAL Plus/4, cut at the same tests as lorenz. The chain resumes past the
