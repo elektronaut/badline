@@ -20,6 +20,9 @@ module Badline
       # What .write needs of an image: the fields a parsed CRTFile reads.
       Image = Data.define(:hardware_type, :subtype, :exrom, :game, :name, :chips)
 
+      # Whether the file at +path+ is signed as a CBM-II's cartridge.
+      def self.cbm2?(path) = File.binread(path, CBM2_SIGNATURE.length) == CBM2_SIGNATURE
+
       def self.write(path, image)
         File.binwrite(path, encode(image))
       end

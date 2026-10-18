@@ -22,6 +22,13 @@ module Badline
     # default.
     PET_MODELS = %w[8032 8096 8296 4032 3032 3032b 2001].freeze
 
+    # The CBM-II's B series, as CBM2::Model names them, the 610 first, the
+    # default.
+    CBM2_MODELS = %w[610 620 710 720].freeze
+
+    # The CBM-II's KERNALs --kernal names, 901244-04a first, the default.
+    CBM2_KERNALS = %w[04a 03b].freeze
+
     # The true drives --drive-type names for the Plus/4.
     PLUS4_DRIVE_TYPES = %w[1541 1551].freeze
 
@@ -55,7 +62,7 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal; " \
                                  "C128: #{C128_MODELS.join(', ')}; Plus/4: #{PLUS4_MODELS.join(', ')}; " \
-                                 "PET: #{PET_MODELS.join(', ')}",
+                                 "PET: #{PET_MODELS.join(', ')}; CBM-II: #{CBM2_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
       Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
       Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
@@ -63,7 +70,10 @@ module Badline
       Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \
                                "Plus/4 RAM: 16k, 32k or 64k; PET RAM: 4k, 8k, 16k or 32k (default: the model's own)",
                  section: "Window options", needs: :window),
-      Option.new("--60hz", "Run a CRTC PET's 60 Hz editor instead of its 50 Hz one",
+      Option.new("--60hz", "Run a CRTC PET's 60 Hz editor instead of its 50 Hz one, or a CBM-II on 60 Hz mains",
+                 section: "Window options", needs: :window),
+      Option.new("--kernal VERSION", "Fit a CBM-II with KERNAL #{CBM2_KERNALS.join(' or ')} " \
+                                     "(default: #{CBM2_KERNALS.first})",
                  section: "Window options", needs: :window),
       Option.new("--basic VERSION", "Fit a PET with BASIC 1, 2 or 4, as its board takes (default: its own)",
                  section: "Window options", needs: :window),

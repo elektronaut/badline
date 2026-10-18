@@ -414,7 +414,7 @@ describe Badline::Options do
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
       "a SID for the PET" => [%w[pet --sid 8580], "--sid needs the C64"],
       "an REU for the PET" => [%w[pet --reu 512], "--reu needs the C64"],
-      "--60hz for the C64" => [%w[--60hz], "--60hz needs pet"],
+      "--60hz for the C64" => [%w[--60hz], "--60hz needs pet or cbm2"],
       "--basic for the C64" => [%w[--basic 2], "--basic needs pet"],
       "--editor for the Plus/4" => [%w[plus4 --editor 2-n], "--editor needs pet"],
       "an unknown BASIC" => [%w[pet --basic 3], "invalid argument: --basic 3"],
@@ -455,7 +455,14 @@ describe Badline::Options do
       "a cartridge slot for the C64" => [%w[--c1lo game.bin], "--c1lo needs plus4"],
       "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"],
       "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
-      "a drive type the Plus/4 has none of" => [%w[plus4 --drive-type 1571], "invalid argument: --drive-type 1571"]
+      "a drive type the Plus/4 has none of" => [%w[plus4 --drive-type 1571], "invalid argument: --drive-type 1571"],
+      "a KERNAL for the PET" => [%w[pet --kernal 04a], "--kernal needs cbm2"],
+      "an unknown CBM-II KERNAL" => [%w[cbm2 --kernal 02], "invalid argument: --kernal 02"],
+      "a PET model for the CBM-II" => [%w[cbm2 --model 8032], "invalid argument: --model 8032"],
+      "an NTSC CBM-II" => [%w[cbm2 --ntsc], "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz"],
+      "a SID for the CBM-II" => [%w[cbm2 --sid 8580], "--sid needs the C64"],
+      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"],
+      "a true drive for the CBM-II" => [%w[cbm2 --true-drive], "the CBM-II has no true drive yet"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
@@ -512,6 +519,23 @@ describe Badline::Options do
 
       it "fits the character ROM and the jumpers named" do
         expect([options.model, options.characters, options.jumpers]).to eq(["8296", "din", %w[ram9 userport]])
+      end
+    end
+
+    context "with cbm2" do
+      let(:argv) { ["cbm2", "--model", "720", "--kernal", "03b", "--60hz", program_path] }
+
+      it "runs the model given, with the KERNAL and the mains given, on the media given" do
+        expect([options.family, options.model, options.kernal, options.refresh_hz, options.media_path])
+          .to eq([:cbm2, "720", "03b", 60, program_path])
+      end
+    end
+
+    context "with cbm2 alone" do
+      let(:argv) { %w[cbm2] }
+
+      it "runs a 610 with the 04a KERNAL at 50 Hz" do
+        expect([options.model, options.kernal, options.refresh_hz]).to eq(["610", "04a", 50])
       end
     end
 
@@ -655,11 +679,25 @@ describe Badline::Options do
       end
     end
 
-    context "with the cbm2 subcommand" do
-      let(:argv) { %w[cbm2] }
+    context "with a CBM-II's cartridge" do
+      let(:cartridge_path) { File.join(dir, "game.crt") }
+      let(:argv) { [cartridge_path] }
 
-      it "says the CBM-II has no window yet" do
-        expect { options }.to raise_error(described_class::Error, "cbm2: the CBM-II has no window yet")
+      before { File.binwrite(cartridge_path, "CBM2 CARTRIDGE  ") }
+
+      it "runs the CBM-II" do
+        expect(options.family).to eq(:cbm2)
+      end
+    end
+
+    context "with a C64's cartridge" do
+      let(:cartridge_path) { File.join(dir, "game.crt") }
+      let(:argv) { [cartridge_path] }
+
+      before { File.binwrite(cartridge_path, "C64 CARTRIDGE   ") }
+
+      it "runs the C64" do
+        expect(options.family).to eq(:c64)
       end
     end
 

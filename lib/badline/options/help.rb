@@ -86,6 +86,7 @@ module Badline
                #{@program} c128 [options] [media]
                #{@program} plus4 [options] [media]
                #{@program} pet [options] [media]
+               #{@program} cbm2 [options] [media]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -96,6 +97,7 @@ module Badline
             c128                             Run a C128 in C128 mode, the one --model names
             plus4                            Run a Plus/4 or a C16, the one --model names
             pet                              Run a PET or a CBM, the one --model names
+            cbm2                             Run a CBM-II of the B series, the one --model names
             sid                              Play .sid tunes and directories of them
 
         #{media_kinds}
@@ -135,6 +137,13 @@ module Badline
         it with the DIN character ROM, and --jumpers ram9,rama puts RAM at
         $9000 and $A000, as xpet's -petram9 and -petramA do.
 
+        The CBM-II takes programs, disks, .d80 and .d82 among them, and
+        cartridges, and a cartridge made for it starts one without `cbm2`.
+        --kernal 03b fits the 1983 KERNAL in place of 04a, and --60hz runs
+        it on 60 Hz mains. Its keys type what the host's keys type, F12 is
+        RUN/STOP, Alt with F9 or F10 presses its F9 or F10, and the pause
+        menu's KEYBOARD page says where the rest are.
+
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
@@ -156,8 +165,8 @@ module Badline
         in --at 3500:key=space or --at 250,500:screenshot=shot%05d.bmp.
         key=NAME presses a key (space, return, a, f1, run_stop, restore, and
         on the C128 esc, help, keypad1 and the rest, on the Plus/4
-        esc, help and f1 to f3, and on the PET rvs, escape and kp1) or a
-        joystick's
+        esc, help and f1 to f3, on the PET rvs, escape and kp1, and on
+        the CBM-II escape, norm_graph and kp00) or a joystick's
         direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
         pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
         types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's

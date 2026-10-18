@@ -100,12 +100,14 @@ module Badline
     # only C64 mode runs: a .sid tune or a program that loads at the C64's
     # BASIC start. A VIC-20 without RAM named gets the expansion the media
     # needs (Media::Vic20Media.ram_for) and yields a line saying so. Raises
-    # Unsupported for media a VIC-20, a Plus/4 or a PET doesn't take.
+    # Unsupported for media a VIC-20, a Plus/4, a PET or a CBM-II doesn't
+    # take.
     def self.for_options(options, media, &)
       family = options.family
       return vic20_for(media, options.model, options.ram, &) if family == :vic20
       return plus4_for(media, options) if family == :plus4
       return pet_for(media, options) if family == :pet
+      return cbm2_for(media, options) if family == :cbm2
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -165,6 +167,16 @@ module Badline
               editor: options.editor, characters: options.characters, jumpers: options.jumpers)
     end
     private_class_method :pet_for
+
+    # A CBM-II with the KERNAL --kernal names, on the mains --60hz asks
+    # for.
+    def self.cbm2_for(media, options)
+      unsupported = !media.nil? && Media::CBM2Media::UNSUPPORTED.include?(File.extname(media).downcase)
+      raise Unsupported, "doesn't go in a CBM-II" if unsupported
+
+      CBM2.new(model: options.model, kernal: options.kernal, mains_hz: options.refresh_hz)
+    end
+    private_class_method :cbm2_for
 
     def self.c64_media?(media)
       return false if media.nil? || !File.file?(media)
