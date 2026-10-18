@@ -43,6 +43,10 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/cbm2/kernal-04a.rom])
   end
 
+  def test_the_cbm2_testlists_reach_no_suite_yet
+    assert_empty CIReach.suites(%w[test/support/testbench_cbm2.rb])
+  end
+
   def test_the_pet_and_its_roms_reach_the_pet_testbenches
     files = %w[lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
                lib/badline/roms/pet/kernal4.rom]

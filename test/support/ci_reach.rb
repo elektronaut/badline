@@ -43,6 +43,7 @@ module CIReach
     ["{spec,doc}/**/*", []],
     ["test/test_*.rb", []],
     ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families}.rb", []],
+    ["test/support/testbench_cbm2.rb", []],
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{bin/drive_scenarios,test/support/drive_scenarios*.rb}", %w[drive-scenarios drive-scenarios-cpm]],
     ["{native,exe}/**/*", []],

@@ -69,20 +69,24 @@ module Badline
     # Media the machine named doesn't take.
     class Unsupported < ArgumentError; end
 
+    # A family the command line knows but badline can't build yet.
+    class NotYet < ArgumentError; end
+
     # A new machine of `family`, :c64, :vic20, :c128, :plus4 or :pet, the
-    # model of it `model` names. A C64's model is one of Model::ALL, with its SID
-    # `sid_model` when not nil and an REU of `reu` K when not nil. A
-    # VIC-20's is "pal", with the RAM expansion `ram` names
+    # model of it `model` names. A C64's model is one of Model::ALL, with
+    # its SID `sid_model` when not nil and an REU of `reu` K when not nil.
+    # A VIC-20's is "pal", with the RAM expansion `ram` names
     # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
     # the model's own RAM. A PET's is one of PET::Model::ALL, with its own
-    # RAM and ROMs, its CRTC's editor the 50 Hz one.
+    # RAM and ROMs, its CRTC's editor the 50 Hz one. :cbm2 raises NotYet.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
       return PET.new(model:) if family == :pet
+      raise NotYet, "the CBM-II isn't emulated yet" if family == :cbm2
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
 
       profile = Model.named(model)

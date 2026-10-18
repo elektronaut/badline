@@ -655,6 +655,14 @@ describe Badline::Options do
       end
     end
 
+    context "with the cbm2 subcommand" do
+      let(:argv) { %w[cbm2] }
+
+      it "says the CBM-II isn't emulated yet" do
+        expect { options }.to raise_error(described_class::Error, "cbm2: the CBM-II isn't emulated yet")
+      end
+    end
+
     context "with an 8250's disk" do
       let(:disk_path) { File.join(dir, "disk.d82") }
       let(:argv) { [disk_path] }

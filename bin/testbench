@@ -8,6 +8,7 @@
 #                             [--cia-new] [--vicii-new] [--expansions] [--ntsc]
 #                             [--drean] [--vic20] [--c128c64] [--c128] [--c128-z80]
 #                             [--plus4] [--c16] [--pet] [--pet-discrete]
+#                             [--cbm2] [--cbm5x0]
 #                             [--shards N] [--list]
 #                             [--results PATH] [--resume] [--engine PATH]
 #
@@ -129,6 +130,11 @@
 # once the machine has booted. Tests report through $8BFF, on every
 # model, and a failure keeps the 40- or 80-column text screen at $8000.
 # Screenshot rows wait for the PET's video.
+#
+# --cbm2 and --cbm5x0 list the exitcode and screenshot rows of
+# cbm610-testlist.in and cbm510-testlist.in, on the 610 and the 510 as
+# xcbm2's and xcbm5x0's hooks start them, mountcrt rows from power-on
+# with the cartridge in. Only --list takes them until the CBM-II boots.
 #
 # --scope and --exclude bound the run to an id prefix, which is how the
 # suites are split: `rake regression:testbench` scopes to VICII/ and diffs

@@ -33,6 +33,11 @@ describe Badline::Machine do
     expect(described_class.build(:c64, model: "c64", reu: 512).reu).not_to be_nil
   end
 
+  it "refuses the CBM-II, which it can't build yet" do
+    expect { described_class.build(:cbm2, model: "610") }
+      .to raise_error(Badline::Machine::NotYet, "the CBM-II isn't emulated yet")
+  end
+
   it "builds a VIC-20 with the RAM expansion named" do
     machine = described_class.build(:vic20, model: "pal", ram: :"16k")
     expect([machine.class, machine.ram_configuration]).to eq([Badline::Vic20, :"16k"])
@@ -66,7 +71,7 @@ describe Badline::Machine do
   end
 
   it "refuses a family it can't build" do
-    expect { described_class.build(:cbm2, model: "c64") }.to raise_error(ArgumentError, /cbm2/)
+    expect { described_class.build(:c65, model: "c64") }.to raise_error(ArgumentError, /c65/)
   end
 
   describe ".for_options" do
