@@ -7,6 +7,7 @@ require_relative "drive_scenarios_cpm"
 require_relative "drive_scenarios_plus4"
 require_relative "drive_scenarios_plus4_tape"
 require_relative "drive_scenarios_plus4_1551"
+require_relative "drive_scenarios_pet"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
@@ -17,8 +18,9 @@ require_relative "drive_scenarios_plus4_1551"
 # (drive_scenarios_1581.rb), CP/M 3.0 booting on a C128 from a 1581
 # (drive_scenarios_cpm.rb), the 1541 and 1581 on the 264 series' serial
 # bus (drive_scenarios_plus4.rb), its 1551 on TCBM
-# (drive_scenarios_plus4_1551.rb) and its datasette
-# (drive_scenarios_plus4_tape.rb). Each takes tens of
+# (drive_scenarios_plus4_1551.rb), its datasette
+# (drive_scenarios_plus4_tape.rb), and the PET's 2031 on the IEEE-488 bus
+# (drive_scenarios_pet.rb). Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
 # checks what they left behind, one baseline row per check:
 # `scenario/check<TAB>PASS`, or `scenario/check<TAB>FAIL<TAB>detail`.
@@ -45,7 +47,7 @@ module DriveScenarios
     "1571-error-channel" => %w[power-on-message],
     "1571-boot-g64" => %w[boots nothing-typed],
     "1571-idle" => %w[sleeps matches-stepping]
-  ).merge(Plus4TCBMRuns::CHECKS).freeze
+  ).merge(Plus4TCBMRuns::CHECKS).merge(PETRuns::CHECKS).freeze
 
   # The scenarios that run only when a filter names them.
   LONG_CHECKS = CpmRuns::LONG_CHECKS
@@ -79,6 +81,9 @@ module DriveScenarios
     when "plus4-1551-format", "plus4-1551-save", "plus4-1551-autostart", "plus4-1551-idle",
          "plus4-1551-error-channel", "plus4-1551-c16-error-channel"
       Plus4TCBMRuns.run(report, name, dir)
+    when "pet-2031-format", "pet-2031-save", "pet-2031-idle", "pet-2031-read-only", "pet-2031-autostart",
+         "pet-2031-error-channel", "pet-2031-basic2-error-channel", "pet-2031-basic1-error-channel"
+      PETRuns.run(report, name, dir)
     when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")
     when "plus4-c16-tape" then Plus4TapeRuns.run(report, dir, "c16")
     else

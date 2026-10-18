@@ -365,9 +365,19 @@ Recorded output of the headless hardware suites, one file per suite:
     waves with the TED's timers (`loads-back`). `plus4-c16-tape` does the
     same on a C16, whose cassette sense reaches the bus without the
     Plus/4's 6529.
+  - `pet-2031-format`, `pet-2031-save`, `pet-2031-autostart` and
+    `pet-2031-error-channel` run the same checks on a 4032 with BASIC 4
+    and a true 2031 on the IEEE-488 bus (`test/support/drive_scenarios_pet.rb`),
+    going by what BASIC prints, since the KERNAL prints SEARCHING,
+    LOADING and SAVING past CHROUT. `pet-2031-read-only` reads BASIC 4's
+    `DS$` after the SAVE for `26,WRITE PROTECT ON` (`write-protect-on`).
+    `pet-2031-basic2-error-channel` and `pet-2031-basic1-error-channel`
+    read the error channel on a 3032 and a 2001. `pet-2031-idle` runs two
+    4032s side by side through the 2031's boot and a LOAD of the
+    directory, as `plus4-1551-idle` does.
   Each scenario runs in a process of its own, up to four at once. The
-  runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom` and
-  `dos1581.rom` in the ROM path.
+  runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom`,
+  `dos1581.rom` and `dos2031.rom` in the ROM path.
 - `drive-scenarios-cpm.txt` — `bin/drive_scenarios cpm-zex`: ZEXDOC and
   ZEXALL run from the same disk under that CP/M, each until it reports
   its tests complete. `cpm-zexdoc` and `cpm-zexall` check that it got
