@@ -40,6 +40,10 @@ module Badline
 
       def ram = @bus.ram
 
+      # The VIC refreshes the DRAM in its own half of the cycle, so the
+      # refresh takes none of the CPU's.
+      def refresh? = false
+
       def family = :cbm2
 
       def peek(addr) = @bus.peek(addr)
@@ -88,6 +92,9 @@ module Badline
         @mains_half_period = clock_hz / (2 * @mains_hz)
         @mains_countdown = @mains_half_period
         @mains_high = true
+        # The B series' refresh counter, which CBM2::KeyedState saves: 0
+        # here, where the VIC refreshes the DRAM.
+        @refresh = 0
         @acia_irq = false
         @acia_due = Chips::ACIA::NEVER
         @init_handlers = []

@@ -44,7 +44,10 @@ module Badline
         CBM2.new(model:, kernal:, mains_hz:, refresh:)
       end
 
-      def to_s = "#{model} with KERNAL #{kernal} at #{mains_hz} Hz#{' with no cycles taken for the DRAM refresh' unless refresh}"
+      def to_s
+        machine = "#{model} with KERNAL #{kernal} at #{mains_hz} Hz"
+        refresh || CBM2::P500::Model.include?(model) ? machine : "#{machine} without the DRAM refresh"
+      end
     end
   end
 end
