@@ -2,7 +2,9 @@
 
 require "spec_helper"
 require "badline/drives/model8050"
+require "tmpdir"
 require_relative "../../support/taken_once"
+require_relative "../../support/blank_disk"
 
 describe Badline::Drives::Model8050 do
   subject(:drive) { described_class.new(dos_rom: stub_dos, fdc_rom: stub_fdc) }
@@ -152,7 +154,7 @@ describe Badline::Drives::Model8050 do
   describe "booting", :slow do
     def booted(model, device: 8)
       TakenOnce.fetch([:model8050_boot, model, device]) do
-        model.new(device:).tap { |unit| 800_000.times { unit.cycle! } }
+        model.new(device:).tap { |unit| 700_000.times { unit.cycle! } }
       end
     end
 
@@ -177,6 +179,52 @@ describe Badline::Drives::Model8050 do
     it "boots the 8250 alike" do
       unit = booted(Badline::Drives::Model8250)
       expect(unit.ip_cpu.program_counter).to be_between(0xc5a0, 0xc611)
+    end
+  end
+
+  # DOS 2.7's controller running jobs the way the IP leaves them in the
+  # common RAM: a code at $1003 + n, its header at $1021 + 8n (ID, track,
+  # sector) and its buffer at $1100 + $100n, for drive 0. The DOS bumps the
+  # head to track 1 first; here the controller is told it's there.
+  describe "running jobs", :slow do
+    extend BlankDisk
+
+    def self.run_job(unit, code, track, sector)
+      [0x41, 0x42, track, sector].each_with_index { |byte, index| unit.common.poke(0x21 + index, byte) }
+      unit.common.poke(0x03, code)
+      unit.cycle! while unit.common.peek(0x03) >= 0x80
+      unit.common.peek(0x03)
+    end
+
+    # Reads the header block, then writes 39/5 and flushes.
+    def self.results
+      TakenOnce.fetch(:model8050_jobs) do
+        unit = described_class.new
+        unit.insert_image(blank_d80(File.join(Dir.mktmpdir, "jobs.d80"), name: "JOBS", id: "AB"))
+        700_000.times { unit.cycle! }
+        unit.fdc_bus.poke(0x21, 1)
+        read = [run_job(unit, 0x80, 39, 0), (0..255).map { |offset| unit.common.peek(0x100 + offset) }]
+        256.times { |offset| unit.common.poke(0x100 + offset, offset) }
+        written = run_job(unit, 0x90, 39, 5)
+        unit.flush
+        read + [written, unit.disk.image.read_block(39, 5)]
+      end
+    end
+
+    it "reads a block off the disk" do
+      expect(self.class.results[0]).to eq(0x01)
+    end
+
+    it "reads the disk's name from the header block" do
+      expect(self.class.results[1][6, 4].pack("C*")).to eq("JOBS")
+    end
+
+    it "writes a block and verifies it" do
+      expect(self.class.results[2]).to eq(0x01)
+    end
+
+    it "stores the block it wrote in the image once flushed" do
+      expect(self.class.results[3]).to eq((0..255).to_a)
     end
   end
 end
