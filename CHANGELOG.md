@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.16.1](https://github.com/elektronaut/badline/compare/v0.16.0...v0.16.1) (2026-10-18)
+
+
+### Features
+
+* add the 2031 disk drive on the PET's IEEE-488 bus ([bcc76a5](https://github.com/elektronaut/badline/commit/bcc76a536a44bdb6173b26823c83a5026a788c4f))
+* add the CBM 8296 ([48fb14d](https://github.com/elektronaut/badline/commit/48fb14d0d94b75cf003d7601c637158801acaef8))
+* put a true 2031 on the PET's device 8 with --true-drive ([c64e1b4](https://github.com/elektronaut/badline/commit/c64e1b4245b1390ba6d57e5ffaad620c4055b5cd))
+* read and write xpet's .vsf snapshots for the PET ([607050b](https://github.com/elektronaut/badline/commit/607050b9c72767e335d2b488afd0d3c4ce153c81))
+* save a PET's 2031 in its snapshots ([a8d6880](https://github.com/elektronaut/badline/commit/a8d68806a34e34f45c02fb7a5a00dd2699ccb618))
+
+
+### Bug Fixes
+
+* blank the CRTC PETs' character lines past the eighth ([f02db02](https://github.com/elektronaut/badline/commit/f02db02a6255944b552b6a5f3e8108483ae78875))
+
 ## [0.16.0](https://github.com/elektronaut/badline/compare/v0.15.1...v0.16.0) (2026-10-17)
 
 
