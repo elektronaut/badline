@@ -52,11 +52,12 @@ module Badline
         # PET::Drive8050), or with no true drive, DRIVE8 to DRIVE11 as
         # xcbm2 and xcbm5x0 save no drive.
         def drives(machine, readers)
-          drive = PET::Drive2031
-          return drive::UNITS.map { |name| drive.unit(drive::NONE, name) } unless machine.true_drive
+          return no_drives unless machine.true_drive
 
-          drive.export(machine, readers) + PET::Drive8050.export(machine, readers)
+          PET::Drive2031.export(machine, readers) + PET::Drive8050.export(machine, readers)
         end
+
+        def no_drives = PET::Drive2031::UNITS.map { |name| PET::Drive2031.unit(PET::Drive2031::NONE, name) }
 
         def reader(readers, name) = readers[name] || Keyed::Reader.missing(name)
 
