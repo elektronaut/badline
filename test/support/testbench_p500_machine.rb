@@ -32,6 +32,12 @@ module Testbench
   # any, then runs until the test writes $DAFF or the budget runs out. Only
   # a screenshot test reads the picture, so the others run with it
   # unpainted.
+  #
+  # The burn-in disk's program draws a grid of 50 boxes, one a chip, and
+  # fills a chip's box with reversed spaces when it finds the chip BAD.
+  # Each pass it counts at the top right, and a BAD chip blanks the count.
+  # Its row exits $00 for every box drawn, none filled and a pass counted,
+  # $FF otherwise.
   class P500Execution
     # BASIC's segment for its text, and where in segment 15 BASIC keeps
     # TXTTAB and the end of the text, and the KERNAL EAL and its segment,
@@ -40,6 +46,14 @@ module Testbench
     TXTTAB = 0x2d
     TEXT_END = 0x2f
     EAL = 0x96
+
+    # What the burn-in disk's readme says to load and run, its boxes and
+    # where their top left corners and its pass count sit on the screen.
+    BURNIN = %(dload"px"\rrun\r)
+    BURNIN_BOXES = 50
+    BURNIN_CORNER = 0x4f
+    BURNIN_FILLED = 0xa0
+    BURNIN_COUNT = 32
 
     attr_reader :exit_code
 
@@ -54,6 +68,7 @@ module Testbench
       @machine.attach_cartridge(Badline::Storage::CRTFile.new(cartridge, machine: :cbm2).chips) if cartridge
       load(File.join(directory, prg)) unless prg.empty?
       @machine.run_until(budget) { @exit_code }
+      @exit_code = burnin_grade if prg.end_with?(".d80")
       @exit_code
     end
 
@@ -62,10 +77,41 @@ module Testbench
     # A .d82 mounts as device 8 through the traps, and its first program
     # loads and runs as Media does. Any other file is a program.
     def load(path)
+      return burnin_load(path) if path.end_with?(".d80")
       return basic_load(File.binread(path).bytes) unless path.end_with?(".d82")
 
       @machine.mount(Badline::Storage::D82Image.new(path, read_only: true))
       @machine.type_text(Badline::Media::CBM2Media::AUTOSTART)
+    end
+
+    def burnin_load(path)
+      @machine.mount(Badline::Storage::D80Image.new(path, read_only: true))
+      @machine.type_text(BURNIN)
+    end
+
+    # $00 when the grid's ten boxes on each of its five rows, from row 4
+    # and column 9, every fourth row and third column, are all drawn, no
+    # box is filled, and the pass count isn't blank.
+    def burnin_grade
+      screen = @machine.bus.screen
+      corners = 0
+      row = 0
+      while row < 5
+        column = 0
+        while column < 10
+          corners += 1 if screen.peek(P500_SCREEN + (((row * 4) + 4) * 40) + 9 + (column * 3)) == BURNIN_CORNER
+          column += 1
+        end
+        row += 1
+      end
+      filled = 0
+      offset = 160
+      while offset < 1000
+        filled += 1 if screen.peek(P500_SCREEN + offset) == BURNIN_FILLED
+        offset += 1
+      end
+      counted = screen.peek(P500_SCREEN + BURNIN_COUNT) != 0x20
+      corners == BURNIN_BOXES && filled.zero? && counted ? 0x00 : 0xff
     end
 
     # The program goes to the start of BASIC's text in segment 0, whatever
