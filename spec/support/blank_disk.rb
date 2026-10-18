@@ -2,12 +2,14 @@
 
 # Freshly formatted disk images, as the DOS's NEW command leaves them: every
 # block free but the header, the BAM and the first directory block, and an
-# empty directory. Each writes the image to the path and returns it.
+# empty directory. Each writes the image to the path and returns it. Given
+# an ID, the header holds it and the DOS type as a true drive's N writes
+# them.
 module BlankDisk
   D64_SECTORS = ([21] * 17) + ([19] * 7) + ([18] * 6) + ([17] * 5)
   D80_SECTORS = ([29] * 39) + ([27] * 14) + ([25] * 11) + ([23] * 13)
 
-  def blank_d64(path, name: "BLANK")
+  def blank_d64(path, name: "BLANK", id: nil)
     bytes = Array.new(174_848, 0)
     D64_SECTORS.each_with_index do |sectors, i|
       free = i == 17 ? sectors - 2 : sectors
@@ -15,18 +17,23 @@ module BlankDisk
     end
     bytes[d64_offset(18, 0), 3] = [18, 1, 0x41]
     bytes[d64_offset(18, 0) + 0x90, 16] = padded(name)
+    bytes[d64_offset(18, 0) + 0xa0, 11] = id_fields(id, "2A", 4) if id
     bytes[d64_offset(18, 1), 2] = [0, 0xff]
     File.binwrite(path, bytes.pack("C*"))
     path
   end
 
-  def blank_d81(path, name: "BLANK")
+  def blank_d81(path, name: "BLANK", id: nil)
     bytes = Array.new(819_200, 0)
     offset = ->(sector) { ((39 * 40) + sector) * 256 }
     bytes[offset[0], 3] = [40, 3, 0x44]
     bytes[offset[0] + 0x04, 16] = padded(name)
     bytes[offset[1], 2] = [40, 2]
     bytes[offset[2], 2] = [0, 0xff]
+    if id
+      bytes[offset[0] + 0x14, 9] = id_fields(id, "3D", 2)
+      [1, 2].each { |block| bytes[offset[block] + 2, 6] = [0x44, 0xbb, *id.bytes, 0xc0, 0] }
+    end
     [1, 2].each do |block|
       40.times do |i|
         used = block == 1 && i == 39 ? [0, 1, 2, 3] : []
@@ -72,6 +79,8 @@ module BlankDisk
   private
 
   def padded(name) = name.bytes + ([0xa0] * (16 - name.length))
+
+  def id_fields(id, dos_type, tail) = [0xa0, 0xa0] + id.bytes + [0xa0] + dos_type.bytes + ([0xa0] * tail)
 
   def free_bitmap(sectors, used, length)
     bits = (0...sectors).sum { |s| used.include?(s) ? 0 : 1 << s }

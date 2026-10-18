@@ -24,6 +24,7 @@ module Badline
       WRITE_PROTECT_ON = 26
       FILE_NOT_FOUND = 62
       FILE_EXISTS = 63
+      FILE_TYPE_MISMATCH = 64
       DISK_FULL = 72
 
       attr_reader :code

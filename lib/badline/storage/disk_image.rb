@@ -3,6 +3,7 @@
 require "badline/storage/disk_image/bam"
 require "badline/storage/disk_image/catalog"
 require "badline/storage/disk_image/directory"
+require "badline/storage/disk_image/formatting"
 require "badline/storage/disk_image/writing"
 
 module Badline
@@ -15,6 +16,7 @@ module Badline
       include Bam
       include Catalog
       include Directory
+      include Formatting
       include Writing
 
       SECTOR_SIZE = 256

@@ -3,6 +3,7 @@
 require "badline/kernal_trap/dos/block_commands"
 require "badline/kernal_trap/dos/channel"
 require "badline/kernal_trap/dos/channels"
+require "badline/kernal_trap/dos/disk_commands"
 require "badline/kernal_trap/dos/memory"
 require "badline/kernal_trap/dos/parameters"
 require "badline/kernal_trap/dos/status"
@@ -15,10 +16,12 @@ module Badline
     # command channel and its status message. `U1` reads a raw block into a
     # buffer channel, which is how block-access loaders bypass the KERNAL's
     # LOAD. A disk image whose host file takes writes takes files, blocks
-    # and BAM changes too. Other disks are write-protected, though storage
-    # that can write files still takes a SAVE handed over whole.
+    # and BAM changes too, and N, R and C format it, rename and copy files.
+    # Other disks are write-protected, though storage that can write files
+    # still takes a SAVE handed over whole.
     class DOS
       include BlockCommands
+      include DiskCommands
       include Writes
 
       COMMAND_CHANNEL = 15
@@ -28,6 +31,8 @@ module Badline
       FILES_SCRATCHED = 1
       WRITE_PROTECT_ON = 26
       SYNTAX_ERROR = 30
+      INVALID_COMMAND = 31
+      NO_FILE_GIVEN = 34
       FILE_NOT_FOUND = 62
       FILE_EXISTS = 63
       NO_BLOCK = 65
@@ -60,11 +65,15 @@ module Badline
         /\AV/i => :initialized,
         /\AB-A\s*:?\s*(.*)/i => :block_allocate,
         /\AB-F\s*:?\s*(.*)/i => :block_free,
-        /\AS[^:]*:(.*)/im => :scratch
+        /\AS[^:]*:(.*)/im => :scratch,
+        /\AN(.*)/im => :new_disk,
+        /\AR(.*)/im => :rename_file,
+        /\AC(.*)/im => :copy_file,
+        /\AD/i => :invalid
       }.freeze
 
       # Commands that take their argument as text rather than numbers.
-      TEXT_COMMANDS = %i[scratch].freeze
+      TEXT_COMMANDS = %i[scratch new_disk rename_file copy_file].freeze
 
       # A drive powers on reporting its DOS version, as a reset does. It
       # can take the RAM of a drive it replaces, and initializes its disk.
@@ -197,7 +206,7 @@ module Badline
         return report(SYNTAX_ERROR) unless action
 
         action = USER_TABLE[(command.getbyte(1) - 1) & 0x0f] if action == :user
-        argument = pattern.match(command)[1]
+        argument = pattern.match(action == :new_disk ? text.lstrip : command)[1]
         run_command(action, TEXT_COMMANDS.include?(action) ? argument : Parameters.parse(argument))
       end
 
@@ -218,6 +227,10 @@ module Badline
         when :block_allocate then block_allocate(arguments)
         when :block_free then block_free(arguments)
         when :scratch then scratch(arguments)
+        when :new_disk then new_disk(arguments)
+        when :rename_file then rename_file(arguments)
+        when :copy_file then copy_file(arguments)
+        when :invalid then report(INVALID_COMMAND)
         when :cold_reset then reset(cold: true)
         when :warm_reset then reset(cold: false)
         when :memory_write then memory_write(arguments)

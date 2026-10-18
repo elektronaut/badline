@@ -52,6 +52,13 @@ module Badline
       def bam_tracks = 1..35
       def bam_count(track) = [18, 0, 4 * track]
       def bam_bitmap(track) = [18, 0, (4 * track) + 1]
+      def bitmap_size = 3
+
+      # The header links the directory and holds the BAM itself.
+      def header_link = [18, 1]
+      def dos_type = "2A"
+      def header_tail = 4
+      def bam_headers(_id) = []
     end
   end
 end

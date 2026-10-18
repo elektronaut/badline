@@ -44,13 +44,13 @@ describe Badline::KernalTrap::DOS do
     end
 
     it "clears the error once the message has been read" do
-      command("nonsense")
+      command("zap")
       status
       expect(status).to eq("00, OK,00,00")
     end
 
     it "rejects an unknown command" do
-      command("nonsense")
+      command("zap")
       expect(status).to eq("30,SYNTAX ERROR,00,00")
     end
 
@@ -72,7 +72,7 @@ describe Badline::KernalTrap::DOS do
     end
 
     it "takes a command passed as the open filename" do
-      drive.open(15, "nonsense")
+      drive.open(15, "zap")
       expect(status).to eq("30,SYNTAX ERROR,00,00")
     end
   end
