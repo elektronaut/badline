@@ -134,6 +134,29 @@ describe Badline::Storage::CRTFile do
     end
   end
 
+  context "with a CBM-II image" do
+    subject(:crt) { described_class.new(path, machine: :cbm2) }
+
+    let(:chips) { [chip_packet(bank: 0, address: 0x2000, data: [0x4c] * 0x2000)] }
+    let(:header) do
+      "CBM2 CARTRIDGE  ".b + [0x40, 0x0200, 0, 0, 0].pack("NnnCC") +
+        ("\x00" * 6) + "Generic CBM2 Cartridge".ljust(32, "\x00")
+    end
+
+    it "is for the CBM-II" do
+      expect(crt.machine).to eq(:cbm2)
+    end
+
+    it "parses the chip load address" do
+      expect(crt.chips.first.address).to eq(0x2000)
+    end
+
+    it "is refused where a C64 image is wanted" do
+      expect { described_class.new(path) }
+        .to raise_error(described_class::FormatError, /for the cbm2, not the c64/)
+    end
+  end
+
   context "with a VIC-20 image" do
     subject(:crt) { described_class.new(path, machine: :vic20) }
 
