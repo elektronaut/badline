@@ -39,22 +39,23 @@ module Badline
       def self.page?(name) = name.empty? || PauseMenu::PAGES.any? { |page| page.to_s == name }
 
       # Whether the family's machine has a key of the name. The Plus/4 has
-      # no RESTORE, and the PET neither that nor joysticks.
+      # no RESTORE, and the PET and the CBM-II neither that nor joysticks.
       def self.key?(name, family)
-        pet = family == :pet
+        pet = %i[pet cbm2].include?(family)
         (name == "restore" && !pet && family != :plus4) || (family == :c128 && LOCKS.include?(name)) ||
           !keyboard_key(name, family).nil? || (!pet && !joystick_direction(name).nil?)
       end
 
       # The family's Keyboard key for a name such as space, return or a,
       # on the C128 esc or keypad1, on the Plus/4 help or crsr_up, or on
-      # the PET rvs or kp1, of either of its keyboards. The shifted cursor
-      # keys, such as cursor_up, are the C64's and the C128's.
+      # the PET rvs or kp1, of either of its keyboards, or on the CBM-II
+      # escape, norm_graph or kp00. The shifted cursor keys, such as
+      # cursor_up, are the C64's and the C128's.
       def self.keyboard_key(name, family)
         return nil if name == "none"
 
         key = keyboard_matrix(family).flatten.find { |candidate| candidate.to_s == name }
-        return key unless key.nil? && !%i[plus4 pet].include?(family)
+        return key unless key.nil? && !%i[plus4 pet cbm2].include?(family)
 
         Input::Keyboard::COMBINATIONS.keys.find { |candidate| candidate.to_s == name }
       end
@@ -64,6 +65,7 @@ module Badline
         when :c128 then C128::KEYBOARD_MATRIX
         when :plus4 then Plus4::KeyboardPort::MATRIX
         when :pet then PET::KeyboardPorts::GRAPHICS_MATRIX + PET::KeyboardPorts::BUSINESS_MATRIX
+        when :cbm2 then CBM2::KeyboardPorts::MATRIX
         else Input::Keyboard::C64_MATRIX
         end
       end
@@ -228,9 +230,13 @@ module Badline
       end
 
       # Whether there's one in to eject. A VIC-20 has no cartridge to take
-      # out yet, and a PET no expansion port.
+      # out yet, a PET no expansion port, and a CBM-II no datasette, and
+      # its cartridge stays in.
       def ejectable?(computer, what)
-        (what != "cartridge" || !%i[vic20 pet].include?(computer.family)) && inserted?(computer, what)
+        family = computer.family
+        return false if family == :cbm2 && what != "disk"
+
+        (what != "cartridge" || !%i[vic20 pet].include?(family)) && inserted?(computer, what)
       end
 
       def inserted?(computer, what)

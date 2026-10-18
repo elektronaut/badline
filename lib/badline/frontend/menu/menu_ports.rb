@@ -6,8 +6,8 @@ module Badline
     # control port has plugged in, a joystick or a pot device, and whether
     # the keys type or drive the joysticks. The VIC-20 has one port, a
     # joystick's, and the Plus/4 two joysticks and no pot devices. The PET
-    # has no ports, and the page, KEYBOARD there, says where its keys are
-    # instead.
+    # and the CBM-II's B series have no ports, and the page, KEYBOARD
+    # there, says where their keys are instead.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -21,12 +21,18 @@ module Badline
       PET_GRAPHICS_KEYS = ["ESC: RUN/STOP", "SHIFT+LETTER: GRAPHIC", "ALT+SYMBOL: GRAPHIC"].freeze
       PET_BUSINESS_KEYS = ["ESC: ESC", "TAB: TAB", "PAGE UP: REPEAT", "KEYPAD: KEYPAD", "ALT+KEY: SHIFT+KEY"].freeze
 
+      # Where the CBM-II's keys without a character of their own are.
+      CBM2_KEYS = ["ESC: ESC", "F12: RUN/STOP", "HOME: CLR/HOME", "BACKSPACE: INST/DEL", "F1-F8: F1-F8",
+                   "ALT+F9, ALT+F10: F9, F10", "KEYPAD: KEYPAD", "ALT+0: KEYPAD 00", "ALT+C: C=", "ALT+E: CE",
+                   "ALT+G: NORM/GRAPH", "ALT+R: OFF/RVS", "ALT+P: PI", "_: LEFT ARROW"].freeze
+
       private
 
       def draw_ports
         return draw_vic20_port if @computer.family == :vic20
         return draw_plus4_ports if @computer.family == :plus4
         return draw_pet_keys if @computer.family == :pet
+        return draw_cbm2_keys if @computer.family == :cbm2
 
         toggle("PORT 1", :port1, [PORT_NAMES, PORT_ACTIONS[0], PORT_DEVICES.index(port_device(1))])
         toggle("PORT 2", :port2, [PORT_NAMES, PORT_ACTIONS[1], PORT_DEVICES.index(port_device(2))])
@@ -65,6 +71,15 @@ module Badline
         business = @computer.model.keyboard == :business
         info("KEYBOARD", business ? "BUSINESS" : "GRAPHICS")
         (PET_KEYS + (business ? PET_BUSINESS_KEYS : PET_GRAPHICS_KEYS)).each do |line|
+          @painter.text(@left, @top, line, MenuTheme::TEXT)
+          @top += MenuPages::LINE
+        end
+      end
+
+      # The CBM-II's keyboard, which types as the PET's does, and the keys
+      # that stand for the rest of its keys.
+      def draw_cbm2_keys
+        CBM2_KEYS.each do |line|
           @painter.text(@left, @top, line, MenuTheme::TEXT)
           @top += MenuPages::LINE
         end

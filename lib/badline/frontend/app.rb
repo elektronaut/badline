@@ -111,14 +111,21 @@ module Badline
         end
       end
 
+      # The window keeps F8, F9, F10, Tab and the snapshot keys for itself,
+      # but for the keys the machine claims (Controls#claims?).
       def handle_key(scancode, down)
-        if [Keys::F8, Keys::F9, Keys::F10].include?(scancode) || (scancode == Keys::TAB && @controls.tab_toggles?)
+        claimed = @controls.claims?(scancode)
+        if !claimed && toggle?(scancode)
           handle_toggle(scancode) if down
-        elsif down && @snapshots.key(scancode)
+        elsif !claimed && down && @snapshots.key(scancode)
           swap(@snapshots.computer)
-        elsif !Snapshots::KEYS.include?(scancode)
+        elsif claimed || !Snapshots::KEYS.include?(scancode)
           @controls.key(scancode, down)
         end
+      end
+
+      def toggle?(scancode)
+        [Keys::F8, Keys::F9, Keys::F10].include?(scancode) || (scancode == Keys::TAB && @controls.tab_toggles?)
       end
 
       # Runs the restored machine in place of the one before: the screen,

@@ -4,6 +4,7 @@ require "spec_helper"
 require "badline/ffi"
 require "badline/frontend"
 require_relative "../../support/pet_boot"
+require_relative "../../support/cbm2_boot"
 
 describe Badline::Frontend::PETKeyboard do
   subject(:keys) { described_class.new(keyboard, layout) }
@@ -135,6 +136,69 @@ describe Badline::Frontend::PETKeyboard do
     end
   end
 
+  describe "on the CBM-II's keyboard" do
+    let(:layout) { :cbm2 }
+    let(:matrix) { Badline::CBM2::KeyboardPorts::MATRIX }
+    let(:alt) { described_class::LALT }
+
+    it "types \" as SHIFT and '" do
+      keys.key(shift, true)
+      keys.key(52, true)
+      expect(keyboard.keys).to eq(%i[shift '])
+    end
+
+    it "types _ on ← without SHIFT, though the host's is down" do
+      keys.key(shift, true)
+      keys.key(45, true)
+      expect(keyboard.keys).to eq([:left_arrow])
+    end
+
+    it "types \\ as SHIFT and ←" do
+      keys.key(49, true)
+      expect(keyboard.keys).to eq(%i[shift left_arrow])
+    end
+
+    it "shifts a letter with the host's SHIFT" do
+      keys.key(shift, true)
+      keys.key(4, true)
+      expect(keyboard.keys).to eq(%i[shift a])
+    end
+
+    {
+      "Esc" => [41, :escape], "F12" => [69, :run_stop], "F1" => [58, :f1], "F8" => [65, :f8],
+      "the keypad's 7" => [95, :kp7], "the keypad's Enter" => [88, :kp_enter], "the up arrow" => [82, :cursor_up]
+    }.each do |name, (scancode, key)|
+      it "presses #{key} for #{name}" do
+        keys.key(scancode, true)
+        expect(keyboard.keys).to eq([key])
+      end
+    end
+
+    {
+      "C" => [6, :cbm], "E" => [8, :ce], "G" => [10, :norm_graph], "R" => [21, :off_rvs], "P" => [19, :pi],
+      "0" => [39, :kp00], "F9" => [66, :f9], "F10" => [67, :f10]
+    }.each do |name, (scancode, key)|
+      it "presses #{key} for Alt and #{name}" do
+        keys.key(alt, true)
+        keys.key(scancode, true)
+        expect(keyboard.keys).to eq([key])
+      end
+    end
+
+    it "presses nothing for Alt and a key with no CBM-II key of its own" do
+      keys.key(alt, true)
+      keys.key(4, true)
+      expect(keyboard.keys).to eq([])
+    end
+
+    it "holds a key Alt pressed after Alt goes up" do
+      keys.key(alt, true)
+      keys.key(66, true)
+      keys.key(alt, false)
+      expect(keys.holds?(66)).to be(true)
+    end
+  end
+
   describe "#release_all" do
     it "lets go of every key, SHIFT among them" do
       keys.key(shift, true)
@@ -171,16 +235,16 @@ describe Badline::Frontend::PETKeyboard do
     end
 
     # Holds the host's SHIFT down a moment before the key, as hands do.
-    def type(pet, host, scancode, shifted)
+    def type(pet, host, scancode, shifted, cycles = 21_000)
       if shifted
         host.key(described_class::LSHIFT, true)
-        pet.run_cycles(21_000)
+        pet.run_cycles(cycles)
       end
       host.key(scancode, true)
-      pet.run_cycles(21_000)
+      pet.run_cycles(cycles)
       host.key(scancode, false)
       host.key(described_class::LSHIFT, false) if shifted
-      pet.run_cycles(21_000)
+      pet.run_cycles(cycles)
     end
 
     # The booted PET's screen codes, after the host's keys type the
@@ -222,6 +286,36 @@ describe Badline::Frontend::PETKeyboard do
     it "prints a graphic and a shifted symbol on an 8032 with Alt" do
       cells = alt_typed("8032", 50, [4, 30])
       expect(cells.each_cons(2)).to include([0x41, 0x21])
+    end
+
+    context "with a CBM-II" do
+      include CBM2Boot
+
+      def symbols = "!#&'(*+:;<=>?@[\\]^_a1\""
+
+      # The booted 610's screen codes on the line typed, after the host's keys
+      # type #symbols, then with Alt down P and 0. The keyboard is scanned
+      # once each tick of the 50 Hz mains, 40,000 cycles.
+      def cbm2_typed
+        TakenOnce.fetch(:cbm2_host_keys) do
+          machine = booted
+          host = described_class.new(machine.keyboard, :cbm2)
+          symbols.each_char { |char| type(machine, host, *stroke(char), 42_000) }
+          host.key(described_class::LALT, true)
+          [19, 39].each { |scancode| type(machine, host, scancode, false, 42_000) }
+          machine.run_cycles(100_000)
+          Array.new(80) { |column| machine.bus.peek_bank(15, 0xd000 + (80 * 4) + column) }
+        end
+      end
+
+      it "prints what the host's keys type" do
+        expect(cbm2_typed.first(22))
+          .to eq("!#&'(*+:;<=>?".bytes + [0x00, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x01, 0x31, 0x22])
+      end
+
+      it "prints π and 00 with Alt" do
+        expect(cbm2_typed[22, 3]).to eq([0x5e, 0x30, 0x30])
+      end
     end
   end
 end

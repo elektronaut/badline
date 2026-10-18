@@ -209,8 +209,53 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a CBM-II" do
+    let(:computer) { Badline::CBM2.new }
+
+    it "types the host's \" as SHIFT and '" do
+      controls.key(225, true)
+      controls.key(52, true)
+      expect(computer.keyboard.keys).to eq(%i[shift '])
+    end
+
+    it "leaves Tab to the machine" do
+      expect(controls.tab_toggles?).to be(false)
+    end
+
+    it "plugs no pot device in" do
+      controls.plug(:mouse1)
+      expect(controls.pot).to eq(:none)
+    end
+
+    it "takes F8 and F12 from the window" do
+      expect([controls.claims?(Badline::Frontend::Keys::F8), controls.claims?(Badline::Frontend::Keys::F12)])
+        .to eq([true, true])
+    end
+
+    it "leaves F9 and F10 to the window" do
+      expect([controls.claims?(Badline::Frontend::Keys::F9), controls.claims?(Badline::Frontend::Keys::F10)])
+        .to eq([false, false])
+    end
+
+    it "takes F9 from the window with Alt down" do
+      controls.key(226, true)
+      expect(controls.claims?(Badline::Frontend::Keys::F9)).to be(true)
+    end
+
+    it "takes the release of the F10 it pressed, though Alt went up first" do
+      controls.key(226, true)
+      controls.key(Badline::Frontend::Keys::F10, true)
+      controls.key(226, false)
+      expect(controls.claims?(Badline::Frontend::Keys::F10)).to be(true)
+    end
+  end
+
   describe "with a business PET" do
     let(:computer) { Badline::PET.new(model: "8032") }
+
+    it "leaves F12 to the window" do
+      expect(controls.claims?(Badline::Frontend::Keys::F12)).to be(false)
+    end
 
     it "presses TAB for Tab" do
       controls.key(43, true)

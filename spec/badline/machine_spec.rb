@@ -116,6 +116,16 @@ describe Badline::Machine do
         .to raise_error(Badline::Machine::Unsupported, %r{Plus/4})
     end
 
+    it "builds the CBM-II --model, --kernal and --60hz name" do
+      machine = described_class.for_options(options("cbm2", "--model", "620", "--kernal", "03b", "--60hz"), nil)
+      expect([machine.model.name, machine.kernal, machine.mains_hz]).to eq(["620", "03b", 60])
+    end
+
+    it "turns a tape away from the CBM-II" do
+      expect { described_class.for_options(options("cbm2"), "game.tap") }
+        .to raise_error(Badline::Machine::Unsupported, /CBM-II/)
+    end
+
     it "gives a PET the RAM --ram names" do
       expect(described_class.for_options(options("pet", "--model", "3032", "--ram", "8k"), nil).ram_kb).to eq(8)
     end

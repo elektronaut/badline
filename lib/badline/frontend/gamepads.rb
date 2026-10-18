@@ -7,8 +7,8 @@ module Badline
     # second one joystick 1. PadPort holds the mapping.
     #
     # The controllers are polled every frame, and rescanned whenever SDL
-    # reports one added or removed. The PET has no joysticks, and the
-    # controllers steer two that nothing reads.
+    # reports one added or removed. The PET and the CBM-II's B series have
+    # no joysticks, and the controllers steer two that nothing reads.
     class Gamepads
       PORTS = [2, 1].freeze
 
@@ -53,7 +53,7 @@ module Badline
       private
 
       def joystick(computer, port)
-        return Input::Joystick.new if computer.family == :pet
+        return Input::Joystick.new unless Controls.joysticks?(computer)
 
         port == 1 ? computer.joystick1 : computer.joystick2
       end

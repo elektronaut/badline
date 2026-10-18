@@ -222,6 +222,26 @@ describe Badline::Frontend::MenuMedia do
     end
   end
 
+  describe "on a CBM-II" do
+    let(:computer) { Badline::CBM2.new }
+
+    it "takes no cartridges from the menu" do
+      expect(media.cartridge_extensions).to eq([])
+    end
+
+    it "lists the 8050's and 8250's disks for device 8" do
+      expect(media.disk_extensions).to include(".d80", ".d82", ".d64")
+    end
+
+    it "names a save after BASIC with nothing in" do
+      expect(media.game_name).to eq("BASIC")
+    end
+
+    it "keeps the problem with a tape, having no datasette" do
+      expect([media.insert(:tape, "game.tap"), media.problem]).to eq([false, "the CBM-II has no datasette"])
+    end
+  end
+
   describe "on a Plus/4" do
     let(:computer) { Badline::Plus4.new }
 

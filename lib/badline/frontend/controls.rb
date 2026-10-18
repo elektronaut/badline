@@ -8,8 +8,8 @@ module Badline
     #   switches, the arrow cluster and space drive one joystick and WASD
     #   and left shift the other. The arrows start on joystick 2, and
     #   #swap_ports swaps them. The VIC-20's one joystick takes both. The
-    #   PET has no joystick, and its keys go by the character they type
-    #   (PETKeyboard).
+    #   PET and the CBM-II's B series have no joystick, and their keys go
+    #   by the character they type (PETKeyboard).
     # - A pot device the pause menu plugs into a C64 control port: a 1351
     #   mouse or a pair of paddles, which the host mouse drives. Motion
     #   turns the paddles or moves the mouse, and the host's left and right
@@ -23,6 +23,14 @@ module Badline
 
       # The pot device plugged in, one of POTS.
       attr_reader :pot, :arrows_port
+
+      # Whether the machine has joysticks: all but the PET and the CBM-II's
+      # B series.
+      def self.joysticks?(computer) = !%i[pet cbm2].include?(computer.family)
+
+      # Whether the machine's keys go by the character they type: the PET's
+      # and the CBM-II's.
+      def self.symbolic?(computer) = %i[pet cbm2].include?(computer.family)
 
       def initialize(computer)
         @computer = computer
@@ -58,9 +66,19 @@ module Badline
         self.joystick_mode = !@joystick if tab_toggles?
       end
 
-      # Whether Tab switches the keys to the joysticks, or on the PET, which
-      # has none, is a key of its own.
-      def tab_toggles? = @computer.family != :pet
+      # Whether Tab switches the keys to the joysticks, or on a machine
+      # without them is a key of its own.
+      def tab_toggles? = Controls.joysticks?(@computer)
+
+      # Whether the machine takes a key the window would otherwise keep for
+      # itself: on the CBM-II, F8, RUN/STOP on F12, Alt with F9 or F10, and
+      # the release of any key it pressed.
+      def claims?(scancode)
+        return false unless @computer.family == :cbm2
+        return true if @pet_keyboard.holds?(scancode) || [Keys::F8, Keys::F12].include?(scancode)
+
+        @pet_keyboard.alt? && [Keys::F9, Keys::F10].include?(scancode)
+      end
 
       # Plugs in one of POTS, in place of the one before.
       def plug(pot)
@@ -116,7 +134,7 @@ module Badline
       # A host key lets go of the key it pressed, though the C128 has
       # switched between C64 and C128 mode since and maps it elsewhere.
       def machine_key(scancode, down)
-        return @pet_keyboard.key(scancode, down) if @computer.family == :pet
+        return @pet_keyboard.key(scancode, down) if Controls.symbolic?(@computer)
 
         @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
         key = @held[scancode]
@@ -159,7 +177,7 @@ module Badline
       # A fresh pot device on its port, and none on the other. A machine
       # without the ports takes none.
       def attach_pot_device
-        ports = @computer.family == :pet ? nil : @computer.control_ports
+        ports = Controls.joysticks?(@computer) ? @computer.control_ports : nil
         if ports.nil?
           @pot = :none
           return
@@ -211,14 +229,19 @@ module Badline
         down ? joystick.press(direction) : joystick.release(direction)
       end
 
-      # The PET's keyboard for a PET, and for any other machine one it never
-      # uses.
+      # The PET's keyboard for a PET or a CBM-II, and for any other machine
+      # one it never uses.
       def pet_keyboard(computer)
-        PETKeyboard.new(computer.keyboard, computer.family == :pet ? computer.model.keyboard : :graphics)
+        layout = case computer.family
+                 when :pet then computer.model.keyboard
+                 when :cbm2 then :cbm2
+                 else :graphics
+                 end
+        PETKeyboard.new(computer.keyboard, layout)
       end
 
       def release_all
-        return @pet_keyboard.release_all if @computer.family == :pet
+        return @pet_keyboard.release_all if Controls.symbolic?(@computer)
 
         Keys::ARROWS.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }
         Keys::WASD.each_key { |scancode| @computer.keyboard.release(host_key(scancode)) }

@@ -86,6 +86,15 @@ describe Badline::Frontend::Timeline do
       expect(error("1:key=none", family: :pet)).to eq("no such key: none")
     end
 
+    it "takes the CBM-II's keys on the CBM-II" do
+      keys = %w[escape run_stop norm_graph off_rvs ce cbm pi kp00 f10 cursor_up left_arrow]
+      expect(error(*keys.map { |key| "1:key=#{key}" }, family: :cbm2)).to eq("")
+    end
+
+    it "turns the joysticks away on the CBM-II" do
+      expect(error("1:key=joy2-fire", family: :cbm2)).to eq("no such key: joy2-fire")
+    end
+
     it "takes the pause menu's pages, or none" do
       expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
     end

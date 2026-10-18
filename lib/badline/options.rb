@@ -13,10 +13,11 @@ module Badline
   # Either opens the window for any media, or with --headless or
   # --audio-out plays or renders a .sid tune without one. `sid`, given
   # first, plays .sid tunes and directories of them in the terminal.
-  # `c64`, `vic20`, `c128`, `plus4` or `pet`, given first, names the
-  # machine family, and without one the family is the C64, the C128 for a
-  # program that loads where C128 BASIC starts, or the PET for an 8050's
-  # or 8250's disk or a PET tape.
+  # `c64`, `vic20`, `c128`, `plus4`, `pet` or `cbm2`, given first, names
+  # the machine family, and without one the family is the C64, the C128
+  # for a program that loads where C128 BASIC starts, the PET for an
+  # 8050's or 8250's disk or a PET tape, or the CBM-II for a cartridge
+  # signed as its own.
   # The native build adds --no-sound and --version, and badline-ruby adds
   # --disable-jit.
   #
@@ -77,7 +78,7 @@ module Badline
                 :audio_out, :seconds, :songlengths, :filter_chunk, :timeline
 
     # The machine family to build (Badline::Machine), :c64, :vic20, :c128,
-    # :plus4 or :pet.
+    # :plus4, :pet or :cbm2.
     attr_reader :family
 
     # The ROMs --basic, --editor and --characters fit a PET with, keys of
@@ -137,6 +138,7 @@ module Badline
       @ram_kb = nil
       @ram_name = nil
       initialize_pet
+      @kernal = nil
       @cartridges = {}
       @autostart = true
       @writable = false
@@ -246,8 +248,12 @@ module Badline
     def c64_mode? = @c64_mode
 
     # The frame rate of a CRTC PET's editor: 60 with --60hz or a 60 Hz
-    # --editor, else 50.
+    # --editor, else 50. A CBM-II's mains, which its editor follows.
     def refresh_hz = @refresh_hz || 50
+
+    # The CBM-II's KERNAL --kernal names, one of CBM2_KERNALS, 04a without
+    # it.
+    def kernal = @kernal || CBM2_KERNALS.first
 
     def help? = @help
 
@@ -264,7 +270,7 @@ module Badline
     # A .sid on its own plays in the SID player, as `sid` would, unless an
     # option of the emulator's window asks for the machine.
     def play_lone_tune
-      return if @sid_command || %i[vic20 plus4 pet].include?(@family) || headless? || !@window_only.empty?
+      return if @sid_command || %i[vic20 plus4 pet cbm2].include?(@family) || headless? || !@window_only.empty?
       return if @media_path.nil?
 
       @sid_command = File.extname(@media_path).casecmp?(".sid")
@@ -326,6 +332,7 @@ module Badline
       when "--ram" then @ram_name = value
       when "--basic", "--editor", "--characters", "--jumpers" then pet_option(name, value)
       when "--drive-type" then @drive_type = drive_type_for(value)
+      when "--kernal" then @kernal = kernal_for(value)
       when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
       when "--frames" then @frames = number(flag, value)
       when "--screenshot" then @screenshot = value

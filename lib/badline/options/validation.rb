@@ -57,6 +57,12 @@ module Badline
         value
       end
 
+      def kernal_for(value)
+        raise Error, "invalid argument: --kernal #{value}" unless CBM2_KERNALS.include?(value)
+
+        value
+      end
+
       def reu_size(value)
         raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
 
@@ -102,6 +108,7 @@ module Badline
         validate_vic20 if @family == :vic20
         @family == :plus4 ? validate_plus4 : refuse_plus4_options
         @family == :pet ? validate_pet : refuse_pet_options
+        @family == :cbm2 ? validate_cbm2 : refuse_cbm2_options
         if @family == :c128
           validate_c128
         elsif @c64_mode
@@ -170,10 +177,10 @@ module Badline
         raise Error, "--sid-card-address needs --sid-card" unless @sid_card_address.nil? || @sid_card
       end
 
-      # Only the PET has a frame rate to pick and BASIC and editor ROMs to
-      # fit.
+      # Only the PET has BASIC and editor ROMs to fit, and only it and the
+      # CBM-II a frame rate to pick.
       def refuse_pet_options
-        raise Error, "--60hz needs pet" unless @refresh_hz.nil?
+        raise Error, "--60hz needs pet or cbm2" unless @refresh_hz.nil? || @family == :cbm2
         raise Error, "--basic needs pet" unless @basic.nil?
         raise Error, "--editor needs pet" unless @editor.nil?
         raise Error, "--characters needs pet" unless @characters.nil?
@@ -230,6 +237,20 @@ module Badline
         raise Error, "--60hz takes a 60 Hz editor, not #{@editor}" if @refresh_hz == 60 && editor_hz == 50
 
         @refresh_hz = editor_hz
+      end
+
+      # Only the CBM-II has a KERNAL to pick.
+      def refuse_cbm2_options
+        raise Error, "--kernal needs cbm2" unless @kernal.nil?
+      end
+
+      # The CBM-II runs in the window, without the C64's SID and REU.
+      def validate_cbm2
+        raise Error, "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz" if @models.include?("ntsc")
+        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the CBM-II needs the window" if headless?
+        raise Error, "the CBM-II has no true drive yet" if true_drive?
       end
 
       # `sid` takes directories as well as tunes.

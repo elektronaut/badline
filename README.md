@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs a PAL VIC-20, as
-`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, and the PET and CBM, as `badline pet`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, and the CBM-II's B series, as `badline cbm2`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -70,8 +70,9 @@ from it.
 The first argument can name the machine, as in `badline c64 game.prg`.
 The C64 is the default, and `--model` picks which C64. See
 [The VIC-20](#the-vic-20) for `badline vic20`, [The C128](#the-c128)
-for `badline c128`, [The Plus/4](#the-plus4) for `badline plus4` and
-[The PET](#the-pet) for `badline pet`.
+for `badline c128`, [The Plus/4](#the-plus4) for `badline plus4`,
+[The PET](#the-pet) for `badline pet` and [The CBM-II](#the-cbm-ii) for
+`badline cbm2`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -87,14 +88,15 @@ differences noted in the table. `--help` lists the options for either.
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, and on the PET `4k`, `8k`, `16k` or `32k` |
-| `--60hz` | Run a CRTC PET's 60 Hz editor in place of its 50 Hz one. See [The PET](#the-pet) |
+| `--60hz` | Run a CRTC PET's 60 Hz editor in place of its 50 Hz one, or a CBM-II on 60 Hz mains. See [The PET](#the-pet) and [The CBM-II](#the-cbm-ii) |
+| `--kernal 04a`, `--kernal 03b` | Fit a CBM-II with KERNAL 901244-04a (the default) or 901244-03b. See [The CBM-II](#the-cbm-ii) |
 | `--basic VERSION`, `--editor NAME` | Fit a PET with an upgrade ROM its board takes: BASIC `1`, `2` or `4`, or an editor. See [The PET](#the-pet) |
 | `--c1lo FILE`, `--c1hi FILE`, `--c2lo FILE`, `--c2hi FILE` | Put a raw `.bin` ROM image in one of the Plus/4's cartridge slots: cartridge 1 or 2, low (`$8000`) or high (`$C000`). See [The Plus/4](#the-plus4) |
 | `--sid-card 6581`, `--sid-card 8580` | Fit a Plus/4 or C16 with a SID card at `$FD40`. See [The Plus/4](#the-plus4) |
 | `--sid-card-address fd40`, `--sid-card-address fe80` | Put the SID card at `$FD40` (the default) or at `$FE80` |
 | `--ram-expansion NAME` | Fit a Plus/4 or C16 with a RAM expansion: `hannes256`, `hannes1m` or `csory256`. See [The Plus/4](#the-plus4) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
-| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128, the Plus/4 and the PET have models of their own: see their sections |
+| `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128, the Plus/4, the PET and the CBM-II have models of their own: see their sections |
 | `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
@@ -367,6 +369,42 @@ jumpers. The PET has no
 joysticks. `F11` and the Snapshots page save it as they do the others,
 but not for VICE.
 
+## The CBM-II
+
+`badline cbm2` runs a CBM 610 of the B series, with BASIC 128 and 80
+columns on a green screen, and takes programs, disks and cartridges:
+
+```sh
+badline cbm2                        # READY., in BASIC 128
+badline cbm2 game.prg               # Load and run a program
+badline cbm2 game.d82               # Mount an 8250's disk as device 8 and load it
+badline cbm2 game.crt               # Put a cartridge in and start the machine
+badline cbm2 --model 720            # A 720, with 256K and the 700's monitor
+```
+
+`--model` picks the machine: `610` (the default, 128K), `620` (256K,
+with BASIC 256), `710` and `720` (the same with the 700's monitor and
+character ROM, 25 rows of 14 lines). `--kernal 03b` fits the 1983
+KERNAL, 901244-03b, in place of 901244-04a, the default, which VICE
+runs too, and on a 610 or a 710 BASIC 128's 1983 release, 02b, with it. The machine runs on 50 Hz mains, and
+`--60hz` on 60 Hz, which also sets a 600's jumper for its editor's
+60 Hz table. The mains is the system tick and the clock of the CIA's
+time of day.
+
+A program loads at the start of BASIC, `$0003` in segment 1, and runs.
+Disks of every kind, `.d80` and `.d82` among them, go through the
+KERNAL traps on the IEEE-488 bus as device 8. A `.d80` or `.d82` on
+its own starts a PET, so `cbm2` names the machine for one, but a
+cartridge made for the CBM-II starts it without `cbm2`. The cartridge
+goes in from the command line or Quick open. There is no datasette and
+no true drive yet. The SID plays through the host's audio device at
+the machine's 2 MHz, as the C64's does. The keys type what the host's
+keys type, as on the PET, and `Alt` with a key presses the keys the
+host has none for: [Input](#input) lists them. The pause menu's Power
+page names the model, its RAM, the mains and the KERNAL, and its
+Expansion port page its RAM. The B series has no joysticks. `F11` and
+the Snapshots page save it as they do the others, but not for VICE.
+
 ## Snapshots
 
 `F11` quicksaves the whole machine to the next of five slots in
@@ -458,6 +496,31 @@ listing them too:
 
 On the PET `Tab` is a key, since there are no joysticks to switch to.
 
+The CBM-II types the characters on the host's keys as the PET does, so
+Shift and `'` type `"` with the CBM-II's `SHIFT` and `'`. `F9` and
+`F10` keep opening the pause menu and muting, and `F12` is `RUN/STOP`
+in place of loading a snapshot. Its keys without a character are here,
+with the pause menu's Keyboard page listing them too:
+
+| CBM-II | Host |
+|--------|------|
+| `ESC` | `Escape` |
+| `RUN/STOP` | `F12` |
+| `CLR/HOME` | `Home` |
+| `INST/DEL` | `Backspace` |
+| `TAB` | `Tab` |
+| `CTRL` | `Ctrl` |
+| `F1`-`F8` | `F1`-`F8` |
+| `F9` / `F10` | `Alt` and `F9` / `F10` |
+| `CRSR ←` / `→` / `↑` / `↓` | `Left` / `Right` / `Up` / `Down` |
+| `←` | `_` or `` ` ``, and with `SHIFT` it's `\` |
+| Keypad | The keypad, and `Alt` and `0` for `00` |
+| `C=` | `Alt` and `C` |
+| `CE` | `Alt` and `E` |
+| `NORM/GRAPH` | `Alt` and `G` |
+| `OFF/RVS` | `Alt` and `R` |
+| `π` | `Alt` and `P` |
+
 `Tab` switches the keys between the C64 keyboard and the joysticks. The
 window title shows where they go, and any device plugged into a control
 port:
@@ -501,9 +564,9 @@ too.
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
-| Ports | The device in each control port, and where the keys go. On the PET, Keyboard: where its keys are |
+| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II, Keyboard: where its keys are |
 | Sound | Mute, and the SID's model |
-| Power | Reset, power cycle and quit, on a C128 its model and mode, and on a Plus/4 or a PET its model and RAM |
+| Power | Reset, power cycle and quit, on a C128 its model and mode, on a Plus/4 or a PET its model and RAM, and on a CBM-II its model, RAM, mains and KERNAL |
 
 INSERT opens a file browser. A disk's set is the `.m3u` or `.vfl` list it
 was opened from, or one in its folder that lists it. Without one, it comes
@@ -560,6 +623,12 @@ in cartridge 1 as it does from the command line.
   8296's 128K with its jumpers, RA4 and 4K character ROM, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks (`badline pet`).
+- **CBM-II**: the B series' 610, 620, 710 and 720, with the 6509 at
+  2 MHz and its sixteen segments, 128K or 256K of RAM, BASIC 128 or 256
+  with KERNAL 04a or 03b, the 6845 CRTC on 80 columns, the SID, the
+  6526 CIA, the 6551 ACIA, both 6525 TPIs, the keyboard, the 50 or 60 Hz
+  mains, cartridges, and device 8 on the IEEE-488 bus through the
+  KERNAL traps (`badline cbm2`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
   IEEE-488 bus, with the bus's handshake on every line
   (`badline pet --true-drive`).
