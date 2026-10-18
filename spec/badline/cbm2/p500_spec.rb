@@ -146,6 +146,27 @@ describe Badline::CBM2::P500 do
       expect(machine.peek(0xdc01)).to eq(0x7e)
     end
 
+    it "reads a pair of paddles on port 1 through the SID's pots while PA0 is high" do
+      paddles = Badline::Input::Paddles.new
+      paddles.move(100, 0)
+      machine.control_ports.device1 = paddles
+      { 0xdc02 => 0x03, 0xdc00 => 0x01 }.each { |addr, value| machine.poke(addr, value) }
+      expect(machine.peek(0xda19)).to eq(paddles.pot_x)
+    end
+
+    it "reads no pots while PA0 and PA1 are low" do
+      machine.control_ports.device1 = Badline::Input::Paddles.new
+      { 0xdc02 => 0x03, 0xdc00 => 0x00 }.each { |addr, value| machine.poke(addr, value) }
+      expect(machine.peek(0xda19)).to eq(0xff)
+    end
+
+    # PA6 is port 1's fire line and the VIC's light pen input.
+    it "latches the light pen when port 1's fire button pulls PA6 low" do
+      machine.joystick1.press(:fire)
+      machine.run_cycles(2)
+      expect(machine.vic.register_file[0x19] & 0x08).to eq(0x08)
+    end
+
     it "reads port 1's fire button on PA6 and port 2's on PA7" do
       machine.joystick1.press(:fire)
       expect(machine.peek(0xdc00)).to eq(0xbf)

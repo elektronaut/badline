@@ -25,7 +25,8 @@ module Badline
     # TPI1 is the interrupt controller as on the B series, with the mains
     # on I0, the CIA on I2 and the ACIA on I4. TPI2 scans the B series'
     # key matrix (KeyboardPorts), and the CIA reads the two control ports
-    # (ControlPorts). Device 8 answers through traps on the KERNAL's
+    # (ControlPorts), whose paddles reach the SID's pots and whose port 1
+    # fire line is the VIC's light pen input. Device 8 answers through traps on the KERNAL's
     # IEEE-488 primitives as on the B series (IEEETraps, with the P500's
     # IEEELayout), or a true 2031, 8050 or 8250 on the bus answers, on the
     # same ports as the B series' (IEEEPorts, IEEEDrive).
@@ -44,7 +45,7 @@ module Badline
       end
 
       attr_reader :model, :bus, :cpu, :vic, :sid, :cia, :acia, :tpi1, :tpi2, :keyboard, :joystick1, :joystick2,
-                  :color_ram, :ieee, :mains_hz, :kernal, :cycles, :init_threshold
+                  :control_ports, :color_ram, :ieee, :mains_hz, :kernal, :cycles, :init_threshold
 
       def ram = @bus.ram
 
@@ -85,12 +86,14 @@ module Badline
         map_video
         @ieee = IEEEPorts.new(Drives::IEEEBus.new)
         @tpi1 = Chips::TPI.new(peripheral: @ieee)
-        @sid = Chips::SID.new(model: :mos6581, at: 0xda00)
         @joystick1 = Input::Joystick.new
         @joystick2 = Input::Joystick.new
-        @cia = Chips::CIA.new(start: 0xdc00, peripheral: ControlPorts.new(@joystick1, @joystick2, @ieee.data),
-                              region: @model.region, tod_hz: @mains_hz)
+        @control_ports = ControlPorts.new(@joystick1, @joystick2, @ieee.data)
+        @sid = Chips::SID.new(model: :mos6581, pots: @control_ports, at: 0xda00)
+        @cia = Chips::CIA.new(start: 0xdc00, peripheral: @control_ports, region: @model.region, tod_hz: @mains_hz)
+        @control_ports.connect(@cia)
         @ieee.connect(@cia, @tpi1)
+        @lightpen_high = true
         @acia = ACIA.new(self, clock_hz)
         @keyboard = Input::Keyboard.new(matrix: KeyboardPorts::MATRIX)
         keyboard_ports = KeyboardPorts.new(@keyboard, 0xc0)
@@ -138,6 +141,7 @@ module Badline
         vic.cycle!
         tick_mains
         @cia.cycle!
+        sample_lightpen
         @sid.cycle!
         @acia.run!(@cycles) if @cycles >= @acia_due
         tpi1 = @tpi1
@@ -231,6 +235,16 @@ module Badline
         @bus.map_io(0xdd, @acia)
         @bus.map_io(0xde, TPIPage.new(@tpi1, self))
         @bus.map_io(0xdf, TPIPage.new(@tpi2, self))
+      end
+
+      # The VIC's light pen input, CIA PA6 as the CIA drives it and control
+      # port 1's fire line pulls it, whose falling edge latches the beam.
+      def sample_lightpen
+        high = @cia.port_a_lines.anybits?(0x40) && @control_ports.fire1_high?
+        return if high == @lightpen_high
+
+        @lightpen_high = high
+        @vic.lightpen_level(high)
       end
 
       # The mains, low for half its period and high for the other half, on
