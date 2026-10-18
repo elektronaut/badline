@@ -36,6 +36,16 @@ describe Badline::Chips::RRIOT do
     end
   end
 
+  %w[fdc-901869-01.rom fdc-901885-04.rom].each do |mask|
+    context "with the 8050 controller's #{mask}" do
+      let(:rom) { Badline::ROM.read("8050/#{mask}") }
+
+      it "holds the reset vector $FC04 and the IRQ vector $FF3F" do
+        expect([0x3fc, 0x3fd, 0x3fe, 0x3ff].map { |addr| rriot.read_rom(addr) }).to eq([0x04, 0xfc, 0x3f, 0xff])
+      end
+    end
+  end
+
   describe "the ports" do
     it "repeats the four I/O registers while A2 is low" do
       rriot.poke(0x01, 0x0f)
