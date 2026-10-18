@@ -113,6 +113,16 @@ The same 6530 with the DOS 2.7 mask for Micropolis mechanisms,
 901885-04 (6530-47). It differs from 901869-01 in 104 bytes.
 SHA-1 0dc9a3b60f1b866c63eebd882403532fc59fe57f.
 
+8050/dos-2.7.rom
+----------------
+The 8050 and 8250's DOS 2.7, 16 KB for the interface processor's
+$C000-$FFFF: 901887-01 ($C000-$DFFF, SHA-1
+b10603195f240118fe5fb6c6dfe5c5097463d890) followed by 901888-01
+($E000-$FFFF, SHA-1 2e6c2d7ca934e5c550ad14bd5e9e7749686b7af4). xcbm2
+and xpet with -drive8type 8050 or 8250 run the same 16 KB.
+Drives::Model8050 loads it.
+SHA-1 d50b093828888146596f17ae0df9ef3dfde71b05.
+
 Both downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/8050/
 and named by the 8050's parts list
