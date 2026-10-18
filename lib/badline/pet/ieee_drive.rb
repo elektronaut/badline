@@ -79,6 +79,23 @@ module Badline
 
       private
 
+      def init_ieee_drives
+        @drive2031 = nil
+        @drive8050 = nil
+      end
+
+      # The true drive's cycles for one of the PET's.
+      def clock_ieee_drives
+        @drive2031&.host_cycle!
+        @drive8050&.host_cycle!
+      end
+
+      # The RES line reaches the true drive as IFC.
+      def reset_ieee_drives
+        @drive2031&.reset!
+        @drive8050&.reset!
+      end
+
       # The 2031 as keyed snapshot modules named from its device number:
       # BL-D8, BL-D8-CPU and so on for device 8.
       def save_drive_modules(sections)
