@@ -6,28 +6,15 @@
 ### Features
 
 * add the 2031 disk drive on the PET's IEEE-488 bus ([bcc76a5](https://github.com/elektronaut/badline/commit/bcc76a536a44bdb6173b26823c83a5026a788c4f))
-* add the 2031 disk drive on the PET's IEEE-488 bus ([9da1c49](https://github.com/elektronaut/badline/commit/9da1c492a131f3833ae81df501e3abfa89bafea9))
 * add the CBM 8296 ([48fb14d](https://github.com/elektronaut/badline/commit/48fb14d0d94b75cf003d7601c637158801acaef8))
-* add the CBM 8296 ([0c5411e](https://github.com/elektronaut/badline/commit/0c5411e6d86664b1ae80011862fe314913ead477))
-* map the 8296 to xpet's modules ([a4557dd](https://github.com/elektronaut/badline/commit/a4557ddf9bff5260803ded9e302ecec7777c720f))
-* map the VIA's shift register to xpet's, and check PET snapshots through xpet's modules ([64e86bf](https://github.com/elektronaut/badline/commit/64e86bfe5de3cf260c32132b744aceadbd64548e))
 * put a true 2031 on the PET's device 8 with --true-drive ([c64e1b4](https://github.com/elektronaut/badline/commit/c64e1b4245b1390ba6d57e5ffaad620c4055b5cd))
-* put a true 2031 on the PET's device 8 with --true-drive ([50ba2a3](https://github.com/elektronaut/badline/commit/50ba2a3d04ef908b98ae8dfad9ba78785b214d48))
-* read and write xpet's .vsf modules for the PET ([fbd9938](https://github.com/elektronaut/badline/commit/fbd9938cfd1610979f3f81908163baa8b2cb7c0f))
 * read and write xpet's .vsf snapshots for the PET ([607050b](https://github.com/elektronaut/badline/commit/607050b9c72767e335d2b488afd0d3c4ce153c81))
 * save a PET's 2031 in its snapshots ([a8d6880](https://github.com/elektronaut/badline/commit/a8d68806a34e34f45c02fb7a5a00dd2699ccb618))
-* save a PET's 2031 in its snapshots ([bd8b4b2](https://github.com/elektronaut/badline/commit/bd8b4b2fa9b4d8c3dcf0dae70f4c2368935176b3))
 
 
 ### Bug Fixes
 
 * blank the CRTC PETs' character lines past the eighth ([f02db02](https://github.com/elektronaut/badline/commit/f02db02a6255944b552b6a5f3e8108483ae78875))
-* blank the CRTC PETs' character lines past the eighth ([d42f3e6](https://github.com/elektronaut/badline/commit/d42f3e6afa740f159ec702ce2c0614159146b4cc))
-
-
-### Miscellaneous Chores
-
-* release 0.16.1 ([8897c2e](https://github.com/elektronaut/badline/commit/8897c2eb204be2112dcd03a5d118139ba3087156))
 
 ## [0.16.0](https://github.com/elektronaut/badline/compare/v0.15.1...v0.16.0) (2026-10-17)
 
