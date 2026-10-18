@@ -55,7 +55,7 @@ module Badline
           @motors = [false, false]
           @so_pending = false
           @data_in = 0xff
-          @sync = false
+          @syncs = [false, false]
           @ca1_low = false
         end
 
@@ -98,8 +98,9 @@ module Badline
           so
         end
 
-        # Whether ten one bits sit in the shift register.
-        def sync? = @sync
+        # Whether ten one bits sit in the shift register, off the selected
+        # drive's head.
+        def sync? = @syncs[selected_drive]
 
         # The 6530's port B inputs.
         def status_lines
@@ -126,7 +127,7 @@ module Badline
           step(drive, phase) if phase != @phases[drive]
           motor_off(drive) if @motors[drive] && !motor
           @motors[drive] = motor
-          return unless motor && @disks[drive]
+          return @syncs[drive] = false unless motor && @disks[drive]
 
           clock = @clocks[drive] + 6
           byte = 10 * (16 - Disk.zone_of(track(drive)))
@@ -167,25 +168,21 @@ module Badline
           @positions[drive] = position + 1
           return unless drive == selected_drive
 
-          writing? ? write_cell(disk, number, cells, position) : read_cell(cells, position)
+          writing? ? write_cell(drive, disk, number, cells, position) : read_cell(drive, cells, position)
         end
 
         def writing? = (@via.pcr & 0xe0) == 0xc0
 
-        def read_cell(cells, position)
+        def read_cell(drive, cells, position)
           cell = cells[position]
-          if cell == Disk::SYNC
-            @sync = true
-            return
-          end
-          @sync = false
-          byte_ready(cell)
+          @syncs[drive] = cell == Disk::SYNC
+          byte_ready(cell) unless cell == Disk::SYNC
         end
 
-        def write_cell(disk, number, cells, position)
+        def write_cell(drive, disk, number, cells, position)
           cells[position] = @via.pcr.allbits?(0x0e) ? Disk::SYNC : @rriot.port_a_output
           disk.written(number)
-          @sync = false
+          @syncs[drive] = false
           byte_ready(@data_in)
         end
 
