@@ -322,12 +322,13 @@ module Badline
         end
 
         # The three s-accesses step MC through the sprite's block, wrapping
-        # within it.
+        # within it. The first and third fall in phi2 and the second in
+        # phi1 (Bank#peek_sprite).
         def row_bits(counter)
           base = pointer * 64
-          (@bank.peek(base + counter) << 16) |
+          (@bank.peek_sprite(base + counter) << 16) |
             (@bank.peek(base + ((counter + 1) & MC_MASK)) << 8) |
-            @bank.peek(base + ((counter + 2) & MC_MASK))
+            @bank.peek_sprite(base + ((counter + 2) & MC_MASK))
         end
 
         def pointer = @bank.peek(@registers.screen_base + 0x3f8 + index)

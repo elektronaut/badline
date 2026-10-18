@@ -120,6 +120,11 @@ describe Badline::Chips::VIC::Bank do
     let(:rom) { Badline::ROM.new(Array.new(0x2000) { |addr| addr >> 8 }, length: 0x2000) }
     let(:color_ram) { Badline::C64::ColorMemory.new(Badline::Chips::VIC.new, start: 0, length: 0x800) }
 
+    it "reads a sprite's s-accesses as any other read off the video bus" do
+      vic_bank.map(ram, base: 0x10000)
+      expect(vic_bank.peek_sprite(0x2000)).to eq(vic_bank.peek(0x2000))
+    end
+
     it "reads RAM from the base of the VIC's 64K" do
       vic_bank.map(ram, base: 0x10000)
       expect(vic_bank.peek(0x2000)).to eq(0x12)
@@ -176,6 +181,19 @@ describe Badline::Chips::VIC::Bank do
 
     it "reads the DRAM with both low, in the 16K bank VA14 and VA15 pick" do
       expect(read(false, false, 2, 0x1234)).to eq([0x92, 0x92])
+    end
+
+    # The first and third s-accesses of a sprite fall in phi2: with STATVID
+    # high they read the static matrix, as xcbm5x0 doesn't, and with it low
+    # the DRAM, as it does.
+    it "reads a sprite's phi2 bytes as the other phi2 reads" do
+      vic_bank.video_bus_lines(true, true, 0)
+      expect([vic_bank.peek_sprite(0x1f05), vic_bank.peek_sprite(0x0f05)]).to eq([0x05, 0])
+    end
+
+    it "reads a sprite's phi2 bytes from the DRAM with STATVID low" do
+      vic_bank.video_bus_lines(false, true, 1)
+      expect(vic_bank.peek_sprite(0x1234)).to eq(0x52)
     end
 
     it "reads the colour nibbles from the colour RAM" do

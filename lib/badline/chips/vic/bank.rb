@@ -125,6 +125,12 @@ module Badline
           @phi2_other ? phi2_other(offset) : peek(offset)
         end
 
+        # A sprite's s-access in phi2: on the P500's video bus as the other
+        # phi2 reads, and otherwise as #peek.
+        def peek_sprite(offset)
+          @video_bus ? phi2_other(offset) : peek(offset)
+        end
+
         def peek_color(offset)
           @color_ram.nibble(@color_base + offset)
         end
