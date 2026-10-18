@@ -67,6 +67,27 @@ describe Badline::Media::TrueDrive do
     end
   end
 
+  context "with a CBM-II" do
+    let(:machine) { Badline::CBM2.new }
+
+    it "plugs in a 2031" do
+      expect(described_class.plug(machine).model_name).to eq("2031")
+    end
+
+    it "puts a .d80 in an 8050 and a .d82 in an 8250" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      first = machine.true_drive.model_name
+      described_class.insert(machine, image("disk.d82", 1_066_496))
+      expect([first, machine.true_drive.model_name]).to eq(%w[8050 8250])
+    end
+
+    it "swaps the 2031 back in for a .d64 after a .d80" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      described_class.insert(machine, image("disk.d64", 174_848))
+      expect([machine.drive8050, machine.ieee.bus.drives]).to eq([nil, [machine.drive2031]])
+    end
+  end
+
   context "with a C128" do
     it "plugs in the C128D's 1571" do
       expect(described_class.plug(machine)).to be_a(Badline::Drives::Model1571)

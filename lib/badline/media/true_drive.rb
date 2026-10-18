@@ -4,18 +4,22 @@ module Badline
   module Media
     # Device 8 as a true drive instead of the KERNAL traps: a 1541, or on
     # the C128 its 1571, or on the Plus/4 a 1551 if it asks for one, or a
-    # 1581, or on the PET a 2031 on the IEEE-488 bus. Once a true drive is plugged in as device 8, disk media go into
+    # 1581, or on the PET or the CBM-II a 2031 on the IEEE-488 bus, or for
+    # a .d80 or .d82 an 8050 or 8250. Once a true drive is plugged in as device 8, disk media go into
     # it rather than into the traps, so a LOAD runs the DOS and every byte
     # crosses the serial bus or TCBM. A .g64 holds the
     # disk's raw GCR, which only a true drive reads, so it plugs one in
     # when there's none yet. The 1541 reads only .d64 and .g64 images, the
     # 1571 .d71 and .g71 as well, and the 1581 only .d81, so a .d81 swaps
     # the drive on device 8 for a 1581 (Drives::Model1581::Slot), and another disk
-    # image swaps a 1581 back for the machine's own drive. The PET has no
-    # 1581, and its 2031 reads .d64 and .g64 images only. The traps' other
-    # disk media, a .t64, a host directory, or a .d80 or .d82, raise Error.
+    # image swaps a 1581 back for the machine's own drive. The PET and the
+    # CBM-II have no 1581, and their 2031 reads .d64 and .g64 images only.
+    # The traps' other disk media, a .t64 or a host directory, raise Error.
     module TrueDrive
       class Error < ArgumentError; end
+
+      # The families whose drives sit on the IEEE-488 bus.
+      IEEE_FAMILIES = %i[pet cbm2].freeze
 
       class << self
         # Plugs the machine's true drive in as device 8, unless one is there
@@ -48,7 +52,7 @@ module Badline
           swapped = insert_swapping(computer, path, read_only)
           return swapped if swapped
 
-          pet = computer.family == :pet
+          pet = IEEE_FAMILIES.include?(computer.family)
           drive = own_drive(computer)
           name = drive&.model_name || default_model(computer)
           types = name == "1571" ? %w[.d64 .g64 .d71 .g71] : %w[.d64 .g64]
@@ -70,7 +74,7 @@ module Badline
         def default_model(computer)
           case computer.family
           when :c128 then "1571"
-          when :pet then "2031"
+          when :pet, :cbm2 then "2031"
           else "1541"
           end
         end
@@ -82,11 +86,12 @@ module Badline
           drive unless %w[1581 8050 8250].include?(drive&.model_name)
         end
 
-        # A .d81 in a 1581, and on the PET a .d80 or .d82 in an 8050 or
-        # 8250, each swapped in for the drive there, or nil for the rest.
+        # A .d81 in a 1581, and on the PET or the CBM-II a .d80 or .d82 in
+        # an 8050 or 8250, each swapped in for the drive there, or nil for
+        # the rest.
         def insert_swapping(computer, path, read_only)
           extension = File.extname(path).downcase
-          if computer.family == :pet
+          if IEEE_FAMILIES.include?(computer.family)
             insert_d80(computer, path, read_only) if %w[.d80 .d82].include?(extension)
           elsif extension == ".d81"
             insert_d81(computer, path, read_only)
