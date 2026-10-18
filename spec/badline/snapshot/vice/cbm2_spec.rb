@@ -158,8 +158,13 @@ describe Badline::Snapshot::Vice::CBM2 do
     it "takes the TPI's latches, mask and AIR from PRC, DDRC and the AIR, with no interrupt in service" do
       machine = image(with_section(xcbm2("610"), "TPI1") { tpi }).load { nil }
       fields = keyed(machine, "BL-TPI1")
-      expect([fields.int("latches", 0), fields.int("mask", 0), fields.int("air", 0), fields.ints("stack", [9])])
+      expect([fields.int("latches", 0), machine.tpi1.mask, fields.int("air", 0), fields.ints("stack", [9])])
         .to eq([0x05, 0x1f, 0x04, []])
+    end
+
+    it "writes the TPI's mask back in DDRC" do
+      machine = image(with_section(xcbm2("610"), "TPI1") { tpi }).load { nil }
+      expect(exported(machine)["TPI1"].data.getbyte(5)).to eq(0xff)
     end
 
     it "takes CA from bit 7 of the TPI's last byte and CB from bit 6" do
