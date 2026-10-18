@@ -52,6 +52,9 @@ module Badline
 
       def family = :cbm2
 
+      # No true drive is on the bus, so the traps answer every device.
+      def true_drive = nil
+
       def peek(addr) = @bus.peek(addr)
 
       def poke(addr, value) = @bus.poke(addr, value)
