@@ -3,8 +3,8 @@
 module Badline
   module Frontend
     # SDL scancodes follow key positions on a US layout. They map onto the C64
-    # keys, the C128's and the 264's own keys and, in joystick mode, the
-    # joystick directions.
+    # keys, the C128's, the 264's, the PET's and the CBM-II's own keys and,
+    # in joystick mode, the joystick directions.
     module Keys
       RETURN = 40
       ESCAPE = 41
@@ -118,6 +118,41 @@ module Badline
       # The cursor keys, CRSR ⇔ and CRSR ⇕, each with SHIFT for left or up.
       PET_CURSORS = { RIGHT => :cursor_h, LEFT => :cursor_h, DOWN => :cursor_v, UP => :cursor_v }.freeze
 
+      # The CBM-II's keys for the characters a host key types: those it
+      # types without SHIFT, then those it types with it, as the KERNAL's
+      # key tables place them. ← is on _ and `, and SHIFT turns it into \.
+      CBM2_CHARACTERS = {
+        "1" => :"1", "2" => :"2", "3" => :"3", "4" => :"4", "5" => :"5", "6" => :"6", "7" => :"7", "8" => :"8",
+        "9" => :"9", "0" => :"0", "-" => :-, "=" => :"=", "[" => :"[", "]" => :"]", ";" => :";", "'" => :"'",
+        "," => :",", "." => :".", "/" => :/, "_" => :left_arrow, "`" => :left_arrow
+      }.freeze
+
+      CBM2_SHIFTED = {
+        "!" => :"1", "@" => :"2", "#" => :"3", "$" => :"4", "%" => :"5", "^" => :"6", "&" => :"7", "*" => :"8",
+        "(" => :"9", ")" => :"0", "+" => :"=", ":" => :";", "\"" => :"'", "<" => :",", ">" => :".", "?" => :/,
+        "\\" => :left_arrow
+      }.freeze
+
+      # The CBM-II's keys that don't type a character, which keep the
+      # host's SHIFT: RETURN, INST/DEL on Backspace, CLR/HOME on Home, ESC,
+      # TAB, RUN/STOP on F12, CTRL on Control, the four cursor keys on the
+      # arrows, F1-F8 on F1-F8, and the keypad on the host's.
+      CBM2_KEYS = {
+        40 => :return, 42 => :delete, 44 => :space, 74 => :clr_home, 41 => :escape, 43 => :tab, 69 => :run_stop,
+        224 => :control, 228 => :control, 79 => :cursor_right, 80 => :cursor_left, 81 => :cursor_down,
+        82 => :cursor_up, 58 => :f1, 59 => :f2, 60 => :f3, 61 => :f4, 62 => :f5, 63 => :f6, 64 => :f7, 65 => :f8,
+        84 => :kp_divide, 85 => :kp_multiply, 86 => :kp_minus, 87 => :kp_plus, 88 => :kp_enter, 89 => :kp1,
+        90 => :kp2, 91 => :kp3, 92 => :kp4, 93 => :kp5, 94 => :kp6, 95 => :kp7, 96 => :kp8, 97 => :kp9,
+        98 => :kp0, 99 => :kp_period
+      }.freeze
+
+      # The CBM-II's keys that Alt and a host key press: C= on C, CE on E,
+      # NORM/GRAPH on G, OFF/RVS on R, π on P, 00 on 0, and F9 and F10 on
+      # F9 and F10, which open the pause menu and mute without Alt.
+      CBM2_ALT_KEYS = {
+        6 => :cbm, 8 => :ce, 10 => :norm_graph, 21 => :off_rvs, 19 => :pi, 39 => :kp00, 66 => :f9, 67 => :f10
+      }.freeze
+
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze
 
@@ -176,6 +211,30 @@ module Badline
         shifted = business ? PET_BUSINESS_SHIFTED[character] : nil
         shifted.nil? ? %i[none host] : [shifted, :on]
       end
+
+      # The CBM-II key for the scancode, with the host's SHIFT down if
+      # +shift+, and how the CBM-II's SHIFT goes with it, as pet_key gives
+      # them.
+      def self.cbm2_key(scancode, shift)
+        return [LETTERS[scancode - 4], :host] if scancode.between?(4, 29)
+
+        key = CBM2_KEYS[scancode]
+        return [key, :host] unless key.nil?
+
+        characters = US_CHARACTERS[scancode]
+        return %i[none host] if characters.nil?
+
+        character = characters[shift ? 1 : 0]
+        unshifted = CBM2_CHARACTERS[character]
+        return [unshifted, :off] unless unshifted.nil?
+
+        shifted = CBM2_SHIFTED[character]
+        shifted.nil? ? %i[none host] : [shifted, :on]
+      end
+
+      # The CBM-II key Alt and the scancode press, which keeps the host's
+      # SHIFT, or :none.
+      def self.cbm2_alt_key(scancode) = [CBM2_ALT_KEYS[scancode] || :none, :host]
 
       # The character the key types on a US layout: a letter, a capital
       # with `shift`, or a digit, and "" for any other key.

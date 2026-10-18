@@ -12,16 +12,22 @@ module Badline
     # With either Alt down, a key that types a character presses the PET
     # key its unshifted character is on with the PET's SHIFT, so the
     # graphics on the graphics keyboard's symbol keys can be typed.
+    #
+    # The CBM-II's keyboard goes the same way (Keys.cbm2_key), and there
+    # Alt with a key presses one of the keys the host has none for
+    # (Keys.cbm2_alt_key).
     class PETKeyboard
       LSHIFT = 225
       RSHIFT = 229
       LALT = 226
       RALT = 230
 
-      # +layout+ is the PET's keyboard, :graphics or :business.
+      # +layout+ is the PET's keyboard, :graphics or :business, or :cbm2
+      # for the CBM-II's.
       def initialize(keyboard, layout)
         @keyboard = keyboard
         @layout = layout
+        @shift = layout == :cbm2 ? :shift : :lshift
         @held = {}
         @left_shift = false
         @right_shift = false
@@ -43,6 +49,11 @@ module Badline
         end
       end
 
+      # Whether a key the scancode pressed is still down.
+      def holds?(scancode) = @held.key?(scancode)
+
+      def alt? = @left_alt || @right_alt
+
       # Lets go of every key, SHIFT among them.
       def release_all
         @held.each_value { |key| @keyboard.release(key) }
@@ -59,7 +70,7 @@ module Badline
 
       def key_down(scancode)
         key_up(scancode) if @held.key?(scancode)
-        key, shift = alt? ? shifted_key(scancode) : Keys.pet_key(scancode, shifted?, @layout)
+        key, shift = alt? ? shifted_key(scancode) : layout_key(scancode, shifted?)
         return if key == :none
 
         unless shift == :host
@@ -99,10 +110,17 @@ module Badline
         end
       end
 
+      def layout_key(scancode, shift)
+        @layout == :cbm2 ? Keys.cbm2_key(scancode, shift) : Keys.pet_key(scancode, shift, @layout)
+      end
+
       # The PET key for the scancode with Alt down: for a letter or a key
       # that types a character, the key its unshifted character is on, with
-      # SHIFT, and for any other key the one it presses without Alt.
+      # SHIFT, and for any other key the one it presses without Alt. The
+      # CBM-II's is the one Keys.cbm2_alt_key names.
       def shifted_key(scancode)
+        return Keys.cbm2_alt_key(scancode) if @layout == :cbm2
+
         key, shift = Keys.pet_key(scancode, false, @layout)
         return [key, shift] if key == :none
         return [key, shift] unless scancode.between?(4, 29) || Keys::US_CHARACTERS.key?(scancode)
@@ -112,12 +130,10 @@ module Badline
 
       def shifted? = @left_shift || @right_shift
 
-      def alt? = @left_alt || @right_alt
-
       def sync_shift
         shift = @forced == -1 ? shifted? : @forced_shift
-        @keyboard.release(:lshift)
-        @keyboard.press(:lshift) if shift
+        @keyboard.release(@shift)
+        @keyboard.press(@shift) if shift
       end
     end
   end

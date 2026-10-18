@@ -63,6 +63,14 @@ describe Badline::Frontend::PauseMenu do
     expect(painter).to have_received(:text).with(anything, anything, "PORTS".ljust(14), anything)
   end
 
+  context "with a CBM-II" do
+    let(:computer) { Badline::CBM2.new }
+
+    it "names the ports section KEYBOARD" do
+      expect(painter).to have_received(:text).with(anything, anything, "KEYBOARD".ljust(14), anything)
+    end
+  end
+
   context "with a PET" do
     let(:computer) { Badline::PET.new(model: "3032") }
 

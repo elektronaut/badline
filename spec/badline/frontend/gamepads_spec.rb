@@ -41,6 +41,15 @@ describe Badline::Frontend::Gamepads do
     end
   end
 
+  context "with a CBM-II" do
+    let(:computer) { Badline::CBM2.new }
+
+    it "steers nothing, the B series having no joysticks" do
+      buttons << 11
+      expect { gamepads.poll }.not_to raise_error
+    end
+  end
+
   it "steers joystick 2 with the D-pad" do
     buttons << 11
     gamepads.poll

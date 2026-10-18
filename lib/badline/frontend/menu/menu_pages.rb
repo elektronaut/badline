@@ -88,6 +88,10 @@ module Badline
       # Whether the machine is a PET, whose ports page shows its keyboard.
       def pet? = @computer.family == :pet
 
+      # Whether the machine is a CBM-II, whose ports page shows its keyboard
+      # too.
+      def cbm2? = @computer.family == :cbm2
+
       private
 
       def vic20? = @computer.family == :vic20
@@ -112,7 +116,10 @@ module Badline
         info("DEVICE", drive.nil? ? "FAST LOADING" : "#{drive.model_name}, TRUE DRIVE")
       end
 
+      # The CBM-II has no datasette.
       def draw_datasette
+        return info("TAPE", "") if cbm2?
+
         datasette = @computer.datasette
         tape = datasette.tape
         info("TAPE", tape.nil? ? "" : File.basename(tape.path))
@@ -126,6 +133,7 @@ module Badline
 
       def draw_expansion
         return draw_pet_memory if pet?
+        return info("RAM", "#{@computer.model.ram_kb}K") if cbm2?
 
         info("CARTRIDGE", @media.cartridge_name)
         return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
@@ -186,12 +194,13 @@ module Badline
         end
       end
 
-      # The C128 names its model and the mode it runs in first, the Plus/4
-      # and the PET their model and RAM, and the Plus/4 its RAM expansion if
-      # it has one.
+      # The C128 names its model and the mode it runs in first, the Plus/4,
+      # the PET and the CBM-II their model and RAM, the Plus/4 its RAM
+      # expansion if it has one, and the CBM-II its KERNAL.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
-        info("MACHINE", @computer.model_label) if pet?
+        info("MACHINE", @computer.model_label) if pet? || cbm2?
+        info("KERNAL", "901244-#{@computer.kernal.upcase}") if cbm2?
         if plus4?
           info("MACHINE", @computer.model_label)
           expansion = @computer.ram_expansion_label

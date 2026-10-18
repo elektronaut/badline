@@ -191,6 +191,49 @@ describe Badline::Frontend::MenuPages do
     end
   end
 
+  describe "with a CBM-II" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::CBM2.new(model: "720", kernal: "03b", mains_hz: 60) }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    it "names its model, RAM and mains on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "720, 256K RAM, 60 HZ", anything)
+    end
+
+    it "names its KERNAL on the power page" do
+      pages.draw(:power, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "901244-03B", anything)
+    end
+
+    it "says where RUN/STOP is" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "F12: RUN/STOP", anything)
+    end
+
+    it "says where NORM/GRAPH is" do
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "ALT+G: NORM/GRAPH", anything)
+    end
+
+    it "offers no joysticks" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).not_to have_received(:toggle)
+    end
+
+    it "shows its RAM on the expansion page" do
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "256K", anything)
+    end
+
+    it "shows no tape and offers none on the datasette page" do
+      pages.draw(:datasette, 0, 0)
+      expect(buttons).not_to have_received(:row)
+    end
+  end
+
   describe "with a Plus/4" do
     subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
 
