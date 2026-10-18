@@ -110,9 +110,7 @@ module Badline
             @pulses = 0
             @stopped = false
           end
-          # A write to the tenths lets the read latch go, as a read does: the
-          # CBM-II burn-in reads the hours, writes the tenths and sets the
-          # time, then reads the tenths, and passes only so.
+          # A write to the tenths lets the read latch go, as a read does.
           @latch = nil if field == :tenths && !alarm
           store(field, value & (field == :tenths ? 0x0f : 0x7f), alarm: alarm)
         end

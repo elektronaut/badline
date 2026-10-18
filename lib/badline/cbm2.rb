@@ -52,8 +52,7 @@ module Badline
     # counter of the CPU's cycles asks for a refresh once it reaches 20,
     # stops there, and the refresh comes on the next opcode fetch (SYNC),
     # which it holds off a cycle with RDY while it stops the CPU's clock,
-    # and clears the counter. The burn-in's 6526 timer test counts loops
-    # against timer A and passes only with it.
+    # and clears the counter.
     REFRESH_COUNT = 20
 
     # The segment BASIC keeps its program text in.
