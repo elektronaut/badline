@@ -43,7 +43,18 @@ class TestCIReach < Minitest::Test
     files = %w[lib/badline/cbm2/model.rb lib/badline/cbm2/bus.rb lib/badline/roms/cbm2/kernal-04a.rom
                lib/badline/chips/tpi.rb test/support/testbench_cbm2_machine.rb]
 
-    assert_equal %w[spinel:check testbench-cbm2], CIReach.suites(files)
+    assert_equal %w[spinel:check testbench-cbm2 testbench-cbm5x0], CIReach.suites(files)
+  end
+
+  def test_the_p500_its_roms_and_harnesses_reach_its_testbench_alone
+    files = %w[lib/badline/cbm2/p500.rb lib/badline/cbm2/p500/model.rb lib/badline/roms/cbm2/p500-kernal.rom
+               test/support/testbench_p500_machine.rb spinel/p500_testbench.rb]
+
+    assert_equal %w[spinel:check testbench-cbm5x0], CIReach.suites(files)
+  end
+
+  def test_the_vic_reaches_the_p500s_testbench
+    assert_includes CIReach.suites(%w[lib/badline/chips/vic/bank.rb]), "testbench-cbm5x0"
   end
 
   def test_the_shared_ieee_drives_reach_the_pet_and_the_cbm2
@@ -61,6 +72,16 @@ class TestCIReach < Minitest::Test
     files = %w[lib/badline/chips/cia.rb lib/badline/chips/sid.rb lib/badline/chips/acia.rb lib/badline/chips/crtc.rb]
 
     assert_includes CIReach.suites(files), "testbench-cbm2"
+  end
+
+  def test_the_chips_the_p500_shares_reach_its_testbench
+    files = %w[lib/badline/chips/cia.rb lib/badline/chips/sid.rb lib/badline/chips/acia.rb lib/badline/chips/tpi.rb]
+
+    assert_includes CIReach.suites(files), "testbench-cbm5x0"
+  end
+
+  def test_the_crtc_leaves_the_p500_alone
+    refute_includes CIReach.suites(%w[lib/badline/chips/crtc.rb]), "testbench-cbm5x0"
   end
 
   def test_the_8050_and_its_roms_reach_the_drive_scenarios
@@ -121,7 +142,7 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_sid_reaches_the_sid_suites
-    assert_equal %w[sid sid-8580 spinel:check spinel:check_sid testbench-cbm2],
+    assert_equal %w[sid sid-8580 spinel:check spinel:check_sid testbench-cbm2 testbench-cbm5x0],
                  CIReach.suites(%w[lib/badline/chips/sid/voice.rb])
   end
 

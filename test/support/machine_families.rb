@@ -3,6 +3,7 @@
 require_relative "../../lib/badline/support/plus4_checkpoint"
 require_relative "../../lib/badline/support/pet_checkpoint"
 require_relative "../../lib/badline/support/cbm2_checkpoint"
+require_relative "../../lib/badline/support/p500_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -271,7 +272,7 @@ module MachineFamilies
     when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
     when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
     when "pet" then Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
-    when "cbm2" then Badline::CBM2.new(model: options[:model] || "610")
+    when "cbm2" then Badline::Machine.build(:cbm2, model: options[:model] || "610")
     else Badline::Machine.build(:c64, model: options[:model])
     end
   end
@@ -327,10 +328,13 @@ module MachineFamilies
     when "c128" then Badline::Support::C128Checkpoint
     when "plus4" then Badline::Support::Plus4Checkpoint
     when "pet" then Badline::Support::PETCheckpoint
-    when "cbm2" then Badline::Support::CBM2Checkpoint
+    when "cbm2" then p500?(options) ? Badline::Support::P500Checkpoint : Badline::Support::CBM2Checkpoint
     else Badline::Support::Checkpoint
     end
   end
+
+  # Whether the options name the P500 of the CBM-II family.
+  def p500?(options) = Badline::CBM2::P500::Model.include?(options[:model])
 
   # The machine's checkpoint. The VIC-20 first drains the sound it records.
   def take(machine, options)

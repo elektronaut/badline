@@ -13,7 +13,7 @@ module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
                  plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot cbm2_boot cbm2_testbench
-                 cbm2_snapshot sid].freeze
+                 cbm2_snapshot p500_boot p500_testbench p500_snapshot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
@@ -88,6 +88,19 @@ module SpinelCheck
   # on beside the saved one.
   def check_cbm2_snapshots
     [[], %w[300000 2300000 720]].each { |args| compare("cbm2_snapshot", args) }
+  end
+
+  # A PAL 510 booting to READY and typing print 6*7, and an NTSC one at
+  # 50 Hz.
+  def check_p500_boots
+    [[], %w[9500000 1000000 510ntsc 50]].each { |args| compare("p500_boot", args) }
+  end
+
+  # A 510's snapshot taken as the line it types prints, and an NTSC 510's
+  # taken part way through its RAM test, each loaded into a new machine
+  # that runs on beside the saved one.
+  def check_p500_snapshots
+    [[], %w[300000 2300000 510ntsc]].each { |args| compare("p500_snapshot", args) }
   end
 
   # An 8032's snapshot taken as the line it types runs, and a 2001's

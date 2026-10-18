@@ -50,7 +50,10 @@ CRuby.
   the 264 series, with a `Badline::Support::CBM2Checkpoint` every million
   cycles. Arguments pick the cycle it saves at, the cycles to run and the
   model.
-- `boot_support.rb` holds what the six boots share: the loop that runs
+- `p500_boot.rb` and `p500_snapshot.rb` do the same for a P500, with a
+  `Badline::Support::P500Checkpoint`. `p500_boot.rb`'s arguments pick the
+  model and the mains.
+- `boot_support.rb` holds what the seven boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
 - `cpu_tests.rb` runs SingleStepTests cases against the CPU and checks
@@ -87,6 +90,8 @@ CRuby.
   `--pet-discrete`'s rows, with `test/support/testbench_pet_machine.rb`.
 - `cbm2_testbench.rb` does the same for `bin/testbench --cbm2`'s rows,
   with `test/support/testbench_cbm2_machine.rb`.
+- `p500_testbench.rb` does the same for `bin/testbench --cbm5x0`'s rows,
+  with `test/support/testbench_p500_machine.rb`.
 - `drive_scenarios.rb` runs the true-drive scenarios with the same code
   as `bin/drive_scenarios` (`test/support/drive_scenarios.rb`) and prints a
   baseline row per check. See [The drive scenarios](#the-drive-scenarios)
@@ -115,7 +120,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench`, `cbm2_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench`, `cbm2_snapshot`, `p500_boot`, `p500_testbench`, `p500_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -354,6 +359,12 @@ BUDGET CARTRIDGE PROGRAM DIRECTORY MODEL`, where MODEL names one of
 `Badline::CBM2::Model::ALL`, and its records carry the 25 lines of the
 80-column text screen, or for a screenshot row the picture. It runs each test with `Testbench::CBM2Execution`
 (`test/support/testbench_cbm2_machine.rb`).
+
+`testbench-cbm5x0` runs on `p500_testbench`, with the same lines, where
+MODEL names one of `Badline::CBM2::P500::Model::ALL`, and records that
+carry the 25 lines of the 40-column text screen, or for a screenshot row
+the VIC-II's picture. It runs each test with `Testbench::P500Execution`
+(`test/support/testbench_p500_machine.rb`).
 
 `--engine` takes `bin/testbench`'s filters like any other run:
 

@@ -157,7 +157,7 @@ describe Badline::CBM2::P500 do
     end
 
     it "types a key held down on the matrix" do
-      machine = booted("510ntsc")
+      machine = booted("510")
       machine.keyboard.press(:q)
       machine.run_cycles(100_000)
       machine.keyboard.release(:q)

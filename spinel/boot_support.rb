@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 # What spinel/boot.rb, spinel/c128_boot.rb, spinel/vic20_boot.rb,
-# spinel/plus4_boot.rb, spinel/pet_boot.rb and spinel/cbm2_boot.rb share:
-# running the machine in stretches between the checkpoints they print,
-# and the trailer of the text screen, the counts, the registers and the
-# speed. Builds with Spinel as well as running on CRuby.
+# spinel/plus4_boot.rb, spinel/pet_boot.rb, spinel/cbm2_boot.rb and
+# spinel/p500_boot.rb share: running the machine in stretches between the
+# checkpoints they print, and the trailer of the text screen, the counts,
+# the registers and the speed. Builds with Spinel as well as running on
+# CRuby.
 module BootSupport
   # Runs the machine to +cycles+ in stretches, stopping at every multiple
   # of +interval+, at +timed_from+ and, with +frame+ above zero, at every

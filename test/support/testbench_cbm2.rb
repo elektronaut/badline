@@ -2,8 +2,8 @@
 
 # Which rows bin/testbench --cbm2 and --cbm5x0 run, from cbm610-testlist.in
 # and cbm510-testlist.in, and the machine each asks for. The machine-driving
-# half is in test/support/testbench_cbm2_machine.rb, which the Spinel build
-# shares.
+# halves are in test/support/testbench_cbm2_machine.rb and
+# test/support/testbench_p500_machine.rb, which the Spinel builds share.
 module Testbench
   # The testlist each family runs, and the model the hooks start xcbm2 and
   # xcbm5x0 as.
@@ -27,18 +27,35 @@ module Testbench
   module CBM2Row
     def cbm2? = CBM2_MODELS.key?(family)
 
+    # Whether the row is the P500's, --cbm5x0's.
+    def p500? = family == :cbm5x0
+
     def cbm2_model = CBM2_MODELS.fetch(family)
 
     # The machine the row's tests fork from: booted, or at power-on for a
     # cartridge.
-    def cbm2_machine = Testbench.cbm2_machine(cbm2_model, cartridge.nil?)
+    def cbm2_machine
+      return Testbench.p500_machine(cbm2_model, cartridge.nil?) if p500?
+
+      Testbench.cbm2_machine(cbm2_model, cartridge.nil?)
+    end
 
     # Runs the row on +machine+, returning the exit code and the text
     # screen, or the picture for a screenshot row.
     def run_cbm2(machine)
+      return run_p500(machine) if p500?
+
       screenshot = type == "screenshot"
       exit_code = CBM2Execution.new(machine).run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
       [exit_code, screenshot ? Testbench.cbm2_screenshot(machine) : Testbench.cbm2_screen_text(machine)]
+    end
+
+    # A P500's run, whose picture is the VIC-II's, cropped as xcbm5x0's
+    # screenshots are, as a C64's is.
+    def run_p500(machine)
+      screenshot = type == "screenshot"
+      exit_code = P500Execution.new(machine).run(screenshot, (cartridge_path if cartridge), dir_abs, prg, budget)
+      [exit_code, screenshot ? Testbench.screenshot(machine.vic) : Testbench.p500_screen_text(machine)]
     end
   end
 
@@ -84,10 +101,9 @@ module Testbench
   end
 
   # The CBM-II testlists' exitcode and screenshot rows, on the 610 for
-  # --cbm2 and the 510 for --cbm5x0, which only --list takes until the
-  # P500 runs, and on the 610 CBM2_DISK_ROW and CBM2_BURNIN_ROW. Interactive rows are left
-  # out as on the C64. A mountcrt row starts from power-on with its
-  # cartridge in.
+  # --cbm2 and the 510 for --cbm5x0, and on the 610 CBM2_DISK_ROW and
+  # CBM2_BURNIN_ROW. Interactive rows are left out as on the C64. A
+  # mountcrt row starts from power-on with its cartridge in.
   module CBM2Testlist
     module_function
 

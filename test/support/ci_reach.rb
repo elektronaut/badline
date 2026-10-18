@@ -17,7 +17,9 @@ module CIReach
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
   PLUS4 = %w[testbench-plus4 testbench-c16 testbench-plus4-ntsc lorenz-plus4 drive-scenarios].freeze
   PET = %w[testbench-pet testbench-pet-discrete].freeze
-  CBM2 = %w[testbench-cbm2].freeze
+  # The P500 runs on the B series' bus, CPU, TPIs, CIA, SID and ACIA.
+  P500 = %w[testbench-cbm5x0].freeze
+  CBM2 = (%w[testbench-cbm2] + P500).freeze
   VIC = %w[testbench testbench-vicii-new testbench-ntsc testbench-ntsc-vicii-new testbench-drean
            testbench-interrupts testbench-irqdma testbench-general testbench-expansions testbench-carts
            testbench-c128c64 testbench-c128].freeze
@@ -45,6 +47,8 @@ module CIReach
     ["test/test_*.rb", []],
     ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families}.rb", []],
     ["test/support/testbench_cbm2{,_machine}.rb", CBM2],
+    ["test/support/testbench_p500_machine.rb", P500],
+    ["spinel/p500_{boot,testbench,snapshot}.rb", P500 + %w[spinel:check]],
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["{bin/drive_scenarios,test/support/drive_scenarios*.rb}", %w[drive-scenarios drive-scenarios-cpm]],
     ["{native,exe}/**/*", []],
@@ -55,14 +59,16 @@ module CIReach
     ["lib/badline/support/{vic20,c128,plus4,pet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/**/*", PET],
+    ["lib/badline/roms/cbm2/p500-*", P500],
     ["lib/badline/roms/cbm2/**/*", CBM2],
     ["lib/badline/machine/ieee_drives.rb", (PET + CBM2 + %w[drive-scenarios]).uniq],
+    ["lib/badline/{cbm2/p500.rb,cbm2/p500/**/*,support/p500_checkpoint.rb}", P500],
     ["lib/badline/{cbm2.rb,cbm2/ieee_ports.rb,cbm2/ieee_traps.rb,cbm2/ieee_drive.rb}", CBM2 + %w[drive-scenarios]],
     ["lib/badline/{cbm2.rb,cbm2/**/*,chips/tpi.rb,chips/tpi/**/*,support/cbm2_checkpoint.rb}", CBM2],
     ["lib/badline/roms/8050/**/*", %w[drive-scenarios]],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
-    ["lib/badline/chips/vic{.rb,/**/*}", VIC],
+    ["lib/badline/chips/vic{.rb,/**/*}", VIC + P500],
     ["lib/badline/chips/sid{.rb,/**/*}", SID + CBM2],
     ["lib/badline/chips/via{.rb,/**/*}", VIA],
     ["lib/badline/chips/vic_i{.rb,/**/*}", VIC20],
@@ -77,7 +83,7 @@ module CIReach
     ["lib/badline/chips/acia{.rb,/**/*}", PLUS4 + CBM2],
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
     ["lib/badline/{pet.rb,pet/ieee_ports.rb,pet/ieee_traps.rb,pet/ieee_drive.rb}", PET + %w[drive-scenarios]],
-    ["lib/badline/chips/crtc{.rb,/**/*}", PET + CBM2],
+    ["lib/badline/chips/crtc{.rb,/**/*}", PET + %w[testbench-cbm2]],
     ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*}", PET],
     ["lib/badline/kernal_trap/{ieee,ieee_layout}.rb", PET + CBM2 + %w[drive-scenarios]],
     ["lib/badline/drives/ieee_bus.rb", PET + %w[drive-scenarios]],
