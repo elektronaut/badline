@@ -159,7 +159,11 @@ module Badline
 
       def attach_true_drive(computer, path, disk, autostart:)
         message = TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
-        computer.type_text(disk_autostart(computer) { Vic20Media.first_program(path) }) if autostart
+        if autostart && computer.family == :pet
+          PETMedia.disk_autostart(computer) { Vic20Media.first_program(path) }
+        elsif autostart
+          computer.type_text(disk_autostart(computer) { Vic20Media.first_program(path) })
+        end
         message
       end
 
@@ -167,7 +171,7 @@ module Badline
         storage = open_storage(path, disk)
         computer.mount(storage)
         if autostart && computer.family == :pet
-          PETMedia.disk_autostart(computer, storage)
+          PETMedia.disk_autostart(computer) { storage.read_file("*") }
         elsif autostart
           computer.type_text(disk_autostart(computer) { storage.read_file("*") })
         end

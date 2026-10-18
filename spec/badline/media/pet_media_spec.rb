@@ -112,7 +112,42 @@ describe Badline::Media::PETMedia do
     expect(pet.mounted_path).to eq(path)
   end
 
-  %w[game.crt tune.sid game.g64].each do |name|
+  describe "a disk with --true-drive" do
+    let(:disk) { blank_d64(File.join(dir, "game.d64")) }
+
+    before do
+      Badline::Media::TrueDrive.plug(pet)
+      Badline::Media.attach(pet, disk)
+    end
+
+    it "goes in the 2031" do
+      expect(pet.true_drive.disk.path).to eq(File.expand_path(disk))
+    end
+
+    it "leaves the traps unmounted" do
+      expect(pet.mounted?).to be(false)
+    end
+
+    it "loads and runs the disk's first program" do
+      expect(pet).to have_received(:type_text).with(%(load"*",8\rrun\r))
+    end
+
+    it "refuses an 8250 disk, which the 2031 doesn't read" do
+      path = blank_d80(File.join(dir, "game.d82"), sides: 2)
+      expect { Badline::Media.attach(pet, path) }.to raise_error(Badline::Media::TrueDrive::Error, /the 2031 reads/)
+    end
+
+    it "refuses a .d81" do
+      path = write("game.d81", [0])
+      expect { Badline::Media.attach(pet, path) }.to raise_error(Badline::Media::TrueDrive::Error, /the 2031 reads/)
+    end
+  end
+
+  it "takes a .g64 in a true drive" do
+    expect(Badline::Media.kind(pet, write("game.g64", [0]))).to eq(:true_drive)
+  end
+
+  %w[game.crt tune.sid].each do |name|
     it "refuses a #{File.extname(name)}" do
       path = write(name, [0])
       expect { Badline::Media.attach(pet, path) }.to raise_error(ArgumentError, /doesn't go in a PET/)

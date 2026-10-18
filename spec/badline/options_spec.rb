@@ -414,7 +414,6 @@ describe Badline::Options do
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
       "a SID for the PET" => [%w[pet --sid 8580], "--sid needs the C64"],
       "an REU for the PET" => [%w[pet --reu 512], "--reu needs the C64"],
-      "a true drive for the PET" => [%w[pet --true-drive], "the PET has no true drive yet"],
       "--60hz for the C64" => [%w[--60hz], "--60hz needs pet"],
       "--basic for the C64" => [%w[--basic 2], "--basic needs pet"],
       "--editor for the Plus/4" => [%w[plus4 --editor 2-n], "--editor needs pet"],

@@ -38,6 +38,15 @@ On the Plus/4 and the C16, `--true-drive` puts an emulated 1551 there
 instead, on TCBM, the parallel cable to its interface in the expansion
 port, and `--drive-type 1541` a 1541 on the serial bus.
 
+On the PET, `--true-drive` puts an emulated 2031 there, the 1541's board
+with an IEEE-488 interface, running DOS 2.6 and answering the bus's
+handshake line by line. It reads `.d64` and `.g64` images, which BASIC 2
+and 4 autostart with `LOAD"*",8` and `RUN`; a `.d80` or `.d82` needs the
+traps. BASIC 1's LOAD never finishes on the drive, since its UNLISTEN
+leaves its command in the device number the LOAD then talks to, but its
+OPEN, INPUT# and PRINT# work, and the error channel with them. `--basic
+2`, the upgrade Commodore sold, loads.
+
 A `.g64` holds the disk's raw GCR, half tracks and all, so copy
 protection and fast loaders that read it work.
 

@@ -82,7 +82,7 @@ differences noted in the table. `--help` lists the options for either.
 | --- | --- |
 | `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
 | `--writable` | Let the machine write to disk images. Without it, a disk goes in write-protected: the drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
-| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, or a 1551 on the Plus/4. See [Media](#media) |
+| `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, a 1551 on the Plus/4, or a 2031 on the PET. See [Media](#media) |
 | `--drive-type 1541` | On the Plus/4, make the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
@@ -357,7 +357,8 @@ A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
 `.d82` or a tape made for the PET starts a PET without `pet`, but a
 program that loads at `$0401` starts a C64, since a VIC-20 with 3K loads
 there too. Disks go through the KERNAL traps on the IEEE-488 bus as
-device 8, and tapes play on cassette port 1. The keys type what the host's
+device 8, or with `--true-drive` an emulated 2031 on the bus, which
+reads `.d64` and `.g64` images, and tapes play on cassette port 1. The keys type what the host's
 keys type, on either keyboard, and `Alt` adds the PET's `SHIFT`:
 [Input](#input) lists the rest. The pause
 menu's Power page names the model, its RAM and its frame rate, and its
@@ -559,6 +560,9 @@ in cartridge 1 as it does from the command line.
   8296's 128K with its jumpers, RA4 and 4K character ROM, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks (`badline pet`).
+- **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
+  IEEE-488 bus, with the bus's handshake on every line
+  (`badline pet --true-drive`).
 - **1541**: an emulated drive running its own DOS (`--true-drive`).
 - **1571**: the C128D's drive running DOS 3.0, in 1541 mode and in 1571
   mode at 2 MHz with both sides of a `.d71` or `.g71`, and fast serial
