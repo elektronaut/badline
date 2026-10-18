@@ -66,7 +66,7 @@ module Badline
           model = MODELS[[ram_kb, line == CBM2Mem::M700]]
           raise FormatError, "#{memory}: a CBM-II with #{ram_kb}K of RAM, which badline doesn't build" if model.nil?
 
-          CBM2Setup.new(model:, kernal: "04a", mains_hz: line == CBM2Mem::M600_60HZ ? 60 : 50)
+          CBM2Setup.new(model:, kernal: "04a", mains_hz: line == CBM2Mem::M600_60HZ ? 60 : 50, refresh: true)
         end
 
         def memory(container)

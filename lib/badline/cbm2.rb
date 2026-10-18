@@ -67,6 +67,9 @@ module Badline
 
     def ram = @bus.ram
 
+    # Whether the DRAM refresh takes its cycles from the CPU.
+    def refresh? = @refreshing
+
     def family = :cbm2
 
     # Reads and writes memory as the CPU sees it, in its execution segment.
@@ -88,8 +91,9 @@ module Badline
 
     # +model+ names one of Model::ALL, +kernal+ one of Model::KERNALS, and
     # +mains_hz+ the mains, 50 or 60, which also sets a 600's jumper for
-    # the editor's 60 Hz CRTC table.
-    def initialize(model: Model::DEFAULT, kernal: "04a", mains_hz: 50, debug: false)
+    # the editor's 60 Hz CRTC table. +refresh+ false leaves out the DRAM
+    # refresh's stolen cycles.
+    def initialize(model: Model::DEFAULT, kernal: "04a", mains_hz: 50, refresh: true, debug: false)
       @model = Model.named(model)
       raise ArgumentError, "no CBM-II KERNAL named #{kernal}" unless Model::KERNALS.key?(kernal)
       raise ArgumentError, "the mains is 50 or 60 Hz, not #{mains_hz}" unless [50, 60].include?(mains_hz)
@@ -120,6 +124,7 @@ module Badline
       @mains_countdown = @mains_half_period
       @mains_high = true
       @refresh = 0
+      @refreshing = refresh
       @acia_irq = false
       @acia_due = Chips::ACIA::NEVER
       @init_handlers = []
@@ -160,7 +165,7 @@ module Badline
       tpi1.interrupt_line(2, !@cia.interrupted?)
       tpi1.interrupt_line(4, !@acia_irq)
       @cpu.irq = tpi1.irq?
-      if @refresh >= REFRESH_COUNT && @cpu.boundary?
+      if @refreshing && @refresh >= REFRESH_COUNT && @cpu.boundary?
         @refresh = 0
         @cpu.stall!
       else

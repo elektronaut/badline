@@ -36,6 +36,10 @@ describe Badline::CBM2 do
       expect([machine.model.name, machine.kernal, machine.mains_hz]).to eq(["720", "03b", 60])
     end
 
+    it "builds a machine without the DRAM refresh as one" do
+      expect(described_class.new(refresh: false).snapshot.load.refresh?).to be(false)
+    end
+
     it "keeps the segment registers" do
       machine = saved
       expect([machine.bus.execution_segment, machine.bus.indirect_segment]).to eq([15, 1])

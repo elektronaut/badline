@@ -136,6 +136,12 @@ describe Badline::CBM2 do
     expect(machine.cpu.cycles).to eq(2_200 - 100)
   end
 
+  it "leaves the CPU every cycle without the DRAM's refresh" do
+    machine = looping(refresh: false)
+    machine.run_cycles(2_200)
+    expect(machine.cpu.cycles).to eq(2_200)
+  end
+
   it "latches the CIA's interrupt on TPI1's I2" do
     machine = looping
     machine.poke(0xde06, 0x01)

@@ -250,9 +250,11 @@ TPIs' registers, latches, mask, AIR, CA and CB, the ACIA's registers and
 the byte it waits to send, and the SID's registers and reSID voice
 state. The mains' next falling edge comes where xcbm2 would tick it, and
 the ones after at badline's 50 or 60 Hz, so the two part from the
-second tick on. Until then a program badline runs on from xcbm2's
-snapshot reads the mains, the CIA and the rest as xcbm2 does, cycle for
-cycle. The picture starts again with the next frame. xcbm2 doesn't
+second tick on. xcbm2 has no DRAM refresh, so a program badline runs
+on from xcbm2's snapshot runs about 5% slower than in xcbm2, as the
+refresh takes a cycle from the CPU about every 21. On a machine built
+with `refresh: false` it reads the mains, the CIA and the rest as xcbm2
+does until that second tick, cycle for cycle. The picture starts again with the next frame. xcbm2 doesn't
 save its ROMs, so the RAM board and the model line build the machine:
 a 610, 620, 710 or 720 with xcbm2's KERNAL, 901244-04a, at 60 Hz for a
 600 whose model line says so and at 50 Hz otherwise. A board of 512K or

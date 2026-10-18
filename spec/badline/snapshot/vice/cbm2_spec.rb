@@ -22,6 +22,13 @@ describe Badline::Snapshot::Vice::CBM2 do
 
   def load(model) = image(xcbm2(model)).load { nil }
 
+  def load_without_refresh(model)
+    container = xcbm2(model)
+    machine = Badline::Snapshot::Vice::CBM2.setup(container).with(refresh: false).build
+    Badline::Snapshot::Vice::CBM2::Restore.apply(container, machine)
+    machine
+  end
+
   def run_to(machine, address)
     start = machine.cycles
     machine.cycle! until machine.cpu.boundary? && machine.cpu.program_counter == address
@@ -54,10 +61,16 @@ describe Badline::Snapshot::Vice::CBM2 do
         expect([machine.model.name, machine.mains_hz, machine.kernal]).to eq([model, 50, "04a"])
       end
 
-      it "runs the program as xcbm2 did, the mains' tick and the CIA's timer cycle for cycle" do
-        expect(run_to(load(model), 0x0440)).to eq([25_945, File.binread(fixture("xcbm2-#{model}-probe.samples")).bytes])
+      it "runs the program as xcbm2 did, the mains' tick and the CIA's timer cycle for cycle, " \
+         "without the DRAM refresh VICE doesn't have" do
+        expect(run_to(load_without_refresh(model), 0x0440))
+          .to eq([25_945, File.binread(fixture("xcbm2-#{model}-probe.samples")).bytes])
       end
     end
+  end
+
+  it "runs the program about 4.9% slower than xcbm2 with the DRAM refresh" do
+    expect(run_to(load("610"), 0x0440).first).to eq(27_211)
   end
 
   it "reports the modules badline doesn't read" do
