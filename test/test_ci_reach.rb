@@ -57,6 +57,12 @@ class TestCIReach < Minitest::Test
     assert_equal %w[drive-scenarios spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
   end
 
+  def test_the_drive_scenarios_runner_reaches_only_the_drive_scenarios
+    files = %w[bin/drive_scenarios test/support/drive_scenarios_runner.rb test/support/drive_scenarios_pet.rb]
+
+    assert_equal %w[drive-scenarios drive-scenarios-cpm], CIReach.suites(files)
+  end
+
   def test_the_via_reaches_the_pet_testbenches
     assert_empty %w[testbench-pet testbench-pet-discrete] - CIReach.suites(%w[lib/badline/chips/via.rb])
   end
