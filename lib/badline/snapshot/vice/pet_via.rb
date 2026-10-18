@@ -96,13 +96,14 @@ module Badline
           end
 
           # The shift register from its mode, data and the ticks into its
-          # byte (#ticks), with the last bit put out on CB2.
+          # byte (#ticks), with the last bit put out on CB2, or CB2 high
+          # as it is at power-on while the register is off.
           def shift_register(out, mode, data, ticks)
             ticks = [ticks, TICKS].min
             bits = ticks == TICKS ? 0 : 8 - (ticks / 2)
             bits = 8 if mode == 4 && ticks < TICKS
             out.int("sr.mode", mode).int("sr.data", data).int("sr.bits", bits).int("sr.delay", 0)
-            out.bool("sr.clock", ticks.even?).bool("sr.cb2", ticks.zero? || data.anybits?(0x01))
+            out.bool("sr.clock", ticks.even?).bool("sr.cb2", mode.zero? || ticks.zero? || data.anybits?(0x01))
           end
 
           # Whether the shift register clocks off timer 2.
