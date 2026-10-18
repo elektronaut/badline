@@ -75,6 +75,8 @@ module CIReach
     ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", PET],
     ["lib/badline/{kernal_trap/ieee,kernal_trap/ieee_layout,drives/ieee_bus}.rb", PET + %w[drive-scenarios]],
     ["lib/badline/{drives/model2031.rb,drives/model2031/**/*,roms/dos2031.rom}", PET + %w[drive-scenarios]],
+    # The 8050 and 8250, which no machine plugs in yet.
+    ["lib/badline/drives/model8050{.rb,/**/*}", []],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],
