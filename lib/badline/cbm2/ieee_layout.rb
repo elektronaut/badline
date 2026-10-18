@@ -14,8 +14,9 @@ module Badline
     # low, TKSA and ACPTR turn NRFD, NDAC and the data lines round for
     # listening, and each handshake times out on CIA timer B, which the
     # ROM starts with $FF to $DC07 and $11 to $DC0F and acknowledges by
-    # reading $DC0D. 901244-03b differs from -04a in setting PA0 where -04a
-    # clears it, at the end of UNTALK and UNLISTEN and in ACPTR.
+    # reading $DC0D. ACPTR leaves port A as TKSA does, without touching
+    # the directions. 901244-03b differs from -04a in setting PA0 where -04a
+    # clears it, at the end of UNTALK, UNLISTEN and ACPTR.
     module IEEELayout
       LineStep = KernalTrap::IEEELineStep
 
@@ -34,11 +35,12 @@ module Badline
       LISTEN_TO_TALKER = [update(0xde00, 0x39, 0), write(0xde03, 0xc7), write(0xdc02, 0x00)].freeze
 
       # The end of UNTALK and UNLISTEN, which leaves PA $F8, or $F9 on
-      # 901244-03b, before letting ATN go.
+      # 901244-03b, before letting ATN go, and the end of ACPTR, which
+      # leaves PA0 clear, or set on 901244-03b.
       def self.lines(release)
         KernalTrap::IEEELines.new(
           timer: TIMER, attention: ATTENTION, byte_sent: BYTE_SENT, release_attention: RELEASE_ATTENTION,
-          listen_to_talker: LISTEN_TO_TALKER,
+          listen_to_talker: LISTEN_TO_TALKER, byte_received: [update(0xde00, 0x39, release & 0x01)].freeze,
           release: (ATTENTION + BYTE_SENT + [write(0xde00, release)] + LISTEN_TO_TALKER.drop(1) +
                     RELEASE_ATTENTION).freeze
         )

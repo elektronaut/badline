@@ -118,7 +118,7 @@ module Badline
       def acptr
         return unless @talking
 
-        @layout.listen_to_talker(@bus)
+        @layout.byte_received(@bus)
         byte, status = received
         time_serial_byte(Routine::ACPTR_TIMEOUT)
         @cpu.a = byte

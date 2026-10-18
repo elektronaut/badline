@@ -43,4 +43,16 @@ describe Badline::CBM2::IEEELayout do
   it "leaves port A as each KERNAL's UNLISTEN does" do
     expect([released("04a"), released("03b")]).to eq([0xf8, 0xf9])
   end
+
+  # ACPTR's end: PA ANDed with $39, ORed with $01 on 03b.
+  def received(name)
+    machine = Badline::CBM2.new(kernal: name)
+    machine.poke(0xde03, 0xff)
+    machine.poke(0xde00, 0xfe)
+    described_class::LAYOUTS.fetch(name).byte_received(machine.bus)
+  end
+
+  it "leaves PA0 as each KERNAL's ACPTR does" do
+    expect([received("04a"), received("03b")]).to eq([0x38, 0x39])
+  end
 end
