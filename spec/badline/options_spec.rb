@@ -461,8 +461,7 @@ describe Badline::Options do
       "a PET model for the CBM-II" => [%w[cbm2 --model 8032], "invalid argument: --model 8032"],
       "an NTSC CBM-II" => [%w[cbm2 --ntsc], "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz"],
       "a SID for the CBM-II" => [%w[cbm2 --sid 8580], "--sid needs the C64"],
-      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"],
-      "a true drive for the CBM-II" => [%w[cbm2 --true-drive], "the CBM-II has no true drive yet"]
+      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"]
     }.each do |name, (args, message)|
       context "with #{name}" do
         let(:argv) { args }
@@ -528,6 +527,14 @@ describe Badline::Options do
       it "runs the model given, with the KERNAL and the mains given, on the media given" do
         expect([options.family, options.model, options.kernal, options.refresh_hz, options.media_path])
           .to eq([:cbm2, "720", "03b", 60, program_path])
+      end
+    end
+
+    context "with cbm2 and --true-drive" do
+      let(:argv) { %w[cbm2 --true-drive] }
+
+      it "puts a true drive on its IEEE-488 bus" do
+        expect(options.true_drive?).to be(true)
       end
     end
 

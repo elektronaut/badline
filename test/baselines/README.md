@@ -416,6 +416,9 @@ Recorded output of the headless hardware suites, one file per suite:
     and `cbm2-8050-autostart` an autostart. A 610's first LOAD from a
     2031 after power-on finds no file, on xcbm2 too, so the 2031 has no
     autostart. BASIC prints READY. after a LOAD there, so the runs count it.
+    `p500-8050-save` and `p500-2031-error-channel` run the save and the
+    error channel on a 510, whose CIA's port A carries the control ports'
+    fire buttons beside the data lines.
   Each scenario runs in a process of its own, up to four at once. The
   runner needs `dos1541.rom`, `dos1551.rom`, `dos1571.rom`,
   `dos1581.rom`, `dos2031.rom` and `8050/` in the ROM path.

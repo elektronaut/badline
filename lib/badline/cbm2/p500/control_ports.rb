@@ -6,22 +6,24 @@ module Badline
       # The P500's two control ports on the CIA at $DC00, as its schematic's
       # game port interface wires them: port 1's directions on PB0-PB3 and
       # its fire button on PA6, port 2's on PB4-PB7 and PA7. Every switch
-      # pulls its line low.
+      # pulls its line low. Port A carries the IEEE-488 bus's data lines as
+      # well (IEEEPorts::Data), which pull it low too.
       class ControlPorts
         DIRECTIONS = 0x0f
         FIRE = 0x10
 
         attr_reader :joystick1, :joystick2
 
-        def initialize(joystick1, joystick2)
+        def initialize(joystick1, joystick2, ieee)
           @joystick1 = joystick1
           @joystick2 = joystick2
+          @ieee = ieee
         end
 
-        def read_a(_port_a, _port_b)
+        def read_a(port_a, port_b)
           fire1 = @joystick1.port_bits.anybits?(FIRE) ? 0x40 : 0
           fire2 = @joystick2.port_bits.anybits?(FIRE) ? 0x80 : 0
-          0x3f | fire1 | fire2
+          (0x3f | fire1 | fire2) & @ieee.read_a(port_a, port_b)
         end
 
         def read_b(_port_a, _port_b)

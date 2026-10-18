@@ -138,3 +138,8 @@ cbm2-8050-autostart/loads-and-runs	PASS
 cbm2-2031-error-channel/power-on-message	PASS
 cbm2-8050-error-channel/power-on-message	PASS
 cbm2-8250-error-channel/power-on-message	PASS
+p500-8050-save/no-error	PASS
+p500-8050-save/loads-back	PASS
+p500-8050-save/file-in-image	PASS
+p500-8050-save/trap-readable	PASS
+p500-2031-error-channel/power-on-message	PASS

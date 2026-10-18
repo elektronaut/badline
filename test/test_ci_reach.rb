@@ -47,7 +47,7 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_p500_its_roms_and_harnesses_reach_its_testbench_alone
-    files = %w[lib/badline/cbm2/p500.rb lib/badline/cbm2/p500/model.rb lib/badline/roms/cbm2/p500-kernal.rom
+    files = %w[lib/badline/cbm2/p500/pages.rb lib/badline/cbm2/p500/model.rb lib/badline/roms/cbm2/p500-kernal.rom
                test/support/testbench_p500_machine.rb spinel/p500_testbench.rb]
 
     assert_equal %w[spinel:check testbench-cbm5x0], CIReach.suites(files)
@@ -67,6 +67,12 @@ class TestCIReach < Minitest::Test
     files = %w[lib/badline/cbm2.rb lib/badline/cbm2/ieee_ports.rb lib/badline/cbm2/ieee_drive.rb]
 
     assert_equal %w[drive-scenarios spinel:check testbench-cbm2 testbench-cbm5x0], CIReach.suites(files)
+  end
+
+  def test_the_p500_and_its_control_ports_reach_the_drive_scenarios_too
+    files = %w[lib/badline/cbm2/p500.rb lib/badline/cbm2/p500/control_ports.rb]
+
+    assert_equal %w[drive-scenarios spinel:check testbench-cbm5x0], CIReach.suites(files)
   end
 
   def test_the_chips_the_cbm2_shares_reach_its_testbench

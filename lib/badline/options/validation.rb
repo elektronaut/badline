@@ -250,7 +250,6 @@ module Badline
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the CBM-II needs the window" if headless?
-        raise Error, "the CBM-II has no true drive yet" if true_drive?
       end
 
       # `sid` takes directories as well as tunes.

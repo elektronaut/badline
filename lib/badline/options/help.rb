@@ -140,9 +140,12 @@ module Badline
         The CBM-II takes programs, disks, .d80 and .d82 among them, and
         cartridges, and a cartridge made for it starts one without `cbm2`.
         --kernal 03b fits the 1983 KERNAL in place of 04a, and --60hz runs
-        it on 60 Hz mains. Its keys type what the host's keys type, F12 is
-        RUN/STOP, Alt with F9 or F10 presses its F9 or F10, and the pause
-        menu's KEYBOARD page says where the rest are.
+        it on 60 Hz mains. Its --true-drive makes device 8 an emulated 2031
+        on its IEEE-488 bus, which reads .d64 and .g64 images, and a .d80
+        or a .d82 then goes in an emulated 8050 or 8250. Its keys type what
+        the host's keys type, F12 is RUN/STOP, Alt with F9 or F10 presses
+        its F9 or F10, and the pause menu's KEYBOARD page says where the
+        rest are.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

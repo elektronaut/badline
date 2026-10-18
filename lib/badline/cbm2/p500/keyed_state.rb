@@ -7,7 +7,8 @@ module Badline
       # and the whole machine as keyed snapshot modules (Snapshot::Keyed), in
       # the order a load applies them: BL-MACHINE with the setup, the RAM
       # with the segment registers, the colour RAM, the VIC, the SID, the
-      # CIA, the ACIA, both TPIs, the CPU and device 8 through the traps.
+      # CIA, the ACIA, both TPIs, the CPU, device 8 through the traps and a
+      # true 2031 on the IEEE-488 bus.
       #
       # A load lays the pages out before the chips load, and works out what
       # each unit derives from its fields, the VIC's view of memory among
@@ -33,7 +34,7 @@ module Badline
           sections << Snapshot::Keyed.section("BL-TPI1") { |out| @tpi1.save_fields(out) }
           sections << Snapshot::Keyed.section("BL-TPI2") { |out| @tpi2.save_fields(out) }
           sections << Snapshot::Keyed.section("BL-TRAPDOS") { |out| save_trap_dos_fields(out) } if mounted?
-          sections
+          save_drive_modules(sections)
         end
 
         # Raises Snapshot::FormatError for the modules of a machine built
@@ -53,6 +54,7 @@ module Badline
           @cpu.load_fields(modules.required("BL-CPU"))
           trap_dos = modules.optional("BL-TRAPDOS")
           trap_dos ? load_trap_dos_fields(trap_dos, detached: modules.detached?) : unmount
+          load_drive_modules(modules)
           restored!
           self
         end
