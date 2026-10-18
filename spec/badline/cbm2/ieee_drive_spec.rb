@@ -38,6 +38,12 @@ describe Badline::CBM2::IEEEDrive do
     expect([leaves, trap(machine).device]).to eq([nil, 8])
   end
 
+  it "keeps an 8250 in its snapshots" do
+    machine.plug_drive8050("8250")
+    machine.run_cycles(10_000)
+    expect(machine.snapshot.load.true_drive&.model_name).to eq("8250")
+  end
+
   it "keeps a 2031 in its snapshots" do
     machine.plug_true_drive
     machine.run_cycles(10_000)

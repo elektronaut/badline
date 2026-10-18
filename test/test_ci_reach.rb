@@ -46,6 +46,11 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check testbench-cbm2], CIReach.suites(files)
   end
 
+  def test_the_shared_ieee_drives_reach_the_pet_and_the_cbm2
+    assert_equal %w[drive-scenarios spinel:check testbench-cbm2 testbench-pet testbench-pet-discrete],
+                 CIReach.suites(%w[lib/badline/machine/ieee_drives.rb])
+  end
+
   def test_the_cbm2_and_its_ieee_ports_reach_the_drive_scenarios_too
     files = %w[lib/badline/cbm2.rb lib/badline/cbm2/ieee_ports.rb lib/badline/cbm2/ieee_drive.rb]
 

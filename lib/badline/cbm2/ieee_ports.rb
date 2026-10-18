@@ -15,8 +15,8 @@ module Badline
     # peripheral, and Data the CIA's.
     #
     # The machine pushes the lines it pulls into the bus for the drives on
-    # it once a cycle while a drive is on the bus (#lines_written), and
-    # only when they moved.
+    # it once a cycle while a drive is on the bus (#cycle_lines), and only
+    # when they moved.
     class IEEEPorts
       ATN = 0x08
       DAV = 0x10
@@ -73,7 +73,7 @@ module Badline
 
       # The drives on the bus see the lines the machine pulls now, if they
       # moved.
-      def lines_written
+      def cycle_lines
         lines = controller_lines
         push(lines) unless lines == @pushed
       end
