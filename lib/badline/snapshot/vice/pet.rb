@@ -5,13 +5,15 @@ require "badline/snapshot/vice/pet_mem"
 require "badline/snapshot/vice/pet_pias"
 require "badline/snapshot/vice/pet_via"
 require "badline/snapshot/vice/pet_crtc"
+require "badline/snapshot/vice/pet_drive"
 require "badline/snapshot/vice/pet_restore"
 
 module Badline
   module Snapshot
     module Vice
-      # xpet's modules for the PET: the CPU, the RAM, the CRTC, both PIAs
-      # and the VIA, written from badline's machine and read into it. Each
+      # xpet's modules for the PET: the CPU, the RAM, the CRTC, both PIAs,
+      # the VIA and a true 2031, written from badline's machine and read
+      # into it. Each
       # module's file says what maps and what is approximated. They go
       # through the PET's own keyed fields (Keyed), which a save writes and a
       # load reads, so they read no chip's insides.
@@ -45,7 +47,8 @@ module Badline
           [MainCPU.export(machine), CPU6809.export(machine), PETMem.export(machine),
            CRTC.export(machine, reader(readers, "BL-CRTC"), reader(readers, "BL-VIDEO")),
            PIAs.export("PIA1", machine.pia1, reader(readers, "BL-PIA1")),
-           PIAs.export("PIA2", machine.pia2, reader(readers, "BL-PIA2")), VIA.export(reader(readers, "BL-VIA"))] +
+           PIAs.export("PIA2", machine.pia2, reader(readers, "BL-PIA2")), VIA.export(reader(readers, "BL-VIA")),
+           *Drive2031.export(machine, readers)] +
             PERIPHERALS.map { |name, major, minor, bytes| FieldWriter.new.bytes(bytes).section(name, major, minor) }
         end
 

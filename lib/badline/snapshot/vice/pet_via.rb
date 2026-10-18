@@ -44,8 +44,8 @@ module Badline
 
           def reads?(section) = section.major == MAJOR && section.minor == MINOR
 
-          # The VIA's module, from its BL-VIA fields in `input`.
-          def export(input)
+          # The VIA's module, under `name`, from its BL-VIA fields in `input`.
+          def export(input, name = NAME)
             fields = FieldWriter.new
             %w[ora ddra orb ddrb].each { |key| fields.byte(input.int(key, 0)) }
             fields.word(input.int("t1.latch", 0xffff)).word(timer1(input))
@@ -58,7 +58,7 @@ module Badline
             fields.byte(input.bool("t1.pb7", true) ? 0x80 : 0)
             fields.byte(ticks(input))
             fields.byte(LEVELS | (input.bool("ca.c2_output", true) ? 0x80 : 0)).zeros(2)
-            fields.byte(input.bool("t2.armed", false) ? 1 : 0).zeros(2).section(NAME, MAJOR, MINOR)
+            fields.byte(input.bool("t2.armed", false) ? 1 : 0).zeros(2).section(name, MAJOR, MINOR)
           end
 
           # Timer 1's counter as a read on the next cycle finds it: as it

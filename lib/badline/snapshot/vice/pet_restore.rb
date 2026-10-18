@@ -8,7 +8,9 @@ module Badline
         # reads become the PET's own keyed modules (Keyed), which it loads
         # as it loads its own snapshot. Whatever they don't set stays as the
         # machine has it at power-on, and the datasettes' tapes and the
-        # disk device 8 serves stay as they are.
+        # disk device 8 serves stay as they are. A snapshot with a true 2031
+        # puts one on the bus, with the disk badline's 2031 had in it, and
+        # one without takes badline's 2031 off.
         module Restore
           # MAINCPU and PETMEM hold the machine itself, so a version badline
           # doesn't read fails the restore. The others are left out and
@@ -33,9 +35,11 @@ module Badline
             raise FormatError, "the snapshot is of a #{setup}, not a #{ours}" unless setup == ours
 
             apply(container, setup.build)
+            had_drive = !computer.drive2031.nil?
             computer.power_cycle!
             report = apply(container, computer)
             kept = computer.mounted? ? ["the disk mounted in device 8 stays mounted"] : []
+            kept << "the 2031 on device 8 is taken off the bus" if had_drive && computer.drive2031.nil?
             Report.new(applied: report.applied, ignored: report.ignored + kept)
           end
 
@@ -57,9 +61,30 @@ module Badline
                 ignored << "#{section}: badline doesn't read this version, left out"
               end
             end
-            computer.save_modules.each { |section| sections << section if KEPT.include?(section.name) }
+            disk = nil
+            computer.save_modules.each do |section|
+              sections << section if KEPT.include?(section.name)
+              disk = section if section.name == "BL-D8-DISK"
+            end
+            sections += drive(container, applied, ignored, disk)
             computer.load_modules(Keyed::Modules.new(modules(container, computer, applied) + sections))
-            Report.new(applied:, ignored: ignored + left_out(container))
+            Report.new(applied:, ignored: ignored + left_out(container, applied))
+          end
+
+          # The 2031's modules where the snapshot has one badline reads, or
+          # none.
+          def drive(container, applied, ignored, disk)
+            return [] unless Drive2031.present?(container)
+
+            names = [Drive2031::UNITS.first, Drive2031::CPU, Drive2031::VIA1, Drive2031::VIA2]
+            unread = names.map { |name| container[name] }.reject { |section| section && Drive2031.reads?(section) }
+            unless unread.empty?
+              ignored << "the true 2031: badline doesn't read #{unread.compact.join(', ')}, left out"
+              return []
+            end
+
+            applied.concat(names)
+            Drive2031.import(container, disk)
           end
 
           def required?(name) = [MainCPU::NAME, PETMem::NAME].include?(name)
@@ -139,8 +164,8 @@ module Badline
             [Keyed.section("BL-CRTC") { |out| CRTC.copy(fields, out) }]
           end
 
-          def left_out(container)
-            container.sections.reject { |section| READ.include?(section.name) }
+          def left_out(container, applied)
+            container.sections.reject { |section| READ.include?(section.name) || applied.include?(section.name) }
                      .map { |section| "#{section}: badline doesn't read this module, left out" }
           end
         end

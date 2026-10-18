@@ -19,6 +19,20 @@ module Badline
       # Nothing defers its work past the cycle.
       def settle_chips_for_snapshot = nil
 
+      # Settles for a snapshot, then runs on until a 2031's CPU is between
+      # instructions with the PET's, as xpet saves both.
+      def settle_for_vice!
+        ran = settle_for_snapshot!
+        drive = @drive2031
+        return ran if drive.nil?
+
+        until ran >= Machine::Settling::LIMIT || (drive.cpu.boundary? && settled_for_snapshot?)
+          cycle!
+          ran += 1
+        end
+        ran
+      end
+
       def save_machine_fields(out)
         out.text("family", "pet").text("written_by", VERSION)
         Snapshot::PETSetup.of(self).write_fields(out)
