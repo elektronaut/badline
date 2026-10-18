@@ -161,10 +161,12 @@ A PET snapshot saved with `--vice`, or `computer.export_snapshot(path)`,
 also holds xpet's modules for the CPU, the RAM with the screen RAM, or
 an 8296's 32K from `$8000`, an 8096's or 8296's board and its control
 register, the CRTC, both PIAs and the VIA, a true 2031's CPU, RAM, VIAs
-and head, and the ones xpet 3.10 needs to open the file, with nothing
-open on the file system drive and nothing on the user port. The CRTC module carries the discrete boards'
-video too, in xpet's terms. The file says it is in VICE's snapshot
-format 1.0, the only one xpet reads.
+and head, or a true 8050's or 8250's interface processor with its RAM
+and 6532s and the heads' tracks, and the ones xpet 3.10 needs to open
+the file, with nothing open on the file system drive and nothing on the
+user port. The CRTC module carries the discrete boards' video too, in
+xpet's terms. The file says it is in VICE's snapshot format 1.0, the
+only one xpet reads.
 
 xpet 3.10 opens those snapshots as long as its model and editor match:
 `-model 2001`, `3032`, `3032B`, `4032`, `8032`, `8096` or `8296`, and
@@ -172,22 +174,33 @@ for a badline editor other than xpet's own, `-editor` naming badline's
 ROM. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
 8296 saved for it has to run that editor (`--editor 4-80-b-50hz-0283`),
 and xpet takes the 8296's jumpers from its own settings. It keeps its
-own datasettes and leaves out badline's tapes and disk, and an 8050 or
-8250, whose modules the export leaves out, keeping only badline's. A 2031 needs
-`-drive8type 2031 -drive8truedrive` and the disk attached as `-8`. Its
-snapshot is settled with the 2031's CPU between instructions too, and
-one saved while the 2031 talks on the bus can stall there in xpet, as
-xpet's own snapshots saved while it searches for a file do. Its
-CRTC loses a few lines on opening any snapshot, its own too, so a
-program it runs on from one finds the vertical sync a few hundred
-cycles later than one it ran without stopping.
+own datasettes and leaves out badline's tapes and disks. A true drive
+needs `-drive8type 2031`, `8050` or `8250` with `-drive8truedrive` and
+the disk attached as `-8`. Its snapshot is settled with the 2031's CPU
+between instructions too, and one saved while the 2031 talks on the bus
+can stall there in xpet, as xpet's own snapshots saved while it searches
+for a file do. xpet runs an 8050's floppy controller at a high level, so
+a snapshot for it is settled until badline's controller sits in its idle
+loop with both processors between instructions, and xpet's controller
+starts from idle there, taking up any job the interface processor has
+left it. A unit that doesn't reach its idle loop within about 262,000
+cycles, such as one still starting up, is left out of xpet's modules,
+and badline's own modules keep it. Its CRTC loses a few lines on
+opening any snapshot, its own too, so a program it runs on from one
+finds the vertical sync a few hundred cycles later than one it ran
+without stopping.
 
 Snapshots xpet saves open in badline through the same modules: the CPU
 at its instruction boundary, the RAM, the screen RAM, an 8096's or
 8296's board, the CRTC's registers and beam, both PIAs' registers and
-flags, the VIA's registers, timers and shift register, and a true
-2031's CPU, RAM, VIAs and head, which go on the bus with the disk
-badline's 2031 had in it. A program
+flags, the VIA's registers, timers and shift register, a true 2031's
+CPU, RAM, VIAs and head, which go on the bus with the disk badline's
+2031 had in it, and a true 8050's or 8250's interface processor, its RAM
+and both 6532s, which go on the bus with the disks badline's unit of the
+same model had in it. Its floppy controller comes back as a unit
+switched on has it, in its idle loop with the heads on track 1: its next
+job steps them out to the track, and a job xpet's controller had under
+way starts again from there. A program
 badline runs on from xpet's snapshot finds the vertical sync on the
 cycle xpet does, so the two run on alike, cycle for cycle. The picture
 starts again with the next frame. xpet doesn't save its ROMs, which
@@ -198,10 +211,11 @@ fitted, at 50 or 60 Hz, and an 8032, 8096 or 8296 whose CRTC lines are
 64 cycles long runs xpet's own 50 Hz editor, 901474-04 dated 0283. A
 SuperPET's snapshot fails. It reports the modules it leaves out, such
 as the drives past device 8, the datasettes and the keyboard, and
-carries on without them, and a snapshot without a 2031 takes badline's
-true drive, a 2031, an 8050 or an 8250, off the bus and says so. Restored into a running PET, an xpet snapshot fails for a PET
-built another way, such as a 3032B, and otherwise switches the machine
-off and on, keeping its tapes and the disk device 8 serves.
+carries on without them, and a snapshot without a true drive takes
+badline's, a 2031, an 8050 or an 8250, off the bus and says so.
+Restored into a running PET, an xpet snapshot fails for a PET built
+another way, such as a 3032B, and otherwise switches the machine off
+and on, keeping its tapes and the disk device 8 serves.
 
 ## The CBM-II
 
@@ -213,12 +227,12 @@ their priority stacks, the mains' place in its period, and the disk or
 directory device 8 serves through the IEEE-488 traps. It restores into
 a machine of the same model with the same KERNAL and mains. Its file
 names its machine `CBM-II`, as xcbm2's do, and holds only badline's
-modules, so xcbm2 doesn't open it unless it is saved with
-`computer.export_snapshot(path)` (see [xcbm2](#xcbm2)).
+modules, so xcbm2 doesn't open it unless it is saved with `--vice` (see
+[xcbm2](#xcbm2)).
 
 ### xcbm2
 
-A CBM-II snapshot saved with `computer.export_snapshot(path)` also holds
+A CBM-II snapshot saved with `--vice`, or `computer.export_snapshot(path)`, also holds
 xcbm2's modules for the CPU, the RAM with both segment registers, the
 CRTC, the CIA, both TPIs, the ACIA and the SID, and the ones xcbm2 3.10
 needs to open the file, with no cartridge, nothing open on the file

@@ -114,13 +114,18 @@ module Badline
           def filled(bytes) = Array.new(SIZE) { |offset| bytes.fetch(offset, 0) }
 
           def cpu(machine, input, ram)
+            bytes = ram.bytes("ram", "".b).bytes
+            cpu_section(machine, input, Array.new(RAM_SIZE) { |address| bytes[address] || 0 })
+          end
+
+          # DRIVECPU0 for a drive CPU whose BL- fields `input` holds, with
+          # `ram` the drive's RAM as xpet lays it out.
+          def cpu_section(machine, input, ram)
             fields = FieldWriter.new.qword(machine.cycles)
             %w[a x y sp].each { |key| fields.byte(input.int(key, 0)) }
             fields.word(input.int("pc", 0)).byte(input.int("p", 0x20)).dword(0)
             fields.qword(machine.cycles).zeros(16).qword(machine.cycles).zeros(1).qword(0).zeros(8).qword(0)
-            fields.zeros(16)
-            bytes = ram.bytes("ram", "".b).bytes
-            fields.bytes(Array.new(RAM_SIZE) { |address| bytes[address] || 0 }).zeros(TAIL)
+            fields.zeros(16).bytes(ram).zeros(TAIL)
             fields.section(CPU, CPU_MAJOR, CPU_MINOR)
           end
 
