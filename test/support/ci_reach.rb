@@ -62,6 +62,7 @@ module CIReach
     ["lib/badline/chips/{z80,vdc}{.rb,/**/*}", C128],
     # The 6532 and 6530 of the 8050 and 8250, which no machine has yet.
     ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", []],
+    ["lib/badline/chips/tpi{.rb,/**/*}", []],
     ["lib/badline/c64/{cartridge,reu,banked_ram}{.rb,/**/*}", CARTRIDGES],
     ["lib/badline/{c64.rb,c64/**/*}", C64 + %w[testbench-c128c64]],
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],

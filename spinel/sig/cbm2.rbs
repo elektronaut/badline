@@ -1,0 +1,20 @@
+module Badline
+  module Chips
+    class TPI
+      @pra: Integer
+      @prb: Integer
+      @prc: Integer
+      @ddra: Integer
+      @ddrb: Integer
+      @ddrc: Integer
+      @control: Integer
+      @latches: Integer
+      @mask: Integer
+      @air: Integer
+      @lines: Integer
+      @stack: Array[Integer]
+      @ca: bool
+      @cb: bool
+    end
+  end
+end
