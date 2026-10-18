@@ -57,7 +57,7 @@ module CIReach
     ["lib/badline/roms/pet/**/*", PET],
     ["lib/badline/roms/cbm2/**/*", CBM2],
     ["lib/badline/{cbm2.rb,cbm2/**/*,chips/tpi.rb,chips/tpi/**/*,support/cbm2_checkpoint.rb}", CBM2],
-    ["lib/badline/roms/8050/**/*", []],
+    ["lib/badline/roms/8050/**/*", %w[drive-scenarios]],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC],
@@ -65,8 +65,9 @@ module CIReach
     ["lib/badline/chips/via{.rb,/**/*}", VIA],
     ["lib/badline/chips/vic_i{.rb,/**/*}", VIC20],
     ["lib/badline/chips/{z80,vdc}{.rb,/**/*}", C128],
-    # The 6532 and 6530 of the 8050 and 8250, which no machine has yet.
-    ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", []],
+    # The 6532 and 6530 of the 8050 and 8250, which only the PET's drive
+    # scenarios plug in.
+    ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", %w[drive-scenarios]],
     ["lib/badline/c64/{cartridge,reu,banked_ram}{.rb,/**/*}", CARTRIDGES],
     ["lib/badline/{c64.rb,c64/**/*}", C64 + %w[testbench-c128c64]],
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],
@@ -79,8 +80,7 @@ module CIReach
     ["lib/badline/kernal_trap/{ieee,ieee_layout}.rb", PET + CBM2 + %w[drive-scenarios]],
     ["lib/badline/drives/ieee_bus.rb", PET + %w[drive-scenarios]],
     ["lib/badline/{drives/model2031.rb,drives/model2031/**/*,roms/dos2031.rom}", PET + %w[drive-scenarios]],
-    # The 8050 and 8250, which no machine plugs in yet.
-    ["lib/badline/drives/model8050{.rb,/**/*}", []],
+    ["lib/badline/drives/model8050{.rb,/**/*}", %w[drive-scenarios]],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],

@@ -45,9 +45,10 @@ module Badline
         # mounted through the traps, so LOAD and SAVE reach the drive too.
         # `read_only` puts it in write-protected.
         def insert(computer, path, read_only: false)
-          pet = computer.family == :pet
-          return insert_d81(computer, path, read_only) if !pet && File.extname(path).casecmp?(".d81")
+          swapped = insert_swapping(computer, path, read_only)
+          return swapped if swapped
 
+          pet = computer.family == :pet
           drive = own_drive(computer)
           name = drive&.model_name || default_model(computer)
           types = name == "1571" ? %w[.d64 .g64 .d71 .g71] : %w[.d64 .g64]
@@ -74,10 +75,33 @@ module Badline
           end
         end
 
-        # The drive on device 8 unless it's a 1581.
+        # The drive on device 8 unless it's a 1581, or an 8050 or 8250,
+        # which a .d64 swaps back out.
         def own_drive(computer)
           drive = drive(computer)
-          drive unless drive&.model_name == "1581"
+          drive unless %w[1581 8050 8250].include?(drive&.model_name)
+        end
+
+        # A .d81 in a 1581, and on the PET a .d80 or .d82 in an 8050 or
+        # 8250, each swapped in for the drive there, or nil for the rest.
+        def insert_swapping(computer, path, read_only)
+          extension = File.extname(path).downcase
+          if computer.family == :pet
+            insert_d80(computer, path, read_only) if %w[.d80 .d82].include?(extension)
+          elsif extension == ".d81"
+            insert_d81(computer, path, read_only)
+          end
+        end
+
+        # An 8050 for a .d80 and an 8250 for a .d82, swapped in for the
+        # drive on device 8 unless it's that model already.
+        def insert_d80(computer, path, read_only)
+          model = File.extname(path).casecmp?(".d82") ? "8250" : "8050"
+          drive = drive(computer)
+          drive = computer.plug_drive8050(model) unless drive&.model_name == model
+          drive.insert_image(path, read_only:)
+          computer.unmount
+          "Inserted #{path} in the #{model} as device 8"
         end
 
         def insert_d81(computer, path, read_only)

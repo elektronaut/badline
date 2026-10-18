@@ -34,6 +34,9 @@ module Badline
 
         def write_protected? = @image.read_only?
 
+        # The image's host file.
+        def path = @image.path
+
         # How many tracks a side holds: 77.
         def side_tracks = Storage::D80Image::SIDE_TRACKS
 

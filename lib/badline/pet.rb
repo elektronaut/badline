@@ -132,6 +132,7 @@ module Badline
       @ieee_trap = nil
       @capture_output = nil
       @drive2031 = nil
+      @drive8050 = nil
       @init_threshold = boot_cycles(ram_kb)
     end
 
@@ -182,6 +183,7 @@ module Badline
       @cpu.irq = @pia1.irq? || @pia2.irq? || @via.irq?
       @cpu.cycle!
       @drive2031&.host_cycle!
+      @drive8050&.host_cycle!
 
       @cycles += 1
     end
@@ -199,6 +201,7 @@ module Badline
       @crtc.reset!
       @bus.reset!
       @drive2031&.reset!
+      @drive8050&.reset!
       @ieee.lines_written
       @cpu.reset!
     end

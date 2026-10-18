@@ -36,6 +36,37 @@ describe Badline::Media::TrueDrive do
     end
   end
 
+  context "with a PET" do
+    let(:machine) { Badline::PET.new(model: "4032") }
+
+    it "puts a .d80 in an 8050" do
+      path = image("disk.d80", 533_248)
+      expect(described_class.insert(machine, path)).to eq("Inserted #{path} in the 8050 as device 8")
+    end
+
+    it "puts a .d82 in an 8250" do
+      described_class.insert(machine, image("disk.d82", 1_066_496))
+      expect(machine.true_drive.model_name).to eq("8250")
+    end
+
+    it "swaps the 2031 out for the 8050" do
+      described_class.plug(machine)
+      described_class.insert(machine, image("disk.d80", 533_248))
+      expect([machine.drive2031, machine.true_drive]).to eq([nil, machine.drive8050])
+    end
+
+    it "swaps the 2031 back in for a .d64 after a .d80" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      described_class.insert(machine, image("disk.d64", 174_848))
+      expect([machine.drive8050, machine.true_drive.model_name]).to eq([nil, "2031"])
+    end
+
+    it "puts the 8050 alone on the IEEE-488 bus" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      expect(machine.ieee.bus.drives).to eq([machine.drive8050])
+    end
+  end
+
   context "with a C128" do
     it "plugs in the C128D's 1571" do
       expect(described_class.plug(machine)).to be_a(Badline::Drives::Model1571)
