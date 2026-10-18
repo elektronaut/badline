@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Badline
-  class Plus4
+  module Chips
     class ACIA
       # A character's frame and how long it takes. A start bit, 5 to 8
       # data bits, a parity bit where the command enables one, and the stop

@@ -2,6 +2,7 @@
 
 require "badline/chips/ted"
 require "badline/chips/tia"
+require "badline/chips/acia"
 require "badline/drives/model1551"
 require "badline/plus4/model"
 require "badline/plus4/cpu"

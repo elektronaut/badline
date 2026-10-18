@@ -4,7 +4,7 @@ require "spec_helper"
 require "badline/plus4"
 require_relative "../../../support/keyed_oracle"
 
-describe Badline::Plus4::ACIA::KeyedState do
+describe Badline::Chips::ACIA::KeyedState do
   include KeyedOracle
 
   let(:clock_class) do
@@ -17,7 +17,7 @@ describe Badline::Plus4::ACIA::KeyedState do
   end
   let(:clock) { clock_class.new(0, false, nil) }
 
-  def acia = Badline::Plus4::ACIA.new(clock, 886_724)
+  def acia = Badline::Chips::ACIA.new(clock, 886_724)
 
   # An ACIA sending one byte at 300 baud with another waiting, its
   # transmitter's interrupt raised.

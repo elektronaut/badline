@@ -51,6 +51,39 @@ module Badline
       @directions: Array[Integer]
       @inputs: Array[Integer]
     end
+
+    class ACIA
+      @command: Integer
+      @control: Integer
+      @clock_hz: Integer
+      @device: Integer
+      @incoming: Array[Integer]
+      @received: Array[Integer]
+      @errors: Integer
+      @receiver_full: bool
+      @transmitter_empty: bool
+      @irq: bool
+      @receive_data: Integer
+      @transmit_data: Integer
+      @shifting: Integer
+      @transmit_at: Integer
+      @transmit_remainder: Integer
+      @receive_at: Integer
+      @receive_remainder: Integer
+      @clock_lost: bool
+      @lines: Integer
+      @due: Integer
+
+      def take: (Integer) -> void
+
+      module Frames
+        @command: Integer
+        @control: Integer
+        @clock_hz: Integer
+        @transmit_remainder: Integer
+        @receive_remainder: Integer
+      end
+    end
   end
 
   module Drives
@@ -84,39 +117,6 @@ module Badline
     class UserPort
       @output: Integer
       @inputs: Integer
-    end
-
-    class ACIA
-      @command: Integer
-      @control: Integer
-      @clock_hz: Integer
-      @device: Integer
-      @incoming: Array[Integer]
-      @received: Array[Integer]
-      @errors: Integer
-      @receiver_full: bool
-      @transmitter_empty: bool
-      @irq: bool
-      @receive_data: Integer
-      @transmit_data: Integer
-      @shifting: Integer
-      @transmit_at: Integer
-      @transmit_remainder: Integer
-      @receive_at: Integer
-      @receive_remainder: Integer
-      @clock_lost: bool
-      @lines: Integer
-      @due: Integer
-
-      def take: (Integer) -> void
-
-      module Frames
-        @command: Integer
-        @control: Integer
-        @clock_hz: Integer
-        @transmit_remainder: Integer
-        @receive_remainder: Integer
-      end
     end
 
     class SIDCard

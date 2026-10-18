@@ -3,7 +3,7 @@
 require "spec_helper"
 require "badline/plus4"
 
-describe Badline::Plus4::ACIA do
+describe Badline::Chips::ACIA do
   subject(:acia) { described_class.new(clock, 886_724) }
 
   # The machine's side: its cycles, and the IRQ line and the cycle the
