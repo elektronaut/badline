@@ -66,6 +66,7 @@ module CIReach
     ["lib/badline/{plus4.rb,plus4/**/*,chips/ted.rb,chips/ted/**/*,chips/tia.rb}", PLUS4],
     ["lib/badline/{pet.rb,pet/**/*,chips/pia.rb,chips/pia/**/*,chips/crtc.rb,chips/crtc/**/*}", PET],
     ["lib/badline/{kernal_trap/ieee,kernal_trap/ieee_layout,drives/ieee_bus}.rb", PET],
+    ["lib/badline/{drives/model2031.rb,drives/model2031/**/*,roms/dos2031.rom}", PET],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],
     ["lib/badline/drives/model1541{.rb,/**/*}", DRIVES],

@@ -23,6 +23,9 @@ module Badline
       UNTALK_COMMAND = 0x5f
       UNLISTEN_COMMAND = 0x3f
 
+      # The device the traps serve, or nil to serve none.
+      attr_accessor :device
+
       def initialize(cpu:, bus:, layout:, dos:)
         @cpu = cpu
         @bus = bus

@@ -88,6 +88,18 @@ Downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/new/1551/1551.318008-01.bin
 SHA-1 fae3c788ad9a6cc2dbdfbcf6c0264b2ca921d55e.
 
+dos2031.rom
+-----------
+The 2031 disk drive's DOS 2.6, 16 KB for $C000-$FFFF: 901484-03
+($C000-$DFFF, SHA-1 54d608f7f07860f24186749f21c96724dd48bc50)
+followed by 901484-05 ($E000-$FFFF, SHA-1
+ec6b75ecfdd4744e5d57979ef6af990444c11ae1). Drives::Model2031 loads it.
+
+Both halves downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/2031/
+and concatenated.
+SHA-1 c53e180a96649ceb3f421739e8dc66faba7cba44.
+
 Commodore VIC-20 ROMs
 =====================
 

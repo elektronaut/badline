@@ -8,12 +8,15 @@ module Badline
     # commands, run through the primitives.
     module IEEETraps
       # Puts the storage in device 8. Mounting again swaps the disk while
-      # the machine runs, and the drive keeps its RAM and its status.
+      # the machine runs, and the drive keeps its RAM and its status. The
+      # traps leave device 8 to a true drive with that number.
       def mount(storage)
         return @dos.insert(storage) if @dos
 
         @dos = dos = KernalTrap::DOS.new(storage, channel_saves: true)
         @ieee_trap = KernalTrap::IEEE.new(cpu:, bus:, layout: trap_layout, dos:).install
+        @ieee_trap.device = trap_device
+        @ieee_trap
       end
 
       # Takes device 8's storage out, and the traps with it, so the KERNAL
@@ -32,10 +35,6 @@ module Badline
 
       # The path of the disk or directory device 8 serves, or an empty one.
       def mounted_path = @dos.nil? ? "" : @dos.path
-
-      # The true drive on the bus, which a PET has none of yet: every disk
-      # goes in device 8 through the traps.
-      def true_drive = nil
 
       # Device 8 through the traps in a keyed snapshot module (BL-TRAPDOS):
       # the storage under storage.*, the DOS, and the IEEE-488 trap under
@@ -70,6 +69,12 @@ module Badline
 
       # The IEEELayout of the KERNAL the model runs.
       def trap_layout = @model.trap_layout
+
+      # Device 8, unless a true drive is device 8.
+      def trap_device
+        device = KernalTrap::Routine::DEVICE
+        true_drive&.device == device ? nil : device
+      end
     end
   end
 end
