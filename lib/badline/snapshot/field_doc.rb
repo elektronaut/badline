@@ -39,8 +39,8 @@ module Badline
       # the 264 series' models, its TCBM interface, cartridge, tape and
       # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
-      # one with a true 2031, and a 610, a 720, a 610 with a cartridge and
-      # one with a disk.
+      # one with a true 2031, one with an 8050 and one with an 8250, and a
+      # 610, a 720, a 610 with a cartridge and one with a disk.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -54,7 +54,7 @@ module Badline
                       plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
-                    pet_with_drive],
+                    pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250")],
           "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
                      cbm2_with_disk]
         }
@@ -77,6 +77,16 @@ module Badline
           image = Storage::D64Image.new("", bytes: blank(174_848))
           machine.plug_true_drive.insert(Drives::Model1541::Disk.decode(image))
         end
+      end
+
+      # A PET with an 8050 or an 8250 holding a blank disk in drive 0.
+      def self.pet_with_unit(model)
+        image = if model == "8250"
+                  Storage::D82Image.new("", bytes: blank(1_066_496))
+                else
+                  Storage::D80Image.new("", bytes: blank(533_248))
+                end
+        PET.new.tap { |machine| machine.plug_drive8050(model).insert(Drives::Model8050::Disk.new(image)) }
       end
 
       def self.blank(length) = Array.new(length, 0)

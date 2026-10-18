@@ -11,6 +11,7 @@ require "badline/drives/model8050/ieee_port"
 require "badline/drives/model8050/disk"
 require "badline/drives/model8050/mechanism"
 require "badline/drives/model8050/idle"
+require "badline/drives/model8050/keyed_state"
 
 module Badline
   module Drives

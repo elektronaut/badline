@@ -137,6 +137,63 @@ describe Badline::PET do
       end
     end
 
+    context "with an 8050" do
+      # A booting machine with an 8050, or another model, as +device+, a
+      # blank disk in drive 0.
+      def with_unit(model = "8050", device = 8)
+        saved("8032").tap do |machine|
+          unit = model == "8250" ? Badline::Drives::Model8250.new(device:) : Badline::Drives::Model8050.new(device:)
+          size = model == "8250" ? 1_066_496 : 533_248
+          image_class = model == "8250" ? Badline::Storage::D82Image : Badline::Storage::D80Image
+          unit.insert(Badline::Drives::Model8050::Disk.new(image_class.new("", bytes: Array.new(size, 0))))
+          machine.attach_drive8050(unit)
+          machine.run_cycles(2_000)
+        end
+      end
+
+      it "saves the unit's modules" do
+        expect(with_unit.snapshot.sections.map(&:name))
+          .to include("BL-D8", "BL-D8-COMMON", "BL-D8-RIOT1", "BL-D8-RIOT2", "BL-D8-IPCPU", "BL-D8-FDCCPU",
+                      "BL-D8-VIA", "BL-D8-RRIOT", "BL-D8-MECH", "BL-D8-DISK")
+      end
+
+      it "restores a machine that runs on as the saved one, unit and all" do
+        machine = with_unit
+        restored = machine.snapshot.load
+        [machine, restored].each { |each_machine| each_machine.run_cycles(20_000) }
+        expect(restored.snapshot).to eq(machine.snapshot)
+      end
+
+      it "plugs in the model and device the snapshot names" do
+        restored = with_unit("8250", 12).snapshot.load
+        expect([restored.true_drive.model_name, restored.true_drive.device]).to eq(["8250", 12])
+      end
+
+      it "swaps a 2031 on the bus for the snapshot's 8050" do
+        machine = saved("8032").tap { |pet| pet.attach_drive2031(Badline::Drives::Model2031.new) }
+        machine.restore(with_unit.snapshot)
+        expect([machine.drive2031, machine.ieee.bus.drives]).to eq([nil, [machine.drive8050]])
+      end
+
+      it "swaps an 8250 on the bus for the snapshot's 8050" do
+        machine = with_unit("8250")
+        machine.restore(with_unit.snapshot)
+        expect(machine.true_drive.model_name).to eq("8050")
+      end
+
+      it "takes a unit the snapshot doesn't have off the bus" do
+        machine = with_unit
+        machine.restore(saved("8032").snapshot)
+        expect([machine.true_drive, machine.ieee.bus.drives]).to eq([nil, []])
+      end
+
+      it "exports a .vsf that loads back with the unit, which xpet's modules leave out" do
+        machine = with_unit
+        machine.export_snapshot(path)
+        expect(Badline::Snapshot.load(path).snapshot).to eq(machine.snapshot)
+      end
+    end
+
     # A machine with a tape playing in the datasette at cassette port #2.
     def playing_deck2
       bytes = "C64-TAPE-RAW".bytes + [1, 3, 0, 0, 4, 0, 0, 0, 0x30, 0x30, 0x30, 0x30]

@@ -34,13 +34,28 @@ module TrueDrive
   # The true drive's CPU, cycle counts, head, chips and the first 2K of its
   # RAM, or nil without one, as the machine's true_drive picks it. The
   # 1541, 1571 and 2031 add their VIAs, the 1571 and 1581 their CIA, and
-  # the 1551 its port and TIAs.
+  # the 1551 its port and TIAs. An 8050 or 8250 gives unit_digest.
   def digest(computer)
     drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
+    return unit_digest(drive) if %w[8050 8250].include?(drive.model_name)
 
     values = [drive.cycles, *cpu_values(drive.cpu), *head_values(drive), *chip_values(drive)]
     Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
+  end
+
+  # The 8050 or 8250's processors, heads and motors, its RIOTs, VIA and
+  # 6530, and its common RAM.
+  def unit_digest(unit)
+    mechanism = unit.mechanism
+    values = [unit.cycles, *cpu_values(unit.ip_cpu), *cpu_values(unit.fdc_cpu), *mechanism.cylinders,
+              mechanism.motor_on?(0) ? 1 : 0, mechanism.motor_on?(1) ? 1 : 0]
+    [unit.data_riot, unit.control_riot, unit.rriot].each { |riot| values.push(riot.timer.counter, *riot.idle_state) }
+    via = unit.via
+    values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr, via.pcr,
+                via.port_a_output, via.port_b_output)
+    Badline::Support::Checkpoint.fnv1a(values.map { |value| value == true ? 1 : value || 0 } +
+                                       unit.common.read(0, 0x1000))
   end
 
   def cpu_values(cpu)

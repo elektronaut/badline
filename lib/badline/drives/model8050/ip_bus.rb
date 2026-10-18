@@ -19,7 +19,8 @@ module Badline
       class IPBus
         include Addressable
 
-        attr_reader :common, :rom, :data_riot, :control_riot, :data
+        attr_reader :common, :rom, :data_riot, :control_riot
+        attr_accessor :data
 
         # How many writes have changed a byte of the common RAM
         # (Model8050::Idle).

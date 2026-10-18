@@ -96,32 +96,55 @@ module Badline
         @drive8050&.reset!
       end
 
-      # The 2031 as keyed snapshot modules named from its device number:
-      # BL-D8, BL-D8-CPU and so on for device 8.
+      # The true drive as keyed snapshot modules named from its device
+      # number: BL-D8, BL-D8-CPU and so on for device 8.
       def save_drive_modules(sections)
-        drive = @drive2031
-        drive&.save_modules(sections, "BL-D#{drive.device}")
+        drive2031 = @drive2031
+        drive2031&.save_modules(sections, "BL-D#{drive2031.device}")
+        drive8050 = @drive8050
+        drive8050&.save_modules(sections, "BL-D#{drive8050.device}")
         sections
       end
 
-      # The 2031 a snapshot's modules hold, built afresh unless one is on
-      # the bus as the same device, or none when they hold no drive. The
-      # bus then carries the PET's lines as its chips left them.
+      # The true drive a snapshot's modules hold, a 2031, an 8050 or an
+      # 8250 by its model, built afresh unless the same model is on the bus
+      # as the same device, or none when they hold no drive. The bus then
+      # carries the PET's lines as its chips left them.
       def load_drive_modules(modules)
         device = 8
         input = modules.optional("BL-D8")
-        while input.nil? && device < 11
+        while input.nil? && device < 15
           device += 1
           input = modules.optional("BL-D#{device}")
         end
-        if input
-          detach_drive2031 if @drive2031 && @drive2031.device != device
-          attach_drive2031(Badline::Drives::Model2031.new(device:)) unless @drive2031
-          @drive2031.load_modules(modules, input, "BL-D#{device}")
+        model = input&.text("model", "2031")
+        if %w[8050 8250].include?(model)
+          load_drive8050_modules(modules, input, model, device)
+        elsif input
+          load_drive2031_modules(modules, input, device)
         else
           detach_drive2031
+          detach_drive8050
         end
         @ieee.lines_written
+      end
+
+      def load_drive2031_modules(modules, input, device)
+        detach_drive8050
+        detach_drive2031 if @drive2031 && @drive2031.device != device
+        attach_drive2031(Badline::Drives::Model2031.new(device:)) unless @drive2031
+        @drive2031.load_modules(modules, input, "BL-D#{device}")
+      end
+
+      def load_drive8050_modules(modules, input, model, device)
+        detach_drive2031
+        drive = @drive8050
+        detach_drive8050 if drive && (drive.device != device || drive.model_name != model)
+        unless @drive8050
+          unit = model == "8250" ? Badline::Drives::Model8250.new(device:) : Badline::Drives::Model8050.new(device:)
+          attach_drive8050(unit)
+        end
+        @drive8050.load_modules(modules, input, "BL-D#{device}")
       end
     end
   end

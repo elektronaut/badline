@@ -9,7 +9,7 @@ AllCops:
   TargetRubyVersion: 4.0
 
 Metrics/AbcSize:
-  Max: 60
+  Max: 64
   Exclude:
     - "lib/badline/chips/cpu/instruction.rb"
 
