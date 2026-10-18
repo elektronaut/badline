@@ -24,6 +24,10 @@ module Badline
         settle_chips_for_snapshot
         ran
       end
+
+      # Settles as #settle_for_snapshot! does, for a snapshot VICE opens,
+      # which a machine with a drive VICE runs settles further.
+      def settle_for_vice! = settle_for_snapshot!
     end
   end
 end

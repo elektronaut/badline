@@ -59,7 +59,7 @@ module Badline
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
 
-        computer.settle_for_snapshot!
+        computer.settle_for_vice!
         sections = computer.save_modules
         case computer.family
         when :c64 then sections = Vice.export(computer) + sections
