@@ -3,6 +3,7 @@
 require "fileutils"
 require_relative "machine_families"
 require_relative "drive_scenarios_1581"
+require_relative "snapshot_cbm2"
 
 # The media and the runs SnapshotMachines' scenarios are built from.
 # Media are copied into the scenario's directory, so nothing writes to
@@ -359,7 +360,7 @@ module SnapshotMachines
 
   def all
     c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
-      plus4_drive_scenarios + pet_scenarios
+      plus4_drive_scenarios + pet_scenarios + cbm2_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }

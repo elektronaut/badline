@@ -71,6 +71,7 @@ def spinel_check(media)
   SpinelCheck.check_pet_boots
   SpinelCheck.check_pet_snapshots
   SpinelCheck.check_cbm2_boots
+  SpinelCheck.check_cbm2_snapshots
 end
 
 namespace :vendor do

@@ -22,18 +22,18 @@ key only some of them have names them.
 
 ## BL-MACHINE
 
-Written by the C64, VIC-20, C128, Plus/4, PET.
+Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `family` | text: c64 vic20 c128 plus4 pet | "c64" |
+| `family` | text: c64 vic20 c128 plus4 pet cbm2 | "c64" |
 | `region` | text: pal ntsc ntscold drean | C64: "pal" |
 | `vic_model` | text: mos6569 mos8565 mos8566 mos8564 | C64: "mos6569" |
 | `cia_model` | text: mos6526 mos6526a | C64: "mos6526" |
 | `sid_model` | text: mos6581 mos8580 | C64: "mos6581"; C128: "mos6581" |
 | `ram_expansion` | text: none plus60k plus256k | C64: "none"; Plus/4: "none" |
 | `reu_kb` | int | C64: 0 |
-| `kernal` | text: c64 sx64 pet64 gs | C64: "c64" |
+| `kernal` | text: c64 sx64 pet64 gs | C64: "c64"; CBM-II: "04a" |
 | `datasette` | bool | C64: true |
 | `board` | text: c64 pet64 gs max | C64: "c64" |
 | `cycles` | int | 0 |
@@ -49,7 +49,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET.
 | `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
 | `bus.data` | byte | VIC-20: 253; C128: 255 |
 | `bus.video_data` | byte | VIC-20: 0 |
-| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4"; PET: "8032" |
+| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4"; PET: "8032"; CBM-II: "610" |
 | `mode` | text: c64 c128 | C128: "c64" |
 | `bus.address` | word | C128: 65533 |
 | `clock_bits` | int | C128: 0 |
@@ -73,10 +73,13 @@ Written by the C64, VIC-20, C128, Plus/4, PET.
 | `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
+| `mains_hz` | int | CBM-II: 50 |
+| `mains_countdown` | int | CBM-II: 20000 or 16666 |
+| `mains_high` | bool | CBM-II: true |
 
 ## BL-RAM
 
-Written by the C64, VIC-20, C128, Plus/4, PET.
+Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -85,10 +88,17 @@ Written by the C64, VIC-20, C128, Plus/4, PET.
 | `bus.high_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.rom_selected` | bool | Plus/4: true |
 | `bus.data` | byte | Plus/4: 255; PET: 253 |
-| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 or 32768 × 0 |
+| `screen` | bytes | PET: 2048 × 0 or 1024 × 0 or 32768 × 0; CBM-II: 2048 × 0 |
 | `expansion.control` | byte | PET: 0 |
 | `expansion.ram` | bytes | PET: 65536 × 0 |
 | `expansion.user_port` | int | PET: 7 |
+| `system` | bytes | CBM-II: 2048 × 0 |
+| `segment<N>` | bytes | CBM-II: 65536 × 0 |
+| `execution_segment` | int & 0xf | CBM-II: 15 |
+| `indirect_segment` | int & 0xf | CBM-II: 15 |
+| `data` | byte | CBM-II: 249 |
+| `cartridge.addresses` | ints | CBM-II: [] |
+| `cartridge.8192` | bytes | CBM-II: [] |
 
 ## BL-COLORRAM
 
@@ -101,14 +111,14 @@ Written by the C64, VIC-20, C128.
 
 ## BL-CPU
 
-Written by the C64, C128, Plus/4, VIC-20, PET.
+Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
 | `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824 |
+| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -390,7 +400,7 @@ Written by the C64, C128.
 
 ## BL-SID
 
-Written by the C64, C128, Plus/4.
+Written by the C64, C128, Plus/4, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -1199,7 +1209,7 @@ Written by the Plus/4.
 
 ## BL-ACIA
 
-Written by the Plus/4.
+Written by the Plus/4, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -1364,7 +1374,7 @@ Written by the PET.
 
 ## BL-CRTC
 
-Written by the PET.
+Written by the PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -1441,3 +1451,107 @@ Written by the PET.
 | `tape.bytes` | bytes | [] |
 | `tape.path` | text | "" |
 | `tape.position` | int | 0 |
+
+## BL-CIA
+
+Written by the CBM-II.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `pra` | byte | 0 |
+| `prb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `cra` | byte | 0 |
+| `crb` | byte | 0 |
+| `pb4_high` | bool | true |
+| `pb4_driven_high` | bool | true |
+| `cnt_high` | bool | true |
+| `cnt_rise` | bool | false |
+| `ta.counter` | word | 65535 |
+| `ta.latch` | word | 65535 |
+| `ta.pipe` | int & 0x3 | 0 |
+| `ta.load_delay` | int | 0 |
+| `ta.reload` | bool | false |
+| `ta.underflowed` | bool | false |
+| `ta.oneshot_linger` | int | 0 |
+| `ta.toggle` | bool | true |
+| `tb.counter` | word | 65535 |
+| `tb.latch` | word | 65535 |
+| `tb.pipe` | int & 0x3 | 0 |
+| `tb.load_delay` | int | 0 |
+| `tb.reload` | bool | false |
+| `tb.underflowed` | bool | false |
+| `tb.oneshot_linger` | int | 0 |
+| `tb.toggle` | bool | true |
+| `icr.mask` | byte | 0 |
+| `icr.status` | byte | 0 |
+| `icr.pending` | int | 0 |
+| `icr.read` | int, optional | absent |
+| `icr.read_last_cycle` | int, optional | absent |
+| `icr.read_two_cycles_ago` | int, optional | absent |
+| `icr.timer_b_bug` | bool | false |
+| `sdr.data` | byte | 0 |
+| `sdr.shift` | byte | 0 |
+| `sdr.steps` | int | 0 |
+| `sdr.empty_in` | int, optional | absent |
+| `sdr.busy_in` | int, optional | absent |
+| `sdr.busy` | bool | false |
+| `sdr.abandoned` | bool | false |
+| `sdr.pending` | int, optional | absent |
+| `sdr.underflow_high` | bool | false |
+| `sdr.in_flight` | bool | false |
+| `sdr.flight_up` | int | 0 |
+| `sdr.flight_down` | int | 0 |
+| `sdr.cnt` | bool | true |
+| `sdr.cnt_in` | bool | true |
+| `sdr.sp_in` | bool | true |
+| `sdr.sp_out` | bool | true |
+| `sdr.idle` | bool | true |
+| `tod.mains_phase` | int | 0 |
+| `tod.pulses` | int | 0 |
+| `tod.stopped` | bool | true |
+| `tod.alarm_pending` | bool | false |
+| `tod.clock.tenths` | byte | 0 |
+| `tod.alarm.tenths` | byte | 0 |
+| `tod.clock.seconds` | byte | 0 |
+| `tod.alarm.seconds` | byte | 0 |
+| `tod.clock.minutes` | byte | 0 |
+| `tod.alarm.minutes` | byte | 0 |
+| `tod.clock.hours` | byte | 1 |
+| `tod.alarm.hours` | byte | 0 |
+| `tod.latch.hours` | int, optional | absent |
+
+## BL-TPI1
+
+Written by the CBM-II.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ports` | ints | [0, 0, 0] |
+| `directions` | ints | [0, 0, 0] |
+| `control` | byte | 0 |
+| `latches` | int & 0x1f | 0 |
+| `mask` | int & 0x1f | 0 |
+| `air` | int & 0x1f | 0 |
+| `stack` | ints | [] |
+| `ca` | bool | false |
+| `cb` | bool | false |
+| `lines` | int & 0x1f | 31 |
+
+## BL-TPI2
+
+Written by the CBM-II.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ports` | ints | [0, 0, 0] |
+| `directions` | ints | [0, 0, 0] |
+| `control` | byte | 0 |
+| `latches` | int & 0x1f | 0 |
+| `mask` | int & 0x1f | 0 |
+| `air` | int & 0x1f | 0 |
+| `stack` | ints | [] |
+| `ca` | bool | false |
+| `cb` | bool | false |
+| `lines` | int & 0x1f | 31 |

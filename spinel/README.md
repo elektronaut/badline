@@ -46,6 +46,10 @@ CRuby.
   prints a `Badline::Support::CBM2Checkpoint` every million cycles, then
   the screen, the counts, the registers and the segment registers.
   Arguments pick the model, the mains and the KERNAL.
+- `cbm2_snapshot.rb` does for a CBM-II what `plus4_snapshot.rb` does for
+  the 264 series, with a `Badline::Support::CBM2Checkpoint` every million
+  cycles. Arguments pick the cycle it saves at, the cycles to run and the
+  model.
 - `boot_support.rb` holds what the six boots share: the loop that runs
   the machine between checkpoints, and the trailer of the screen, the
   counts, the registers and the speed.
@@ -111,7 +115,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench`, `cbm2_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 

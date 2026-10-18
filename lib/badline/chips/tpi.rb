@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "badline/chips/tpi/keyed_state"
+
 module Badline
   module Chips
     # The MOS 6525 TPI (tri-port interface): three 8-bit ports, A, B and C,

@@ -37,9 +37,9 @@ module Badline
       # The machines the doc is made from: each family at power-on, the C64
       # with each kind of expansion, cartridge and media, and a second SID,
       # the 264 series' models, its TCBM interface, cartridge, tape and
-      # true drives, the 1541 and the 1551, and a CRTC PET, a 2001, an 8096,
+      # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
-      # one with a true 2031.
+      # one with a true 2031, and a 610, a 720 and a 610 with a cartridge.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -53,7 +53,8 @@ module Badline
                       plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
-                    pet_with_drive]
+                    pet_with_drive],
+          "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge]
         }
       end
 
@@ -77,6 +78,12 @@ module Badline
       end
 
       def self.blank(length) = Array.new(length, 0)
+
+      # A 610 with an 8K cartridge ROM at $2000.
+      def self.cbm2_with_cartridge
+        chip = Storage::CRTFile::Chip.new(chip_type: 0, bank: 0, address: 0x2000, data: blank(0x2000))
+        CBM2.new.tap { |machine| machine.attach_cartridge([chip]) }
+      end
 
       def self.with_cartridge(type)
         chips = [0x8000, 0xa000].map do |address|
