@@ -15,8 +15,11 @@ the directory of any medium mounted there, as a 1541 does.
 The command channel answers `I`, `B-P` and `U1` block reads, which
 covers loaders that read blocks directly. On a writable disk image it
 also takes `SAVE` (with `@0:` to replace a file), files opened for
-writing or appending, `S` to scratch, `U2` and `B-W` block writes, and
-`B-A` and `B-F`. It doesn't rename, copy, format or validate disks.
+writing or appending, `S` to scratch, `U2` and `B-W` block writes,
+`B-A` and `B-F`, `N` to format the disk (or, without an ID, clear it),
+`R` to rename a file and `C` to copy or join files, with the reports a
+2031 or 8050 gives. It acts as a single drive, so it doesn't duplicate
+or copy whole disks (`D`, `C1=0`), and it doesn't validate disks.
 Loaders that upload their own code to the drive with `M-W` and `M-E`,
 and copy protection that reads raw GCR, won't work there, but do on a
 true drive.
