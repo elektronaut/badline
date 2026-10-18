@@ -117,7 +117,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |
 | `--screenshot FILE` | Save the last frame as a `.bmp` |
 | `--save-snapshot FILE` | Save the machine as a `.vsf` snapshot after the last frame |
-| `--vice` | Add VICE's modules to `--save-snapshot`'s C64, PET or CBM-II snapshot, so x64sc, xpet or xcbm2 opens it too |
+| `--vice` | Add VICE's modules to `--save-snapshot`'s C64, PET or CBM-II snapshot, so x64sc, xpet, xcbm2 or xcbm5x0 opens it too |
 
 ```sh
 badline --unpaced --frames 12000 --true-drive disk1.d64 \
@@ -143,7 +143,7 @@ library, are covered in [doc/library.md](doc/library.md).
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
 | `.crt` | The hardware types listed under [Cartridges](#whats-emulated). Other types are rejected |
 | `.sid` | PSID and RSID tunes, started through a small driver after boot |
-| `.vsf` | A snapshot of a running machine, badline's own or one VICE's x64sc, xpet or xcbm2 saved. See [Snapshots](#snapshots) |
+| `.vsf` | A snapshot of a running machine, badline's own or one VICE's x64sc, xpet, xcbm2 or xcbm5x0 saved. See [Snapshots](#snapshots) |
 | A directory | Mounted as device 8. It serves the `.prg` and `.p00` files in it and the contents of any `.t64`, and `SAVE` writes a new `.prg` |
 
 Without `--true-drive`, device 8 is no drive at all but traps on the
@@ -406,7 +406,8 @@ keys type, as on the PET, and `Alt` with a key presses the keys the
 host has none for: [Input](#input) lists them. The pause menu's Power
 page names the model, its RAM, the mains and the KERNAL, and its
 Expansion port page its RAM. The B series has no joysticks. `F11` and
-the Snapshots page save it as they do the others, but not for VICE.
+the Snapshots page save it as they do the others, and `--vice` adds
+xcbm2's modules, so xcbm2 opens the file too.
 
 ## Snapshots
 
@@ -416,7 +417,7 @@ newest, even after badline has quit and started again. badline also
 autosaves every two minutes of play, and the pause menu's Snapshots page
 saves under a name and loads any of them. Snapshots from badline 0.14.0
 on load in every later version. They use VICE's `.vsf` format: badline
-opens those x64sc, xpet and xcbm2 save, and x64sc, xpet and xcbm2 open
+opens those x64sc, xpet, xcbm2 and xcbm5x0 save, and they open
 badline's saved with `--vice`.
 See [doc/snapshots.md](doc/snapshots.md) for where they're kept, what
 they hold and how far the two agree.
