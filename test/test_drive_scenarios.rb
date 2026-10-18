@@ -18,7 +18,7 @@ class TestDriveScenariosRunner < Minitest::Test
   def test_selects_scenarios_by_name_substring
     assert_equal %w[1581-save 1581-read-only plus4-1581-save plus4-save plus4-read-only save read-only 1571-save
                     1571-read-only plus4-1551-save pet-2031-save pet-2031-read-only pet-8250-save pet-8050-save
-                    pet-8050-read-only],
+                    pet-8050-read-only cbm2-8050-save cbm2-2031-save],
                  DriveScenarios.selected(%w[sav read])
   end
 

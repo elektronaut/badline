@@ -9,7 +9,8 @@ require "badline/cbm2"
 # drive_scenarios_8050.rb), they format a disk, save and load a program,
 # autostart a disk and read the error channel, and the idle scenario runs
 # a 610 with a sleeping 2031 beside one whose 2031 steps every cycle.
-# BASIC's text is in segment 1, from $0003.
+# BASIC's text is in segment 1, from $0003. BASIC prints READY. once
+# booted and after every command, LOAD included, so the runs count each.
 module DriveScenarios
   module CBM2Runs
     # The scenarios and the checks each makes, the longest-running first.
@@ -62,7 +63,7 @@ module DriveScenarios
       File.binwrite(path, Array.new(image_size(model), 0).pack("C*"))
       text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\r" \
              "run\rsave\"prog\",8\rload\"$\",8\rlist\r"
-      output = write_run(path, model, text, 4)
+      output = write_run(path, model, text, 5)
       free = FREE_AFTER_PROG.fetch(model)
       report.check("no-error", Runs.number_before?(output, " 0", "OK"), "the error channel said no 0, OK")
       report.check("lists-new-disk", output.include?(NEW_DISK.fetch(model)) && output.include?("\"PROG\"") &&
@@ -73,7 +74,7 @@ module DriveScenarios
     # SAVE through the DOS to a blank disk, then NEW, LOAD and LIST it back.
     def save(report, dir, model)
       path = blank(dir, "cbm2-#{model}-save", model)
-      output = write_run(path, model, PETRuns::SAVE_TEXT, 4)
+      output = write_run(path, model, PETRuns::SAVE_TEXT, 5)
       report.check("no-error", !output.include?("ERROR"), "printed an error")
       report.check("loads-back", output.include?("10 PRINT\"HELLO\""), "listed no 10 PRINT\"HELLO\"")
       report.check("file-in-image", open_image(path, model).read_file("test") == SAVED,
@@ -162,13 +163,13 @@ module DriveScenarios
     end
 
     # The same image through the 610's traps, without a drive: what a LOAD
-    # of name and a LIST print.
+    # of name and a LIST print, once LIST's READY. is out.
     def trap_listing(path, model, name)
       machine = Badline::CBM2.new
       machine.mount(open_image(path, model))
       output = machine.capture_output
       machine.on_init { machine.type_text("load\"#{name}\",8\rlist\r") }
-      Runs.run_until(machine, 150_000_000) { output.output.upcase.scan("READY.").length >= 2 }
+      Runs.run_until(machine, 150_000_000) { output.output.upcase.scan("READY.").length >= 3 }
       output.output.upcase
     end
 
