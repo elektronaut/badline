@@ -4,6 +4,7 @@ require "badline/drives/model1541"
 require "badline/drives/ieee_bus"
 require "badline/drives/model2031/parts"
 require "badline/drives/model2031/ieee_port"
+require "badline/drives/model2031/keyed_state"
 
 module Badline
   module Drives

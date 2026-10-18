@@ -331,9 +331,8 @@ module SnapshotMachines
 
   # The PETs: a CRTC board with 80 columns and one with 40, the 2001's
   # discrete video, an 8096 and an 8296 with their boards written, and the
-  # media a PET
-  # takes: a disk through the traps, a program and a tape played and
-  # recorded on cassette #1.
+  # media a PET takes: a disk through the traps and in a 2031 loading its
+  # directory, a program and a tape played and recorded on cassette #1.
   def pet_scenarios
     basic = [["8032", 50, 2_600_001], ["4032", 60, 2_600_001], ["2001", 60, 900_001]].map do |model, refresh_hz, cycles|
       Scenario.new("pet-#{model}-basic", :pet, ->(_dir) { typing(Badline::PET.new(model:, refresh_hz:), PET_BASIC) },
@@ -348,6 +347,8 @@ module SnapshotMachines
       Scenario.new("pet-demo", :pet, ->(dir) { attached(Badline::PET.new(model: "3032"), demo(dir, "pet")) },
                    ->(m) { run(m, 2_000_001) }),
       Scenario.new("pet-traps-d64", :pet, ->(dir) { attached(Badline::PET.new, copy(D64, dir)) },
+                   ->(m) { run(m, 2_600_001) }),
+      Scenario.new("pet-2031", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), copy(D64, dir)) },
                    ->(m) { run(m, 2_600_001) }),
       Scenario.new("pet-tape", :pet, ->(dir) { attached(Badline::PET.new, pet_tap_file(dir)) },
                    ->(m) { run(m, 3_000_000) }),

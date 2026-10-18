@@ -96,6 +96,47 @@ describe Badline::PET do
       expect([restored.mounted?, File.basename(restored.mounted_path)]).to eq([true, "game.d64"])
     end
 
+    context "with a 2031" do
+      # A booting machine with a 2031 as +device+, its disk in.
+      def with_drive(device = 8)
+        saved("8032").tap do |machine|
+          drive = Badline::Drives::Model2031.new(device:)
+          drive.insert(Badline::Drives::Model1541::Disk.new)
+          machine.attach_drive2031(drive)
+          machine.run_cycles(2_000)
+        end
+      end
+
+      it "saves the drive's modules" do
+        expect(with_drive.snapshot.sections.map(&:name))
+          .to include("BL-D8", "BL-D8-RAM", "BL-D8-VIA1", "BL-D8-VIA2", "BL-D8-CPU", "BL-D8-MECH", "BL-D8-DISK")
+      end
+
+      it "restores a machine that runs on as the saved one, drive and all" do
+        machine = with_drive
+        restored = machine.snapshot.load
+        [machine, restored].each { |each_machine| each_machine.run_cycles(20_000) }
+        expect(restored.snapshot).to eq(machine.snapshot)
+      end
+
+      it "plugs the drive in as the device the snapshot names" do
+        restored = with_drive(9).snapshot.load
+        expect([restored.true_drive.model_name, restored.true_drive.device]).to eq(["2031", 9])
+      end
+
+      it "exports a .vsf that loads back with the drive, which xpet's modules leave out" do
+        machine = with_drive
+        machine.export_snapshot(path)
+        expect(Badline::Snapshot.load(path).snapshot).to eq(machine.snapshot)
+      end
+
+      it "takes a drive the snapshot doesn't have off the bus" do
+        machine = with_drive
+        machine.restore(saved("8032").snapshot)
+        expect([machine.true_drive, machine.ieee.bus.drives]).to eq([nil, []])
+      end
+    end
+
     # A machine with a tape playing in the datasette at cassette port #2.
     def playing_deck2
       bytes = "C64-TAPE-RAW".bytes + [1, 3, 0, 0, 4, 0, 0, 0, 0x30, 0x30, 0x30, 0x30]
