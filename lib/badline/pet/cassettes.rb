@@ -11,7 +11,8 @@ module Badline
     # Both record from VIA PB3. The KERNAL reads each tape as the falling
     # edges its read line makes, as the C64 and VIC-20 do. The machine
     # passes the motor and write lines on after each write to the I/O
-    # chips (#lines_written).
+    # chips (#lines_written), and clocks the decks only while a tape runs
+    # (#running?).
     class Cassettes
       attr_reader :datasette1, :datasette2
 
@@ -22,6 +23,18 @@ module Badline
         @datasette2 = Drives::Datasette.new
         @datasette1.on_flag { pulse1 }
         @datasette2.on_flag { pulse2 }
+        @running = false
+        @running_handler = nil
+        @datasette1.on_running_change { update_running }
+        @datasette2.on_running_change { update_running }
+      end
+
+      # Whether either deck's tape runs.
+      def running? = @running
+
+      # Whether either deck's tape runs, each time that changes.
+      def on_running_change(&handler)
+        @running_handler = handler
       end
 
       def cycle!
@@ -47,6 +60,14 @@ module Badline
       end
 
       private
+
+      def update_running
+        running = @datasette1.running? || @datasette2.running?
+        return if running == @running
+
+        @running = running
+        @running_handler&.call
+      end
 
       # A falling edge on a read line, and the line back up.
       def pulse1

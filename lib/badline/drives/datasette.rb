@@ -14,7 +14,6 @@ module Badline
       # What inserting a tape raises on a machine without a cassette port.
       class Missing < ArgumentError; end
       attr_reader :tape
-      attr_writer :motor
 
       def initialize(tape = nil, level: false)
         @tape = tape
@@ -30,6 +29,8 @@ module Badline
         @low_recorded = false
         @flag_handler = nil
         @sense_handler = nil
+        @running_handler = nil
+        @running = false
       end
 
       # Falling edges on the tape read line.
@@ -40,6 +41,17 @@ module Badline
       # The cassette sense line, which the $01 port reads back.
       def on_sense_change(&handler)
         @sense_handler = handler
+      end
+
+      # Whether the tape runs (#running?), each time that changes, a
+      # snapshot's load included.
+      def on_running_change(&handler)
+        @running_handler = handler
+      end
+
+      def motor=(on)
+        @motor = on
+        update_running
       end
 
       # Whether the machine has a datasette at its cassette port. The SX-64
@@ -56,11 +68,13 @@ module Badline
 
         @tape = tape
         rewind
+        update_running
       end
 
       def eject
         stop!
         @tape = nil
+        update_running
       end
 
       def rewind
@@ -117,7 +131,8 @@ module Badline
 
       def motor? = @motor
 
-      def running? = @playing && @motor && !@tape.nil?
+      # Whether the tape moves: a key down, the motor on and a tape in.
+      def running? = @running
 
       # The tape read line's level, on a datasette built with +level: true+.
       # Each pulse holds it low for its first half and high for its second,
@@ -131,7 +146,7 @@ module Badline
       end
 
       def cycle!
-        return unless running?
+        return unless @running
         return @since += 1 if @recording
 
         next_pulse if @countdown.zero?
@@ -175,7 +190,16 @@ module Badline
 
         finish_recording unless down
         @playing = down
+        update_running
         @sense_handler&.call
+      end
+
+      def update_running
+        running = @playing && @motor && !@tape.nil?
+        return if running == @running
+
+        @running = running
+        @running_handler&.call
       end
 
       # Releasing the keys ends a recording, and writes the tape out.

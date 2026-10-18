@@ -25,6 +25,13 @@ describe Badline::PET::Cassettes do
     expect(cassettes.datasette1.motor?).to be(false)
   end
 
+  it "runs while a deck's tape runs" do
+    cassettes.datasette2.insert(instance_double(Badline::Storage::TAP, rewind: nil))
+    cassettes.datasette2.play!
+    pet.poke(0xe840, 0x0e)
+    expect(cassettes.running?).to be(true)
+  end
+
   it "runs motor 2 while the VIA's PB4 is low" do
     pet.poke(0xe840, 0x0e)
     expect([cassettes.datasette1.motor?, cassettes.datasette2.motor?]).to eq([false, true])

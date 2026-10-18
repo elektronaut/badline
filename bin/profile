@@ -17,6 +17,8 @@
 #          vendor/OneLoad64-Games-Collection-v5 linked into the checkout
 #   synth  idle with the SID recording at 44.1 kHz, drained once a frame,
 #          the loop Audio::MachinePlayer runs
+#   pet    a 3032 at its READY prompt, both cassette decks empty and
+#          idle. --ceiling and --true-drive take only the C64 workloads
 #
 # The default mode samples the workload with stackprof (in the Gemfile's
 # development group, so `bundle install` first) and prints the self time
@@ -57,7 +59,7 @@ require "rbconfig"
 require_relative "../test/support/jit"
 
 module Profiler
-  WORKLOADS = %w[idle text game synth].freeze
+  WORKLOADS = %w[idle text game synth pet].freeze
   STUBS = %w[vic cia cpu sid chips].freeze
   GAME = "vendor/OneLoad64-Games-Collection-v5/IK+.crt"
   ROOT = File.expand_path("..", __dir__)
@@ -75,7 +77,7 @@ module Profiler
     NOOP = Module.new { def cycle! = nil }
 
     def initialize(name, true_drive: false, idle_skip: true)
-      @computer = Badline::C64.new
+      @computer = name == "pet" ? Badline::PET.new(model: "3032") : Badline::C64.new
       attach_drive(idle_skip) if true_drive
       @synth = name == "synth"
       fast_forward = 3_000_000
@@ -278,7 +280,7 @@ end
 options = { cycles: nil, top: 15, pairs: 3, lib: File.join(Profiler::ROOT, "lib"), true_drive: false, idle_skip: true }
 
 parser = OptionParser.new do |opts|
-  opts.banner = "Usage: bin/profile [idle|text|game|synth] [options]"
+  opts.banner = "Usage: bin/profile [idle|text|game|synth|pet] [options]"
   opts.on("--cycles N", Integer, "Cycles to measure (default: 5000000 profiled, 3000000 timed)") do |n|
     options[:cycles] = n
   end
