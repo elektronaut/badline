@@ -25,14 +25,17 @@ module Badline
 
           def reads?(section) = section.major == MAJOR && section.minor == MINOR
 
-          def export(machine)
+          def export(machine) = write(machine, [machine.pia1.irq?, machine.pia2.irq?, machine.via.irq?].count(true))
+
+          # The module for `machine`, whose CPU's IRQ line `irqs` sources
+          # pull.
+          def write(machine, irqs)
             cpu = machine.cpu
             fields = FieldWriter.new.qword(machine.cycles)
             [cpu.a, cpu.x, cpu.y, cpu.stack_pointer].each { |register| fields.byte(register) }
             fields.word(cpu.program_counter).byte(cpu.p)
             fields.dword(0).dword(0).dword(0)
             5.times { fields.qword(0) }
-            irqs = [machine.pia1.irq?, machine.pia2.irq?, machine.via.irq?].count(true)
             fields.dword(irqs).dword(0).dword(irqs.positive? ? IK_IRQ : 0)
             fields.section(NAME, MAJOR, MINOR)
           end

@@ -162,7 +162,7 @@ module Badline
               CRTC.import(crtc, out, CRTC.columns(model), CRTC.attributes(model))
             end
             cycles = (CRTC::CRTC_LEAD + CRTC.column_of(crtc)) % CRTC.frame_cycles(CRTC.registers(crtc))
-            fields = CRTC.run_on(computer, Keyed::Reader.parse(counters), cycles)
+            fields = CRTC.run_on(CRTC.fresh_crtc(computer), Keyed::Reader.parse(counters), cycles)
             [Keyed.section("BL-CRTC") { |out| CRTC.copy(fields, out) }]
           end
 

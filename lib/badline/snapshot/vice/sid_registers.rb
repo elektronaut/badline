@@ -38,7 +38,8 @@ module Badline
 
         def import(section, computer)
           registers = FieldReader.new(section).skip(4).bytes(0x20)
-          registers.first(0x19).each_with_index { |value, reg| computer.sid.poke(0xd400 + reg, value) }
+          sid = computer.sid
+          registers.first(0x19).each_with_index { |value, reg| sid.poke(sid.start + reg, value) }
         end
       end
     end

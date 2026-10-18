@@ -28,13 +28,16 @@ module Badline
         module_function
 
         def export(computer)
-          [computer.cia1, computer.cia2].each_with_index.map do |cia, i|
-            fields = FieldWriter.new
-            registers(cia, fields)
-            time_of_day(cia.time_of_day, fields)
-            internals(cia, fields)
-            fields.section(NAMES[i], MAJOR, MINOR)
-          end
+          [computer.cia1, computer.cia2].each_with_index.map { |cia, i| section(cia, NAMES[i]) }
+        end
+
+        # One CIA's module, named `name`.
+        def section(cia, name)
+          fields = FieldWriter.new
+          registers(cia, fields)
+          time_of_day(cia.time_of_day, fields)
+          internals(cia, fields)
+          fields.section(name, MAJOR, MINOR)
         end
 
         def registers(cia, fields)
@@ -80,9 +83,10 @@ module Badline
         def reads?(section) = section.major == MAJOR && section.minor >= MINOR
 
         def import(section, computer)
-          cia = section.name == NAMES.first ? computer.cia1 : computer.cia2
-          Import.new(FieldReader.new(section)).apply(cia)
+          import_into(section, section.name == NAMES.first ? computer.cia1 : computer.cia2)
         end
+
+        def import_into(section, cia) = Import.new(FieldReader.new(section)).apply(cia)
       end
     end
   end
