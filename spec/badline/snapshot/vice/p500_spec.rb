@@ -76,8 +76,8 @@ describe Badline::Snapshot::Vice::P500 do
 
     it "writes the modules xcbm5x0 reads, in its order" do
       expect(exported(machine).sections.map(&:name))
-        .to eq(%w[MAINCPU CBM2MEM CBM2CART CIA1 TPI1 TPI2 Acia1 SID SIDEXTENDED FSDRIVE VIC-II C500DATA TAPEPORT
-                  JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1])
+        .to eq(%w[MAINCPU CBM2MEM CBM2CART CIA1 TPI1 TPI2 Acia1 SID SIDEXTENDED DRIVE8 DRIVE9 DRIVE10 DRIVE11
+                  DRIVECPU0 VIA2D0 2031VIA1D0 FSDRIVE VIC-II C500DATA TAPEPORT JOYPORT0 JOYSTICK0 JOYPORT1 JOYSTICK1])
     end
 
     it "writes CBM2MEM and the VIC-II at the sizes xcbm5x0 writes for a 510" do

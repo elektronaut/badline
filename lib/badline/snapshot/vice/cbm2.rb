@@ -45,7 +45,17 @@ module Badline
            CIAs.section(machine.cia, "CIA1"),
            *TPI::NAMES.map { |name| TPI.export(name, reader(readers, "BL-#{name}")) },
            ACIA.export(reader(readers, "BL-ACIA"), machine.cycles),
-           SIDRegisters.export(machine), SIDExtended.export(machine), *rest]
+           SIDRegisters.export(machine), SIDExtended.export(machine), *drives(machine, readers), *rest]
+        end
+
+        # The true drive's modules, as xpet's (PET::Drive2031,
+        # PET::Drive8050), or with no true drive, DRIVE8 to DRIVE11 as
+        # xcbm2 and xcbm5x0 save no drive.
+        def drives(machine, readers)
+          drive = PET::Drive2031
+          return drive::UNITS.map { |name| drive.unit(drive::NONE, name) } unless machine.true_drive
+
+          drive.export(machine, readers) + PET::Drive8050.export(machine, readers)
         end
 
         def reader(readers, name) = readers[name] || Keyed::Reader.missing(name)

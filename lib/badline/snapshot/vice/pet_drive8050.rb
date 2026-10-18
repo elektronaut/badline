@@ -4,7 +4,7 @@ module Badline
   module Snapshot
     module Vice
       module PET
-        # A true 8050 or 8250 on device 8, as xpet 3.10 saves it with true
+        # A true 8050 or 8250 on device 8, as xpet 3.10, xcbm2 and xcbm5x0 save it with true
         # drive emulation: DRIVE8 2.0 with both drives, DRIVE9 to DRIVE11
         # with none, DRIVECPU0 1.3, the interface processor and its RAM,
         # RIOT1D0 and RIOT2D0 0.0, its two 6532s, and FDC0 0.0. xpet runs

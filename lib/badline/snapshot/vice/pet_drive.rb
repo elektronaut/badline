@@ -4,7 +4,7 @@ module Badline
   module Snapshot
     module Vice
       module PET
-        # A true 2031 on device 8, as xpet 3.10 saves it with true drive
+        # A true 2031 on device 8, as xpet 3.10, xcbm2 and xcbm5x0 save it with true drive
         # emulation: DRIVE8 to DRIVE11 2.0, one a unit, DRIVECPU0 1.3, the
         # drive's 6502 and its RAM, and its VIAs as VIA 2.2 modules,
         # 2031VIA1D0 at $1800 on the IEEE-488 bus and VIA2D0 at $1C00 on
@@ -118,13 +118,19 @@ module Badline
             cpu_section(machine, input, Array.new(RAM_SIZE) { |address| bytes[address] || 0 })
           end
 
+          # The drive's clock, at its 1 MHz, for the machine's at its own.
+          def drive_clock(machine) = machine.cycles * Drives::Model2031::CLOCK_HZ / machine.timing.clock_hz
+
           # DRIVECPU0 for a drive CPU whose BL- fields `input` holds, with
-          # `ram` the drive's RAM as xpet lays it out.
+          # `ram` the drive's RAM as xpet lays it out: the drive's clock,
+          # the registers, the machine's clock, the drive's clock again, and
+          # the RAM.
           def cpu_section(machine, input, ram)
-            fields = FieldWriter.new.qword(machine.cycles)
+            clock = drive_clock(machine)
+            fields = FieldWriter.new.qword(clock)
             %w[a x y sp].each { |key| fields.byte(input.int(key, 0)) }
             fields.word(input.int("pc", 0)).byte(input.int("p", 0x20)).dword(0)
-            fields.qword(machine.cycles).zeros(16).qword(machine.cycles).zeros(1).qword(0).zeros(8).qword(0)
+            fields.qword(machine.cycles).zeros(16).qword(clock).zeros(1).qword(0).zeros(8).qword(0)
             fields.zeros(16).bytes(ram).zeros(TAIL)
             fields.section(CPU, CPU_MAJOR, CPU_MINOR)
           end

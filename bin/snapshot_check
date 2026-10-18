@@ -201,15 +201,15 @@ module SnapshotCheck
   end
 
   # A new machine from the VICE modules alone of the machine's snapshot
-  # for VICE, and the lines its restore left out. A PET's true drive
-  # keeps its disks, which xpet's modules don't carry: they are restored
-  # into a copy of the machine, as into a running PET.
+  # for VICE, and the lines its restore left out. A true drive keeps its
+  # disks, which VICE's modules don't carry: they are restored
+  # into a copy of the machine, as into a running machine.
   def load_vice(machine)
     sections = Badline::Snapshot::Image.exported(machine).sections.reject { |section| section.name.start_with?("BL-") }
     container = Badline::Snapshot::Container.new(sections, machine: Badline::Snapshot::Image.machine_name(machine))
     ignored = []
     vice = Badline::Snapshot::Image.new(container)
-    return [vice.load { |line| ignored << line }, ignored] unless machine.family == :pet && machine.true_drive
+    return [vice.load { |line| ignored << line }, ignored] unless machine.true_drive
 
     restored = load(dump(machine)).first
     vice.restore(restored) { |line| ignored << line }
@@ -246,7 +246,7 @@ module SnapshotCheck
 
   # The modules a load from VICE's modules makes afresh, whole.
   def remade(machine)
-    return CONTROLLER if machine.family == :pet && machine.drive8050
+    return CONTROLLER if machine.drive8050
     return %w[BL-VIC] if machine.is_a?(Badline::CBM2::P500)
 
     []

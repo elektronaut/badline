@@ -234,14 +234,19 @@ modules, so xcbm2 doesn't open it unless it is saved with `--vice` (see
 
 A CBM-II snapshot saved with `--vice`, or `computer.export_snapshot(path)`, also holds
 xcbm2's modules for the CPU, the RAM with both segment registers, the
-CRTC, the CIA, both TPIs, the ACIA and the SID, and the ones xcbm2 3.10
-needs to open the file, with no cartridge, nothing open on the file
-system drive and nothing on the user port. The file says it is in
+CRTC, the CIA, both TPIs, the ACIA and the SID, a true 2031, 8050 or
+8250 as xpet's are written (see [xpet](#xpet)), or with no true drive,
+none on any device, and the ones xcbm2 3.10 needs to open the file, with
+no cartridge, nothing open on the file system drive and nothing on the
+user port. The file says it is in
 VICE's snapshot format 1.0, the only one xcbm2 reads.
 
 xcbm2 3.10 opens those snapshots as long as its model matches: `-model
-610`, `620`, `710` or `720`. It takes a 600's 60 Hz from the snapshot,
-keeps its own drives and leaves out badline's cartridge and disk. It
+610`, `620`, `710` or `720`. It takes a 600's 60 Hz from the snapshot
+and leaves out badline's cartridge and disks. A true drive needs
+`-drive8type 2031`, `8050` or `8250` with `-drive8truedrive` and the
+disk attached as `-8`, and with no true drive in the snapshot xcbm2
+takes its own off the bus. It
 runs on from badline's snapshot just as it runs on from one it saved
 itself, cycle for cycle. Opening any snapshot, its own too, costs it a
 couple of hundred cycles of its CRTC, so the mains ticks that much later
@@ -272,13 +277,17 @@ does until that second tick, cycle for cycle. The picture starts again with the 
 save its ROMs, so the RAM board and the model line build the machine:
 a 610, 620, 710 or 720 with xcbm2's KERNAL, 901244-04a, at 60 Hz for a
 600 whose model line says so and at 50 Hz otherwise. A board of 512K or
-more, or RAM mapped into segment 15, fails. It reports the modules it
-leaves out, such as the drives, the datasette and the keyboard, and
-carries on without them. A snapshot saved while xcbm2's drive was
-sending on the IEEE-488 bus, part way into a `LOAD`, stalls there.
-Restored into a running CBM-II, an xcbm2 snapshot fails for a CBM-II
-built another way, and otherwise switches the machine off and on,
-keeping the disk device 8 serves.
+more, or RAM mapped into segment 15, fails. A true 2031, 8050 or 8250
+goes on the bus as xpet's does, with the disks badline's drive of that
+model had, and xcbm2 runs a true 2031 on device 8 unless told otherwise,
+so its snapshots mostly put one there. One saved part way into a `LOAD`
+from xcbm2's true drive goes on with it in badline. A snapshot without
+a true drive takes badline's off the bus and says so. It reports the
+modules it leaves out, such as the datasette and the keyboard, and
+carries on without them. Restored into a running CBM-II, an xcbm2
+snapshot fails for a CBM-II built another way, and otherwise switches
+the machine off and on, keeping the disk device 8 serves through the
+traps.
 
 ### xcbm5x0
 
@@ -287,15 +296,16 @@ does, with the VIC-II and its colour RAM in place of the CRTC. Its file
 names its machine `CBM-II-5x0`, as xcbm5x0's do. Saved with `--vice`,
 or `computer.export_snapshot(path)`, it also holds xcbm5x0's modules
 for the CPU, the RAM with the video matrix, the colour RAM and both
-segment registers, the CIA, both TPIs, the ACIA, the SID, the VIC-II
-and the mains, and the ones xcbm5x0 3.10 needs to open the file, with
+segment registers, the CIA, both TPIs, the ACIA, the SID, a true drive
+or none as for the B series, the VIC-II and the mains, and the ones
+xcbm5x0 3.10 needs to open the file, with
 no cartridge, nothing open on the file system drive and the joysticks
 released. The file says it is in VICE's snapshot format 0.0, as
 xcbm5x0 writes it.
 
 xcbm5x0 3.10 opens those snapshots with `-model 510`, and `-ntsc` for
-an NTSC 510, keeps its own drives and leaves out badline's cartridge and
-disk. It runs on from badline's snapshot as it runs on from its own,
+an NTSC 510, takes the true drive as xcbm2 does and leaves out badline's
+cartridge and disks. It runs on from badline's snapshot as it runs on from its own,
 cycle for cycle. xcbm5x0 runs VICE's line-based VIC-II, not x64sc's, and
 its module is laid out otherwise: it carries the registers, colour RAM,
 the beam, VC, VCBASE, whether the sequencer is idle, the buffers and
@@ -314,7 +324,8 @@ x64sc's is, so a program badline runs on from its snapshot reads the
 raster a cycle off now and then, and its cycles drift from xcbm5x0's by
 a few over a second. The picture starts again with the next frame. The
 RAM's size and the VIC's picture build the machine: a 510, on NTSC for
-NTSC's picture. More RAM fails. Restored into a running P500, an
+NTSC's picture. More RAM fails. A true drive goes on the bus as from
+xcbm2's snapshots. Restored into a running P500, an
 xcbm5x0 snapshot fails for a P500 built another way, and otherwise
 switches the machine off and on, keeping the disk device 8 serves.
 

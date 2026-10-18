@@ -29,10 +29,7 @@ module Badline
             raise FormatError, "the snapshot is of a #{setup}, not a #{ours}" unless setup == ours
 
             apply(container, setup.build)
-            computer.power_cycle!
-            report = apply(container, computer)
-            kept = computer.mounted? ? ["the disk mounted in device 8 stays mounted"] : []
-            Report.new(applied: report.applied, ignored: report.ignored + kept)
+            CBM2::Restore.reapply(computer) { apply(container, computer) }
           end
 
           def computer_name(computer)
@@ -57,7 +54,7 @@ module Badline
                 ignored << "#{section}: #{reason}, left out"
               end
             end
-            computer.load_modules(Keyed::Modules.new(modules(container, computer, applied)))
+            computer.load_modules(Keyed::Modules.new(modules(container, computer, applied, ignored)))
             Report.new(applied:, ignored: ignored + CBM2::Restore.left_out(container, applied))
           end
 
@@ -69,10 +66,11 @@ module Badline
             end
           end
 
-          def modules(container, computer, applied)
+          def modules(container, computer, applied, ignored)
             chips = chips(container, computer, applied)
             own = {}
             computer.save_modules.each { |section| own[section.name] = section }
+            CBM2::Restore.drive(container, computer, applied, ignored, own)
             chips.save_modules.each { |section| own[section.name] = section if CHIPS.include?(section.name) }
             cycles = FieldReader.new(container[MainCPU::NAME]).qword
             high = machine(own, container, computer, cycles, applied)
