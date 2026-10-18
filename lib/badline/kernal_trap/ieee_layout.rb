@@ -25,9 +25,10 @@ module Badline
     # handshake, +attention+ readies the bus and pulls ATN low for TALK
     # and LISTEN, +byte_sent+ ends a byte sent, +release_attention+ ends
     # SECOND, TKSA, UNTALK and UNLISTEN by letting ATN go, +listen_to_talker+
-    # ends TKSA and ACPTR with the computer listening, and +release+ ends
-    # UNTALK and UNLISTEN.
-    IEEELines = Data.define(:timer, :attention, :byte_sent, :release_attention, :listen_to_talker, :release) do
+    # ends TKSA with the computer listening, +byte_received+ ends ACPTR,
+    # and +release+ ends UNTALK and UNLISTEN.
+    IEEELines = Data.define(:timer, :attention, :byte_sent, :release_attention, :listen_to_talker, :byte_received,
+                            :release) do
       def run_steps(steps, bus)
         value = 0
         steps.each { |step| value = step.act_on(bus) }
@@ -73,9 +74,14 @@ module Badline
         lines.run_steps(lines.release_attention, bus)
       end
 
-      # TKSA and ACPTR end listening: NRFD and NDAC pulled low.
+      # TKSA ends listening: NRFD and NDAC pulled low.
       def listen_to_talker(bus)
         lines.run_steps(lines.listen_to_talker, bus)
+      end
+
+      # ACPTR ends listening as well.
+      def byte_received(bus)
+        lines.run_steps(lines.byte_received, bus)
       end
 
       # The end of UNTALK and UNLISTEN, which address the bus as TALK and
@@ -103,11 +109,12 @@ module Badline
       IEEELineStep.new(address: 0xe822, keep: 0, set: 0xff)
     ].freeze
     PET_RELEASE_ATTENTION = [IEEELineStep.new(address: 0xe840, keep: 0xff, set: 0x04)].freeze
+    PET_LISTEN = [IEEELineStep.new(address: 0xe840, keep: 0xfd, set: 0),
+                  IEEELineStep.new(address: 0xe821, keep: 0, set: 0x34)].freeze
     PET_LINES = IEEELines.new(
       timer: [IEEELineStep.new(address: 0xe845, keep: 0, set: 0xff)].freeze,
       attention: PET_ATTENTION, byte_sent: PET_BYTE_SENT, release_attention: PET_RELEASE_ATTENTION,
-      listen_to_talker: [IEEELineStep.new(address: 0xe840, keep: 0xfd, set: 0),
-                         IEEELineStep.new(address: 0xe821, keep: 0, set: 0x34)].freeze,
+      listen_to_talker: PET_LISTEN, byte_received: PET_LISTEN,
       release: (PET_ATTENTION + PET_BYTE_SENT + PET_RELEASE_ATTENTION).freeze
     )
 
