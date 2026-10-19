@@ -66,6 +66,40 @@ describe Badline::Frontend::MenuDialogs do
     expect(dialogs.open?).to be(false)
   end
 
+  describe "on a PET" do
+    let(:computer) { Badline::PET.new }
+    let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = computer } }
+
+    # Presses the keys over the menu as its frames lay it out: RESUME, then
+    # the dialog.
+    def press_in_menu(*scancodes)
+      scancodes.map do |scancode|
+        buttons.forget
+        buttons.plain(0, 0, "RESUME", :resume)
+        dialogs.draw(0, 0, 300)
+        dialogs.key(scancode)
+      end.last
+    end
+
+    it "puts the drive type Down and Return pick on the bus" do
+      dialogs.pick_drive("2031")
+      press_in_menu(81, 40)
+      expect([computer.true_drive&.model_name, dialogs.open?]).to eq(["2040", false])
+    end
+
+    it "goes back to the drive page with Left, the drive left alone" do
+      dialogs.pick_drive("")
+      press_in_menu(80)
+      expect([computer.true_drive, dialogs.open?, buttons.focus]).to eq([nil, false, :drive_type])
+    end
+
+    it "puts the drive type clicked on the bus" do
+      dialogs.pick_drive("")
+      dialogs.click(:type9060, 0)
+      expect(computer.true_drive&.model_name).to eq("9060")
+    end
+  end
+
   describe "on a Plus/4" do
     subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["plus4", bin_path]), nil) }
 

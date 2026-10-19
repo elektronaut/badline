@@ -88,7 +88,7 @@ module Badline
       # any: :resume, :quit, :freeze or :swap.
       def click(left, top)
         action = @buttons.action_at(left, top)
-        return @dialogs.click(action, top) if %i[browse confirm cancel].include?(action)
+        return @dialogs.click(action, top) if %i[browse confirm cancel].include?(action) || picks_drive?(action)
 
         choose(action)
       end
@@ -159,6 +159,7 @@ module Badline
         when :insert_cartridge then @dialogs.browse(:cartridge)
         when :quick_open then @dialogs.browse(:program)
         when :remove_cartridge then @dialogs.ask_remove
+        when :drive_type then @dialogs.pick_drive(@pages.drive_model)
         else @pages.perform(action)
         end
         nil
@@ -234,6 +235,8 @@ module Badline
       def key_down(scancode, repeat)
         repeat.zero? || Keys::DIRECTIONS.key?(scancode) ? key(scancode) : nil
       end
+
+      def picks_drive?(action) = DriveTypes::ACTIONS.include?(action) && @dialogs.open?
 
       def draw_sections
         top = @top + 32

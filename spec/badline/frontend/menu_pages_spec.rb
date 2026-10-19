@@ -132,6 +132,12 @@ describe Badline::Frontend::MenuPages do
       expect(painter).to have_received(:text).with(0, 12, "GRAPHICS", anything)
     end
 
+    it "shows the drive type on the drive page, the one on the bus at its right" do
+      computer.plug_ieee_drive("8250")
+      pages.draw(:drive, 0, 0)
+      expect(buttons).to have_received(:row).with(anything, "DRIVE TYPE...", :drive_type, "8250")
+    end
+
     it "says where RUN/STOP is" do
       pages.draw(:ports, 0, 0)
       expect(painter).to have_received(:text).with(0, anything, "ESC: RUN/STOP", anything)

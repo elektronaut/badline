@@ -125,8 +125,8 @@ module Badline
         ESC, Page Down RUN/STOP and F4 HELP.
 
         The PET and the CBM take programs, disks, .d80 and .d82 among them,
-        and tapes, and a .d80, a .d82 or a PET tape starts one without
-        `pet`. Their keys type what the host's keys type, Alt with a key
+        and tapes, and a .d80, .d82, .d67 or .d90 or a PET tape starts one
+        without `pet`. Their keys type what the host's keys type, Alt with a key
         presses the PET's SHIFT and the key its unshifted character is on,
         and the pause menu's KEYBOARD page says where the rest are. --basic
         and --editor fit the upgrades Commodore sold, as in --model 2001
@@ -137,7 +137,9 @@ module Badline
         8250. --drive-type 8050 or 8250 plugs either in instead, and
         --drive-type 1001 an SFD-1001, which takes a .d82 in its one drive.
         --drive-type 4040 or 3040 puts a .d64 in a 4040 or a 3040 instead
-        of the 2031, and a .d67, DOS 1's disk, goes in a 2040.
+        of the 2031, and a .d67, DOS 1's disk, goes in a 2040. A .d90 hard
+        disk always goes in a D9060 or a D9090, by its size. The pause
+        menu's DRIVE 8 page picks the drive type on the bus.
         The 8032 and the 8096 have two 50 Hz editors: 4-80-b-50hz, the
         default, and 4-80-b-50hz-0283, another chip's,
         with 64-cycle lines and 313 lines a frame. The 8296 runs its own,

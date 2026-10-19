@@ -74,6 +74,21 @@ module Badline
 
       def eject_disk = MediaSlots.eject_disk(@computer)
 
+      # Puts a true drive of `model` on the PET's or the CBM-II's bus as
+      # device 8, in place of the drive or the traps there, with the disk
+      # device 8 had in it if the model reads it, and says whether it went
+      # on. The disk comes out first, so what was written reaches its file.
+      def drive_type(model)
+        return true if MediaSlots.drive_model(@computer) == model
+
+        succeeds? do
+          path = disk_path
+          eject_disk
+          @computer.plug_ieee_drive(model)
+          Media::TrueDrive.insert(@computer, path, read_only: !@writable) if Drives::IEEEModels.reads?(model, path)
+        end
+      end
+
       # Sets whether disks are writable, for the disk in the drive too,
       # which goes in again as the notch now says.
       def writable(writable)

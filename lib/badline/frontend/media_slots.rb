@@ -26,6 +26,13 @@ module Badline
           path.empty? ? path : File.expand_path(path)
         end
 
+        # The model of the true drive on device 8, or an empty one for the
+        # traps.
+        def drive_model(computer)
+          drive = Media::TrueDrive.drive(computer)
+          drive.nil? ? "" : drive.model_name
+        end
+
         def eject_disk(computer)
           drive = Media::TrueDrive.drive(computer)
           drive.nil? ? computer.unmount : drive.insert(nil)
