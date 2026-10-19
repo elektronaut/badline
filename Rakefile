@@ -190,13 +190,14 @@ task "spinel:sidtests", [:sid] => "vendor:VICE-testprogs" do |_task, args|
   Suites.spinel_sidtests(args[:sid] || "6581")
 end
 
-desc "Run the true-drive scenarios on the Spinel build and compare them against " \
-     "#{Suites::BASELINE_DIR}/drive-scenarios.txt"
-task "spinel:drive_scenarios" do
+desc "Run the true-drive scenarios on the Spinel build ([pet-] or [!pet-] picks some) and compare them " \
+     "against #{Suites::BASELINE_DIR}/drive-scenarios.txt"
+task "spinel:drive_scenarios" do |_task, args|
+  filters = args.extras.compact.reject(&:empty?)
   Suites.spinel_build(harnesses: %w[drive_scenarios])
   results = File.join(SpinelCheck::OUT, "drive-scenarios.txt")
-  Suites.run_suite("drive-scenarios", results, ["--engine", SpinelCheck.binary("drive_scenarios")])
-  Suites.compare_baseline("drive-scenarios", results, name: "spinel-drive-scenarios")
+  Suites.run_suite("drive-scenarios", results, [*filters, "--engine", SpinelCheck.binary("drive_scenarios")])
+  Suites.compare_baseline("drive-scenarios", results, name: "spinel-drive-scenarios", filters:)
 end
 
 desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build, " \

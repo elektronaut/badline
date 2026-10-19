@@ -107,7 +107,8 @@ jobs:
 
   # The shards are balanced by recent run times to about 10 minutes each.
   # testbench-irqdma is split by filter, testbench-drive by filter into its
-  # viavarious rows and the rest, and lorenz and lorenz-plus4 by stretch.
+  # viavarious rows and the rest, drive-scenarios into the PET's drives and
+  # the rest, and lorenz and lorenz-plus4 by stretch.
   # A runner has 2 cores with 2 threads each, so a Lorenz stretch runs
   # nearly twice as fast beside one other as beside three.
   suites:

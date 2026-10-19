@@ -12,7 +12,8 @@ module CIMatrix
   # numbers for a chained suite), or one of CHECKS. testbench-irqdma is split
   # by filter: its b.prg rows, and the rest, nmitest6.prg among them because
   # it contains test6.prg. testbench-drive is split into its viavarious rows
-  # and the rest, and lorenz and lorenz-plus4 by stretch.
+  # and the rest, drive-scenarios into the PET's drives and the rest, and
+  # lorenz and lorenz-plus4 by stretch.
   SHARDS = {
     "lorenz-1-2" => [%w[lorenz 1 2]],
     "lorenz-3-4" => [%w[lorenz 3 4]],
@@ -27,9 +28,11 @@ module CIMatrix
                      testbench-drean testbench-carts],
     "drive-via-1" => [%w[testbench-drive via1.prg via2.prg via3 via4.prg via5.prg via9.prg]],
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
-    "drive" => [%w[testbench-drive !viavarious], "drive-scenarios", "testbench-vic20", "testbench-vic20-ntsc",
-                "testbench-plus4", "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete",
-                "testbench-cbm2", "testbench-cbm5x0"],
+    "drive" => [%w[testbench-drive !viavarious], "testbench-vic20", "testbench-vic20-ntsc", "testbench-plus4",
+                "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete", "testbench-cbm2",
+                "testbench-cbm5x0"],
+    "drive-scenarios-pet" => [%w[drive-scenarios pet-]],
+    "drive-scenarios" => [%w[drive-scenarios !pet-]],
     "lorenz-plus4-1-3" => [%w[lorenz-plus4 1 2 3]],
     "lorenz-plus4-4" => [%w[lorenz-plus4 4]],
     "c128c64" => %w[testbench-c128c64],
@@ -90,7 +93,7 @@ module CIMatrix
       when "lorenz" then args.empty? ? "spinel:lorenz" : "spinel:lorenz[#{args.join(',')}]"
       when "lorenz-plus4" then args.empty? ? "spinel:lorenz_plus4" : "spinel:lorenz_plus4[#{args.join(',')}]"
       when *SID_MODELS.keys then "spinel:sidtests[#{SID_MODELS.fetch(suite)}]"
-      when "drive-scenarios" then "spinel:drive_scenarios"
+      when "drive-scenarios" then args.empty? ? "spinel:drive_scenarios" : "spinel:drive_scenarios[#{args.join(',')}]"
       else "spinel:testbench[#{[suite, *args].join(',')}]"
       end
     end
@@ -130,7 +133,7 @@ module CIMatrix
       when "spinel:lorenz" then [["lorenz", args - ["whole"]]]
       when "spinel:lorenz_plus4" then [["lorenz-plus4", args - ["whole"]]]
       when "spinel:sidtests" then [[SID_MODELS.key(args.first || "6581"), []]]
-      when "spinel:drive_scenarios" then [["drive-scenarios", []]]
+      when "spinel:drive_scenarios" then [["drive-scenarios", args]]
       else raise ArgumentError, "#{task} is not a suite task the matrix knows."
       end
     end

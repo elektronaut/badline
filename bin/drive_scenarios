@@ -22,8 +22,9 @@
 # diffs against test/baselines/drive-scenarios.txt. With --results, the
 # records are written to PATH in scenario order. A scenario whose process
 # fails gets a FAIL row for each check it didn't report. Filters are
-# scenario name substrings matched as a union; one that matches nothing is
-# an error rather than an empty run.
+# scenario name substrings matched as a union, and one led by "!" leaves out
+# the scenarios it matches; one that picks nothing is an error rather than
+# an empty run.
 
 require_relative "../test/support/drive_scenarios_runner"
 

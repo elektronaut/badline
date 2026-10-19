@@ -28,6 +28,18 @@ class TestDriveScenariosRunner < Minitest::Test
                  [DriveScenarios.selected([]).include?("cpm-zexdoc"), DriveScenarios.selected(%w[cpm-zex])]
   end
 
+  def test_leaves_out_the_scenarios_a_bang_filter_matches
+    assert_equal DriveScenarios::CHECKS.keys.grep_v(/pet-/), DriveScenarios.selected(%w[!pet-])
+  end
+
+  def test_runs_no_long_scenario_with_only_a_bang_filter
+    refute_includes DriveScenarios.selected(%w[!pet-]), "cpm-zexdoc"
+  end
+
+  def test_names_only_a_picking_filter_that_matches_nothing
+    assert_equal %w[nope], DriveScenarios.unmatched(%w[!nothing nope])
+  end
+
   def test_fails_each_check_of_a_crashed_long_scenario
     lines, = finish("", "cpm-zexdoc")
 
