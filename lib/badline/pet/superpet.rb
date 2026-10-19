@@ -7,6 +7,8 @@ require "badline/pet/superpet/acia"
 require "badline/pet/superpet/board"
 require "badline/pet/superpet/m6809"
 require "badline/pet/superpet/waterloo_traps"
+require "badline/pet/superpet/keyed_parts"
+require "badline/pet/superpet/keyed_modules"
 
 module Badline
   class PET
@@ -42,6 +44,10 @@ module Badline
 
       attr_reader :board, :acia, :dongle, :m6809
 
+      # The traps on the Waterloo ROM's IEEE-488 routines, while a disk is
+      # on device 8 (WaterlooTraps).
+      attr_reader :waterloo_traps
+
       # +cpu+ is SW2's position and +bank_ram+ SW1's, as Board names them.
       # The other arguments are the PET's for an 8032, its true drive's too.
       def initialize(refresh_hz: 50, debug: false, basic: nil, editor: nil, cpu: "6502", bank_ram: "rw",
@@ -57,7 +63,7 @@ module Badline
                                  ram_switch: bank_ram, refresh_hz: @refresh_hz)
         @m6809 = M6809.new(@bus)
         @m6809_running = @board.m6809?
-        @waterloo_trap = nil
+        @waterloo_traps = nil
         @board.on_select { cpu_selected }
         @bus.fit_board(@board)
         @init_threshold = WATERLOO_BOOT if @m6809_running
@@ -69,25 +75,25 @@ module Badline
       # Device 8 through the traps, for the Waterloo ROM's routines too.
       def mount(storage)
         trap = super
-        @waterloo_trap ||= WaterlooTraps.new(cpu: @m6809, bus: @bus, dos: @dos).install
-        @waterloo_trap.device = trap_device
+        @waterloo_traps ||= WaterlooTraps.new(cpu: @m6809, bus: @bus, dos: @dos).install
+        @waterloo_traps.device = trap_device
         trap
       end
 
       def unmount
         super
-        @waterloo_trap&.uninstall
-        @waterloo_trap = nil
+        @waterloo_traps&.uninstall
+        @waterloo_traps = nil
       end
 
       def attach_ieee_drive(drive)
         super
-        @waterloo_trap&.device = trap_device
+        @waterloo_traps&.device = trap_device
       end
 
       def detach_ieee_drive
         super
-        @waterloo_trap&.device = trap_device
+        @waterloo_traps&.device = trap_device
       end
 
       # Types into the Waterloo ROM's key buffer, in ASCII, while the 6809
@@ -149,6 +155,9 @@ module Badline
 
         @cycles += 1
       end
+
+      # Whether the ACIA pulls the IRQ line.
+      def acia_irq? = @acia_irq
 
       # The ACIA's IRQ line, and the cycle it next has something to do at.
       def acia_changed(irq, due)

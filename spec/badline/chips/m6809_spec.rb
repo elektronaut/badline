@@ -281,4 +281,31 @@ describe Badline::Chips::M6809 do
       expect(run_trace(8)).to eq(%w[r:1000 r:1001 r:1002 r:1003 r:1004 r:ffff r:ffff r:4100])
     end
   end
+
+  describe "keyed snapshot fields" do
+    # A CPU on a copy of the bus's RAM, loaded from the CPU's fields.
+    def copied
+      copy_bus = M6809Bus.new
+      copy_bus.load(0, *bus.ram)
+      section = Badline::Snapshot::Keyed.section("BL-M6809") { |out| cpu.save_fields(out) }
+      described_class.new(copy_bus).tap do |copy|
+        copy_bus.cpu = copy
+        copy.load_fields(Badline::Snapshot::Keyed::Reader.parse(section))
+      end
+    end
+
+    it "puts a copy part way through an instruction where the CPU is" do
+      program(0x34, 0xff, 0x12)
+      cycles(6)
+      copy = copied
+      [cpu, copy].each { |each_cpu| 14.times { each_cpu.cycle! } }
+      expect([copy.inspect, copy.bus.ram[0x1ff4, 12]]).to eq([cpu.inspect, bus.ram[0x1ff4, 12]])
+    end
+
+    it "puts a copy in SYNC waiting as the CPU is" do
+      program(0x13)
+      cycles(5)
+      expect(copied.waiting?).to be(true)
+    end
+  end
 end

@@ -72,10 +72,12 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `rom.basic` | text | PET: "pet/basic4.rom" or "pet/basic1.rom" |
 | `rom.editor` | text | PET: "pet/editor4-80-b-50hz.rom" or "pet/editor1.rom" or "pet/editor4-80-b-50hz-8296.rom" |
 | `rom.kernal` | text | PET: "pet/kernal4.rom" or "pet/kernal1.rom" |
-| `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
+| `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" or "pet/characters-superpet.rom" |
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
 | `host.ieee_drive_model` | text: 2031 8050 8250 1001 4040 3040 9060 9090 | PET: "2031"; CBM-II: "2031" |
+| `cpu_switch` | text: 6502 6809 prog | PET: "6502" |
+| `ram_switch` | text: rw read prog | PET: "rw" |
 | `mains_hz` | int | CBM-II: 50 |
 | `dram_refresh` | bool | CBM-II: true |
 | `mains_countdown` | int | CBM-II: varies |
@@ -603,6 +605,11 @@ Written by the C64, PET, CBM-II.
 | `ieee.talk_channel` | int, optional | PET: absent; CBM-II: absent |
 | `ieee.frame` | int | PET: 240; CBM-II: 240 |
 | `ieee.buffer` | bytes | PET: []; CBM-II: [] |
+| `waterloo.listening` | bool | PET: false |
+| `waterloo.talking` | bool | PET: false |
+| `waterloo.channel` | int | PET: 0 |
+| `waterloo.frame` | byte | PET: 0 |
+| `waterloo.buffer` | ints | PET: [] |
 
 ## BL-D8
 
@@ -1231,7 +1238,7 @@ Written by the Plus/4.
 
 ## BL-ACIA
 
-Written by the Plus/4, CBM-II.
+Written by the Plus/4, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
@@ -1650,6 +1657,66 @@ Written by the PET.
 | `timer.flag` | bool | false |
 | `timer.irq_enabled` | bool | false |
 | `timer.fired` | bool | false |
+
+## BL-SUPERPET
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `bank_latch` | byte | 0 |
+| `system_latch` | byte | 0 |
+| `socket` | int | 0 |
+| `ram` | bytes | 65536 × 0 |
+| `dongle.registers` | ints | [0, 0, 0, 0, 0, 0, 0, 0] |
+| `dongle.latch` | byte | 255 |
+| `dongle.shift_in` | int, optional | absent |
+
+## BL-M6809
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `a` | byte | 0 |
+| `b` | byte | 0 |
+| `x` | word | 0 |
+| `y` | word | 0 |
+| `u` | word | 0 |
+| `s` | word | 0 |
+| `pc` | word | 0 |
+| `dp` | byte | 0 |
+| `cc` | byte | 80 |
+| `cycles` | int | 0 |
+| `irq` | bool | false |
+| `firq` | bool | false |
+| `nmi` | bool | false |
+| `halt` | bool | false |
+| `irq.latched` | bool | false |
+| `irq.seen` | bool | false |
+| `firq.latched` | bool | false |
+| `firq.seen` | bool | false |
+| `nmi.edge` | bool | false |
+| `nmi.latched` | bool | false |
+| `nmi.seen` | bool | false |
+| `nmi.armed` | bool | false |
+| `halt.latched` | bool | false |
+| `halt.seen` | bool | false |
+| `ea` | word | 0 |
+| `value` | word | 0 |
+| `post` | byte | 0 |
+| `opcode` | byte | 0 |
+| `operation` | text: none enter_nmi enter_firq enter_irq neg xnc com lsr ror asr asl rol dec xdec inc tst jmp clr nop sync jsr x18 daa orcc andcc sex exg tfr leax leay leas leau abx mul xres swi nega xnca coma lsra rora asra asla rola deca xdeca inca tsta xclra clra negb xncb comb lsrb rorb asrb aslb rolb decb xdecb incb tstb xclrb clrb suba cmpa sbca subd anda bita lda xsta eora adca ora adda cmpx ldx xstx sta stx subb cmpb sbcb addd andb bitb ldb xstb eorb adcb orb addb ldd ldu xstu stb std stu xswi2 swi2 cmpd xsta2 cmpy ldy xsty sty xaddd xstb2 lds xsts sts xfirq swi3 cmpu cmps xstx2 xaddu xstu2 | "none" |
+| `page` | int | 1 |
+| `group` | int | 0 |
+| `previous_group` | int | 0 |
+| `alu_word` | int | 0 |
+| `vector` | word | 65534 |
+| `interrupt_mask` | byte | 0 |
+| `stack_u` | bool | false |
+| `pos.plan` | text | "fetch" |
+| `pos.tail` | text | "none" |
+| `pos.index` | int | 0 |
 
 ## BL-CIA
 

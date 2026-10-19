@@ -8,6 +8,7 @@ require "badline/chips/m6809/stack"
 require "badline/chips/m6809/interrupts"
 require "badline/chips/m6809/arithmetic"
 require "badline/chips/m6809/operations"
+require "badline/chips/m6809/keyed_state"
 
 module Badline
   module Chips
@@ -29,6 +30,7 @@ module Badline
         include Interrupts
         include Arithmetic
         include Operations
+        include KeyedState
 
         attr_reader :bus, :cycles
 

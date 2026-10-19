@@ -15,6 +15,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] --family c128 [--mode c64|c128]
 #   ruby --yjit bin/machine_diff [scenario|media] --family plus4 [--model c16|c116] [--ram K]
 #   ruby --yjit bin/machine_diff [scenario|media] --family pet [--model MODEL] [--ram K]
+#   ruby --yjit bin/machine_diff [boot|type] --family pet --model superpet [--cpu 6502|6809|prog]
 #   ruby --yjit bin/machine_diff [boot|type] --family kim1
 #
 # Scenarios:
@@ -64,8 +65,11 @@
 #          Checkpoints digest the CPU, RAM, the screen RAM, the picture,
 #          both PIAs, the VIA, the CRTC and the 8096's board
 #          (Badline::Support::PETCheckpoint). --model superpet adds the
-#          SuperPET board's latches and bank RAM, its 6702 and its ACIA
-#          (Badline::Support::SuperPETCheckpoint)
+#          SuperPET board's latches and bank RAM, its 6702, its ACIA, its
+#          6809 and the traps on the Waterloo ROM's IEEE-488 routines
+#          (Badline::Support::SuperPETCheckpoint). --cpu sets its CPU
+#          switch, 6502 by default. At 6809 the boot scenario sits at the
+#          Waterloo menu, and type types --text there
 #   cbm2   a 610, or the B series model --model names
 #          (Badline::CBM2::Model::ALL). It has no demo yet, so it runs the
 #          boot and type scenarios alone. Checkpoints digest the CPU with

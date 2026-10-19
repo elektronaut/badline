@@ -372,7 +372,8 @@ SuperPET key that types its unshifted character, with the host's SHIFT,
 so it types the APL symbol on that keycap. The menu's KEYBOARD page
 says which set is up. It takes the 8032's editors and `--60hz`,
 which picks the Waterloo ROM with the 60 Hz CRTC table, and no `--ram`.
-Its snapshots don't load back yet.
+Its snapshots save and load in both modes, and xpet's `-model SuperPET`
+opens those saved with `--vice`.
 
 ```sh
 badline pet --model superpet --cpu 6809                   # The SuperPET's Waterloo menu

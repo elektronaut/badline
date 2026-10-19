@@ -25,7 +25,11 @@ module Badline
 
           def reads?(section) = section.major == MAJOR && section.minor == MINOR
 
-          def export(machine) = write(machine, [machine.pia1.irq?, machine.pia2.irq?, machine.via.irq?].count(true))
+          def export(machine)
+            sources = [machine.pia1.irq?, machine.pia2.irq?, machine.via.irq?]
+            sources << machine.acia_irq? if machine.superpet?
+            write(machine, sources.count(true))
+          end
 
           # The module for `machine`, whose CPU's IRQ line `irqs` sources
           # pull.
@@ -52,16 +56,46 @@ module Badline
         end
 
         # The SuperPET's 6809, CPU6809 1.1, which xpet saves on every model
-        # and won't load a snapshot without: the clock and the registers as
-        # an xpet with no SuperPET board leaves them. badline doesn't read
-        # it.
+        # and won't load a snapshot without: the clock, X, Y, U, S and PC,
+        # DP, CC, A and B, then five bytes. xpet 3.10's layout was inferred
+        # from its snapshots of a 6809 running a loop that loads each
+        # register with a value of its own; the five bytes are 0 in every
+        # snapshot xpet wrote.
+        #
+        # Written: the clock and the registers, the SuperPET's 6809's
+        # between instructions while it has the bus, and otherwise the
+        # registers of a 6809 that hasn't run, as xpet leaves them. Read:
+        # the registers, with the 6809 on an instruction boundary, as
+        # xpet's snapshot is taken on one.
         module CPU6809
           NAME = "CPU6809"
+          MAJOR = 1
+          MINOR = 1
+          # The CC an xpet without a SuperPET board saves.
+          IDLE_CC = 0x04
 
           module_function
 
+          def reads?(section) = section.major == MAJOR && section.minor == MINOR
+
           def export(machine)
-            FieldWriter.new.qword(machine.cycles).zeros(11).byte(0x04).zeros(7).section(NAME, 1, 1)
+            fields = FieldWriter.new.qword(machine.cycles)
+            unless machine.superpet? && machine.m6809_running?
+              return fields.zeros(11).byte(IDLE_CC).zeros(7).section(NAME, MAJOR, MINOR)
+            end
+
+            cpu = machine.m6809
+            [cpu.x, cpu.y, cpu.u, cpu.s, cpu.pc].each { |register| fields.word(register) }
+            fields.byte(cpu.dp).byte(cpu.cc).byte(cpu.a).byte(cpu.b).zeros(5).section(NAME, MAJOR, MINOR)
+          end
+
+          # The registers by their BL-M6809 keys, in a keyed module's writer,
+          # with the 6809's cycle count the machine's `cycles`.
+          def import(section, out, cycles)
+            fields = FieldReader.new(section).skip(8)
+            %w[x y u s pc].each { |name| out.int(name, fields.word) }
+            %w[dp cc a b].each { |name| out.int(name, fields.byte) }
+            out.int("cycles", cycles).bool("nmi.armed", true)
           end
         end
       end

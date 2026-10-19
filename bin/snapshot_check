@@ -3,7 +3,8 @@
 
 # Checks that snapshots restore the machine exactly, on the scenarios in
 # test/support/snapshot_machines.rb: a C64 with each kind of media and
-# expansion, the VIC-20, the C128, the Plus/4 and the C16, and the PETs.
+# expansion, the VIC-20, the C128, the Plus/4 and the C16, the PETs and the
+# SuperPET in both modes.
 #
 #   ruby --yjit bin/snapshot_check [filter] [--cycles N] [--every K]
 #   ruby --yjit bin/snapshot_check --vice [filter]
@@ -108,7 +109,9 @@ module SnapshotCheck
     [machine, ignored]
   end
 
-  def family_options(machine) = { family: machine.family.to_s, model: (machine.model.name if machine.family == :cbm2) }
+  def family_options(machine)
+    { family: machine.family.to_s, model: (machine.model.name if %i[cbm2 pet].include?(machine.family)) }
+  end
 
   def checkpoint(machine)
     line = MachineFamilies.checkpoint(family_options(machine)).take(machine).to_s

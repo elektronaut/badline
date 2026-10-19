@@ -146,6 +146,19 @@ module SnapshotSetups
     run(machine, 100_001)
   end
 
+  # A SuperPET once BASIC runs, with a pattern written to each of its
+  # board's 16 banks through the bank latch at $EFFC, bank 3 left at
+  # $9000, and the program run on.
+  def superpet_banks(machine)
+    run(machine, 2_600_000)
+    16.times do |bank|
+      machine.poke(0xeffc, bank)
+      0x100.times { |offset| machine.poke(0x9000 + offset, (bank * 16) ^ offset) }
+    end
+    machine.poke(0xeffc, 3)
+    run(machine, 100_001)
+  end
+
   # An 8296 with its user port jumpered, its banks written as the 8096's
   # are, a pattern written under BASIC and at $9000-$90FF, and the user
   # port's PA0 and PA1 driven low to show the RAM at $9000 and $A000.
@@ -379,9 +392,20 @@ module SnapshotMachines
     ]
   end
 
+  # The SuperPET in 6502 mode, an 8032 running BASIC with its bank RAM
+  # written, and in 6809 mode at the Waterloo menu.
+  def superpet_scenarios
+    [
+      Scenario.new("superpet-6502-basic", :pet, ->(_dir) { typing(Badline::PET::SuperPET.new, PET_BASIC) },
+                   ->(m) { superpet_banks(m) }),
+      Scenario.new("superpet-6809-menu", :pet, ->(_dir) { Badline::PET::SuperPET.new(cpu: "6809") },
+                   ->(m) { run(m, 700_001) })
+    ]
+  end
+
   def all
     c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
-      plus4_drive_scenarios + pet_scenarios + pet_drive_scenarios + cbm2_scenarios
+      plus4_drive_scenarios + pet_scenarios + pet_drive_scenarios + superpet_scenarios + cbm2_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }

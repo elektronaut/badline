@@ -47,13 +47,26 @@ describe Badline::Snapshot::Vice::PET do
       expect(section_bytes(container("8296"))["PETMEM 1.3"]).to eq(131_101)
     end
 
+    it "writes a SuperPET's 64K board after the screen RAM and its ACIA last, at xpet 3.10's sizes" do
+      sizes = section_bytes(container("superpet"))
+      expect([sizes["PETMEM 1.3"], sizes.keys.last, sizes.values.last]).to eq([100_381, "Acia1 1.1", 22])
+    end
+
+    it "writes the character set VIA CA2 picks after the CRTC's settings, as xpet paints it" do
+      words = [0x0c, 0x0e].map do |pcr|
+        pet = machine.tap { |each_pet| each_pet.poke(0xe84c, pcr) }
+        XpetSnapshots.exported(pet)["CRTC"].data.byteslice(10, 2).unpack1("v")
+      end
+      expect(words).to eq([0, 0x1000])
+    end
+
     it "names the file format xpet reads, 1.0, and the machine PET" do
       expect(container.to_s.byteslice(19, 18)).to eq("\x01\x00PET".b + ("\0" * 13))
     end
   end
 
   describe "a machine restored from xpet's modules alone" do
-    %w[8032 4032 2001 8096 8296].each do |model|
+    %w[8032 4032 2001 8096 8296 superpet].each do |model|
       it "runs on as the saved #{model} does, the picture too once two frames are drawn" do
         saved = machine(model)
         restored = image(XpetSnapshots.exported(saved)).load { nil }
@@ -80,6 +93,40 @@ describe Badline::Snapshot::Vice::PET do
       image(container).load { |line| lines << line }
       expect(lines.map { |line| line.split.first }).to eq(%w[CPU6809 FSDRIVE TAPEPORT USERPORT])
     end
+
+    it "has the SuperPET's bank, its socket bit and its board" do
+      saved = machine("superpet")
+      [[0xeffc, 0x0a], [0x9876, 0x55], [0xeffe, 1]].each { |at, value| saved.poke(at, value) }
+      restored = image(XpetSnapshots.exported(saved)).load { nil }
+      expect([restored.board.bank, restored.board.socket, restored.board.cells]).to eq([0x0a, 1, saved.board.cells])
+    end
+
+    it "has the ACIA's registers" do
+      saved = machine("superpet")
+      [[0xeff2, 0x0b], [0xeff3, 0x1e]].each { |at, value| saved.poke(at, value) }
+      acia = image(XpetSnapshots.exported(saved)).load { nil }.acia
+      expect([acia.command, acia.control]).to eq([0x0b, 0x1e])
+    end
+
+    context "with the SuperPET's 6809 running" do
+      let(:saved) do
+        TakenOnce.fetch([:xpet_superpet, "6809"]) do
+          Badline::PET::SuperPET.new(cpu: "6809").tap { |superpet| superpet.run_cycles(5_001) }.snapshot
+        end.load
+      end
+
+      it "builds it with its CPU switch at 6809, and the 6809's registers" do
+        restored = image(XpetSnapshots.exported(saved)).load { nil }
+        expect([restored.board.cpu_switch, restored.m6809_running?, restored.m6809.inspect.sub(/\ACycles: \d+, /, "")])
+          .to eq(["6809", true, saved.m6809.inspect.sub(/\ACycles: \d+, /, "")])
+      end
+
+      it "reads every SuperPET module xpet writes but the drives and peripherals" do
+        lines = []
+        image(XpetSnapshots.exported(saved)).load { |line| lines << line }
+        expect(lines.map { |line| line.split.first }).to eq(%w[FSDRIVE TAPEPORT USERPORT])
+      end
+    end
   end
 
   describe "a snapshot badline reads and writes again" do
@@ -89,6 +136,11 @@ describe Badline::Snapshot::Vice::PET do
         again = XpetSnapshots.exported(image(exported).load { nil })
         expect(again.sections.map(&:data)).to eq(exported.sections.map(&:data))
       end
+    end
+
+    it "writes the same modules for a SuperPET" do
+      exported = container("superpet", 25_001)
+      expect(XpetSnapshots.exported(image(exported).load { nil }).to_s).to eq(exported.to_s)
     end
 
     it "writes the same modules for a 2001" do
@@ -126,9 +178,14 @@ describe Badline::Snapshot::Vice::PET do
       expect(setup(container("3032b")).model).to eq("3032")
     end
 
-    it "refuses a SuperPET" do
-      superpet = XpetSnapshots.with_section(container, "PETMEM") { |section| XpetSnapshots.patched(section, 0, [3]) }
-      expect { setup(superpet) }.to raise_error(Badline::Snapshot::FormatError, /SuperPET, which badline doesn't build/)
+    it "builds a SuperPET with its CPU switch at 6502 while the 6502 has the bus, and its RAM switch at R/W" do
+      built = setup(container("superpet"))
+      expect([built.model, built.cpu_switch, built.ram_switch]).to eq(%w[superpet 6502 rw])
+    end
+
+    it "refuses a board it doesn't know" do
+      board = XpetSnapshots.with_section(container, "PETMEM") { |section| XpetSnapshots.patched(section, 0, [6]) }
+      expect { setup(board) }.to raise_error(Badline::Snapshot::FormatError, /board 6, which badline doesn't build/)
     end
   end
 
