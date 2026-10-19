@@ -38,9 +38,10 @@ Metrics/MethodLength:
     - "lib/badline/chips/cpu/instruction.rb"
 
 # Options::Validation checks every family's options, the SuperPET's --cpu
-# and --bank-ram among them.
+# and --bank-ram among them, and DriveScenarios::PET8050Runs runs every PET
+# unit with two processors, the 2040's DOS 1 among them.
 Metrics/ModuleLength:
-  Max: 232
+  Max: 241
 
 Metrics/PerceivedComplexity:
   Max: 12

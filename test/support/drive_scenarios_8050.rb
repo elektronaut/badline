@@ -21,12 +21,15 @@ module DriveScenarios
       "pet-8250-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8050-format" => %w[no-error lists-new-disk trap-readable],
       "pet-4040-format" => %w[no-error lists-new-disk trap-readable],
+      "pet-2040-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8250-save" => %w[no-error loads-back file-in-image trap-readable],
       "pet-1001-save" => %w[no-error loads-back file-in-image trap-readable],
       "pet-8050-idle" => %w[sleeps matches-stepping],
       "pet-1001-idle" => %w[sleeps matches-stepping],
       "pet-4040-idle" => %w[sleeps matches-stepping],
       "pet-4040-save" => %w[no-error loads-back file-in-image trap-readable],
+      "pet-2040-save" => %w[no-error loads-back file-in-image trap-readable],
+      "pet-4040-dos1-disk" => %w[write-refused image-unchanged],
       "pet-4040-read-only" => %w[write-protect-on image-unchanged],
       "pet-4040-autostart" => %w[loads-and-runs],
       "pet-8050-save" => %w[no-error loads-back file-in-image trap-readable],
@@ -38,25 +41,39 @@ module DriveScenarios
       "pet-1001-error-channel" => %w[power-on-message],
       "pet-4040-error-channel" => %w[power-on-message],
       "pet-3040-error-channel" => %w[power-on-message],
+      "pet-2040-identity" => %w[dos-1.2],
       "pet-1001-second-drive" => %w[initialise-fails directory-not-ready]
     }.freeze
 
     # Each model's disk image, by its extension.
-    EXTENSIONS = { "8050" => ".d80", "8250" => ".d82", "1001" => ".d82", "4040" => ".d64", "3040" => ".d64" }.freeze
+    EXTENSIONS = { "8050" => ".d80", "8250" => ".d82", "1001" => ".d82", "4040" => ".d64", "3040" => ".d64",
+                   "2040" => ".d67" }.freeze
 
     # The size of a disk image of each kind.
-    IMAGE_SIZES = { ".d80" => 533_248, ".d82" => 1_066_496, ".d64" => 174_848 }.freeze
+    IMAGE_SIZES = { ".d80" => 533_248, ".d82" => 1_066_496, ".d64" => 174_848, ".d67" => 176_640 }.freeze
 
     # The blocks free on a newly formatted disk: 2052 on an 8050, 4133 on an
-    # 8250 or a 1001, 664 on a 4040, less one for PROG.
+    # 8250 or a 1001, 664 on a 4040, 670 on a 2040, less one for PROG.
     FREE_AFTER_PROG = { "8050" => "2051 BLOCKS FREE", "8250" => "4132 BLOCKS FREE",
                         "1001" => "4132 BLOCKS FREE", "4040" => "663 BLOCKS FREE",
-                        "3040" => "663 BLOCKS FREE" }.freeze
+                        "3040" => "663 BLOCKS FREE", "2040" => "669 BLOCKS FREE" }.freeze
 
     # The disk's header line once formatted as NEW DISK with the ID XY.
     NEW_DISK = { "8050" => "\"NEW DISK        \" XY 2C", "8250" => "\"NEW DISK        \" XY 2C",
                  "1001" => "\"NEW DISK        \" XY 2C", "4040" => "\"NEW DISK        \" XY 2A",
-                 "3040" => "\"NEW DISK        \" XY 2A" }.freeze
+                 "3040" => "\"NEW DISK        \" XY 2A", "2040" => "\"NEW DISK\" XY" }.freeze
+
+    # The PET each model's scenarios run on: a 4032 with BASIC 4, or a 3032
+    # with BASIC 2 for the 2040, as DOS 1's.
+    PET_MODELS = { "2040" => "3032" }.freeze
+
+    # The drive DOS 1's commands and file names need named: without it, N
+    # formats no drive and a SAVE goes to drive 1.
+    DRIVES = { "2040" => "0" }.freeze
+
+    # What a save types first: DOS 1 reads the disk's ID only when told to
+    # initialise it, and till then answers 29,DISK ID MISMATCH.
+    INITIALISE = { "2040" => "open15,8,15,\"i0\":close15\r" }.freeze
 
     # The power-on message each model's error channel reads.
     MESSAGES = { "8050" => " 73CBM DOS V2.7 0 0", "8250" => " 73CBM DOS V2.7 0 0",
@@ -74,6 +91,8 @@ module DriveScenarios
       when "idle" then idle(report, dir, model)
       when "autostart" then autostart(report, dir, model)
       when "second-drive" then second_drive(report, dir, model)
+      when "dos1-disk" then dos1_disk(report, dir, model)
+      when "identity" then identity(report, model)
       else error_channel(report, model)
       end
     end
@@ -83,8 +102,9 @@ module DriveScenarios
     def format(report, dir, model)
       path = File.join(dir, "pet-#{model}-format#{extension(model)}")
       File.binwrite(path, Array.new(image_size(model), 0).pack("C*"))
-      text = "10 open1,8,15,\"n:new disk,xy\":input#1,a,b$:close1:print a;b$\r" \
-             "run\rsave\"prog\",8\rload\"$\",8\rlist\r"
+      drive = DRIVES.fetch(model, "")
+      text = "10 open1,8,15,\"n#{drive}:new disk,xy\":input#1,a,b$:close1:print a;b$\r" \
+             "run\rsave\"#{on_drive(model, 'prog')}\",8\rload\"$#{drive}\",8\rlist\r"
       output = write_run(path, model, text, 4)
       free = FREE_AFTER_PROG.fetch(model)
       report.check("no-error", Runs.number_before?(output, " 0", "OK"), "the error channel said no 0, OK")
@@ -96,7 +116,10 @@ module DriveScenarios
     # SAVE through the DOS to a blank disk, then NEW, LOAD and LIST it back.
     def save(report, dir, model)
       path = blank(dir, "pet-#{model}-save", model)
-      output = write_run(path, model, PETRuns::SAVE_TEXT, 4)
+      initialise = INITIALISE.fetch(model, "")
+      readies = initialise.empty? ? 4 : 5
+      text = PETRuns::SAVE_TEXT.gsub("\"test\"", "\"#{on_drive(model, 'test')}\"")
+      output = write_run(path, model, initialise + text, readies)
       report.check("no-error", !output.include?("ERROR"), "printed an error")
       report.check("loads-back", output.include?("10 PRINT\"HELLO\""), "listed no 10 PRINT\"HELLO\"")
       report.check("file-in-image", open_image(path, model).read_file("test") == PETRuns::SAVED,
@@ -133,6 +156,37 @@ module DriveScenarios
       Badline::Media.attach(machine, path)
       Runs.run_until(machine, 60_000_000) { output.output.upcase.include?("TRUE DRIVE\n") }
       report.check("loads-and-runs", output.output.upcase.include?("TRUE DRIVE\n"), "printed no TRUE DRIVE")
+    end
+
+    # A DOS 1 disk in a DOS 2 unit: the 4040 reads its directory, but a SAVE
+    # answers 73,CBM DOS V2,17,00 in DS$, the write refused, and leaves the
+    # image alone.
+    def dos1_disk(report, dir, model)
+      path = blank(dir, "pet-#{model}-dos1-disk", "2040")
+      before = File.binread(path)
+      machine = pet(model)
+      machine.plug_true_drive.insert_image(path)
+      output = machine.capture_output
+      machine.on_init { machine.type_text("10 print\rsave\"x\",8\rprint ds$\r") }
+      Runs.run_until(machine, 60_000_000) { output.output.upcase.scan("READY.").length >= 3 }
+      machine.true_drive.flush
+      report.check("write-refused", output.output.upcase.include?("73,CBM DOS V2,17,00"),
+                   "printed no 73,CBM DOS V2,17,00")
+      report.check("image-unchanged", File.binread(path) == before, "the image changed")
+    end
+
+    # The byte at the end of the unit's DOS, as VICE-testprogs'
+    # diskaddrchange.bas reads it with M-R to tell DOS 1.2 from the others:
+    # $E2 on the 2040. DOS 1 has no power-on message to read.
+    def identity(report, model)
+      machine = pet(model)
+      machine.plug_true_drive
+      output = machine.capture_output
+      machine.on_init do
+        machine.type_text("10 open1,8,15:print#1,\"m-r\"chr$(255)chr$(255):get#1,c$:printasc(c$+chr$(0));st\rrun\r")
+      end
+      Runs.run_until(machine, 20_000_000) { output.output.upcase.scan("READY.").length >= 2 }
+      report.check("dos-1.2", output.output.include?(" 226 "), "read no 226 from $FFFF")
     end
 
     # Drive 1 of a unit with one drive, the 1001's, with no disk in drive 0
@@ -272,12 +326,19 @@ module DriveScenarios
       case extension
       when ".d82" then Badline::Storage::D82Image.new(path)
       when ".d64" then Badline::Storage::D64Image.new(path)
+      when ".d67" then Badline::Storage::D67Image.new(path)
       else Badline::Storage::D80Image.new(path)
       end
     end
 
-    # A 4032 with the model as the drive plug_true_drive plugs in.
-    def pet(model) = Badline::PET.new(model: "4032", true_drive_model: model)
+    # A file name on the drive DRIVES names for the model.
+    def on_drive(model, name)
+      drive = DRIVES.fetch(model, "")
+      drive.empty? ? name : "#{drive}:#{name}"
+    end
+
+    # The model's PET, with the model as the drive plug_true_drive plugs in.
+    def pet(model) = Badline::PET.new(model: PET_MODELS.fetch(model, "4032"), true_drive_model: model)
 
     def extension(model) = EXTENSIONS.fetch(model)
 

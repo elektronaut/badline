@@ -30,7 +30,8 @@ module Badline
       ".d81" => Storage::D81Image,
       ".t64" => Storage::T64,
       ".d80" => Storage::D80Image,
-      ".d82" => Storage::D82Image
+      ".d82" => Storage::D82Image,
+      ".d67" => Storage::D67Image
     }.freeze
 
     class << self

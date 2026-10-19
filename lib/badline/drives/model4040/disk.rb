@@ -12,8 +12,12 @@ module Badline
       #
       # nine cells being the header gap the interface processor gives the
       # controller ($049D, from DOS 2.1's SECTRK table), past which a write
-      # puts its syncs. The disk's ID is the BAM's, at 18/0 $A2. A turn
-      # passes 80,000 / (16 - zone) cells, the 16 MHz bit clock's.
+      # puts its syncs. A .d67, DOS 1's disk, is laid out as DOS 1 writes a
+      # sector: 2 sync, the header, one $08, 2 sync, $07, the data and its
+      # checksum. DOS 1's format writes headers only, so this is the track as
+      # if every sector had been written. The disk's ID is the BAM's, at
+      # 18/0 $A2. A turn passes 80,000 / (16 - zone) cells, the 16 MHz bit
+      # clock's.
       class Disk < Model8050::Disk
         # How many tracks a disk holds: 35.
         def side_tracks = 35
@@ -33,11 +37,15 @@ module Badline
           id1, id2 = disk_id
           cells = []
           sectors = @image.sectors_in(number)
+          dos1 = @image.is_a?(Storage::D67Image)
           sectors.times do |sector|
             data = @image.read_block(number, sector)
-            cells.push(SYNC, SYNC, SYNC, SYNC, 0x08, number ^ sector ^ id1 ^ id2, sector, number, id2, id1)
-            cells.concat(Array.new(9, 0x00))
-            cells.push(SYNC, SYNC, SYNC, SYNC, 0x07)
+            header = [0x08, number ^ sector ^ id1 ^ id2, sector, number, id2, id1]
+            if dos1
+              cells.push(SYNC, SYNC, *header, 0x08, SYNC, SYNC, 0x07)
+            else
+              cells.push(SYNC, SYNC, SYNC, SYNC, *header, *Array.new(9, 0x00), SYNC, SYNC, SYNC, SYNC, 0x07)
+            end
             cells.concat(data)
             cells << checksum(data)
           end

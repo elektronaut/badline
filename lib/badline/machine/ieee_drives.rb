@@ -11,11 +11,11 @@ module Badline
   module Machine
     # A machine's true drive on its IEEE-488 bus, one at a time, of a model
     # Drives::IEEEModels names: a Drives::Model2031, Model8050, Model8250,
-    # Model1001, Model4040, Model3040, Model9060 or Model9090. It is clocked
-    # after the CPU each cycle at the machine's clock (ieee_host_clock_hz)
-    # and reset with it, as the machine's RES line reaches IFC. The traps on
-    # the KERNAL's primitives leave device 8 to the drive while it is device
-    # 8 (trap_device). The PET (PET::IEEEDrive) and the CBM-II
+    # Model1001, Model4040, Model3040, Model2040, Model9060 or Model9090. It
+    # is clocked after the CPU each cycle at the machine's clock
+    # (ieee_host_clock_hz) and reset with it, as the machine's RES line
+    # reaches IFC. The traps on the KERNAL's primitives leave device 8 to
+    # the drive while it is device 8 (trap_device). The PET (PET::IEEEDrive) and the CBM-II
     # (CBM2::IEEEDrive) include it.
     #
     # The machine's @ieee is its side of the bus: #bus, the
@@ -100,6 +100,7 @@ module Badline
         when "1001" then Badline::Drives::Model1001.new(device:)
         when "4040" then Badline::Drives::Model4040.new(device:)
         when "3040" then Badline::Drives::Model3040.new(device:)
+        when "2040" then Badline::Drives::Model2040.new(device:)
         when "9060" then Badline::Drives::Model9060.new(device:)
         when "9090" then Badline::Drives::Model9090.new(device:)
         else Badline::Drives::Model2031.new(device:)
