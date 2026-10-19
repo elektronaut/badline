@@ -75,7 +75,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
-| `host.ieee_drive_model` | text: 2031 8050 8250 | PET: "2031"; CBM-II: "2031" |
+| `host.ieee_drive_model` | text: 2031 8050 8250 9060 9090 | PET: "2031"; CBM-II: "2031" |
 | `mains_hz` | int | CBM-II: 50 |
 | `dram_refresh` | bool | CBM-II: true |
 | `mains_countdown` | int | CBM-II: varies |

@@ -61,6 +61,17 @@ describe Badline::Media::TrueDrive do
       expect(machine.true_drive.model_name).to eq("2031")
     end
 
+    it "takes a .d90 with no true drive plugged in, as the traps don't mount one" do
+      expect(described_class.takes?(machine, "disk.d90")).to be(true)
+    end
+
+    it "puts a D9060's .d90 in a D9060 and a D9090's in a D9090" do
+      described_class.insert(machine, image("disk.d90", 5_013_504))
+      first = machine.true_drive.model_name
+      described_class.insert(machine, image("big.d90", 7_520_256))
+      expect([first, machine.true_drive.model_name]).to eq(%w[9060 9090])
+    end
+
     it "puts the 8050 alone on the IEEE-488 bus" do
       described_class.insert(machine, image("disk.d80", 533_248))
       expect(machine.ieee.bus.drives).to eq([machine.true_drive])

@@ -9,6 +9,7 @@ require_relative "drive_scenarios_plus4_tape"
 require_relative "drive_scenarios_plus4_1551"
 require_relative "drive_scenarios_pet"
 require_relative "drive_scenarios_8050"
+require_relative "drive_scenarios_9060"
 require_relative "drive_scenarios_cbm2"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
@@ -22,7 +23,8 @@ require_relative "drive_scenarios_cbm2"
 # bus (drive_scenarios_plus4.rb), its 1551 on TCBM
 # (drive_scenarios_plus4_1551.rb), its datasette
 # (drive_scenarios_plus4_tape.rb), and the PET's 2031 on the IEEE-488 bus
-# (drive_scenarios_pet.rb) and its 8050 and 8250 (drive_scenarios_8050.rb),
+# (drive_scenarios_pet.rb), its 8050 and 8250 (drive_scenarios_8050.rb) and
+# its D9060 and D9090 hard disks (drive_scenarios_9060.rb),
 # and the CBM-II's and the P500's 2031, 8050 and 8250 (drive_scenarios_cbm2.rb).
 # Each takes tens of
 # millions of cycles with two CPUs. A scenario runs on fresh machines and
@@ -51,7 +53,8 @@ module DriveScenarios
     "1571-error-channel" => %w[power-on-message],
     "1571-boot-g64" => %w[boots nothing-typed],
     "1571-idle" => %w[sleeps matches-stepping]
-  ).merge(Plus4TCBMRuns::CHECKS).merge(PETRuns::CHECKS).merge(PET8050Runs::CHECKS).merge(CBM2Runs::CHECKS).freeze
+  ).merge(Plus4TCBMRuns::CHECKS).merge(PETRuns::CHECKS).merge(PET8050Runs::CHECKS).merge(PET9060Runs::CHECKS)
+                           .merge(CBM2Runs::CHECKS).freeze
 
   # The scenarios that run only when a filter names them.
   LONG_CHECKS = CpmRuns::LONG_CHECKS
@@ -97,11 +100,13 @@ module DriveScenarios
   end
 
   # The scenarios named by the model they run on: the PET's units with two
-  # processors (PET8050Runs) and the CBM-II's drives (CBM2Runs), each
-  # found in its table of checks, and the 1581's.
+  # processors (PET8050Runs) and hard disks (PET9060Runs) and the CBM-II's
+  # drives (CBM2Runs), each found in its table of checks, and the 1581's.
   def self.run_keyed(report, name, dir)
     if PET8050Runs::CHECKS.key?(name)
       PET8050Runs.run(report, name, dir)
+    elsif PET9060Runs::CHECKS.key?(name)
+      PET9060Runs.run(report, name, dir)
     elsif CBM2Runs::CHECKS.key?(name)
       CBM2Runs.run(report, name, dir)
     else

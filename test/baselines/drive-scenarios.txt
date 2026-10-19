@@ -143,3 +143,12 @@ p500-8050-save/loads-back	PASS
 p500-8050-save/file-in-image	PASS
 p500-8050-save/trap-readable	PASS
 p500-2031-error-channel/power-on-message	PASS
+pet-9060-save/no-error	PASS
+pet-9060-save/loads-back	PASS
+pet-9060-save/file-in-image	PASS
+pet-9060-scratch/scratched	PASS
+pet-9060-scratch/gone-from-image	PASS
+pet-9090-directory/lists-files	PASS
+pet-9060-not-found/file-not-found	PASS
+pet-9060-error-channel/power-on-message	PASS
+pet-9090-error-channel/power-on-message	PASS

@@ -18,8 +18,11 @@ module Badline
       # | $0B | Seek | |
       # | $0C | Vendor: read the controller's block buffer (unverified) | 256 in |
       # | $0E | Vendor: write the controller's block buffer (unverified) | 256 out |
-      # | $E3 | Vendor: four bytes, all zero here (unverified) | 4 in |
+      # | $E3 | Vendor: four zero bytes from a drive that is there (unverified) | 4 in |
       # | $C0 | Vendor: set the geometry (unverified) | |
+      #
+      # DOS 3.0 sends $E3 before it first reads a drive, and leaves a drive
+      # alone that fails it as DRIVE NOT READY, as drive 1 does here.
       #
       # $C0's fifth and sixth bytes are taken as the last head and the last
       # sector of a head, as the ROM sends them (5 and 31 on a D9090 at
@@ -46,7 +49,7 @@ module Badline
         STEP_CYCLES = 3_000
         SETTLE_CYCLES = 15_000
 
-        DISK_COMMANDS = [0x00, 0x01, 0x04, 0x08, 0x0a, 0x0b].freeze
+        DISK_COMMANDS = [0x00, 0x01, 0x04, 0x08, 0x0a, 0x0b, 0xe3].freeze
         FAST_COMMANDS = [0x08, 0x0a, 0x0b].freeze
 
         attr_reader :heads, :sectors, :cylinder
@@ -67,7 +70,6 @@ module Badline
           when 0x03 then enter(SASITarget::DATA_IN, @last_sense.dup, 1)
           when 0x0c then enter(SASITarget::DATA_IN, @block_buffer.dup, 1)
           when 0x0e then enter(SASITarget::DATA_OUT, Array.new(BLOCK, 0), 1)
-          when 0xe3 then enter(SASITarget::DATA_IN, [0, 0, 0, 0], 1)
           when 0xc0 then set_geometry
           else disk_command
           end
@@ -81,6 +83,7 @@ module Badline
           when 0x00 then report
           when 0x01 then report(travel(0))
           when 0x04 then format_unit
+          when 0xe3 then enter(SASITarget::DATA_IN, [0, 0, 0, 0], 1)
           else block_command
           end
         end

@@ -53,6 +53,11 @@ describe Badline::PET::IEEEDrive do
     expect(Badline::PET.new(true_drive_model: "8250").plug_true_drive.model_name).to eq("8250")
   end
 
+  it "plugs in either hard disk" do
+    expect(%w[9060 9090].map { |model| Badline::PET.new(true_drive_model: model).plug_true_drive.model_name })
+      .to eq(%w[9060 9090])
+  end
+
   it "refuses a model the IEEE-488 bus has none of" do
     expect { Badline::PET.new(true_drive_model: "1541") }.to raise_error(ArgumentError, /1541/)
   end

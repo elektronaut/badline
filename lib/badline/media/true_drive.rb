@@ -38,12 +38,12 @@ module Badline
           drive if drive && drive.device == KernalTrap::Routine::DEVICE
         end
 
-        # Whether the path goes in a true drive: a .g64 or .g71 always, and
-        # other disk media, which the traps would mount, when a true drive
+        # Whether the path goes in a true drive: a .g64, .g71 or .d90 always,
+        # and other disk media, which the traps would mount, when a true drive
         # is device 8.
         def takes?(computer, path)
           kind = Extensions.kind(path)
-          return true if kind == :gcr
+          return true if %i[gcr hard_disk].include?(kind)
 
           !drive(computer).nil? && (File.directory?(path) || %i[disk archive ieee_disk].include?(kind))
         end
