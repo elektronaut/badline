@@ -42,6 +42,8 @@ module Badline
       CBM2 = "CBM-II"
       # xcbm5x0 names its machine CBM-II-5x0, the P500.
       CBM2_5X0 = "CBM-II-5x0"
+      # VICE has no KIM-1, so badline names it.
+      KIM1 = "KIM1"
       # The file format version each machine's VICE emulator reads, where
       # it isn't FORMAT_MAJOR.0: xpet and xcbm2 refuse any other than 1.0, and
       # xcbm5x0 writes 0.0.

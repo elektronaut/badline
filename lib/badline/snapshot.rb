@@ -100,6 +100,10 @@ module Badline
     include Snapshot::Files
   end
 
+  class KIM1
+    include Snapshot::Files
+  end
+
   class CBM2
     include Snapshot::Files
 

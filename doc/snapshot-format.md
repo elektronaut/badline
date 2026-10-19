@@ -23,11 +23,11 @@ key only some of them have names them.
 
 ## BL-MACHINE
 
-Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
+Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II, KIM-1.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `family` | text: c64 vic20 c128 plus4 pet cbm2 | "c64" |
+| `family` | text: c64 vic20 c128 plus4 pet cbm2 kim1 | "c64" |
 | `region` | text: pal ntsc ntscold drean | C64: "pal" |
 | `vic_model` | text: mos6569 mos8565 mos8566 mos8564 | C64: "mos6569" |
 | `cia_model` | text: mos6526 mos6526a | C64: "mos6526" |
@@ -45,10 +45,10 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `freeze_writes` | int | C64: 0 |
 | `dma` | bool | C64: false |
 | `host.pending_keys` | ints | [] |
-| `host.init_keys` | ints | [] |
+| `host.init_keys` | ints | C64: []; VIC-20: []; C128: []; Plus/4: []; PET: []; CBM-II: [] |
 | `host.init_pending` | int | 0 |
 | `written_by` | text | "" |
-| `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
+| `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded"; KIM-1: "1k" |
 | `model` | text: pal ntsc | VIC-20: "pal"; C128: "c128"; Plus/4: "plus4"; PET: "8032"; CBM-II: "610" |
 | `bus.data` | byte | VIC-20: 253; C128: 255 |
 | `bus.video_data` | byte | VIC-20: 0 |
@@ -58,7 +58,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `z80_ahead` | int | C128: 0 |
 | `chips_ahead` | int | C128: 0 |
 | `cpu_reset_pending` | bool | C128: true |
-| `host.typing` | bool | C128: false |
+| `host.typing` | bool | C128: false; KIM-1: false |
 | `host.holding_commodore` | bool | C128: false |
 | `host.typist.code` | int, optional | C128: absent |
 | `host.typist.wait` | int | C128: 0 |
@@ -83,14 +83,18 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `mains_countdown` | int | CBM-II: varies |
 | `mains_high` | bool | CBM-II: true |
 | `refresh` | int | CBM-II: 0 |
+| `sst` | bool | KIM-1: false |
+| `irq_wired` | bool | KIM-1: false |
+| `host.key_down` | bool | KIM-1: false |
+| `host.next_key_at` | int | KIM-1: 0 |
 
 ## BL-RAM
 
-Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
+Written by the C64, VIC-20, C128, Plus/4, PET, KIM-1, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values; Plus/4: 65536 × 0 or 16384 × 0; PET: 32768 × 0 or 8192 × 0 |
+| `ram` | bytes | C64: 65536 values; VIC-20: 49152 values; C128: 131072 values; Plus/4: 65536 × 0 or 16384 × 0; PET: 32768 × 0 or 8192 × 0; KIM-1: 1024 × 0 or 57344 × 0 |
 | `bus.low_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.high_bank` | int & 0x3 | Plus/4: 0 |
 | `bus.rom_selected` | bool | Plus/4: true |
@@ -103,7 +107,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `segment<N>` | bytes | CBM-II: 65536 × 0 |
 | `execution_segment` | int & 0xf | CBM-II: 15 |
 | `indirect_segment` | int & 0xf | CBM-II: 15 |
-| `data` | byte | CBM-II: 249 |
+| `data` | byte | CBM-II: 249; KIM-1: 28 |
 | `cartridge.addresses` | ints | CBM-II: [] |
 | `cartridge.8192` | bytes | CBM-II: [] |
 
@@ -118,14 +122,14 @@ Written by the C64, VIC-20, CBM-II, C128.
 
 ## BL-CPU
 
-Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II.
+Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II, KIM-1.
 
 | Key | Type | Default |
 | --- | --- | --- |
 | `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 or 63902 |
+| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 or 63902; KIM-1: 7202 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -1819,3 +1823,85 @@ Written by the CBM-II.
 | `ca` | bool | false |
 | `cb` | bool | false |
 | `lines` | int & 0x1f | 31 |
+
+## BL-U2
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 64 × 0 |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `timer.counter` | byte | 0 |
+| `timer.interval` | int & 0x3 | 0 |
+| `timer.prescale` | int | 1 |
+| `timer.expired` | bool | true |
+| `timer.flag` | bool | false |
+| `timer.irq_enabled` | bool | false |
+| `timer.fired` | bool | false |
+
+## BL-U3
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 64 × 0 |
+| `ora` | byte | 0 |
+| `orb` | byte | 0 |
+| `ddra` | byte | 0 |
+| `ddrb` | byte | 0 |
+| `timer.counter` | byte | 0 |
+| `timer.interval` | int & 0x3 | 0 |
+| `timer.prescale` | int | 1 |
+| `timer.expired` | bool | true |
+| `timer.flag` | bool | false |
+| `timer.irq_enabled` | bool | false |
+| `timer.fired` | bool | false |
+
+## BL-PANEL
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `tty` | bool | false |
+| `held` | int | -1 |
+| `digit` | int | -1 |
+| `segments` | int & 0x7f | 0 |
+| `since` | int | 0 |
+| `lit` | ints | 42 × 0 |
+| `shown` | ints | [0, 0, 0, 0, 0, 0] |
+| `shown_at` | ints | [-20001, -20001, -20001, -20001, -20001, -20001] |
+
+## BL-TTY
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `baud` | int | 9600 |
+| `queue` | ints | [] |
+| `output` | bytes | [] |
+| `line_high` | bool | true |
+| `send.byte` | int | 0 |
+| `send.bits` | int | 11 |
+| `send.start` | int | 0 |
+| `quiet_until` | int | 0 |
+| `receive.busy` | bool | false |
+| `receive.byte` | int | 0 |
+| `receive.bits` | int | 0 |
+| `receive.edge` | int | 0 |
+| `receive.sample_at` | int | 0 |
+| `printer_high` | bool | true |
+
+## BL-SOUND
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `speaker` | bool | false |

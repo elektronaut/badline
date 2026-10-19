@@ -17,7 +17,7 @@ autosave that fails warns once and stops autosaving.
 
 The pause menu's Snapshots page quicksaves, saves under a name in the
 `saves` folder and loads a named save. The name starts as the game's,
-from its cartridge, disk or tape, or BASIC, with the next free number,
+from its cartridge, disk or tape, or BASIC, or KIM-1 on a KIM-1, with the next free number,
 and saving over a name already taken asks first. Below those, the
 newest quicksaves and autosaves, with the time each was saved, load
 with a press.
@@ -342,6 +342,19 @@ NTSC's picture. More RAM fails. A true drive goes on the bus as from
 xcbm2's snapshots. Restored into a running P500, an
 xcbm5x0 snapshot fails for a P500 built another way, and otherwise
 switches the machine off and on, keeping the disk device 8 serves.
+
+## The KIM-1
+
+A KIM-1 saves and restores as the others do. A snapshot of one holds
+its RAM, the expansion's too, the CPU, both 6530s with their 64 bytes,
+ports and timers, the timer's interrupt flag among them, the panel with
+the TTY/KB jumper, the key held down and how long each LED segment has
+been lit, the teletype with the character on its way in or out, what
+it has queued and all it has printed, the SST switch, U3's wiring to
+IRQ and the speaker, and the keys `type_keys` has still to press. It
+restores into a KIM-1 with the same RAM. Its file names its machine
+`KIM1`, since VICE has no KIM-1, so no VICE emulator opens it, and
+`--vice` fails for it.
 
 ## VICE
 
