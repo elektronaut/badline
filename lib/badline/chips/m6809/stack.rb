@@ -67,7 +67,7 @@ module Badline
 
         def push_pch_exec
           push_pch
-          send(@operation)
+          execute
         end
 
         def pull_cc

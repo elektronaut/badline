@@ -58,19 +58,19 @@ module Badline
 
         def dead_pc_exec
           dead_pc
-          send(@operation)
+          execute
         end
 
         # A dead read of the byte after the opcode, which the undocumented
         # $18 uses.
         def next_byte_exec
           @value = @bus.read(@pc)
-          send(@operation)
+          execute
         end
 
         def dead_v_exec
           dead_v
-          send(@operation)
+          execute
         end
 
         def direct
@@ -87,7 +87,7 @@ module Badline
 
         def immediate_exec
           @value = read_pc
-          send(@operation)
+          execute
         end
 
         def immediate_hi
@@ -96,7 +96,7 @@ module Badline
 
         def immediate_lo_exec
           @value |= read_pc
-          send(@operation)
+          execute
         end
 
         def immediate_discard = read_pc
@@ -104,7 +104,7 @@ module Badline
         # The undocumented 16-bit stores immediate write the register's low
         # byte over the operand's.
         def store_immediate
-          send(@operation)
+          execute
           @bus.write(@pc, @value)
           @pc = (@pc + 1) & 0xffff
         end
@@ -115,7 +115,7 @@ module Badline
 
         def read_exec
           @value = @bus.read(@ea)
-          send(@operation)
+          execute
         end
 
         def read_hi
@@ -124,16 +124,16 @@ module Badline
 
         def read_lo_exec
           @value |= @bus.read((@ea + 1) & 0xffff)
-          send(@operation)
+          execute
         end
 
         def write_exec
-          send(@operation)
+          execute
           @bus.write(@ea, @value)
         end
 
         def write_hi_exec
-          send(@operation)
+          execute
           @bus.write(@ea, @value >> 8)
         end
 
@@ -143,7 +143,7 @@ module Badline
 
         def rmw_read
           @value = @bus.read(@ea)
-          send(@operation)
+          execute
         end
 
         def rmw_write

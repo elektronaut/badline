@@ -2326,8 +2326,8 @@ neetandev/m6809 vectors (`rake test`) are MAME's, and on these dead
 ("Don't Care") cycles they read another address than Figure 17 of the
 MC6809E datasheet gives. The core reads the datasheet's address, and the
 runner checks each of these cycles against it, through the rules in
-[`m6809_flowchart.rb`](../test/support/m6809_flowchart.rb). Every other
-cycle, and every cycle count, is the vectors'.
+[`m6809_divergences.rb`](../test/support/m6809_divergences.rb). Every
+other cycle, and every cycle count but X18's, is the vectors'.
 
 - A read-modify-write (NEG, COM, LSR, ROR, ASR, ASL, ROL, DEC, INC, CLR
   and the undocumented aliases, in memory) reads `$FFFF` between its read
@@ -2388,17 +2388,33 @@ reyco2000's `6809_interrupt_test` and `6809_cycle_test`
 
 ## 6809 undocumented opcodes
 
-The undocumented opcodes do what the vectors record, which David Banks'
-6809 undocumented behaviours page, checked on real chips, mostly agrees
-with. Where Banks' page and the vectors differ, the core follows the
-vectors for now: X18 sets V from Z alone (Banks: Z ANDed with bit 2 of
-the next byte) and takes 2 cycles (Banks: 3), XADDU adds U (Banks:
-U | `$FF00`), DAA clears V (Banks: V = C xor bit 7), and the stores
-immediate set N and Z from the whole 16-bit register and V clear (Banks:
-a rule that hangs on the previous instruction unprefixed, N = 1 and Z = 0
-prefixed). The vectors leave out what follows, which comes from Banks:
+The undocumented opcodes follow David Banks' "Undocumented 6809
+Behaviours" (github.com/hoglet67/6809Decoder/wiki), which was checked on
+real chips, where it and the vectors (MAME's) disagree. The runner checks
+these cases against the rules in
+[`m6809_divergences.rb`](../test/support/m6809_divergences.rb).
 
-- `$14`, `$15` and `$CD` read on from PC, a byte a cycle, until reset.
-- A chain of `$10` and `$11` prefixes takes the first, a cycle for each.
-  An opcode page 2 or 3 doesn't define runs as on page 1, a cycle later.
-- Spec guard: [`m6809_spec.rb`](../spec/badline/chips/m6809_spec.rb).
+- X18 (`$18`) takes 3 cycles, where the vectors take 2, and sets V to
+  (C AND bit 0) OR (Z AND bit 2) of the byte after the opcode, where the
+  vectors take Z alone. Banks doesn't give the third cycle's address; the
+  core reads `$FFFF`. Pinned by Banks, X18.
+- XADDU adds the operand to U OR `$FF00`, where the vectors add U. Pinned
+  by Banks, XADDU.
+- DAA sets V to C XOR bit 7 of the result, where the vectors (and the
+  datasheet) clear it. Pinned by Banks, Undefined values of the Overflow
+  Flag.
+- The stores immediate set N and clear Z and V when prefixed. Unprefixed,
+  N, Z and V hang on the group of the instruction before (CMPA and BITA;
+  LDA and LDD; the A arithmetic and logic; the A shifts, DEC, INC, NEG,
+  COM, TSTA, DAA and SUBD; SEX; the 16-bit compares and XADDD/XADDU; LEA;
+  anything else). The 16-bit ones also clear Z unless the register's low
+  byte is 0. The vectors set N and Z from the register and clear V. The
+  vectors start every case after no instruction, the "anything else"
+  group: N set, Z and V clear. Pinned by Banks, Store Immediate and Flags
+  for unprefixed Store Immediate.
+- What the vectors leave out also comes from Banks: `$14`, `$15` and `$CD`
+  read on from PC, a byte a cycle, until reset; a chain of `$10` and `$11`
+  prefixes takes the first, a cycle for each; an opcode page 2 or 3
+  doesn't define runs as on page 1, a cycle later.
+- Spec guard: *the flags of the unprefixed stores immediate* in
+  [`m6809_spec.rb`](../spec/badline/chips/m6809_spec.rb).

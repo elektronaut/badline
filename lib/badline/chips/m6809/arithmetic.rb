@@ -48,6 +48,7 @@ module Badline
         def add16(left, right)
           sum = left + right
           result = sum & 0xffff
+          @alu_word = result
           overflow = ((left ^ result) & (right ^ result)).nobits?(0x8000) ? 0 : OVERFLOW
           flags(NEGATIVE | ZERO | OVERFLOW | CARRY, nz16(result) | overflow | (sum > 0xffff ? CARRY : 0))
           result
@@ -56,6 +57,7 @@ module Badline
         def sub16(left, right)
           difference = left - right
           result = difference & 0xffff
+          @alu_word = result
           overflow = ((left ^ right) & (left ^ result)).nobits?(0x8000) ? 0 : OVERFLOW
           flags(NEGATIVE | ZERO | OVERFLOW | CARRY, nz16(result) | overflow | (difference.negative? ? CARRY : 0))
           result

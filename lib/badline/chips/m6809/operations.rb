@@ -93,7 +93,7 @@ module Badline
         def cmpu = sub16(@u, @value)
         def cmps = sub16(@s, @value)
         def xaddd = add16(d, @value)
-        def xaddu = add16(@u, @value)
+        def xaddu = add16(@u | 0xff00, @value)
 
         def ldd = self.d = logic16(@value)
         def ldx = @x = logic16(@value)
@@ -106,17 +106,52 @@ module Badline
         def stu = @value = logic16(@u)
         def sts = @value = logic16(@s)
 
-        # The undocumented stores immediate.
-        def xsta = logic8(@a)
-        def xstb = logic8(@b)
-        def xsta2 = logic8(@a)
-        def xstb2 = logic8(@b)
-        def xstx = @value = logic16(@x) & 0xff
-        def xstu = @value = logic16(@u) & 0xff
-        def xsty = @value = logic16(@y) & 0xff
-        def xsts = @value = logic16(@s) & 0xff
-        def xstx2 = @value = logic16(@x) & 0xff
-        def xstu2 = @value = logic16(@u) & 0xff
+        # The undocumented stores immediate. Prefixed, they set N and clear
+        # Z and V. Unprefixed, their flags hang on the instruction before
+        # (Banks' "Flags for unprefixed Store Immediate"), and the 16-bit
+        # ones also clear Z unless the register's low byte is 0.
+        def xsta = flags(NEGATIVE | ZERO | OVERFLOW, previous_group_flags)
+        def xstb = flags(NEGATIVE | ZERO | OVERFLOW, previous_group_flags)
+        def xsta2 = flags(NEGATIVE | ZERO | OVERFLOW, NEGATIVE)
+        def xstb2 = flags(NEGATIVE | ZERO | OVERFLOW, NEGATIVE)
+        def xstx = @value = store_word_low(@x)
+        def xstu = @value = store_word_low(@u)
+
+        def xsty = @value = store_word_low_prefixed(@y)
+        def xsts = @value = store_word_low_prefixed(@s)
+        def xstx2 = @value = store_word_low_prefixed(@x)
+        def xstu2 = @value = store_word_low_prefixed(@u)
+
+        def store_word_low(word)
+          low = word & 0xff
+          set = previous_group_flags & (NEGATIVE | ZERO)
+          set &= ~ZERO unless low.zero?
+          flags(NEGATIVE | ZERO | OVERFLOW, set)
+          low
+        end
+
+        def store_word_low_prefixed(word)
+          flags(NEGATIVE | ZERO | OVERFLOW, NEGATIVE)
+          word & 0xff
+        end
+
+        def previous_group_flags
+          case @previous_group
+          when GROUP_N0_Z1 then ZERO
+          when GROUP_A_00 then nz8(@a)
+          when GROUP_A_FF then (@a == 0xff ? ZERO : 0) | (@a.anybits?(0x80) ? 0 : NEGATIVE)
+          when GROUP_A_01 then decremented_flags(@a)
+          when GROUP_B_01 then decremented_flags(@b)
+          when GROUP_WORD_01 then decremented_flags(@alu_word >> 8)
+          when GROUP_LEA then decremented_flags((@alu_word >> 8) | (@alu_word & 0xff))
+          else NEGATIVE
+          end
+        end
+
+        # Z for 1, N for a negative value less one, V for $80.
+        def decremented_flags(value)
+          (value == 1 ? ZERO : 0) | ((value - 1).nobits?(0x80) ? 0 : NEGATIVE) | (value == 0x80 ? OVERFLOW : 0)
+        end
 
         # JSR, BSR and LBSR, once the return address is stacked.
         def jsr
@@ -124,17 +159,26 @@ module Badline
         end
 
         def leax
+          @alu_word = @ea
           @x = @ea
           flags(ZERO, @ea.zero? ? ZERO : 0)
         end
 
         def leay
+          @alu_word = @ea
           @y = @ea
           flags(ZERO, @ea.zero? ? ZERO : 0)
         end
 
-        def leas = load_s(@ea)
-        def leau = @u = @ea
+        def leas
+          @alu_word = @ea
+          load_s(@ea)
+        end
+
+        def leau
+          @alu_word = @ea
+          @u = @ea
+        end
 
         def orcc = @cc |= @value
         def andcc = @cc &= @value
@@ -151,20 +195,26 @@ module Badline
           flags(NEGATIVE | ZERO, nz16(d))
         end
 
+        # DAA. V is C xor bit 7 of the result, as Banks found, where the
+        # datasheet clears it.
         def daa
           correction = 0
           correction |= 0x06 if @cc & HALF_CARRY != 0 || (@a & 0x0f) > 0x09
           high = @a & 0xf0
           correction |= 0x60 if @cc & CARRY != 0 || high > 0x90 || (high > 0x80 && (@a & 0x0f) > 0x09)
           result = (@a + correction) & 0xff
-          flags(NEGATIVE | ZERO | OVERFLOW | CARRY, nz8(result) | (correction >= 0x60 ? CARRY : 0))
+          carry = correction >= 0x60 ? CARRY : 0
+          overflow = (carry == 1) == result.anybits?(0x80) ? 0 : OVERFLOW
+          flags(NEGATIVE | ZERO | OVERFLOW | CARRY, nz8(result) | overflow | carry)
           @a = result
         end
 
         # The undocumented $18: each flag, ANDed with its bit of the byte
-        # after the opcode, moves one bit up, and V also takes Z.
+        # after the opcode, moves one bit up, and V also takes Z ANDed with
+        # bit 2.
         def x18
-          @cc = (((@cc & @value) << 1) & 0xff) | (@cc.nobits?(ZERO) ? 0 : OVERFLOW)
+          masked = @cc & @value
+          @cc = ((masked << 1) & 0xff) | (masked.nobits?(ZERO) ? 0 : OVERFLOW)
         end
 
         def exg

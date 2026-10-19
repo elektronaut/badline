@@ -39,6 +39,8 @@ module Badline
           @x = @y = @u = @s = @pc = 0
           @cc = IRQ_MASK | FIRQ_MASK
           @ea = @value = @post = @opcode = 0
+          @group = @previous_group = GROUP_OTHER
+          @alu_word = 0
           @vector = 0xfffe
           @interrupt_mask = 0
           @stack_u = false
@@ -106,6 +108,8 @@ module Badline
         # Starts an opcode's plan after its fetch.
         def start(entry)
           @operation = entry.operation
+          @previous_group = @group
+          @group = entry.group
           @stack_u = false
           plan = entry.plan
           if plan.empty?
@@ -131,9 +135,12 @@ module Badline
           @tail = NO_TAIL
           return switch_to(tail) unless tail.empty?
 
-          send(@operation)
+          execute
           boundary
         end
+
+        # Runs the instruction method of the opcode in flight.
+        def execute = send(@operation)
       end
     end
   end

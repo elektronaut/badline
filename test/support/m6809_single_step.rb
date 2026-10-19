@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require_relative "m6809_vectors"
-require_relative "m6809_flowchart"
+require_relative "m6809_divergences"
 
 # Runs neetandev/m6809's cases against a 6809 core: one instruction from
 # the initial registers and RAM, then the registers, RAM and the bus on
-# every cycle against the final state, with the dead cycles
-# M6809Flowchart moves to the datasheet's addresses. The core is any class whose new
+# every cycle against the final state, as M6809Divergences moves it to
+# the documents where they and the vectors disagree. The core is any class whose new
 # takes a bus answering read(address) and write(address, value), that has
 # an accessor for each of M6809Vectors::REGISTERS, a resume that puts it
 # at an instruction boundary, step! and cycles. A cycle without a bus
@@ -67,10 +67,12 @@ module M6809SingleStep
   def run(test, cpu_class)
     cpu, bus = start(test, cpu_class)
     cpu.step!
-    errors = test.final.registers.filter_map { |name, value| mismatch(name, cpu.public_send(name), value) }
-    errors << "cycles #{cpu.cycles} != #{test.cycles.length}" if cpu.cycles != test.cycles.length
+    registers = M6809Divergences.expected_registers(test)
+    trace = M6809Divergences.expected_trace(test)
+    errors = registers.filter_map { |name, value| mismatch(name, cpu.public_send(name), value) }
+    errors << "cycles #{cpu.cycles} != #{trace.length}" if cpu.cycles != trace.length
     errors.concat(ram_errors(bus, test.final.ram))
-    errors << trace_error(bus.trace(test.cycles.length), M6809Flowchart.expected(test))
+    errors << trace_error(bus.trace(trace.length), trace)
     errors.compact
   end
 

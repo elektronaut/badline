@@ -15,9 +15,30 @@ module Badline
 
       # What an opcode runs: the instruction method its *_exec step calls,
       # the steps that work out its address, one a cycle, and the steps
-      # that follow them. An indexed opcode's address steps end in the
-      # postbyte, which picks the rest from INDEXED_PLANS.
-      Entry = Struct.new(:operation, :plan, :tail)
+      # that follow them, and the group the undocumented stores immediate
+      # take their flags from when it ran before them. An indexed opcode's
+      # address steps end in the postbyte, which picks the rest from
+      # INDEXED_PLANS.
+      Entry = Struct.new(:operation, :plan, :tail, :group)
+
+      # The groups of David Banks' "Flags for unprefixed Store Immediate".
+      GROUP_OTHER = 0
+      GROUP_N0_Z1 = 1
+      GROUP_A_00 = 2
+      GROUP_A_FF = 3
+      GROUP_A_01 = 4
+      GROUP_B_01 = 5
+      GROUP_WORD_01 = 6
+      GROUP_LEA = 7
+      GROUPS = {
+        GROUP_N0_Z1 => %i[bita cmpa],
+        GROUP_A_00 => %i[lda ldd],
+        GROUP_A_FF => %i[adca adda anda eora ora sbca suba],
+        GROUP_A_01 => %i[asla asra coma daa deca inca lsra nega rola rora subd tsta xdeca xnca],
+        GROUP_B_01 => %i[sex],
+        GROUP_WORD_01 => %i[cmpd cmps cmpu cmpx cmpy xaddd xaddu],
+        GROUP_LEA => %i[leas leau leax leay]
+      }.flat_map { |group, operations| operations.map { |operation| [operation, group] } }.to_h.freeze
 
       # The plan between instructions: the next cycle fetches an opcode.
       FETCH_PLAN = %i[fetch].freeze

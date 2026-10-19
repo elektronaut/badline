@@ -194,6 +194,38 @@ describe Badline::Chips::M6809 do
     expect([cpu.a, cpu.cycles]).to eq([0x42, 3])
   end
 
+  # Pinned by Banks, "Flags for unprefixed Store Immediate"
+  describe "the flags of the unprefixed stores immediate" do
+    {
+      "a NOP" => [[0x12], 0x08],
+      "CMPA" => [[0x81, 0x00], 0x04],
+      "LDA" => [[0x86, 0x80], 0x08],
+      "ORA leaving A at $FF" => [[0x8a, 0xff], 0x04],
+      "DECA leaving A at 1" => [[0x86, 0x02, 0x4a], 0x04],
+      "CMPX with a result of $8000" => [[0x8e, 0x80, 0x00, 0x8c, 0x00, 0x00], 0x02],
+      "LEAX leaving X at $0100" => [[0x30, 0x89, 0xc1, 0x00], 0x04]
+    }.each do |previous, (bytes, flags)|
+      it "takes N, Z and V after #{previous} from the instruction before" do
+        program(*bytes, 0x87, 0x00)
+        cpu.step! until cpu.pc == 0x1002 + bytes.length
+        expect(cpu.cc & 0x0e).to eq(flags)
+      end
+    end
+
+    it "clears Z in a 16-bit store when the register's low byte isn't 0" do
+      program(0x81, 0x00, 0x8f, 0x00, 0x00)
+      cpu.x = 0x4001
+      2.times { cpu.step! }
+      expect(cpu.cc & 0x0e).to eq(0x00)
+    end
+
+    it "sets N and clears Z and V when prefixed" do
+      program(0x81, 0x00, 0x10, 0x87, 0x00)
+      2.times { cpu.step! }
+      expect(cpu.cc & 0x0e).to eq(0x08)
+    end
+  end
+
   describe "dead cycles" do
     def run_trace(count)
       cycles(count)

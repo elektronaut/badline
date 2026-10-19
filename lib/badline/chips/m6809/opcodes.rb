@@ -32,7 +32,7 @@ module Badline
         0x15 => [:none, %i[free_run]],
         0x16 => [:jmp, %i[offset_hi offset_lo_pc dead_v dead_v_exec]],
         0x17 => [:jsr, %i[offset_hi offset_lo_pc dead_v dead_v dead_ea dead_v push_pcl push_pch_exec]],
-        0x18 => [:x18, %i[next_byte_exec]],
+        0x18 => [:x18, %i[next_byte_exec dead_v]],
         0x19 => [:daa, %i[dead_pc_exec]],
         0x1a => [:orcc, %i[immediate_exec dead_pc]],
         0x1b => [:nop, %i[dead_pc_exec]],
@@ -88,7 +88,9 @@ module Badline
 
         module_function
 
-        def entry(operation, plan, tail) = Entry.new(operation, plan.freeze, tail.freeze)
+        def entry(operation, plan, tail)
+          Entry.new(operation, plan.freeze, tail.freeze, GROUPS.fetch(operation, GROUP_OTHER))
+        end
 
         def tail(kind, mode)
           return IMMEDIATE_TAILS.fetch(kind) if mode.zero?
