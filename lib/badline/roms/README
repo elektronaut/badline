@@ -134,7 +134,7 @@ The SFD-1001's floppy controller program, 251257-02A: the first 1 KB
 of the 2716 on its 6530 adaptor (251252-01), whose A10 is grounded, so
 the controller runs it from $FC00-$FFFF in place of the 6530's mask.
 Its interface processor runs 8050/dos-2.7.rom, the same 16 KB as
-901887-01 and 901888-01.
+901887-01 and 901888-01. Drives::Model1001 loads it.
 SHA-1 473664d405942865d46a6e723eb7d3f243584f7a (the whole 2 KB EPROM,
 SHA-1 3b954eb34f7ea088eed1d33ebc6d6e83a3e9be15).
 

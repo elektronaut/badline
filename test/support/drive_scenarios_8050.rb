@@ -2,15 +2,17 @@
 
 require "badline/core"
 
-# The PET's scenarios for the units with two processors, an 8050 and an
-# 8250: DOS 2.7 on the interface processor and the controller's program in
-# its 6530, on the IEEE-488 bus, every line of the handshake run by both
-# sides. On a 4032 with BASIC 4 they format a disk, save and load a
+# The PET's scenarios for the units with two processors, an 8050, an 8250
+# and an SFD-1001: DOS 2.7 on the interface processor and the controller's
+# program in its 6530, on the IEEE-488 bus, every line of the handshake run
+# by both sides. On a 4032 with BASIC 4 they format a disk, save and load a
 # program, save to a write-protected disk, autostart a disk and read the
-# error channel, as the 2031's do (drive_scenarios_pet.rb), the 8250 on its
-# double-sided .d82. The idle scenario runs a PET with a sleeping unit
-# beside one whose unit steps every cycle. Each scenario is named
-# pet-MODEL-SCENARIO, and the tables below say where the models differ.
+# error channel, as the 2031's do (drive_scenarios_pet.rb), the 8250 and
+# the 1001 on a double-sided .d82. The idle scenario runs a PET with a
+# sleeping unit beside one whose unit steps every cycle, and the 1001's
+# second-drive scenario asks for the drive it hasn't got. Each scenario is
+# named pet-MODEL-SCENARIO, and the tables below say where the models
+# differ.
 module DriveScenarios
   module PET8050Runs
     # The scenarios and the checks each makes, the longest-running first.
@@ -18,30 +20,37 @@ module DriveScenarios
       "pet-8250-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8050-format" => %w[no-error lists-new-disk trap-readable],
       "pet-8250-save" => %w[no-error loads-back file-in-image trap-readable],
+      "pet-1001-save" => %w[no-error loads-back file-in-image trap-readable],
       "pet-8050-idle" => %w[sleeps matches-stepping],
+      "pet-1001-idle" => %w[sleeps matches-stepping],
       "pet-8050-save" => %w[no-error loads-back file-in-image trap-readable],
       "pet-8050-read-only" => %w[write-protect-on image-unchanged],
       "pet-8050-autostart" => %w[loads-and-runs],
       "pet-8250-autostart" => %w[loads-and-runs],
       "pet-8050-error-channel" => %w[power-on-message],
-      "pet-8250-error-channel" => %w[power-on-message]
+      "pet-8250-error-channel" => %w[power-on-message],
+      "pet-1001-error-channel" => %w[power-on-message],
+      "pet-1001-second-drive" => %w[initialise-fails directory-not-ready]
     }.freeze
 
     # Each model's disk image, by its extension.
-    EXTENSIONS = { "8050" => ".d80", "8250" => ".d82" }.freeze
+    EXTENSIONS = { "8050" => ".d80", "8250" => ".d82", "1001" => ".d82" }.freeze
 
     # The size of a disk image of each kind.
     IMAGE_SIZES = { ".d80" => 533_248, ".d82" => 1_066_496 }.freeze
 
     # The blocks free on a newly formatted disk: 2052 on an 8050, 4133 on an
-    # 8250, less one for PROG.
-    FREE_AFTER_PROG = { "8050" => "2051 BLOCKS FREE", "8250" => "4132 BLOCKS FREE" }.freeze
+    # 8250 or a 1001, less one for PROG.
+    FREE_AFTER_PROG = { "8050" => "2051 BLOCKS FREE", "8250" => "4132 BLOCKS FREE",
+                        "1001" => "4132 BLOCKS FREE" }.freeze
 
     # The disk's header line once formatted as NEW DISK with the ID XY.
-    NEW_DISK = { "8050" => "\"NEW DISK        \" XY 2C", "8250" => "\"NEW DISK        \" XY 2C" }.freeze
+    NEW_DISK = { "8050" => "\"NEW DISK        \" XY 2C", "8250" => "\"NEW DISK        \" XY 2C",
+                 "1001" => "\"NEW DISK        \" XY 2C" }.freeze
 
     # The power-on message each model's error channel reads.
-    MESSAGES = { "8050" => " 73CBM DOS V2.7 0 0", "8250" => " 73CBM DOS V2.7 0 0" }.freeze
+    MESSAGES = { "8050" => " 73CBM DOS V2.7 0 0", "8250" => " 73CBM DOS V2.7 0 0",
+                 "1001" => " 73CBM DOS V2.7 0 0" }.freeze
 
     module_function
 
@@ -53,6 +62,7 @@ module DriveScenarios
       when "read-only" then read_only(report, dir, model)
       when "idle" then idle(report, dir, model)
       when "autostart" then autostart(report, dir, model)
+      when "second-drive" then second_drive(report, dir, model)
       else error_channel(report, model)
       end
     end
@@ -114,20 +124,47 @@ module DriveScenarios
       report.check("loads-and-runs", output.output.upcase.include?("TRUE DRIVE\n"), "printed no TRUE DRIVE")
     end
 
-    # The host cycles at which idle compares its two machines.
-    IDLE_CHECKPOINTS = [2_000_000, 6_000_000, 10_000_000, 14_000_000].freeze
+    # Drive 1 of a unit with one drive, the 1001's, with no disk in drive 0
+    # either: initialising it reads
+    # no disk, 21,READ ERROR, and loading its directory finds no drive,
+    # 74,DRIVE NOT READY, as BASIC 4's DS$ reads.
+    def second_drive(report, _dir, model)
+      machine = Badline::PET.new(model: "4032")
+      machine.plug_ieee_drive(model)
+      output = machine.capture_output
+      machine.on_init do
+        machine.type_text("10 open1,8,15,\"i1\":input#1,a,b$,c,d:printa;b$;c;d:close1\rrun\rload\"$1\",8\rprint ds$\r")
+      end
+      Runs.run_until(machine, 60_000_000) { output.output.upcase.include?("DRIVE NOT READY") }
+      printed = output.output.upcase
+      report.check("initialise-fails", printed.include?(" 21READ ERROR"), "printed no 21,READ ERROR for I1")
+      report.check("directory-not-ready", printed.include?("74,DRIVE NOT READY,00,00,1"),
+                   "printed no 74,DRIVE NOT READY,00,00,1 for $1")
+    end
+
+    # The host cycles at which idle compares its two machines, by model, and
+    # the cycles the sleeping unit has to sleep through.
+    IDLE_CHECKPOINTS = { "8050" => [2_000_000, 6_000_000, 10_000_000, 14_000_000],
+                         "1001" => [1_000_000, 1_500_000, 2_000_000] }.freeze
+    IDLE_ASLEEP = { "8050" => 4_000_000, "1001" => 800_000 }.freeze
+
+    # The models whose idle scenario loads the directory.
+    IDLE_LOADS = %w[8050].freeze
 
     # Two PETs with the model side by side, one unit sleeping through its idle
-    # loops and one stepping every cycle, through the unit's boot, a LOAD of
-    # the directory, the motor's run-down and the idle after it. Both
-    # machines hold the same at every checkpoint.
+    # loops and one stepping every cycle, through the unit's boot and the
+    # idle after it, and on an 8050 a disk, a LOAD of the directory and the
+    # motor's run-down first. The 1001's runs only past its boot with no
+    # disk, its 3 ms timer waking it some 400 times. Both machines hold the
+    # same at every checkpoint.
     def idle(report, dir, model)
-      skipping = idle_machine(blank(dir, "pet-#{model}-idle-a", model), model, true)
-      stepping = idle_machine(blank(dir, "pet-#{model}-idle-b", model), model, false)
+      loads = IDLE_LOADS.include?(model)
+      skipping = idle_machine(loads ? blank(dir, "pet-#{model}-idle-a", model) : nil, model, true)
+      stepping = idle_machine(loads ? blank(dir, "pet-#{model}-idle-b", model) : nil, model, false)
       drive = skipping.true_drive
       asleep = 0
       differs = []
-      IDLE_CHECKPOINTS.each do |checkpoint|
+      IDLE_CHECKPOINTS.fetch(model).each do |checkpoint|
         while skipping.cycles < checkpoint
           skipping.cycle!
           stepping.cycle!
@@ -135,7 +172,8 @@ module DriveScenarios
         end
         differs << checkpoint unless idle_state(skipping) == idle_state(stepping)
       end
-      report.check("sleeps", asleep > 4_000_000, "slept #{asleep} host cycles, not over 4000000")
+      least = IDLE_ASLEEP.fetch(model)
+      report.check("sleeps", asleep > least, "slept #{asleep} host cycles, not over #{least}")
       report.check("matches-stepping", differs.empty?, "differs at #{differs.join(',')}")
     end
 
@@ -143,6 +181,8 @@ module DriveScenarios
       machine = Badline::PET.new(model: "4032")
       drive = machine.plug_ieee_drive(model)
       drive.idle_skip = idle_skip
+      return machine unless path
+
       drive.insert_image(path)
       machine.on_init { machine.type_text("load\"$\",8\r") }
       machine

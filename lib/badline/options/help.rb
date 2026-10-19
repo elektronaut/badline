@@ -131,9 +131,10 @@ module Badline
         starts its first program, and BASIC 2 can. Their --true-drive makes
         device 8 an emulated 2031 on the IEEE-488 bus, which reads .d64 and
         .g64 images, and a .d80 or a .d82 then goes in an emulated 8050 or
-        8250. --drive-type 8050 or 8250 plugs either in instead. The 8032
-        and the 8096 have two 50 Hz editors: 4-80-b-50hz, the default, and
-        4-80-b-50hz-0283, another chip's,
+        8250. --drive-type 8050 or 8250 plugs either in instead, and
+        --drive-type 1001 an SFD-1001, which takes a .d82 in its one drive.
+        The 8032 and the 8096 have two 50 Hz editors: 4-80-b-50hz, the
+        default, and 4-80-b-50hz-0283, another chip's,
         with 64-cycle lines and 313 lines a frame. The 8296 runs its own,
         4-80-b-50hz-8296, and takes the 8032's too. --characters din fits
         it with the DIN character ROM, and --jumpers ram9,rama puts RAM at

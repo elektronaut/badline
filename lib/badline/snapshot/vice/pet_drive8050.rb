@@ -4,9 +4,9 @@ module Badline
   module Snapshot
     module Vice
       module PET
-        # A true 8050 or 8250 on device 8, as xpet 3.10, xcbm2 and xcbm5x0 save it with true
-        # drive emulation: DRIVE8 2.0 with both drives, DRIVE9 to DRIVE11
-        # with none, DRIVECPU0 1.3, the interface processor and its RAM,
+        # A true 8050, 8250 or SFD-1001 on device 8, as xpet 3.10, xcbm2
+        # and xcbm5x0 save it with true drive emulation: DRIVE8 2.0 with the
+        # unit's drives, DRIVE9 to DRIVE11 with none, DRIVECPU0 1.3, the interface processor and its RAM,
         # RIOT1D0 and RIOT2D0 0.0, its two 6532s, and FDC0 0.0. xpet runs
         # the floppy controller at a high level, so its 6504, VIA and 6530
         # aren't in the snapshot: FDC0 holds the controller's state, its
@@ -42,9 +42,9 @@ module Badline
           NAMES = [UNIT, CPU, *RIOTS, FDC].freeze
           # xpet's drive types by DRIVE8's type word, for the units written
           # and read here.
-          TYPES = { 0x1f72 => "8050", 0x203a => "8250" }.freeze
+          TYPES = { 0x1f72 => "8050", 0x203a => "8250", 0x03e9 => "1001" }.freeze
           # The drives each unit has, a block of DRIVE8 each.
-          DRIVE_COUNTS = { "8050" => 2, "8250" => 2 }.freeze
+          DRIVE_COUNTS = { "8050" => 2, "8250" => 2, "1001" => 1 }.freeze
           # A drive's block in DRIVE8, and its fields.
           BLOCK = 0x8b
           HALF_TRACK = 0x10
@@ -215,7 +215,11 @@ module Badline
           end
 
           def booted(model)
-            unit = model == "8250" ? Drives::Model8250.new : Drives::Model8050.new
+            unit = case model
+                   when "8250" then Drives::Model8250.new
+                   when "1001" then Drives::Model1001.new
+                   else Drives::Model8050.new
+                   end
             unit.boot_cycles.times { unit.host_cycle! }
             unit.cycle! until idle_loop?(unit)
             unit.save_modules([], "BL-D8")
