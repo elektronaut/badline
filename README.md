@@ -358,9 +358,11 @@ menu loads its languages from disk: a language disk given with `--cpu
 routines through traps as it answers the KERNAL's, so typing `basic` at
 the menu loads microBASIC in about 20 seconds of the machine's time. The
 menu loads from drive 1 of a dual drive, and the traps' one disk answers
-as drive 1 too. With `--true-drive` the disk goes in drive 0 of a true
-2031, 8050 or 8250 instead, where typing `disk/0.BASIC` at the menu
-loads microBASIC, in about twice the time. The original language
+as drive 1 too. With `--true-drive` the disk goes in a true drive
+instead: a `.d80` or `.d82` in drive 1 of an 8050 or 8250, where typing
+`basic` loads microBASIC in about twice the time, and a `.d64` in a
+2031's only drive, where `disk/0.BASIC` does. In 6502 mode a disk goes in
+drive 0, as on the 8032. The original language
 disks' copy protection finds its 6702, so they run unpatched. `--cpu
 prog` leaves the CPU to bit 0 of the system latch, and `--bank-ram read`
 write-protects the 64K bank RAM, or `prog` leaves it to bit 1, R/W by

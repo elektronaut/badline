@@ -56,6 +56,10 @@ module Badline
         build_ieee_drive(model, device).tap { |drive| attach_ieee_drive(drive) }
       end
 
+      # The drive of a dual unit a disk image given on its own goes in
+      # (Media::TrueDrive): drive 0.
+      def disk_drive_number = 0
+
       # Plugs in the model true_drive_model names as device 8, in place of
       # the drive there, and returns it.
       def plug_true_drive = plug_ieee_drive(@true_drive_model)
