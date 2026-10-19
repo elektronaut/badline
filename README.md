@@ -353,13 +353,22 @@ chip at `$EFE0`, and the 901640-01 character ROM, whose first half is the
 8032's and whose second half holds an ASCII and an APL set. It starts in
 6502 mode, as an 8032 with the board, and `--cpu 6809` sets its CPU switch
 to the 6809, which runs the Waterloo ROMs to their microSystems menu. The
-menu loads its languages from disk, which 6809 mode can't do yet. Its
-memory write protect switch is at R/W. It takes the 8032's editors and
-`--60hz`, which picks the Waterloo ROM with the 60 Hz CRTC table, and no
-`--ram`. Its snapshots don't load back yet.
+menu loads its languages from disk: a language disk given with `--cpu
+6809` goes in device 8, which answers the Waterloo ROM's IEEE-488
+routines through traps as it answers the KERNAL's, so typing `basic` at
+the menu loads microBASIC in about 20 seconds of the machine's time. The
+menu loads from drive 1 of a dual drive, and the traps' one disk answers
+as drive 1 too. With `--true-drive` the disk goes in drive 0 of a true
+2031, 8050 or 8250 instead, where typing `disk/0.BASIC` at the menu
+loads microBASIC, in about twice the time. The original language
+disks' copy protection finds its 6702, so they run unpatched. Its memory
+write protect switch is at R/W. It takes the 8032's editors and `--60hz`,
+which picks the Waterloo ROM with the 60 Hz CRTC table, and no `--ram`.
+Its snapshots don't load back yet.
 
 ```sh
-badline pet --model superpet --cpu 6809   # The SuperPET's Waterloo menu
+badline pet --model superpet --cpu 6809                   # The SuperPET's Waterloo menu
+badline pet --model superpet --cpu 6809 sp9000lang.d80    # The same with the language disk
 ```
 
 ```sh
@@ -665,8 +674,8 @@ in cartridge 1 as it does from the command line.
   columns, both 6520 PIAs and the 6522 VIA, the graphics and business
   keyboards, the sound on the VIA's CB2, the 8096's 64K board, the
   8296's 128K with its jumpers, RA4 and 4K character ROM, the
-  SuperPET's bank RAM, latches, ACIA, 6702 and 6809 up to the Waterloo
-  menu, both
+  SuperPET's bank RAM, latches, ACIA, 6702 and 6809 with the Waterloo
+  languages loading from disk, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks, and the D9060 and D9090
   hard disks on `.d90` images (`badline pet`).

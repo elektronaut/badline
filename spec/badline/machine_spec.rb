@@ -177,9 +177,14 @@ describe Badline::Machine do
       expect(machine.m6809_running?).to be(true)
     end
 
-    it "refuses media for the SuperPET's 6809 side" do
-      expect { described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), "game.d80") }
+    it "refuses a program for the SuperPET's 6809 side" do
+      expect { described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), "game.prg") }
         .to raise_error(Badline::Machine::Unsupported, /6809/)
+    end
+
+    it "takes a disk for the SuperPET's 6809 side" do
+      machine = described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), "game.d80")
+      expect(machine.m6809_running?).to be(true)
     end
 
     it "refuses media a PET doesn't take" do

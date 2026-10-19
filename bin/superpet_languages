@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Loads the Waterloo languages on the SuperPET's 6809 from a language disk,
+# one machine each, and says where each lands: the first line it shows once
+# loaded, after how many cycles, or that it never got there. It types each
+# name at the Waterloo menu, which loads "disk/1.NAME".
+#
+#   ruby --yjit bin/superpet_languages DISK [--true-drive] [--cycles N] [NAME...]
+#
+# The disk, a .d64, .d80 or .d82 such as zimmers.net's sp9000lang.d80,
+# goes in device 8 through the traps on the Waterloo ROM's IEEE-488
+# routines, or with --true-drive in the true drive that reads it: an 8050
+# or 8250's drive 1, or a 2031's only drive, where the name is typed as
+# "disk/0.NAME" instead. A language takes about 20 million cycles through
+# the traps and 40 million through a true 8050, so this stays out of CI:
+# no language disk is committed, and the specs load a program of their own.
+#
+# NAME defaults to the menu's languages: basic edit pascal fortran apl,
+# COBOL, which the menu doesn't list, and development. --cycles is the
+# most each may take, 80 million by default. It exits 1 if any doesn't
+# land.
+
+require "optparse"
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "badline"
+
+module SuperPETLanguages
+  NAMES = %w[basic edit pascal fortran apl COBOL development].freeze
+  STEP = 1_000_000
+
+  module_function
+
+  def main(argv)
+    options = { true_drive: false, cycles: 80_000_000 }
+    OptionParser.new do |parser|
+      parser.on("--true-drive") { options[:true_drive] = true }
+      parser.on("--cycles N", Integer) { |cycles| options[:cycles] = cycles }
+    end.parse!(argv)
+    disk = argv.shift or abort "usage: bin/superpet_languages DISK [--true-drive] [--cycles N] [NAME...]"
+    names = argv.empty? ? NAMES : argv
+    names.map { |name| report(name, *load_language(disk, name, options)) }.all? ? 0 : 1
+  end
+
+  def load_language(disk, name, options)
+    machine = Badline::PET::SuperPET.new(cpu: "6809")
+    typed = options[:true_drive] ? insert(machine, disk, name) : mount(machine, disk, name)
+    machine.type_text("#{typed}\r")
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    machine.run_cycles(STEP) until landed?(machine) || machine.cycles >= options[:cycles]
+    [landed?(machine), machine, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started]
+  end
+
+  def mount(machine, disk, name)
+    Badline::Media.attach(machine, disk)
+    name
+  end
+
+  def insert(machine, disk, name)
+    model = Badline::Drives::IEEEModels.taking(disk, nil, "2031")
+    drive = machine.plug_ieee_drive(model)
+    return drive.insert_image(disk, drive: 1) && name unless model == "2031"
+
+    drive.insert_image(disk)
+    "disk/0.#{name.upcase}"
+  end
+
+  # Whether the screen has left the menu, whose first entry is setup, for a
+  # language's own, whose last line is no longer the one saying what loads.
+  def landed?(machine)
+    lines = screen(machine)
+    return false if machine.cycles < Badline::PET::SuperPET::WATERLOO_BOOT || lines.empty?
+
+    lines.none? { |line| line == "  setup" || line.start_with?("Program not found") } &&
+      !lines.last.start_with?("Loading")
+  end
+
+  # The language's banner, or its menu's entries, as the development
+  # package shows them.
+  def banner(machine)
+    lines = screen(machine)
+    lines.find { |line| line.match?(/\Awaterloo micro(?!systems)/i) } || lines.drop(2).map(&:strip).join(" ")
+  end
+
+  def screen(machine)
+    cells = machine.bus.screen.cells
+    lines = Array.new(25) { |row| cells[row * 80, 80].map { |code| (code & 0x7f).clamp(32, 126).chr }.join.rstrip }
+    lines.reject(&:empty?)
+  end
+
+  def report(name, landed, machine, seconds)
+    where = landed ? banner(machine) : "never landed: #{screen(machine).last(2).join(' / ')}"
+    puts format("%-12<name>s %5.1<mcycles>fM cycles %6.1<seconds>fs  %<where>s",
+                name:, mcycles: machine.cycles / 1e6, seconds:, where:)
+    landed
+  end
+end
+
+exit SuperPETLanguages.main(ARGV)
