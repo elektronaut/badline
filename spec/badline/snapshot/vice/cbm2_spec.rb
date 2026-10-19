@@ -76,20 +76,43 @@ describe Badline::Snapshot::Vice::CBM2 do
   it "reports the modules badline doesn't read" do
     lines = []
     image(xcbm2("610")).load { |line| lines << line }
-    expect(lines.map { |line| line.split.first }).to include("CBM2CART", "DRIVE8", "DRIVECPU0", "KEYBOARD")
+    expect(lines.map { |line| line.split.first }).to include("CBM2CART", "FSDRIVE", "KEYBOARD")
+  end
+
+  it "puts xcbm2's true 2031 on the bus" do
+    expect(load("610").true_drive).to be_a(Badline::Drives::Model2031)
   end
 
   describe ".export" do
+    # The modules xcbm2 3.10 writes for a 610 with its true 2031, by
+    # version, and their sizes.
+    let(:sizes) do
+      { "MAINCPU 1.3" => 79, "CBM2MEM 1.0" => 135_173, "CBM2CART 0.1" => 1, "CRTC 1.2" => 190_160, "CIA1 2.3" => 52,
+        "TPI1 1.0" => 10, "TPI2 1.0" => 10, "Acia1 1.1" => 22, "SID 1.5" => 36, "SIDEXTENDED 1.4" => 133,
+        "DRIVE8 2.0" => 145, "DRIVE9 2.0" => 145, "DRIVE10 2.0" => 145, "DRIVE11 2.0" => 145, "DRIVECPU0 1.3" => 2152,
+        "VIA2D0 2.2" => 28, "2031VIA1D0 2.2" => 28, "FSDRIVE 0.0" => 258, "TAPEPORT 1.0" => 2, "USERPORT 1.0" => 2 }
+    end
+
     it "writes the modules xcbm2 reads, in its order" do
       expect(exported(load("610")).sections.map(&:name))
-        .to eq(%w[MAINCPU CBM2MEM CBM2CART CRTC CIA1 TPI1 TPI2 Acia1 SID SIDEXTENDED FSDRIVE TAPEPORT USERPORT])
+        .to eq(%w[MAINCPU CBM2MEM CBM2CART CRTC CIA1 TPI1 TPI2 Acia1 SID SIDEXTENDED DRIVE8 DRIVE9 DRIVE10 DRIVE11
+                  DRIVECPU0 VIA2D0 2031VIA1D0 FSDRIVE TAPEPORT USERPORT])
+    end
+
+    it "writes a 2031's clock at its 1 MHz against the 610's 2 MHz" do
+      machine = Badline::CBM2.new.tap(&:plug_true_drive)
+      machine.run_cycles(20_001)
+      cpu = exported(machine)["DRIVECPU0"].data
+      expect(cpu.unpack1("Q<")).to eq(machine.cycles / 2)
+    end
+
+    it "writes DRIVE8 to DRIVE11 as xcbm2 saves no drive, for a CBM-II without a true drive" do
+      names = exported(Badline::CBM2.new).sections.map(&:name)
+      expect(names.grep(/DRIVE|VIA|RIOT|FDC/)).to eq(%w[DRIVE8 DRIVE9 DRIVE10 DRIVE11 FSDRIVE])
     end
 
     it "writes each module at the version and size xcbm2 3.10 writes for a 610" do
-      sizes = exported(load("610")).sections.to_h { |section| [section.to_s, section.data.bytesize] }
-      expect(sizes).to eq("MAINCPU 1.3" => 79, "CBM2MEM 1.0" => 135_173, "CBM2CART 0.1" => 1, "CRTC 1.2" => 190_160,
-                          "CIA1 2.3" => 52, "TPI1 1.0" => 10, "TPI2 1.0" => 10, "Acia1 1.1" => 22, "SID 1.5" => 36,
-                          "SIDEXTENDED 1.4" => 133, "FSDRIVE 0.0" => 258, "TAPEPORT 1.0" => 2, "USERPORT 1.0" => 2)
+      expect(exported(load("610")).sections.to_h { |section| [section.to_s, section.data.bytesize] }).to eq(sizes)
     end
 
     it "writes a 700's picture and a 256K board at the sizes xcbm2 writes" do
@@ -195,6 +218,13 @@ describe Badline::Snapshot::Vice::CBM2 do
     it "fails for a CBM-II built another way" do
       expect { image(xcbm2("610")).restore(Badline::CBM2.new(model: "620")) }
         .to raise_error(Badline::Snapshot::FormatError, /of a 610 with KERNAL 04a at 50 Hz, not a 620/)
+    end
+
+    it "takes badline's true drive off the bus for a snapshot without one, and says so" do
+      lines = []
+      target = Badline::CBM2.new.tap(&:plug_true_drive)
+      image(exported(Badline::CBM2.new)).restore(target) { |line| lines << line }
+      expect([target.true_drive, lines.last]).to eq([nil, "the 2031 on device 8 is taken off the bus"])
     end
 
     it "fails for another machine" do

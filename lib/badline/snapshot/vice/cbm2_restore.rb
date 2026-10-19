@@ -44,9 +44,20 @@ module Badline
             raise FormatError, "the snapshot is of a #{setup}, not a #{ours}" unless setup == ours
 
             apply(container, setup.build)
+            reapply(computer) { apply(container, computer) }
+          end
+
+          # Switches `computer` off and on and applies the snapshot with the
+          # block, then reports the disk the traps keep serving and a true
+          # drive taken off the bus.
+          def reapply(computer)
+            had_drive = computer.true_drive
             computer.power_cycle!
-            report = apply(container, computer)
+            report = yield
             kept = computer.mounted? ? ["the disk mounted in device 8 stays mounted"] : []
+            if had_drive && !computer.true_drive.equal?(had_drive)
+              kept << "the #{had_drive.model_name} on device #{had_drive.device} is taken off the bus"
+            end
             Report.new(applied: report.applied, ignored: report.ignored + kept)
           end
 
@@ -70,7 +81,7 @@ module Badline
                 ignored << "#{section}: #{reason}, left out"
               end
             end
-            computer.load_modules(Keyed::Modules.new(modules(container, computer, applied)))
+            computer.load_modules(Keyed::Modules.new(modules(container, computer, applied, ignored)))
             Report.new(applied:, ignored: ignored + left_out(container, applied))
           end
 
@@ -96,10 +107,11 @@ module Badline
 
           # The machine's keyed modules: its own at power-on, with those the
           # modules `applied` names stand for in their place.
-          def modules(container, computer, applied)
+          def modules(container, computer, applied, ignored)
             chips = chips(container, computer, applied)
             own = {}
             computer.save_modules.each { |section| own[section.name] = section }
+            drive(container, computer, applied, ignored, own)
             chips.save_modules.each { |section| own[section.name] = section if CHIPS.include?(section.name) }
             cycles = FieldReader.new(container[MainCPU::NAME]).qword
             crtc = crtc(container, computer, applied, own)
@@ -114,6 +126,17 @@ module Badline
             lines = IDLE_LINES | (high ? MAINS : 0) | (chips.cia.interrupted? ? 0 : CIA)
             tpis(container, applied, own, acia_irq?(container, applied) ? lines : lines | ACIA_LINE)
             own.values
+          end
+
+          # Puts the true drive's modules in `own` in place of badline's: the
+          # 2031, 8050 or 8250 the snapshot has, as xpet's are read
+          # (PET::Restore), with the disks badline's drive of that model has,
+          # or none.
+          def drive(container, computer, applied, ignored, own)
+            disks = PET::Restore::DISKS.filter_map { |name| own[name] }
+            own.delete_if { |name, _| name.match?(/\ABL-D\d+(-|\z)/) }
+            kept = PET::Restore.kept_disks(container, computer, disks)
+            PET::Restore.drive(container, applied, ignored, kept).each { |section| own[section.name] = section }
           end
 
           # A machine of its own with xcbm2's CIA and SID read into it.

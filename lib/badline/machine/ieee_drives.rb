@@ -79,6 +79,31 @@ module Badline
         Badline::Drives::Model2031.new.tap { |drive| attach_drive2031(drive) }
       end
 
+      # Settles for a snapshot, then runs on until a 2031's CPU, or an
+      # 8050's interface processor with its controller at the start of its
+      # idle loop, is between instructions with the machine's, as VICE
+      # saves them, or for so many cycles, then on to the machine's next
+      # instruction. It stands in for Machine::Settling's, which the
+      # machines include first.
+      def settle_for_vice!
+        ran = settle_for_snapshot!
+        return ran if @drive2031.nil? && @drive8050.nil?
+
+        until ran >= Machine::Settling::LIMIT || (drive_settled_for_vice? && settled_for_snapshot?)
+          cycle!
+          ran += 1
+        end
+        ran + settle_for_snapshot!
+      end
+
+      # Whether the true drive is where VICE saves it (#settle_for_vice!).
+      def drive_settled_for_vice?
+        return @drive2031.cpu.boundary? if @drive2031
+
+        fdc = @drive8050.fdc_cpu
+        @drive8050.ip_cpu.boundary? && fdc.boundary? && fdc.program_counter == Badline::Drives::Model8050::Idle::FDC_LOOP
+      end
+
       private
 
       def init_ieee_drives

@@ -37,7 +37,8 @@ module Badline
            CIAs.section(machine.cia, "CIA1"),
            *CBM2::TPI::NAMES.map { |name| CBM2::TPI.export(name, CBM2.reader(readers, "BL-#{name}")) },
            CBM2::ACIA.export(CBM2.reader(readers, "BL-ACIA"), machine.cycles),
-           SIDRegisters.export(machine), SIDExtended.export(machine), *BEFORE_VIC.map { |entry| fixed(*entry) },
+           SIDRegisters.export(machine), SIDExtended.export(machine), *CBM2.drives(machine, readers),
+           *BEFORE_VIC.map { |entry| fixed(*entry) },
            VICII.export(machine), mains(CBM2.reader(readers, "BL-MACHINE")), *AFTER_VIC.map { |entry| fixed(*entry) }]
         end
 
