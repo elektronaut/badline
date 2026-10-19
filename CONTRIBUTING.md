@@ -75,11 +75,17 @@ the Z80 against the [Z80 ones](https://github.com/SingleStepTests/z80).
 which takes a moment the first time. For the Z80 it fetches only the
 first 100 cases of each opcode's file into `vendor/z80-sample`.
 `Z80_SAMPLE=all` checks the whole Z80 suite out into `vendor/z80`
-(about 1.5 GB) and runs every case:
+(about 1.5 GB) and runs every case. The 6809 is verified against
+[neetandev/m6809](https://github.com/neetandev/m6809)'s vectors, which
+`rake test` fetches into `vendor/m6809` (24 MB). It runs the first 100
+cases of each opcode's file, or every case with `M6809_SAMPLE=all`, and
+also runs [reyco2000's 6809 test programs](https://github.com/reyco2000/6809_6309_code_tester),
+fetched into `vendor/m6809-code-tester`:
 
 ```sh
 bundle exec rake test
 Z80_SAMPLE=all bundle exec rake test
+M6809_SAMPLE=all bundle exec rake test
 ```
 
 Check style before pushing:
