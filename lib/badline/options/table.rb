@@ -19,7 +19,7 @@ module Badline
 
     # The PETs and CBMs, as PET::Model names them, the 8032 first, the
     # default.
-    PET_MODELS = %w[8032 8096 8296 4032 3032 3032b 2001].freeze
+    PET_MODELS = %w[8032 8096 8296 4032 3032 3032b 2001 superpet].freeze
 
     # The CBM-II's B series, as CBM2::Model names them, the 610 first, the
     # default, and the P500, as CBM2::P500::Model names them.

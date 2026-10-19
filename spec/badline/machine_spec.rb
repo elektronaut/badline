@@ -69,6 +69,10 @@ describe Badline::Machine do
     expect([machine.class, machine.model, machine.ram_kb]).to eq([Badline::Plus4, Badline::Plus4::Model::C16, 16])
   end
 
+  it "builds the SuperPET as its own class" do
+    expect(described_class.build(:pet, model: "superpet").class).to eq(Badline::PET::SuperPET)
+  end
+
   it "builds a PET of the model named" do
     machine = described_class.build(:pet, model: "3032b")
     expect([machine.class, machine.model.name, machine.refresh_hz]).to eq([Badline::PET, "3032b", 60])
@@ -161,6 +165,11 @@ describe Badline::Machine do
       machine = described_class.for_options(options("pet", "--model", "2001", "--basic", "2"), nil)
       expect([machine.model.basic, machine.model.kernal, machine.model.editor(60)])
         .to eq(%w[pet/basic2.rom pet/kernal2.rom pet/editor2-n.rom])
+    end
+
+    it "builds the SuperPET at 60 Hz with --60hz" do
+      machine = described_class.for_options(options("pet", "--model", "superpet", "--60hz"), nil)
+      expect([machine.class, machine.refresh_hz]).to eq([Badline::PET::SuperPET, 60])
     end
 
     it "refuses media a PET doesn't take" do

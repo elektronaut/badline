@@ -2,6 +2,7 @@
 
 require_relative "../../lib/badline/support/plus4_checkpoint"
 require_relative "../../lib/badline/support/pet_checkpoint"
+require_relative "../../lib/badline/support/superpet_checkpoint"
 require_relative "../../lib/badline/support/cbm2_checkpoint"
 require_relative "../../lib/badline/support/p500_checkpoint"
 require_relative "../../lib/badline/support/kim1_checkpoint"
@@ -280,11 +281,17 @@ module MachineFamilies
     when "vic20" then vic20(options, media)
     when "c128" then Badline::C128.new(model: options[:model] || "c128", mode: options[:mode].to_sym)
     when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
-    when "pet" then Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
+    when "pet" then pet(options)
     when "cbm2" then Badline::Machine.build(:cbm2, model: options[:model] || "610")
     when "kim1" then Badline::KIM1.new
     else Badline::Machine.build(:c64, model: options[:model])
     end
+  end
+
+  def pet(options)
+    return Badline::PET::SuperPET.new if superpet?(options)
+
+    Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
   end
 
   def vic20(options, media)
@@ -337,7 +344,7 @@ module MachineFamilies
     when "vic20" then Badline::Support::Vic20Checkpoint
     when "c128" then Badline::Support::C128Checkpoint
     when "plus4" then Badline::Support::Plus4Checkpoint
-    when "pet" then Badline::Support::PETCheckpoint
+    when "pet" then superpet?(options) ? Badline::Support::SuperPETCheckpoint : Badline::Support::PETCheckpoint
     when "cbm2" then p500?(options) ? Badline::Support::P500Checkpoint : Badline::Support::CBM2Checkpoint
     when "kim1" then Badline::Support::KIM1Checkpoint
     else Badline::Support::Checkpoint
@@ -352,6 +359,9 @@ module MachineFamilies
 
     computer.type_keys(text == DEFAULT_TEXT ? KIM1_KEYS : text)
   end
+
+  # Whether the options name the SuperPET of the PET family.
+  def superpet?(options) = options[:model] == "superpet"
 
   # Whether the options name the P500 of the CBM-II family.
   def p500?(options) = Badline::CBM2::P500::Model.include?(options[:model])

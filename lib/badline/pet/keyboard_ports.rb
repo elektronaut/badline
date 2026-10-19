@@ -42,8 +42,12 @@ module Badline
 
       attr_reader :keyboard
 
+      # Whether the SuperPET's board pulls the diagnostic sense low.
+      attr_accessor :diagnostic_low
+
       def initialize(keyboard)
         @keyboard = keyboard
+        @diagnostic_low = false
         @pia = nil
         @ieee = nil
         @cassettes = nil
@@ -60,8 +64,11 @@ module Badline
 
       # Port A's other lines: PA4 and PA5 read the cassette sense switches,
       # PA6 the IEEE bus's EOI, and the diagnostic sense on PA7 floats high
-      # with nothing on it.
-      def read_a(_lines) = @ieee.eoi_input & @cassettes.sense_input
+      # with nothing on it but the SuperPET's board, which can pull it low.
+      def read_a(_lines)
+        lines = @ieee.eoi_input & @cassettes.sense_input
+        @diagnostic_low ? lines & 0x7f : lines
+      end
 
       def read_b(lines)
         row = @pia.port_a_output & 0x0f

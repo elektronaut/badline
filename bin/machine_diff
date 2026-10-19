@@ -63,7 +63,9 @@
 #          IEEE-488 primitives, which on the 2001's BASIC 1 finds no drive.
 #          Checkpoints digest the CPU, RAM, the screen RAM, the picture,
 #          both PIAs, the VIA, the CRTC and the 8096's board
-#          (Badline::Support::PETCheckpoint)
+#          (Badline::Support::PETCheckpoint). --model superpet adds the
+#          SuperPET board's latches and bank RAM, its 6702 and its ACIA
+#          (Badline::Support::SuperPETCheckpoint)
 #   cbm2   a 610, or the B series model --model names
 #          (Badline::CBM2::Model::ALL). It has no demo yet, so it runs the
 #          boot and type scenarios alone. Checkpoints digest the CPU with

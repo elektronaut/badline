@@ -8,8 +8,10 @@ AllCops:
   NewCops: enable
   TargetRubyVersion: 4.0
 
+# PET#initialize wires the whole board, the true drive and the SuperPET's
+# check among it.
 Metrics/AbcSize:
-  Max: 64
+  Max: 66
   Exclude:
     - "lib/badline/chips/cpu/instruction.rb"
 
@@ -67,6 +69,7 @@ Layout/MultilineOperationIndentation:
   EnforcedStyle: aligned
 
 RSpec/SpecFilePathFormat:
-  # Chips::VICI lives in chips/vic_i.rb.
+  # Chips::VICI lives in chips/vic_i.rb, and PET::SuperPET in pet/superpet.rb.
   CustomTransform:
     VICI: vic_i
+    SuperPET: superpet

@@ -88,6 +88,8 @@ module Badline
     def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false, basic: nil, editor: nil,
                    characters: nil, jumpers: [], true_drive_model: Drives::IEEEModels::DEFAULT)
       @model = Model.fitted(Model.upgraded(Model.named(model), basic, editor), characters)
+      raise ArgumentError, "the SuperPET is built as PET::SuperPET" if @model.superpet? && !superpet?
+
       ram_kb ||= @model.ram_kb
       raise ArgumentError, "the #{@model.name} has no #{ram_kb}K RAM board" unless Model.ram_fits?(@model, ram_kb)
 
@@ -100,6 +102,7 @@ module Badline
       matrix = @model.keyboard == :business ? KeyboardPorts::BUSINESS_MATRIX : KeyboardPorts::GRAPHICS_MATRIX
       @keyboard = Input::Keyboard.new(matrix:)
       keyboard_ports = KeyboardPorts.new(@keyboard)
+      @keyboard_ports = keyboard_ports
       registers = Array.new(Chips::CRTC::MASKS.length, 0)
       @pia1 = Chips::PIA.new(peripheral: keyboard_ports)
       @ieee = IEEEPorts.new(Drives::IEEEBus.new)
@@ -136,6 +139,9 @@ module Badline
       init_ieee_drives(true_drive_model)
       @init_threshold = boot_cycles(ram_kb)
     end
+
+    # Whether this is the SuperPET's board (SuperPET).
+    def superpet? = false
 
     # The vertical drive line, high but in the retrace.
     def vertical_drive? = @vertical_drive
@@ -255,3 +261,5 @@ module Badline
     end
   end
 end
+
+require "badline/pet/superpet"

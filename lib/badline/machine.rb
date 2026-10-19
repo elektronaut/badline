@@ -77,7 +77,8 @@ module Badline
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
     # the model's own RAM. A PET's is one of PET::Model::ALL, with its own
-    # RAM and ROMs, its CRTC's editor the 50 Hz one. A CBM-II's is one of
+    # RAM and ROMs, its CRTC's editor the 50 Hz one, the superpet a
+    # PET::SuperPET with its CPU switch at 6502. A CBM-II's is one of
     # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz, or a 510,
     # one of CBM2::P500::Model::ALL, with its region's mains. :kim1 is
     # refused until the KIM-1 runs.
@@ -86,7 +87,7 @@ module Badline
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
-      return PET.new(model:) if family == :pet
+      return model == "superpet" ? PET::SuperPET.new : PET.new(model:) if family == :pet
       return CBM2::P500.new(model:) if family == :cbm2 && model.start_with?("510")
       return CBM2.new(model:) if family == :cbm2
       raise ArgumentError, "no machine family named #{family}" unless family == :c64
@@ -159,10 +160,15 @@ module Badline
     # model's own without it, the editor at the frame rate --60hz or
     # --editor asks for, the ROMs --basic, --editor and --characters fit it
     # with, the 8296 board's jumpers --jumpers names, and the true drive
-    # --drive-type names.
+    # --drive-type names. The SuperPET takes the frame rate, the 8032's
+    # BASIC and editors, and the true drive.
     def self.pet_for(media, options)
       unsupported = !media.nil? && Media::PETMedia::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a PET" if unsupported
+      if options.model == "superpet"
+        return PET::SuperPET.new(refresh_hz: options.refresh_hz, basic: options.basic, editor: options.editor,
+                                 true_drive_model: options.drive_type)
+      end
 
       PET.new(model: options.model, ram_kb: options.ram_kb, refresh_hz: options.refresh_hz, basic: options.basic,
               editor: options.editor, characters: options.characters, jumpers: options.jumpers,

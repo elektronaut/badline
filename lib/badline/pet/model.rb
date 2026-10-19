@@ -17,7 +17,8 @@ module Badline
     # 1K twice over and the 80-column ones with 2K. The 8296 has 128K of
     # dynamic RAM, the 32K below $8000, the 32K above it, of which the
     # screen is the start and the rest lies under the ROMs, and the 64K
-    # board (Bus::Expansion).
+    # board (Bus::Expansion). The SuperPET is an 8032 with the 901640-01
+    # character ROM, twice the 8032's size, and its own board (SuperPET).
     module Model
       Profile = Data.define(:name, :ram_kb, :basic, :editor_50hz, :editor_60hz, :kernal, :characters, :keyboard,
                             :video, :expansion) do
@@ -27,6 +28,9 @@ module Badline
 
         # The 8296, whose board decodes its memory in a PLA.
         def cbm8296? = name == "8296"
+
+        # The SuperPET, an 8032 with the Waterloo board (SuperPET).
+        def superpet? = name == "superpet"
 
         # The screen RAM's bytes, and on the 8296 all 32K of RAM from $8000.
         def screen_bytes
@@ -86,7 +90,12 @@ module Badline
                             kernal: "pet/kernal4.rom", characters: "pet/characters2.rom", keyboard: :business,
                             video: :crtc80, expansion: true)
 
-      ALL = [PET2001, PET3032, PET3032B, PET4032, CBM8032, CBM8096, CBM8296].freeze
+      SUPERPET = Profile.new(name: "superpet", ram_kb: 32, basic: "pet/basic4.rom",
+                             editor_50hz: "pet/editor4-80-b-50hz.rom", editor_60hz: "pet/editor4-80-b-60hz.rom",
+                             kernal: "pet/kernal4.rom", characters: "pet/characters-superpet.rom",
+                             keyboard: :business, video: :crtc80, expansion: false)
+
+      ALL = [PET2001, PET3032, PET3032B, PET4032, CBM8032, CBM8096, CBM8296, SUPERPET].freeze
 
       DEFAULT = "8032"
 
