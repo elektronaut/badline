@@ -90,8 +90,13 @@ module Badline
     # The 8296's board jumpers --jumpers names (PET::Bus::Expansion::JUMPERS).
     attr_reader :jumpers
 
-    # The SuperPET's CPU switch, as --cpu sets it: "6502" or "6809".
+    # The SuperPET's CPU switch, as --cpu sets it: "6502", "6809" or
+    # "prog".
     def cpu = @cpu || "6502"
+
+    # The SuperPET's bank RAM switch, as --bank-ram sets it: "rw", "read"
+    # or "prog".
+    def bank_ram = @bank_ram || "rw"
 
     # The VIC-20's RAM expansion --ram names, a key of
     # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
@@ -342,7 +347,7 @@ module Badline
       when "--model" then @models << value
       when "--reu" then @reu = reu_size(value)
       when "--ram" then @ram_name = value
-      when "--basic", "--editor", "--characters", "--jumpers", "--cpu" then pet_option(name, value)
+      when "--basic", "--editor", "--characters", "--jumpers", "--cpu", "--bank-ram" then pet_option(name, value)
       when "--drive-type" then @drive_type = drive_type_for(value)
       when "--kernal" then @kernal = kernal_for(value)
       when "--c1lo", "--c1hi", "--c2lo", "--c2hi" then @cartridges[CARTRIDGE_SLOTS.fetch(name)] = value
@@ -358,10 +363,11 @@ module Badline
       end
     end
 
-    # The PET's frame rate, ROMs, board jumpers and the SuperPET's CPU
-    # switch, its own until named.
+    # The PET's frame rate, ROMs, board jumpers and the SuperPET's CPU and
+    # bank RAM switches, its own until named.
     def initialize_pet
       @cpu = nil
+      @bank_ram = nil
       @refresh_hz = nil
       @basic = nil
       @editor = nil
@@ -375,6 +381,7 @@ module Badline
       when "--editor" then @editor = value
       when "--characters" then @characters = value
       when "--cpu" then @cpu = value
+      when "--bank-ram" then @bank_ram = value
       else @jumpers = value.split(",")
       end
     end

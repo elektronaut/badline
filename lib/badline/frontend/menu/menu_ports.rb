@@ -68,13 +68,23 @@ module Badline
 
       # The PET's keyboard, whose keys type the characters on the host's
       # (PETKeyboard), and the keys that stand for the rest of its keys.
+      # The SuperPET's 6809 shows whether its keys type ASCII, or go by
+      # position for the APL symbols on its keycaps.
       def draw_pet_keys
         business = @computer.model.keyboard == :business
         info("KEYBOARD", business ? "BUSINESS" : "GRAPHICS")
+        draw_superpet_characters if @computer.superpet?
         (PET_KEYS + (business ? PET_BUSINESS_KEYS : PET_GRAPHICS_KEYS)).each do |line|
           @painter.text(@left, @top, line, MenuTheme::TEXT)
           @top += MenuPages::LINE
         end
+      end
+
+      def draw_superpet_characters
+        apl = @computer.apl_characters?
+        return unless apl || @computer.m6809_running?
+
+        info("CHARACTERS", apl ? "APL, KEYS BY POSITION" : "ASCII")
       end
 
       # What each control port has plugged in, a joystick, a mouse or

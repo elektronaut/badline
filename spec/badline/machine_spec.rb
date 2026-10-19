@@ -172,6 +172,12 @@ describe Badline::Machine do
       expect([machine.class, machine.refresh_hz]).to eq([Badline::PET::SuperPET, 60])
     end
 
+    it "sets the SuperPET's switches with --cpu prog and --bank-ram" do
+      machine = described_class.for_options(options("pet", "--model", "superpet", "--cpu", "prog", "--bank-ram",
+                                                    "read"), nil)
+      expect([machine.board.cpu_switch, machine.board.ram_switch]).to eq(%w[prog read])
+    end
+
     it "sets the SuperPET's CPU switch with --cpu" do
       machine = described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), nil)
       expect(machine.m6809_running?).to be(true)

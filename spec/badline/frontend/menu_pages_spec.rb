@@ -191,6 +191,50 @@ describe Badline::Frontend::MenuPages do
     end
   end
 
+  describe "with a SuperPET" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::PET::SuperPET.new }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    it "offers its CPU switch on the power page, at 6502" do
+      pages.draw(:power, 0, 0)
+      expect(buttons).to have_received(:toggle)
+        .with(anything, "CPU SWITCH", :cpu_switch, [%w[6502 6809 PROG], %i[cpu6502 cpu6809 cpu_prog], 0])
+    end
+
+    it "offers its bank RAM switch on the power page, at R/W" do
+      pages.draw(:power, 0, 0)
+      expect(buttons).to have_received(:toggle)
+        .with(anything, "RAM SWITCH", :ram_switch, [%w[R/W READ PROG], %i[bank_rw bank_read bank_prog], 0])
+    end
+
+    it "hands the bus to the 6809 with a reset when its switch moves there" do
+      pages.perform(:cpu6809)
+      computer.run_cycles(5)
+      expect([computer.board.cpu_switch, computer.m6809_running?, computer.m6809.pc]).to eq(["6809", true, 0xff80])
+    end
+
+    it "write-protects the bank RAM at once when its switch moves to READ" do
+      pages.perform(:bank_read)
+      computer.poke(0x9000, 0x5a)
+      expect(computer.board.cells[0]).to eq(0)
+    end
+
+    it "shows the bank at $9000 on the expansion page" do
+      computer.poke(0xeffc, 3)
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "64K, BANK 3 AT $9000", anything)
+    end
+
+    it "says on the keyboard page that the keys go by position for the APL characters" do
+      allow(computer).to receive(:apl_characters?).and_return(true)
+      pages.draw(:ports, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "APL, KEYS BY POSITION", anything)
+    end
+  end
+
   describe "with a CBM-II" do
     subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
 
