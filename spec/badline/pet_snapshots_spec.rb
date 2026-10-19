@@ -103,7 +103,7 @@ describe Badline::PET do
         saved("8032").tap do |machine|
           drive = Badline::Drives::Model2031.new(device:)
           drive.insert(Badline::Drives::Model1541::Disk.new)
-          machine.attach_drive2031(drive)
+          machine.attach_ieee_drive(drive)
           machine.run_cycles(2_000)
         end
       end
@@ -147,7 +147,7 @@ describe Badline::PET do
           size = model == "8250" ? 1_066_496 : 533_248
           image_class = model == "8250" ? Badline::Storage::D82Image : Badline::Storage::D80Image
           unit.insert(Badline::Drives::Model8050::Disk.new(image_class.new("", bytes: Array.new(size, 0))))
-          machine.attach_drive8050(unit)
+          machine.attach_ieee_drive(unit)
           machine.run_cycles(2_000)
         end
       end
@@ -171,9 +171,9 @@ describe Badline::PET do
       end
 
       it "swaps a 2031 on the bus for the snapshot's 8050" do
-        machine = saved("8032").tap { |pet| pet.attach_drive2031(Badline::Drives::Model2031.new) }
+        machine = saved("8032").tap { |pet| pet.attach_ieee_drive(Badline::Drives::Model2031.new) }
         machine.restore(with_unit.snapshot)
-        expect([machine.drive2031, machine.ieee.bus.drives]).to eq([nil, [machine.drive8050]])
+        expect([machine.true_drive.model_name, machine.ieee.bus.drives]).to eq(["8050", [machine.true_drive]])
       end
 
       it "swaps an 8250 on the bus for the snapshot's 8050" do
@@ -194,7 +194,7 @@ describe Badline::PET do
       end
 
       it "takes the unit off the bus for xpet's modules without a drive, and says so" do
-        machine = described_class.new.tap { |pet| pet.plug_drive8050("8050") }
+        machine = described_class.new.tap { |pet| pet.plug_ieee_drive("8050") }
         lines = []
         xpet = XpetSnapshots.to_boundary(described_class.new).tap { |pet| XpetSnapshots.set_up_crtc(pet, XpetSnapshots::CRTC80) }
         Badline::Snapshot::Image.new(XpetSnapshots.exported(xpet)).restore(machine) { |line| lines << line }

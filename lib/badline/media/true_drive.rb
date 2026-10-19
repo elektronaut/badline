@@ -4,17 +4,21 @@ module Badline
   module Media
     # Device 8 as a true drive instead of the KERNAL traps: a 1541, or on
     # the C128 its 1571, or on the Plus/4 a 1551 if it asks for one, or a
-    # 1581, or on the PET or the CBM-II a 2031 on the IEEE-488 bus, or for
-    # a .d80 or .d82 an 8050 or 8250. Once a true drive is plugged in as device 8, disk media go into
-    # it rather than into the traps, so a LOAD runs the DOS and every byte
-    # crosses the serial bus or TCBM. A .g64 holds the
-    # disk's raw GCR, which only a true drive reads, so it plugs one in
-    # when there's none yet. The 1541 reads only .d64 and .g64 images, the
-    # 1571 .d71 and .g71 as well, and the 1581 only .d81, so a .d81 swaps
-    # the drive on device 8 for a 1581 (Drives::Model1581::Slot), and another disk
-    # image swaps a 1581 back for the machine's own drive. The PET and the
-    # CBM-II have no 1581, and their 2031 reads .d64 and .g64 images only.
-    # The traps' other disk media, a .t64 or a host directory, raise Error.
+    # 1581, or on the PET or the CBM-II a drive on the IEEE-488 bus. Once a
+    # true drive is plugged in as device 8, disk media go into it rather
+    # than into the traps, so a LOAD runs the DOS and every byte crosses the
+    # serial bus, TCBM or the IEEE-488 bus. A .g64 holds the disk's raw
+    # GCR, which only a true drive reads, so it plugs one in when there's
+    # none yet. The 1541 reads only .d64 and .g64 images, the 1571 .d71 and
+    # .g71 as well, and the 1581 only .d81, so a .d81 swaps the drive on
+    # device 8 for a 1581 (Drives::Model1581::Slot), and another disk image
+    # swaps a 1581 back for the machine's own drive. On the PET and
+    # the CBM-II an image goes in the drive on device 8 if it reads it, or
+    # else in a drive of the machine's own model, plug_true_drive's, if
+    # that reads it, or else in the model made for it, swapped in
+    # (Drives::IEEEModels): a 2031 for a .d64, an 8050 for a .d80 and an
+    # 8250 for a .d82. The traps' other disk media, a .t64 or a host
+    # directory, raise Error.
     module TrueDrive
       class Error < ArgumentError; end
 
@@ -49,16 +53,13 @@ module Badline
         # mounted through the traps, so LOAD and SAVE reach the drive too.
         # `read_only` puts it in write-protected.
         def insert(computer, path, read_only: false)
-          swapped = insert_swapping(computer, path, read_only)
-          return swapped if swapped
+          return insert_ieee(computer, path, read_only) if IEEE_FAMILIES.include?(computer.family)
+          return insert_d81(computer, path, read_only) if File.extname(path).casecmp?(".d81")
 
-          pet = IEEE_FAMILIES.include?(computer.family)
           drive = own_drive(computer)
           name = drive&.model_name || default_model(computer)
           types = name == "1571" ? %w[.d64 .g64 .d71 .g71] : %w[.d64 .g64]
           unless types.include?(File.extname(path).downcase)
-            raise Error, "#{path} is not a #{types.join(' or ')} image, which the #{name} reads" if pet
-
             raise Error, "#{path} is not a #{types.join(', ')} or .d81 image, which the #{name} and the 1581 read"
           end
 
@@ -71,39 +72,27 @@ module Badline
         private
 
         # The model plug_true_drive plugs in.
-        def default_model(computer)
-          case computer.family
-          when :c128 then "1571"
-          when :pet, :cbm2 then "2031"
-          else "1541"
-          end
-        end
+        def default_model(computer) = computer.family == :c128 ? "1571" : "1541"
 
-        # The drive on device 8 unless it's a 1581, or an 8050 or 8250,
-        # which a .d64 swaps back out.
+        # The drive on device 8 unless it's a 1581, which a .d64 swaps back
+        # out.
         def own_drive(computer)
           drive = drive(computer)
-          drive unless %w[1581 8050 8250].include?(drive&.model_name)
+          drive unless drive&.model_name == "1581"
         end
 
-        # A .d81 in a 1581, and on the PET or the CBM-II a .d80 or .d82 in
-        # an 8050 or 8250, each swapped in for the drive there, or nil for
-        # the rest.
-        def insert_swapping(computer, path, read_only)
-          extension = File.extname(path).downcase
-          if IEEE_FAMILIES.include?(computer.family)
-            insert_d80(computer, path, read_only) if %w[.d80 .d82].include?(extension)
-          elsif extension == ".d81"
-            insert_d81(computer, path, read_only)
-          end
-        end
-
-        # An 8050 for a .d80 and an 8250 for a .d82, swapped in for the
-        # drive on device 8 unless it's that model already.
-        def insert_d80(computer, path, read_only)
-          model = File.extname(path).casecmp?(".d82") ? "8250" : "8050"
+        # The image in the model Drives::IEEEModels.taking picks, swapped in
+        # for the drive on device 8 unless it's that model already.
+        def insert_ieee(computer, path, read_only)
           drive = drive(computer)
-          drive = computer.plug_drive8050(model) unless drive&.model_name == model
+          model = Drives::IEEEModels.taking(path, drive&.model_name, computer.true_drive_model)
+          unless model
+            name = computer.true_drive_model
+            types = Drives::IEEEModels::MEDIA.fetch(name)
+            raise Error, "#{path} is not a #{types.join(' or ')} image, which the #{name} reads"
+          end
+
+          drive = computer.plug_ieee_drive(model) unless drive&.model_name == model
           drive.insert_image(path, read_only:)
           computer.unmount
           "Inserted #{path} in the #{model} as device 8"

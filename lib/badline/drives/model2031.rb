@@ -34,6 +34,12 @@ module Badline
 
       def model_name = "2031"
 
+      def boot_cycles = BOOT_CYCLES
+
+      # Whether the drive is where VICE saves it: its CPU between
+      # instructions.
+      def settled_for_vice? = cpu.boundary?
+
       # +rom+ covers $C000-$FFFF, and defaults to the DOS image in the ROM
       # path. +device+ is the number the jumpers set, 8 to 11.
       def initialize(rom: nil, host_clock_hz: CLOCK_HZ, device: 8, debug: false)

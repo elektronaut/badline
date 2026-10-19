@@ -115,7 +115,7 @@ module DriveScenarios
     def idle(report, dir)
       skipping = idle_machine(blank(dir, "cbm2-2031-idle-a", "2031"), true)
       stepping = idle_machine(blank(dir, "cbm2-2031-idle-b", "2031"), false)
-      drive = skipping.drive2031
+      drive = skipping.true_drive
       asleep = 0
       differs = []
       IDLE_CHECKPOINTS.each do |checkpoint|
@@ -135,7 +135,7 @@ module DriveScenarios
       drive = Badline::Drives::Model2031.new
       drive.idle_skip = idle_skip
       drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
-      machine.attach_drive2031(drive)
+      machine.attach_ieee_drive(drive)
       machine.on_init { machine.type_text("load\"$\",8\r") }
       machine
     end
@@ -167,7 +167,7 @@ module DriveScenarios
     end
 
     def plug(machine, model)
-      model == "2031" ? machine.plug_true_drive : machine.plug_drive8050(model)
+      model == "2031" ? machine.plug_true_drive : machine.plug_ieee_drive(model)
     end
 
     # The same image through the 610's traps, without a drive: what a LOAD

@@ -49,6 +49,19 @@ describe Badline::PET::IEEEDrive do
     expect([pet.plug_true_drive.model_name, pet.true_drive.device]).to eq(["2031", 8])
   end
 
+  it "plugs in the model true_drive_model names" do
+    expect(Badline::PET.new(true_drive_model: "8250").plug_true_drive.model_name).to eq("8250")
+  end
+
+  it "refuses a model the IEEE-488 bus has none of" do
+    expect { Badline::PET.new(true_drive_model: "1541") }.to raise_error(ArgumentError, /1541/)
+  end
+
+  it "keeps true_drive_model in its snapshots" do
+    restored = Badline::PET.new(true_drive_model: "8050").snapshot.load
+    expect(restored.true_drive_model).to eq("8050")
+  end
+
   it "puts it on the PET's IEEE-488 bus" do
     drive = pet.plug_true_drive
     expect(pet.ieee.bus.drives).to eq([drive])
@@ -56,7 +69,7 @@ describe Badline::PET::IEEEDrive do
 
   it "takes it off the bus again" do
     drive = pet.plug_true_drive
-    pet.detach_drive2031
+    pet.detach_ieee_drive
     expect([pet.true_drive, pet.ieee.bus.drives.include?(drive)]).to eq([nil, false])
   end
 
@@ -77,7 +90,7 @@ describe Badline::PET::IEEEDrive do
 
     it "serves device 8 again once it is gone" do
       pet.plug_true_drive
-      pet.detach_drive2031
+      pet.detach_ieee_drive
       expect(trap(pet).device).to eq(8)
     end
 

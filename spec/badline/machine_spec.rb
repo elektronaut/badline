@@ -134,6 +134,15 @@ describe Badline::Machine do
       expect([machine.class, machine.mains_hz]).to eq([Badline::CBM2::P500, 60])
     end
 
+    it "gives a CBM-II the true drive --drive-type names" do
+      machine = described_class.for_options(options("cbm2", "--drive-type", "8050"), nil)
+      expect(machine.plug_true_drive.model_name).to eq("8050")
+    end
+
+    it "gives a PET the true drive --drive-type names" do
+      expect(described_class.for_options(options("pet", "--drive-type", "8250"), nil).true_drive_model).to eq("8250")
+    end
+
     it "turns a tape away from the CBM-II" do
       expect { described_class.for_options(options("cbm2"), "game.tap") }
         .to raise_error(Badline::Machine::Unsupported, /CBM-II/)

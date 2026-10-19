@@ -76,7 +76,7 @@ class TestCIReach < Minitest::Test
   def test_the_shared_ieee_drives_reach_the_pet_and_the_cbm2
     assert_equal %w[drive-scenarios spinel:check testbench-cbm2 testbench-cbm5x0 testbench-pet
                     testbench-pet-discrete],
-                 CIReach.suites(%w[lib/badline/machine/ieee_drives.rb])
+                 CIReach.suites(%w[lib/badline/machine/ieee_drives.rb lib/badline/drives/ieee_models.rb])
   end
 
   def test_the_cbm2_and_its_ieee_ports_reach_the_drive_scenarios_too
@@ -108,7 +108,8 @@ class TestCIReach < Minitest::Test
   end
 
   def test_the_8050_and_its_roms_reach_the_drive_scenarios
-    files = %w[lib/badline/roms/8050/fdc-901869-01.rom lib/badline/drives/model8050.rb lib/badline/chips/riot.rb
+    files = %w[lib/badline/roms/8050/fdc-901869-01.rom lib/badline/roms/1001/fdc-251257-02a.rom
+               lib/badline/roms/4040/dos-2.1.rom lib/badline/drives/model8050.rb lib/badline/chips/riot.rb
                lib/badline/chips/rriot.rb]
 
     assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)

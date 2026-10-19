@@ -15,8 +15,8 @@ describe Badline::CBM2::IEEEDrive do
 
   it "plugs an 8050 or an 8250 in place of the 2031" do
     machine.plug_true_drive
-    drive = machine.plug_drive8050("8250")
-    expect([machine.drive2031, machine.true_drive.model_name, machine.ieee.bus.drives]).to eq([nil, "8250", [drive]])
+    drive = machine.plug_ieee_drive("8250")
+    expect([machine.true_drive.model_name, machine.ieee.bus.drives]).to eq(["8250", [drive]])
   end
 
   it "clocks the drive at the machine's 2 MHz" do
@@ -26,7 +26,7 @@ describe Badline::CBM2::IEEEDrive do
   end
 
   it "waits for the drive's boot before typing" do
-    machine.plug_drive8050
+    machine.plug_ieee_drive("8050")
     expect(machine.init_threshold).to be >= Badline::Drives::Model8050::BOOT_CYCLES
   end
 
@@ -34,12 +34,12 @@ describe Badline::CBM2::IEEEDrive do
     machine.mount(Badline::Storage::HostDirectory.new(Dir.pwd))
     machine.plug_true_drive
     leaves = trap(machine).device
-    machine.detach_drive2031
+    machine.detach_ieee_drive
     expect([leaves, trap(machine).device]).to eq([nil, 8])
   end
 
   it "keeps an 8250 in its snapshots" do
-    machine.plug_drive8050("8250")
+    machine.plug_ieee_drive("8250")
     machine.run_cycles(10_000)
     expect(machine.snapshot.load.true_drive&.model_name).to eq("8250")
   end

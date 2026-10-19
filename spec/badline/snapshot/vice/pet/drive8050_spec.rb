@@ -29,7 +29,7 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
   def restored(dir)
     pet = Badline::Snapshot::Vice::PET.setup(xpet).build
     drive = Badline::Drives::Model8050.new
-    pet.attach_drive8050(drive)
+    pet.attach_ieee_drive(drive)
     drive.insert_image(blank_d80(dir))
     image(xpet).restore(pet) { nil }
     pet
@@ -48,36 +48,36 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
     let(:pet) { restored(dir) }
 
     it "has the interface processor's registers" do
-      ip = pet.drive8050.ip_cpu
+      ip = pet.true_drive.ip_cpu
       header = cpu(xpet).bytes
       expect([ip.a, ip.x, ip.y, ip.stack_pointer, ip.program_counter, ip.p])
         .to eq([*header[8, 4], header[12] | (header[13] << 8), header[14]])
     end
 
     it "has the common RAM" do
-      common = pet.drive8050.common
+      common = pet.true_drive.common
       expect(Array.new(0x1000) { |index| common.peek(index) }).to eq(cpu(xpet).bytes[0x5c + 0x100, 0x1000])
     end
 
     it "has the 6532s' RAM, the interface processor's page 0" do
-      riots = pet.drive8050
+      riots = pet.true_drive
       expect(riots.data_riot.ram + riots.control_riot.ram).to eq(cpu(xpet).bytes[0x5c, 0x100])
     end
 
     it "has UE1's ports and its PA7 edge" do
-      riot = pet.drive8050.control_riot
+      riot = pet.true_drive.control_riot
       fields = Badline::Snapshot::Keyed::Reader.parse(pet.save_modules.find { |s| s.name == "BL-D8-RIOT2" })
       expect([fields.int("ora", 0), fields.int("ddra", 0), fields.bool("edge_irq_enabled", false),
               fields.bool("rising_edge", false), riot.ram.length]).to eq([0x1c, 0x1f, true, true, 128])
     end
 
     it "puts the controller in its idle loop" do
-      fdc = pet.drive8050.fdc_cpu
+      fdc = pet.true_drive.fdc_cpu
       expect([fdc.program_counter, fdc.boundary?]).to eq([Badline::Drives::Model8050::Idle::FDC_LOOP, true])
     end
 
     it "keeps the disk" do
-      expect(pet.drive8050.disk&.image&.path).to eq(File.join(dir, "blank.d80"))
+      expect(pet.true_drive.disk&.image&.path).to eq(File.join(dir, "blank.d80"))
     end
 
     it "lists the disk's directory" do
@@ -128,7 +128,7 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
 
     it "puts each head's half track in its drive's block" do
       unit = described_class.export(Badline::PET.new, readers("8050", idle_loop)).first
-      expect(described_class::DRIVES.map { |at| unit.data.getbyte(at + described_class::HALF_TRACK) }).to eq([2, 2])
+      expect([0, described_class::BLOCK].map { |at| unit.data.getbyte(at + described_class::HALF_TRACK) }).to eq([2, 2])
     end
 
     it "leaves the drive out while its controller is away from its idle loop" do

@@ -134,7 +134,7 @@ describe Badline::Media::PETMedia do
 
     it "swaps the 2031 for an 8250 for an 8250 disk" do
       Badline::Media.attach(pet, blank_d80(File.join(dir, "game.d82"), sides: 2))
-      expect([pet.drive2031, pet.true_drive.model_name]).to eq([nil, "8250"])
+      expect(pet.true_drive.model_name).to eq("8250")
     end
 
     it "refuses a .d81" do

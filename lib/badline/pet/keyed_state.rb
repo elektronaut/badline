@@ -26,6 +26,7 @@ module Badline
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
         out.int("host.init_pending", @cycles <= @init_threshold ? @init_handlers.length : 0)
+        save_ieee_drive_fields(out)
       end
 
       def load_machine_fields(input)
@@ -34,6 +35,7 @@ module Badline
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max
+        load_ieee_drive_fields(input)
       end
     end
 

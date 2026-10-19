@@ -87,7 +87,7 @@ module Badline
                 else
                   Storage::D80Image.new("", bytes: blank(533_248))
                 end
-        PET.new.tap { |machine| machine.plug_drive8050(model).insert(Drives::Model8050::Disk.new(image)) }
+        PET.new.tap { |machine| machine.plug_ieee_drive(model).insert(Drives::Model8050::Disk.new(image)) }
       end
 
       def self.blank(length) = Array.new(length, 0)
