@@ -289,7 +289,7 @@ module MachineFamilies
   end
 
   def pet(options)
-    return Badline::PET::SuperPET.new if superpet?(options)
+    return Badline::PET::SuperPET.new(cpu: options[:cpu] || "6502") if superpet?(options)
 
     Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
   end
@@ -363,6 +363,14 @@ module MachineFamilies
     computer.type_keys(text == DEFAULT_TEXT ? KIM1_KEYS : text)
   end
 
+  # Why --cpu doesn't make a SuperPET, or nil.
+  def cpu_problem(options)
+    return "--cpu is the SuperPET's, with --family pet --model superpet" unless superpet?(options)
+
+    switch = Badline::PET::SuperPET::Board::CPU_SWITCH
+    "no CPU switch position #{options[:cpu]} (#{switch.join(', ')})" unless switch.include?(options[:cpu])
+  end
+
   # Whether the options name the SuperPET of the PET family.
   def superpet?(options) = options[:model] == "superpet"
 
@@ -378,10 +386,12 @@ module MachineFamilies
   # The options that reach the run on another revision.
   def flags(options)
     ["--family", options[:family], *(["--model", options[:model]] if options[:model]),
-     "--mode", options[:mode], *(["--ram", options[:ram]] if options[:ram])]
+     "--mode", options[:mode], *(["--ram", options[:ram]] if options[:ram]),
+     *(["--cpu", options[:cpu]] if options[:cpu])]
   end
 
-  # --family, --model, --mode and --ram, and the scenarios, for --help.
+  # --family, --model, --mode, --ram and --cpu, and the scenarios, for
+  # --help.
   def define_options(opts, options)
     opts.on("--family FAMILY", "The machine: #{NAMES.join(', ')} (default: c64)") { |name| options[:family] = name }
     opts.on("--model MODEL", "The family's model, as Badline::Machine.build names it") do |model|
@@ -391,6 +401,9 @@ module MachineFamilies
     opts.on("--ram RAM", "The VIC-20's RAM expansion (default: what the media needs), " \
                          "or the Plus/4's or the PET's RAM in K (default: the model's own)") do |ram|
       options[:ram] = ram
+    end
+    opts.on("--cpu SWITCH", "The SuperPET's CPU switch: 6502, 6809 or prog (default: 6502)") do |cpu|
+      options[:cpu] = cpu
     end
     opts.separator ""
     opts.separator "Scenarios, on every family: boot, type (--text at the prompt), demo (a program built"
@@ -404,6 +417,7 @@ module MachineFamilies
     family = options[:family]
     return "no family named #{family} (#{NAMES.join(', ')})" unless NAMES.include?(family)
     return "no C128 mode named #{options[:mode]} (#{MODES.join(', ')})" unless MODES.include?(options[:mode])
+    return cpu_problem(options) if options[:cpu]
 
     return unless options[:ram]
     return "--ram is the VIC-20's, the Plus/4's or the PET's" unless %w[vic20 plus4 pet].include?(family)

@@ -16,6 +16,9 @@ module Badline
           # doesn't read fails the restore. The others are left out and
           # reported.
           READ = [MainCPU::NAME, PETMem::NAME, CRTC::NAME, "PIA1", "PIA2", VIA::NAME].freeze
+          # The SuperPET's too: its 6809 and its ACIA. A SuperPET's board
+          # comes from PETMEM.
+          SUPERPET_READ = [CPU6809::NAME, CBM2::ACIA::NAME].freeze
           # The host's media, which a restore keeps.
           KEPT = %w[BL-TAPE1 BL-TAPE2 BL-TRAPDOS].freeze
           # The disks in a true drive's drives, which a restore keeps.
@@ -53,7 +56,8 @@ module Badline
             applied = []
             ignored = []
             sections = []
-            READ.each do |name|
+            names = read_names(computer)
+            names.each do |name|
               section = container[name]
               next if section.nil?
 
@@ -72,8 +76,10 @@ module Badline
             end
             sections += drive(container, applied, ignored, kept_disks(container, computer, disks))
             computer.load_modules(Keyed::Modules.new(modules(container, computer, applied) + sections))
-            Report.new(applied:, ignored: ignored + left_out(container, applied))
+            Report.new(applied:, ignored: ignored + left_out(container, names, applied))
           end
+
+          def read_names(computer) = computer.superpet? ? READ + SUPERPET_READ : READ
 
           # The disks badline's true drive has, which stay in the drive the
           # snapshot puts on the bus when it is of the same model.
@@ -134,6 +140,8 @@ module Badline
             when PETMem::NAME then PETMem.reads?(section)
             when CRTC::NAME then CRTC.reads?(section)
             when VIA::NAME then VIA.reads?(section)
+            when CPU6809::NAME then CPU6809.reads?(section)
+            when CBM2::ACIA::NAME then CBM2::ACIA.reads?(section)
             else PIAs.reads?(section)
             end
           end
@@ -160,7 +168,24 @@ module Badline
             if applied.include?(VIA::NAME)
               sections << Keyed.section("BL-VIA") { |out| VIA.import(container[VIA::NAME], out) }
             end
+            sections += superpet(container, applied) if computer.superpet?
             sections + video
+          end
+
+          # The SuperPET's board, and its 6809 while it has the bus and its
+          # ACIA where the snapshot has them. The 6809 the 6502 has the bus
+          # from, and a module left out, stay as the machine has them at
+          # power-on.
+          def superpet(container, applied)
+            cycles = FieldReader.new(container[MainCPU::NAME]).qword
+            memory = container[PETMem::NAME]
+            sections = [Keyed.section("BL-SUPERPET") { |out| PETMem.import_superpet(memory, out) }]
+            if applied.include?(CPU6809::NAME) && PETMem.m6809?(memory)
+              sections << Keyed.section("BL-M6809") { |out| CPU6809.import(container[CPU6809::NAME], out, cycles) }
+            end
+            return sections unless applied.include?(CBM2::ACIA::NAME)
+
+            sections << Keyed.section("BL-ACIA") { |out| CBM2::ACIA.import(container[CBM2::ACIA::NAME], out, cycles) }
           end
 
           def machine(out, container, computer, drive)
@@ -203,8 +228,8 @@ module Badline
             [Keyed.section("BL-CRTC") { |out| CRTC.copy(fields, out) }]
           end
 
-          def left_out(container, applied)
-            container.sections.reject { |section| READ.include?(section.name) || applied.include?(section.name) }
+          def left_out(container, names, applied)
+            container.sections.reject { |section| names.include?(section.name) || applied.include?(section.name) }
                      .map { |section| "#{section}: badline doesn't read this module, left out" }
           end
         end

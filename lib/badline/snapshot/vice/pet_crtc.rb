@@ -6,7 +6,7 @@ module Badline
       module PET
         # CRTC 1.2, which xpet saves on every model, the discrete boards'
         # video too, as a 6545 with the registers fixed: the board's screen
-        # settings, the registers, the one selected, the beam's character,
+        # settings, the character set VIA CA2 picks, the registers, the one selected, the beam's character,
         # row and line in the row, whether the frame is in its vertical
         # adjust, the row's start in screen RAM, the lines of vertical sync
         # left, whether the rows show, the picture's size, the lines in the
@@ -36,6 +36,13 @@ module Badline
           SETTINGS = [0xff, 0x03, 0x00, 0x20, 0x00, 0x20, 0x00, 0x10, 0xff, 0x1f].freeze
           # The 8296's, whose screen RAM spans 4K.
           SETTINGS_8296 = [0xff, 0x0f, 0x00, 0x20, 0x00, 0x20, 0xff, 0x0f, 0xff, 0x1f].freeze
+          # The SuperPET's, whose character ROM spans 4K, inferred from
+          # xpet 3.10's SuperPET snapshots.
+          SETTINGS_SUPERPET = [0xff, 0x03, 0x00, 0x20, 0x00, 0x20, 0x00, 0x10, 0xff, 0x3f].freeze
+          # The word after the settings while VIA CA2 is high, picking the
+          # character ROM's second set, as xpet 3.10 writes it and paints
+          # the picture from on every PET board.
+          SECOND_SET = 0x1000
           # The 2001's and 3000 series' video as xpet's CRTC runs it: 64
           # cycles a line, 32 rows of 8 lines and 4 more, the first 25 rows
           # shown.
@@ -85,12 +92,18 @@ module Badline
                      crtc_beam(run_on(fresh_crtc(machine), crtc_input, -CRTC_LEAD % frame_cycles(registers)),
                                registers)
                    end
-            fields = FieldWriter.new.bytes(model.cbm8296? ? SETTINGS_8296 : SETTINGS).word(attributes(model))
+            fields = FieldWriter.new.bytes(settings(model)).word(machine.via.ca2_output ? SECOND_SET : 0)
             fields.byte(0).byte(columns(model))
             fields.byte(model.basic1? ? 1 : 0).bytes(registers).byte(discrete ? 0 : crtc_input.int("selected", 0))
             beam_fields(fields, beam, registers, model)
             picture(fields, model)
             fields.section(NAME, MAJOR, MINOR)
+          end
+
+          def settings(model)
+            return SETTINGS_8296 if model.cbm8296?
+
+            model.superpet? ? SETTINGS_SUPERPET : SETTINGS
           end
 
           def crtc_registers(input)

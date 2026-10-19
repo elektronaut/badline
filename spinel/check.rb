@@ -104,11 +104,12 @@ module SpinelCheck
     [[], %w[300000 2300000 510ntsc]].each { |args| compare("p500_snapshot", args) }
   end
 
-  # An 8032's snapshot taken as the line it types runs, and a 2001's
-  # taken while the keys are still going into its keyboard buffer, each
-  # loaded into a new machine that runs on beside the saved one.
+  # An 8032's snapshot taken as the line it types runs, a 2001's taken
+  # while the keys are still going into its keyboard buffer, and a
+  # SuperPET's taken in 6809 mode once the Waterloo menu is up, each loaded
+  # into a new machine that runs on beside the saved one.
   def check_pet_snapshots
-    [[], %w[550000 1200000 2001]].each { |args| compare("pet_snapshot", args) }
+    [[], %w[550000 1200000 2001], %w[700000 1200000 superpet 6809]].each { |args| compare("pet_snapshot", args) }
   end
 
   # The C128 typing print 6*7, the C128DCR typing the line that writes the

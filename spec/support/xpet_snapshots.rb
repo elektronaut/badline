@@ -35,7 +35,8 @@ module XpetSnapshots
   # as a State taken once.
   def probing(model, cycles)
     TakenOnce.fetch([:xpet_probe, model, cycles]) do
-      machine = to_boundary(run(Badline::PET.new(model:), 10))
+      built = model == "superpet" ? Badline::PET::SuperPET.new : Badline::PET.new(model:)
+      machine = to_boundary(run(built, 10))
       set_up_crtc(machine, machine.model.video == :crtc80 ? CRTC80 : CRTC40) if machine.model.crtc?
       PROBE.each_with_index { |byte, offset| machine.poke(START + offset, byte) }
       machine.cpu.program_counter = START

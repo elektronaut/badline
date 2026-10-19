@@ -149,9 +149,14 @@ port lines the 8296's RAM follows, both PIAs, the VIA, the CPU, the
 CRTC on the boards that have one, the picture with where the video is
 in its frame, the tapes in both datasettes with their places on them,
 and the disk or directory device 8 serves through the IEEE-488 traps.
-It restores into a machine of the same model with the same RAM, the
-same editor frame rate, the same ROMs, which come with the model, and
-an 8296's same jumpers. Its file names its machine `PET`, as xpet's do,
+A SuperPET's also holds its board's latches and 64K of bank RAM, the
+6702, the ACIA, the 6809 and the traps on the Waterloo ROM's IEEE-488
+routines, in 6502 mode and in 6809 mode alike, and saves once the CPU
+that has the bus is between instructions. It restores into a machine of
+the same model with the same RAM, the same editor frame rate, the same
+ROMs, which come with the model, an 8296's same jumpers and a SuperPET's
+CPU and RAM switches at the same positions. Its file names its machine
+`PET`, as xpet's do,
 and holds only badline's modules, so xpet doesn't open it unless it is
 saved with `--vice` (see [xpet](#xpet)).
 
@@ -160,7 +165,9 @@ saved with `--vice` (see [xpet](#xpet)).
 A PET snapshot saved with `--vice`, or `computer.export_snapshot(path)`,
 also holds xpet's modules for the CPU, the RAM with the screen RAM, or
 an 8296's 32K from `$8000`, an 8096's or 8296's board and its control
-register, the CRTC, both PIAs and the VIA, a true 2031's CPU, RAM, VIAs
+register, a SuperPET's board, its bank and its `$EFFE` bit, the CRTC
+with the character set VIA CA2 picks, both PIAs and the VIA, a
+SuperPET's 6809 and ACIA, a true 2031's CPU, RAM, VIAs
 and head, or a true 8050's or 8250's interface processor with its RAM
 and 6532s and the heads' tracks, and the ones xpet 3.10 needs to open
 the file, with nothing open on the file system drive and nothing on the
@@ -169,9 +176,11 @@ xpet's terms. The file says it is in VICE's snapshot format 1.0, the
 only one xpet reads.
 
 xpet 3.10 opens those snapshots as long as its model and editor match:
-`-model 2001`, `3032`, `3032B`, `4032`, `8032`, `8096` or `8296`, and
-for a badline editor other than xpet's own, `-editor` naming badline's
-ROM. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
+`-model 2001`, `3032`, `3032B`, `4032`, `8032`, `8096`, `8296` or
+`SuperPET`, and for a badline editor other than xpet's own, `-editor`
+naming badline's ROM. xpet runs a SuperPET's 6809 when the snapshot
+says it has the bus, whatever its own CPU switch, and has no system
+latch, write protect or 6702 to take from it. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
 8296 saved for it has to run that editor (`--editor 4-80-b-50hz-0283`),
 and xpet takes the 8296's jumpers from its own settings. It keeps its
 own datasettes and leaves out badline's tapes and disks. A true drive
@@ -207,9 +216,14 @@ starts again with the next frame. xpet doesn't save its ROMs, which
 keyboard it has or an 8296's jumpers, so the board, the RAM and the
 CRTC's frame build the machine: a 2001, a 3032 for any other discrete
 board, a 4032, an 8032, an 8096 or an 8296 with none of its jumpers
-fitted, at 50 or 60 Hz, and an 8032, 8096 or 8296 whose CRTC lines are
-64 cycles long runs xpet's own 50 Hz editor, 901474-04 dated 0283. A
-SuperPET's snapshot fails. It reports the modules it leaves out, such
+fitted, or a SuperPET, at 50 or 60 Hz, and an 8032, 8096 or 8296 whose
+CRTC lines are 64 cycles long runs xpet's own 50 Hz editor, 901474-04
+dated 0283. A SuperPET comes with its bank RAM, its bank, its `$EFFE`
+bit and its ACIA, its CPU switch at the CPU that had the bus, and while
+that is the 6809, the 6809's registers. Its RAM switch is at R/W, the
+only position xpet has, its system latch is clear and its 6702 is as the
+RES line leaves it, since xpet saves none of them, and in 6809 mode its
+frame rate is the one the Waterloo ROM's CRTC table sets. It reports the modules it leaves out, such
 as the drives past device 8, the datasettes and the keyboard, and
 carries on without them, and a snapshot without a true drive takes
 badline's, a 2031, an 8050 or an 8250, off the bus and says so.

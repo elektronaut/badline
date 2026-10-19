@@ -29,10 +29,10 @@ describe Badline::PET::SuperPET::WaterlooTraps do
   # Whether a trap returns in place of the routine at +address+, called
   # with D, and +pushed+ words above the return address $1234 on the
   # stack, for one cycle.
-  def trapped?(address, value = 0, *pushed)
-    cpu = superpet.m6809
+  def trapped?(address, value = 0, *pushed, machine: superpet)
+    cpu = machine.m6809
     [0x12, 0x34, *pushed.flat_map { |word| [word >> 8, word & 0xff] }].each_with_index do |byte, index|
-      superpet.poke(0x0900 + index, byte)
+      machine.poke(0x0900 + index, byte)
     end
     cpu.s = 0x0900
     cpu.d = value
@@ -76,6 +76,14 @@ describe Badline::PET::SuperPET::WaterlooTraps do
     open_file("1:HELLO")
     read_bytes(4)
     expect(superpet.peek(block)).to eq(3)
+  end
+
+  it "carries a file part read over a snapshot" do
+    open_file("1:HELLO")
+    read_bytes(1)
+    restored = superpet.snapshot.load
+    trapped?(traps::BYTE_IN, machine: restored)
+    expect(restored.m6809.b).to eq(0x22)
   end
 
   it "leaves another device to the ROM" do

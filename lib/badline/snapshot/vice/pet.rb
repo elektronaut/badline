@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "badline/snapshot/vice/cbm2_acia"
 require "badline/snapshot/vice/pet_cpu"
 require "badline/snapshot/vice/pet_mem"
 require "badline/snapshot/vice/pet_pias"
@@ -22,8 +23,8 @@ module Badline
         # The models badline builds by the board PETMEM names (PETMem): the
         # discrete board is a 2001's where xpet's settings say so, and a
         # 3032 otherwise.
-        MODELS = { PETMem::CRTC40 => "4032", PETMem::CRTC80 => "8032", PETMem::CBM8096 => "8096",
-                   PETMem::CBM8296 => "8296" }.freeze
+        MODELS = { PETMem::CRTC40 => "4032", PETMem::CRTC80 => "8032", PETMem::SUPERPET => "superpet",
+                   PETMem::CBM8096 => "8096", PETMem::CBM8296 => "8296" }.freeze
         # The modules xpet resets the machine without, for the parts badline
         # doesn't model in VICE's terms, each as xpet leaves them with
         # nothing attached: no file system drive open, both cassette ports
@@ -50,7 +51,8 @@ module Badline
            PIAs.export("PIA1", machine.pia1, reader(readers, "BL-PIA1")),
            PIAs.export("PIA2", machine.pia2, reader(readers, "BL-PIA2")), VIA.export(reader(readers, "BL-VIA")),
            *Drive2031.export(machine, readers), *Drive8050.export(machine, readers)] +
-            PERIPHERALS.map { |name, major, minor, bytes| FieldWriter.new.bytes(bytes).section(name, major, minor) }
+            PERIPHERALS.map { |name, major, minor, bytes| FieldWriter.new.bytes(bytes).section(name, major, minor) } +
+            (machine.superpet? ? [CBM2::ACIA.export(reader(readers, "BL-ACIA"), machine.cycles)] : [])
         end
 
         def reader(readers, name) = readers[name] || Keyed::Reader.missing(name)
@@ -61,7 +63,9 @@ module Badline
         # xpet doesn't save the keyboard, the ROMs or an 8296's jumpers, so
         # a discrete board is a 3032 with the graphics keyboard unless it is
         # a 2001, each model has its own ROMs, and an 8296 none of its
-        # jumpers, as xpet's own has.
+        # jumpers, as xpet's own has. Nor does it save the SuperPET's
+        # switches: its CPU switch is at the CPU that has the bus, and its
+        # RAM switch at R/W, which is the only position xpet has.
         def setup(container)
           memory = memory(container)
           ram_kb = PETMem.ram_kb(memory)
@@ -75,8 +79,11 @@ module Badline
           crtc = nil unless crtc.nil? || CRTC.reads?(crtc)
           refresh_hz = refresh_hz(crtc, profile)
           profile = Badline::PET::Model.upgraded(profile, nil, editor(crtc, profile, refresh_hz))
+          superpet = profile.superpet?
+          cpu_switch = PETMem.m6809?(memory) ? "6809" : "6502"
           PETSetup.new(model: name, ram_kb:, refresh_hz:, basic: profile.basic, editor: profile.editor(refresh_hz),
-                       kernal: profile.kernal, characters: profile.characters, jumpers: "")
+                       kernal: profile.kernal, characters: profile.characters, jumpers: "",
+                       cpu_switch: superpet ? cpu_switch : "", ram_switch: superpet ? "rw" : "")
         end
 
         def memory(container)
@@ -94,8 +101,7 @@ module Badline
           name = MODELS[board]
           return name unless name.nil?
 
-          what = board == PETMem::SUPERPET ? "a SuperPET" : "board #{board}"
-          raise FormatError, "#{memory}: #{what}, which badline doesn't build"
+          raise FormatError, "#{memory}: board #{board}, which badline doesn't build"
         end
 
         # The editor's frame rate, from the cycles the CRTC's registers set

@@ -68,6 +68,10 @@ module Badline
           HOOKS.each_key { |address| @cpu.remove_trap(address) }
         end
 
+        # Whether a served device listens and talks, the channel and the
+        # command, and the bytes sent so far, for a checkpoint.
+        def state = [@listening ? 1 : 0, @talking ? 1 : 0, @channel, @frame, *@buffer]
+
         private
 
         def call(address)
