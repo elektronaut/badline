@@ -11,11 +11,12 @@ require_relative "../test/support/lorenz_run"
 # spinel:lorenz tasks.
 module SpinelCheck
   OUT = "tmp/spinel"
-  HARNESSES = %w[boot cpu_tests z80_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot plus4_testbench
-                 plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot cbm2_boot cbm2_testbench
-                 cbm2_snapshot p500_boot p500_testbench p500_snapshot sid].freeze
+  HARNESSES = %w[boot cpu_tests z80_tests m6809_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot
+                 plus4_testbench plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot cbm2_boot
+                 cbm2_testbench cbm2_snapshot p500_boot p500_testbench p500_snapshot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
+  M6809_CASES = "#{OUT}/m6809_cases.txt".freeze
   SID_TUNES = %w[filtertest combwformtst].map { |tune| "vendor/VICE-testprogs/SID/csid-light-tests/#{tune}.sid" }.freeze
 
   module_function
@@ -126,6 +127,8 @@ module SpinelCheck
   def check_cpu_tests = check_cases("cpu_tests", "spinel/convert.rb", CASES)
 
   def check_z80_tests = check_cases("z80_tests", "spinel/convert_z80.rb", Z80_CASES)
+
+  def check_m6809_tests = check_cases("m6809_tests", "spinel/convert_m6809.rb", M6809_CASES)
 
   # Runs a SingleStepTests harness on 100 cases per opcode, which the
   # converter samples into +cases+ the first time.

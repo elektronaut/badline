@@ -161,6 +161,12 @@ jobs:
         with:
           path: vendor/z80-sample
           key: z80-sample-ebe1875d-100
+      - name: Cache 6809 test vectors
+        if: contains(matrix.harnesses, 'm6809_tests')
+        uses: actions/cache@v6
+        with:
+          path: vendor/m6809
+          key: m6809-vectors-9dd7b592
       - name: Cache VICE-testprogs
         uses: actions/cache@v6
         with:
