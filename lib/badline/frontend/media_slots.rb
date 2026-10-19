@@ -35,7 +35,7 @@ module Badline
         # either cartridge's slots.
         def cartridge?(computer)
           return !computer.cartridge_slots.empty? if computer.family == :plus4
-          return false if %i[pet cbm2].include?(computer.family)
+          return false if %i[pet cbm2 kim1].include?(computer.family)
 
           !computer.address_bus.cartridge.nil?
         end

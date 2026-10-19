@@ -10,6 +10,9 @@ module Badline
     # On the C128, #follow switches to the screen the machine prints to
     # (C128#active_screen) each time it moves there, and #show_vdc's choice
     # holds until the next move.
+    #
+    # The KIM-1 has no video chip, and shows its panel (KIM1Panel), which
+    # #follow brings up to the machine each frame.
     class Screens
       # The frames a move holds before #follow takes it. The C128 KERNAL's
       # reset clears the 80 column screen with the editor on it for over a
@@ -18,8 +21,12 @@ module Badline
 
       attr_reader :screen
 
+      # The KIM-1's panel, the picture a KIM-1 shows.
+      attr_reader :kim1_panel
+
       def initialize(computer)
         @computer = computer
+        @kim1_panel = KIM1Panel.new
         @vdc_shown = false
         @vdc_shape = []
         forget_screen
@@ -31,6 +38,7 @@ module Badline
       # Shows another machine's video chip, once #build builds its screen.
       def computer=(computer)
         @computer = computer
+        @kim1_panel = KIM1Panel.new
         @vdc_shown = false
         forget_screen
       end
@@ -38,6 +46,7 @@ module Badline
       # Shows the screen a C128 has moved its output to once the move has
       # held for FOLLOW_FRAMES calls, one a frame. #build then builds it.
       def follow
+        return @kim1_panel.follow(@computer) if @computer.family == :kim1
         return unless @computer.family == :c128
 
         vdc = @computer.active_screen == :vdc
@@ -64,7 +73,9 @@ module Badline
 
       def build
         @built_vdc = @vdc_shown
-        if @vdc_shown
+        if @computer.family == :kim1
+          @screen = Screen.new(@kim1_panel, @kim1_panel.crop)
+        elsif @vdc_shown
           vdc = @computer.vdc
           @vdc_shape = vdc_shape(vdc)
           @screen = Screen.new(vdc, vdc.crop, dots: 2)

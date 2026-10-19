@@ -418,7 +418,10 @@ describe Badline::Options do
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
       "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
-      "the KIM-1" => [%w[kim1], "the KIM-1 isn't emulated yet"],
+      "a model for the KIM-1" => [%w[kim1 --model 8032], "invalid argument: --model 8032"],
+      "an NTSC KIM-1" => [%w[kim1 --ntsc], "--ntsc needs the C64"],
+      "a SID for the KIM-1" => [%w[kim1 --sid 8580], "--sid needs the C64"],
+      "RAM for the KIM-1" => [%w[kim1 --ram 8k], "--ram needs vic20, plus4 or pet"],
       "a VIC-20 expansion for the PET" => [%w[pet --ram 24k], "invalid argument: --ram 24k"],
       "a C64 model for the PET" => [%w[pet --model c64], "invalid argument: --model c64"],
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
@@ -575,6 +578,14 @@ describe Badline::Options do
 
       it "runs the P500 with its KERNAL and its region's mains" do
         expect([options.p500?, options.kernal, options.mains_hz]).to eq([true, "02", nil])
+      end
+    end
+
+    context "with kim1" do
+      let(:argv) { %w[kim1] }
+
+      it "runs the KIM-1" do
+        expect([options.family, options.model]).to eq([:kim1, "kim1"])
       end
     end
 

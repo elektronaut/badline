@@ -44,6 +44,8 @@ module Badline
       # either, and the PET and the CBM-II's B series neither that nor
       # joysticks.
       def self.key?(name, family)
+        return !kim1_key(name).empty? if family == :kim1
+
         pet = %i[pet cbm2].include?(family)
         (name == "restore" && !pet && !%i[plus4 p500].include?(family)) || (family == :c128 && LOCKS.include?(name)) ||
           !keyboard_key(name, family).nil? || (!pet && !joystick_direction(name).nil?)
@@ -71,6 +73,13 @@ module Badline
         when :cbm2, :p500 then CBM2::KeyboardPorts::MATRIX
         else Input::Keyboard::C64_MATRIX
         end
+      end
+
+      # The KIM-1's key for a name such as go, a or plus, as
+      # KIM1::Panel::KEYS names it, with st and rs, or an empty string.
+      def self.kim1_key(name)
+        key = name == "plus" ? "+" : name.upcase
+        KIM1::Panel::KEYS.include?(key) || %w[ST RS].include?(key) ? key : ""
       end
 
       # The direction of joy1-NAME or joy2-NAME, such as up or fire.
@@ -150,7 +159,7 @@ module Badline
       def perform(computer, event)
         case event.action
         when "key" then press(computer, event)
-        when "type" then computer.type_text(event.argument.gsub("\\n", "\r").gsub("\\r", "\r"))
+        when "type" then type(computer, event.argument)
         when "insert" then insert(computer, event.argument)
         when "eject" then eject(computer, event.argument)
         when "reset" then computer.reset!
@@ -158,8 +167,16 @@ module Badline
         end
       end
 
+      # Types the text, or on the KIM-1 presses the keys it names.
+      def type(computer, text)
+        return computer.type_keys(text) if computer.family == :kim1
+
+        computer.type_text(text.gsub("\\n", "\r").gsub("\\r", "\r"))
+      end
+
       def press(computer, event)
         name = event.argument
+        return press_kim1(computer, event) if computer.family == :kim1
         return lock(computer, name) if LOCKS.include?(name)
 
         if name == "restore"
@@ -174,6 +191,17 @@ module Badline
           joystick(computer, name).press(direction)
         end
         hold(event)
+      end
+
+      # ST and RS act as they go down, and the KIM-1's other keys are held.
+      def press_kim1(computer, event)
+        case (key = Timeline.kim1_key(event.argument))
+        when "ST" then computer.press_stop
+        when "RS" then computer.press_reset
+        else
+          computer.press_key(key)
+          hold(event)
+        end
       end
 
       # CAPS LOCK and 40/80 DISPLAY lock: a push puts one down if it was up,
@@ -198,6 +226,8 @@ module Badline
 
       def release(computer, event)
         return computer.release_cartridge_button if event.action == "freeze" && computer.family == :c64
+
+        return computer.release_key if computer.family == :kim1
 
         name = event.argument
         return computer.release_restore if name == "restore"
@@ -237,7 +267,7 @@ module Badline
       # its cartridge stays in.
       def ejectable?(computer, what)
         family = computer.family
-        return false if family == :cbm2 && what != "disk"
+        return false if family == :kim1 || (family == :cbm2 && what != "disk")
 
         (what != "cartridge" || !%i[vic20 pet].include?(family)) && inserted?(computer, what)
       end

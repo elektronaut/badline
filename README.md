@@ -13,7 +13,7 @@ are modelled at the cycle level.
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
 paddles and a 1351 mouse. It also runs the VIC-20, PAL or NTSC, as
-`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, and the CBM-II, the B series and the P500, as `badline cbm2`. See [What's emulated](#whats-emulated) for the details.
+`badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, the CBM-II, the B series and the P500, as `badline cbm2`, and the MOS KIM-1, as `badline kim1`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
 
@@ -71,8 +71,8 @@ The first argument can name the machine, as in `badline c64 game.prg`.
 The C64 is the default, and `--model` picks which C64. See
 [The VIC-20](#the-vic-20) for `badline vic20`, [The C128](#the-c128)
 for `badline c128`, [The Plus/4](#the-plus4) for `badline plus4`,
-[The PET](#the-pet) for `badline pet` and [The CBM-II](#the-cbm-ii) for
-`badline cbm2`.
+[The PET](#the-pet) for `badline pet`, [The CBM-II](#the-cbm-ii) for
+`badline cbm2` and [The KIM-1](#the-kim-1) for `badline kim1`.
 
 `badline-ruby` takes the same media and the same options, with the
 differences noted in the table. `--help` lists the options for either.
@@ -470,6 +470,39 @@ controllers drive them. The pause menu's Ports page plugs a 1351 mouse
 or a pair of paddles into either port, as on the C64, and while the
 keys type, says where its keys are.
 
+## The KIM-1
+
+`badline kim1` runs a MOS KIM-1, the single-board computer of 1976,
+with its 1K of RAM and the monitor in its 6530-002. The window shows its
+six LED digits and its keypad, and the monitor starts on address 0000:
+
+```sh
+badline kim1                        # The monitor, on the keypad and display
+```
+
+| Host key | KIM-1 key |
+|----------|-----------|
+| `0`-`9`, `A`-`F`, the keypad's digits | The hex keys |
+| `,` | AD, address mode |
+| `.` | DA, data mode |
+| `Space`, `+`, the keypad's `+` | +, the next address |
+| `G`, `Return`, `Enter` | GO |
+| `P` | PC |
+| `S`, `Esc` | ST, which stops a program |
+| `R` | RS, reset |
+| `T` | The SST switch, which steps a program an instruction at a time |
+
+A click on a key the window draws presses it too. Each digit is lit
+only while a program scans it, as on the board, so the monitor's
+display is steady, a program that scans more slowly shows dimmer, and
+one that doesn't scan leaves it dark. ST and SST work once the NMI
+vector at `$17FA` holds `$1C00`, as the User Manual's section 4.1 sets
+it up. The sound is U2's PB7, the tape output music programs toggle.
+The pause menu's Panel page sets SST and the TTY/KB jumper, wires U3's
+PB7, its timer's interrupt, to IRQ, and plays a speaker on U3's PA0 in
+place of PB7. The KIM-1 takes no media and saves no snapshots yet, and
+the teletype and the cassette are still to come.
+
 ## Snapshots
 
 `F11` quicksaves the whole machine to the next of five slots in
@@ -629,7 +662,7 @@ too.
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
 | Datasette | The tape: insert, eject, PLAY and REWIND |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
-| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 also where its keys are while they type |
+| Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 also where its keys are while they type. On the KIM-1, Panel: SST, the TTY/KB jumper and U3's wiring |
 | Sound | Mute, and the SID's model |
 | Power | Reset, power cycle and quit, on a C128 its model and mode, on a Plus/4 or a PET its model and RAM, and on a CBM-II its model, RAM, mains and KERNAL |
 
@@ -704,6 +737,10 @@ in cartridge 1 as it does from the command line.
   paddles on either port, and device 8
   on the IEEE-488 bus through the KERNAL traps
   (`badline cbm2 --model 510`).
+- **KIM-1**: the 6502 at 1 MHz, 1K of RAM, the two 6530 RRIOTs with
+  the monitor's and the tape routines' ROMs, the keypad and the six
+  multiplexed LED digits, the SST switch, ST and RS, and PB7's sound
+  (`badline kim1`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
   IEEE-488 bus, with the bus's handshake on every line
   (`badline pet --true-drive`).

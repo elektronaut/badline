@@ -73,6 +73,11 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(files)
   end
 
+  def test_the_line_sound_reaches_the_pets_testbenches
+    assert_equal %w[spinel:check testbench-pet testbench-pet-discrete],
+                 CIReach.suites(%w[lib/badline/machine/line_sound.rb])
+  end
+
   def test_the_vic_reaches_the_p500s_testbench
     assert_includes CIReach.suites(%w[lib/badline/chips/vic/bank.rb]), "testbench-cbm5x0"
   end

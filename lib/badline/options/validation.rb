@@ -115,9 +115,8 @@ module Badline
       end
 
       def validate_family
-        raise Error, "the KIM-1 isn't emulated yet" if @family == :kim1
-
         ram_option
+        validate_kim1 if @family == :kim1
         validate_vic20 if @family == :vic20
         @family == :plus4 ? validate_plus4 : refuse_plus4_options
         @family == :pet ? validate_pet : refuse_pet_options
@@ -283,6 +282,14 @@ module Badline
 
         kernals = p500? ? P500_KERNALS : CBM2_KERNALS
         raise Error, "the #{model} takes KERNAL #{kernals.join(' or ')}" unless kernals.include?(kernal)
+      end
+
+      # The KIM-1 runs in the window, without the C64's SID and REU.
+      def validate_kim1
+        raise Error, "--ntsc needs the C64" if @models.include?("ntsc")
+        raise Error, "--sid needs the C64" unless @sid_model.nil?
+        raise Error, "--reu needs the C64" unless @reu.nil?
+        raise Error, "the KIM-1 needs the window" if headless?
       end
 
       # `sid` takes directories as well as tunes.

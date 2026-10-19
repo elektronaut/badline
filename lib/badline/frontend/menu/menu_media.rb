@@ -45,6 +45,8 @@ module Badline
       # :tape, and says whether it went in. A list puts its first disk in.
       def insert(kind, path)
         succeeds? do
+          raise Machine::Unsupported, "the KIM-1 takes no disks or tapes" if @computer.family == :kim1
+
           if kind == :disk
             disk = Media::DiskList.disk(path)
             Media.insert_disk(@computer, disk, read_only: !@writable)
@@ -102,10 +104,10 @@ module Badline
       end
 
       # The extensions of the cartridges the machine takes: .crt, on the
-      # Plus/4 raw .bin ROM images too, and none on the PET, or on the
-      # CBM-II, whose cartridge goes in from the command line.
+      # Plus/4 raw .bin ROM images too, and none on the PET or the KIM-1,
+      # or on the CBM-II, whose cartridge goes in from the command line.
       def cartridge_extensions
-        extensions = Media::Extensions.of(%i[pet cbm2].include?(@computer.family) ? %i[none] : %i[cartridge])
+        extensions = Media::Extensions.of(%i[pet cbm2 kim1].include?(@computer.family) ? %i[none] : %i[cartridge])
         @computer.family == :plus4 ? extensions + [Media::Plus4Media::ROM_IMAGE] : extensions
       end
 
@@ -134,10 +136,10 @@ module Badline
       # or a PET's after its disk or tape, and a CBM-II's after its disk.
       def game_name
         vic20 = @computer.family == :vic20
-        name = vic20 || %i[plus4 pet cbm2].include?(@computer.family) ? "" : cartridge_name
+        name = vic20 || %i[plus4 pet cbm2 kim1].include?(@computer.family) ? "" : cartridge_name
         disk = disk_path
         name = File.basename(disk, File.extname(disk)) if name.empty? && !disk.empty?
-        name = tape_name if name.empty? && !vic20 && @computer.family != :cbm2
+        name = tape_name if name.empty? && !vic20 && !%i[cbm2 kim1].include?(@computer.family)
         name = name.sub(/\s*[(\[].*\z/, "").strip
         return name unless name.empty?
 
@@ -159,7 +161,7 @@ module Badline
         case @computer.family
         when :plus4 then @computer.cartridge_slots.map { |slot| slot_name(slot) }.uniq.join(", ")
         when :vic20 then @computer.cartridge_name
-        when :pet, :cbm2 then ""
+        when :pet, :cbm2, :kim1 then ""
         else
           cartridge = @computer.address_bus.cartridge
           cartridge.nil? ? "" : cartridge.name

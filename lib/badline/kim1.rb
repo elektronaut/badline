@@ -5,12 +5,14 @@ require "badline/kim1/rriots"
 require "badline/kim1/panel"
 require "badline/kim1/key_entry"
 require "badline/kim1/bus"
+require "badline/kim1/sound"
 
 module Badline
   # The MOS KIM-1: a 6502 at 1 MHz, 1K of RAM and two 6530 RRIOTs, U2
   # with the monitor in its ROM and U3 with the tape routines (KIM1::Bus).
-  # U2's ports drive the keypad and the six LED digits (Panel). Nothing
-  # pulls IRQ, and neither 6530's timer reaches it.
+  # U2's ports drive the keypad and the six LED digits (Panel), and its PB7
+  # the audio output (Sound). Nothing pulls IRQ unless U3's PB7 is wired
+  # to it, as the User Manual's appendix H has the user do for U3's timer.
   #
   # RS resets the CPU and both 6530s, and ST pulls NMI, which the monitor
   # leaves to the vector at $17FA: $1C00 there saves the registers and
@@ -28,6 +30,14 @@ module Badline
 
     # Whether the SST switch is on.
     attr_accessor :sst
+
+    # Whether U3's PB7, its timer's interrupt, is wired to IRQ.
+    attr_accessor :irq_wired
+
+    # The 1 MHz clock. With no video, a frame is nominal: 64 by 260
+    # cycles, some 60 a second.
+    TIMING = Timing.new(clock_hz: 1_000_000, cycles_per_line: 64, lines_per_frame: 260, crop: [0, 0, 0, 0],
+                        pixel_width: 1, dots: 1)
 
     def family = :kim1
 
@@ -50,6 +60,8 @@ module Badline
       @bus = Bus.new(@u2, @u3)
       @cpu = CPU.new(@bus)
       @sst = false
+      @irq_wired = false
+      @sound = Sound.new(@u2, @u3)
       @init_handlers = []
       @init_threshold = BOOT_CYCLES
       @pending_keys = nil
@@ -60,6 +72,40 @@ module Badline
     # Whether the TTY/KB jumper is fitted.
     def tty? = @panel.tty
 
+    # Fits or takes out the TTY/KB jumper.
+    def tty=(fitted)
+      @panel.tty = fitted
+    end
+
+    def timing = TIMING
+
+    # What a front end plays: U2's PB7 or the speaker (Sound), which
+    # answers #record and #drain_samples.
+    def sound_source = @sound
+
+    # Whether the speaker on U3's PA0 is wired, and plays in place of PB7.
+    def speaker? = @sound.speaker
+
+    def speaker=(wired)
+      @sound.speaker = wired
+    end
+
+    # The machine as the pause menu names it.
+    def model_label = "KIM-1, 1K RAM"
+
+    # No drive plugs into the KIM-1, and nothing is mounted.
+    def true_drive = nil
+
+    def mounted? = false
+
+    def mounted_path = ""
+
+    def save_snapshot(_path)
+      raise Snapshot::FormatError, "the KIM-1 has no snapshots yet"
+    end
+
+    def export_snapshot(path) = save_snapshot(path)
+
     # The 6530s count ahead of the CPU. With SST on, the board pulls NMI
     # ahead of an opcode fetch outside the monitor.
     def cycle!
@@ -68,6 +114,8 @@ module Badline
 
       @u2.cycle!
       @u3.cycle!
+      @sound.cycle! if @sound.recording?
+      @cpu.irq = @irq_wired && @u3.irq?
       @cpu.single_step if @sst
       @cpu.cycle!
 

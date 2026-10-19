@@ -25,6 +25,9 @@ module Badline
     # default, and the P500, as CBM2::P500::Model names them.
     CBM2_MODELS = %w[610 620 710 720 510 510ntsc].freeze
 
+    # The KIM-1, which has the one model.
+    KIM1_MODELS = %w[kim1].freeze
+
     # The B series' KERNALs --kernal names, 901244-04a first, the default.
     CBM2_KERNALS = %w[04a 03b].freeze
 

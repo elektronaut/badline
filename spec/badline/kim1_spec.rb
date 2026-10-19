@@ -114,6 +114,25 @@ describe Badline::KIM1 do
     end
   end
 
+  describe "U3's PB7" do
+    # U3's timer at ÷1 with its interrupt enabled, timing out at once.
+    before do
+      kim.poke(0x170c, 1)
+      kim.run_cycles(3)
+    end
+
+    it "pulls IRQ once wired to it" do
+      kim.irq_wired = true
+      kim.cycle!
+      expect(kim.cpu.irq).to be(true)
+    end
+
+    it "leaves IRQ alone unwired" do
+      kim.cycle!
+      expect(kim.cpu.irq).to be(false)
+    end
+  end
+
   context "with the TTY/KB jumper fitted" do
     subject(:kim) { described_class.new(tty: true) }
 

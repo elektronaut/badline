@@ -21,6 +21,20 @@ describe Badline::Frontend::Screens do
     expect(screens.screen.width).to eq(2 * Badline::Frontend::Screen::MIN_WIDTH)
   end
 
+  context "with a KIM-1" do
+    let(:computer) { Badline::KIM1.new }
+
+    it "shows its panel" do
+      expect(screens.screen.window_width).to eq(Badline::Frontend::KIM1Panel::WIDTH)
+    end
+
+    it "lights the panel's digits from the machine as it follows" do
+      computer.run_cycles(Badline::KIM1::BOOT_CYCLES)
+      screens.follow
+      expect(screens.kim1_panel.brightness.max).to be > 0
+    end
+  end
+
   context "with an 8032" do
     let(:computer) { Badline::PET.new(model: "8032") }
 

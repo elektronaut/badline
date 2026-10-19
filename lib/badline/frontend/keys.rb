@@ -153,6 +153,19 @@ module Badline
         6 => :cbm, 8 => :ce, 10 => :norm_graph, 21 => :off_rvs, 19 => :pi, 39 => :kp00, 66 => :f9, 67 => :f10
       }.freeze
 
+      # The KIM-1's keys, by the names KIM1::Panel::KEYS gives them, with
+      # ST, RS and the SST switch: the hex keys on the digits, the keypad's
+      # and A-F, AD on comma, DA on period, + on space, = and the keypad's
+      # +, GO on G, Return and Enter, PC on P, ST on S and Esc, RS on R and
+      # SST on T.
+      KIM1_KEYS = {
+        4 => "A", 5 => "B", 6 => "C", 7 => "D", 8 => "E", 9 => "F", 30 => "1", 31 => "2", 32 => "3", 33 => "4",
+        34 => "5", 35 => "6", 36 => "7", 37 => "8", 38 => "9", 39 => "0", 89 => "1", 90 => "2", 91 => "3",
+        92 => "4", 93 => "5", 94 => "6", 95 => "7", 96 => "8", 97 => "9", 98 => "0", 54 => "AD", 55 => "DA",
+        44 => "+", 46 => "+", 87 => "+", 10 => "GO", 40 => "GO", 88 => "GO", 19 => "PC", 22 => "ST", 41 => "ST",
+        21 => "RS", 23 => "SST"
+      }.freeze
+
       ARROWS = { 44 => :fire, 228 => :fire, 79 => :right, 80 => :left, 81 => :down, 82 => :up }.freeze
       WASD = { 225 => :fire, 7 => :right, 4 => :left, 22 => :down, 26 => :up }.freeze
 
@@ -248,6 +261,9 @@ module Badline
           ""
         end
       end
+
+      # The KIM-1 key for the scancode, or an empty string.
+      def self.kim1_key(scancode) = KIM1_KEYS[scancode] || ""
 
       def self.arrows(scancode) = ARROWS[scancode] || :none
 

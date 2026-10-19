@@ -68,6 +68,8 @@ module CIReach
     ["lib/badline/roms/cbm2/p500-*", P500],
     ["lib/badline/roms/cbm2/**/*", CBM2],
     ["lib/badline/{machine/ieee_drives.rb,drives/ieee_models.rb}", (PET + CBM2 + %w[drive-scenarios]).uniq],
+    # The PET's and the KIM-1's sound, which no suite records.
+    ["lib/badline/machine/line_sound.rb", PET],
     ["lib/badline/cbm2/{p500.rb,p500/control_ports.rb}", P500 + %w[drive-scenarios]],
     ["lib/badline/{cbm2/p500.rb,cbm2/p500/**/*,support/p500_checkpoint.rb}", P500],
     ["lib/badline/{cbm2.rb,cbm2/ieee_ports.rb,cbm2/ieee_traps.rb,cbm2/ieee_drive.rb}", CBM2 + %w[drive-scenarios]],
