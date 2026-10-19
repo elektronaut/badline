@@ -5,10 +5,11 @@ module Badline
     class Model8050
       # Sleeping through the two processors' idle loops, exactly.
       #
-      # With nothing to do, the IP goes round DOS 2.7's idle loop from
-      # IP_LOOP, and the FDC round its job loop from FDC_LOOP, each pass
-      # finding the job queue empty, until ATN interrupts the IP or the
-      # 6530's timer the FDC, every 5 ms. A pass puts back what it found,
+      # With nothing to do, the IP goes round its DOS's idle loop from
+      # @ip_loop, and the FDC round its job loop from @fdc_loop (IP_LOOP and
+      # FDC_LOOP on the 8050), each pass finding the job queue empty, until
+      # ATN interrupts the IP or the 6530's timer the FDC, every 5 ms on the
+      # 8050. A pass puts back what it found,
       # so each processor comes back to its loop's start as it left it, and
       # only the chips' counters and the cycle counts move.
       #
@@ -56,7 +57,10 @@ module Badline
 
         private
 
-        def init_idle
+        # The unit's loops start at +ip_loop+ and +fdc_loop+.
+        def init_idle(ip_loop, fdc_loop)
+          @ip_loop = ip_loop
+          @fdc_loop = fdc_loop
           @idle_skip = true
           @asleep = false
           @owed = 0
@@ -84,9 +88,9 @@ module Badline
           ip = @ip_cpu
           @ip_pass = nil if ip.irq
           @fdc_pass = nil if @fdc_cpu.irq
-          ip_pass_found if ip.program_counter == IP_LOOP && ip.boundary?
+          ip_pass_found if ip.program_counter == @ip_loop && ip.boundary?
           fdc = @fdc_cpu
-          fdc_pass_found if fdc.program_counter == FDC_LOOP && fdc.boundary?
+          fdc_pass_found if fdc.program_counter == @fdc_loop && fdc.boundary?
         end
 
         def ip_pass_found
