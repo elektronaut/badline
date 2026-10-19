@@ -72,6 +72,7 @@ module Badline
       @nmi_asserted = false
       @init_handlers = []
       @pending_keys = nil
+      @init_keys = nil
       @dos = nil
       @serial_trap = nil
       @save_trap = nil

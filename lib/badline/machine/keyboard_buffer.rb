@@ -28,12 +28,29 @@ module Badline
       # The PET's under BASIC 1, outside the zero page.
       PET_BASIC1_LAYOUT = Layout.new(address: 0x020f, count: 0x020d, capacity: 10)
 
-      def type_text(text)
-        codes = text.bytes.map { |b| ascii_to_petscii(b) }
-        on_init { @pending_keys = codes }
+      def type_text(text) = type_on_init(text.bytes.map { |b| ascii_to_petscii(b) })
+
+      # The keys type_text left for the KERNAL to boot first, under
+      # host.init_keys, so that a machine restored before then types them.
+      def save_init_keys(out)
+        keys = @init_keys
+        out.ints("host.init_keys", keys) if keys
+      end
+
+      def load_init_keys(input)
+        keys = input.ints("host.init_keys", [])
+        type_on_init(keys.dup) unless keys.empty?
       end
 
       private
+
+      def type_on_init(codes)
+        @init_keys = codes if booting?
+        on_init do
+          @init_keys = nil
+          @pending_keys = codes
+        end
+      end
 
       def feed_keyboard
         buffer = keyboard_buffer

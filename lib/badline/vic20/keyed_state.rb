@@ -24,6 +24,7 @@ module Badline
         out.int("cycles", @cycles).bool("nmi_asserted", @nmi_asserted)
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
+        save_init_keys(out)
         out.int("host.init_pending", @cycles <= @init_threshold ? @init_handlers.length : 0)
       end
 
@@ -32,6 +33,7 @@ module Badline
         @nmi_asserted = input.bool("nmi_asserted", @nmi_asserted)
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
+        load_init_keys(input)
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max
       end
 

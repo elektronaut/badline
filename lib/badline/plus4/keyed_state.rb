@@ -28,6 +28,7 @@ module Badline
         out.int("cycles", @cycles)
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
+        save_init_keys(out)
         out.int("host.init_pending", booting? ? @init_handlers.length : 0)
         out.text("host.true_drive_model", @true_drive_model)
       end
@@ -36,6 +37,7 @@ module Badline
         @cycles = input.int("cycles", @cycles)
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
+        load_init_keys(input)
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max
         @true_drive_model = input.choice("host.true_drive_model", TCBMDrive::TRUE_DRIVE_MODELS, @true_drive_model)
       end

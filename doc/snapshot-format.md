@@ -45,6 +45,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `freeze_writes` | int | C64: 0 |
 | `dma` | bool | C64: false |
 | `host.pending_keys` | ints | [] |
+| `host.init_keys` | ints | [] |
 | `host.init_pending` | int | 0 |
 | `written_by` | text | "" |
 | `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
