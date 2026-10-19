@@ -272,7 +272,9 @@ module SnapshotMachines
                    ->(dir) { Badline::Vic20.new(ram: :unexpanded).tap { |m| Badline::Media.attach(m, tap_file(dir)) } },
                    ->(m) { run(m, 3_000_000) }),
       Scenario.new("vic20-tape-save", :vic20, ->(dir) { saving_to_tape(Badline::Vic20.new(ram: :unexpanded), dir, 1) },
-                   ->(m) { recording(m) })
+                   ->(m) { recording(m) }),
+      Scenario.new("vic20-ntsc", :vic20, ->(_dir) { typing(Badline::Vic20.new(model: "ntsc"), "poke36864,133\r") },
+                   ->(m) { run(m, 1_000_000) })
     ]
   end
 

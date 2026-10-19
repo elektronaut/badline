@@ -86,13 +86,15 @@ module Badline
       LINE_LAYOUT = 1
 
       # The VIC-I's fields in a keyed snapshot module (Snapshot::Keyed): the
-      # registers, the beam, the text window's counters and the fetch in
-      # flight, the painter's lines under line.*, the picture, and the sound
+      # registers, the beam, the frame's length in lines and whether the
+      # next interlaced field is the long one, the text window's counters
+      # and the fetch in flight, the painter's lines under line.*, the picture, and the sound
       # under sound.* What the registers decode to, where the line's fetches
       # end and the next event are worked out on load.
       module KeyedState
         def save_fields(out)
           out.bytes("registers", @registers).int("raster", @rasterline).int("column", @column)
+          out.int("frame_lines", @frame_lines).bool("long_field", @long_field)
           out.bool("window_open", @window_open).bool("window_done", @window_done).int("row_start", @row_start)
           out.int("matrix", @matrix).int("char_line", @char_line).int("text_rows", @text_rows)
           out.int("fetch_from", @fetch_from).int("fetched", @fetched).int("code", @code)
@@ -106,6 +108,8 @@ module Badline
           input.bytes_into("registers", @registers)
           @rasterline = input.int("raster", @rasterline)
           @column = input.int("column", @column)
+          @frame_lines = input.int("frame_lines", @lines_per_frame)
+          @long_field = input.bool("long_field", true)
           @window_open = input.bool("window_open", @window_open)
           @window_done = input.bool("window_done", @window_done)
           @row_start = input.int("row_start", @row_start)
@@ -122,6 +126,7 @@ module Badline
         end
 
         def restored!
+          @frame_wrap = @frame_lines == @interlaced_lines ? @count_column : @wrap_column
           @origin_x = @registers[0] & 0x7f
           @columns = @registers[2] & 0x7f
           @origin_y = @registers[1]

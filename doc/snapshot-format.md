@@ -971,6 +971,8 @@ Written by the VIC-20.
 | `registers` | bytes | 16 × 0 |
 | `raster` | int | 0 |
 | `column` | int | 0 |
+| `frame_lines` | int | 312 |
+| `long_field` | bool | true |
 | `window_open` | bool | false |
 | `window_done` | bool | false |
 | `row_start` | int | 0 |

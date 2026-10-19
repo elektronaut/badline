@@ -125,6 +125,14 @@ describe Badline::Vic20 do
         .to raise_error(Badline::Snapshot::FormatError, /of an? NTSC VIC-20, not a PAL one/)
     end
 
+    it "restores an NTSC VIC-20 in its short interlaced field that runs on as the saved one" do
+      machine = described_class.new(model: "ntsc").tap { |ntsc| ntsc.poke(0x9000, 0x85) }
+      machine.run_cycles(65 * (261 + 263 + 10))
+      restored = machine.snapshot.load
+      [machine, restored].each { |each_machine| each_machine.run_cycles(65 * 300) }
+      expect([restored.vic.rasterline, *digest(restored)]).to eq([machine.vic.rasterline, *digest(machine)])
+    end
+
     it "builds the NTSC model a snapshot names" do
       image = described_class.new(model: "ntsc").snapshot
       expect(image.load.model).to eq("ntsc")
