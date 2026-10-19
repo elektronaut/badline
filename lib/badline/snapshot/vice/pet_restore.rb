@@ -8,9 +8,10 @@ module Badline
         # reads become the PET's own keyed modules (Keyed), which it loads
         # as it loads its own snapshot. Whatever they don't set stays as the
         # machine has it at power-on, and the datasettes' tapes and the
-        # disk device 8 serves stay as they are. A snapshot with a true 2031,
-        # 8050 or 8250 puts one on the bus, with the disks badline's drive
-        # of that model had in it, and one without takes badline's off.
+        # disk device 8 serves stay as they are. A snapshot with a true drive
+        # puts one on the bus, with the disks badline's drive of that model
+        # had in it (Drive2031, Drive8050), and one without takes badline's
+        # off.
         module Restore
           # MAINCPU and PETMEM hold the machine itself, so a version badline
           # doesn't read fails the restore. The others are left out and
@@ -21,8 +22,9 @@ module Badline
           SUPERPET_READ = [CPU6809::NAME, CBM2::ACIA::NAME].freeze
           # The host's media, which a restore keeps.
           KEPT = %w[BL-TAPE1 BL-TAPE2 BL-TRAPDOS].freeze
-          # The disks in a true drive's drives, which a restore keeps.
-          DISKS = %w[BL-D8-DISK BL-D8-DISK1].freeze
+          # The disks in a true drive's drives, and a hard disk's controller
+          # with its image, which a restore keeps.
+          DISKS = %w[BL-D8-DISK BL-D8-DISK1 BL-D8-SASI].freeze
 
           module_function
 
@@ -82,13 +84,14 @@ module Badline
           def read_names(computer) = computer.superpet? ? READ + SUPERPET_READ : READ
 
           # The disks badline's true drive has, which stay in the drive the
-          # snapshot puts on the bus when it is of the same model.
+          # snapshot puts on the bus when it is of the same model, or of the
+          # same xpet type.
           def kept_disks(container, computer, disks)
             drive = computer.true_drive
             return [] if drive.nil?
 
             if Drive8050.present?(container)
-              Drive8050.model(container) == drive.model_name ? disks : []
+              Drive8050.same_type?(Drive8050.model(container), drive.model_name) ? disks : []
             else
               drive.model_name == "2031" ? disks.first(1) : []
             end
@@ -119,6 +122,7 @@ module Badline
             end
 
             applied.concat(Drive8050::NAMES)
+            model = Drive8050.hard_disk_model(disks) if Drive8050.hard_disk?(model)
             Drive8050.import(container, Drive8050.reference(model), disks)
           end
 

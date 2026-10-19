@@ -632,6 +632,9 @@ Written by the C64, C128, Plus/4, PET.
 | `ieee.host` | int | PET: 0 |
 | `ip_data` | byte | PET: 242 or 211 |
 | `fdc_data` | byte | PET: 252 |
+| `sasi_data` | byte | PET: 248 |
+| `sasi.ack_high` | bool | PET: true |
+| `sasi.reset_high` | bool | PET: false |
 
 ## BL-D8-RAM
 
@@ -1549,7 +1552,7 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 62135 or 54059 |
+| `pc` | word | 62135 or 54059 or 61972 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -1661,6 +1664,65 @@ Written by the PET.
 | `timer.flag` | bool | false |
 | `timer.irq_enabled` | bool | false |
 | `timer.fired` | bool | false |
+
+## BL-D8-SASICPU
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `pc` | word | 63489 |
+| `sp` | byte | 255 |
+| `a` | byte | 0 |
+| `x` | byte | 0 |
+| `y` | byte | 0 |
+| `p` | byte | 32 |
+| `nmi` | bool | false |
+| `so_high` | bool | true |
+| `irq.sample` | bool | false |
+| `irq.pending` | bool | false |
+| `irq.boundary` | bool | false |
+| `nmi.sample` | bool | false |
+| `nmi.pending` | bool | false |
+| `nmi.boundary` | bool | false |
+| `skip_poll` | bool | false |
+| `cycles` | int | 0 |
+| `instructions` | int | 0 |
+| `stalled` | int, optional | absent |
+| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+
+## BL-D8-SASIRAM
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `ram` | bytes | 128 × 0 |
+
+## BL-D8-SASI
+
+Written by the PET.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `phase` | int | 0 |
+| `request` | bool | false |
+| `delay` | int | 0 |
+| `command` | ints | [] |
+| `buffer` | ints | [] |
+| `index` | int | 0 |
+| `writing` | bool | false |
+| `sense` | ints | [0, 0, 0, 0] |
+| `last_sense` | ints | [0, 0, 0, 0] |
+| `fast` | bool | false |
+| `cycle` | int | 0 |
+| `cylinder` | int | 0 |
+| `heads` | int | 4 |
+| `sectors` | int | 32 |
+| `block_buffer` | ints | 256 × 0 |
+| `path` | text | "" |
+| `read_only` | bool | false |
+| `disk_heads` | int | 4 |
 
 ## BL-SUPERPET
 

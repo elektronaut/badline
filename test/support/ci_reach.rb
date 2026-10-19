@@ -45,7 +45,7 @@ module CIReach
   RULES = [
     ["{spec,doc}/**/*", []],
     ["test/test_*.rb", []],
-    ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families}.rb", []],
+    ["test/support/{ci_matrix,ci_reach,suites_status,snapshot_*,machine_families,true_drive}.rb", []],
     ["test/support/{moo_reader,m6809_*}.rb", []],
     ["test/support/testbench_cbm2{,_machine}.rb", CBM2],
     ["test/support/testbench_p500_machine.rb", P500],

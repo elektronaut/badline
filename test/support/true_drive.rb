@@ -48,11 +48,13 @@ module TrueDrive
   # RAM, or nil without one, as the machine's true_drive picks it. The
   # 1541, 1571 and 2031 add their VIAs, the 1571 and 1581 their CIA, and
   # the 1551 its port and TIAs. A unit with two processors, an 8050, 8250,
-  # 1001, 4040 or 3040, gives unit_digest.
+  # 1001, 4040, 3040 or 2040, gives unit_digest, and a D9060 or D9090
+  # hard_disk_digest.
   def digest(computer)
     drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
     return unit_digest(drive) if drive.respond_to?(:fdc_cpu)
+    return hard_disk_digest(drive) if drive.respond_to?(:sasi_cpu)
 
     values = [drive.cycles, *cpu_values(drive.cpu), *head_values(drive), *chip_values(drive)]
     Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
@@ -66,11 +68,24 @@ module TrueDrive
     values = [unit.cycles, *cpu_values(unit.ip_cpu), *cpu_values(unit.fdc_cpu), *heads,
               mechanism.motor_on?(0) ? 1 : 0, mechanism.motor_on?(1) ? 1 : 0]
     [unit.data_riot, unit.control_riot, unit.rriot].each { |riot| values.push(riot.timer.counter, *riot.idle_state) }
-    via = unit.via
-    values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr, via.pcr,
-                via.port_a_output, via.port_b_output)
+    values.concat(via_values(unit.via))
     Badline::Support::Checkpoint.fnv1a(values.map { |value| value == true ? 1 : value || 0 } +
                                        unit.common.read(0, 0x1000))
+  end
+
+  # The hard disk's processors, its RIOTs and the SASI host's VIA, the
+  # controller's bus phase, and the common RAM and the host's.
+  def hard_disk_digest(unit)
+    values = [unit.cycles, *cpu_values(unit.ip_cpu), *cpu_values(unit.sasi_cpu), unit.target.phase]
+    [unit.data_riot, unit.control_riot].each { |riot| values.push(riot.timer.counter, *riot.idle_state) }
+    values.concat(via_values(unit.via))
+    Badline::Support::Checkpoint.fnv1a(values.map { |value| value == true ? 1 : value || 0 } +
+                                       unit.common.read(0, 0x1000) + unit.sasi_bus.ram.read(0, 0x80))
+  end
+
+  def via_values(via)
+    [via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr, via.pcr,
+     via.port_a_output, via.port_b_output]
   end
 
   def cpu_values(cpu)
@@ -87,12 +102,7 @@ module TrueDrive
     return tia_values(drive) if drive.model_name == "1551"
 
     values = []
-    unless drive.model_name == "1581"
-      [drive.via1, drive.via2].each do |via|
-        values.push(via.timer1, via.timer1_latch, via.timer2, via.interrupt_flags, via.interrupt_enable, via.acr,
-                    via.pcr, via.port_a_output, via.port_b_output)
-      end
-    end
+    [drive.via1, drive.via2].each { |via| values.concat(via_values(via)) } unless drive.model_name == "1581"
     values.concat(Badline::Support::Checkpoint.cia_state(drive.cia)) unless %w[1541 2031].include?(drive.model_name)
     values
   end
