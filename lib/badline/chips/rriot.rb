@@ -9,7 +9,9 @@ module Badline
     # of RAM, two 8-bit ports, A and B, each with a direction register, a 1
     # making the pin an output, and the 6532's interval timer (RIOT::Timer).
     # It has no edge detector. The 8050 and 8250's floppy controller has
-    # one, its ROM the controller's program.
+    # one, its ROM the controller's program, and the KIM-1 two. Its timer
+    # reads its counter as the 6532's does, but a read after the flag sets
+    # puts the prescaler back (RIOT::Timer).
     #
     # Which addresses select the ROM, the RAM and the registers is part of
     # the mask, so the board decodes them and calls read_rom (A9-A0),
@@ -36,7 +38,7 @@ module Badline
         @peripheral = peripheral
         @irq_on_pb7 = irq_on_pb7
         @ram = Array.new(64, 0)
-        @timer = RIOT::Timer.new
+        @timer = RIOT::Timer.new(read_restores_divider: true)
         reset!
       end
 

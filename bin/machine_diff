@@ -15,6 +15,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] --family c128 [--mode c64|c128]
 #   ruby --yjit bin/machine_diff [scenario|media] --family plus4 [--model c16|c116] [--ram K]
 #   ruby --yjit bin/machine_diff [scenario|media] --family pet [--model MODEL] [--ram K]
+#   ruby --yjit bin/machine_diff [boot|type] --family kim1
 #
 # Scenarios:
 #   boot   power on and sit at the READY prompt
@@ -29,7 +30,7 @@
 # media, on the family each one names. Anything else is a path handed to
 # Badline::Media.attach: a PRG, a disk or tape image, a CRT or a directory.
 #
-# --family picks the machine: c64 (the default), vic20, c128, plus4, pet or cbm2, with
+# --family picks the machine: c64 (the default), vic20, c128, plus4, pet, cbm2 or kim1, with
 # --model naming its model (Badline::Machine.build). Each family runs the
 # same scenarios with a demo of its own:
 #
@@ -73,6 +74,11 @@
 #          static video matrix, the colour RAM, the VIC and the SID in
 #          place of the screen RAM and the CRTC
 #          (Badline::Support::P500Checkpoint)
+#   kim1   a KIM-1 with its 1K of RAM. It has no demo or media yet, so it
+#          runs the boot and type scenarios alone, and type presses keys on
+#          the keypad: --text, or MachineFamilies::KIM1_KEYS, which enters
+#          and runs a program and stops it with ST. Checkpoints digest the
+#          CPU, RAM, both 6530s and the panel (Badline::Support::KIM1Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, and adds its digest to each checkpoint as drive=. A D64 then
@@ -155,7 +161,7 @@ module MachineDiff
     computer = MachineFamilies.build(options, SCENARIOS.include?(scenario) ? nil : scenario)
     case scenario
     when "boot" then nil
-    when "type" then computer.on_init { computer.type_text(options[:text]) }
+    when "type" then MachineFamilies.type(computer, options)
     when "demo" then MachineFamilies.attach_demo(computer, options, dir)
     when "disk"
       MachineFamilies.write_demo(dir, options)
@@ -287,8 +293,8 @@ module MachineDiff
   end
 end
 
-options = { cycles: 10_000_000, every: 1_000_000, text: "print 6*7\r", lib: File.join(MachineDiff::ROOT, "lib"),
-            true_drive: false, idle_skip: true, media: {}, family: "c64", mode: "c128" }
+options = { cycles: 10_000_000, every: 1_000_000, text: MachineFamilies::DEFAULT_TEXT,
+            lib: File.join(MachineDiff::ROOT, "lib"), true_drive: false, idle_skip: true, media: {}, family: "c64", mode: "c128" }
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/machine_diff [#{MachineDiff::SCENARIOS.join('|')}|media] [options]"

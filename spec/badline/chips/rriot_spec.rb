@@ -118,6 +118,15 @@ describe Badline::Chips::RRIOT do
       expect([rriot.peek(0x02), rriot.irq?]).to eq([0xff, false])
     end
 
+    # The KIM-1 User Manual's appendix H: a read of the timer after the
+    # timeout restores the divide ratio. No test program has confirmed it.
+    it "puts the prescaler back on a read after the timeout" do
+      rriot.poke(0x06, 1)
+      70.times { rriot.cycle! }
+      value = rriot.peek(0x06)
+      expect(trace(64) { rriot.timer.counter }).to eq(Array.new(63, value) + [value - 1])
+    end
+
     it "disables the interrupt on reset" do
       rriot.poke(0x0c, 1)
       rriot.reset!
