@@ -11,7 +11,8 @@ module Badline
     # (C128#active_screen) each time it moves there, and #show_vdc's choice
     # holds until the next move.
     #
-    # The KIM-1 has no video chip, and shows its panel (KIM1Panel), which
+    # The KIM-1 has no video chip, and shows its panel (KIM1Panel), or with
+    # its TTY/KB jumper fitted its teletype's page (TeletypePane), which
     # #follow brings up to the machine each frame.
     class Screens
       # The frames a move holds before #follow takes it. The C128 KERNAL's
@@ -24,9 +25,14 @@ module Badline
       # The KIM-1's panel, the picture a KIM-1 shows.
       attr_reader :kim1_panel
 
+      # The KIM-1's teletype's page, which it shows with the jumper fitted.
+      attr_reader :teletype_pane
+
       def initialize(computer)
         @computer = computer
         @kim1_panel = KIM1Panel.new
+        @teletype_pane = TeletypePane.new
+        @built_tty = false
         @vdc_shown = false
         @vdc_shape = []
         forget_screen
@@ -39,6 +45,7 @@ module Badline
       def computer=(computer)
         @computer = computer
         @kim1_panel = KIM1Panel.new
+        @teletype_pane = TeletypePane.new
         @vdc_shown = false
         forget_screen
       end
@@ -46,7 +53,7 @@ module Badline
       # Shows the screen a C128 has moved its output to once the move has
       # held for FOLLOW_FRAMES calls, one a frame. #build then builds it.
       def follow
-        return @kim1_panel.follow(@computer) if @computer.family == :kim1
+        return follow_kim1 if @computer.family == :kim1
         return unless @computer.family == :c128
 
         vdc = @computer.active_screen == :vdc
@@ -69,12 +76,16 @@ module Badline
 
       # Whether the screen was built for the other chip, or the VDC's
       # display has changed size or crop since the screen was built for it.
-      def stale? = @built_vdc != @vdc_shown || (@vdc_shown && vdc_shape(@computer.vdc) != @vdc_shape)
+      def stale?
+        return @built_tty != @computer.tty? if @computer.family == :kim1
+
+        @built_vdc != @vdc_shown || (@vdc_shown && vdc_shape(@computer.vdc) != @vdc_shape)
+      end
 
       def build
         @built_vdc = @vdc_shown
         if @computer.family == :kim1
-          @screen = Screen.new(@kim1_panel, @kim1_panel.crop)
+          build_kim1
         elsif @vdc_shown
           vdc = @computer.vdc
           @vdc_shape = vdc_shape(vdc)
@@ -88,6 +99,22 @@ module Badline
       end
 
       private
+
+      # The panel and the teletype's page both follow the machine, the
+      # LEDs' brightness and the page's lines going on behind the other.
+      def follow_kim1
+        @kim1_panel.follow(@computer)
+        @teletype_pane.follow(@computer)
+      end
+
+      def build_kim1
+        @built_tty = @computer.tty?
+        @screen = if @built_tty
+                    Screen.new(@teletype_pane, @teletype_pane.crop)
+                  else
+                    Screen.new(@kim1_panel, @kim1_panel.crop)
+                  end
+      end
 
       # The machine's output counts as on the VIC-IIe's screen, the one
       # shown.

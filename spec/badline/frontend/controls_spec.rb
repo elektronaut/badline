@@ -42,6 +42,29 @@ describe Badline::Frontend::Controls do
     end
   end
 
+  describe "with a KIM-1's teletype" do
+    let(:computer) { Badline::KIM1.new(tty: true) }
+
+    # What the teletype has queued after the keys, scancodes, go down and
+    # up in turn, past the RUBOUT it sends after the reset.
+    def typed(*scancodes)
+      scancodes.each do |scancode|
+        controls.key(scancode, true)
+        controls.key(scancode, false)
+      end
+      computer.teletype.instance_variable_get(:@queue).drop(1).pack("C*")
+    end
+
+    it "types letters in capitals, digits, RETURN, RUBOUT and LINE FEED" do
+      expect(typed(4, 30, 40, 42, 81)).to eq("A1\r\x7f\n")
+    end
+
+    it "types the shifted character with SHIFT down" do
+      controls.key(225, true)
+      expect(typed(55)).to eq(">")
+    end
+  end
+
   describe "#toggle_keys" do
     it "switches the keys between the keyboard and the joysticks" do
       states = Array.new(3) { controls.toggle_keys.then { controls.joystick_mode? } }

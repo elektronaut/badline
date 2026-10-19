@@ -119,7 +119,7 @@ module Badline
       return plus4_for(media, options) if family == :plus4
       return pet_for(media, options) if family == :pet
       return cbm2_for(media, options) if family == :cbm2
-      return kim1_for(media) if family == :kim1
+      return kim1_for(media, options) if family == :kim1
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -202,11 +202,12 @@ module Badline
     end
     private_class_method :cbm2_for
 
-    # A KIM-1, which takes no media yet.
-    def self.kim1_for(media)
+    # A KIM-1, which takes no media yet, on a teletype at --baud with
+    # --tty.
+    def self.kim1_for(media, options)
       raise Unsupported, "doesn't go in a KIM-1" unless media.nil?
 
-      KIM1.new
+      KIM1.new(tty: options.tty?, baud: options.baud)
     end
     private_class_method :kim1_for
 

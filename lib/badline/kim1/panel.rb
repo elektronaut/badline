@@ -11,7 +11,8 @@ module Badline
     # line lighting one, and read the selected row's keys, a pressed key
     # pulling its line low: PA6 is the row's first key, PA0 its seventh.
     # Fitted, the jumper pulls PA0 low while output 3 is selected, which
-    # the monitor reads as teletype mode.
+    # the monitor reads as teletype mode, and PA7 takes the teletype's
+    # line in (Teletype).
     #
     # Nothing holds the display lit. A program lights each digit in turn
     # (the monitor's SCANDS, $1F1F), so the panel times how long each
@@ -44,12 +45,17 @@ module Badline
       # Whether the TTY/KB jumper is fitted.
       attr_accessor :tty
 
+      # Whether the teletype's line in is high, its idle level. Low, it
+      # pulls PA7 low while PB5 is low, which gates it through.
+      attr_accessor :tty_in_high
+
       # +clock+ answers +cycles+, the cycle each write to the ports lands
       # on.
       def initialize(clock)
         @clock = clock
         @rriot = nil
         @tty = false
+        @tty_in_high = true
         @held = -1
         @digit = -1
         @segments = 0
@@ -80,8 +86,9 @@ module Badline
       def held = @held.negative? ? nil : KEYS[@held]
 
       def read_a(_lines)
-        row = decoded(@rriot.port_b_output)
-        mask = 0xff
+        port_b = @rriot.port_b_output
+        row = decoded(port_b)
+        mask = @tty_in_high || port_b.anybits?(0x20) ? 0xff : 0x7f
         mask &= 0xfe if row == 3 && @tty
         held = @held
         mask &= ~(0x40 >> (held % 7)) & 0xff if held >= 0 && held / 7 == row

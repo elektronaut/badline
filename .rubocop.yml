@@ -30,7 +30,7 @@ Metrics/CollectionLiteralLength:
     - "lib/badline/chips/cpu/instruction.rb"
 
 Metrics/CyclomaticComplexity:
-  Max: 21
+  Max: 23
 
 Metrics/MethodLength:
   Max: 50
@@ -40,7 +40,7 @@ Metrics/MethodLength:
 # Options::Validation checks every family's options, the SuperPET's --cpu
 # and --bank-ram among them.
 Metrics/ModuleLength:
-  Max: 224
+  Max: 232
 
 Metrics/PerceivedComplexity:
   Max: 12

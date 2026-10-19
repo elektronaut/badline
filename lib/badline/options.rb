@@ -42,7 +42,7 @@ module Badline
     SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
     # What `sid` leaves out besides the window's options.
-    NOT_FOR_SID = %w[--audio-out].freeze
+    NOT_FOR_SID = %w[--audio-out --tty --baud].freeze
 
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
 
@@ -147,6 +147,7 @@ module Badline
       @ram_kb = nil
       @ram_name = nil
       initialize_pet
+      initialize_kim1
       @kernal = nil
       @cartridges = {}
       @autostart = true
@@ -359,6 +360,7 @@ module Badline
       when "--seconds" then @seconds = decimal(flag, value)
       when "--songlengths" then @songlengths = value
       when "--rate" then @rate = number(flag, value)
+      when "--baud" then @baud = baud_for(value)
       else @filter_chunk = number(flag, value)
       end
     end
@@ -406,6 +408,7 @@ module Badline
       when "--headless" then @headless = true
       when "--quiet" then @quiet = true
       when "--all-subtunes" then @all_subtunes = true
+      when "--tty" then @tty = true
       else @tui = false
       end
     end

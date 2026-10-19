@@ -105,7 +105,7 @@ module Badline
           @controls.mouse_motion(SDL.event_xrel(SDL.event), SDL.event_yrel(SDL.event))
         when SDL::MOUSEBUTTONDOWN, SDL::MOUSEBUTTONUP
           @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
-          click_panel(type == SDL::MOUSEBUTTONDOWN) if @computer.family == :kim1
+          click_panel(type == SDL::MOUSEBUTTONDOWN) if @computer.family == :kim1 && !@computer.tty?
         when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
           @gamepads.rescan
         when SDL::DROPFILE then resume(false) unless @menu.drop(@computer, @controls, @sound)

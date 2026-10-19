@@ -98,6 +98,8 @@ differences noted in the table. `--help` lists the options for either.
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128, the Plus/4, the PET and the CBM-II have models of their own: see their sections |
 | `--ntsc` | Run an NTSC C64 or VIC-20, as `--model ntsc` does |
+| `--tty` | Fit the KIM-1's TTY/KB jumper, so its monitor talks to a teletype: a page in the window, or the terminal with `--headless`. See [The KIM-1](#the-kim-1) |
+| `--baud N` | Run the KIM-1's teletype at `110`, `300`, `1200`, `2400`, `4800` or `9600` baud (the default) |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
@@ -478,6 +480,8 @@ six LED digits and its keypad, and the monitor starts on address 0000:
 
 ```sh
 badline kim1                        # The monitor, on the keypad and display
+badline kim1 --tty                  # The monitor on a teletype, in the window
+badline kim1 --headless             # The monitor on a teletype, in the terminal
 ```
 
 | Host key | KIM-1 key |
@@ -500,8 +504,19 @@ vector at `$17FA` holds `$1C00`, as the User Manual's section 4.1 sets
 it up. The sound is U2's PB7, the tape output music programs toggle.
 The pause menu's Panel page sets SST and the TTY/KB jumper, wires U3's
 PB7, its timer's interrupt, to IRQ, and plays a speaker on U3's PA0 in
-place of PB7. The KIM-1 takes no media and saves no snapshots yet, and
-the teletype and the cassette are still to come.
+place of PB7.
+
+With `--tty`, or the jumper on the Panel page, the monitor talks to a
+teletype on its 20 mA loop instead, as the User Manual's section 2.6
+describes, at `--baud`'s rate, 9600 by default. The window shows the
+teletype's page, the host keys type on it, `Backspace` sends RUBOUT and
+`Down` LINE FEED, and the board echoes what's typed, as its hardware
+does. `--headless` puts the teletype on the terminal, until `Ctrl-C`.
+After a reset the teletype sends RUBOUT for the monitor to time, and
+then each character once the monitor has had time to take the last.
+
+The KIM-1 takes no media and saves no snapshots yet, and the cassette
+is still to come.
 
 ## Snapshots
 

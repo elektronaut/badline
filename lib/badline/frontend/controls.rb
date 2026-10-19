@@ -51,6 +51,7 @@ module Badline
         @paddles = Input::Paddles.new
         @held = {}
         @clicked = ""
+        @shifts = 0
         @pet_keyboard = pet_keyboard(computer)
       end
 
@@ -161,7 +162,7 @@ module Badline
           @pet_keyboard.positional = @computer.family == :pet && @computer.apl_characters? if down
           return @pet_keyboard.key(scancode, down)
         end
-        return kim1_key(Keys.kim1_key(scancode), down) if @computer.family == :kim1
+        return kim1_input(scancode, down) if @computer.family == :kim1
 
         @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
         key = @held[scancode]
@@ -197,6 +198,21 @@ module Badline
         when :forty_eighty then down ? @computer.press_display_key : @computer.release_display_key
         else c64_key(key, down)
         end
+      end
+
+      # The keys type on the teletype with the KIM-1's jumper fitted, and
+      # press the panel's keys without it.
+      def kim1_input(scancode, down)
+        return kim1_key(Keys.kim1_key(scancode), down) unless @computer.tty?
+        return shift(down) if [225, 229].include?(scancode)
+
+        text = Keys.kim1_teletype(scancode, @shifts.positive?)
+        @computer.teletype.type(text) if down && !text.empty?
+      end
+
+      def shift(down)
+        @shifts += down ? 1 : -1
+        @shifts = 0 if @shifts.negative?
       end
 
       # ST pulls NMI and RS resets as they go down, and T flips the SST

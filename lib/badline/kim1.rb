@@ -6,6 +6,8 @@ require "badline/kim1/panel"
 require "badline/kim1/key_entry"
 require "badline/kim1/bus"
 require "badline/kim1/sound"
+require "badline/kim1/teletype"
+require "badline/kim1/host_terminal"
 
 module Badline
   # The MOS KIM-1: a 6502 at 1 MHz, 1K of RAM and two 6530 RRIOTs, U2
@@ -17,7 +19,9 @@ module Badline
   # RS resets the CPU and both 6530s, and ST pulls NMI, which the monitor
   # leaves to the vector at $17FA: $1C00 there saves the registers and
   # shows the PC. With the SST switch on, every instruction outside the
-  # monitor ends in an NMI (CPU#single_step). It runs headless.
+  # monitor ends in an NMI (CPU#single_step). With the TTY/KB jumper
+  # fitted, the monitor talks to a teletype (Teletype) in place of the
+  # keypad and display. It runs headless.
   class KIM1
     include Machine::Clocking
     include KeyEntry
@@ -26,7 +30,7 @@ module Badline
     # margin.
     BOOT_CYCLES = 10_000
 
-    attr_reader :bus, :cpu, :u2, :u3, :panel, :cycles, :init_threshold
+    attr_reader :bus, :cpu, :u2, :u3, :panel, :teletype, :cycles, :init_threshold
 
     # Whether the SST switch is on.
     attr_accessor :sst
@@ -49,8 +53,9 @@ module Badline
     def poke(addr, value) = @bus.poke(addr, value)
 
     # With +tty+ the TTY/KB jumper is fitted, and the monitor talks to a
-    # teletype in place of the keypad and display.
-    def initialize(tty: false)
+    # teletype at +baud+ (Teletype::BAUDS) in place of the keypad and
+    # display.
+    def initialize(tty: false, baud: 9600)
       @cycles = 0
       @panel = Panel.new(self)
       @panel.tty = tty
@@ -62,6 +67,8 @@ module Badline
       @sst = false
       @irq_wired = false
       @sound = Sound.new(@u2, @u3)
+      @teletype = Teletype.new(@panel, baud:)
+      @teletype.reset!(0) if tty
       @init_handlers = []
       @init_threshold = BOOT_CYCLES
       @pending_keys = nil
@@ -78,6 +85,17 @@ module Badline
     end
 
     def timing = TIMING
+
+    # Types `text` on the teletype with the jumper fitted, and otherwise
+    # presses the keys it names (KeyEntry#type_keys).
+    def type_text(text)
+      return type_keys(text) unless @panel.tty
+
+      @teletype.type(text)
+    end
+
+    # What the teletype has printed: #output holds it all.
+    def capture_output = @teletype
 
     # What a front end plays: U2's PB7 or the speaker (Sound), which
     # answers #record and #drain_samples.
@@ -115,6 +133,7 @@ module Badline
       @u2.cycle!
       @u3.cycle!
       @sound.cycle! if @sound.recording?
+      @teletype.cycle!(@cycles, @u2.port_b_output.anybits?(0x01) && @teletype.line_high?) if @panel.tty
       @cpu.irq = @irq_wired && @u3.irq?
       @cpu.single_step if @sst
       @cpu.cycle!
@@ -123,11 +142,12 @@ module Badline
     end
 
     # RS: the RST line resets the CPU and both 6530s. RAM keeps what it
-    # holds.
+    # holds. A teletype then sends RUBOUT for the monitor to time.
     def reset!
       @u2.reset!
       @u3.reset!
       @cpu.reset!
+      @teletype.reset!(@cycles) if @panel.tty
     end
 
     alias press_reset reset!

@@ -28,6 +28,9 @@ module Badline
     # The KIM-1, which has the one model.
     KIM1_MODELS = %w[kim1].freeze
 
+    # The KIM-1 teletype's rates, as KIM1::Teletype takes them.
+    KIM1_BAUDS = %w[110 300 1200 2400 4800 9600].freeze
+
     # The B series' KERNALs --kernal names, 901244-04a first, the default.
     CBM2_KERNALS = %w[04a 03b].freeze
 
@@ -51,6 +54,11 @@ module Badline
       Option.new("--disable-jit", "Run without enabling YJIT", section: "Options", build: :ruby),
       Option.new("-h, --help", "Show this help", section: "Options"),
       Option.new("--version", "Show the version and what built it", section: "Options", build: :native),
+      Option.new("--tty", "Fit the KIM-1's TTY/KB jumper, so its monitor talks to a teletype: a pane in the " \
+                          "window, or the terminal with --headless",
+                 section: "Options"),
+      Option.new("--baud N", "The KIM-1 teletype's baud: #{KIM1_BAUDS.join(', ')} (default: 9600)",
+                 section: "Options"),
       Option.new("--no-autostart", "Boot to READY. instead of running the program",
                  section: "Window options", needs: :window),
       Option.new("--writable", "Let the machine write to disk images, changing their files",
@@ -120,7 +128,7 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--verbose", "Print the display, sound and gamepad setup and the frame timing",
                  section: "Window options", needs: :window),
-      Option.new("--headless", "Play a .sid tune in the terminal instead of the window",
+      Option.new("--headless", "Play a .sid tune, or run the KIM-1's teletype, in the terminal instead of the window",
                  section: "Options without the window"),
       Option.new("--audio-out FILE", "Render a .sid tune to a .wav or .aiff file",
                  section: "Options without the window"),

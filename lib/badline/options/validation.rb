@@ -65,6 +65,12 @@ module Badline
         value
       end
 
+      def baud_for(value)
+        raise Error, "invalid argument: --baud #{value}" unless KIM1_BAUDS.include?(value)
+
+        value.to_i
+      end
+
       def reu_size(value)
         raise Error, "invalid argument: --reu #{value}" unless REU_SIZES.include?(value)
 
@@ -106,7 +112,7 @@ module Badline
         if headless?
           raise Error, "#{@window_only.first} needs the window" unless @window_only.empty?
           raise Error, "#{@any_window_only.first} needs the window" unless player_window? || @any_window_only.empty?
-          raise Error, "no tune given" if tune_paths.empty? && !player_window?
+          raise Error, "no tune given" if tune_paths.empty? && !player_window? && @family != :kim1
 
           tune_paths.each { |path| validate_tune(path) }
         elsif !@headless_only.empty?
@@ -116,7 +122,7 @@ module Badline
 
       def validate_family
         ram_option
-        validate_kim1 if @family == :kim1
+        @family == :kim1 ? validate_kim1 : refuse_kim1_options
         validate_vic20 if @family == :vic20
         @family == :plus4 ? validate_plus4 : refuse_plus4_options
         @family == :pet ? validate_pet : refuse_pet_options
@@ -284,12 +290,19 @@ module Badline
         raise Error, "the #{model} takes KERNAL #{kernals.join(' or ')}" unless kernals.include?(kernal)
       end
 
-      # The KIM-1 runs in the window, without the C64's SID and REU.
+      # The KIM-1 runs in the window, or with --headless on the terminal,
+      # without the C64's SID and REU, and takes no media yet.
       def validate_kim1
         raise Error, "--ntsc needs the C64" if @models.include?("ntsc")
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
-        raise Error, "the KIM-1 needs the window" if headless?
+        raise Error, "--audio-out needs a .sid tune" unless @audio_out.nil?
+        raise Error, "the KIM-1 on the terminal takes no media" if headless? && !@media_path.nil?
+      end
+
+      # Only the KIM-1 has a teletype.
+      def refuse_kim1_options
+        raise Error, "#{@tty ? '--tty' : '--baud'} needs kim1" if @tty || @baud != 9600
       end
 
       # `sid` takes directories as well as tunes.

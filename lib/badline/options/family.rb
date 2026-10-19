@@ -12,7 +12,23 @@ module Badline
       # Where C128 BASIC starts, which a program for the C128 loads at.
       C128_BASIC_START = 0x1c01
 
+      # Whether the KIM-1 talks to a teletype: with --tty, and always on the
+      # terminal with --headless.
+      def tty? = @tty || kim1_terminal?
+
+      # The KIM-1 teletype's baud.
+      def baud = @baud
+
+      # Whether the KIM-1 runs on the terminal, its teletype there.
+      def kim1_terminal? = @family == :kim1 && @headless
+
       private
+
+      # The KIM-1's keypad, until --tty or --baud name its teletype.
+      def initialize_kim1
+        @tty = false
+        @baud = 9600
+      end
 
       # Takes `sid`, `c64`, `vic20`, `c128`, `plus4`, `pet`, `cbm2` or `kim1`
       # when given first.

@@ -23,6 +23,9 @@ module Badline
       # "A D".
       def type_keys(text)
         keys = text.upcase.split.flat_map { |word| NAMED_KEYS.include?(word) ? [word] : word.chars }
+        unknown = keys.find { |key| !NAMED_KEYS.include?(key) && !Panel::KEYS.include?(key) }
+        raise ArgumentError, "no KIM-1 key named #{unknown}" unless unknown.nil?
+
         on_init { queue_keys(keys) }
       end
 
