@@ -64,10 +64,11 @@ module Badline
         Media::Extensions.kind(@media_path) == :cartridge && Storage::CRTFile.cbm2?(@media_path)
       end
 
-      # Whether the media is an 8050's or 8250's disk or a PET tape.
+      # Whether the media is an 8050's or 8250's disk, a D9060's or D9090's
+      # hard disk, or a PET tape.
       def pet_media?
         kind = Media::Extensions.kind(@media_path)
-        kind == :ieee_disk || (kind == :tape && Storage::TAP.platform_of(@media_path) == Storage::TAP::PET_PLATFORM)
+        %i[ieee_disk hard_disk].include?(kind) || (kind == :tape && Storage::TAP.platform_of(@media_path) == Storage::TAP::PET_PLATFORM)
       end
     end
   end

@@ -128,11 +128,11 @@ module Badline
       private
 
       # The VIC-20 and the 264 series have no SID to play a .sid tune on,
-      # and only the PET and the CBM-II have the IEEE-488 drive a .d80 or
-      # .d82 goes in.
+      # and only the PET and the CBM-II have the IEEE-488 drive a .d80, .d82
+      # or .d90 goes in.
       def refuse_unsupported(computer, path)
         family = computer.family
-        if Extensions.kind(path) == :ieee_disk && !%i[pet cbm2].include?(family)
+        if %i[ieee_disk hard_disk].include?(Extensions.kind(path)) && !%i[pet cbm2].include?(family)
           raise ArgumentError, "#{path} needs a PET's or a CBM-II's IEEE-488 drive"
         end
 

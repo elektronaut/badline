@@ -95,6 +95,12 @@ module Badline
           @index < @buffer.length ? @delay = 1 : finish_phase
         end
 
+        # Runs the clock on through cycles the controller has nothing to
+        # count down in.
+        def fast_forward(cycles)
+          @cycle += cycles
+        end
+
         def clock
           @cycle += 1
           return if @delay.zero?

@@ -110,10 +110,12 @@ module Badline
       end
 
       # The extensions of what goes in device 8: on the PET and the CBM-II
-      # the 8050's and 8250's disk images besides the others, and no raw
-      # GCR, which only a serial true drive reads.
+      # the 8050's and 8250's disk images and the hard disks' besides the
+      # others, and no raw GCR, which only a serial true drive reads.
       def disk_extensions
-        return Media::Extensions.of(%i[disk ieee_disk archive disk_list]) if %i[pet cbm2].include?(@computer.family)
+        if %i[pet cbm2].include?(@computer.family)
+          return Media::Extensions.of(%i[disk ieee_disk hard_disk archive disk_list])
+        end
 
         Media::Extensions::DEVICE8
       end

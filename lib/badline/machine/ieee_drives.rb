@@ -3,13 +3,14 @@
 require "badline/drives/ieee_models"
 require "badline/drives/model2031"
 require "badline/drives/model8050"
+require "badline/drives/model9060"
 
 module Badline
   module Machine
     # A machine's true drive on its IEEE-488 bus, one at a time, of a model
-    # Drives::IEEEModels names: a Drives::Model2031, Model8050 or
-    # Model8250. It is clocked after the CPU each cycle at the machine's
-    # clock (ieee_host_clock_hz) and reset with it, as the machine's RES
+    # Drives::IEEEModels names: a Drives::Model2031, Model8050, Model8250,
+    # Model9060 or Model9090. It is clocked after the CPU each cycle at the
+    # machine's clock (ieee_host_clock_hz) and reset with it, as the machine's RES
     # line reaches IFC. The traps on the KERNAL's primitives leave device
     # 8 to the drive while it is device 8 (trap_device). The PET
     # (PET::IEEEDrive) and the CBM-II (CBM2::IEEEDrive) include it.
@@ -89,6 +90,8 @@ module Badline
         case model
         when "8050" then Badline::Drives::Model8050.new(device:)
         when "8250" then Badline::Drives::Model8250.new(device:)
+        when "9060" then Badline::Drives::Model9060.new(device:)
+        when "9090" then Badline::Drives::Model9090.new(device:)
         else Badline::Drives::Model2031.new(device:)
         end
       end
