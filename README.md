@@ -797,7 +797,8 @@ in cartridge 1 as it does from the command line.
 - **KIM-1**: the 6502 at 1 MHz, 1K, 5K or 53K of RAM, the two 6530 RRIOTs with
   the monitor's and the tape routines' ROMs, the keypad and the six
   multiplexed LED digits, the SST switch, ST and RS, PB7's sound, the
-  teletype, and the cassette as `.wav` (`badline kim1`).
+  teletype on its 20 mA loop, papertape and `.bin` programs, and the
+  cassette as `.wav` (`badline kim1`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
   IEEE-488 bus, with the bus's handshake on every line
   (`badline pet --true-drive`).

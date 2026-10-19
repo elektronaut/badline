@@ -76,6 +76,7 @@ file: `core.rb` requires their members one by one.
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20` (NTSC with `--ntsc`), the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4`, the C16 with `--c16`, and the PET with `--pet` (8096) and `--pet-discrete` (2001, 3032) |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart; the `plus4-*` rows on the Plus/4 and C16, with the 1541 and 1581 on their serial bus and a tape saved and loaded back on the datasette |
+| KIM-1 scenarios | `bin/drive_scenarios kim1` | The KIM-1's monitor: keys and the display, SST, ST, the teletype at 9600 and 110 baud, a papertape through `L`, a program loaded and started, and U3's timer interrupting through IRQ |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/chips/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
 
 The CIA offline grids replay Lorenz's `cia1ta` and `cia1tb` sweeps (about
@@ -278,7 +279,7 @@ serial bus, its media, the CPU port or the datasette.
 Its tests run one at a time as the C64's do, with
 `ruby --yjit bin/lorenz --plus4 --resume <test> --stop-after <test>`; the C128 (`c128.rb`, `c128/`), or
 the VIC-IIe, CPU or PLA code it shares with the C64 → `testbench-c128c64`
-(`bin/testbench --c128c64`); the PET (`pet.rb`, `pet/`), its 6520 PIA (`chips/pia.rb`) or its CRTC (`chips/crtc.rb`) → `testbench-pet` (`bin/testbench --pet`) and `testbench-pet-discrete` (`bin/testbench --pet-discrete`), plus `testbench-cbm2` for the CRTC; the CBM-II (`cbm2.rb`, `cbm2/`), its 6525 TPI (`chips/tpi.rb`) or the CIA, SID and ACIA it shares → `testbench-cbm2` (`bin/testbench --cbm2`), plus `testbench-cbm5x0` (`bin/testbench --cbm5x0`); the P500 (`cbm2/p500.rb`, `cbm2/p500/`) → `testbench-cbm5x0`, which the VIC (`chips/vic*`) reaches too; the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; SID → `sid`, plus `sid-8580` for anything the 8580
+(`bin/testbench --c128c64`); the PET (`pet.rb`, `pet/`), its 6520 PIA (`chips/pia.rb`) or its CRTC (`chips/crtc.rb`) → `testbench-pet` (`bin/testbench --pet`) and `testbench-pet-discrete` (`bin/testbench --pet-discrete`), plus `testbench-cbm2` for the CRTC; the CBM-II (`cbm2.rb`, `cbm2/`), its 6525 TPI (`chips/tpi.rb`) or the CIA, SID and ACIA it shares → `testbench-cbm2` (`bin/testbench --cbm2`), plus `testbench-cbm5x0` (`bin/testbench --cbm5x0`); the P500 (`cbm2/p500.rb`, `cbm2/p500/`) → `testbench-cbm5x0`, which the VIC (`chips/vic*`) reaches too; the C128's Z80, MMU or hand-over → `testbench-c128-z80` (`bin/testbench --c128-z80`) and `testbench-c128`; the KIM-1 (`kim1.rb`, `kim1/`), its media or the 6530 (`chips/rriot.rb`) → `kim1-scenarios` (`bin/drive_scenarios kim1`); SID → `sid`, plus `sid-8580` for anything the 8580
 model reaches (`bin/sidtests --sid 8580`). Leave the Lorenz chain to CI,
 unless your code has a rule in `doc/pinned-behaviour.md` that names Lorenz
 tests: the interrupt polling, CPU port and CIA timer rules. Run just the

@@ -431,6 +431,31 @@ Recorded output of the headless hardware suites, one file per suite:
   (`all-ok`). bin/drive_scenarios runs them only when a filter names
   them, for their 30 billion or so cycles each, so CI leaves the suite
   out.
+- `kim1-scenarios.txt` — `bin/drive_scenarios kim1`: the KIM-1's
+  monitor, run from power-on on fresh machines
+  (`test/support/drive_scenarios_kim1.rb`), a row per check:
+  - `kim1-keypad` presses AD 0200 DA A9 + 01: the display shows `0201
+    01` (`shows-address-and-byte`) and RAM holds `A9 01`
+    (`stores-bytes`), as the User Manual's figure 5.5 enters them.
+  - `kim1-sst` steps figure 5.4's program with the SST switch on, the
+    display after each GO as figure 5.6 shows it (`steps`).
+  - `kim1-stop` presses ST while a loop runs: `$EF`-`$F5` hold its PC,
+    P, SP, A, Y and X (`saves-registers`) and the display its PC
+    (`shows-pc`).
+  - `kim1-tty` and `kim1-tty-110` print the monitor's prompt after the
+    RUBOUT the teletype sends, at 9600 and 110 baud (`prompt`), and at
+    9600 open the address typed (`opens-address`).
+  - `kim1-papertape` sends `L` and a two-record papertape at 9600 baud:
+    RAM holds its bytes (`loads`) and the monitor answers with XOFF and
+    `KIM` (`prompts-after`).
+  - `kim1-autostart` loads a `.bin` through `Media.attach`, which starts
+    it with AD 0200 GO, and it counts (`runs`).
+  - `kim1-timer` wires U3's PB7 to IRQ and runs U3's timer at ÷8 from
+    an interrupt handler: 64 interrupts 536 or 538 cycles apart, 537 on
+    average (`interrupts`).
+  bin/drive_scenarios runs them only when a filter names them. The suite
+  takes about 1 second at four shards on the Spinel build, and 9 on
+  CRuby one scenario at a time.
 - `lorenz.txt` — `bin/lorenz` running the Wolfgang Lorenz suite off
   `Lorenz.d81`, which holds disks 1–3, and then off `Disk4.d64`: when the
   chain asks for `aneb`, the first test missing from the `.d81`, the runner

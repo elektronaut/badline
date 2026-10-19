@@ -16,7 +16,7 @@
 #   ruby --yjit bin/machine_diff [scenario|media] --family plus4 [--model c16|c116] [--ram K]
 #   ruby --yjit bin/machine_diff [scenario|media] --family pet [--model MODEL] [--ram K]
 #   ruby --yjit bin/machine_diff [boot|type] --family pet --model superpet [--cpu 6502|6809|prog]
-#   ruby --yjit bin/machine_diff [boot|type] --family kim1
+#   ruby --yjit bin/machine_diff [boot|type|demo|media] --family kim1 [--ram 1k|5k|expanded]
 #
 # Scenarios:
 #   boot   power on and sit at the READY prompt
@@ -80,11 +80,15 @@
 #          static video matrix, the colour RAM, the VIC and the SID in
 #          place of the screen RAM and the CRTC
 #          (Badline::Support::P500Checkpoint)
-#   kim1   a KIM-1 with its 1K of RAM. It has no demo or media yet, so it
-#          runs the boot and type scenarios alone, and type presses keys on
-#          the keypad: --text, or MachineFamilies::KIM1_KEYS, which enters
-#          and runs a program and stops it with ST. Checkpoints digest the
-#          CPU, RAM, both 6530s and the panel (Badline::Support::KIM1Checkpoint)
+#   kim1   a KIM-1 with its 1K of RAM, or the RAM --ram names (1k, 5k or
+#          expanded). Type presses keys on the keypad: --text, or
+#          MachineFamilies::KIM1_KEYS, which enters and runs a program and
+#          stops it with ST. The demo loads MachineFamilies::KIM1_DEMO from a
+#          papertape and starts it with AD 0200 GO: a BCD counter U3's timer
+#          steps, which the monitor's SCANDS shows. Media is a .ptp, .pap or
+#          .bin (at $0200), and there's no disk scenario. Checkpoints digest
+#          the CPU, RAM, both 6530s, the panel and the teletype
+#          (Badline::Support::KIM1Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
 # boots, or on the PET and the CBM-II the machine's own IEEE-488 drive
@@ -125,7 +129,7 @@ module MachineDiff
   SCENARIOS = %w[boot type demo disk].freeze
   # bin/snapshot_check's scenarios: c64-plain, vic20-tape, cbm2-2031 and so
   # on, but for the P500's.
-  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet|cbm2)-/
+  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet|cbm2|kim1)-/
 
   module_function
 
@@ -163,8 +167,9 @@ module MachineDiff
   def machine(scenario, options, dir)
     return SnapshotMachines.named(scenario).build.call(dir) if scenario.match?(SNAPSHOT_MACHINE)
 
-    if %w[demo disk].include?(scenario) && MachineFamilies::NO_DEMO.include?(options[:family])
-      abort "machine_diff: the #{options[:family]} has no #{scenario} scenario yet"
+    if (scenario == "demo" && MachineFamilies::NO_DEMO.include?(options[:family])) ||
+       (scenario == "disk" && MachineFamilies::NO_DISK.include?(options[:family]))
+      abort "machine_diff: the #{options[:family]} has no #{scenario} scenario"
     end
 
     computer = MachineFamilies.build(options, SCENARIOS.include?(scenario) ? nil : scenario)

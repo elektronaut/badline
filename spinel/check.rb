@@ -13,7 +13,7 @@ module SpinelCheck
   OUT = "tmp/spinel"
   HARNESSES = %w[boot cpu_tests z80_tests m6809_tests vic20_boot vic20_testbench c128_boot c128_testbench plus4_boot
                  plus4_testbench plus4_lorenz plus4_snapshot pet_boot pet_testbench pet_snapshot cbm2_boot
-                 cbm2_testbench cbm2_snapshot p500_boot p500_testbench p500_snapshot sid].freeze
+                 cbm2_testbench cbm2_snapshot p500_boot p500_testbench p500_snapshot kim1_boot sid].freeze
   CASES = "#{OUT}/cases.txt".freeze
   Z80_CASES = "#{OUT}/z80_cases.txt".freeze
   M6809_CASES = "#{OUT}/m6809_cases.txt".freeze
@@ -89,6 +89,12 @@ module SpinelCheck
   # on beside the saved one.
   def check_cbm2_snapshots
     [[], %w[300000 2300000 720]].each { |args| compare("cbm2_snapshot", args) }
+  end
+
+  # A KIM-1 entering and running a counter from its keypad, and an
+  # expanded one doing the same on a teletype.
+  def check_kim1_boots
+    [[], %w[1500000 1000000 tty expanded]].each { |args| compare("kim1_boot", args) }
   end
 
   # A PAL 510 booting to READY and typing print 6*7, and an NTSC one at
