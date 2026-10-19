@@ -67,6 +67,11 @@ CRuby.
   its line format. The Z80 isn't in the core, so `z80_tests.rb` requires
   `badline/chips/z80/core` alone, and of the other harnesses only the
   C128's carry it, as `C128::Z80`.
+- `m6809_tests.rb` runs neetandev/m6809's 6809 cases against
+  `Badline::Chips::M6809` and checks registers, cycles, the bus on every
+  cycle and RAM. `convert_m6809.rb` samples them into its line format,
+  with the cycles and flags `test/support/m6809_divergences.rb` moves to
+  the documents' values. It requires `badline/chips/m6809/core` alone.
 - `lorenz.rb` runs the Wolfgang Lorenz chain with the same driver as
   `bin/lorenz` (`test/support/lorenz_chain.rb`) and prints what the run recorded,
   for CRuby to turn into baseline rows. See
@@ -120,7 +125,7 @@ compiler if it isn't on `PATH`:
 SPINEL=~/src/spinel/bin/spinel rake spinel:build
 ```
 
-That compiles `boot`, `cpu_tests`, `z80_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench`, `cbm2_snapshot`, `p500_boot`, `p500_testbench`, `p500_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
+That compiles `boot`, `cpu_tests`, `z80_tests`, `m6809_tests`, `vic20_boot`, `vic20_testbench`, `c128_boot`, `c128_testbench`, `plus4_boot`, `plus4_testbench`, `plus4_lorenz`, `plus4_snapshot`, `pet_boot`, `pet_testbench`, `pet_snapshot`, `cbm2_boot`, `cbm2_testbench`, `cbm2_snapshot`, `p500_boot`, `p500_testbench`, `p500_snapshot` and `sid` into `tmp/spinel/`. `SPINEL_CC`
 passes a C compiler command through `--cc`. For instance
 `SPINEL_CC="cc -DSP_RBS_CHECK"` checks the RBS seeds at runtime.
 
@@ -150,8 +155,10 @@ sound at 44.1 kHz. The C128 boots its `c128` model for 6M cycles typing
 and the C16 boot for 1M cycles typing `print 6*7`. The first
 run converts 100
 SingleStepTests cases per opcode into `tmp/spinel/cases.txt`, and 100 per
-Z80 opcode file into `tmp/spinel/z80_cases.txt`, so it needs
-`vendor/65x02` and `vendor/z80-sample` (`rake vendor:65x02 vendor:z80-sample`).
+Z80 opcode file into `tmp/spinel/z80_cases.txt`, and 100 per 6809 opcode
+file into `tmp/spinel/m6809_cases.txt`, so it needs `vendor/65x02`,
+`vendor/z80-sample` and `vendor/m6809`
+(`rake vendor:65x02 vendor:z80-sample vendor:m6809`).
 
 ```sh
 rake spinel:check_sid

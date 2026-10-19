@@ -72,6 +72,7 @@ def spinel_check(media)
   SpinelCheck.check_boot(*media)
   SpinelCheck.check_cpu_tests
   SpinelCheck.check_z80_tests
+  SpinelCheck.check_m6809_tests
   SpinelCheck.check_vic20_boot
   SpinelCheck.check_vic20_boot("2000000", "1000000", "unexpanded", "44100")
   SpinelCheck.check_c128_boots
@@ -152,7 +153,7 @@ namespace :spinel do
   end
 
   desc "Check the Spinel build against CRuby: boot, or media for cycles, SingleStepTests, the VIC-20's and C128's boots"
-  task :check, %i[media cycles] => %w[spinel:build vendor:65x02 vendor:z80-sample] do |_task, args|
+  task :check, %i[media cycles] => %w[spinel:build vendor:65x02 vendor:z80-sample vendor:m6809] do |_task, args|
     spinel_check(args[:media] ? [args[:cycles] || "23000000", "3000000", args[:media]] : [])
   end
 
