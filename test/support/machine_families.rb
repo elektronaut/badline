@@ -4,6 +4,7 @@ require_relative "../../lib/badline/support/plus4_checkpoint"
 require_relative "../../lib/badline/support/pet_checkpoint"
 require_relative "../../lib/badline/support/cbm2_checkpoint"
 require_relative "../../lib/badline/support/p500_checkpoint"
+require_relative "../../lib/badline/support/kim1_checkpoint"
 require_relative "true_drive"
 
 # 10 SYS2061, then the demo at $080D. The IRQ handler sits at $0885.
@@ -245,12 +246,20 @@ PET_DEMO_PRG = [
 # build, the demo program each family runs, and the checkpoint that
 # digests it. bin/snapshot_check digests its machines the same way.
 module MachineFamilies
-  NAMES = %w[c64 vic20 c128 plus4 pet cbm2].freeze
+  NAMES = %w[c64 vic20 c128 plus4 pet cbm2 kim1].freeze
 
   # The families with no demo program yet, which run the boot and type
   # scenarios and media alone.
-  NO_DEMO = %w[cbm2].freeze
+  NO_DEMO = %w[cbm2 kim1].freeze
   MODES = %w[c128 c64].freeze
+
+  # What the type scenario types without --text.
+  DEFAULT_TEXT = "print 6*7\r"
+
+  # What the type scenario presses on the KIM-1's keypad without --text:
+  # $1C00 into the NMI vector, LDA #$01 and JMP $0200 at $0200, GO, and ST
+  # once it runs.
+  KIM1_KEYS = "AD 17FA DA 00 + 1C AD 0200 DA A9 + 01 + 4C + 00 + 02 AD 0200 GO ST"
 
   module_function
 
@@ -273,6 +282,7 @@ module MachineFamilies
     when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
     when "pet" then Badline::PET.new(model: options[:model] || "8032", ram_kb: options[:ram]&.to_i)
     when "cbm2" then Badline::Machine.build(:cbm2, model: options[:model] || "610")
+    when "kim1" then Badline::KIM1.new
     else Badline::Machine.build(:c64, model: options[:model])
     end
   end
@@ -329,8 +339,18 @@ module MachineFamilies
     when "plus4" then Badline::Support::Plus4Checkpoint
     when "pet" then Badline::Support::PETCheckpoint
     when "cbm2" then p500?(options) ? Badline::Support::P500Checkpoint : Badline::Support::CBM2Checkpoint
+    when "kim1" then Badline::Support::KIM1Checkpoint
     else Badline::Support::Checkpoint
     end
+  end
+
+  # Starts the type scenario: --text typed at the prompt, or pressed on
+  # the KIM-1's keypad, KIM1_KEYS without it.
+  def type(computer, options)
+    text = options[:text]
+    return computer.on_init { computer.type_text(text) } unless options[:family] == "kim1"
+
+    computer.type_keys(text == DEFAULT_TEXT ? KIM1_KEYS : text)
   end
 
   # Whether the options name the P500 of the CBM-II family.

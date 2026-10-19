@@ -52,6 +52,7 @@ only catches the rows that happen to move.
 - [PET CRTC](#pet-crtc)
 - [CBM-II DRAM refresh](#cbm-ii-dram-refresh)
 - [6509 indirection segment](#6509-indirection-segment)
+- [KIM-1 single step](#kim-1-single-step)
 
 ## CPU interrupt recognition
 
@@ -2290,3 +2291,27 @@ testprogs named.
     through. A write to the tenths that released the latch fails it.
   - Spec guard: *makes STA (zp),Y's dummy read in the indirection
     segment* in [`cbm2/cpu_spec.rb`](../spec/badline/cbm2/cpu_spec.rb).
+
+## KIM-1 single step
+
+- With the SST switch on, the board pulls NMI through each opcode fetch
+  outside K7 ($1C00-$1FFF and its mirrors), and the CPU takes it at the
+  end of the instruction that fetch starts, a 2-cycle one included: the
+  board raises the NMI latch ahead of the fetch cycle's poll, so the
+  sample the boundary commits, the one from the second-to-last cycle,
+  holds it. The pull on the cycle that starts the interrupt sequence is
+  taken up by the same NMI.
+  - Pinned by the KIM-1 User Manual's figure 5.6, which single-steps the
+    sample program of figure 5.4 from $0200: the display shows 0202 after
+    the first GO, the 2-cycle LDA #$01, and 020F after TAX. With the
+    latch raised a cycle later, after the fetch cycle has polled, NMI
+    waits an instruction more and the first GO shows 0205.
+  - The monitor's display scan, SCANDS ($1F1F) and the key scan AK
+    ($1EFE) in its idle loop, repeats every 4,258 cycles, and lights the
+    six digits 676, 687, 676, 687, 676 and 657 cycles each. That follows
+    from the ROM and the 6502 core's cycle counts, which SingleStepTests
+    checks, not from a test of the board.
+  - Spec guards: *takes the NMI single-step pulls right after a 2-cycle
+    instruction* in [`kim1/cpu_spec.rb`](../spec/badline/kim1/cpu_spec.rb),
+    and *figure 5.6* and *scans the six digits every 4,258 cycles* in
+    [`kim1_spec.rb`](../spec/badline/kim1_spec.rb).

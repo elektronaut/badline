@@ -13,8 +13,12 @@ module Badline
       # reads N - 1 until cycle T, 0 until cycle N x T, and $FF with the flag
       # set on cycle N x T: 52 at ÷8 sets the flag on cycle 416. From there
       # the counter counts every cycle, so it tells how long ago the flag
-      # set, and each count through 0 sets the flag again. Only a write puts
-      # the prescaler back.
+      # set, and each count through 0 sets the flag again. On the 6532 only
+      # a write puts the prescaler back. On the 6530, as the KIM-1 User
+      # Manual's appendix H has it, a read of the counter after the flag
+      # set does too, and the counter counts on from where it is at the
+      # interval written: a 6530 builds its timer with
+      # read_restores_divider. No test program has confirmed it.
       #
       # Reading or writing the counter clears the flag, except for a read on
       # the cycle that sets it. Each access takes A3 as the interrupt enable.
@@ -24,7 +28,8 @@ module Badline
         attr_reader :counter, :flag
         attr_accessor :irq_enabled
 
-        def initialize
+        def initialize(read_restores_divider: false)
+          @read_restores_divider = read_restores_divider
           @counter = 0
           @divider = 1
           @prescale = 1
@@ -50,6 +55,7 @@ module Badline
         def read(irq_enabled)
           @irq_enabled = irq_enabled
           @flag = false unless @fired
+          restore_divider if @read_restores_divider && @expired
           @counter
         end
 
@@ -65,6 +71,11 @@ module Badline
         end
 
         private
+
+        def restore_divider
+          @expired = false
+          @prescale = @divider
+        end
 
         def count
           @counter = (@counter - 1) & 0xff
