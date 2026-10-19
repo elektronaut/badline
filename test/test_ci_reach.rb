@@ -114,6 +114,12 @@ class TestCIReach < Minitest::Test
     assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)
   end
 
+  def test_the_hard_disk_reaches_the_drive_scenarios
+    files = %w[lib/badline/storage/d90_image.rb lib/badline/drives/model9060/sasi_target.rb]
+
+    assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)
+  end
+
   def test_the_pet_and_its_roms_reach_the_pet_testbenches
     files = %w[lib/badline/pet/bus.rb lib/badline/chips/pia.rb lib/badline/chips/crtc.rb
                lib/badline/roms/pet/kernal4.rom]
