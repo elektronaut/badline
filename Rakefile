@@ -6,6 +6,7 @@ require "rake/testtask"
 require_relative "test/support/suites"
 require_relative "test/support/ci_matrix"
 require_relative "test/support/z80_sample"
+require_relative "test/support/m6809_vectors"
 require_relative "spinel/check"
 require_relative "native/build"
 require_relative "native/pack"
@@ -95,8 +96,13 @@ namespace :vendor do
     Dir.exist?(Z80Sample::DIR) ? puts("z80-sample already present.") : Z80Sample.fetch
   end
 
+  desc "Fetch neetandev/m6809's 6809 vectors into #{M6809Vectors::DIR}, its v1 data alone, at a pinned commit"
+  task :m6809 do
+    Dir.exist?(M6809Vectors::DIR) ? puts("m6809 already present.") : M6809Vectors.fetch
+  end
+
   desc "Check out the vendored test repositories, with the Z80 sample in place of the whole Z80 suite"
-  task checkout: VENDORED_REPOS.keys - ["z80"] + ["z80-sample"]
+  task checkout: VENDORED_REPOS.keys - ["z80"] + %w[z80-sample m6809]
 end
 
 namespace :regression do
@@ -265,4 +271,5 @@ Rake::TestTask.new do |task|
   task.pattern = "test/test_*.rb"
 end
 
-Rake::Task["test"].enhance(["vendor:65x02", ENV["Z80_SAMPLE"] == "all" ? "vendor:z80" : "vendor:z80-sample"])
+Rake::Task["test"].enhance(["vendor:65x02", ENV["Z80_SAMPLE"] == "all" ? "vendor:z80" : "vendor:z80-sample",
+                            "vendor:m6809"])
