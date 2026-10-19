@@ -43,13 +43,16 @@ module Badline
 
       def inserted? = MediaSlots.disk?(@computer)
 
-      # Puts a disk in device 8 or a tape in the datasette, `kind` :disk or
-      # :tape, and says whether it went in. A list puts its first disk in.
+      # Puts a disk in device 8 or a tape in the datasette or the KIM-1's
+      # deck, `kind` :disk or :tape, and says whether it went in. A list
+      # puts its first disk in.
       def insert(kind, path)
         succeeds? do
-          raise Machine::Unsupported, "the KIM-1 takes no disks or tapes" if @computer.family == :kim1
+          if @computer.family == :kim1
+            raise Machine::Unsupported, "the KIM-1 takes no disks" if kind == :disk
 
-          if kind == :disk
+            @computer.tape.insert_tape(Storage::KIMTape.read(path))
+          elsif kind == :disk
             disk = Media::DiskList.disk(path)
             Media.insert_disk(@computer, disk, read_only: !@writable)
             list(path)
@@ -104,6 +107,10 @@ module Badline
 
         insert(:disk, set[index + step])
       end
+
+      # The extensions of the tapes the datasette takes, or the KIM-1's
+      # deck: .wav recordings.
+      def tape_extensions = kim1? ? [Media::KIM1Media::TAPE] : Media::Extensions.of(%i[tape])
 
       # The extensions of the cartridges the machine takes: .crt, on the
       # Plus/4 raw .bin ROM images too, and none on the PET or the KIM-1,

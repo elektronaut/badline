@@ -174,7 +174,8 @@ module Badline
         the monitor starts it where it loads, or at --start-address.
         --tty-load reads a papertape through the monitor's L command
         instead. --ram 5k fills $0400-$13FF, and --ram expanded $2000-$DFFF
-        too.
+        too. A .wav recording of a KIM tape goes in the cassette deck, which
+        the pause menu's DATASETTE page plays for LOADT at $1873.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

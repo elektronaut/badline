@@ -24,10 +24,10 @@ module Badline
       File.join(xdg, "badline")
     end
 
-    # The quicksaves, autosaves or saves subfolder of data_path, created
-    # along with data_path if it doesn't exist yet.
+    # The quicksaves, autosaves, saves or tapes subfolder of data_path,
+    # created along with data_path if it doesn't exist yet.
     def data_folder(name)
-      raise ArgumentError, "unknown data folder: #{name}" unless %w[quicksaves autosaves saves].include?(name)
+      raise ArgumentError, "unknown data folder: #{name}" unless %w[quicksaves autosaves saves tapes].include?(name)
 
       path = File.join(data_path, name)
       FileUtils.mkdir_p(path)

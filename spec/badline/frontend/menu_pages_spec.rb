@@ -262,9 +262,41 @@ describe Badline::Frontend::MenuPages do
       expect(painter).to have_received(:text).with(0, 12, "1K", anything)
     end
 
-    it "offers no tape and no disk" do
-      %i[datasette drive].each { |page| pages.draw(page, 0, 0) }
+    it "offers no disk" do
+      pages.draw(:drive, 0, 0)
       expect(buttons).not_to have_received(:row)
+    end
+
+    it "offers its deck's keys on the tape page" do
+      pages.draw(:datasette, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "DECK", :kim1_deck, [%w[STOP PLAY RECORD], anything, 0])
+    end
+
+    it "shows how far into the tape the deck is" do
+      computer.tape.insert_tape(Badline::Storage::KIMTape.new(crossings: [65_000_000]))
+      pages.draw(:datasette, 0, 0)
+      expect(painter).to have_received(:text).with(0, anything, "0:00 OF 1:05", anything)
+    end
+
+    it "presses PLAY" do
+      pages.perform(:kim1_play)
+      expect(computer.tape.playing?).to be(true)
+    end
+
+    context "with no tape in the deck" do
+      around do |example|
+        Dir.mktmpdir do |dir|
+          Badline.data_path = dir
+          example.run
+        ensure
+          Badline.data_path = nil
+        end
+      end
+
+      it "records onto a new tape in the tapes folder" do
+        pages.perform(:kim1_record)
+        expect(computer.tape.tape.path).to eq(File.join(Badline.data_path, "tapes", "kim1-1.wav"))
+      end
     end
   end
 

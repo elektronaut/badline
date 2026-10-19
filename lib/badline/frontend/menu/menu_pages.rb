@@ -16,6 +16,10 @@ module Badline
       # The KIM-1's settings on its PANEL page (MenuPorts).
       KIM1_SETTINGS = %i[sst_off sst_on keypad teletype irq_open irq_wired pb7_out pa0_speaker].freeze
 
+      # The KIM-1's deck on its TAPE page: the keys down, and the rest.
+      KIM1_DECK = [%w[STOP PLAY RECORD], %i[kim1_stop kim1_play kim1_record]].freeze
+      KIM1_TAPE = (KIM1_DECK.last + %i[kim1_rewind kim1_eject]).freeze
+
       RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
       # The SuperPET's switches: SW2 picks the CPU and SW1 protects the
@@ -89,6 +93,7 @@ module Badline
         when :reset then @computer.reset!
         when :power_cycle then @computer.power_cycle!
         when *KIM1_SETTINGS then kim1_setting(action)
+        when *KIM1_TAPE then kim1_tape(action)
         else pick_port(action)
         end
       end
@@ -136,9 +141,10 @@ module Badline
         info("DEVICE", drive.nil? ? "FAST LOADING" : "#{drive.model_name}, TRUE DRIVE")
       end
 
-      # The CBM-II and the KIM-1 have no datasette.
+      # The CBM-II has no datasette, and the KIM-1 a deck of its own.
       def draw_datasette
-        return info("TAPE", "") if cbm2? || kim1?
+        return info("TAPE", "") if cbm2?
+        return draw_kim1_tape if kim1?
 
         datasette = @computer.datasette
         tape = datasette.tape
@@ -149,6 +155,51 @@ module Badline
         row("REWIND", :tape_rewind)
         skip
         info("MOTOR", datasette.motor? ? "ON" : "OFF")
+      end
+
+      # The KIM-1's deck, with its tape's name and how far into it the deck
+      # is, in minutes and seconds.
+      def draw_kim1_tape
+        deck = @computer.tape
+        tape = deck.tape
+        info("TAPE", File.basename(tape.path))
+        row("INSERT...", :insert_tape)
+        row("EJECT", :kim1_eject)
+        down = 0
+        down = 1 if deck.playing?
+        down = 2 if deck.recording?
+        toggle("DECK", :kim1_deck, [KIM1_DECK.first, KIM1_DECK.last, down])
+        row("REWIND", :kim1_rewind)
+        skip
+        info("POSITION", "#{clock(deck.position)} OF #{clock(tape.duration)}")
+      end
+
+      def clock(microseconds)
+        seconds = microseconds / 1_000_000
+        "#{seconds / 60}:#{(seconds % 60).to_s.rjust(2, '0')}"
+      end
+
+      # Presses the KIM-1 deck's keys. RECORD with no file to record to
+      # puts a new tape in first, in the tapes folder (Badline.data_folder).
+      def kim1_tape(action)
+        deck = @computer.tape
+        case action
+        when :kim1_stop then deck.stop
+        when :kim1_play then deck.play
+        when :kim1_record
+          deck.insert_tape(Storage::KIMTape.create(new_tape_path)) if deck.tape.path.empty?
+          deck.record
+        when :kim1_rewind then deck.rewind
+        else deck.eject
+        end
+      end
+
+      # The first of kim1-1.wav, kim1-2.wav and on that isn't taken.
+      def new_tape_path
+        folder = Badline.data_folder("tapes")
+        number = 1
+        number += 1 while File.exist?(File.join(folder, "kim1-#{number}.wav"))
+        File.join(folder, "kim1-#{number}.wav")
       end
 
       def draw_expansion
