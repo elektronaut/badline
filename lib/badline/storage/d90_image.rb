@@ -30,7 +30,8 @@ module Badline
       def initialize(path, read_only: false, bytes: nil, heads: nil)
         super(path, read_only:, bytes:)
         @heads = heads || HEADS.fetch(@bytes.length, 4)
-        @bytes.fill(0, @bytes.length...(block_count * SECTOR_SIZE))
+        size = block_count * SECTOR_SIZE
+        @bytes.concat(Array.new(size - @bytes.length, 0)) if @bytes.length < size
       end
 
       def sectors_in(_track) = @heads * SECTORS_PER_HEAD
