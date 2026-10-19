@@ -227,7 +227,7 @@
 
 - **Snapshots that keep loading**: snapshots hold the machine as keyed `BL-*` modules, so one saved by 0.14.0 loads in every later version. Snapshots from earlier versions are refused with a message.
 - **VICE export**: VICE's own modules go in only on export, with `--save-snapshot FILE --vice`, so x64sc opens the file too.
-- **Plus/4 and C16, headless**: the 264 series boots to READY headless with its ROMs bundled, reads Plus/4 `.crt` images and version 2 C16 tapes, and runs VICE's 264 testbench rows (`testbench-plus4`, `testbench-c16`) and the Lorenz suite's plus4 build (`lorenz-plus4`). `badline plus4` itself waits for 0.15.0.
+- **Plus/4 and C16, headless**: the 264 series boots to READY headless with its ROMs bundled, reads Plus/4 `.crt` images and version 2 C16 tapes, and runs VICE's 264 testbench rows (`testbench-plus4`, `testbench-c16`) and the Lorenz suite's plus4 build (`lorenz-plus4`).
 
 
 ### Features
@@ -595,7 +595,7 @@
 - **True 1541**: `--true-drive` puts an emulated 1541 on device 8, running its own DOS ROM on its own 6502 and talking to the C64 over the serial bus. It reads `.d64` disks through its GCR mechanism, writes and formats them, and skips its cycles while it idles.
 - **`.g64` images**: a `.g64` holds a disk's raw GCR, so copy protection and fast loaders that read it work. It goes in a true 1541.
 - **REU**: `--reu SIZE` plugs in a 1700, 1764 or 1750, or a bigger unit up to 16M, with DMA timed against the VIC's bad lines and sprites.
-- **NTSC**: `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II, and the testbench's NTSC rows run.
+- **NTSC**: `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II.
 
 
 ### Features
@@ -709,7 +709,6 @@
 - **Sound in the window**: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default.
 - **A virtual drive closer to the 1541**: buffer channels live in the drive's RAM, DOS command parameters are read as the 1541 reads them, the BAM goes in buffer 4 when a disk initializes, `LOAD"*"` reopens the last file loaded, and host SAVE and read failures show on the error channel.
 - **Other ROMs**: `BADLINE_ROM_PATH`, or `Badline.rom_path` from Ruby, loads the KERNAL, BASIC and character ROMs from a directory.
-- **`bin/machine_diff`**: runs a scenario on two trees side by side and names the first chip whose `Badline::Checkpoint` digest differs.
 
 Sound is the headline: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default, because the emulator still runs below real time on CRuby and the sound stutters there. This release also brings the virtual drive closer to a real 1541 (buffer channels in drive RAM, DOS command parsing, the BAM in buffer 4, `LOAD"*"`), cartridge banking fixes, and `Badline::Checkpoint` with `bin/machine_diff` for checking that a change leaves emulation alone.
 
