@@ -103,6 +103,23 @@ module Badline
 
       def superpet? = true
 
+      # Moves the CPU switch to +position+, one of Board::CPU_SWITCH, and
+      # resets the machine, so the CPU the switch picks starts from its
+      # RESET.
+      def switch_cpu(position)
+        @board.cpu_switch = position
+        reset!
+      end
+
+      # Moves the bank RAM switch to +position+, one of Board::RAM_SWITCH.
+      def switch_bank_ram(position)
+        @board.ram_switch = position
+      end
+
+      # Whether the picture shows the character ROM's APL set: its second
+      # half, which the CRTC's MA13 picks, with VIA CA2 high.
+      def apl_characters? = @crtc.registers[12].anybits?(0x20) && @via.ca2_output
+
       # The 32K below $8000 and the 64K board.
       def model_label = "SUPERPET, 96K RAM, #{@refresh_hz} HZ"
 

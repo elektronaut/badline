@@ -161,8 +161,8 @@ module Badline
     # --editor asks for, the ROMs --basic, --editor and --characters fit it
     # with, the 8296 board's jumpers --jumpers names, and the true drive
     # --drive-type names. The SuperPET takes the frame rate, the 8032's
-    # BASIC and editors, the true drive and the CPU --cpu names, and with
-    # the 6809 disks alone.
+    # BASIC and editors, the true drive, the CPU --cpu names and the bank
+    # RAM switch --bank-ram sets, and with the 6809 disks alone.
     def self.pet_for(media, options)
       unsupported = !media.nil? && Media::PETMedia::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a PET" if unsupported
@@ -172,7 +172,7 @@ module Badline
         raise Unsupported, "doesn't go in the SuperPET's 6809 side" unless disk || options.cpu == "6502"
 
         return PET::SuperPET.new(refresh_hz: options.refresh_hz, basic: options.basic, editor: options.editor,
-                                 cpu: options.cpu, true_drive_model: options.drive_type)
+                                 cpu: options.cpu, bank_ram: options.bank_ram, true_drive_model: options.drive_type)
       end
 
       PET.new(model: options.model, ram_kb: options.ram_kb, refresh_hz: options.refresh_hz, basic: options.basic,

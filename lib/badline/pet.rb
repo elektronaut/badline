@@ -143,6 +143,9 @@ module Badline
     # Whether this is the SuperPET's board (SuperPET).
     def superpet? = false
 
+    # Whether the picture shows the SuperPET's APL characters.
+    def apl_characters? = false
+
     # Whether an autostart finds BASIC to type into.
     def boots_basic? = true
 

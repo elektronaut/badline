@@ -140,6 +140,7 @@ module Badline
         it with the DIN character ROM, and --jumpers ram9,rama puts RAM at
         $9000 and $A000, as xpet's -petram9 and -petramA do. --model
         superpet runs the SuperPET, and --cpu 6809 its Waterloo 6809 side.
+        --bank-ram read write-protects its 64K bank RAM.
 
         The CBM-II takes programs, disks, .d80 and .d82 among them, and
         cartridges, and a cartridge made for it starts one without `cbm2`.

@@ -130,6 +130,21 @@ module Badline
           @bus.map_pages
         end
 
+        # Moves SW2, which picks the CPU at the next RES.
+        def cpu_switch=(position)
+          raise ArgumentError, "the CPU switch has no position #{position}" unless CPU_SWITCH.include?(position)
+
+          @cpu_switch = position
+        end
+
+        # Moves SW1, which protects the bank RAM from the next write on.
+        def ram_switch=(position)
+          raise ArgumentError, "the RAM switch has no position #{position}" unless RAM_SWITCH.include?(position)
+
+          @ram_switch = position
+          @bus.map_pages
+        end
+
         # Whether writes to the bank RAM go nowhere.
         def write_protected?
           case @ram_switch

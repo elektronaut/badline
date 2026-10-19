@@ -143,7 +143,10 @@ module Badline
       # A host key lets go of the key it pressed, though the C128 has
       # switched between C64 and C128 mode since and maps it elsewhere.
       def machine_key(scancode, down)
-        return @pet_keyboard.key(scancode, down) if Controls.symbolic?(@computer)
+        if Controls.symbolic?(@computer)
+          @pet_keyboard.positional = @computer.family == :pet && @computer.apl_characters? if down
+          return @pet_keyboard.key(scancode, down)
+        end
 
         @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
         key = @held[scancode]

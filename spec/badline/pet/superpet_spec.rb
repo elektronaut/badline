@@ -89,6 +89,47 @@ describe Badline::PET::SuperPET do
     expect(superpet.model_label).to eq("SUPERPET, 96K RAM, 50 HZ")
   end
 
+  describe "the switches" do
+    it "takes a new CPU switch position at the next reset" do
+      superpet.board.cpu_switch = "6809"
+      running = [superpet.m6809_running?]
+      superpet.reset!
+      expect(running << superpet.m6809_running?).to eq([false, true])
+    end
+
+    it "moves the CPU switch and resets with switch_cpu" do
+      superpet.run_cycles(1_000)
+      superpet.switch_cpu("6809")
+      superpet.run_cycles(5)
+      expect([superpet.m6809_running?, superpet.m6809.pc]).to eq([true, 0xff80])
+    end
+
+    it "protects the bank RAM from the next write on with switch_bank_ram" do
+      superpet.switch_bank_ram("read")
+      superpet.poke(0x9000, 0x5a)
+      expect(superpet.board.cells[0]).to eq(0)
+    end
+
+    it "refuses a position SW1 hasn't" do
+      expect { superpet.switch_bank_ram("off") }.to raise_error(ArgumentError, /no position off/)
+    end
+  end
+
+  describe "the APL characters" do
+    # Sets R12 and the VIA's PCR as the Waterloo ROM's TSETAPL and
+    # TSETASCI leave them.
+    def apl_with?(r12, pcr)
+      superpet.poke(0xe880, 12)
+      superpet.poke(0xe881, r12)
+      superpet.poke(0xe84c, pcr)
+      superpet.apl_characters?
+    end
+
+    it "shows them with MA13 high and CA2 high" do
+      expect([apl_with?(0x30, 0x0e), apl_with?(0x30, 0x0c), apl_with?(0x10, 0x0e)]).to eq([true, false, false])
+    end
+  end
+
   it "is built as its own class, not as a PET" do
     expect { Badline::PET.new(model: "superpet") }.to raise_error(ArgumentError, /SuperPET/)
   end

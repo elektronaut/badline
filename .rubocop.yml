@@ -20,7 +20,7 @@ Metrics/BlockLength:
     - "spec/**/*.rb"
 
 Metrics/ClassLength:
-  Max: 240
+  Max: 244
   Exclude:
     - "lib/badline/chips/cpu/instruction.rb"
     - "lib/badline/chips/vic.rb"
@@ -38,9 +38,9 @@ Metrics/MethodLength:
     - "lib/badline/chips/cpu/instruction.rb"
 
 # Options::Validation checks every family's options, the SuperPET's --cpu
-# among them.
+# and --bank-ram among them.
 Metrics/ModuleLength:
-  Max: 212
+  Max: 216
 
 Metrics/PerceivedComplexity:
   Max: 12

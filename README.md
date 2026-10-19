@@ -361,14 +361,23 @@ menu loads from drive 1 of a dual drive, and the traps' one disk answers
 as drive 1 too. With `--true-drive` the disk goes in drive 0 of a true
 2031, 8050 or 8250 instead, where typing `disk/0.BASIC` at the menu
 loads microBASIC, in about twice the time. The original language
-disks' copy protection finds its 6702, so they run unpatched. Its memory
-write protect switch is at R/W. It takes the 8032's editors and `--60hz`,
+disks' copy protection finds its 6702, so they run unpatched. `--cpu
+prog` leaves the CPU to bit 0 of the system latch, and `--bank-ram read`
+write-protects the 64K bank RAM, or `prog` leaves it to bit 1, R/W by
+default. The pause menu's power page has both switches: moving the CPU
+switch resets the machine onto the CPU it picks, and the RAM switch
+takes effect at once. While a Waterloo language shows its APL
+characters, as microAPL does, the keys go by position: each presses the
+SuperPET key that types its unshifted character, with the host's SHIFT,
+so it types the APL symbol on that keycap. The menu's KEYBOARD page
+says which set is up. It takes the 8032's editors and `--60hz`,
 which picks the Waterloo ROM with the 60 Hz CRTC table, and no `--ram`.
 Its snapshots don't load back yet.
 
 ```sh
 badline pet --model superpet --cpu 6809                   # The SuperPET's Waterloo menu
 badline pet --model superpet --cpu 6809 sp9000lang.d80    # The same with the language disk
+badline pet --model superpet --bank-ram read              # The bank RAM write-protected
 ```
 
 ```sh

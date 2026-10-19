@@ -15,6 +15,11 @@ module Badline
 
       RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
+      # The SuperPET's switches: SW2 picks the CPU and SW1 protects the
+      # bank RAM, each at PROG left to the system latch.
+      CPU_SWITCH = [%w[6502 6809 PROG], %i[cpu6502 cpu6809 cpu_prog]].freeze
+      RAM_SWITCH = [%w[R/W READ PROG], %i[bank_rw bank_read bank_prog]].freeze
+
       SID_MODELS = %i[mos6581 mos8580].freeze
       RAM_NAMES = {
         unexpanded: "", "3k": "3K", "8k": "8K", "16k": "16K", "24k": "24K", "32k": "32K",
@@ -76,6 +81,8 @@ module Badline
         when :swap then @controls.swap_ports
         when :sound_on, :mute then @sound.toggle_mute unless @sound.muted? == (action == :mute)
         when :sid6581, :sid8580 then @computer.sound_source.model = action == :sid8580 ? :mos8580 : :mos6581
+        when :cpu6502, :cpu6809, :cpu_prog then switch_cpu(action)
+        when :bank_rw, :bank_read, :bank_prog then switch_bank_ram(action)
         when :reset then @computer.reset!
         when :power_cycle then @computer.power_cycle!
         else pick_port(action)
@@ -175,6 +182,8 @@ module Badline
         return draw_8296_memory if model.cbm8296?
 
         info("RAM", "#{@computer.ram_kb}K")
+        return info("BANK RAM", "64K, BANK #{@computer.board.bank} AT $9000") if model.superpet?
+
         info("EXPANSION RAM", model.expansion ? "64K BOARD" : "")
       end
 
@@ -206,6 +215,7 @@ module Badline
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
         info("MACHINE", @computer.model_label.upcase) if pet? || cbm2?
         info("KERNAL", "#{Controls.p500?(@computer) ? 901_234 : 901_244}-#{@computer.kernal.upcase}") if cbm2?
+        draw_superpet_switches if pet? && @computer.superpet?
         if plus4?
           info("MACHINE", @computer.model_label)
           expansion = @computer.ram_expansion_label
@@ -215,6 +225,25 @@ module Badline
         row("POWER CYCLE", :power_cycle)
         skip
         row("QUIT", :quit)
+      end
+
+      # The SuperPET's CPU switch, which a move applies with a reset, and its
+      # bank RAM switch, which applies at once, with the CPU that has the
+      # bus.
+      def draw_superpet_switches
+        board = @computer.board
+        toggle("CPU SWITCH", :cpu_switch, [*CPU_SWITCH, PET::SuperPET::Board::CPU_SWITCH.index(board.cpu_switch)])
+        toggle("RAM SWITCH", :ram_switch, [*RAM_SWITCH, PET::SuperPET::Board::RAM_SWITCH.index(board.ram_switch)])
+        info("RUNNING", @computer.m6809_running? ? "6809, WATERLOO" : "6502, BASIC 4")
+      end
+
+      def switch_cpu(action)
+        position = PET::SuperPET::Board::CPU_SWITCH[CPU_SWITCH[1].index(action)]
+        @computer.switch_cpu(position) unless position == @computer.board.cpu_switch
+      end
+
+      def switch_bank_ram(action)
+        @computer.switch_bank_ram(PET::SuperPET::Board::RAM_SWITCH[RAM_SWITCH[1].index(action)])
       end
 
       # A label, and its value under it, or NONE in the dim colour when the

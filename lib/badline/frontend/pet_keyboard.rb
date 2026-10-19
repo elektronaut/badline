@@ -13,6 +13,12 @@ module Badline
     # key its unshifted character is on with the PET's SHIFT, so the
     # graphics on the graphics keyboard's symbol keys can be typed.
     #
+    # While the SuperPET shows its APL characters the keys go by position
+    # instead (#positional=): a key that types a character presses the PET
+    # key its unshifted character is on, and the PET's SHIFT follows the
+    # host's, so a key types the APL symbol on the SuperPET's keycap in the
+    # same place, shifted or not.
+    #
     # The CBM-II's keyboard goes the same way (Keys.cbm2_key), and there
     # Alt with a key presses one of the keys the host has none for
     # (Keys.cbm2_alt_key).
@@ -35,7 +41,11 @@ module Badline
         @right_alt = false
         @forced = -1
         @forced_shift = false
+        @positional = false
       end
+
+      # Whether the keys go by position, for the SuperPET's APL characters.
+      attr_writer :positional
 
       def key(scancode, down)
         if [LSHIFT, RSHIFT].include?(scancode)
@@ -70,7 +80,10 @@ module Badline
 
       def key_down(scancode)
         key_up(scancode) if @held.key?(scancode)
-        key, shift = alt? ? shifted_key(scancode) : layout_key(scancode, shifted?)
+        key, shift = if alt? then shifted_key(scancode)
+                     elsif @positional then positional_key(scancode)
+                     else layout_key(scancode, shifted?)
+                     end
         return if key == :none
 
         unless shift == :host
@@ -126,6 +139,15 @@ module Badline
         return [key, shift] unless scancode.between?(4, 29) || Keys::US_CHARACTERS.key?(scancode)
 
         [key, :on]
+      end
+
+      # The PET key for the scancode by position: the one its unshifted
+      # character is on, with the host's SHIFT.
+      def positional_key(scancode)
+        key, shift = Keys.pet_key(scancode, false, @layout)
+        return [key, shift] if key == :none || !Keys::US_CHARACTERS.key?(scancode)
+
+        [key, :host]
       end
 
       def shifted? = @left_shift || @right_shift

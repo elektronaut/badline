@@ -60,6 +60,21 @@ describe Badline::Frontend::PETKeyboard do
       expect(keyboard.keys).to eq(%i[lshift 2])
     end
 
+    context "with the keys by position, for the SuperPET's APL characters" do
+      before { keys.positional = true }
+
+      it "presses the key the unshifted character is on, with the host's SHIFT" do
+        keys.key(shift, true)
+        keys.key(47, true)
+        expect(keyboard.keys).to contain_exactly(:lshift, :"[")
+      end
+
+      it "leaves SHIFT up for the unshifted character" do
+        keys.key(31, true)
+        expect(keyboard.keys).to eq([:"2"])
+      end
+    end
+
     it "types @ without SHIFT, though the host's is down" do
       keys.key(shift, true)
       keys.key(31, true)
