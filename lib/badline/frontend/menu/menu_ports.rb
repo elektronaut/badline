@@ -97,7 +97,7 @@ module Badline
         toggle("SST", :sst, [%w[OFF ON], %i[sst_off sst_on], kim.sst ? 1 : 0])
         toggle("TTY/KB", :tty, [%w[KEYPAD TTY], %i[keypad teletype], kim.tty? ? 1 : 0])
         skip
-        info("RAM", "1K")
+        info("RAM", "#{kim.ram_kb}K")
         toggle("U3 PB7", :irq, [%w[OPEN IRQ], %i[irq_open irq_wired], kim.irq_wired ? 1 : 0])
         toggle("SOUND", :speaker, [["U2 PB7", "U3 PA0"], %i[pb7_out pa0_speaker], kim.speaker? ? 1 : 0])
       end

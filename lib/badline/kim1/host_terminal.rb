@@ -17,6 +17,23 @@ module Badline
 
       def self.run(machine, console) = new(machine, console).run
 
+      # Builds the KIM-1 the command line's `options` name, loads the
+      # program they name (Media::KIM1Media), and runs it on `console`
+      # until Ctrl-C. Returns the exit status, 1 when the program won't
+      # load, which it warns about.
+      def self.start(options, console)
+        path = options.media_path
+        machine = Machine.for_options(options, path)
+        unless path.nil?
+          loaded = Media.attach(machine, path, autostart: true, kim1: Media::KIM1Media.loading(options))
+          console.print_text("#{loaded}\r\n")
+        end
+        run(machine, console)
+      rescue Machine::Unsupported, Storage::Papertape::FormatError, SystemCallError => e
+        warn "#{options.program}: #{path}: #{e.message}"
+        1
+      end
+
       def initialize(machine, console)
         @machine = machine
         @console = console

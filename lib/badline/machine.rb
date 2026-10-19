@@ -87,9 +87,10 @@ module Badline
     # PET::SuperPET with its CPU switch at 6502. A CBM-II's is one of
     # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz, or a 510,
     # one of CBM2::P500::Model::ALL, with its region's mains. A KIM-1 is
-    # the one model, with its 1K of RAM.
+    # the one model, with the RAM `ram` names
+    # (KIM1::Bus::RAM_CONFIGURATIONS), 1K when nil.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
-      return KIM1.new if family == :kim1
+      return KIM1.new(ram:) if family == :kim1
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
@@ -202,12 +203,12 @@ module Badline
     end
     private_class_method :cbm2_for
 
-    # A KIM-1, which takes no media yet, on a teletype at --baud with
-    # --tty.
+    # A KIM-1 with the RAM --ram names, on a teletype at --baud with
+    # --tty, for media it takes (Media::KIM1Media).
     def self.kim1_for(media, options)
-      raise Unsupported, "doesn't go in a KIM-1" unless media.nil?
+      raise Unsupported, "doesn't go in a KIM-1" unless media.nil? || Media::KIM1Media.takes?(media)
 
-      KIM1.new(tty: options.tty?, baud: options.baud)
+      KIM1.new(tty: options.tty?, baud: options.baud, ram: options.ram)
     end
     private_class_method :kim1_for
 

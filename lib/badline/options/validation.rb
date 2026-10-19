@@ -112,7 +112,8 @@ module Badline
         if headless?
           raise Error, "#{@window_only.first} needs the window" unless @window_only.empty?
           raise Error, "#{@any_window_only.first} needs the window" unless player_window? || @any_window_only.empty?
-          raise Error, "no tune given" if tune_paths.empty? && !player_window? && @family != :kim1
+          return if @family == :kim1
+          raise Error, "no tune given" if tune_paths.empty? && !player_window?
 
           tune_paths.each { |path| validate_tune(path) }
         elsif !@headless_only.empty?
@@ -143,7 +144,8 @@ module Badline
         when :vic20 then @ram = ram_configuration(@ram_name)
         when :plus4 then @ram_kb = plus4_ram(@ram_name)
         when :pet then @ram_kb = pet_ram(@ram_name)
-        else raise Error, "--ram needs vic20, plus4 or pet"
+        when :kim1 then @ram = kim1_ram(@ram_name)
+        else raise Error, "--ram needs vic20, plus4, pet or kim1"
         end
       end
 
@@ -288,21 +290,6 @@ module Badline
 
         kernals = p500? ? P500_KERNALS : CBM2_KERNALS
         raise Error, "the #{model} takes KERNAL #{kernals.join(' or ')}" unless kernals.include?(kernal)
-      end
-
-      # The KIM-1 runs in the window, or with --headless on the terminal,
-      # without the C64's SID and REU, and takes no media yet.
-      def validate_kim1
-        raise Error, "--ntsc needs the C64" if @models.include?("ntsc")
-        raise Error, "--sid needs the C64" unless @sid_model.nil?
-        raise Error, "--reu needs the C64" unless @reu.nil?
-        raise Error, "--audio-out needs a .sid tune" unless @audio_out.nil?
-        raise Error, "the KIM-1 on the terminal takes no media" if headless? && !@media_path.nil?
-      end
-
-      # Only the KIM-1 has a teletype.
-      def refuse_kim1_options
-        raise Error, "#{@tty ? '--tty' : '--baud'} needs kim1" if @tty || @baud != 9600
       end
 
       # `sid` takes directories as well as tunes.

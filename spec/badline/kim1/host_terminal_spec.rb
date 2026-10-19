@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "tmpdir"
 
 describe Badline::KIM1::HostTerminal do
   # A terminal that types `typed` once, prints into `printed`, and ends
@@ -43,5 +44,34 @@ describe Badline::KIM1::HostTerminal do
 
   it "ends with Ctrl-C, as a success" do
     expect(described_class.run(kim, console_class.new("", 0))).to eq(0)
+  end
+
+  describe ".start" do
+    def start(text)
+      Dir.mktmpdir do |dir|
+        path = File.join(dir, "game.ptp")
+        File.write(path, text)
+        console = console_class.new("", 0)
+        [described_class.start(Badline::Options.parse(["kim1", "--headless", path]), console), console.printed]
+      end
+    end
+
+    it "loads the program the command line names" do
+      status, printed = start(";010200EA00ED\n;0000010001\n")
+      expect([status, printed.lines.first]).to start_with(0).and(end_with(/at \$0200\r\n/))
+    end
+
+    # What the block returns, and what it warned.
+    def warned
+      original = $stderr
+      $stderr = StringIO.new
+      [yield, $stderr.string]
+    ensure
+      $stderr = original
+    end
+
+    it "fails on a program that won't load, and says why" do
+      expect(warned { start(";010200EA00EE\n").first }).to match([1, /bad checksum/])
+    end
   end
 end

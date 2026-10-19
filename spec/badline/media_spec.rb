@@ -77,6 +77,11 @@ describe Badline::Media do
       expect { described_class.attach(computer, path) }.to raise_error(ArgumentError, /IEEE-488/)
     end
 
+    it "refuses a papertape, which needs a KIM-1" do
+      path = File.join(dir, "game.ptp").tap { |tape| File.binwrite(tape, ";0000000000") }
+      expect { described_class.attach(computer, path) }.to raise_error(Badline::Machine::Unsupported, /KIM-1/)
+    end
+
     context "with a directory" do
       it "mounts it as device 8" do
         allow(computer).to receive(:mount)

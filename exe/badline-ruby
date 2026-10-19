@@ -36,8 +36,7 @@ end
 
 if options.kim1_terminal?
   require "badline/audio/console"
-  kim = Badline::Machine.for_options(options, nil)
-  exit Badline::KIM1::HostTerminal.run(kim, Badline::Audio::Console.new(input: $stdin, output: $stdout))
+  exit Badline::KIM1::HostTerminal.start(options, Badline::Audio::Console.new(input: $stdin, output: $stdout))
 end
 
 if options.headless?

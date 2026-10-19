@@ -87,4 +87,22 @@ describe Badline::Frontend::MenuDialogs do
       expect { press(81, 40, 81, 40) }.to output(/Attached cartridge .*game\.bin/).to_stdout
     end
   end
+
+  describe "on a KIM-1" do
+    subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["kim1"]), nil) }
+
+    let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = Badline::KIM1.new } }
+
+    def papertape = File.join(dir, "game.ptp").tap { |path| File.write(path, ";010200EA00ED\n;0000010001\n") }
+
+    it "starts a dropped papertape on a new KIM-1 once asked" do
+      dialogs.drop(papertape)
+      expect { press(81, 40) }.to output(/Loading .*game\.ptp at \$0200/).to_stdout
+    end
+
+    it "leaves a dropped disk out" do
+      disk = blank_d64(File.join(dir, "game.d64"))
+      expect([dialogs.drop(disk), media.problem]).to eq([false, "the KIM-1 takes no disks or tapes"])
+    end
+  end
 end

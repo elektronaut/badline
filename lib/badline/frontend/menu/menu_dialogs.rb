@@ -104,8 +104,12 @@ module Badline
       private
 
       # What Quick open and a drop start: every medium, and the cartridges
-      # the machine takes.
-      def programs = (EXTENSIONS[:program] + @media.cartridge_extensions).uniq
+      # the machine takes, or on the KIM-1 its programs.
+      def programs
+        return Media::KIM1Media::EXTENSIONS if @media.kim1?
+
+        (EXTENSIONS[:program] + @media.cartridge_extensions).uniq
+      end
 
       # Puts the disk or tape picked in, or asks before a cartridge or
       # Quick open power cycles the machine, and leaves the browser, as Esc

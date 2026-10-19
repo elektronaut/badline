@@ -87,7 +87,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--drive-type MODEL` | On the Plus/4, `1541` makes the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. On the PET and the CBM-II, `2031` (the default), `8050`, `8250`, `1001` (an SFD-1001, which reads `.d82` images), `4040` or `3040` (two drives reading `.d64` images, with DOS 2.1), `9060` or `9090` names the drive `--true-drive` puts on the IEEE-488 bus. It implies `--true-drive`. See [The Plus/4](#the-plus4) and [The PET](#the-pet) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
-| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, and on the PET `4k`, `8k`, `16k` or `32k` |
+| `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, on the PET `4k`, `8k`, `16k` or `32k`, and on the KIM-1 `1k` (the default), `5k` or `expanded`. See [The KIM-1](#the-kim-1) |
 | `--60hz` | Run a CRTC PET's 60 Hz editor in place of its 50 Hz one, or a CBM-II on 60 Hz mains. See [The PET](#the-pet) and [The CBM-II](#the-cbm-ii) |
 | `--kernal 04a`, `--kernal 03b` | Fit a B series CBM-II with KERNAL 901244-04a (the default) or 901244-03b. The P500 takes its own, `02`. See [The CBM-II](#the-cbm-ii) |
 | `--basic VERSION`, `--editor NAME` | Fit a PET with an upgrade ROM its board takes: BASIC `1`, `2` or `4`, or an editor. See [The PET](#the-pet) |
@@ -100,6 +100,9 @@ differences noted in the table. `--help` lists the options for either.
 | `--ntsc` | Run an NTSC C64 or VIC-20, as `--model ntsc` does |
 | `--tty` | Fit the KIM-1's TTY/KB jumper, so its monitor talks to a teletype: a page in the window, or the terminal with `--headless`. See [The KIM-1](#the-kim-1) |
 | `--baud N` | Run the KIM-1's teletype at `110`, `300`, `1200`, `2400`, `4800` or `9600` baud (the default) |
+| `--tty-load` | Load the KIM-1's `.ptp` or `.pap` through its monitor's `L` command on the teletype, in real time, instead of straight into RAM. It implies `--tty` |
+| `--load-address ADDR` | Where the KIM-1 loads a `.bin`, in hex: `0200` (the default), `$0200` or `0x0200` |
+| `--start-address ADDR` | Where the KIM-1 starts its program, in hex, when that isn't where it loads |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
@@ -484,6 +487,8 @@ six LED digits and its keypad, and the monitor starts on address 0000:
 badline kim1                        # The monitor, on the keypad and display
 badline kim1 --tty                  # The monitor on a teletype, in the window
 badline kim1 --headless             # The monitor on a teletype, in the terminal
+badline game.ptp                    # Load a papertape and run it
+badline kim1 --ram 5k game.bin      # Load a .bin at $0200 on a board with 5K
 ```
 
 | Host key | KIM-1 key |
@@ -517,8 +522,26 @@ does. `--headless` puts the teletype on the terminal, until `Ctrl-C`.
 After a reset the teletype sends RUBOUT for the monitor to time, and
 then each character once the monitor has had time to take the last.
 
-The KIM-1 takes no media and saves no snapshots yet, and the cassette
-is still to come.
+The KIM-1 loads MOS papertapes, `.ptp` and `.pap` files as the
+monitor's `Q` command punches them, which start a KIM-1 without
+`kim1`, and `.bin` files of bare bytes, at `--load-address`. The
+program goes straight into RAM once the monitor runs, the NMI and IRQ
+vectors at `$17FA` and `$17FE` are set to `$1C00`, so ST and `BRK`
+stop it in the monitor, and the monitor starts it as you would: `AD`,
+the address and `GO` on the keypad, or the address, a space and `G` on
+the teletype. It starts where it loads unless `--start-address` says
+otherwise, and with `--no-autostart` the monitor stops at that address.
+`--tty-load` feeds a papertape through the monitor's `L` command
+instead, as a teletype's tape reader would. A program that loads over
+the monitor's own bytes at `$00EF`-`$00FF`, `$01F8`-`$01FF` or
+`$17E7`-`$17FF` can't load that way on the board either.
+
+The stock board has 1K of RAM at `$0000`-`$03FF`. `--ram 5k` fills
+`$0400`-`$13FF` with RAM, as a board on the expansion connector does,
+and `--ram expanded` adds `$2000`-`$DFFF` too, with the first 8K
+repeated at `$E000`-`$FFFF` for the vectors, as most software beyond
+the First Book of KIM needs. The KIM-1 saves no snapshots yet, and the
+cassette is still to come.
 
 ## Snapshots
 
@@ -754,7 +777,7 @@ in cartridge 1 as it does from the command line.
   paddles on either port, and device 8
   on the IEEE-488 bus through the KERNAL traps
   (`badline cbm2 --model 510`).
-- **KIM-1**: the 6502 at 1 MHz, 1K of RAM, the two 6530 RRIOTs with
+- **KIM-1**: the 6502 at 1 MHz, 1K, 5K or 53K of RAM, the two 6530 RRIOTs with
   the monitor's and the tape routines' ROMs, the keypad and the six
   multiplexed LED digits, the SST switch, ST and RS, and PB7's sound
   (`badline kim1`).
