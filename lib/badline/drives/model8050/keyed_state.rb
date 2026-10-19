@@ -141,7 +141,7 @@ module Badline
           @rriot.load_fields(modules.required("#{name}-RRIOT"))
           disks = [0, 1].map do |drive|
             disk = modules.optional(disk_module(name, drive))
-            disk.nil? ? nil : Disk.from_fields(disk, detached: modules.detached?)
+            disk.nil? ? nil : disk_from_fields(disk, modules.detached?)
           end
           @mechanism.load_fields(modules.required("#{name}-MECH"), disks)
           @via.restored!
