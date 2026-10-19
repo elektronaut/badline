@@ -52,6 +52,7 @@ module CIReach
     ["spinel/p500_{boot,testbench,snapshot}.rb", P500 + %w[spinel:check]],
     ["spinel/{m6809_tests,convert_m6809}.rb", %w[spinel:check]],
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
+    ["bin/superpet_languages", []],
     ["{bin/drive_scenarios,test/support/drive_scenarios*.rb}", %w[drive-scenarios drive-scenarios-cpm]],
     ["{native,exe}/**/*", []],
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],

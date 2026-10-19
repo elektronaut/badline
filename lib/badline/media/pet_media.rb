@@ -27,8 +27,10 @@ module Badline
         # BASIC 2 and 4 load the first program off the disk and run it.
         # BASIC 1's LOAD finds no device on the IEEE-488 bus, so the first
         # program, which the block gives, goes in as a program file does,
-        # once the KERNAL has booted.
+        # once the KERNAL has booted. The SuperPET's 6809 starts its own
+        # menu instead.
         def disk_autostart(machine)
+          return unless machine.boots_basic?
           return machine.type_text(AUTOSTART) unless machine.model.basic1?
 
           data = yield

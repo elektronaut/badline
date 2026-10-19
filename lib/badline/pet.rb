@@ -143,6 +143,9 @@ module Badline
     # Whether this is the SuperPET's board (SuperPET).
     def superpet? = false
 
+    # Whether an autostart finds BASIC to type into.
+    def boots_basic? = true
+
     # The vertical drive line, high but in the retrace.
     def vertical_drive? = @vertical_drive
 

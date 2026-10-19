@@ -263,6 +263,14 @@ describe Badline::PET::SuperPET do
         expect(superpet.m6809.irq).to be(true)
       end
 
+      it "runs its init handlers once the Waterloo menu is up" do
+        expect(superpet.init_threshold).to eq(600_000)
+      end
+
+      it "starts no BASIC program off a disk" do
+        expect(superpet.boots_basic?).to be(false)
+      end
+
       it "ignores the system latch" do
         write_system_latch(0x01)
         expect(superpet.m6809_running?).to be(true)
@@ -384,6 +392,13 @@ describe Badline::PET::SuperPET do
 
     it "sets the CRTC's MA13, for the character ROM's ASCII and APL half" do
       expect(booted.crtc.registers[12]).to eq(0x30)
+    end
+
+    it "types into the Waterloo ROM's key ring, in ASCII, once the menu is up" do
+      pet = described_class.new(cpu: "6809")
+      pet.type_text("Hi\r")
+      pet.run_cycles(pet.init_threshold + 1)
+      expect(Array.new(3) { |offset| pet.peek(0x0130 + offset) }).to eq([0x48, 0x69, 0x0d])
     end
   end
 end
