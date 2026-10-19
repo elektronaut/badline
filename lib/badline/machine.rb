@@ -79,8 +79,10 @@ module Badline
     # the model's own RAM. A PET's is one of PET::Model::ALL, with its own
     # RAM and ROMs, its CRTC's editor the 50 Hz one. A CBM-II's is one of
     # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz, or a 510,
-    # one of CBM2::P500::Model::ALL, with its region's mains.
+    # one of CBM2::P500::Model::ALL, with its region's mains. :kim1 is
+    # refused until the KIM-1 runs.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
+      raise ArgumentError, "the KIM-1 isn't emulated yet" if family == :kim1
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4

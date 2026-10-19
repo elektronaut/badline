@@ -409,6 +409,7 @@ describe Badline::Options do
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
       "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
+      "the KIM-1" => [%w[kim1], "the KIM-1 isn't emulated yet"],
       "a VIC-20 expansion for the PET" => [%w[pet --ram 24k], "invalid argument: --ram 24k"],
       "a C64 model for the PET" => [%w[pet --model c64], "invalid argument: --model c64"],
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],

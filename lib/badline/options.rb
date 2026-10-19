@@ -17,7 +17,7 @@ module Badline
   # the machine family, and without one the family is the C64, the C128
   # for a program that loads where C128 BASIC starts, the PET for an
   # 8050's or 8250's disk or a PET tape, or the CBM-II for a cartridge
-  # signed as its own.
+  # signed as its own. `kim1` is refused until the KIM-1 runs.
   # The native build adds --no-sound and --version, and badline-ruby adds
   # --disable-jit.
   #

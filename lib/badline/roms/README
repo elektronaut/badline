@@ -459,3 +459,34 @@ p500-basic-hi.901235-02.bin, SHA-1
 1b9a55f12f8cf025754d8029cc5324b474c35841) concatenated, for
 $8000-$BFFF in segment 15.
 SHA-1 e69531d45f5993f8e53c6bd9ab2a7bc10fe2d02f.
+
+MOS KIM-1 ROMs
+==============
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/kim1/
+The files there are the monitor listing assembled with $FF in the
+unused bytes. Real 6530-002 and 6530-003 chips have $00 there, as Hans
+Otten found dumping his own
+(http://retro.hansotten.nl/6502-sbc/kim-1-manuals-and-software/kim_1-roms/),
+so badline zeroes those bytes and keeps the code as it is. Only a
+program that reads unused ROM sees the difference.
+
+kim1/6530-002.rom
+-----------------
+The mask ROM of the 6530-002, U2: the monitor, for $1C00-$1FFF, its
+keypad and display routines, the teletype's and the 6502's vectors.
+6530-002.bin from zimmers.net, SHA-1
+054f7f6989af3a59462ffb0372b6f56f307b5362, with the three bytes at
+$1FF7-$1FF9 zeroed. The result is Otten's dump of a real chip,
+6530-002 fillerbyte00.bin.
+SHA-1 d0b5ceb279303cad219d6609d7db03a120f59ab8.
+
+kim1/6530-003.rom
+-----------------
+The mask ROM of the 6530-003, U3: the cassette routines, for
+$1800-$1BFF. 6530-003.bin from zimmers.net, SHA-1
+60b6e48f35fe4899e29166641bac3e81e3b9d220, with the 356 bytes at
+$1A96-$1BF9 zeroed. The result is Otten's dump of a real chip,
+6530-003 fillerbyte00.bin.
+SHA-1 16caaf9d4c8327e0d3198887499fe30056df3084.
