@@ -54,7 +54,7 @@ module Badline
 
     # With +tty+ the TTY/KB jumper is fitted, and the monitor talks to a
     # teletype at +baud+ (Teletype::BAUDS) in place of the keypad and
-    # display. +ram+ names the RAM, a key of Bus::RAM_CONFIGURATIONS, or
+    # display. +ram+ names the RAM, one of Bus::RAM_CONFIGURATIONS, or
     # nil for the stock 1K.
     def initialize(tty: false, baud: 9600, ram: nil)
       @cycles = 0
