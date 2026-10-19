@@ -172,6 +172,16 @@ describe Badline::Machine do
       expect([machine.class, machine.refresh_hz]).to eq([Badline::PET::SuperPET, 60])
     end
 
+    it "sets the SuperPET's CPU switch with --cpu" do
+      machine = described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), nil)
+      expect(machine.m6809_running?).to be(true)
+    end
+
+    it "refuses media for the SuperPET's 6809 side" do
+      expect { described_class.for_options(options("pet", "--model", "superpet", "--cpu", "6809"), "game.d80") }
+        .to raise_error(Badline::Machine::Unsupported, /6809/)
+    end
+
     it "refuses media a PET doesn't take" do
       expect { described_class.for_options(options("pet"), "tune.sid") }
         .to raise_error(Badline::Machine::Unsupported, /PET/)

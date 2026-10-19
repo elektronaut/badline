@@ -27,6 +27,46 @@ describe Badline::PET::SuperPET do
     superpet.poke(0xeff8, value)
   end
 
+  # A 6809 program that opens the system latch and sets bit 0, for the
+  # 6502: LDA #$80, STA $EFFC, LDA #$01, STA $EFF8, BRA *.
+  def to_m6502 = [0x86, 0x80, 0xb7, 0xef, 0xfc, 0x86, 0x01, 0xb7, 0xef, 0xf8, 0x20, 0xfe]
+
+  # A 6502 program that opens it and clears bit 0, for the 6809: LDA #$80,
+  # STA $EFFC, LDA #$00, STA $EFF8, JMP *.
+  def to_m6809 = [0xa9, 0x80, 0x8d, 0xfc, 0xef, 0xa9, 0x00, 0x8d, 0xf8, 0xef, 0x4c, 0x0a, 0x04]
+
+  # The byte at +offset+ in the Waterloo ROM named.
+  def waterloo(name, offset) = Badline::ROM.read("pet/superpet-#{name}.rom")[offset]
+
+  # Puts +bytes+ at $1000, has the 6809 jump there from its next cycle on,
+  # and runs 40 cycles.
+  def run_on_m6809(bytes)
+    bytes.each_with_index { |byte, index| superpet.poke(0x1000 + index, byte) }
+    superpet.m6809.pc = 0x1000
+    superpet.m6809.resume(superpet.m6809.cycles)
+    superpet.run_cycles(40)
+  end
+
+  # Puts +bytes+ at $0400 and has the 6502 jump there, as run_on_m6809.
+  def run_on_m6502(bytes)
+    bytes.each_with_index { |byte, index| superpet.poke(0x0400 + index, byte) }
+    superpet.cpu.program_counter = 0x0400
+    superpet.cpu.resume(superpet.cpu.cycles)
+    superpet.run_cycles(40)
+  end
+
+  # Hands the bus from the 6809 to the 6502, back, and to the 6502 again,
+  # each by a program on the CPU that has it. Returns, after each, whether
+  # the 6809 runs and the top bits of the PC of the CPU that does.
+  def handovers
+    run_on_m6809(to_m6502)
+    found = [[superpet.m6809_running?, superpet.cpu.program_counter >> 13]]
+    run_on_m6502(to_m6809)
+    found << [superpet.m6809_running?, superpet.m6809.pc >> 8]
+    run_on_m6809(to_m6502)
+    found << [superpet.m6809_running?, superpet.cpu.program_counter >> 13]
+  end
+
   # PIA 1's port A, as the diagnostic sense line leaves PA7.
   def diagnostic_sense
     superpet.pia1.poke(0xe811, 0x04)
@@ -188,6 +228,75 @@ describe Badline::PET::SuperPET do
     it "refuses a position the board doesn't have" do
       expect { described_class.new(cpu: "z80") }.to raise_error(ArgumentError, /z80/)
     end
+
+    it "leaves the 8032's ROMs and the empty socket at $A000 to the 6502" do
+      expect([read_after(0x42, 0xa000), superpet.peek(0xb000)]).to eq([0x42, Badline::ROM.read("pet/basic4.rom").first])
+    end
+
+    context "with the switch at 6809" do
+      subject(:superpet) { described_class.new(cpu: "6809") }
+
+      it "gives the 6809 the bus" do
+        expect(superpet.m6809_running?).to be(true)
+      end
+
+      it "lays the Waterloo ROMs over the 8032's at $A000-$E7FF and $F000-$FFFF" do
+        expect([superpet.peek(0xa000), superpet.peek(0xc000), superpet.peek(0xe000), superpet.peek(0xfffe)])
+          .to eq([waterloo("a000", 0), waterloo("c000", 0), waterloo("e000-50hz", 0), 0xff])
+      end
+
+      it "leaves the PET's I/O and the board's where they are" do
+        superpet.poke(0xe843, 0x5a)
+        expect([superpet.peek(0xe843), superpet.peek(0xefe0)]).to eq([0x5a, 0xd6])
+      end
+
+      it "starts the 6809 from its reset vector, $FF80" do
+        superpet.run_cycles(4)
+        expect(superpet.m6809.pc).to eq(0xff80)
+      end
+
+      it "wires the IRQ line, the ACIA's with it, to the 6809's" do
+        run_on_m6809([0x20, 0xfe])
+        superpet.poke(0xeff3, 0x1f)
+        superpet.poke(0xeff2, 0x05)
+        superpet.run_cycles(1_000)
+        expect(superpet.m6809.irq).to be(true)
+      end
+
+      it "ignores the system latch" do
+        write_system_latch(0x01)
+        expect(superpet.m6809_running?).to be(true)
+      end
+
+      it "keeps the bank RAM, not the socket, at $9000" do
+        superpet.poke(0x9000, 0x24)
+        superpet.poke(0xeffe, 0x01)
+        expect(superpet.peek(0x9000)).to eq(0x24)
+      end
+    end
+
+    context "with the switch at 6809 and the 60 Hz editor" do
+      subject(:superpet) { described_class.new(cpu: "6809", refresh_hz: 60) }
+
+      it "runs the 60 Hz Waterloo ROM, whose CRTC table has 33 rows a frame" do
+        expect(superpet.peek(0xe0c1)).to eq(0x20)
+      end
+    end
+
+    # SW2 at PROG, where the system latch's bit 0 picks the CPU.
+    context "with the switch at PROG" do
+      subject(:superpet) { described_class.new(cpu: "prog") }
+
+      it "starts the 6809, the RES line having cleared the system latch" do
+        expect(superpet.m6809_running?).to be(true)
+      end
+
+      # The 6502 is in the editor or the KERNAL, $E000 up, and the 6809 in
+      # its reset code at $FF80, 40 cycles after each handover.
+      it "hands the bus 6502 to 6809 to 6502 through the system latch, each CPU from its RESET" do
+        expect(handovers).to eq([[false, 7], [true, 0xff], [false, 7]])
+      end
+    end
   end
 
   describe "the I/O page at $EF00" do
@@ -253,6 +362,28 @@ describe Badline::PET::SuperPET do
     it "reaches the bank latch and the bank RAM from BASIC" do
       lines = typed("b=61436:pokeb,5:poke36864,77:pokeb,0:?peek(36864):pokeb,5:?peek(36864)\r")
       expect(lines[6, 2]).to eq([" 0", " 77"])
+    end
+  end
+
+  describe "booted in 6809 mode", :slow do
+    let(:booted) do
+      TakenOnce.fetch(:superpet_m6809) { described_class.new(cpu: "6809").tap { |pet| pet.run_cycles(600_000) } }
+    end
+
+    # The screen's first +rows+ rows, its codes as the Waterloo set's
+    # ASCII.
+    def ascii_rows(pet, rows)
+      cells = pet.bus.screen.cells
+      Array.new(rows) { |row| cells[row * 80, 80].map { |code| (code & 0x7f).chr }.join.rstrip }
+    end
+
+    it "shows the Waterloo menu, as xpet does" do
+      expect(ascii_rows(booted, 12)).to eq(["Waterloo microSystems", "", "Select :", "", "  setup", "  monitor",
+                                            "  apl", "  basic", "  edit", "  fortran", "  pascal", "  development"])
+    end
+
+    it "sets the CRTC's MA13, for the character ROM's ASCII and APL half" do
+      expect(booted.crtc.registers[12]).to eq(0x30)
     end
   end
 end

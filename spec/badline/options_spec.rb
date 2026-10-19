@@ -451,6 +451,9 @@ describe Badline::Options do
       "--ram on the SuperPET" => [%w[pet --model superpet --ram 32k], "--ram doesn't fit the superpet"],
       "--characters on the SuperPET" => [%w[pet --model superpet --characters din],
                                          "the superpet takes no character ROM din"],
+      "--cpu on an 8032" => [%w[pet --cpu 6809], "--cpu needs pet --model superpet"],
+      "--cpu for the C64" => [%w[c64 --cpu 6809], "--cpu needs pet --model superpet"],
+      "a CPU the SuperPET hasn't" => [%w[pet --model superpet --cpu z80], "invalid argument: --cpu z80"],
       "a VIC-20 expansion for the Plus/4" => [%w[plus4 --ram 8k], "invalid argument: --ram 8k"],
       "an NTSC Plus/4" => [%w[plus4 --ntsc], "--ntsc needs the C64; the NTSC Plus/4 is --model plus4ntsc"],
       "a C64 model for the Plus/4" => [%w[plus4 --model c64], "invalid argument: --model c64"],
@@ -527,6 +530,14 @@ describe Badline::Options do
 
       it "runs at 50 Hz" do
         expect([options.editor, options.refresh_hz]).to eq(["4-80-b-50hz-0283", 50])
+      end
+    end
+
+    context "with the SuperPET's CPU switch" do
+      let(:argv) { %w[pet --model superpet --cpu 6809] }
+
+      it "sets it" do
+        expect([options.model, options.cpu]).to eq(%w[superpet 6809])
       end
     end
 

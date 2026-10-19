@@ -195,6 +195,7 @@ module Badline
         raise Error, "--editor needs pet" unless @editor.nil?
         raise Error, "--characters needs pet" unless @characters.nil?
         raise Error, "--jumpers needs pet" unless @jumpers.empty?
+        raise Error, "--cpu needs pet --model superpet" unless @cpu.nil?
       end
 
       # The PET runs in the window, without the C64's SID and REU, at the
@@ -223,6 +224,15 @@ module Badline
         raise Error, "the #{model} has no jumper #{unknown}" unless unknown.nil?
         raise Error, "the 8296 has 32k of RAM" if model == "8296" && ![nil, 32].include?(@ram_kb)
         raise Error, "--ram doesn't fit the superpet" if model == "superpet" && !@ram_kb.nil?
+
+        validate_cpu_switch
+      end
+
+      # --cpu sets the SuperPET's CPU switch, which no other PET has.
+      def validate_cpu_switch
+        return if @cpu.nil?
+        raise Error, "--cpu needs pet --model superpet" unless model == "superpet"
+        raise Error, "invalid argument: --cpu #{@cpu}" unless %w[6502 6809].include?(@cpu)
       end
 
       # --basic and --editor name ROMs the model's board takes
