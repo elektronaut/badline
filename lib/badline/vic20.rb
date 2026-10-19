@@ -11,8 +11,8 @@ require "badline/vic20/keyed_state"
 require "badline/vic20/keyed_modules"
 
 module Badline
-  # The Commodore VIC-20 with the PAL 6561: a 6502 at the VIC's clock, the
-  # VIC-I and two 6522 VIAs. VIA 1, at $9110, pulls NMI, and VIA 2, at
+  # The Commodore VIC-20, with the PAL 6561 or the NTSC 6560: a 6502 at
+  # the VIC's clock, the VIC-I and two 6522 VIAs. VIA 1, at $9110, pulls NMI, and VIA 2, at
   # $9120, pulls IRQ. Nothing else interrupts the CPU, and nothing halts
   # it: the VIC fetches in the half of the cycle the CPU leaves alone.
   #
@@ -34,6 +34,14 @@ module Badline
     # The RAM expansion it was built with, a key of Bus::RAM_CONFIGURATIONS.
     attr_reader :ram_configuration
 
+    # The model it was built as, one of MODELS.
+    attr_reader :model
+
+    # The models, by xvic's names for its video standards: the PAL one with
+    # the 6561 and KERNAL 901486-07, and the NTSC one with the 6560 and
+    # KERNAL 901486-06.
+    MODELS = %w[pal ntsc].freeze
+
     def ram = @bus.ram
 
     # Reads and writes memory as the CPU sees it, through the bus.
@@ -50,10 +58,14 @@ module Badline
     # No pot device plugs in yet.
     def control_ports = nil
 
-    # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS.
-    def initialize(ram: :unexpanded, debug: false)
+    # +ram+ names the RAM expansion, one of Bus::RAM_CONFIGURATIONS, and
+    # +model+ the model, one of MODELS.
+    def initialize(ram: :unexpanded, model: "pal", debug: false)
       @ram_configuration = ram
-      @vic = Chips::VICI.new
+      @model = model
+      raise ArgumentError, "no VIC-20 model named #{model}" unless MODELS.include?(model)
+
+      @vic = Chips::VICI.new(model == "ntsc" ? Chips::VICI::NTSC : Chips::VICI::PAL)
       @keyboard = Input::Keyboard.new(matrix: KeyboardVIAPorts::MATRIX)
       @joystick1 = Input::Joystick.new
       @iec_bus = Drives::SerialBus.new
@@ -63,7 +75,8 @@ module Badline
       keyboard_ports = KeyboardVIAPorts.new(keyboard: @keyboard, joystick: @joystick1)
       @via2 = Chips::VIA.new(start: 0x9000, peripheral: keyboard_ports)
       keyboard_ports.connect(@via2)
-      @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram))
+      @bus = Bus.new(vic: @vic, via1: @via1, via2: @via2, blocks: Bus::RAM_CONFIGURATIONS.fetch(ram),
+                     kernal: "vic20/kernal-#{model}.rom")
       @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
       @cycles = 0
@@ -109,18 +122,18 @@ module Badline
     # #drain_samples.
     def sound_source = @sound
 
-    # The PAL clock and raster, and the part of the display xvic shows: all
-    # 284 pixels of a line, from line 28, below the VIC's vertical blank.
-    # The VIC draws 4 pixels a cycle, half as many as the C64's VIC-II on
-    # about the same clock, so each pixel shows two window pixels wide, as
-    # xvic draws them.
+    # The VIC's clock and raster, and the part of the display xvic shows:
+    # every pixel of a line, from line 28, below the VIC's vertical blank,
+    # 284 lines on PAL and 233 on NTSC. The VIC draws 4 pixels a cycle,
+    # half as many as the C64's VIC-II on about the same clock, so each
+    # pixel shows two window pixels wide, as xvic draws them.
     def timing
       profile = @vic.profile
       width = profile.cycles_per_line * Chips::VICI::PIXELS_PER_CYCLE
       blanked = profile.blanked_lines
       Timing.new(clock_hz: profile.clock_hz, cycles_per_line: profile.cycles_per_line,
                  lines_per_frame: profile.lines_per_frame,
-                 crop: [0, blanked, width, profile.lines_per_frame - blanked], pixel_width: 2, dots: 1)
+                 crop: [0, blanked, width, profile.shown_lines], pixel_width: 2, dots: 1)
     end
 
     # The RESTORE key pulls VIA 1's CA1 low while it is held. The KERNAL

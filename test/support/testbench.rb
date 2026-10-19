@@ -143,12 +143,12 @@ module Testbench
     end
 
     # What tells a VIC-20, C128, 264 series, PET or CBM-II row's machine
-    # apart: the family, the VIC-20's RAM, the C128's true drive, the 264's
+    # apart: the family, the VIC-20's RAM and model, the C128's true drive, the 264's
     # model and RAM expansion and the PET's model. The CBM-II's family
     # names its model.
     def family_key
       [family, ram_configuration, c128_drive, (plus4_model if plus4?), (plus4_ram_expansion if plus4?),
-       (pet_model if pet?)]
+       (pet_model if pet?), (vic20_model if vic20?)]
     end
 
     def name
@@ -796,7 +796,7 @@ module Testbench
 
   def self.command_line_tests(argv, machine, rows, scope:, exclude:)
     case machine
-    when :vic20 then Vic20Testlist.tests(argv, scope:, exclude:)
+    when :vic20 then Vic20Testlist.tests(argv, scope:, exclude:, ntsc: rows.standard == :ntsc)
     when :c128c64 then C128Testlist.tests(argv, scope:, exclude:)
     when :c128, :c128_z80 then C128ModeTestlist.tests(argv, scope:, exclude:, z80: machine == :c128_z80)
     when :plus4, :c16 then Plus4Testlist.tests(argv, machine, scope:, exclude:, ntsc: rows.standard == :ntsc)

@@ -48,9 +48,9 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `host.init_pending` | int | 0 |
 | `written_by` | text | "" |
 | `ram` | text: unexpanded 3k 8k 16k 24k 32k all | VIC-20: "unexpanded" |
+| `model` | text: pal ntsc | VIC-20: "pal"; C128: "c128"; Plus/4: "plus4"; PET: "8032"; CBM-II: "610" |
 | `bus.data` | byte | VIC-20: 253; C128: 255 |
 | `bus.video_data` | byte | VIC-20: 0 |
-| `model` | text: c128 c128ntsc c128dcr c128dcrntsc | C128: "c128"; Plus/4: "plus4"; PET: "8032"; CBM-II: "610" |
 | `mode` | text: c64 c128 | C128: "c64" |
 | `bus.address` | word | C128: 65533 |
 | `clock_bits` | int | C128: 0 |

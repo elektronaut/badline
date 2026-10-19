@@ -15,7 +15,7 @@ module Badline
     # least MIN_WIDTH window pixels wide, and at least as high as PAL's C64
     # crop, 272 lines, so a C64 shows in the same window whatever its
     # region. A crop with fewer lines or pixels sits in the middle of the
-    # texture, between black bands. The VIC-20's 284 by 284 crop and the
+    # texture, between black bands. The PAL VIC-20's 284 by 284 crop and the
     # TED's 384 by 288 fill their own.
     #
     # With `frame_lines`, the crop's lines run on past the frame's last

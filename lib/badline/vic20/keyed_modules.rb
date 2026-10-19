@@ -28,7 +28,7 @@ module Badline
       end
 
       # Raises Snapshot::FormatError for the modules of a VIC-20 with
-      # another RAM expansion.
+      # another RAM expansion or of another model.
       def load_modules(modules)
         machine = modules.machine
         check_snapshot_setup(Snapshot::Vic20Setup.read_fields(machine))
@@ -62,9 +62,12 @@ module Badline
       end
 
       def check_snapshot_setup(setup)
-        return if setup.ram == @ram_configuration
+        unless setup.ram == @ram_configuration
+          raise Snapshot::FormatError, "the snapshot is of a VIC-20 with #{setup.ram} RAM, not #{@ram_configuration}"
+        end
+        return if setup.model == @model
 
-        raise Snapshot::FormatError, "the snapshot is of a VIC-20 with #{setup.ram} RAM, not #{@ram_configuration}"
+        raise Snapshot::FormatError, "the snapshot is of a #{setup.model.upcase} VIC-20, not a #{@model.upcase} one"
       end
     end
 

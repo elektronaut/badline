@@ -37,6 +37,38 @@ describe Badline::Chips::VICI do
     end
   end
 
+  describe "the 6560's raster" do
+    subject(:vic) { described_class.new(described_class::NTSC) }
+
+    def count = (vic.peek(0x9004) << 1) | (vic.peek(0x9003) >> 7)
+
+    # The count after +cycles+, and again a cycle later.
+    def counts_after(cycles)
+      run(cycles)
+      before = count
+      run(1)
+      [before, count]
+    end
+
+    it "moves to the next line after 65 cycles" do
+      run(65)
+      expect([vic.rasterline, vic.column]).to eq([1, 0])
+    end
+
+    it "wraps to line 0 after 261 lines" do
+      run(65 * 261)
+      expect(vic.rasterline).to eq(0)
+    end
+
+    it "counts the next line from 28 cycles in" do
+      expect(counts_after((65 * 9) + 27)).to eq([9, 10])
+    end
+
+    it "counts one past the last line on the last line, then 0 from 61 cycles in" do
+      expect(counts_after((65 * 260) + 60)).to eq([261, 0])
+    end
+  end
+
   describe "the registers" do
     it "read back what was written" do
       vic.poke(0x900f, 0x1b)

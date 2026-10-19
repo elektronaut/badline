@@ -72,7 +72,7 @@ module Badline
     # A new machine of `family`, :c64, :vic20, :c128, :plus4, :pet or :cbm2, the
     # model of it `model` names. A C64's model is one of Model::ALL, with
     # its SID `sid_model` when not nil and an REU of `reu` K when not nil.
-    # A VIC-20's is "pal", with the RAM expansion `ram` names
+    # A VIC-20's is "pal" or "ntsc", with the RAM expansion `ram` names
     # (Vic20::Bus::RAM_CONFIGURATIONS), unexpanded when nil. A C128's is
     # one of C128::Model::ALL, with its SID `sid_model` when not nil, built
     # for C64 mode. A Plus/4's is one of Plus4::Model::ALL or c116, with
@@ -121,11 +121,7 @@ module Badline
       machine
     end
 
-    def self.vic20(model, ram)
-      raise ArgumentError, "no VIC-20 model named #{model}" unless model == "pal"
-
-      Vic20.new(ram: ram || :unexpanded)
-    end
+    def self.vic20(model, ram) = Vic20.new(ram: ram || :unexpanded, model:)
     private_class_method :vic20
 
     def self.c128(model, sid_model, mode) = C128.new(model:, sid_model:, mode:)

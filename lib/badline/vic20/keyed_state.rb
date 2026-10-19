@@ -3,9 +3,9 @@
 module Badline
   class Vic20
     # The machine's own fields in a keyed snapshot module (Snapshot::Keyed,
-    # BL-MACHINE): the family, its RAM expansion by name, the cycle count,
-    # the RESTORE key's NMI, and the host's typing still to feed and on_init
-    # handlers still to run under host.*.
+    # BL-MACHINE): the family, its RAM expansion and model by name, the
+    # cycle count, the RESTORE key's NMI, and the host's typing still to
+    # feed and on_init handlers still to run under host.*.
     module KeyedState
       # How many more on_init handlers the machine a snapshot was taken of had
       # yet to run than this one has. Nil until the machine is restored.
@@ -20,7 +20,7 @@ module Badline
 
       def save_machine_fields(out)
         out.text("family", "vic20").text("written_by", VERSION)
-        Snapshot::Vic20Setup.new(ram: @ram_configuration).write_fields(out)
+        Snapshot::Vic20Setup.new(ram: @ram_configuration, model: @model).write_fields(out)
         out.int("cycles", @cycles).bool("nmi_asserted", @nmi_asserted)
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending

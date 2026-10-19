@@ -13,7 +13,7 @@ module CIReach
            testbench-carts testbench-cia-new testbench-vicii-new testbench-general testbench-expansions
            testbench-drive testbench-ntsc testbench-ntsc-vicii-new testbench-ntsc-cia-new testbench-drean
            drive-scenarios].freeze
-  VIC20 = %w[testbench-vic20 drive-scenarios].freeze
+  VIC20 = %w[testbench-vic20 testbench-vic20-ntsc drive-scenarios].freeze
   C128 = %w[testbench-c128c64 testbench-c128 testbench-c128-z80 drive-scenarios].freeze
   PLUS4 = %w[testbench-plus4 testbench-c16 testbench-plus4-ntsc lorenz-plus4 drive-scenarios].freeze
   PET = %w[testbench-pet testbench-pet-discrete].freeze
@@ -26,7 +26,7 @@ module CIReach
   CIA = %w[lorenz testbench-cia testbench-cia-new testbench-ntsc-cia-new testbench-interrupts testbench-irqdma
            testbench-general testbench-c128c64 testbench-c128 drive-scenarios].freeze
   SID = %w[sid sid-8580 spinel:check_sid].freeze
-  DRIVES = %w[testbench-drive drive-scenarios testbench-vic20].freeze
+  DRIVES = %w[testbench-drive drive-scenarios testbench-vic20 testbench-vic20-ntsc].freeze
   # The PET's VIA is a Chips::VIA.
   VIA = (DRIVES + PET).freeze
   CARTRIDGES = %w[testbench-carts testbench-expansions testbench-general].freeze

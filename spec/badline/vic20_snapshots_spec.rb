@@ -120,6 +120,16 @@ describe Badline::Vic20 do
         .to raise_error(Badline::Snapshot::FormatError, /8k/)
     end
 
+    it "refuses a snapshot of the other model" do
+      expect { described_class.new.restore(described_class.new(model: "ntsc").snapshot) }
+        .to raise_error(Badline::Snapshot::FormatError, /of an? NTSC VIC-20, not a PAL one/)
+    end
+
+    it "builds the NTSC model a snapshot names" do
+      image = described_class.new(model: "ntsc").snapshot
+      expect(image.load.model).to eq("ntsc")
+    end
+
     it "leaves the machine as it was when it refuses a snapshot" do
       machine = saved(:unexpanded)
       before = machine.snapshot

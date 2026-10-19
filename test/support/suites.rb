@@ -75,7 +75,8 @@ module Suites
   # testbench-drean is the testlist's vicii-drean rows on a Drean C64, PAL-N
   # with the 6572, the one the testlist comments out included.
   # testbench-vic20 is the VIC-20 testlist's exitcode rows on a PAL VIC-20
-  # with the RAM each asks for. Its Spinel build is spinel/vic20_testbench.rb,
+  # with the RAM each asks for, and testbench-vic20-ntsc the same rows on an
+  # NTSC VIC-20. Their Spinel build is spinel/vic20_testbench.rb,
   # which :engine names, so the C64's harness doesn't carry the VIC-20.
   # testbench-c128c64 is a curated part of the x128c64 testlist, the rows
   # where a C128 in C64 mode can differ from a C64C, on the C128 model each
@@ -134,6 +135,7 @@ module Suites
     "testbench-ntsc-cia-new" => { runner: "bin/testbench", args: %w[--ntsc --cia-new] },
     "testbench-drean" => { runner: "bin/testbench", args: %w[--drean] },
     "testbench-vic20" => { runner: "bin/testbench", args: %w[--vic20], engine: "vic20_testbench" },
+    "testbench-vic20-ntsc" => { runner: "bin/testbench", args: %w[--vic20 --ntsc], engine: "vic20_testbench" },
     "testbench-c128c64" => { runner: "bin/testbench", args: %w[--c128c64], engine: "c128_testbench" },
     "testbench-c128" => { runner: "bin/testbench", args: %w[--c128], engine: "c128_testbench" },
     "testbench-c128-z80" => { runner: "bin/testbench", args: %w[--c128-z80], exclude: "c128/z80/zex128/",

@@ -7,13 +7,15 @@ require "badline/chips/vic_i/keyed_parts"
 
 module Badline
   module Chips
-    # The VIC-I, the 6561 on PAL machines: its sixteen registers, the
+    # The VIC-I, the 6561 on PAL machines or the 6560 on NTSC ones: its
+    # sixteen registers, the
     # raster, the text window's fetches over the V-bus and the picture. The
     # writes to the sound's registers, $900A-$900E, go on to the Sound
     # attached as #sound.
     #
     # The registers repeat through $9000-$90FF. $9003 bit 7 and $9004 read
-    # the raster line, its bit 0 and bits 8-1. $9006 and $9007 read the
+    # the raster count, its bit 0 and bits 8-1, which on the 6561 is the
+    # raster line (see Profile for the 6560's). $9006 and $9007 read the
     # light pen, which nothing triggers yet, and $9008 and $9009 the two
     # pots, which read $FF with nothing plugged in. The other registers
     # read back what was written to them.
@@ -35,23 +37,40 @@ module Badline
     # of a text row where the row started, and the next row starts where
     # the last line of the row left it. It starts the frame at zero.
     #
-    # The picture is 4 pixels a cycle, so 284 a line. A character's 8
-    # pixels come out in the two cycles after its pattern fetch. The
-    # display's lines start 6 cycles after the raster count moves, as
-    # xvic's view of the frame does, so the character fetched 16 cycles
-    # into the line lands 48 pixels in. Lines 0-27 are blanked.
+    # The picture is 4 pixels a cycle, so 284 a line on the 6561 and 260 on
+    # the 6560. A character's 8 pixels come out in the two cycles after its
+    # pattern fetch. The display's lines start 6 cycles after the raster
+    # line moves, as xvic's view of the frame does, so the character
+    # fetched 16 cycles into the line lands 48 pixels in. Lines 0-27 are
+    # blanked.
     class VICI
       include TextWindow
 
       # What a VIC-I sets for the machine: the clock, the raster's cycles
-      # per line and lines per frame, and how many lines at the top of the
-      # frame it blanks. The 6560 of NTSC machines, with its half lines and
-      # the interlace of $9000 bit 7, would be another.
-      Profile = Data.define(:clock_hz, :cycles_per_line, :lines_per_frame, :blanked_lines)
+      # per line and lines per frame, how many lines at the top of the frame
+      # it blanks and how many it shows from there, and where in the line
+      # the raster count $9003 and $9004 read moves on.
+      #
+      # The 6561's count is the raster line. The 6560's runs ahead of it: it
+      # reads the next line from +count_column+ on, and on the last line it
+      # reads one past the last line from there, then 0 from
+      # +wrap_column+ on, so the count's first and last values each last
+      # about half a line. The 6561's +count_column+ is past the end of the
+      # line, so it never moves early.
+      Profile = Data.define(:clock_hz, :cycles_per_line, :lines_per_frame, :blanked_lines, :shown_lines,
+                            :count_column, :wrap_column)
 
       # The 6561: 71 cycles by 312 lines, lines 0-27 blanked (Marko
       # Mäkelä's VIC-I.txt).
-      PAL = Profile.new(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312, blanked_lines: 28)
+      PAL = Profile.new(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312, blanked_lines: 28,
+                        shown_lines: 284, count_column: 71, wrap_column: 71)
+
+      # The 6560: 65 cycles by 261 lines on a 14.31818 MHz crystal divided
+      # by 14. The count's columns and the lines shown are xvic's, measured
+      # as a black box: the count moves on 28 cycles into the line, and
+      # wraps to 0 on the last line 61 cycles in.
+      NTSC = Profile.new(clock_hz: 1_022_727, cycles_per_line: 65, lines_per_frame: 261, blanked_lines: 28,
+                         shown_lines: 233, count_column: 28, wrap_column: 61)
 
       PIXELS_PER_CYCLE = 4
 
@@ -78,6 +97,8 @@ module Badline
         @profile = profile
         @cycles_per_line = profile.cycles_per_line
         @lines_per_frame = profile.lines_per_frame
+        @count_column = profile.count_column
+        @wrap_column = profile.wrap_column
         @painter = Painter.new(@lines_per_frame, @cycles_per_line * PIXELS_PER_CYCLE, profile.blanked_lines)
         @patterns = @painter.patterns
         @colors = @painter.colors
@@ -131,8 +152,8 @@ module Badline
       # The sixteen registers as written.
       def register_file = @registers.dup
 
-      # The display, a palette index a pixel, 284 to a line and every line
-      # of the frame.
+      # The display, a palette index a pixel, 4 to a cycle of the line, and
+      # every line of the frame.
       def display = @painter.display
 
       def width = @painter.width
@@ -157,8 +178,8 @@ module Badline
       def peek(addr)
         register = addr & 0x0f
         case register
-        when 0x03 then ((@rasterline & 0x01) << 7) | (@registers[3] & 0x7f)
-        when 0x04 then @rasterline >> 1
+        when 0x03 then ((raster_count & 0x01) << 7) | (@registers[3] & 0x7f)
+        when 0x04 then raster_count >> 1
         when 0x06, 0x07 then 0
         when 0x08, 0x09 then 0xff
         else @registers[register]
@@ -179,6 +200,16 @@ module Badline
           @sound&.write(register, value)
         when 0x0f then @painter.colors_written(pixel_position, value)
         end
+      end
+
+      # The raster count $9003 and $9004 read (see Profile).
+      def raster_count
+        line = @rasterline
+        column = @column
+        return line if column < @count_column
+        return 0 if line == @lines_per_frame - 1 && column >= @wrap_column
+
+        line + 1
       end
 
       private

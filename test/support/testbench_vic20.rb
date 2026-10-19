@@ -15,6 +15,10 @@ module Testbench
   # A GEO-RAM, which badline doesn't fit to the VIC-20.
   VIC20_SKIP_OPTIONS = /\Ageo512k\z/
 
+  # The testlist option that asks for the NTSC VIC-20, as xvic's hook
+  # names it.
+  VIC_NTSC_OPTION = "vic-ntsc"
+
   # A TestCase's machine, when the row is the VIC-20's, and its run.
   module Vic20Row
     def vic20? = family == :vic20
@@ -23,9 +27,12 @@ module Testbench
       options.filter_map { |option| VIC20_RAM[option] }.first || :unexpanded
     end
 
+    # The model the row runs on: the NTSC one for vic-ntsc, else PAL.
+    def vic20_model = options.include?(VIC_NTSC_OPTION) ? "ntsc" : "pal"
+
     # The machine the row's tests fork from: booted, or at power-on for a
     # cartridge.
-    def vic20_machine = Testbench.vic20_machine(ram_configuration, cartridge.nil?)
+    def vic20_machine = Testbench.vic20_machine(ram_configuration, cartridge.nil?, vic20_model)
 
     # Runs the row on +machine+, returning the exit code and the text
     # screen.
@@ -35,25 +42,28 @@ module Testbench
     end
   end
 
-  # The VIC-20 testlist's exitcode rows. Screenshot rows wait for the
-  # VIC-I's video, and interactive rows are left out as on the C64. A
-  # mountcrt row starts from power-on with its cartridge in, as a C64
-  # cartridge row does.
+  # The VIC-20 testlist's exitcode rows, each on the NTSC VIC-20 with
+  # --ntsc, as a vic-ntsc row asks and as VICE's testbench runs xvic with
+  # --ntsc. Screenshot rows wait for the VIC-I's video, and interactive
+  # rows are left out as on the C64. A mountcrt row starts from power-on
+  # with its cartridge in, as a C64 cartridge row does.
   module Vic20Testlist
     module_function
 
-    def tests(filters, scope: nil, exclude: nil)
-      Testlist.numbered(File.readlines(VIC20_TESTLIST).filter_map { |line| parse(line) })
+    def tests(filters, scope: nil, exclude: nil, ntsc: false)
+      Testlist.numbered(File.readlines(VIC20_TESTLIST).filter_map { |line| parse(line, ntsc:) })
               .select { |test| Testlist.selected?(test, filters, scope, exclude) }
     end
 
-    def parse(line)
+    def parse(line, ntsc: false)
       line = line.strip
       return if line.empty? || line.start_with?("#")
 
       dir, prg, type, timeout, *options = line.split(",")
       return unless type == "exitcode"
       return if options.any?(VIC20_SKIP_OPTIONS)
+
+      options << VIC_NTSC_OPTION if ntsc && !options.include?(VIC_NTSC_OPTION)
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, Testlist.cartridge(options))
       test.family = :vic20

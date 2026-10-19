@@ -93,7 +93,7 @@ module Badline
 
         Commands:
             c64                              Run a C64, the one --model names (the default)
-            vic20                            Run a PAL VIC-20, with the RAM --ram names
+            vic20                            Run a VIC-20, PAL or --ntsc, with the RAM --ram names
             c128                             Run a C128 in C128 mode, the one --model names
             plus4                            Run a Plus/4 or a C16, the one --model names
             pet                              Run a PET or a CBM, the one --model names
