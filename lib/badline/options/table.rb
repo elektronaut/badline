@@ -93,6 +93,8 @@ module Badline
                                    "$9000 and $A000, userport for the user port's PA0-PA2 to switch in " \
                                    "the RAM under the ROMs",
                  section: "Window options", needs: :window),
+      Option.new("--cpu CPU", "Set the SuperPET's CPU switch: 6502 or 6809 (default: 6502)",
+                 section: "Window options", needs: :window),
       Option.new("--c1lo FILE", "Put a .bin ROM image in the Plus/4's cartridge 1, low slot ($8000)",
                  section: "Window options", needs: :window),
       Option.new("--c1hi FILE", "Put a .bin ROM image in cartridge 1's high slot ($C000)",

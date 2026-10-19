@@ -37,8 +37,10 @@ Metrics/MethodLength:
   Exclude:
     - "lib/badline/chips/cpu/instruction.rb"
 
+# Options::Validation checks every family's options, the SuperPET's --cpu
+# among them.
 Metrics/ModuleLength:
-  Max: 210
+  Max: 212
 
 Metrics/PerceivedComplexity:
   Max: 12

@@ -137,7 +137,8 @@ module Badline
         with 64-cycle lines and 313 lines a frame. The 8296 runs its own,
         4-80-b-50hz-8296, and takes the 8032's too. --characters din fits
         it with the DIN character ROM, and --jumpers ram9,rama puts RAM at
-        $9000 and $A000, as xpet's -petram9 and -petramA do.
+        $9000 and $A000, as xpet's -petram9 and -petramA do. --model
+        superpet runs the SuperPET, and --cpu 6809 its Waterloo 6809 side.
 
         The CBM-II takes programs, disks, .d80 and .d82 among them, and
         cartridges, and a cartridge made for it starts one without `cbm2`.

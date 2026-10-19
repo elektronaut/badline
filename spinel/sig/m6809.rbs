@@ -1,0 +1,12 @@
+module Badline
+  module Chips
+    class M6809
+      class Entry
+        attr_accessor operation: Symbol
+        attr_accessor plan: Array[Symbol]
+        attr_accessor tail: Array[Symbol]
+        attr_accessor group: Integer
+      end
+    end
+  end
+end

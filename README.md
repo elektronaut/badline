@@ -350,9 +350,17 @@ Waterloo's board: 64K of RAM in 16 banks of 4K, one at a time at `$9000`
 through the bank latch at `$EFFC`, the system latch at `$EFF8`, a 6551
 ACIA at `$EFF0` with nothing on its RS-232 port, the 6702 protection
 chip at `$EFE0`, and the 901640-01 character ROM, whose first half is the
-8032's. It runs in 6502 mode so far, as an 8032 with the board, its
-memory write protect switch at R/W. It takes the 8032's editors and
-`--60hz`, and no `--ram`. Its snapshots don't load back yet.
+8032's and whose second half holds an ASCII and an APL set. It starts in
+6502 mode, as an 8032 with the board, and `--cpu 6809` sets its CPU switch
+to the 6809, which runs the Waterloo ROMs to their microSystems menu. The
+menu loads its languages from disk, which 6809 mode can't do yet. Its
+memory write protect switch is at R/W. It takes the 8032's editors and
+`--60hz`, which picks the Waterloo ROM with the 60 Hz CRTC table, and no
+`--ram`. Its snapshots don't load back yet.
+
+```sh
+badline pet --model superpet --cpu 6809   # The SuperPET's Waterloo menu
+```
 
 ```sh
 badline pet --model 8296 --jumpers ram9,rama  # An 8296 with RAM at $9000 and $A000
@@ -657,7 +665,8 @@ in cartridge 1 as it does from the command line.
   columns, both 6520 PIAs and the 6522 VIA, the graphics and business
   keyboards, the sound on the VIA's CB2, the 8096's 64K board, the
   8296's 128K with its jumpers, RA4 and 4K character ROM, the
-  SuperPET's bank RAM, latches, ACIA and 6702 in 6502 mode, both
+  SuperPET's bank RAM, latches, ACIA, 6702 and 6809 up to the Waterloo
+  menu, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks, and the D9060 and D9090
   hard disks on `.d90` images (`badline pet`).

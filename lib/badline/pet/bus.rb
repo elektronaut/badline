@@ -176,6 +176,11 @@ module Badline
         @write_pages[addr >> 8].poke(addr, value)
       end
 
+      # #peek and #poke as the SuperPET's 6809 calls them.
+      def read(addr) = peek(addr)
+
+      def write(addr, value) = poke(addr, value)
+
       # Whether the CPU reads the KERNAL ROM at $F000-$FFFF, which an 8096's
       # board covers while its control register turns it on, and an 8296's
       # RAM too.

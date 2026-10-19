@@ -16,13 +16,17 @@ module Badline
       #   bit 3  pulls the user port's diagnostic sense, PIA 1's PA7, low
       #
       # Bit 0 of $EFFE-$EFFF puts the board's own ROM socket at $9000 in
-      # place of the RAM, which badline leaves empty. All three are
-      # write-only, and the RES line clears them, so the board starts at
-      # bank 0.
+      # place of the RAM, which badline leaves empty, while the 6502 runs.
+      # All three are write-only, and the RES line clears them, so the
+      # board starts at bank 0, and with SW2 at PROG with the 6809.
       #
       # SW1 is READ, R/W or PROG, the bank RAM's write protect, and SW2
       # PROG, 6502 or 6809, the CPU. A write to the bank RAM while it is
       # protected goes nowhere.
+      #
+      # While the 6809 runs, the 8032's ROMs step aside through its NO ROM
+      # line, and the Waterloo ROMs answer at $A000-$E7FF and $F000-$FFFF,
+      # the $E000 one with the CRTC table for the frame rate.
       class Board
         CPU_SWITCH = %w[6502 6809 prog].freeze
 
@@ -72,8 +76,10 @@ module Badline
         # +bus+ is the PET's, whose pages the board maps, and
         # +keyboard_ports+ PIA 1's, whose PA7 the diagnostic sense is.
         # +cpu_switch+ and +ram_switch+ are SW2's and SW1's positions, one
-        # of CPU_SWITCH's and RAM_SWITCH's.
-        def initialize(bus, dongle:, acia:, keyboard_ports:, cpu_switch: "6502", ram_switch: "rw")
+        # of CPU_SWITCH's and RAM_SWITCH's, and +refresh_hz+ picks the
+        # Waterloo $E000 ROM, 50 or 60.
+        def initialize(bus, dongle:, acia:, keyboard_ports:, cpu_switch: "6502", ram_switch: "rw",
+                       refresh_hz: 50)
           raise ArgumentError, "the CPU switch has no position #{cpu_switch}" unless CPU_SWITCH.include?(cpu_switch)
           raise ArgumentError, "the RAM switch has no position #{ram_switch}" unless RAM_SWITCH.include?(ram_switch)
 
@@ -88,7 +94,21 @@ module Badline
           @bank_latch = 0
           @system_latch = 0
           @socket = 0
+          @rom_a = ROM.load("pet/superpet-a000.rom", 0xa000)
+          @rom_c = ROM.load("pet/superpet-c000.rom", 0xc000)
+          @rom_e = ROM.load(refresh_hz == 50 ? "pet/superpet-e000-50hz.rom" : "pet/superpet-e000.rom", 0xe000)
+          @m6809 = m6809_selected?
+          @select_handler = nil
         end
+
+        # Calls the block when the CPU the switch and the system latch pick
+        # changes.
+        def on_select(&handler)
+          @select_handler = handler
+        end
+
+        # Whether the 6809 has the bus.
+        def m6809? = @m6809
 
         def bank = @bank_latch & 0x0f
 
@@ -102,11 +122,11 @@ module Badline
 
           @system_latch = value
           @keyboard_ports.diagnostic_low = value.anybits?(0x08)
-          @bus.map_pages
+          select
         end
 
         def socket=(value)
-          @socket = value & 0x01
+          @socket = @m6809 ? 0 : value & 0x01
           @bus.map_pages
         end
 
@@ -136,15 +156,16 @@ module Badline
           @socket = 0
           @keyboard_ports.diagnostic_low = false
           @dongle.reset!
-          @bus.map_pages
+          select
         end
 
         def power_on!
           @cells.fill(0)
         end
 
-        # Lays the bank, or the empty socket, over $9000-$9FFF and the I/O
-        # page over $EF00.
+        # Lays the bank, or the empty socket, over $9000-$9FFF, the I/O
+        # page over $EF00, and the Waterloo ROMs over the 8032's while the
+        # 6809 runs.
         def map(reads, writes)
           if @socket.zero?
             window = @banks[bank]
@@ -157,6 +178,27 @@ module Badline
           end
           reads[0xef] = @io
           writes[0xef] = @io
+          map_waterloo(reads) if @m6809
+        end
+
+        private
+
+        # Picks the CPU again, and hands the bus over if that changed it.
+        # The 6809 taking over clears the socket bit.
+        def select
+          m6809 = m6809_selected?
+          changed = m6809 != @m6809
+          @m6809 = m6809
+          @socket = 0 if m6809
+          @bus.map_pages
+          @select_handler&.call if changed
+        end
+
+        def map_waterloo(reads)
+          reads.fill(@rom_a, 0xa0, 0x20)
+          reads.fill(@rom_c, 0xc0, 0x20)
+          reads.fill(@rom_e, 0xe0, 0x08)
+          reads.fill(@rom_e, 0xf0, 0x10)
         end
       end
     end
