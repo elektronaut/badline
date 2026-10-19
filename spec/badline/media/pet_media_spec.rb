@@ -84,6 +84,36 @@ describe Badline::Media::PETMedia do
     end
   end
 
+  describe "a disk in a true drive on BASIC 1" do
+    let(:model) { "2001" }
+
+    before { allow(Badline::Media::Program).to receive(:load) }
+
+    def attach(disk)
+      Badline::Media::TrueDrive.plug(pet)
+      Badline::Media.attach(pet, disk)
+    end
+
+    it "puts the first program on an 8050's disk in at the start of BASIC" do
+      disk = blank_d80(File.join(dir, "game.d80"))
+      Badline::Storage::D80Image.new(disk).write_file("game", program)
+      attach(disk)
+      expect(Badline::Media::Program).to have_received(:load).with(pet, program, autostart: true)
+    end
+
+    it "loads nothing from a disk with no program on it" do
+      attach(blank_d80(File.join(dir, "empty.d82"), sides: 2))
+      expect(Badline::Media::Program).not_to have_received(:load)
+    end
+
+    it "puts the first program on a hard disk in at the start of BASIC" do
+      disk = write("game.d90", Array.new(5_013_504, 0))
+      Badline::Storage::D90Image.new(disk).tap { |image| image.format("hd", "01".bytes) }.write_file("game", program)
+      attach(disk)
+      expect(Badline::Media::Program).to have_received(:load).with(pet, program, autostart: true)
+    end
+  end
+
   describe "a PET tape" do
     let(:message) do
       Badline::Media.attach(pet, Badline::Storage::TAP.create(File.join(dir, "game.tap"), platform: 3).path)
