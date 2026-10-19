@@ -43,6 +43,10 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/m6809.rb lib/badline/chips/m6809/core.rb])
   end
 
+  def test_the_6809_names_the_spinel_check_itself
+    assert_equal %w[spinel:check], CIReach.reach("lib/badline/chips/m6809/core.rb")
+  end
+
   def test_the_rom_readme_reaches_only_the_spinel_check
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/README])
   end

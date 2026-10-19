@@ -84,8 +84,10 @@ module CIReach
     ["lib/badline/chips/via{.rb,/**/*}", VIA],
     ["lib/badline/chips/vic_i{.rb,/**/*}", VIC20],
     ["lib/badline/chips/{z80,vdc}{.rb,/**/*}", C128],
-    # No machine has a 6809 yet.
-    ["lib/badline/chips/m6809{.rb,/**/*}", []],
+    # The SuperPET's 6809, which no testbench suite builds: testbench-pet
+    # runs an 8096 and an 8296. spinel:check builds it in m6809_tests and in
+    # pet_snapshot's SuperPET row.
+    ["lib/badline/chips/m6809{.rb,/**/*}", %w[spinel:check]],
     # The 6532 and 6530 of the 8050 and 8250, which only the PET's drive
     # scenarios plug in.
     ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", %w[drive-scenarios]],
