@@ -8,11 +8,12 @@ module Badline
     #
     # $0000-$7FFF - RAM, 4K, 8K, 16K or 32K of it from $0000, then nothing
     # $8000-$8FFF - screen RAM, repeated (Model), then nothing
-    # $9000-$AFFF - two empty ROM sockets
+    # $9000-$AFFF - two empty ROM sockets, or the SuperPET's bank RAM at
+    #               $9000
     # $B000-$DFFF - BASIC 4, or BASIC 1 or 2 from $C000
     # $E000-$E7FF - the screen editor ROM
     # $E800-$E8FF - I/O (IO)
-    # $E900-$EFFF - nothing
+    # $E900-$EFFF - nothing, but the SuperPET's I/O page at $EF00
     # $F000-$FFFF - the KERNAL ROM
     #
     # The data lines hold the last byte they carried, so a read from an
@@ -136,6 +137,7 @@ module Badline
         @user_port = !@expansion.nil? && @expansion.user_port?
         @debug_register = nil
         @io_write_handler = nil
+        @board = nil
         map_pages
       end
 
@@ -185,6 +187,12 @@ module Badline
         map_pages
       end
 
+      # Lays the SuperPET's board (SuperPET::Board) over its pages.
+      def fit_board(board)
+        @board = board
+        map_pages
+      end
+
       # Lays the pages out again, for the board's control register.
       def map_pages
         map(@open_bus, 0x00, 0x100)
@@ -195,6 +203,7 @@ module Badline
         map(@io, 0xe8, 0x01)
         @read_pages.fill(@kernal_rom, 0xf0, 0x10)
         @expansion&.map(@read_pages, @write_pages)
+        @board&.map(@read_pages, @write_pages)
         map_debug_register if @debug_register
       end
 

@@ -310,7 +310,8 @@ the business keyboard), `8096` (an 8032 with the 64K board at `$FFF0`),
 `8296` (128K on one board, below), `4032` (40 columns on a CRTC and the
 graphics keyboard), `3032` (the
 discrete 40-column board with BASIC 2), `3032b` (the same with the
-business keyboard) and `2001` (8K, BASIC 1 and the chiclet keyboard).
+business keyboard), `2001` (8K, BASIC 1 and the chiclet keyboard) and
+`superpet` (an 8032 with the Waterloo board, below).
 `--ram 4k`, `8k` or `16k` fits less RAM in place of the model's own, as
 the 3008, 3016 and 4016 had.
 
@@ -343,6 +344,15 @@ runs its own 50 Hz editor, `4-80-b-50hz-8296`, with lines of 59 cycles,
 339 to a frame, and takes the 8032's editors too. `--characters din`
 fits the German boards' 4K character ROM, whose two halves R12's bit 5
 picks between.
+
+The SuperPET, the SP9000 or MMF 9000, is an 8032 with the University of
+Waterloo's board: 64K of RAM in 16 banks of 4K, one at a time at `$9000`
+through the bank latch at `$EFFC`, the system latch at `$EFF8`, a 6551
+ACIA at `$EFF0` with nothing on its RS-232 port, the 6702 protection
+chip at `$EFE0`, and the 901640-01 character ROM, whose first half is the
+8032's. It runs in 6502 mode so far, as an 8032 with the board, its
+memory write protect switch at R/W. It takes the 8032's editors and
+`--60hz`, and no `--ram`. Its snapshots don't load back yet.
 
 ```sh
 badline pet --model 8296 --jumpers ram9,rama  # An 8296 with RAM at $9000 and $A000
@@ -642,7 +652,8 @@ in cartridge 1 as it does from the command line.
   with BASIC 1, 2 or 4, the discrete video and the 6545 CRTC on 40 and 80
   columns, both 6520 PIAs and the 6522 VIA, the graphics and business
   keyboards, the sound on the VIA's CB2, the 8096's 64K board, the
-  8296's 128K with its jumpers, RA4 and 4K character ROM, both
+  8296's 128K with its jumpers, RA4 and 4K character ROM, the
+  SuperPET's bank RAM, latches, ACIA and 6702 in 6502 mode, both
   cassette ports and device 8 on the IEEE-488 bus through the KERNAL
   traps, `.d80` and `.d82` among its disks (`badline pet`).
 - **CBM-II**: the B series' 610, 620, 710 and 720, with the 6509 at

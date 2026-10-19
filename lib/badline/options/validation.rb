@@ -212,7 +212,8 @@ module Badline
       end
 
       # --characters names a character ROM the board takes, --jumpers the
-      # 8296 board's jumpers, and the 8296 has all of its RAM soldered on.
+      # 8296 board's jumpers, and the 8296 has all of its RAM soldered on,
+      # as the SuperPET has besides its bank RAM.
       def validate_pet_board
         unless @characters.nil? || PET::ROMSets.characters(model).include?(@characters)
           raise Error, "the #{model} takes no character ROM #{@characters}"
@@ -221,6 +222,7 @@ module Badline
         unknown = @jumpers.find { |jumper| !PET::ROMSets.jumpers(model).include?(jumper) }
         raise Error, "the #{model} has no jumper #{unknown}" unless unknown.nil?
         raise Error, "the 8296 has 32k of RAM" if model == "8296" && ![nil, 32].include?(@ram_kb)
+        raise Error, "--ram doesn't fit the superpet" if model == "superpet" && !@ram_kb.nil?
       end
 
       # --basic and --editor name ROMs the model's board takes
