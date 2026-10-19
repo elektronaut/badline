@@ -70,6 +70,8 @@ file: `core.rb` requires their members one by one.
 | rspec (`spec/`) | `bundle exec rspec` | Unit behaviour, all of `lib/` |
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | SingleStepTests z80 | `rake test` (the first 100 cases per opcode, `Z80_SAMPLE=all` for all 1,604,000) | `Z80`: registers, flags, ports and the bus pins on every T-state |
+| neetandev/m6809 vectors | `rake test` (the first 100 cases per opcode, `M6809_SAMPLE=all` for all 315,000) | `M6809`: registers, RAM and the bus on every cycle, with the dead cycles and undocumented opcodes `test/support/m6809_divergences.rb` moves to the MC6809E datasheet and Banks' notes |
+| 6809 code tester | `rake test` | `M6809`: reyco2000's functional, interrupt (IRQ, FIRQ, NMI, SYNC, CWAI) and cycle-count programs on a bare 6809 |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts; its plus4 build with `--plus4`: the CPU on the 264's bus, the TED's clock, DMA, timers and interrupt |
 | VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20` (NTSC with `--ntsc`), the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4`, the C16 with `--c16`, and the PET with `--pet` (8096) and `--pet-discrete` (2001, 3032) |
 | VICE SID testprogs | `bin/sidtests` | SID |
@@ -133,7 +135,7 @@ worktree and owns a different set of files.
 - The external suites under `vendor/` are gitignored, so a new worktree has
   only `vendor/.gitkeep`. From the worktree root, symlink the main
   checkout's suites into it:
-  `for d in 65x02 z80-sample VICE-testprogs; do ln -sfn ../../../../vendor/$d vendor/$d; done`.
+  `for d in 65x02 z80-sample m6809 m6809-code-tester VICE-testprogs; do ln -sfn ../../../../vendor/$d vendor/$d; done`.
   The main checkout also has `vendor/OneLoad64-Games-Collection-v5`, which
   `rake vendor:checkout` doesn't fetch. Link it the same way only for
   `.sid` or media work. Don't re-run `rake vendor:checkout` there, and
@@ -159,8 +161,8 @@ worktree and owns a different set of files.
 
 ## Testing and baselines
 
-- `rake vendor:checkout` fetches SingleStepTests 65x02, the Z80 sample
-  and VICE-testprogs into `vendor/`
+- `rake vendor:checkout` fetches SingleStepTests 65x02, the Z80 sample,
+  the 6809 vectors and test programs, and VICE-testprogs into `vendor/`
 - `bundle exec rspec`: line coverage is about 95%. `spec/spec_helper.rb`
   fails a whole-suite run (every spec file, no filters) below 90%, while
   single-file and filtered runs skip the floor. `:slow` specs are excluded
