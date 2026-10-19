@@ -13,6 +13,7 @@ require "badline/media/vic20_media"
 require "badline/media/plus4_media"
 require "badline/media/pet_media"
 require "badline/media/cbm2_media"
+require "badline/media/kim1_media"
 require "badline/media/tune"
 require "badline/media/program"
 
@@ -56,8 +57,11 @@ module Badline
       # and .d82 disks too, which no other machine takes, and has no
       # cartridges, tunes or true drives (PETMedia), and so does the CBM-II,
       # which takes its own .crt cartridges and no tapes (CBM2Media). The
-      # C128 in C64 mode takes a C64's.
-      def attach(computer, path, autostart: true, subtune: nil, **)
+      # C128 in C64 mode takes a C64's. The KIM-1 takes only its programs,
+      # which load as `kim1`, a KIM1Media::Loading, says (KIM1Media).
+      def attach(computer, path, autostart: true, subtune: nil, kim1: KIM1Media::DIRECT, **)
+        return KIM1Media.attach(computer, path, kim1, autostart:) if computer.family == :kim1
+
         path = DiskList.disk(path)
         refuse_unsupported(computer, path)
 
@@ -128,10 +132,11 @@ module Badline
       private
 
       # The VIC-20 and the 264 series have no SID to play a .sid tune on,
-      # and only the PET and the CBM-II have the IEEE-488 drive a .d80, .d82
-      # or .d90 goes in.
+      # only the PET and the CBM-II have the IEEE-488 drive a .d80, .d82
+      # or .d90 goes in, and only the KIM-1 reads papertape.
       def refuse_unsupported(computer, path)
         family = computer.family
+        raise Machine::Unsupported, "#{path} needs a KIM-1" if Extensions.kind(path) == :papertape
         if %i[ieee_disk hard_disk].include?(Extensions.kind(path)) && !%i[pet cbm2].include?(family)
           raise ArgumentError, "#{path} needs a PET's or a CBM-II's IEEE-488 drive"
         end

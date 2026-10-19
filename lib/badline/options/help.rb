@@ -52,7 +52,8 @@ module Badline
              "#{listed(%i[ieee_disk])} disk image or #{listed(%i[hard_disk])} hard disk for a PET, " \
              "#{listed(%i[gcr])} disk image for a true drive, #{listed(%i[disk_list])} list of disk images, " \
              "#{listed(%i[archive])} tape archive, #{listed(%i[tape])} tape, #{listed(%i[cartridge])} " \
-             "cartridge, #{listed(%i[tune])} tune, #{listed(%w[.vsf])} snapshot, or a directory to mount as device 8."
+             "cartridge, #{listed(%i[tune])} tune, #{listed(%i[papertape])} papertape for a KIM-1, " \
+             "#{listed(%w[.vsf])} snapshot, or a directory to mount as device 8."
       wrap(text)
     end
 
@@ -87,7 +88,7 @@ module Badline
                #{@program} plus4 [options] [media]
                #{@program} pet [options] [media]
                #{@program} cbm2 [options] [media]
-               #{@program} kim1 [options]
+               #{@program} kim1 [options] [program]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -167,6 +168,13 @@ module Badline
         what U3's PB7 and PA0 are wired to. --tty puts the monitor on a
         teletype at --baud, shown in the window, or with --headless on the
         terminal, where Ctrl-C quits.
+        It loads .ptp and .pap papertapes, which start a KIM-1 without
+        `kim1`, and .bin files at --load-address. The program goes into RAM,
+        the NMI and IRQ vectors at $17FA and $17FE point at the monitor, and
+        the monitor starts it where it loads, or at --start-address.
+        --tty-load reads a papertape through the monitor's L command
+        instead. --ram 5k fills $0400-$13FF, and --ram expanded $2000-$DFFF
+        too.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

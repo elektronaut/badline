@@ -31,8 +31,7 @@ end
 
 if options.kim1_terminal?
   Signal.trap("INT") { raise Interrupt }
-  kim = Badline::Machine.for_options(options, nil)
-  exit Badline::KIM1::HostTerminal.run(kim, Badline::Native::CONSOLE.call(input: $stdin, output: $stdout))
+  exit Badline::KIM1::HostTerminal.start(options, Badline::Native::CONSOLE.call(input: $stdin, output: $stdout))
 end
 
 if options.headless?

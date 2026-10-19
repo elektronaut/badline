@@ -54,15 +54,16 @@ module Badline
 
     # With +tty+ the TTY/KB jumper is fitted, and the monitor talks to a
     # teletype at +baud+ (Teletype::BAUDS) in place of the keypad and
-    # display.
-    def initialize(tty: false, baud: 9600)
+    # display. +ram+ names the RAM, a key of Bus::RAM_CONFIGURATIONS, or
+    # nil for the stock 1K.
+    def initialize(tty: false, baud: 9600, ram: nil)
       @cycles = 0
       @panel = Panel.new(self)
       @panel.tty = tty
       @u2 = MonitorRRIOT.new(rom: ROM.read("kim1/6530-002.rom"), peripheral: @panel)
       @u3 = UserRRIOT.new(rom: ROM.read("kim1/6530-003.rom"))
       @panel.connect(@u2)
-      @bus = Bus.new(@u2, @u3)
+      @bus = Bus.new(@u2, @u3, ram: ram || :"1k")
       @cpu = CPU.new(@bus)
       @sst = false
       @irq_wired = false
@@ -109,7 +110,10 @@ module Badline
     end
 
     # The machine as the pause menu names it.
-    def model_label = "KIM-1, 1K RAM"
+    def model_label = "KIM-1, #{ram_kb}K RAM"
+
+    # The RAM in K (Bus#ram_kb).
+    def ram_kb = @bus.ram_kb
 
     # No drive plugs into the KIM-1, and nothing is mounted.
     def true_drive = nil

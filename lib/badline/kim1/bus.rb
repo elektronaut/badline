@@ -18,31 +18,57 @@ module Badline
     #
     # A read from nothing finds the last byte on the bus. Writes to ROM
     # and to nothing go nowhere.
+    #
+    # The board takes more RAM, as RAM_CONFIGURATIONS names it: the stock
+    # 1K, 5K with a board in K1-K4 filling $0400-$13FF, or those 5K and
+    # RAM at $2000-$DFFF, with an expansion that decodes A13-A15 and
+    # repeats the first 8K only at $E000-$FFFF, so the vectors are still
+    # the monitor's (User Manual, sections 6.1 and 6.2).
     class Bus
       include Addressable
 
-      attr_reader :ram
+      # Each configuration's end of RAM in the first 8K, and where the
+      # first 8K stops repeating, past what RAM fills above it.
+      RAM_CONFIGURATIONS = { "1k": [0x0400, 0x2000], "5k": [0x1400, 0x2000], expanded: [0x1400, 0xe000] }.freeze
+
+      # The RAM, and the key of RAM_CONFIGURATIONS it comes as.
+      attr_reader :ram, :ram_configuration
 
       # The last byte the CPU read or wrote.
       attr_reader :data
 
-      # +monitor+ is U2, the 6530-002, and +user+ U3, the 6530-003.
-      def initialize(monitor, user)
+      # +monitor+ is U2, the 6530-002, and +user+ U3, the 6530-003, with
+      # the RAM `ram` names.
+      def initialize(monitor, user, ram: :"1k")
         addressable_at(0, length: 2**16)
+        raise ArgumentError, "no KIM-1 RAM configuration named #{ram}" unless RAM_CONFIGURATIONS.key?(ram)
+
         @u2 = monitor
         @u3 = user
-        @ram = Memory.new([], length: 0x400, start: 0)
+        @ram_configuration = ram
+        ends = RAM_CONFIGURATIONS.fetch(ram)
+        @low_end = ends[0]
+        @mirror_end = ends[1]
+        @ram = Memory.new([], length: @mirror_end == 0x2000 ? @low_end : @mirror_end, start: 0)
         @data = 0
       end
 
+      # The RAM in K, without the 6530s' 64 bytes each.
+      def ram_kb = (@low_end + @mirror_end - 0x2000) >> 10
+
+      # Whether RAM answers at `addr`, the board's or a 6530's.
+      def ram?(addr)
+        offset = addr < 0x2000 || addr >= @mirror_end ? addr & 0x1fff : addr
+        offset < @low_end || offset >= 0x2000 || offset.between?(0x1780, 0x17ff)
+      end
+
       def peek(addr)
-        offset = addr & 0x1fff
-        block = offset >> 10
-        @data = if block.zero?
+        offset = addr < 0x2000 || addr >= @mirror_end ? addr & 0x1fff : addr
+        @data = if offset < @low_end || offset >= 0x2000
                   @ram.peek(offset)
-                elsif block == 7
+                elsif offset >= 0x1c00
                   @u2.read_rom(offset)
-                elsif block == 6
+                elsif offset >= 0x1800
                   @u3.read_rom(offset)
                 elsif (offset >> 8) == 0x17
                   read_chips(offset)
@@ -53,8 +79,8 @@ module Badline
 
       def poke(addr, value)
         @data = value
-        offset = addr & 0x1fff
-        if offset < 0x400
+        offset = addr < 0x2000 || addr >= @mirror_end ? addr & 0x1fff : addr
+        if offset < @low_end || offset >= 0x2000
           @ram.poke(offset, value)
         elsif (offset >> 8) == 0x17
           write_chips(offset, value)

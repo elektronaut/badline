@@ -14,12 +14,13 @@ module Badline
     # - :gcr, a disk's raw GCR, which only a true drive reads
     # - :archive, a .t64, which the traps mount read-only
     # - :tape, :cartridge and :tune
+    # - :papertape, a MOS papertape, which only the KIM-1 loads
     # - :disk_list, a list of the disks of a set (DiskList)
     module Extensions
       KINDS = {
         ".d64" => :disk, ".d71" => :disk, ".d81" => :disk, ".g64" => :gcr, ".g71" => :gcr, ".t64" => :archive,
         ".d80" => :ieee_disk, ".d82" => :ieee_disk, ".d90" => :hard_disk, ".tap" => :tape, ".crt" => :cartridge,
-        ".sid" => :tune, ".m3u" => :disk_list, ".vfl" => :disk_list
+        ".sid" => :tune, ".m3u" => :disk_list, ".vfl" => :disk_list, ".ptp" => :papertape, ".pap" => :papertape
       }.freeze
 
       # The kind of the medium at `path`, by its extension.

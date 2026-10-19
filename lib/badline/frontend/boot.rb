@@ -40,7 +40,7 @@ module Badline
     rescue Machine::Unsupported, Media::TrueDrive::Error, Media::DiskList::Error, Media::NotDisk, Drives::Datasette::Missing,
            SystemCallError, SIDTune::File::FormatError, Storage::T64::FormatError, Storage::TAP::FormatError,
            Storage::CRTFile::FormatError, Storage::G64Image::FormatError, C64::Cartridge::UnsupportedTypeError,
-           Snapshot::FormatError => e
+           Storage::Papertape::FormatError, Snapshot::FormatError => e
       e.message
     end
 
@@ -83,7 +83,7 @@ module Badline
       options.cartridges.each { |slot, path| puts Media.attach(computer, path, cartridge: { slot: }) }
       unless media.nil?
         puts Media.attach(computer, media, autostart: options.autostart?, subtune: options.subtune,
-                                           disk: { read_only: !writable })
+                                           disk: { read_only: !writable }, kim1: Media::KIM1Media.loading(options))
       end
       computer
     end

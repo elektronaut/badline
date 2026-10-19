@@ -31,6 +31,10 @@ module Badline
     # The KIM-1 teletype's rates, as KIM1::Teletype takes them.
     KIM1_BAUDS = %w[110 300 1200 2400 4800 9600].freeze
 
+    # The KIM-1's RAM as --ram names it, and the names
+    # KIM1::Bus::RAM_CONFIGURATIONS gives it.
+    KIM1_RAM = { "1k" => :"1k", "5k" => :"5k", "expanded" => :expanded }.freeze
+
     # The B series' KERNALs --kernal names, 901244-04a first, the default.
     CBM2_KERNALS = %w[04a 03b].freeze
 
@@ -59,6 +63,17 @@ module Badline
                  section: "Options"),
       Option.new("--baud N", "The KIM-1 teletype's baud: #{KIM1_BAUDS.join(', ')} (default: 9600)",
                  section: "Options"),
+      Option.new("--tty-load", "Load the KIM-1's .ptp or .pap through its monitor's L command on the teletype, " \
+                               "in real time, instead of straight into RAM; implies --tty",
+                 section: "Options"),
+      Option.new("--load-address ADDR", "Where the KIM-1 loads a .bin, in hex (default: 0200)",
+                 section: "Options"),
+      Option.new("--start-address ADDR", "Where the KIM-1 starts its program, in hex (default: where it loads)",
+                 section: "Options"),
+      Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \
+                               "Plus/4 RAM: 16k, 32k or 64k; PET RAM: 4k, 8k, 16k or 32k (default: the model's own); " \
+                               "KIM-1 RAM: 1k, 5k or expanded (default: 1k)",
+                 section: "Options"),
       Option.new("--no-autostart", "Boot to READY. instead of running the program",
                  section: "Window options", needs: :window),
       Option.new("--writable", "Let the machine write to disk images, changing their files",
@@ -84,9 +99,6 @@ module Badline
       Option.new("--ntsc", "Run an NTSC C64 or VIC-20, as --model ntsc does",
                  section: "Window options", needs: :window),
       Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
-                 section: "Window options", needs: :window),
-      Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \
-                               "Plus/4 RAM: 16k, 32k or 64k; PET RAM: 4k, 8k, 16k or 32k (default: the model's own)",
                  section: "Window options", needs: :window),
       Option.new("--60hz", "Run a CRTC PET's 60 Hz editor instead of its 50 Hz one, or a CBM-II on 60 Hz mains",
                  section: "Window options", needs: :window),

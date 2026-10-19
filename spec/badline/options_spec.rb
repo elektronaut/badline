@@ -20,6 +20,9 @@ describe Badline::Options do
 
   after { FileUtils.remove_entry(dir) }
 
+  # An empty file named `name` in the directory.
+  def touched(name) = File.join(dir, name).tap { |path| File.write(path, "") }
+
   describe "defaults" do
     it "takes the media from the first argument" do
       expect([options.media_path, options.tune_path]).to eq([tune_path, tune_path])
@@ -412,7 +415,7 @@ describe Badline::Options do
     end
 
     {
-      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20, plus4 or pet"],
+      "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20, plus4, pet or kim1"],
       "an unknown RAM expansion" => [%w[vic20 --ram 4k], "invalid argument: --ram 4k"],
       "a PAL and an NTSC VIC-20" => [%w[vic20 --model pal --ntsc], "conflicting models: pal and ntsc"],
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
@@ -421,12 +424,16 @@ describe Badline::Options do
       "a model for the KIM-1" => [%w[kim1 --model 8032], "invalid argument: --model 8032"],
       "an NTSC KIM-1" => [%w[kim1 --ntsc], "--ntsc needs the C64"],
       "a SID for the KIM-1" => [%w[kim1 --sid 8580], "--sid needs the C64"],
-      "RAM for the KIM-1" => [%w[kim1 --ram 8k], "--ram needs vic20, plus4 or pet"],
+      "RAM the KIM-1 doesn't take" => [%w[kim1 --ram 8k], "invalid argument: --ram 8k"],
       "a baud no teletype runs at" => [%w[kim1 --baud 19200], "invalid argument: --baud 19200"],
       "--tty for the C64" => [%w[--tty], "--tty needs kim1"],
       "--baud for the PET" => [%w[pet --baud 300], "--baud needs kim1"],
-      "media for the KIM-1 on the terminal" => [%w[kim1 --headless game.prg],
-                                                "the KIM-1 on the terminal takes no media"],
+      "--tty-load without a papertape" => [%w[kim1 --tty-load], "--tty-load needs a .ptp or .pap"],
+      "--load-address for the C64" => [%w[--load-address 0200], "--load-address needs kim1"],
+      "--start-address for the PET" => [%w[pet --start-address 0200], "--start-address needs kim1"],
+      "--tty-load for the C64" => [%w[--tty-load], "--tty-load needs kim1"],
+      "an address that isn't hex" => [%w[kim1 --start-address 02g0], "invalid argument: --start-address 02g0"],
+      "an address past $FFFF" => [%w[kim1 --start-address 10000], "invalid argument: --start-address 10000"],
       "a VIC-20 expansion for the PET" => [%w[pet --ram 24k], "invalid argument: --ram 24k"],
       "a C64 model for the PET" => [%w[pet --model c64], "invalid argument: --model c64"],
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
@@ -491,7 +498,7 @@ describe Badline::Options do
       "a PET model for the CBM-II" => [%w[cbm2 --model 8032], "invalid argument: --model 8032"],
       "an NTSC CBM-II" => [%w[cbm2 --ntsc], "--ntsc needs the C64; a CBM-II on 60 Hz mains is --60hz"],
       "a SID for the CBM-II" => [%w[cbm2 --sid 8580], "--sid needs the C64"],
-      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4 or pet"],
+      "RAM for the CBM-II" => [%w[cbm2 --ram 32k], "--ram needs vic20, plus4, pet or kim1"],
       "a B series KERNAL for the P500" => [%w[cbm2 --model 510 --kernal 04a], "the 510 takes KERNAL 02"],
       "the P500's KERNAL for a 610" => [%w[cbm2 --kernal 02], "the 610 takes KERNAL 04a or 03b"]
     }.each do |name, (args, message)|
@@ -607,6 +614,30 @@ describe Badline::Options do
 
       it "runs the KIM-1's teletype on the terminal" do
         expect([options.tty?, options.kim1_terminal?]).to eq([true, true])
+      end
+    end
+
+    context "with a papertape" do
+      let(:argv) { [touched("game.ptp"), "--ram", "expanded"] }
+
+      it "runs it on a KIM-1, with the RAM given" do
+        expect([options.family, options.ram]).to eq(%i[kim1 expanded])
+      end
+    end
+
+    context "with kim1 and --tty-load" do
+      let(:argv) { ["kim1", "--tty-load", "--start-address", "$02f0", touched("game.pap")] }
+
+      it "loads through the teletype, which it fits" do
+        expect([options.tty?, options.tty_load?, options.start_address]).to eq([true, true, 0x02f0])
+      end
+    end
+
+    context "with kim1 and a .bin" do
+      let(:argv) { ["kim1", "--load-address", "0x1780", touched("game.BIN")] }
+
+      it "loads at the address given" do
+        expect([options.load_address, options.start_address]).to eq([0x1780, nil])
       end
     end
 

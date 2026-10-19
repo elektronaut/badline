@@ -42,7 +42,7 @@ module Badline
     SID_MODELS = { "6581" => :mos6581, "8580" => :mos8580 }.freeze
 
     # What `sid` leaves out besides the window's options.
-    NOT_FOR_SID = %w[--audio-out --tty --baud].freeze
+    NOT_FOR_SID = %w[--audio-out --tty --baud --tty-load --load-address --start-address --ram].freeze
 
     REU_SIZES = %w[128 256 512 1024 2048 4096 8192 16384].freeze
 
@@ -99,7 +99,8 @@ module Badline
     def bank_ram = @bank_ram || "rw"
 
     # The VIC-20's RAM expansion --ram names, a key of
-    # Vic20::Bus::RAM_CONFIGURATIONS, or nil without --ram.
+    # Vic20::Bus::RAM_CONFIGURATIONS, or the KIM-1's, a key of
+    # KIM1::Bus::RAM_CONFIGURATIONS, or nil without --ram.
     attr_reader :ram
 
     # The Plus/4's or the PET's RAM in K --ram names, one of PLUS4_RAM's or
@@ -360,7 +361,7 @@ module Badline
       when "--seconds" then @seconds = decimal(flag, value)
       when "--songlengths" then @songlengths = value
       when "--rate" then @rate = number(flag, value)
-      when "--baud" then @baud = baud_for(value)
+      when "--baud", "--load-address", "--start-address" then kim1_option(name, flag, value)
       else @filter_chunk = number(flag, value)
       end
     end
@@ -408,7 +409,7 @@ module Badline
       when "--headless" then @headless = true
       when "--quiet" then @quiet = true
       when "--all-subtunes" then @all_subtunes = true
-      when "--tty" then @tty = true
+      when "--tty", "--tty-load" then kim1_switch(name)
       else @tui = false
       end
     end

@@ -198,7 +198,12 @@ describe Badline::Machine do
         .to raise_error(Badline::Machine::Unsupported, /PET/)
     end
 
-    it "refuses media for the KIM-1" do
+    it "builds a KIM-1 with the RAM --ram names, for its programs" do
+      machine = described_class.for_options(options("kim1", "--ram", "5k"), "game.ptp")
+      expect(machine.model_label).to eq("KIM-1, 5K RAM")
+    end
+
+    it "refuses media the KIM-1 doesn't take" do
       expect { described_class.for_options(options("kim1"), "game.prg") }
         .to raise_error(Badline::Machine::Unsupported, /KIM-1/)
     end

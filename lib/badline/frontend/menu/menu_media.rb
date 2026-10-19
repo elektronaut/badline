@@ -37,6 +37,8 @@ module Badline
 
       def writable? = @writable
 
+      def kim1? = @computer.family == :kim1
+
       def disk_path = MediaSlots.disk_path(@computer)
 
       def inserted? = MediaSlots.disk?(@computer)
