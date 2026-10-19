@@ -9,22 +9,23 @@ require "fileutils"
 require "tmpdir"
 require_relative "cli"
 require_relative "drive_scenarios"
+require_relative "regression"
 
 module DriveScenarios
   HARNESS = File.expand_path("../../spinel/drive_scenarios.rb", __dir__)
 
   module_function
 
-  # The scenarios a run takes: every one of CHECKS without filters, or
-  # those of CHECKS and LONG_CHECKS the filters match.
+  # The scenarios a run takes: those of CHECKS the filters keep without a
+  # filter that picks, or those of CHECKS and LONG_CHECKS the filters pick
+  # (see Regression::Filters).
   def selected(filters)
-    return CHECKS.keys if filters.empty?
-
-    names.select { |name| filters.any? { |filter| name.include?(filter) } }
+    matcher = Regression::Filters.parse(filters)
+    (matcher.picks.empty? ? CHECKS.keys : names).select { |name| matcher.selects?(name) }
   end
 
   def unmatched(filters)
-    filters.reject { |filter| names.any? { |name| name.include?(filter) } }
+    Regression::Filters.parse(filters).picks.reject { |filter| names.any? { |name| name.include?(filter) } }
   end
 
   def names = CHECKS.keys + LONG_CHECKS.keys

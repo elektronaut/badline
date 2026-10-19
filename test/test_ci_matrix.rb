@@ -63,6 +63,16 @@ class TestCIMatrix < Minitest::Test
     assert_equal ["spinel:lorenz_plus4[1,2,3]"], CIMatrix.shard_tasks.fetch("lorenz-plus4-1-3")
   end
 
+  def test_a_drive_scenarios_shard_runs_its_filters
+    assert_equal ["spinel:drive_scenarios[!pet-]"], CIMatrix.shard_tasks.fetch("drive-scenarios")
+  end
+
+  def test_a_drive_scenario_no_filter_matches_is_named
+    problems = CIMatrix.unit_problems("d" => ["spinel:drive_scenarios[pet-]"])
+
+    assert_includes problems, "drive-scenarios: no shard runs format/no-error"
+  end
+
   def test_a_suite_no_shard_runs_is_named
     assert_includes CIMatrix.missing_suites("s" => ["spinel:sidtests[6581]"]), "sid-8580"
   end
