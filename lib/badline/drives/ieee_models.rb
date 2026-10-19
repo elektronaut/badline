@@ -10,8 +10,8 @@ module Badline
     module IEEEModels
       # The images each model reads, by extension.
       MEDIA = {
-        "2031" => %w[.d64 .g64], "8050" => %w[.d80], "8250" => %w[.d82], "1001" => %w[.d82], "9060" => %w[.d90],
-        "9090" => %w[.d90]
+        "2031" => %w[.d64 .g64], "8050" => %w[.d80], "8250" => %w[.d82], "1001" => %w[.d82], "4040" => %w[.d64],
+        "3040" => %w[.d64], "9060" => %w[.d90], "9090" => %w[.d90]
       }.freeze
 
       # The model --true-drive plugs in without --drive-type.

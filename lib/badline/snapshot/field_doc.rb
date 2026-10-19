@@ -55,7 +55,7 @@ module Badline
                       plus4_with_cartridge, plus4_with_tape, plus4_with_drive, plus4_with_drive("1551")],
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
-                    pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250")],
+                    pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250"), pet_with_dos2_unit],
           "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
                      cbm2_with_disk, CBM2::P500.new, CBM2::P500.new(model: "510ntsc")]
         }
@@ -88,6 +88,12 @@ module Badline
                   Storage::D80Image.new("", bytes: blank(533_248))
                 end
         PET.new.tap { |machine| machine.plug_ieee_drive(model).insert(Drives::Model8050::Disk.new(image)) }
+      end
+
+      # A PET with a 4040 holding a blank disk in drive 0.
+      def self.pet_with_dos2_unit
+        image = Storage::D64Image.new("", bytes: blank(174_848))
+        PET.new.tap { |machine| machine.plug_ieee_drive("4040").insert(Drives::Model4040::Disk.new(image)) }
       end
 
       def self.blank(length) = Array.new(length, 0)

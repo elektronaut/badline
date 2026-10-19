@@ -16,7 +16,7 @@ module Badline
           def save_fields(out)
             image = @image
             out.text("path", image.path.to_s).bool("read_only", image.read_only?)
-            out.text("image.format", image.is_a?(Storage::D82Image) ? "d82" : "d80")
+            out.text("image.format", image_format)
             out.bytes("image", image.contents)
             @tracks.each do |number, cells|
               out.ints("track#{number}", cells) unless cells == build(number)
@@ -36,6 +36,9 @@ module Badline
         end
 
         include KeyedState
+
+        # The kind of image the disk lays out, as image.format names it.
+        def image_format = @image.is_a?(Storage::D82Image) ? "d82" : "d80"
 
         # The disk a BL-D8-DISK module holds. A detached reader gets the
         # image write-protected, and it and a host file that is gone leave
