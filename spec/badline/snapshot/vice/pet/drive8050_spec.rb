@@ -113,7 +113,8 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
     # The readers of a unit of `model` at power-on, its controller put at
     # `counter`.
     def readers(model, counter)
-      unit = model == "8250" ? Badline::Drives::Model8250.new : Badline::Drives::Model8050.new
+      unit = { "8250" => Badline::Drives::Model8250, "1001" => Badline::Drives::Model1001 }
+             .fetch(model, Badline::Drives::Model8050).new
       sections = unit.save_modules([], "BL-D8")
       sections << Badline::Snapshot::Keyed.section("BL-D8-FDCCPU") { |out| out.int("pc", counter) }
       sections.to_h { |section| [section.name, Badline::Snapshot::Keyed::Reader.parse(section)] }
@@ -129,6 +130,12 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
     it "puts each head's half track in its drive's block" do
       unit = described_class.export(Badline::PET.new, readers("8050", idle_loop)).first
       expect([0, described_class::BLOCK].map { |at| unit.data.getbyte(at + described_class::HALF_TRACK) }).to eq([2, 2])
+    end
+
+    it "writes one drive's block for a 1001, as xpet's type 1001" do
+      unit = described_class.export(Badline::PET.new, readers("1001", idle_loop)).first
+      expect([unit.data.bytesize, unit.data.getbyte(1), unit.data.byteslice(described_class::TYPE, 2).unpack1("v")])
+        .to eq([145, 1, 1001])
     end
 
     it "leaves the drive out while its controller is away from its idle loop" do

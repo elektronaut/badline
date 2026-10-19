@@ -113,7 +113,8 @@ class TestCIReach < Minitest::Test
 
   def test_the_8050_and_its_roms_reach_the_drive_scenarios
     files = %w[lib/badline/roms/8050/fdc-901869-01.rom lib/badline/roms/1001/fdc-251257-02a.rom
-               lib/badline/roms/4040/dos-2.1.rom lib/badline/drives/model8050.rb lib/badline/chips/riot.rb
+               lib/badline/roms/4040/dos-2.1.rom lib/badline/drives/model8050.rb lib/badline/drives/model1001.rb
+               lib/badline/chips/riot.rb
                lib/badline/chips/rriot.rb]
 
     assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)

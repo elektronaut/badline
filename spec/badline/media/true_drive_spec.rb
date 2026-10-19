@@ -83,6 +83,20 @@ describe Badline::Media::TrueDrive do
     end
   end
 
+  context "with a PET that asks for a 1001" do
+    let(:machine) { Badline::PET.new(model: "4032", true_drive_model: "1001") }
+
+    it "puts a .d82 in the 1001" do
+      path = image("disk.d82", 1_066_496)
+      expect(described_class.insert(machine, path)).to eq("Inserted #{path} in the 1001 as device 8")
+    end
+
+    it "puts a .d80 in an 8050, which the 1001 doesn't read" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      expect(machine.true_drive.model_name).to eq("8050")
+    end
+  end
+
   context "with a PET that asks for an 8250" do
     let(:machine) { Badline::PET.new(model: "4032", true_drive_model: "8250") }
 
