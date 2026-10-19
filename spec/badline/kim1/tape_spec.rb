@@ -36,7 +36,7 @@ describe Badline::KIM1::Tape do
   end
 
   describe "playing" do
-    before { deck.insert(Badline::Storage::KIMTape.new(crossings: [0, 135, 270, 405, 540, 748, 956, 1164, 1372])) }
+    before { deck.insert_tape(Badline::Storage::KIMTape.new(crossings: [0, 135, 270, 405, 540, 748, 956, 1164, 1372])) }
 
     it "drives PB7 from the tape's edges" do
       deck.play
@@ -81,7 +81,7 @@ describe Badline::KIM1::Tape do
     end
 
     it "records over the rest of the tape" do
-      deck.insert(Badline::Storage::KIMTape.new(crossings: [100, 200, 300]))
+      deck.insert_tape(Badline::Storage::KIMTape.new(crossings: [100, 200, 300]))
       wind_to(150)
       deck.record
       toggle_at([50])
@@ -95,7 +95,7 @@ describe Badline::KIM1::Tape do
       after { FileUtils.remove_entry(dir) }
 
       it "writes the tape to the file when it stops" do
-        deck.insert(Badline::Storage::KIMTape.create(path))
+        deck.insert_tape(Badline::Storage::KIMTape.create(path))
         deck.record
         toggle_at([1_000, 1_135, 1_270])
         deck.stop
@@ -142,7 +142,7 @@ describe Badline::KIM1::Tape do
     # a bad one, from $FA-$FB.
     it "loads a block through LOADT", :slow do
       chars = KIMTapeSignal.block(0x01, 0x0200, [0xa9, 0x42, 0x60])
-      kim.tape.insert(Badline::Storage::KIMTape.new(crossings: KIMTapeSignal.crossings(chars)))
+      kim.tape.insert_tape(Badline::Storage::KIMTape.new(crossings: KIMTapeSignal.crossings(chars)))
       go(0x1873)
       play_until_loaded
       expect([kim.peek(0xfa), kim.peek(0x0200), kim.peek(0x0201), kim.peek(0x0202)]).to eq([0x00, 0xa9, 0x42, 0x60])

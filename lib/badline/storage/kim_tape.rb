@@ -76,11 +76,11 @@ module Badline
       end
 
       # The time of the last crossing.
-      def length = @crossings.empty? ? 0 : @crossings.last
+      def duration = @crossings.empty? ? 0 : @crossings.last
 
       # Erases the tape from `time` on, as a deck recording from there
       # does.
-      def truncate(time)
+      def erase_from(time)
         @crossings.pop while !@crossings.empty? && @crossings.last >= time
       end
 
@@ -120,12 +120,12 @@ module Badline
 
       # Writes the tape back to its host file.
       def save
-        write(@path)
+        write_wav(@path)
       end
 
       # Writes the tape to `path` as a .wav file, a square wave of `bits`
       # (8 or 16) at `rate` samples a second.
-      def write(path, rate: 44_100, bits: 8)
+      def write_wav(path, rate: 44_100, bits: 8)
         samples = square_wave(rate, bits == 8 ? 96 : 24_000)
         bytes = bits == 8 ? samples.map { |sample| sample + 128 } : samples.flat_map { |s| [s & 0xff, (s >> 8) & 0xff] }
         File.binwrite(path, (wav_header(rate, bits, bytes.length) + bytes).pack("C*"))
@@ -179,7 +179,7 @@ module Badline
         def frame_size = @channels * @bits / 8
 
         # The first channel's sample at `pos`, from -1 to 1.
-        def sample(bytes, pos)
+        def level_at(bytes, pos)
           return (bytes[pos] - 128) / 128.0 if @bits == 8
 
           value = bytes[pos] | (bytes[pos + 1] << 8)
@@ -212,7 +212,7 @@ module Badline
           last = [pos + size, bytes.length].min - frame
           n = 0
           while pos <= last
-            step(format.sample(bytes, pos), n)
+            follow(format.level_at(bytes, pos), n)
             pos += frame
             n += 1
           end
@@ -222,7 +222,7 @@ module Badline
         private
 
         # Takes the sample `sample`, the `index`th.
-        def step(sample, index)
+        def follow(sample, index)
           @dc += (sample - @dc) * @dc_step
           level = sample - @dc
           @envelope *= @decay

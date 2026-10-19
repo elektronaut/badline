@@ -79,29 +79,29 @@ describe Badline::Storage::KIMTape do
     subject(:tape) { described_class.new(crossings: [100, 200, 300, 400]) }
 
     it "erases the tape from where it records" do
-      tape.truncate(300)
+      tape.erase_from(300)
       tape.record(350)
       expect(tape.crossings).to eq([100, 200, 350])
     end
 
     it "is as long as its last crossing" do
-      expect(tape.length).to eq(400)
+      expect(tape.duration).to eq(400)
     end
   end
 
-  describe "#write" do
+  describe "#write_wav" do
     let(:dir) { Dir.mktmpdir }
     let(:path) { File.join(dir, "block.wav") }
 
     after { FileUtils.remove_entry(dir) }
 
     it "writes a square wave that reads back" do
-      described_class.new(crossings:).write(path)
+      described_class.new(crossings:).write_wav(path)
       expect(KIMTapeSignal.characters(described_class.read(path).edges)).to eq(chars[0..-2])
     end
 
     it "writes 16-bit PCM" do
-      described_class.new(crossings:).write(path, rate: 22_050, bits: 16)
+      described_class.new(crossings:).write_wav(path, rate: 22_050, bits: 16)
       expect(File.binread(path, 4, 32).unpack("vv")).to eq([2, 16])
     end
 

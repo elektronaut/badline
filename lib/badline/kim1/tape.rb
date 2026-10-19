@@ -37,7 +37,7 @@ module Badline
       def position = moving? ? @stopped_at + @clock.cycles - @started : @stopped_at
 
       # Puts `tape` in the deck, wound back to its start.
-      def insert(tape)
+      def insert_tape(tape)
         stop
         @tape = tape
         @stopped_at = 0
@@ -45,7 +45,7 @@ module Badline
 
       # Takes the tape out, leaving a blank one with no file.
       def eject
-        insert(Storage::KIMTape.new)
+        insert_tape(Storage::KIMTape.new)
       end
 
       def rewind
@@ -69,7 +69,7 @@ module Badline
       # Presses RECORD and PLAY.
       def record
         stop
-        @tape.truncate(@stopped_at)
+        @tape.erase_from(@stopped_at)
         start
         @recording = true
       end
