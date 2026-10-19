@@ -479,6 +479,16 @@ class TestTestbenchVic20 < Minitest::Test
     assert_equal :all, parse("vic20-32k").ram_configuration
   end
 
+  def test_picks_the_ntsc_model_for_vic_ntsc
+    assert_equal %w[pal ntsc], [parse("vic20-8k").vic20_model, parse("vic20-8k,vic-ntsc").vic20_model]
+  end
+
+  def test_runs_every_row_on_the_ntsc_model_with_ntsc
+    test = Testbench::Vic20Testlist.parse("#{@dir}/,t.prg,exitcode,100000,vic20-8k", ntsc: true)
+
+    assert_equal "ntsc", test.vic20_model
+  end
+
   def test_takes_only_exitcode_rows
     assert_nil parse("vic20-8k", type: "screenshot")
     assert_nil parse("", type: "interactive")
@@ -500,8 +510,8 @@ class TestTestbenchVic20 < Minitest::Test
     assert_nil parse("mountcrt:missing.crt", prg: "")
   end
 
-  def test_hands_the_engine_its_ram_configuration
-    assert Testbench::Engine.spec(parse("vic20-8k")).end_with?("\t#{@dir}\t8k\n")
+  def test_hands_the_engine_its_ram_configuration_and_model
+    assert Testbench::Engine.spec(parse("vic20-8k")).end_with?("\t#{@dir}\t8k\tpal\n")
   end
 
   def test_runs_a_program_from_the_start_of_basic
@@ -518,7 +528,7 @@ class TestTestbenchVic20 < Minitest::Test
   end
 
   def test_reads_the_text_screen_where_the_kernal_keeps_it
-    machine = Testbench.vic20_machine(:unexpanded, true)
+    machine = Testbench.vic20_machine(:unexpanded, true, "pal")
 
     assert_equal "**** cbm basic v2 ****", Testbench.vic20_screen_text(machine)[0]
   end

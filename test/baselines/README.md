@@ -169,6 +169,11 @@ Recorded output of the headless hardware suites, one file per suite:
   - `VIC20/via_sr`: shift register modes `04`, `08`, `14` and `18` in all
     four variants (plain, `ifr`, `exp` and `iex`), and mode `10` in the
     plain and `exp` variants.
+- `testbench-vic20-ntsc.txt` — the same rows with `--vic20 --ntsc`, each
+  on an NTSC VIC-20, with the 6560 and the NTSC KERNAL, as a `vic-ntsc`
+  row asks and as VICE's testbench runs xvic with `--ntsc`. The testlist
+  has no NTSC rows of its own. Every row passes, as on xvic's
+  `vic20ntsc` model.
 - `testbench-plus4.txt` — the same runner with `--plus4`, over the
   `exitcode` and `screenshot` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
   each on a PAL Plus/4 with a true 1551 on TCBM as device 8, its
@@ -591,6 +596,7 @@ what the suite cost before it was sharded:
 | `testbench-ntsc-cia-new` | 1 | 0.5 min | 0.2 min | 0.2 min |
 | `testbench-drean` | 1 | 25 min | 1.7 min | 1.7 min |
 | `testbench-vic20` | 72 | — | 1.2 min | 0.4 min |
+| `testbench-vic20-ntsc` | 72 | — | — | 0.8 min |
 | `testbench-c128c64` | 413 | — | 74 min | 30 min |
 | `testbench-c128` | 97 | — | 4 min | 1 min |
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |

@@ -33,6 +33,7 @@ on:
           - testbench-ntsc-cia-new
           - testbench-drean
           - testbench-vic20
+          - testbench-vic20-ntsc
           - testbench-c128c64
           - testbench-c128
           - testbench-c128-z80

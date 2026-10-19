@@ -9,12 +9,12 @@ require_relative "testbench_machine"
 # bin/testbench on CRuby and spinel/vic20_testbench.rb on a Spinel build
 # run each test the same way.
 module Testbench
-  # A VIC-20 with the RAM expansion +ram+ names
-  # (Badline::Vic20::Bus::RAM_CONFIGURATIONS), booted up to the cycle where
-  # a program loads, or left at power-on when +boot+ is false, for a
-  # cartridge that has to be in before the first cycle.
-  def self.vic20_machine(ram, boot)
-    machine = Badline::Vic20.new(ram:)
+  # A VIC-20 of +model+ (Badline::Vic20::MODELS) with the RAM expansion
+  # +ram+ names (Badline::Vic20::Bus::RAM_CONFIGURATIONS), booted up to the
+  # cycle where a program loads, or left at power-on when +boot+ is false,
+  # for a cartridge that has to be in before the first cycle.
+  def self.vic20_machine(ram, boot, model)
+    machine = Badline::Vic20.new(ram:, model:)
     machine.run_cycles(machine.init_threshold) if boot
     machine
   end

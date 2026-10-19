@@ -71,7 +71,7 @@ file: `core.rb` requires their members one by one.
 | SingleStepTests 65x02 | `rake test` (100 sampled cases per opcode) | CPU, per-cycle bus traces |
 | SingleStepTests z80 | `rake test` (the first 100 cases per opcode, `Z80_SAMPLE=all` for all 1,604,000) | `Z80`: registers, flags, ports and the bus pins on every T-state |
 | Wolfgang Lorenz suite | `bin/lorenz` | CPU, CIA, interrupts; its plus4 build with `--plus4`: the CPU on the 264's bus, the TED's clock, DMA, timers and interrupt |
-| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20`, the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4`, the C16 with `--c16`, and the PET with `--pet` (8096) and `--pet-discrete` (2001, 3032) |
+| VICE testbench | `bin/testbench <subtree>` | `VICII/`, `CIA/`, `interrupts/`, `CPU/`, cartridges with `--carts`, the true 1541 drive with `--drive`, the VIC-20 with `--vic20` (NTSC with `--ntsc`), the C128 in C64 mode with `--c128c64`, in C128 mode with `--c128`, and its Z80 with `--c128-z80`, the Plus/4 with `--plus4`, the C16 with `--c16`, and the PET with `--pet` (8096) and `--pet-discrete` (2001, 3032) |
 | VICE SID testprogs | `bin/sidtests` | SID |
 | Drive scenarios | `bin/drive_scenarios` | The true 1541 running the DOS ROM: save, format, the error channel, idle, write protect and autostart; the `plus4-*` rows on the Plus/4 and C16, with the 1541 and 1581 on their serial bus and a tape saved and loaded back on the datasette |
 | CIA offline grids | `bundle exec rspec --tag slow spec/badline/chips/cia` | CIA timers and shift register, against a bare CIA in about 2 min |
@@ -191,7 +191,7 @@ overrides that, capped by the core count, but keep the default, because
 other worktrees share the machine. Whole runs at 4 shards on an M-series
 laptop take 15 min for `testbench` (`VICII/`), 11 for `testbench-cia`, 1 for
 `testbench-interrupts`, 37 for `testbench-irqdma`, 11 for
-`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions`, under 1 for `testbench-vic20`, `testbench-plus4`, `testbench-c16` and `testbench-plus4-ntsc`, and about 30 for `testbench-c128c64`. `lorenz-plus4` takes about 21 min whole on the Spinel build. `rake regression:lorenz-plus4-1` to `lorenz-plus4-4` run it as four stretches, cut where `lorenz` is, and the last, through the trap tests the chain resumes past, is about half of it. `sid` takes about 12 min. `lorenz` chains itself and takes
+`testbench-cpu`, 2 for `testbench-carts`, about 25 for `testbench-expansions`, under 1 for `testbench-vic20`, `testbench-vic20-ntsc`, `testbench-plus4`, `testbench-c16` and `testbench-plus4-ntsc`, and about 30 for `testbench-c128c64`. `lorenz-plus4` takes about 21 min whole on the Spinel build. `rake regression:lorenz-plus4-1` to `lorenz-plus4-4` run it as four stretches, cut where `lorenz` is, and the last, through the trap tests the chain resumes past, is about half of it. `sid` takes about 12 min. `lorenz` chains itself and takes
 about 2.5 h on CI whole. `rake regression:lorenz-1` to `lorenz-4` run it as
 four stretches of about 40 min each, and they can run side by side.
 `test/baselines/README.md` has the full table. A killed `bin/testbench` run
@@ -263,7 +263,8 @@ the 6526A) for anything the interrupt register or the CIA model reaches; cartrid
 `testbench-carts`, plus `testbench-expansions` for banking; GEO-RAM, +60K,
 +256K, the REU or the VIC's BA line the REU follows → `testbench-expansions`; the 1541 drive, VIA or IEC bus →
 `testbench-drive` (`bin/testbench --drive`) and `drive-scenarios` (`bin/drive_scenarios <filter>`), plus `testbench-vic20` for the VIA; the VIC-20 (`vic20/`) →
-`testbench-vic20` (`bin/testbench --vic20`); the 264 series (`plus4.rb`,
+`testbench-vic20` (`bin/testbench --vic20`) and `testbench-vic20-ntsc`
+(`bin/testbench --vic20 --ntsc`); the 264 series (`plus4.rb`,
 `plus4/`), the TED (`chips/ted.rb`, `chips/ted/`) or the TIA (`chips/tia.rb`)
 → `testbench-plus4` (`bin/testbench --plus4`) and `testbench-c16`
 (`bin/testbench --c16`), plus `testbench-plus4-ntsc`
