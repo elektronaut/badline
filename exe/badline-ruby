@@ -34,6 +34,12 @@ def load_sdl
   require "badline/frontend"
 end
 
+if options.kim1_terminal?
+  require "badline/audio/console"
+  kim = Badline::Machine.for_options(options, nil)
+  exit Badline::KIM1::HostTerminal.run(kim, Badline::Audio::Console.new(input: $stdin, output: $stdout))
+end
+
 if options.headless?
   require "badline/audio/console"
   console = if options.player_window?

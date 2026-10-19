@@ -164,7 +164,9 @@ module Badline
         are the hex keys, comma AD, period DA, space or + +, G or Return GO,
         P PC, S or Esc ST, R RS and T the SST switch, and a click presses a
         key too. The pause menu's PANEL page sets SST, the TTY/KB jumper and
-        what U3's PB7 and PA0 are wired to.
+        what U3's PB7 and PA0 are wired to. --tty puts the monitor on a
+        teletype at --baud, shown in the window, or with --headless on the
+        terminal, where Ctrl-C quits.
 
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The

@@ -4,8 +4,9 @@ module Badline
   module Audio
     # The terminal face of `--headless`: the tune's header, a status line
     # redrawn in place, and single keypresses read without waiting for
-    # Return. Ctrl-C still interrupts. A subclass puts the terminal in raw
-    # mode with #raw! and #restore and waits for keys with #readable?:
+    # Return, or for the KIM-1, the text typed and printed (#typing).
+    # Ctrl-C still interrupts. A subclass puts the terminal in raw mode
+    # with #raw! and #restore and waits for keys with #readable?:
     # Console with io/console for badline-ruby, and Native::Console with
     # stty and poll(2) for the native badline.
     class Terminal
@@ -48,6 +49,37 @@ module Badline
         when nil then close_input(seconds)
         else keys.scan(/\e\[[A-D]|./m).filter_map { |key| KEYS[key] }
         end
+      end
+
+      # Raw input for the length of the block, the cursor showing, for a
+      # session that types and prints text, as the KIM-1's teletype does.
+      def typing
+        mode = raw! if @input.tty?
+        yield
+      ensure
+        restore(mode) if mode
+        @output.print "\r\n"
+      end
+
+      # Waits up to `seconds` for keys and returns what they typed, as raw
+      # mode reads it, or an empty string.
+      def read_text(seconds)
+        if @closed
+          sleep(seconds)
+          return ""
+        end
+        return "" unless readable?(seconds)
+
+        text = @input.read_nonblock(64, exception: false)
+        return "" if text == :wait_readable
+
+        @closed = true if text.nil?
+        text.nil? ? "" : text
+      end
+
+      def print_text(text)
+        @output.print(text)
+        @output.flush
       end
 
       def header(lines)

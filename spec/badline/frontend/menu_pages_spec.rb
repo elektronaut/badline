@@ -247,6 +247,11 @@ describe Badline::Frontend::MenuPages do
       expect([computer.sst, computer.tty?, computer.irq_wired, computer.speaker?]).to eq([true, true, true, true])
     end
 
+    it "presses RS as the jumper goes in, for the teletype's RUBOUT" do
+      pages.perform(:teletype)
+      expect(computer.teletype.busy?).to be(true)
+    end
+
     it "shows the switch's setting" do
       pages.draw(:ports, 0, 0)
       expect(buttons).to have_received(:toggle).with(anything, "SST", :sst, [%w[OFF ON], %i[sst_off sst_on], 0])

@@ -422,6 +422,11 @@ describe Badline::Options do
       "an NTSC KIM-1" => [%w[kim1 --ntsc], "--ntsc needs the C64"],
       "a SID for the KIM-1" => [%w[kim1 --sid 8580], "--sid needs the C64"],
       "RAM for the KIM-1" => [%w[kim1 --ram 8k], "--ram needs vic20, plus4 or pet"],
+      "a baud no teletype runs at" => [%w[kim1 --baud 19200], "invalid argument: --baud 19200"],
+      "--tty for the C64" => [%w[--tty], "--tty needs kim1"],
+      "--baud for the PET" => [%w[pet --baud 300], "--baud needs kim1"],
+      "media for the KIM-1 on the terminal" => [%w[kim1 --headless game.prg],
+                                                "the KIM-1 on the terminal takes no media"],
       "a VIC-20 expansion for the PET" => [%w[pet --ram 24k], "invalid argument: --ram 24k"],
       "a C64 model for the PET" => [%w[pet --model c64], "invalid argument: --model c64"],
       "an NTSC PET" => [%w[pet --ntsc], "--ntsc needs the C64; a CRTC PET's 60 Hz editor is --60hz"],
@@ -584,8 +589,24 @@ describe Badline::Options do
     context "with kim1" do
       let(:argv) { %w[kim1] }
 
-      it "runs the KIM-1" do
-        expect([options.family, options.model]).to eq([:kim1, "kim1"])
+      it "runs the KIM-1 on its keypad" do
+        expect([options.family, options.model, options.tty?, options.baud]).to eq([:kim1, "kim1", false, 9600])
+      end
+    end
+
+    context "with kim1 and --tty" do
+      let(:argv) { %w[kim1 --tty --baud 300] }
+
+      it "runs the KIM-1 on a teletype at the baud given, in the window" do
+        expect([options.tty?, options.baud, options.kim1_terminal?]).to eq([true, 300, false])
+      end
+    end
+
+    context "with kim1 and --headless" do
+      let(:argv) { %w[kim1 --headless] }
+
+      it "runs the KIM-1's teletype on the terminal" do
+        expect([options.tty?, options.kim1_terminal?]).to eq([true, true])
       end
     end
 

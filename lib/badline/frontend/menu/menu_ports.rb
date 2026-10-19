@@ -9,7 +9,8 @@ module Badline
     # and the CBM-II's B series have no ports, and the page, KEYBOARD
     # there, says where their keys are instead. The P500 has two joysticks,
     # and the page says where its keys are while they type. The KIM-1's,
-    # PANEL there, sets its SST switch and TTY/KB jumper and what its
+    # PANEL there, sets its SST switch and TTY/KB jumper, which presses RS
+    # for the monitor to start again on the keypad or the teletype, and what its
     # application connector wires: U3's PB7 to IRQ, and a speaker on U3's
     # PA0 in place of the audio output on U2's PB7.
     module MenuPorts
@@ -105,7 +106,9 @@ module Badline
         kim = @computer
         case action
         when :sst_off, :sst_on then kim.sst = action == :sst_on
-        when :keypad, :teletype then kim.tty = action == :teletype
+        when :keypad, :teletype
+          kim.tty = action == :teletype
+          kim.reset!
         when :irq_open, :irq_wired then kim.irq_wired = action == :irq_wired
         else kim.speaker = action == :pa0_speaker
         end

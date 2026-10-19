@@ -262,6 +262,26 @@ module Badline
         end
       end
 
+      # What the KIM-1's teletype sends for the keys that type no
+      # character: RETURN, RUBOUT on Backspace and Delete, and LINE FEED on
+      # Down.
+      KIM1_TELETYPE_KEYS = { 40 => "\r", 88 => "\r", 42 => "\x7f", 76 => "\x7f", 81 => "\n" }.freeze
+
+      # What the KIM-1's teletype sends for the scancode, with the host's
+      # SHIFT down if `shift`: a key of KIM1_TELETYPE_KEYS, or the
+      # character the key types on a US layout, or an empty string.
+      def self.kim1_teletype(scancode, shift)
+        sent = KIM1_TELETYPE_KEYS[scancode]
+        return sent unless sent.nil?
+        return " " if scancode == SPACE
+        return character(scancode, shift) if scancode.between?(4, 29)
+
+        characters = US_CHARACTERS[scancode]
+        return "" if characters.nil?
+
+        characters[shift ? 1 : 0]
+      end
+
       # The KIM-1 key for the scancode, or an empty string.
       def self.kim1_key(scancode) = KIM1_KEYS[scancode] || ""
 

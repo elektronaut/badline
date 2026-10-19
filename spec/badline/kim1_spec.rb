@@ -136,8 +136,8 @@ describe Badline::KIM1 do
   context "with the TTY/KB jumper fitted" do
     subject(:kim) { described_class.new(tty: true) }
 
-    it "waits for a teletype's start bit with the display dark" do
-      boot!
+    it "waits for the teletype's RUBOUT with the display dark" do
+      kim.run_cycles(Badline::KIM1::Teletype::RUBOUT_DELAY - 500)
       expect([kim.tty?, kim.display_text, (0x1c31..0x1c37).cover?(kim.cpu.program_counter)])
         .to eq([true, "       ", true])
     end

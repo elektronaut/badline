@@ -167,10 +167,9 @@ module Badline
         end
       end
 
-      # Types the text, or on the KIM-1 presses the keys it names.
+      # Types the text, which on the KIM-1 goes to its teletype, or with
+      # none presses the keys it names (KIM1#type_text).
       def type(computer, text)
-        return computer.type_keys(text) if computer.family == :kim1
-
         computer.type_text(text.gsub("\\n", "\r").gsub("\\r", "\r"))
       end
 
