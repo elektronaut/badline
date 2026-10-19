@@ -26,8 +26,9 @@ module Badline
     # tests it and answers, and the DOS settles into its idle loop with the
     # host polling the job queue.
     #
-    # The drive clocks against the host through a phase accumulator, as
-    # Model8050 does, and sleeps through both processors' idle loops (Idle).
+    # The interface processor's side of the board and the clocking against
+    # the host are the 8050's (Model8050::DOSBoard), and the unit sleeps
+    # through both processors' idle loops (Idle).
     #
     # N runs as the DOS runs it, but for the six passes that write and
     # read back test patterns over every block, an hour of the hardware's
@@ -36,6 +37,7 @@ module Badline
     # The DOS then writes the bad-block list, the BAM, the header and the
     # directory as c1541 formats a .d90, byte for byte.
     class Model9060
+      include Model8050::DOSBoard
       include Idle
 
       CLOCK_HZ = 1_000_000
@@ -51,32 +53,11 @@ module Badline
       FORMAT_DONE = 0xcc15
       PASS = 0x2d
 
-      attr_reader :device, :ieee_bus
-
-      def ip_cpu = settled(@ip_cpu)
-
       def sasi_cpu = settled(@sasi_cpu)
-
-      def ip_bus = settled(@ip_bus)
 
       def sasi_bus = settled(@sasi_bus)
 
-      def common = settled(@common)
-
-      def data_riot = settled(@data_riot)
-
-      def control_riot = settled(@control_riot)
-
-      def via = settled(@via)
-
       def target = settled(@target)
-
-      def cycles
-        settle!
-        @cycles
-      end
-
-      attr_writer :host_clock_hz
 
       def model_name = "9060"
 
@@ -110,27 +91,9 @@ module Badline
         @ieee_bus.attach(self)
       end
 
-      # Plugs the unit into an IEEE-488 bus, leaving the one it was on.
-      def connect(ieee_bus)
-        settle!
-        @ieee_bus.detach(self)
-        @ieee_bus = ieee_bus
-        @ieee_port.bus = ieee_bus
-        ieee_bus.attach(self)
-      end
-
-      def ieee_low_lines(atn) = @ieee_port.ieee_low_lines(atn)
-
-      def host_written! = nil
-
-      # Which LEDs are lit: bit 1 the activity LED, bit 2 the status LED.
-      # They hold still while the unit sleeps, so reading them leaves it
-      # asleep.
-      def leds = @ieee_port.leds
-
+      # Whether the activity LED is lit: of the LEDs, bit 1 is the
+      # activity LED and bit 2 the status LED.
       def led_on? = leds.anybits?(0x02)
-
-      def power_led_on? = true
 
       # Puts the Storage::D90Image in the drive. Nil takes it out.
       def insert(image)
@@ -152,25 +115,6 @@ module Badline
       # store.
       def flush = nil
 
-      # Runs the drive cycles that fall in one host cycle, then takes the
-      # controller's lines for the next. Asleep, the unit owes the cycles
-      # instead, and wakes once the controller has moved a line.
-      def host_cycle!
-        phase = @phase + CLOCK_HZ
-        while phase >= @host_clock_hz
-          @asleep ? owe_cycle : run_cycle
-          phase -= @host_clock_hz
-        end
-        @phase = phase
-        settle! if @asleep && @ieee_port.lines_moved?
-        @ieee_port.latch_host
-      end
-
-      def cycle!
-        settle!
-        run_cycle
-      end
-
       # The bus's IFC line resets both processors and every chip. RAM keeps
       # its contents, and the hard disk's controller runs on.
       def reset!
@@ -187,11 +131,6 @@ module Badline
       end
 
       private
-
-      def settled(part)
-        settle!
-        part
-      end
 
       def run_cycle
         step
