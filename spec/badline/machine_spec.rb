@@ -78,8 +78,8 @@ describe Badline::Machine do
     expect([machine.class, machine.model.name, machine.refresh_hz]).to eq([Badline::PET, "3032b", 60])
   end
 
-  it "refuses the KIM-1 until it runs" do
-    expect { described_class.build(:kim1, model: "kim1") }.to raise_error(ArgumentError, "the KIM-1 isn't emulated yet")
+  it "builds a KIM-1" do
+    expect(described_class.build(:kim1, model: "kim1").family).to eq(:kim1)
   end
 
   it "refuses a family it can't build" do
@@ -196,6 +196,15 @@ describe Badline::Machine do
     it "refuses media a PET doesn't take" do
       expect { described_class.for_options(options("pet"), "tune.sid") }
         .to raise_error(Badline::Machine::Unsupported, /PET/)
+    end
+
+    it "refuses media for the KIM-1" do
+      expect { described_class.for_options(options("kim1"), "game.prg") }
+        .to raise_error(Badline::Machine::Unsupported, /KIM-1/)
+    end
+
+    it "builds a KIM-1 without media" do
+      expect(described_class.for_options(options("kim1"), nil).family).to eq(:kim1)
     end
 
     it "refuses media a VIC-20 doesn't take" do

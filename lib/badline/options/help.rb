@@ -87,6 +87,7 @@ module Badline
                #{@program} plus4 [options] [media]
                #{@program} pet [options] [media]
                #{@program} cbm2 [options] [media]
+               #{@program} kim1 [options]
                #{@program} --headless [options] tune.sid
                #{@program} [options] tune.sid --audio-out FILE
                #{@program} sid [options] FILE|DIR...
@@ -98,6 +99,7 @@ module Badline
             plus4                            Run a Plus/4 or a C16, the one --model names
             pet                              Run a PET or a CBM, the one --model names
             cbm2                             Run a CBM-II, a B series or a P500, the one --model names
+            kim1                             Run a MOS KIM-1, on its keypad and LED display
             sid                              Play .sid tunes and directories of them
 
         #{media_kinds}
@@ -157,6 +159,13 @@ module Badline
         KERNAL 02, whose keys are the B series' and whose two joysticks Tab
         switches to.
 
+        The KIM-1 starts in its monitor, on the keypad and the six LED
+        digits, which the window draws with the keys under them. 0-9 and A-F
+        are the hex keys, comma AD, period DA, space or + +, G or Return GO,
+        P PC, S or Esc ST, R RS and T the SST switch, and a click presses a
+        key too. The pause menu's PANEL page sets SST, the TTY/KB jumper and
+        what U3's PB7 and PA0 are wired to.
+
         --headless plays a .sid tune on the host's audio device without the
         window, and --audio-out renders it to 16-bit PCM instead. The
         container follows the file's extension, .wav or .aiff. Played on a
@@ -179,10 +188,12 @@ module Badline
         key=NAME presses a key (space, return, a, f1, run_stop, restore, and
         on the C128 esc, help, keypad1 and the rest, on the Plus/4
         esc, help and f1 to f3, on the PET rvs, escape and kp1, and on
-        the CBM-II escape, norm_graph and kp00) or a joystick's
+        the CBM-II escape, norm_graph and kp00, and on the KIM-1 its keys,
+        as 0 to f, ad, da, plus, go, pc, st and rs) or a joystick's
         direction or fire (joy1-up, joy2-fire) for #{Event::HOLD} frames, and
         pushes the C128's caps_lock or forty_eighty, which lock. type=TEXT
-        types it, with \\n for RETURN. insert=FILE swaps in a disk, a list's
+        types it, with \\n for RETURN, or on the KIM-1 presses the keys it
+        names, as in type=AD 0200 DA A9. insert=FILE swaps in a disk, a list's
         first disk, a tape or a cartridge, and eject=disk, tape or
         cartridge takes one out. screenshot=FILE saves the frame as a .bmp,
         with the frame's number in place of %d. menu opens the pause menu,

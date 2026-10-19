@@ -13,6 +13,9 @@ module Badline
       COLUMNS = 25
       ROW_WIDTH = 200
 
+      # The KIM-1's settings on its PANEL page (MenuPorts).
+      KIM1_SETTINGS = %i[sst_off sst_on keypad teletype irq_open irq_wired pb7_out pa0_speaker].freeze
+
       RECENT = %i[recent0 recent1 recent2 recent3 recent4 recent5 recent6 recent7].freeze
 
       # The SuperPET's switches: SW2 picks the CPU and SW1 protects the
@@ -85,6 +88,7 @@ module Badline
         when :bank_rw, :bank_read, :bank_prog then switch_bank_ram(action)
         when :reset then @computer.reset!
         when :power_cycle then @computer.power_cycle!
+        when *KIM1_SETTINGS then kim1_setting(action)
         else pick_port(action)
         end
       end
@@ -103,6 +107,9 @@ module Badline
       # its keyboard's alone.
       def b_series? = cbm2? && !Controls.p500?(@computer)
 
+      # Whether the machine is a KIM-1, whose ports page is its panel's.
+      def kim1? = @computer.family == :kim1
+
       private
 
       def vic20? = @computer.family == :vic20
@@ -110,6 +117,8 @@ module Badline
       def plus4? = @computer.family == :plus4
 
       def draw_drive
+        return info("DRIVE", "") if kim1?
+
         media = @media
         inserted = media.inserted?
         set = inserted ? media.disk_set : []
@@ -127,9 +136,9 @@ module Badline
         info("DEVICE", drive.nil? ? "FAST LOADING" : "#{drive.model_name}, TRUE DRIVE")
       end
 
-      # The CBM-II has no datasette.
+      # The CBM-II and the KIM-1 have no datasette.
       def draw_datasette
-        return info("TAPE", "") if cbm2?
+        return info("TAPE", "") if cbm2? || kim1?
 
         datasette = @computer.datasette
         tape = datasette.tape
@@ -145,6 +154,7 @@ module Badline
       def draw_expansion
         return draw_pet_memory if pet?
         return info("RAM", "#{@computer.model.ram_kb}K") if cbm2?
+        return info("RAM", "1K") if kim1?
 
         info("CARTRIDGE", @media.cartridge_name)
         return info("RAM EXPANSION", RAM_NAMES.fetch(@computer.ram_configuration)) if vic20?
@@ -213,7 +223,7 @@ module Badline
       # 901244 or the P500's 901234.
       def draw_power
         info("MACHINE", "#{@computer.model.name.upcase}, #{@computer.mode.to_s.upcase} MODE") if c128?
-        info("MACHINE", @computer.model_label.upcase) if pet? || cbm2?
+        info("MACHINE", @computer.model_label.upcase) if pet? || cbm2? || kim1?
         info("KERNAL", "#{Controls.p500?(@computer) ? 901_234 : 901_244}-#{@computer.kernal.upcase}") if cbm2?
         draw_superpet_switches if pet? && @computer.superpet?
         if plus4?

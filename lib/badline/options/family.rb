@@ -39,6 +39,7 @@ module Badline
         when :plus4 then PLUS4_MODELS
         when :pet then PET_MODELS
         when :cbm2 then CBM2_MODELS
+        when :kim1 then KIM1_MODELS
         else MODELS
         end
       end

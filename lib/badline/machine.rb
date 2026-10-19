@@ -2,6 +2,7 @@
 
 require "badline/machine/clocking"
 require "badline/machine/keyboard_buffer"
+require "badline/machine/line_sound"
 require "badline/machine/settling"
 
 module Badline
@@ -58,6 +59,11 @@ module Badline
   # and +capture_output+, and besides +model_label+, +cartridge_slots+ and
   # +detach_cartridges+ for its two cartridges.
   #
+  # The KIM-1 answers the identity, clocking, lifecycle and sound parts,
+  # with no video chip: a front end draws its panel (KIM1::Panel), and
+  # #true_drive is nil. Its keys are the panel's, through +press_key+,
+  # +release_key+, +type_keys+, +press_stop+ and +press_reset+.
+  #
   # The PET answers the identity, clocking, lifecycle, video, sound and
   # keyboard parts, with no joysticks, RESTORE or control ports, and of
   # the rest +ram+, +load_prg+, +type_text+, +mount+, +unmount+,
@@ -69,7 +75,7 @@ module Badline
     # Media the machine named doesn't take.
     class Unsupported < ArgumentError; end
 
-    # A new machine of `family`, :c64, :vic20, :c128, :plus4, :pet or :cbm2, the
+    # A new machine of `family`, :c64, :vic20, :c128, :plus4, :pet, :cbm2 or :kim1, the
     # model of it `model` names. A C64's model is one of Model::ALL, with
     # its SID `sid_model` when not nil and an REU of `reu` K when not nil.
     # A VIC-20's is "pal" or "ntsc", with the RAM expansion `ram` names
@@ -80,10 +86,10 @@ module Badline
     # RAM and ROMs, its CRTC's editor the 50 Hz one, the superpet a
     # PET::SuperPET with its CPU switch at 6502. A CBM-II's is one of
     # CBM2::Model::ALL, with VICE's KERNAL, 901244-04a, at 50 Hz, or a 510,
-    # one of CBM2::P500::Model::ALL, with its region's mains. :kim1 is
-    # refused until the KIM-1 runs.
+    # one of CBM2::P500::Model::ALL, with its region's mains. A KIM-1 is
+    # the one model, with its 1K of RAM.
     def self.build(family, model:, sid_model: nil, reu: nil, ram: nil)
-      raise ArgumentError, "the KIM-1 isn't emulated yet" if family == :kim1
+      return KIM1.new if family == :kim1
       return vic20(model, ram) if family == :vic20
       return c128(model, sid_model, :c64) if family == :c128
       return Plus4.new(model:) if family == :plus4
@@ -113,6 +119,7 @@ module Badline
       return plus4_for(media, options) if family == :plus4
       return pet_for(media, options) if family == :pet
       return cbm2_for(media, options) if family == :cbm2
+      return kim1_for(media) if family == :kim1
 
       sid_model = options.sid_model || Media.sid_model(media, otherwise: nil)
       return build(:c64, model: options.model, sid_model:, reu: options.reu) unless family == :c128
@@ -194,6 +201,14 @@ module Badline
       CBM2.new(model: options.model, kernal: options.kernal, mains_hz: options.mains_hz || 50, true_drive_model: drive)
     end
     private_class_method :cbm2_for
+
+    # A KIM-1, which takes no media yet.
+    def self.kim1_for(media)
+      raise Unsupported, "doesn't go in a KIM-1" unless media.nil?
+
+      KIM1.new
+    end
+    private_class_method :kim1_for
 
     def self.c64_media?(media)
       return false if media.nil? || !File.file?(media)

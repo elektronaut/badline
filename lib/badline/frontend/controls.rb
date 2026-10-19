@@ -10,7 +10,8 @@ module Badline
     #   #swap_ports swaps them. The VIC-20's one joystick takes both. The
     #   PET's and the CBM-II's keys go by the character they type
     #   (PETKeyboard), and the PET and the CBM-II's B series have no
-    #   joystick.
+    #   joystick. The KIM-1's host keys press its panel's (Keys::KIM1_KEYS),
+    #   and so does a click on one the window draws.
     # - A pot device the pause menu plugs into a control port of a C64, a
     #   C128 or a P500: a 1351 mouse or a pair of paddles, which the host
     #   mouse drives. Motion
@@ -30,7 +31,7 @@ module Badline
       # B series.
       def self.joysticks?(computer)
         family = computer.family
-        family != :pet && (family != :cbm2 || p500?(computer))
+        family != :pet && family != :kim1 && (family != :cbm2 || p500?(computer))
       end
 
       # Whether the machine is the CBM-II's P500, which has the B series'
@@ -49,6 +50,7 @@ module Badline
         @mouse = Input::Mouse1351.new
         @paddles = Input::Paddles.new
         @held = {}
+        @clicked = ""
         @pet_keyboard = pet_keyboard(computer)
       end
 
@@ -127,6 +129,18 @@ module Badline
         paddles? ? @paddles.move(delta_x, delta_y) : @mouse.move(delta_x, delta_y)
       end
 
+      # Presses the KIM-1 key KIM1Panel names `name` for a click on it, or
+      # lets go of the key the last click pressed.
+      def panel_click(name, down)
+        if down
+          @clicked = name
+          kim1_key(name, true) unless name.empty?
+        else
+          kim1_key(@clicked, false) unless @clicked.empty?
+          @clicked = ""
+        end
+      end
+
       def mouse_button(button, down)
         name = MOUSE_BUTTONS[button]
         return unless name && pot_device?
@@ -147,6 +161,7 @@ module Badline
           @pet_keyboard.positional = @computer.family == :pet && @computer.apl_characters? if down
           return @pet_keyboard.key(scancode, down)
         end
+        return kim1_key(Keys.kim1_key(scancode), down) if @computer.family == :kim1
 
         @held[scancode] = host_key(scancode) if down || !@held.key?(scancode)
         key = @held[scancode]
@@ -184,12 +199,30 @@ module Badline
         end
       end
 
+      # ST pulls NMI and RS resets as they go down, and T flips the SST
+      # switch. The other keys stay down until let go.
+      def kim1_key(name, down)
+        case name
+        when "" then nil
+        when "ST" then @computer.press_stop if down
+        when "RS" then @computer.press_reset if down
+        when "SST" then @computer.sst = !@computer.sst if down
+        else
+          if down
+            @computer.press_key(name)
+          elsif @computer.panel.held == name
+            @computer.release_key
+          end
+        end
+      end
+
       def paddles? = POTS.index(@pot) >= 3
 
       # A fresh pot device on its port, and none on the other. A machine
       # without the ports takes none.
       def attach_pot_device
-        ports = Controls.p500?(@computer) || !Controls.symbolic?(@computer) ? @computer.control_ports : nil
+        portless = Controls.symbolic?(@computer) || @computer.family == :kim1
+        ports = Controls.p500?(@computer) || !portless ? @computer.control_ports : nil
         if ports.nil?
           @pot = :none
           return
@@ -242,17 +275,21 @@ module Badline
       end
 
       # The PET's keyboard for a PET or a CBM-II, and for any other machine
-      # one it never uses.
+      # one it never uses, on a keyboard of its own for the KIM-1, which has
+      # none.
       def pet_keyboard(computer)
         layout = case computer.family
                  when :pet then computer.model.keyboard
                  when :cbm2 then :cbm2
                  else :graphics
                  end
-        PETKeyboard.new(computer.keyboard, layout)
+        keyboard = computer.family == :kim1 ? Input::Keyboard.new : computer.keyboard
+        PETKeyboard.new(keyboard, layout)
       end
 
       def release_all
+        return @computer.release_key if @computer.family == :kim1
+
         if Controls.symbolic?(@computer)
           @pet_keyboard.release_all
         else

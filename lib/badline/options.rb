@@ -18,7 +18,7 @@ module Badline
   # the machine family, and without one the family is the C64, the C128
   # for a program that loads where C128 BASIC starts, the PET for an
   # 8050's or 8250's disk or a PET tape, or the CBM-II for a cartridge
-  # signed as its own. `kim1` is refused until the KIM-1 runs.
+  # signed as its own. `kim1` runs a MOS KIM-1.
   # The native build adds --no-sound and --version, and badline-ruby adds
   # --disable-jit.
   #
@@ -287,7 +287,7 @@ module Badline
     # A .sid on its own plays in the SID player, as `sid` would, unless an
     # option of the emulator's window asks for the machine.
     def play_lone_tune
-      return if @sid_command || %i[vic20 plus4 pet cbm2].include?(@family) || headless? || !@window_only.empty?
+      return if @sid_command || %i[vic20 plus4 pet cbm2 kim1].include?(@family) || headless? || !@window_only.empty?
       return if @media_path.nil?
 
       @sid_command = File.extname(@media_path).casecmp?(".sid")

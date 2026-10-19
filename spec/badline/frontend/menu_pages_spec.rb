@@ -235,6 +235,34 @@ describe Badline::Frontend::MenuPages do
     end
   end
 
+  describe "with a KIM-1" do
+    subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
+
+    let(:computer) { Badline::KIM1.new }
+    let(:painter) { instance_double(Badline::Frontend::Painter, text: 0) }
+    let(:buttons) { instance_double(Badline::Frontend::Buttons, row: nil, toggle: nil) }
+
+    it "sets the SST switch, the TTY/KB jumper and the wiring on its panel page" do
+      %i[sst_on teletype irq_wired pa0_speaker].each { |action| pages.perform(action) }
+      expect([computer.sst, computer.tty?, computer.irq_wired, computer.speaker?]).to eq([true, true, true, true])
+    end
+
+    it "shows the switch's setting" do
+      pages.draw(:ports, 0, 0)
+      expect(buttons).to have_received(:toggle).with(anything, "SST", :sst, [%w[OFF ON], %i[sst_off sst_on], 0])
+    end
+
+    it "shows its RAM on the expansion page" do
+      pages.draw(:expansion, 0, 0)
+      expect(painter).to have_received(:text).with(0, 12, "1K", anything)
+    end
+
+    it "offers no tape and no disk" do
+      %i[datasette drive].each { |page| pages.draw(page, 0, 0) }
+      expect(buttons).not_to have_received(:row)
+    end
+  end
+
   describe "with a CBM-II" do
     subject(:pages) { described_class.new(painter, buttons, "", Badline::Options.parse([]), nil) }
 

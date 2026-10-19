@@ -105,6 +105,7 @@ module Badline
           @controls.mouse_motion(SDL.event_xrel(SDL.event), SDL.event_yrel(SDL.event))
         when SDL::MOUSEBUTTONDOWN, SDL::MOUSEBUTTONUP
           @controls.mouse_button(SDL.event_button(SDL.event), type == SDL::MOUSEBUTTONDOWN)
+          click_panel(type == SDL::MOUSEBUTTONDOWN) if @computer.family == :kim1
         when SDL::CONTROLLERDEVICEADDED, SDL::CONTROLLERDEVICEREMOVED
           @gamepads.rescan
         when SDL::DROPFILE then resume(false) unless @menu.drop(@computer, @controls, @sound)
@@ -122,6 +123,13 @@ module Badline
         elsif claimed || !Snapshots::KEYS.include?(scancode)
           @controls.key(scancode, down)
         end
+      end
+
+      # A click on the KIM-1's panel presses the key under the pointer, and
+      # its release lets go.
+      def click_panel(down)
+        event = SDL.event
+        @controls.panel_click(@screens.kim1_panel.key_at(SDL.event_x(event), SDL.event_y(event)), down)
       end
 
       def toggle?(scancode)

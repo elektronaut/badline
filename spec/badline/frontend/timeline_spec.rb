@@ -103,6 +103,14 @@ describe Badline::Frontend::Timeline do
       expect(error("1:key=restore", family: :p500)).to eq("no such key: restore")
     end
 
+    it "takes the KIM-1's keys on the KIM-1" do
+      expect(error("1:key=go", "1:key=plus", "1:key=f", "1:key=st", "1:key=rs", family: :kim1)).to eq("")
+    end
+
+    it "turns a C64 key away on the KIM-1" do
+      expect(error("1:key=space", family: :kim1)).to eq("no such key: space")
+    end
+
     it "takes the pause menu's pages, or none" do
       expect(error("1:menu", "2:menu=snapshots", "3:menu=expansion", "4:menu=power")).to eq("")
     end
@@ -139,6 +147,42 @@ describe Badline::Frontend::Timeline do
     it "waits for its frame" do
       run_to(1)
       expect(computer.keyboard.keys).to be_empty
+    end
+  end
+
+  describe "a KIM-1 key" do
+    let(:computer) { Badline::KIM1.new }
+    let(:argv) { at("1:key=plus") }
+
+    it "is held on the panel" do
+      run_to(1)
+      expect(computer.panel.held).to eq("+")
+    end
+
+    it "is let go five frames later" do
+      run_to(6)
+      expect(computer.panel.held).to be_nil
+    end
+  end
+
+  describe "a KIM-1's ST" do
+    let(:computer) { Badline::KIM1.new }
+    let(:argv) { at("1:key=st") }
+
+    it "pulls NMI" do
+      run_to(1)
+      expect(computer.cpu.nmi).to be(true)
+    end
+  end
+
+  describe "text for a KIM-1" do
+    let(:computer) { Badline::KIM1.new }
+    let(:argv) { at("1:type=AD 0200") }
+
+    it "goes to its keys" do
+      run_to(1)
+      computer.run_cycles(Badline::KIM1::BOOT_CYCLES + 1)
+      expect(computer.typing?).to be(true)
     end
   end
 

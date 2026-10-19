@@ -8,7 +8,10 @@ module Badline
     # joystick's, and the Plus/4 two joysticks and no pot devices. The PET
     # and the CBM-II's B series have no ports, and the page, KEYBOARD
     # there, says where their keys are instead. The P500 has two joysticks,
-    # and the page says where its keys are while they type.
+    # and the page says where its keys are while they type. The KIM-1's,
+    # PANEL there, sets its SST switch and TTY/KB jumper and what its
+    # application connector wires: U3's PB7 to IRQ, and a speaker on U3's
+    # PA0 in place of the audio output on U2's PB7.
     module MenuPorts
       PORT_DEVICES = %i[joystick mouse paddles].freeze
       PORT_NAMES = %w[JOY MOUSE PADDLES].freeze
@@ -35,6 +38,7 @@ module Badline
         return draw_pet_keys if @computer.family == :pet
         return draw_p500_ports if Controls.p500?(@computer)
         return draw_cbm2_keys if @computer.family == :cbm2
+        return draw_kim1_panel if @computer.family == :kim1
 
         draw_pot_ports
         return unless draw_keys(@computer.family == :c128 ? "C128" : "C64")
@@ -85,6 +89,26 @@ module Badline
         return unless apl || @computer.m6809_running?
 
         info("CHARACTERS", apl ? "APL, KEYS BY POSITION" : "ASCII")
+      end
+
+      def draw_kim1_panel
+        kim = @computer
+        toggle("SST", :sst, [%w[OFF ON], %i[sst_off sst_on], kim.sst ? 1 : 0])
+        toggle("TTY/KB", :tty, [%w[KEYPAD TTY], %i[keypad teletype], kim.tty? ? 1 : 0])
+        skip
+        info("RAM", "1K")
+        toggle("U3 PB7", :irq, [%w[OPEN IRQ], %i[irq_open irq_wired], kim.irq_wired ? 1 : 0])
+        toggle("SOUND", :speaker, [["U2 PB7", "U3 PA0"], %i[pb7_out pa0_speaker], kim.speaker? ? 1 : 0])
+      end
+
+      def kim1_setting(action)
+        kim = @computer
+        case action
+        when :sst_off, :sst_on then kim.sst = action == :sst_on
+        when :keypad, :teletype then kim.tty = action == :teletype
+        when :irq_open, :irq_wired then kim.irq_wired = action == :irq_wired
+        else kim.speaker = action == :pa0_speaker
+        end
       end
 
       # What each control port has plugged in, a joystick, a mouse or

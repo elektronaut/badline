@@ -40,7 +40,7 @@ Metrics/MethodLength:
 # Options::Validation checks every family's options, the SuperPET's --cpu
 # and --bank-ram among them.
 Metrics/ModuleLength:
-  Max: 216
+  Max: 224
 
 Metrics/PerceivedComplexity:
   Max: 12

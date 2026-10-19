@@ -10,6 +10,38 @@ describe Badline::Frontend::Controls do
   let(:computer) { Badline::C64.new }
   let(:ports) { computer.control_ports }
 
+  describe "with a KIM-1" do
+    let(:computer) { Badline::KIM1.new }
+
+    it "holds the panel's key a host key is on, until it is let go" do
+      controls.key(10, true)
+      held = computer.panel.held
+      controls.key(10, false)
+      expect([held, computer.panel.held]).to eq(["GO", nil])
+    end
+
+    it "flips the SST switch on T" do
+      controls.key(23, true)
+      expect(computer.sst).to be(true)
+    end
+
+    it "pulls NMI on S" do
+      controls.key(22, true)
+      expect(computer.cpu.nmi).to be(true)
+    end
+
+    it "presses the key a click lands on, and lets go with the button" do
+      controls.panel_click("AD", true)
+      held = computer.panel.held
+      controls.panel_click("", false)
+      expect([held, computer.panel.held]).to eq(["AD", nil])
+    end
+
+    it "leaves Tab to the machine" do
+      expect(controls.tab_toggles?).to be(false)
+    end
+  end
+
   describe "#toggle_keys" do
     it "switches the keys between the keyboard and the joysticks" do
       states = Array.new(3) { controls.toggle_keys.then { controls.joystick_mode? } }
