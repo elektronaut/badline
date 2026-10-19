@@ -294,10 +294,13 @@ module MachineFamilies
     machine
   end
 
+  # A true 1541 on the serial bus, or on the PET and the CBM-II the
+  # machine's own drive on the IEEE-488 bus.
   def plug_drive(machine, options)
-    drive = Badline::Drives::Model1541.new
+    ieee = Badline::Media::TrueDrive::IEEE_FAMILIES.include?(machine.family)
+    drive = ieee ? machine.plug_true_drive : Badline::Drives::Model1541.new
     drive.idle_skip = options[:idle_skip] if drive.respond_to?(:idle_skip=)
-    machine.attach_drive1541(drive)
+    machine.attach_drive1541(drive) unless ieee
   end
 
   def demo(options)

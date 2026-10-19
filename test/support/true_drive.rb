@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# The true 1541 bin/machine_diff plugs in with --true-drive, and the
+# The true drive bin/machine_diff plugs in with --true-drive, and the
 # drive's part in its checkpoint lines.
 module TrueDrive
   DIRECTORY = "load\"$\",8\rlist\r"
@@ -18,14 +18,27 @@ module TrueDrive
     computer
   end
 
-  # Puts a D64 in the true drive, and types the directory load. Returns
-  # nil for other media, or without a true drive. The image opens with
-  # the options in options[:media][:disk].
-  def insert(computer, path, options)
-    return unless options[:true_drive] && path.downcase.end_with?(".d64")
+  # The images the PET's and the CBM-II's IEEE-488 drives read.
+  IEEE_IMAGES = %w[.d64 .d80 .d82].freeze
 
-    image = Badline::Storage::D64Image.new(path, **options[:media].fetch(:disk, {}))
-    computer.drive1541.insert(Badline::Drives::Model1541::Disk.from_d64(image))
+  # Puts a D64 in the true drive, or on the PET and the CBM-II a D64, D80
+  # or D82 in the drive that reads it (Media::TrueDrive.insert), and
+  # types the directory load. Returns nil for other media, or without a
+  # true drive. The image opens with the options in options[:media][:disk].
+  def insert(computer, path, options)
+    return unless options[:true_drive]
+
+    disk = options[:media].fetch(:disk, {})
+    extension = File.extname(path).downcase
+    if Badline::Media::TrueDrive::IEEE_FAMILIES.include?(computer.family)
+      return unless IEEE_IMAGES.include?(extension)
+
+      Badline::Media::TrueDrive.insert(computer, path, read_only: disk.fetch(:read_only, false))
+    else
+      return unless extension == ".d64"
+
+      computer.drive1541.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path, **disk)))
+    end
     text = options[:text] == "print 6*7\r" ? DIRECTORY : options[:text]
     computer.on_init { computer.type_text(text) }
     true
