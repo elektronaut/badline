@@ -39,6 +39,10 @@ class TestCIReach < Minitest::Test
     assert_empty CIReach.suites(%w[test/support/moo_reader.rb test/support/m6809_vectors.rb])
   end
 
+  def test_the_6809_reaches_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/m6809.rb lib/badline/chips/m6809/core.rb])
+  end
+
   def test_the_rom_readme_reaches_only_the_spinel_check
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/roms/README])
   end

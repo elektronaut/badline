@@ -7,6 +7,7 @@ require_relative "test/support/suites"
 require_relative "test/support/ci_matrix"
 require_relative "test/support/z80_sample"
 require_relative "test/support/m6809_vectors"
+require_relative "test/support/m6809_code_tester"
 require_relative "spinel/check"
 require_relative "native/build"
 require_relative "native/pack"
@@ -23,6 +24,13 @@ VENDORED_REPOS = {
   "VICE-testprogs" => {
     repo: "https://github.com/libsidplayfp/VICE-testprogs"
   }
+}.freeze
+
+# Test data fetched at a pinned commit, each by a module with DIR and fetch.
+FETCHED_SETS = {
+  "z80-sample" => [Z80Sample, "the first #{Z80Sample::CASES} cases of each SingleStepTests Z80 file"],
+  "m6809" => [M6809Vectors, "neetandev/m6809's 6809 vectors, its v1 data alone"],
+  "m6809-code-tester" => [M6809CodeTester, "reyco2000's 6809 test programs"]
 }.freeze
 
 # Check out a vendored test repository with a single shallow, blobless
@@ -91,18 +99,15 @@ namespace :vendor do
     end
   end
 
-  desc "Fetch the first #{Z80Sample::CASES} cases of each SingleStepTests Z80 file into #{Z80Sample::DIR}"
-  task "z80-sample" do
-    Dir.exist?(Z80Sample::DIR) ? puts("z80-sample already present.") : Z80Sample.fetch
-  end
-
-  desc "Fetch neetandev/m6809's 6809 vectors into #{M6809Vectors::DIR}, its v1 data alone, at a pinned commit"
-  task :m6809 do
-    Dir.exist?(M6809Vectors::DIR) ? puts("m6809 already present.") : M6809Vectors.fetch
+  FETCHED_SETS.each do |name, (fetcher, description)|
+    desc "Fetch #{description} into #{fetcher::DIR}"
+    task name do
+      Dir.exist?(fetcher::DIR) ? puts("#{name} already present.") : fetcher.fetch
+    end
   end
 
   desc "Check out the vendored test repositories, with the Z80 sample in place of the whole Z80 suite"
-  task checkout: VENDORED_REPOS.keys - ["z80"] + %w[z80-sample m6809]
+  task checkout: VENDORED_REPOS.keys - ["z80"] + FETCHED_SETS.keys
 end
 
 namespace :regression do
@@ -272,4 +277,4 @@ Rake::TestTask.new do |task|
 end
 
 Rake::Task["test"].enhance(["vendor:65x02", ENV["Z80_SAMPLE"] == "all" ? "vendor:z80" : "vendor:z80-sample",
-                            "vendor:m6809"])
+                            "vendor:m6809", "vendor:m6809-code-tester"])

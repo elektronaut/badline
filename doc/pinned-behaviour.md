@@ -53,6 +53,9 @@ only catches the rows that happen to move.
 - [CBM-II DRAM refresh](#cbm-ii-dram-refresh)
 - [6509 indirection segment](#6509-indirection-segment)
 - [KIM-1 single step](#kim-1-single-step)
+- [6809 dead cycles](#6809-dead-cycles)
+- [6809 interrupts, SYNC, CWAI, HALT and reset](#6809-interrupts-sync-cwai-halt-and-reset)
+- [6809 undocumented opcodes](#6809-undocumented-opcodes)
 
 ## CPU interrupt recognition
 
@@ -2315,3 +2318,103 @@ testprogs named.
     instruction* in [`kim1/cpu_spec.rb`](../spec/badline/kim1/cpu_spec.rb),
     and *figure 5.6* and *scans the six digits every 4,258 cycles* in
     [`kim1_spec.rb`](../spec/badline/kim1_spec.rb).
+
+## 6809 dead cycles
+
+6809 dead cycles follow the MC6809E flowcharts, not MAME. The
+neetandev/m6809 vectors (`rake test`) are MAME's, and on these dead
+("Don't Care") cycles they read another address than Figure 17 of the
+MC6809E datasheet gives. The core reads the datasheet's address, and the
+runner checks each of these cycles against it, through the rules in
+[`m6809_divergences.rb`](../test/support/m6809_divergences.rb). Every
+other cycle, and every cycle count but X18's, is the vectors'.
+
+- A read-modify-write (NEG, COM, LSR, ROR, ASR, ASL, ROL, DEC, INC, CLR
+  and the undocumented aliases, in memory) reads `$FFFF` between its read
+  and its write, where the vectors read PC. Pinned by MC6809E Fig. 17
+  sheet 5 and the datasheet's DEC extended example.
+- ADDD, SUBD, CMPD, CMPX, CMPY, CMPU, CMPS and the undocumented XADDD and
+  XADDU end on a dead read of `$FFFF`, where the vectors read PC. Pinned
+  by MC6809E Fig. 17 sheet 5.
+- JSR's first dead cycle after its address reads the subroutine's
+  address, where the vectors read PC. BSR and LBSR read it on the dead
+  cycle before their last `$FFFF`, where the vectors read `$FFFF`. Pinned
+  by MC6809E Fig. 17 sheets 1 and 5 and the datasheet's LBSR example.
+- RTS ends on a dead read of `$FFFF`, where the vectors read the stack.
+  Pinned by MC6809E Fig. 17 sheet 2.
+- TSTA and TSTB read NNNN+1 after the opcode, as every one-byte inherent
+  opcode does, where the vectors read `$FFFF`. Pinned by MC6809E Fig. 17
+  sheet 2.
+- Indexed: an 8-bit offset from R is followed by a dead read of `$FFFF`,
+  where the vectors read PC. A 16-bit offset from R or PC, a D offset and
+  extended indirect read NNNN+4 (NNNN+5 after a prefix) on the cycle
+  after the offset, where the vectors read `$FFFF`. Pinned by MC6809E
+  Fig. 17 sheet 4.
+- Spec guard: *dead cycles* in
+  [`m6809_spec.rb`](../spec/badline/chips/m6809_spec.rb).
+
+## 6809 interrupts, SYNC, CWAI, HALT and reset
+
+The vectors leave these out. The core follows the MC6809E datasheet, and
+reyco2000's `6809_interrupt_test` and `6809_cycle_test`
+(`rake test`) pass on it.
+
+- The lines are sampled once a cycle, and an instruction boundary sees the
+  sample of two cycles before: IRQ or FIRQ asserted on an instruction's
+  next-to-last cycle is taken once it ends, and on its last cycle only
+  after the next instruction. NMI is an edge, latched until taken, and
+  ignored until a program loads S after reset (LDS, LEAS, TFR or EXG
+  into S, PULU S). Pinned by MC6809E Figs. 8 and 9.
+- IRQ and NMI take 19 cycles from the cycle that would have fetched the
+  opcode: PC twice, `$FFFF`, the 12 bytes from PC low to CC with E set,
+  `$FFFF`, the vector, `$FFFF`. FIRQ takes 10, stacking PC and CC with E
+  clear. The masks take effect as the vector's first byte is read. Pinned
+  by MC6809E Figs. 8 and 9.
+- SYNC reads NNNN+1 and then leaves the bus alone until any interrupt line
+  is asserted, masked or not, and for one cycle more. A masked interrupt
+  goes on to the next instruction; an unmasked one runs its usual
+  sequence. Pinned by MC6809E Fig. 16 and Fig. 17 sheet 2.
+- CWAI reads its operand, NNNN+2 and `$FFFF`, ANDs CC with the operand,
+  sets E, stacks all 12 bytes, then reads `$FFFF` until an interrupt it
+  may take comes, and reads that interrupt's vector and `$FFFF`: 20
+  cycles when the interrupt is already there. Pinned by MC6809E Fig. 17
+  sheet 2.
+- HALT stops the CPU at the next instruction boundary, sampled as IRQ is,
+  and leaves the bus alone until it is released.
+- After RESET the CPU reads `$FFFE` twice, the vector at `$FFFE` and
+  `$FFFF`, and `$FFFF`, and fetches its first opcode on the sixth cycle.
+  It masks FIRQ and IRQ and clears DP. Pinned by MC6809E Fig. 6.
+- Spec guard: [`m6809_spec.rb`](../spec/badline/chips/m6809_spec.rb).
+
+## 6809 undocumented opcodes
+
+The undocumented opcodes follow David Banks' "Undocumented 6809
+Behaviours" (github.com/hoglet67/6809Decoder/wiki), which was checked on
+real chips, where it and the vectors (MAME's) disagree. The runner checks
+these cases against the rules in
+[`m6809_divergences.rb`](../test/support/m6809_divergences.rb).
+
+- X18 (`$18`) takes 3 cycles, where the vectors take 2, and sets V to
+  (C AND bit 0) OR (Z AND bit 2) of the byte after the opcode, where the
+  vectors take Z alone. Banks doesn't give the third cycle's address; the
+  core reads `$FFFF`. Pinned by Banks, X18.
+- XADDU adds the operand to U OR `$FF00`, where the vectors add U. Pinned
+  by Banks, XADDU.
+- DAA sets V to C XOR bit 7 of the result, where the vectors (and the
+  datasheet) clear it. Pinned by Banks, Undefined values of the Overflow
+  Flag.
+- The stores immediate set N and clear Z and V when prefixed. Unprefixed,
+  N, Z and V hang on the group of the instruction before (CMPA and BITA;
+  LDA and LDD; the A arithmetic and logic; the A shifts, DEC, INC, NEG,
+  COM, TSTA, DAA and SUBD; SEX; the 16-bit compares and XADDD/XADDU; LEA;
+  anything else). The 16-bit ones also clear Z unless the register's low
+  byte is 0. The vectors set N and Z from the register and clear V. The
+  vectors start every case after no instruction, the "anything else"
+  group: N set, Z and V clear. Pinned by Banks, Store Immediate and Flags
+  for unprefixed Store Immediate.
+- What the vectors leave out also comes from Banks: `$14`, `$15` and `$CD`
+  read on from PC, a byte a cycle, until reset; a chain of `$10` and `$11`
+  prefixes takes the first, a cycle for each; an opcode page 2 or 3
+  doesn't define runs as on page 1, a cycle later.
+- Spec guard: *the flags of the unprefixed stores immediate* in
+  [`m6809_spec.rb`](../spec/badline/chips/m6809_spec.rb).
