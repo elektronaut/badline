@@ -17,8 +17,9 @@ module Badline
     # else in a drive of the machine's own model, plug_true_drive's, if
     # that reads it, or else in the model made for it, swapped in
     # (Drives::IEEEModels): a 2031 for a .d64, an 8050 for a .d80 and an
-    # 8250 for a .d82. The traps' other disk media, a .t64 or a host
-    # directory, raise Error.
+    # 8250 for a .d82, in the drive of a dual unit the machine names
+    # (disk_drive_number): drive 1 on a SuperPET running its 6809. The
+    # traps' other disk media, a .t64 or a host directory, raise Error.
     module TrueDrive
       class Error < ArgumentError; end
 
@@ -93,6 +94,13 @@ module Badline
           end
 
           drive = computer.plug_ieee_drive(model) unless drive&.model_name == model
+          number = computer.disk_drive_number
+          if number.positive? && drive.is_a?(Drives::Model8050)
+            drive.insert_image(path, drive: number, read_only:)
+            computer.unmount
+            return "Inserted #{path} in the #{model}'s drive #{number} as device 8"
+          end
+
           drive.insert_image(path, read_only:)
           computer.unmount
           "Inserted #{path} in the #{model} as device 8"

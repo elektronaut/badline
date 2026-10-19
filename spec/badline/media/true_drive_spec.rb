@@ -117,6 +117,34 @@ describe Badline::Media::TrueDrive do
     end
   end
 
+  context "with a SuperPET running its 6809" do
+    let(:machine) { Badline::PET::SuperPET.new(cpu: "6809") }
+
+    it "puts a .d80 in the 8050's drive 1, where the Waterloo menu's disk/1. looks" do
+      path = image("disk.d80", 533_248)
+      expect(described_class.insert(machine, path)).to eq("Inserted #{path} in the 8050's drive 1 as device 8")
+    end
+
+    it "leaves drive 0 empty" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      expect([machine.true_drive.disk(0), machine.true_drive.disk(1).nil?]).to eq([nil, false])
+    end
+
+    it "puts a .d64 in the 2031, which has one drive" do
+      path = image("disk.d64", 174_848)
+      expect(described_class.insert(machine, path)).to eq("Inserted #{path} in the 2031 as device 8")
+    end
+  end
+
+  context "with a SuperPET in 6502 mode" do
+    let(:machine) { Badline::PET::SuperPET.new }
+
+    it "puts a .d80 in the 8050's drive 0, as an 8032 does" do
+      described_class.insert(machine, image("disk.d80", 533_248))
+      expect(machine.true_drive.disk(1)).to be_nil
+    end
+  end
+
   context "with a CBM-II" do
     let(:machine) { Badline::CBM2.new }
 

@@ -126,6 +126,10 @@ module Badline
       # half, which the CRTC's MA13 picks, with VIA CA2 high.
       def apl_characters? = @crtc.registers[12].anybits?(0x20) && @via.ca2_output
 
+      # Drive 1 while the 6809 runs, where the Waterloo menu's "disk/1."
+      # looks, and drive 0 in 6502 mode.
+      def disk_drive_number = @m6809_running ? 1 : 0
+
       # The 32K below $8000 and the 64K board.
       def model_label = "SUPERPET, 96K RAM, #{@refresh_hz} HZ"
 
