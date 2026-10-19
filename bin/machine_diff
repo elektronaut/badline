@@ -83,8 +83,10 @@
 #          CPU, RAM, both 6530s and the panel (Badline::Support::KIM1Checkpoint)
 #
 # --true-drive plugs a Drives::Model1541 into the serial bus before the machine
-# boots, and adds its digest to each checkpoint as drive=. A D64 then
-# goes into the drive instead of Media.attach, and the machine types
+# boots, or on the PET and the CBM-II the machine's own IEEE-488 drive
+# (plug_true_drive), and adds its digest to each checkpoint as drive=. A
+# D64 then goes into the drive instead of Media.attach, or on the PET and
+# the CBM-II a D64, D80 or D82 (Media::TrueDrive), and the machine types
 # LOAD"$",8 and LIST (or --text) once booted, so the directory comes off
 # the disk through the DOS. --no-idle-skip makes the drive run every
 # cycle of its idle loop (see Drives::Engine::Idle), so running the same tree
@@ -117,8 +119,9 @@ require_relative "../test/support/machine_families"
 module MachineDiff
   ROOT = File.expand_path("..", __dir__)
   SCENARIOS = %w[boot type demo disk].freeze
-  # bin/snapshot_check's scenarios: c64-plain, vic20-tape and so on.
-  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet)-/
+  # bin/snapshot_check's scenarios: c64-plain, vic20-tape, cbm2-2031 and so
+  # on, but for the P500's.
+  SNAPSHOT_MACHINE = /\A(c64|vic20|c128|plus4|pet|cbm2)-/
 
   module_function
 
@@ -305,7 +308,7 @@ parser = OptionParser.new do |opts|
   opts.on("--text TEXT", "What the type scenario, or a D64 with --true-drive, types") do |text|
     options[:text] = text
   end
-  opts.on("--true-drive", "Plug a true 1541 in, and put a D64 in it") { options[:true_drive] = true }
+  opts.on("--true-drive", "Plug a true drive in, and put a disk image in it") { options[:true_drive] = true }
   opts.on("--no-idle-skip", "Run every cycle of the true 1541's idle loop") { options[:idle_skip] = false }
   opts.on("--save FILE", "Also write the checkpoints to FILE") { |path| options[:save] = path }
   opts.on("--against REV_OR_FILE", "Compare with REV's lib/ or with a file from --save") do |against|
