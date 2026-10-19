@@ -2,6 +2,13 @@
 
 ## [0.17.0](https://github.com/elektronaut/badline/compare/v0.16.1...v0.17.0) (2026-10-19)
 
+### Highlights
+
+- **CBM-II**: `badline cbm2` runs the B series' 610, 620, 710 and 720, with the 6509 and its segment bus, BASIC 128 or 256, the 6845 CRTC on 80 columns, the SID, both 6525 TPIs and cartridges. `--kernal 04a` or `03b` picks the KERNAL, and `--60hz` runs it on 60 Hz mains.
+- **P500**: `badline cbm2 --model 510`, or `510ntsc`, runs the CBM 510, with a VIC-II for 40 columns in colour, two joysticks, and a 1351 mouse or paddles on either port.
+- **8050 and 8250**: the dual drives run DOS 2.7 on both their processors and read and write `.d80` and `.d82` images. `--true-drive` puts one on the PET's or the CBM-II's IEEE-488 bus for a `.d80` or `.d82`, and the CBM-II takes a true 2031 too.
+- **VICE snapshots**: badline reads and writes xcbm2's and xcbm5x0's `.vsf` files, and a PET's 8050 or 8250 in xpet's. `--vice` adds VICE's modules to a CBM-II snapshot, so xcbm2 or xcbm5x0 opens it.
+
 
 ### Features
 
@@ -77,6 +84,13 @@
 * blank the CRTC PETs' character lines past the eighth ([f02db02](https://github.com/elektronaut/badline/commit/f02db02a6255944b552b6a5f3e8108483ae78875))
 
 ## [0.16.0](https://github.com/elektronaut/badline/compare/v0.15.1...v0.16.0) (2026-10-17)
+
+### Highlights
+
+- **PET and CBM**: `badline pet` runs the 2001, 3032, 3032b, 4032, 8032 and 8096, with the discrete 40-column video or the 6545 CRTC on 40 and 80 columns, the CRTC counted to the cycle, the graphics and business keyboards, and the sound on the VIA's CB2. The 8032 is the default.
+- **Upgrade ROMs**: `--basic` fits BASIC 1, 2 or 4 and `--editor` an editor the board takes, `--60hz` runs a CRTC PET's 60 Hz editor, and `--ram` fits 4K to 32K.
+- **Media**: programs and disks go on device 8 through traps on the IEEE-488 bus, with the 8050's and 8250's `.d80` and `.d82` images read and written, and tapes play and record on both cassette ports.
+- **Snapshots**: `F11` and the Snapshots page save and restore the PET in keyed snapshots.
 
 
 ### Features
@@ -180,6 +194,12 @@
 
 ## [0.15.0](https://github.com/elektronaut/badline/compare/v0.14.0...v0.15.0) (2026-10-12)
 
+### Highlights
+
+- **Plus/4, C16 and C116**: `badline plus4` runs them in the window, with the TED's picture and sound, BASIC 3.5, the Plus/4's 3-plus-1 function ROMs and both joysticks. `--model` picks `plus4`, `c16`, `c116`, `plus4ntsc` or `c16ntsc`, and `--ram` fits 16K, 32K or 64K.
+- **Media**: programs load and run, tapes play and record on the datasette, disks go through the KERNAL traps or a true 1541 or 1581 on the serial bus, and cartridges go in both slots, from a `.crt` or a raw `.bin` (`--c1lo`, `--c1hi`, `--c2lo` and `--c2hi`).
+- **Snapshots**: `F11` and the Snapshots page save the Plus/4 and the C16, and snapshots now hold the cartridge mappers' registers and the extra SIDs.
+
 
 ### Features
 
@@ -202,6 +222,12 @@
 * store a C128 bank LOAD into the I/O that bank maps ([58672c2](https://github.com/elektronaut/badline/commit/58672c2bb7b9a5fed8d75d72007d00444eebb696))
 
 ## [0.14.0](https://github.com/elektronaut/badline/compare/v0.13.0...v0.14.0) (2026-10-11)
+
+### Highlights
+
+- **Snapshots that keep loading**: snapshots hold the machine as keyed `BL-*` modules, so one saved by 0.14.0 loads in every later version. Snapshots from earlier versions are refused with a message.
+- **VICE export**: VICE's own modules go in only on export, with `--save-snapshot FILE --vice`, so x64sc opens the file too.
+- **Plus/4 and C16, headless**: the 264 series boots to READY headless with its ROMs bundled, reads Plus/4 `.crt` images and version 2 C16 tapes, and runs VICE's 264 testbench rows (`testbench-plus4`, `testbench-c16`) and the Lorenz suite's plus4 build (`lorenz-plus4`).
 
 
 ### Features
@@ -252,6 +278,11 @@
 
 ## [0.13.0](https://github.com/elektronaut/badline/compare/v0.12.1...v0.13.0) (2026-10-11)
 
+### Highlights
+
+- **Library layout**: `lib/badline/` is regrouped by namespace, and each constant follows its directory. `Badline::Computer` is now `Badline::C64`, and the chips, drives and input devices sit under `Badline::Chips`, `Badline::Drives` and `Badline::Input`. The move leaves emulation as it was.
+- **`peek` and `poke`**: each machine reads and writes memory as its CPU sees it.
+
 
 ### Features
 
@@ -276,6 +307,12 @@
 * refuse snapshot values a native build can't hold, on CRuby too ([5ec51e8](https://github.com/elektronaut/badline/commit/5ec51e81cfabfdb585367bb2f8183516ac64d2b0))
 
 ## [0.12.0](https://github.com/elektronaut/badline/compare/v0.11.1...v0.12.0) (2026-10-10)
+
+### Highlights
+
+- **CP/M**: the C128's Z80 sits on its bus and starts the machine, as on a real C128. `badline c128 cpm3.d81` boots CP/M Plus to `A>`, and ZEXDOC and ZEXALL pass every test under it.
+- **Boot disks**: a C128 boot disk, such as CP/M's system disks or a boot game, boots in C128 mode at power-on.
+- **1581**: the 3.5" drive runs its own DOS on its WD1772 and reads and writes `.d81` images, on the C64, the VIC-20 and the C128 (`--true-drive` with a `.d81`).
 
 
 ### Features
@@ -302,6 +339,12 @@
 * fast serial between the C128 and its 1571 ([34fe02f](https://github.com/elektronaut/badline/commit/34fe02f2098664c94233da9e40828b40e41b6b1a))
 
 ## [0.11.0](https://github.com/elektronaut/badline/compare/v0.10.1...v0.11.0) (2026-10-09)
+
+### Highlights
+
+- **C128**: `badline c128` runs a C128 in C128 mode with BASIC 7.0, through its own 8722 MMU and KERNAL, on the 8502 with its 2 MHz FAST mode and 128K of RAM, in both builds. `--model` picks `c128`, `c128dcr`, `c128ntsc` or `c128dcrntsc`. Device 8 goes through the KERNAL traps, and `F11` and `F12` save and load it in badline's own snapshots.
+- **80 columns**: the VDC draws its 80-column display, and the window follows the C128 between its 40 and 80 column screens. `F6` is the 40/80 DISPLAY key, and `F8` switches the window to the other screen.
+- **C64 mode**: `--c64` holds `C=` through the reset to start C64 mode, as a program that loads at `$0801`, a `.sid` tune or a C64 cartridge does, and `GO64` gets there from BASIC 7.0.
 
 
 ### Features
@@ -336,6 +379,13 @@
 
 ## [0.10.0](https://github.com/elektronaut/badline/compare/v0.9.0...v0.10.0) (2026-10-08)
 
+### Highlights
+
+- **VIC-20**: `badline vic20` runs a PAL VIC-20 in the window, in both builds, with the 6561 VIC-I's picture and sound, both VIAs, the keyboard, the joystick and RESTORE. All 72 rows of `testbench-vic20` pass.
+- **Media**: programs, disks, tapes and cartridges load as on the C64, with device 8 through the KERNAL traps or a true 1541 (`--true-drive`). Without `--ram`, the VIC-20 gets the RAM expansion its media needs, up to 35K.
+- **Snapshots**: `F11`, `F12` and the pause menu save and load the VIC-20 in badline's own snapshots.
+- **Machine families**: the first argument can name the machine, as in `badline c64 game.prg` or `badline vic20 game.prg`.
+
 
 ### Features
 
@@ -364,6 +414,13 @@
 * type Memory's storage as Array[Integer] for Spinel ([797c9b1](https://github.com/elektronaut/badline/commit/797c9b1cab26e6ace4f0d0a20011a3a084e73bc9))
 
 ## [0.9.0](https://github.com/elektronaut/badline/compare/v0.8.0...v0.9.0) (2026-10-05)
+
+### Highlights
+
+- **Quicksaves and autosave**: `F11` quicksaves to the next of five slots in badline's data folder, and `F12` restores the newest, even after badline has quit and started again. badline autosaves every two minutes of play, and the pause menu's Snapshots page saves under a name and loads any save.
+- **Self-contained snapshots**: a snapshot restores without its tape, `.t64` or true drive disk files, and NTSC, Drean and REU machines save as `.vsf` too.
+- **`--model`**: picks the C64 to run, named as in VICE: `c64`, `c64c`, `ntsc`, `newntsc` and `oldntsc`, and the new `drean`, the Drean C64, PAL-N with the 6572, and `sx64`, the SX-64.
+- **Disk lists**: `.m3u` playlists and VICE `.vfl` flip lists give a disk set for the pause menu.
 
 
 ### Features
@@ -394,6 +451,13 @@
 
 ## [0.8.0](https://github.com/elektronaut/badline/compare/v0.7.0...v0.8.0) (2026-10-03)
 
+### Highlights
+
+- **Pause menu**: `F9` pauses the machine and opens a menu with a page for each part of the hardware: Drive 8, Datasette, Expansion port, with the cartridge's freeze button, Ports, Sound and Power. INSERT opens a file browser, and Quick open starts a file in a new machine as the command line does.
+- **Disk sets**: the Drive 8 page steps to the previous or next disk of a set, found by the names in the disk's folder, such as `Disk 1`, `Side B` or TOSEC's `(Disk 1 of 2)`.
+- **Drag and drop**: a disk or tape dropped on the window goes into its drive, and a dropped cartridge, program or `.sid` asks first.
+- **Write-protected by default**: disks go in write-protected, and `--writable`, or WRITABLE on the Drive 8 page, lets the machine write to the image.
+
 
 ### ⚠ BREAKING CHANGES
 
@@ -412,6 +476,13 @@
 * stop printing that the window runs below real time ([86a57a6](https://github.com/elektronaut/badline/commit/86a57a635189a8e46e285773ce62ecbf1dd5adde))
 
 ## [0.7.0](https://github.com/elektronaut/badline/compare/v0.6.1...v0.7.0) (2026-10-02)
+
+### Highlights
+
+- **SID player**: `badline sid FILE|DIR...` plays a queue of tunes in a window worked with the mouse, and `badline tune.sid` opens it too. Its visualizer shows each voice's note and output, its SID view the registers, envelopes and filter, and its INFO view the tune's entry in HVSC's STIL.
+- **Queue and subtunes**: shuffle, looping and playing all subtunes, seeking within a subtune from the bar or with `,` and `.`, and `.sid` files and folders dropped on the window join the queue. A subtune with no known length ends when it falls silent.
+- **2SID and 3SID**: a tune written for two or three SIDs plays on as many, in stereo.
+- **Chip swap**: the 6581 and the 8580 swap while a tune plays.
 
 
 ### ⚠ BREAKING CHANGES
@@ -490,6 +561,11 @@
 
 ## [0.6.0](https://github.com/elektronaut/badline/compare/v0.5.1...v0.6.0) (2026-09-29)
 
+### Highlights
+
+- **Snapshots**: `F11` saves the whole machine to a `.vsf` snapshot in the working directory, and `F12` goes back to the one last saved or opened, in both executables. A snapshot holds the machine as it was on the cycle it was saved, with its RAM, expansions, cartridge, a true 1541 and the tape.
+- **VICE's format**: badline opens snapshots VICE's x64sc saved, as in `badline game.vsf`, and x64sc 3.10 opens badline's.
+
 
 ### Features
 
@@ -513,6 +589,13 @@
 * sleep the idle true drive through its timer interrupts ([0482e43](https://github.com/elektronaut/badline/commit/0482e439cfb160ab69027b166b1059ed8fc9dfb3)), closes [#367](https://github.com/elektronaut/badline/issues/367)
 
 ## [0.5.0](https://github.com/elektronaut/badline/compare/v0.4.2...v0.5.0) (2026-09-29)
+
+### Highlights
+
+- **True 1541**: `--true-drive` puts an emulated 1541 on device 8, running its own DOS ROM on its own 6502 and talking to the C64 over the serial bus. It reads `.d64` disks through its GCR mechanism, writes and formats them, and skips its cycles while it idles.
+- **`.g64` images**: a `.g64` holds a disk's raw GCR, so copy protection and fast loaders that read it work. It goes in a true 1541.
+- **REU**: `--reu SIZE` plugs in a 1700, 1764 or 1750, or a bigger unit up to 16M, with DMA timed against the VIC's bad lines and sprites.
+- **NTSC**: `--ntsc` runs an NTSC C64, with the 6567R8 VIC-II.
 
 
 ### Features
@@ -555,6 +638,13 @@
 * build the Homebrew pack with Spinel d3182102 ([42b42d5](https://github.com/elektronaut/badline/commit/42b42d506270f16cfb033c7d538e75131f7c74c2))
 
 ## [0.4.0](https://github.com/elektronaut/badline/compare/v0.3.0...v0.4.0) (2026-09-28)
+
+### Highlights
+
+- **Native `badline`**: compiled ahead of time with Spinel, it installs with `brew install elektronaut/tap/badline` on macOS, takes `badline-ruby`'s options and plays sound by default. Its window reads game controllers, the mouse and paddles, and paces itself by vsync.
+- **`badline-ruby`**: the gem's executable is renamed, and takes over from `badline-sid`: `--headless tune.sid` plays a tune and `--audio-out out.wav` renders one.
+- **Writable disks**: the virtual drive writes `SAVE`s, files and blocks back to the disk image, `--read-only` mounts one write-protected, and `Badline::Media.insert_disk` swaps the disk while the machine runs.
+- **More hardware**: GEO-RAM, the +60K and +256K RAM expansions, and the C64C's 8565 VIC-II and 6526A CIA, chosen from Ruby.
 
 ### Upgrading
 
@@ -613,6 +703,12 @@
 
 
 ## [0.3.0](https://github.com/elektronaut/badline/compare/v0.2.1...v0.3.0) (2026-09-24)
+
+### Highlights
+
+- **Sound in the window**: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default.
+- **A virtual drive closer to the 1541**: buffer channels live in the drive's RAM, DOS command parameters are read as the 1541 reads them, the BAM goes in buffer 4 when a disk initializes, `LOAD"*"` reopens the last file loaded, and host SAVE and read failures show on the error channel.
+- **Other ROMs**: `BADLINE_ROM_PATH`, or `Badline.rom_path` from Ruby, loads the KERNAL, BASIC and character ROMs from a directory.
 
 Sound is the headline: `badline --sound` plays the SID in the emulator window and paces emulation to the audio device. It is off by default, because the emulator still runs below real time on CRuby and the sound stutters there. This release also brings the virtual drive closer to a real 1541 (buffer channels in drive RAM, DOS command parsing, the BAM in buffer 4, `LOAD"*"`), cartridge banking fixes, and `Badline::Checkpoint` with `bin/machine_diff` for checking that a change leaves emulation alone.
 
@@ -680,6 +776,14 @@ Sound is the headline: `badline --sound` plays the SID in the emulator window an
 * stop LOADs and file reads at a block the error table marks bad ([457be18](https://github.com/elektronaut/badline/commit/457be18351af7241a26f76631ec9bfad0ce2306e))
 
 ## [0.2.0](https://github.com/elektronaut/badline/compare/v0.1.0...v0.2.0) (2026-09-23)
+
+### Highlights
+
+- **VIC-II**: the border, the bad-line DMA delay, idle graphics, the light pen and sprites run cycle by cycle, with the sprite registers replayed through a per-pixel sequencer.
+- **CPU and CIAs**: the 6510 polls interrupts every cycle and makes the dummy reads of its internal cycles, and the CIAs model the CNT pin, the serial port and the TOD clock. Wolfgang Lorenz's test suite passes from start to finish.
+- **SID**: the 6581 and the 8580, with the board's RC filter and combined waveforms fitted against real-chip dumps. `badline-sid` plays `.sid` tunes live and renders them to WAV or AIFF, taking the length from HVSC's song lengths.
+- **Cartridges**: EasyFlash, Epyx FastLoad, Pagefox, Simons' BASIC, the Action Replay, Retro Replay and Final Cartridge III freezers, the KCS Power Cartridge and more bank-switching mappers.
+- **Media and input**: `.tap` tapes play through the datasette, `.t64` archives load by name, and device 8 is served by trapping the KERNAL's serial bus primitives. Paddles and a 1351 mouse plug into either control port, and host gamepads drive the joysticks.
 
 
 ### Features
