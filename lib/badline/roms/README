@@ -377,6 +377,66 @@ the German letters and the section sign in place of @ [ \ ] and in
 some of the graphics. The CRTC's MA13, bit 5 of R12, picks the half.
 SHA-1 9616f7f18757cccefb702a945f954b644d5b17d1.
 
+Commodore SuperPET ROMs
+=======================
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/computers/pet/SuperPET/
+The Waterloo 6809 firmware, as the two-board SuperPET's three 2764s hold
+it. The three-board SuperPET's 2532s and 2516 hold the same bytes, and
+each file below names them. In 6502 mode the SuperPET runs the 8032's
+ROMs above. Nothing maps these yet.
+
+pet/superpet-a000.rom
+---------------------
+The Waterloo ROM for $A000-$BFFF, 970018-12
+(waterloo-a000-bfff.970018-12.bin): 901898-01
+(waterloo-a000.901898-01.bin, SHA-1
+0414b3ab847c8977eb05c2fcc72efcf2f9d92871) followed by 901898-02
+(waterloo-b000.901898-02.bin, SHA-1
+df154939b934d0aeeb376813ec1ba0d43c2a3378).
+SHA-1 dcd18397dd2a691118aaacf2b087d08e3782f81a.
+
+pet/superpet-c000.rom
+---------------------
+The Waterloo ROM for $C000-$DFFF, 970019-12
+(waterloo-c000-dfff.970019-12.bin): 901898-03
+(waterloo-c000.901898-03.bin, SHA-1
+6c5b0cce97068f8841112ba6d5cd8e568b562fa3) followed by 901898-04
+(waterloo-d000.901898-04.bin, SHA-1
+b42a2050a319a1ffca7868a8d8d635fadd37ec37).
+SHA-1 3ac4b9ae895c45630d10cfc9079f5dcbce5eb48e.
+
+pet/superpet-e000.rom
+---------------------
+The Waterloo ROM for $E000-$FFFF, 970020-12
+(waterloo-e000-ffff.970020-12.bin), with the 60 Hz CRTC table: 901897-01
+(waterloo-e000.901897-01.bin, SHA-1
+e8ce8347451a001214a5e71a13081b38b4be23bc) for $E000-$E7FF, 2K of $FF
+where the I/O page sits, and 901898-05 (waterloo-f000.901898-05.bin,
+SHA-1 9b4a5134d20345171e7303445f87c4e0b9addc96) for $F000-$FFFF, which
+ends in the 6809's vectors.
+SHA-1 618992fe0046b670695f5b1d1c168ace9e6b8470.
+
+pet/superpet-e000-50hz.rom
+--------------------------
+The 50 Hz Waterloo ROM for $E000-$FFFF, 970034-12
+(waterloo-e000-ffff-970034-12.bin, from Christian Forstreuter's MMF
+9000, U49). Its $E000-$E7FF is the 50 Hz 901897-01
+(waterloo-e000.901897-x.50Hz.bin, SHA-1
+57f8c3ef305768d9cba9a96d3f7b90d4a3c2daa4), which differs from the 60 Hz
+one in three bytes of the CRTC table, $E0C2, $E0C3 and $E0C5, and the
+rest is superpet-e000.rom's.
+SHA-1 ef6c5e5e9be17b87faed43cf0007f98731d78384.
+
+pet/characters-superpet.rom
+---------------------------
+The SuperPET's 4K character generator, 901640-01
+(characters.901640-01.bin). Its first half is 901447-10 byte for byte,
+and its second holds an ASCII and an APL set. The CRTC's MA13, bit 5 of
+R12, picks the half.
+SHA-1 bf346f11595a3e65e55d6aeeaa2c0cec807b66c7.
+
 Commodore CBM-II ROMs
 =====================
 
