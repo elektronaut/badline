@@ -2,14 +2,15 @@
 
 require "badline/core"
 
-# The PET's 8050 and 8250 scenarios: DOS 2.7 on the interface processor and
-# the controller's program in its 6530, on the IEEE-488 bus, every line of
-# the handshake run by both sides. On a 4032 with BASIC 4 they format a
-# disk, save and load a program, save to a write-protected disk, autostart
-# a disk and read the error channel, as the 2031's do
-# (drive_scenarios_pet.rb), the 8250 on its double-sided .d82. The idle
-# scenario runs a PET with a sleeping 8050 beside one whose 8050 steps
-# every cycle.
+# The PET's scenarios for the units with two processors, an 8050 and an
+# 8250: DOS 2.7 on the interface processor and the controller's program in
+# its 6530, on the IEEE-488 bus, every line of the handshake run by both
+# sides. On a 4032 with BASIC 4 they format a disk, save and load a
+# program, save to a write-protected disk, autostart a disk and read the
+# error channel, as the 2031's do (drive_scenarios_pet.rb), the 8250 on its
+# double-sided .d82. The idle scenario runs a PET with a sleeping unit
+# beside one whose unit steps every cycle. Each scenario is named
+# pet-MODEL-SCENARIO, and the tables below say where the models differ.
 module DriveScenarios
   module PET8050Runs
     # The scenarios and the checks each makes, the longest-running first.
@@ -26,19 +27,31 @@ module DriveScenarios
       "pet-8250-error-channel" => %w[power-on-message]
     }.freeze
 
+    # Each model's disk image, by its extension.
+    EXTENSIONS = { "8050" => ".d80", "8250" => ".d82" }.freeze
+
+    # The size of a disk image of each kind.
+    IMAGE_SIZES = { ".d80" => 533_248, ".d82" => 1_066_496 }.freeze
+
     # The blocks free on a newly formatted disk: 2052 on an 8050, 4133 on an
     # 8250, less one for PROG.
     FREE_AFTER_PROG = { "8050" => "2051 BLOCKS FREE", "8250" => "4132 BLOCKS FREE" }.freeze
 
+    # The disk's header line once formatted as NEW DISK with the ID XY.
+    NEW_DISK = { "8050" => "\"NEW DISK        \" XY 2C", "8250" => "\"NEW DISK        \" XY 2C" }.freeze
+
+    # The power-on message each model's error channel reads.
+    MESSAGES = { "8050" => " 73CBM DOS V2.7 0 0", "8250" => " 73CBM DOS V2.7 0 0" }.freeze
+
     module_function
 
     def run(report, name, dir)
-      model = name.start_with?("pet-8250") ? "8250" : "8050"
+      model = name[/\Apet-(\d{4})-/, 1]
       case name.delete_prefix("pet-#{model}-")
       when "format" then format(report, dir, model)
       when "save" then save(report, dir, model)
       when "read-only" then read_only(report, dir, model)
-      when "idle" then idle(report, dir)
+      when "idle" then idle(report, dir, model)
       when "autostart" then autostart(report, dir, model)
       else error_channel(report, model)
       end
@@ -54,7 +67,7 @@ module DriveScenarios
       output = write_run(path, model, text, 4)
       free = FREE_AFTER_PROG.fetch(model)
       report.check("no-error", Runs.number_before?(output, " 0", "OK"), "the error channel said no 0, OK")
-      report.check("lists-new-disk", output.include?("\"NEW DISK        \" XY 2C") && output.include?("\"PROG\"") &&
+      report.check("lists-new-disk", output.include?(NEW_DISK.fetch(model)) && output.include?("\"PROG\"") &&
                                      output.include?(free), "listed no NEW DISK with PROG and #{free}")
       report.check("trap-readable", trap_listing(path, "$").include?(free), "the traps listed no #{free}")
     end
@@ -82,7 +95,7 @@ module DriveScenarios
       Badline::Media.attach(machine, path, autostart: false, disk: { read_only: true })
       machine.on_init { machine.type_text("10 print\rsave\"x\",8\rprint ds$\r") }
       Runs.run_until(machine, 60_000_000) { output.output.upcase.scan("READY.").length >= 3 }
-      machine.drive8050.flush
+      machine.true_drive.flush
       report.check("write-protect-on", output.output.upcase.include?("WRITE PROTECT ON"),
                    "printed no WRITE PROTECT ON")
       report.check("image-unchanged", File.binread(path) == before, "the image changed")
@@ -104,14 +117,14 @@ module DriveScenarios
     # The host cycles at which idle compares its two machines.
     IDLE_CHECKPOINTS = [2_000_000, 6_000_000, 10_000_000, 14_000_000].freeze
 
-    # Two PETs with an 8050 side by side, one unit sleeping through its idle
+    # Two PETs with the model side by side, one unit sleeping through its idle
     # loops and one stepping every cycle, through the unit's boot, a LOAD of
     # the directory, the motor's run-down and the idle after it. Both
     # machines hold the same at every checkpoint.
-    def idle(report, dir)
-      skipping = idle_machine(blank(dir, "pet-8050-idle-a", "8050"), true)
-      stepping = idle_machine(blank(dir, "pet-8050-idle-b", "8050"), false)
-      drive = skipping.drive8050
+    def idle(report, dir, model)
+      skipping = idle_machine(blank(dir, "pet-#{model}-idle-a", model), model, true)
+      stepping = idle_machine(blank(dir, "pet-#{model}-idle-b", model), model, false)
+      drive = skipping.true_drive
       asleep = 0
       differs = []
       IDLE_CHECKPOINTS.each do |checkpoint|
@@ -126,9 +139,9 @@ module DriveScenarios
       report.check("matches-stepping", differs.empty?, "differs at #{differs.join(',')}")
     end
 
-    def idle_machine(path, idle_skip)
+    def idle_machine(path, model, idle_skip)
       machine = Badline::PET.new(model: "4032")
-      drive = machine.plug_drive8050("8050")
+      drive = machine.plug_ieee_drive(model)
       drive.idle_skip = idle_skip
       drive.insert_image(path)
       machine.on_init { machine.type_text("load\"$\",8\r") }
@@ -140,7 +153,7 @@ module DriveScenarios
     # the drives and every RAM.
     def idle_state(machine)
       cpu = machine.cpu
-      drive = machine.drive8050
+      drive = machine.true_drive
       state = [machine.cycles, cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p, cpu.cycles,
                drive.cycles]
       [drive.ip_cpu, drive.fdc_cpu].each { |unit| state.push(unit.cycles, unit.instructions).concat(unit.idle_state) }
@@ -156,12 +169,12 @@ module DriveScenarios
     # BASIC reads the power-on message from the unit's error channel.
     def error_channel(report, model)
       machine = Badline::PET.new(model: "4032")
-      machine.plug_drive8050(model)
+      machine.plug_ieee_drive(model)
       output = machine.capture_output
       machine.on_init { machine.type_text(PETRuns::ERROR_CHANNEL_TEXT) }
       Runs.run_until(machine, 10_000_000) { output.output.upcase.include?(" 0 0\n") }
-      report.check("power-on-message", output.output.upcase.include?(" 73CBM DOS V2.7 0 0"),
-                   "printed no 73,CBM DOS V2.7,0,0")
+      message = MESSAGES.fetch(model)
+      report.check("power-on-message", output.output.upcase.include?(message), "printed no#{message}")
     end
 
     # A 4032 with the model on the bus and the image at path in drive 0,
@@ -169,7 +182,7 @@ module DriveScenarios
     # times, and then until the motor stops, and returns what it printed.
     def write_run(path, model, text, readies)
       machine = Badline::PET.new(model: "4032")
-      drive = machine.plug_drive8050(model)
+      drive = machine.plug_ieee_drive(model)
       drive.insert_image(path)
       output = machine.capture_output
       machine.on_init { machine.type_text(text) }
@@ -183,7 +196,7 @@ module DriveScenarios
     # of name and a LIST print.
     def trap_listing(path, name)
       machine = Badline::PET.new(model: "4032")
-      machine.mount(open_image(path, File.extname(path) == ".d82" ? "8250" : "8050"))
+      machine.mount(image_at(path))
       output = machine.capture_output
       machine.on_init { machine.type_text("load\"#{name}\",8\rlist\r") }
       Runs.run_until(machine, 150_000_000) { output.output.upcase.scan("READY.").length >= 2 }
@@ -198,12 +211,15 @@ module DriveScenarios
       path
     end
 
-    def open_image(path, model)
-      model == "8250" ? Badline::Storage::D82Image.new(path) : Badline::Storage::D80Image.new(path)
+    def open_image(path, model) = image_at(path, extension(model))
+
+    # The image at path, of the kind the extension names.
+    def image_at(path, extension = File.extname(path))
+      extension == ".d82" ? Badline::Storage::D82Image.new(path) : Badline::Storage::D80Image.new(path)
     end
 
-    def extension(model) = model == "8250" ? ".d82" : ".d80"
+    def extension(model) = EXTENSIONS.fetch(model)
 
-    def image_size(model) = model == "8250" ? 1_066_496 : 533_248
+    def image_size(model) = IMAGE_SIZES.fetch(extension(model))
   end
 end

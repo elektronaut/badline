@@ -94,8 +94,10 @@ module Badline
     # +model+ names one of Model::ALL, +kernal+ one of Model::KERNALS, and
     # +mains_hz+ the mains, 50 or 60, which also sets a 600's jumper for
     # the editor's 60 Hz CRTC table. +refresh+ false leaves out the DRAM
-    # refresh's stolen cycles.
-    def initialize(model: Model::DEFAULT, kernal: "04a", mains_hz: 50, refresh: true, debug: false)
+    # refresh's stolen cycles. +true_drive_model+ names the drive
+    # plug_true_drive plugs in (Drives::IEEEModels).
+    def initialize(model: Model::DEFAULT, kernal: "04a", mains_hz: 50, refresh: true, debug: false,
+                   true_drive_model: Drives::IEEEModels::DEFAULT)
       @model = Model.named(model)
       raise ArgumentError, "no CBM-II KERNAL named #{kernal}" unless Model::KERNALS.key?(kernal)
       raise ArgumentError, "the mains is 50 or 60 Hz, not #{mains_hz}" unless [50, 60].include?(mains_hz)
@@ -135,7 +137,7 @@ module Badline
       @dos = nil
       @ieee_trap = nil
       @capture_output = nil
-      init_ieee_drives
+      init_ieee_drives(true_drive_model)
       @init_threshold = boot_cycles
     end
 

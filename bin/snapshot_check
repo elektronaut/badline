@@ -246,7 +246,7 @@ module SnapshotCheck
 
   # The modules a load from VICE's modules makes afresh, whole.
   def remade(machine)
-    return CONTROLLER if machine.drive8050
+    return CONTROLLER if %w[8050 8250].include?(machine.true_drive&.model_name)
     return %w[BL-VIC] if machine.is_a?(Badline::CBM2::P500)
 
     []

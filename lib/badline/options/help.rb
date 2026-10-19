@@ -130,8 +130,10 @@ module Badline
         --basic 2. BASIC 1 can't LOAD from a disk drive, though a disk still
         starts its first program, and BASIC 2 can. Their --true-drive makes
         device 8 an emulated 2031 on the IEEE-488 bus, which reads .d64 and
-        .g64 images. The 8032 and the 8096 have two 50 Hz editors:
-        4-80-b-50hz, the default, and 4-80-b-50hz-0283, another chip's,
+        .g64 images, and a .d80 or a .d82 then goes in an emulated 8050 or
+        8250. --drive-type 8050 or 8250 plugs either in instead. The 8032
+        and the 8096 have two 50 Hz editors: 4-80-b-50hz, the default, and
+        4-80-b-50hz-0283, another chip's,
         with 64-cycle lines and 313 lines a frame. The 8296 runs its own,
         4-80-b-50hz-8296, and takes the 8032's too. --characters din fits
         it with the DIN character ROM, and --jumpers ram9,rama puts RAM at
@@ -142,7 +144,8 @@ module Badline
         --kernal 03b fits the 1983 KERNAL in place of 04a, and --60hz runs
         it on 60 Hz mains. Its --true-drive makes device 8 an emulated 2031
         on its IEEE-488 bus, which reads .d64 and .g64 images, and a .d80
-        or a .d82 then goes in an emulated 8050 or 8250. Its keys type what
+        or a .d82 then goes in an emulated 8050 or 8250, and --drive-type
+        plugs in either from the start, as on the PET. Its keys type what
         the host's keys type, F12 is RUN/STOP, Alt with F9 or F10 presses
         its F9 or F10, and the pause menu's KEYBOARD page says where the
         rest are. --model 510 or 510ntsc runs the P500, on the VIC-II with

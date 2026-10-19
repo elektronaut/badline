@@ -71,8 +71,9 @@ module Badline
       def region = @model.region
 
       # +model+ names one of Model::ALL, and +mains_hz+ the mains, 50 or
-      # 60, the model's region's unless given.
-      def initialize(model: Model::DEFAULT, mains_hz: nil, debug: false)
+      # 60, the model's region's unless given. +true_drive_model+ names the
+      # drive plug_true_drive plugs in (Drives::IEEEModels).
+      def initialize(model: Model::DEFAULT, mains_hz: nil, debug: false, true_drive_model: Drives::IEEEModels::DEFAULT)
         @model = Model.named(model)
         @mains_hz = mains_hz || @model.region.mains_hz
         raise ArgumentError, "the mains is 50 or 60 Hz, not #{@mains_hz}" unless [50, 60].include?(@mains_hz)
@@ -116,7 +117,7 @@ module Badline
         @dos = nil
         @ieee_trap = nil
         @capture_output = nil
-        init_ieee_drives
+        init_ieee_drives(true_drive_model)
         @init_threshold = INIT_THRESHOLD
         update_video_bus
       end

@@ -76,6 +76,15 @@ module Badline
 
       def model_name = "8050"
 
+      def boot_cycles = BOOT_CYCLES
+
+      # Whether the unit is where VICE saves it: both processors between
+      # instructions, the FDC at the start of its idle loop.
+      def settled_for_vice?
+        fdc = fdc_cpu
+        ip_cpu.boundary? && fdc.boundary? && fdc.program_counter == Idle::FDC_LOOP
+      end
+
       # The sides each drive's disk has.
       def sides = 1
 

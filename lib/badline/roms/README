@@ -128,6 +128,79 @@ https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/8050/
 and named by the 8050's parts list
 (https://www.zimmers.net/anonftp/pub/cbm/schematics/drives/old/8050/parts.txt).
 
+1001/fdc-251257-02a.rom
+-----------------------
+The SFD-1001's floppy controller program, 251257-02A: the first 1 KB
+of the 2716 on its 6530 adaptor (251252-01), whose A10 is grounded, so
+the controller runs it from $FC00-$FFFF in place of the 6530's mask.
+Its interface processor runs 8050/dos-2.7.rom, the same 16 KB as
+901887-01 and 901888-01.
+SHA-1 473664d405942865d46a6e723eb7d3f243584f7a (the whole 2 KB EPROM,
+SHA-1 3b954eb34f7ea088eed1d33ebc6d6e83a3e9be15).
+
+Downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/1001/251257-02A.bin
+
+4040/dos-1.2.rom
+----------------
+The 2040's DOS 1.2, the 3040's with DOS 1, 8 KB for the interface
+processor's $E000-$FFFF: 901468-06 ($E000-$EFFF, SHA-1
+4d9658f2e6ff3276e5c6e224611a66ce44b16fc7) followed by 901468-07
+($F000-$FFFF, SHA-1 6a51c7954938439ca8342fc295bda050c06e1791). No DOS
+1.0 image is public, so both DOS 1 units run it, as xpet's 2040 does.
+SHA-1 e37b3bfd801eb19dea50cf8b4a6af8613c3520d3.
+
+4040/fdc-901466-02.rom
+----------------------
+The 6530 of the DOS 1 floppy controller, 901466-02, the same 1 KB as
+901466-01, run from $FC00-$FFFF.
+SHA-1 d539858f839f96393f218307df7394362a84a26a.
+
+4040/dos-2.1.rom
+----------------
+DOS 2.1, 12 KB for the interface processor's $D000-$FFFF: 901468-11
+($D000, SHA-1 8415f3159dea73161e0cef7960afa6c76953b6f8), 901468-12
+($E000, SHA-1 e8a94f239082d45f64f01b2d8e488d18fe659cbb) and 901468-13
+($F000, SHA-1 6ada7904ac9d13c3f1c0a8715f9c4be1aa6eb0bb). xpet's 3040
+runs it.
+SHA-1 02bd4b0c8508b3874b95799a9a63caf369c837de.
+
+4040/dos-2.1-rev.rom
+--------------------
+The revised DOS 2.1, 12 KB for $D000-$FFFF: 901468-14 ($D000, SHA-1
+ffb992b82ec913ddff7be964d7527aca3e21580c), 901468-15 ($E000, SHA-1
+f702d6917fe8a798740ba4d467b500944ae7b70a) and 901468-16 ($F000, SHA-1
+04b918cf4adeee8015b43383d3cea7288a7d0aa8). xpet's 4040 runs it.
+SHA-1 245abbe76581558d270cdbb6fe55f56748403d8e.
+
+4040/fdc-901466-04.rom
+----------------------
+The 6530 of the DOS 2.1 floppy controller, 901466-04, run from
+$FC00-$FFFF under both DOS 2.1 sets.
+SHA-1 6645fa40b81be1ff7d1384e9b52df06a26ab0bfb.
+
+All downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/4040/
+and concatenated in address order.
+
+9060/dos-3.0.rom
+----------------
+The D9060's and D9090's DOS 3.0, 16 KB for the interface processor's
+$C000-$FFFF: 300516 rev C ($C000-$DFFF, SHA-1
+bb1ddb5da94a86266012eca54818aa21dc4cef6a) followed by 300517 rev C
+($E000-$FFFF, SHA-1 4c17d014de48c906871b9b6c7d037d8736b1fd52), the set
+xpet's 9000 runs.
+SHA-1 c48df2cbb0eea656c3243df7ea8bfefcd171b8e8.
+
+9060/sasi-300515-revb.rom
+-------------------------
+The program of the D9060's and D9090's SASI host processor, 300515
+rev B, 2 KB for $F800-$FFFF.
+SHA-1 59dafbd4855083074ba8dc96a04d4daa5b76e0d6.
+
+Both downloaded from
+https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/9090/
+
 Commodore VIC-20 ROMs
 =====================
 

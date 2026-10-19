@@ -88,22 +88,27 @@ module DriveScenarios
     when "pet-2031-format", "pet-2031-save", "pet-2031-idle", "pet-2031-read-only", "pet-2031-autostart",
          "pet-2031-error-channel", "pet-2031-basic2-error-channel", "pet-2031-basic1-error-channel"
       PETRuns.run(report, name, dir)
-    when "pet-8050-format", "pet-8250-format", "pet-8050-save", "pet-8250-save", "pet-8050-idle", "pet-8050-read-only",
-         "pet-8050-autostart", "pet-8250-autostart", "pet-8050-error-channel", "pet-8250-error-channel"
-      PET8050Runs.run(report, name, dir)
-    when "cbm2-8050-format", "cbm2-2031-format", "cbm2-8050-save", "cbm2-2031-save", "cbm2-2031-idle",
-         "cbm2-8050-autostart", "cbm2-2031-error-channel", "cbm2-8050-error-channel",
-         "cbm2-8250-error-channel", "p500-8050-save", "p500-2031-error-channel"
-      CBM2Runs.run(report, name, dir)
     when "plus4-tape" then Plus4TapeRuns.run(report, dir, "plus4")
     when "plus4-c16-tape" then Plus4TapeRuns.run(report, dir, "c16")
     else
+      run_keyed(report, name, dir)
+    end
+    report.rows
+  end
 
+  # The scenarios named by the model they run on: the PET's units with two
+  # processors (PET8050Runs) and the CBM-II's drives (CBM2Runs), each
+  # found in its table of checks, and the 1581's.
+  def self.run_keyed(report, name, dir)
+    if PET8050Runs::CHECKS.key?(name)
+      PET8050Runs.run(report, name, dir)
+    elsif CBM2Runs::CHECKS.key?(name)
+      CBM2Runs.run(report, name, dir)
+    else
       raise ArgumentError, "No drive scenario #{name}" unless Runs1581::CHECKS.key?(name)
 
       Runs1581.run(report, name, dir)
     end
-    report.rows
   end
 
   # SAVE through the DOS to a blank disk, then NEW, LOAD and LIST it back.

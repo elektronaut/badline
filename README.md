@@ -84,7 +84,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--no-autostart` | Attach the media and stop at `READY.`, so you can type the `LOAD` yourself |
 | `--writable` | Let the machine write to disk images. Without it, a disk goes in write-protected: the drive reports `26,WRITE PROTECT ON` for any write and the image file stays as it was |
 | `--true-drive` | Put an emulated 1541 on device 8 instead of the KERNAL traps, a 1551 on the Plus/4, or a 2031 on the PET or the CBM-II, or for a `.d80` or `.d82` an 8050 or 8250. See [Media](#media) |
-| `--drive-type 1541` | On the Plus/4, make the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. It implies `--true-drive`. See [The Plus/4](#the-plus4) |
+| `--drive-type MODEL` | On the Plus/4, `1541` makes the true drive on device 8 an emulated 1541 on the serial bus in place of the 1551. On the PET and the CBM-II, `2031` (the default), `8050` or `8250` names the drive `--true-drive` puts on the IEEE-488 bus. It implies `--true-drive`. See [The Plus/4](#the-plus4) and [The PET](#the-pet) |
 | `-s`, `--subtune N` | Pick a subtune of a `.sid` file, counting from 1 |
 | `--sid 6581`, `--sid 8580` | Fit the older or newer SID. `--sid auto`, the default, takes a `.sid` tune's own |
 | `--ram SIZE` | Give a VIC-20 the RAM expansion `SIZE`: `unexpanded`, `3k`, `8k`, `16k`, `24k`, `32k` or `all`. Without it, the VIC-20 gets the expansion its media needs. See [The VIC-20](#the-vic-20). On the Plus/4, `16k`, `32k` or `64k` of RAM in place of the model's own, and on the PET `4k`, `8k`, `16k` or `32k` |
@@ -363,7 +363,9 @@ A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
 program that loads at `$0401` starts a C64, since a VIC-20 with 3K loads
 there too. Disks go through the KERNAL traps on the IEEE-488 bus as
 device 8, or with `--true-drive` an emulated 2031 on the bus, which
-reads `.d64` and `.g64` images, and tapes play on cassette port 1. The keys type what the host's
+reads `.d64` and `.g64` images, and an 8050 for a `.d80` or an 8250 for
+a `.d82`. `--drive-type 8050` or `8250` plugs either in from the start.
+Tapes play on cassette port 1. The keys type what the host's
 keys type, on either keyboard, and `Alt` adds the PET's `SHIFT`:
 [Input](#input) lists the rest. The pause
 menu's Power page names the model, its RAM and its frame rate, and its
@@ -399,7 +401,8 @@ A program loads at the start of BASIC, `$0003` in segment 1, and runs.
 Disks of every kind, `.d80` and `.d82` among them, go through the
 KERNAL traps on the IEEE-488 bus as device 8, or with `--true-drive` an
 emulated 2031 on the bus, which reads `.d64` and `.g64` images, and an
-8050 for a `.d80` or an 8250 for a `.d82`. A 610's first `LOAD` from a
+8050 for a `.d80` or an 8250 for a `.d82`, and `--drive-type` names the
+drive to start with, as on the PET. A 610's first `LOAD` from a
 2031 after power-on finds no file, as on xcbm2, and the second loads.
 A `.d80` or `.d82` on its own starts a PET, so `cbm2` names the machine
 for one, but a cartridge made for the CBM-II starts it without `cbm2`.

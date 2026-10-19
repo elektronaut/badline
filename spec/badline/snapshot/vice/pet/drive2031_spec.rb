@@ -25,11 +25,11 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
   def section_bytes(container) = container.sections.to_h { |section| [section.to_s, section.data.bytesize] }
 
   def drive_cpu(pet)
-    cpu = pet.drive2031.instance_variable_get(:@cpu)
+    cpu = pet.true_drive.instance_variable_get(:@cpu)
     [cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p]
   end
 
-  def half_track(pet) = pet.drive2031.instance_variable_get(:@mechanism).half_track
+  def half_track(pet) = pet.true_drive.instance_variable_get(:@mechanism).half_track
 
   describe "the modules written for a PET with a 2031" do
     it "follow the VIA in xpet's order" do
@@ -53,9 +53,9 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
 
     it "are taken with the drive's CPU between instructions as well as the PET's" do
       pet = with_drive
-      pet.cycle! until !pet.drive2031.cpu.boundary? && pet.cpu.boundary?
+      pet.cycle! until !pet.true_drive.cpu.boundary? && pet.cpu.boundary?
       Badline::Snapshot::Image.exported(pet)
-      expect([pet.cpu.boundary?, pet.drive2031.cpu.boundary?]).to eq([true, true])
+      expect([pet.cpu.boundary?, pet.true_drive.cpu.boundary?]).to eq([true, true])
     end
   end
 
@@ -67,7 +67,7 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
     let(:saved) { with_drive }
 
     it "puts a 2031 on the bus" do
-      expect(restored.drive2031&.model_name).to eq("2031")
+      expect(restored.true_drive&.model_name).to eq("2031")
     end
 
     it "has the drive's registers" do
@@ -75,7 +75,7 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
     end
 
     it "has the drive's RAM" do
-      expect(restored.drive2031.ram.read(0x0300, 3)).to eq([0x12, 0x34, 0x56])
+      expect(restored.true_drive.ram.read(0x0300, 3)).to eq([0x12, 0x34, 0x56])
     end
 
     it "has the head where it was" do
@@ -88,6 +88,6 @@ describe Badline::Snapshot::Vice::PET::Drive2031 do
     pet = Badline::PET.new.tap(&:plug_true_drive)
     saved = XpetSnapshots.to_boundary(Badline::PET.new).tap { |pet| XpetSnapshots.set_up_crtc(pet, XpetSnapshots::CRTC80) }
     image(XpetSnapshots.exported(saved)).restore(pet) { |line| lines << line }
-    expect([pet.drive2031, lines.last]).to eq([nil, "the 2031 on device 8 is taken off the bus"])
+    expect([pet.true_drive, lines.last]).to eq([nil, "the 2031 on device 8 is taken off the bus"])
   end
 end

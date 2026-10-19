@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "badline/pet/rom_sets"
+require "badline/drives/ieee_models"
 require "badline/options/option"
 require "badline/options/event"
 require "badline/options/table"
@@ -230,8 +231,9 @@ module Badline
 
     def true_drive? = @true_drive || !@drive_type.nil?
 
-    # The Plus/4's true drive --drive-type names, "1551" without it.
-    def drive_type = @drive_type || "1551"
+    # The true drive --drive-type names: without it, "1551" on the Plus/4
+    # and the 2031 on the PET and the CBM-II.
+    def drive_type = @drive_type || (@family == :plus4 ? "1551" : Drives::IEEEModels::DEFAULT)
 
     # Whether --save-snapshot adds VICE's modules, so x64sc opens it.
     def vice? = @vice

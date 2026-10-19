@@ -466,6 +466,8 @@ describe Badline::Options do
       "a missing cartridge" => [%w[plus4 --c2hi missing.bin], "no such file or directory: missing.bin"],
       "a drive type for the C64" => [%w[--drive-type 1551], "--drive-type needs plus4"],
       "a drive type the Plus/4 has none of" => [%w[plus4 --drive-type 1571], "invalid argument: --drive-type 1571"],
+      "an IEEE-488 drive for the Plus/4" => [%w[plus4 --drive-type 8050], "--drive-type needs pet or cbm2"],
+      "a serial drive for the PET" => [%w[pet --drive-type 1541], "--drive-type needs plus4"],
       "a KERNAL for the PET" => [%w[pet --kernal 04a], "--kernal needs cbm2"],
       "an unknown CBM-II KERNAL" => [%w[cbm2 --kernal 01], "invalid argument: --kernal 01"],
       "a PET model for the CBM-II" => [%w[cbm2 --model 8032], "invalid argument: --model 8032"],
@@ -624,6 +626,22 @@ describe Badline::Options do
 
       it "names the 1551 for --true-drive" do
         expect([options.true_drive?, options.drive_type]).to eq([false, "1551"])
+      end
+    end
+
+    context "with pet and --drive-type 8250" do
+      let(:argv) { ["pet", "--drive-type", "8250", program_path] }
+
+      it "puts a true 8250 on device 8" do
+        expect([options.true_drive?, options.drive_type]).to eq([true, "8250"])
+      end
+    end
+
+    context "with cbm2 and no --drive-type" do
+      let(:argv) { ["cbm2", program_path] }
+
+      it "names the 2031 for --true-drive" do
+        expect([options.true_drive?, options.drive_type]).to eq([false, "2031"])
       end
     end
 

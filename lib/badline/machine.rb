@@ -158,24 +158,29 @@ module Badline
     # A PET with the RAM --ram names (PET::Model::RAM_SIZES), or with the
     # model's own without it, the editor at the frame rate --60hz or
     # --editor asks for, the ROMs --basic, --editor and --characters fit it
-    # with, and the 8296 board's jumpers --jumpers names.
+    # with, the 8296 board's jumpers --jumpers names, and the true drive
+    # --drive-type names.
     def self.pet_for(media, options)
       unsupported = !media.nil? && Media::PETMedia::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a PET" if unsupported
 
       PET.new(model: options.model, ram_kb: options.ram_kb, refresh_hz: options.refresh_hz, basic: options.basic,
-              editor: options.editor, characters: options.characters, jumpers: options.jumpers)
+              editor: options.editor, characters: options.characters, jumpers: options.jumpers,
+              true_drive_model: options.drive_type)
     end
     private_class_method :pet_for
 
     # A CBM-II with the KERNAL --kernal names, on the mains --60hz asks
-    # for: a B series' 50 Hz without it, and a P500's its region's.
+    # for: a B series' 50 Hz without it, and a P500's its region's, and
+    # the true drive --drive-type names.
     def self.cbm2_for(media, options)
       unsupported = !media.nil? && Media::CBM2Media::UNSUPPORTED.include?(File.extname(media).downcase)
       raise Unsupported, "doesn't go in a CBM-II" if unsupported
-      return CBM2::P500.new(model: options.model, mains_hz: options.mains_hz) if options.p500?
 
-      CBM2.new(model: options.model, kernal: options.kernal, mains_hz: options.mains_hz || 50)
+      drive = options.drive_type
+      return CBM2::P500.new(model: options.model, mains_hz: options.mains_hz, true_drive_model: drive) if options.p500?
+
+      CBM2.new(model: options.model, kernal: options.kernal, mains_hz: options.mains_hz || 50, true_drive_model: drive)
     end
     private_class_method :cbm2_for
 

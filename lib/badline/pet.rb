@@ -83,9 +83,10 @@ module Badline
     # model runs its 50 Hz editor, or its 60 Hz one for +refresh_hz+ 60.
     # +basic+, +editor+ and +characters+ name ROMs the board takes in place
     # of its own (Model.upgraded, Model.fitted), and +jumpers+ the 8296's
-    # board jumpers (ROMSets::JUMPERS).
+    # board jumpers (ROMSets::JUMPERS). +true_drive_model+ names the drive
+    # plug_true_drive plugs in (Drives::IEEEModels).
     def initialize(model: Model::DEFAULT, ram_kb: nil, refresh_hz: 50, debug: false, basic: nil, editor: nil,
-                   characters: nil, jumpers: [])
+                   characters: nil, jumpers: [], true_drive_model: Drives::IEEEModels::DEFAULT)
       @model = Model.fitted(Model.upgraded(Model.named(model), basic, editor), characters)
       ram_kb ||= @model.ram_kb
       raise ArgumentError, "the #{@model.name} has no #{ram_kb}K RAM board" unless Model.ram_fits?(@model, ram_kb)
@@ -132,7 +133,7 @@ module Badline
       @dos = nil
       @ieee_trap = nil
       @capture_output = nil
-      init_ieee_drives
+      init_ieee_drives(true_drive_model)
       @init_threshold = boot_cycles(ram_kb)
     end
 

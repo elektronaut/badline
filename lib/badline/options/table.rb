@@ -59,7 +59,9 @@ module Badline
                                  "a 1551 on the Plus/4, a 2031 on the PET or the CBM-II, or for a .d80 or .d82 " \
                                  "an 8050 or 8250",
                  section: "Window options", needs: :window),
-      Option.new("--drive-type MODEL", "The Plus/4's true drive: 1541 or 1551 (default: 1551); implies --true-drive",
+      Option.new("--drive-type MODEL", "The Plus/4's true drive: 1541 or 1551 (default: 1551); the PET's and the " \
+                                       "CBM-II's: #{Drives::IEEEModels::NAMES.join(', ')} (default: 2031); " \
+                                       "implies --true-drive",
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),

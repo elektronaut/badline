@@ -12,9 +12,9 @@ module Badline
         # aren't in the snapshot: FDC0 holds the controller's state, its
         # last track in byte 6.
         #
-        # DRIVE8 holds a block of 139 bytes for each drive, then 6 for the
-        # unit: each block has its head's half track, twice the track, at
-        # $10 and the drive's type as a word at $28 (8050 or 8250).
+        # DRIVE8 holds a block of 139 bytes for each of the unit's drives,
+        # then 6 for the unit: each block has its head's half track, twice
+        # the track, at $10 and the unit's type as a word at $28 (TYPES).
         # DRIVECPU0 is laid out as the 2031's (Drive2031), its RAM the IP's
         # page 0, the 6532s' 128 bytes each, then the 4K of common RAM.
         # A RIOT module holds port A's output and direction registers, port
@@ -40,17 +40,24 @@ module Badline
           RIOTS = %w[RIOT1D0 RIOT2D0].freeze
           FDC = "FDC0"
           NAMES = [UNIT, CPU, *RIOTS, FDC].freeze
+          # xpet's drive types by DRIVE8's type word, for the units written
+          # and read here.
           TYPES = { 0x1f72 => "8050", 0x203a => "8250" }.freeze
-          # Where each drive's block starts in DRIVE8, and its fields.
-          DRIVES = [0x00, 0x8b].freeze
+          # The drives each unit has, a block of DRIVE8 each.
+          DRIVE_COUNTS = { "8050" => 2, "8250" => 2 }.freeze
+          # A drive's block in DRIVE8, and its fields.
+          BLOCK = 0x8b
           HALF_TRACK = 0x10
           TYPE = 0x28
-          SIZE = 284
+          # The unit's bytes after the drives' blocks.
+          TAIL = 6
           # DRIVE8 as xpet saves an idle 8050, by the bytes that aren't 0,
-          # but for the type.
-          IDLE = { 0x00 => 0x01, 0x01 => 0x02, 0x02 => 0x01, 0x0e => 0x01, 0x0f => 0x01, 0x10 => 0x4c, 0x1a => 0x01,
-                   0x20 => 0x55, 0x30 => 0x06, 0x6f => 0xcd, 0x70 => 0xab, 0x71 => 0x34, 0x72 => 0x12, 0x99 => 0x01,
-                   0x9a => 0x01, 0x9b => 0x24, 0xa5 => 0x01, 0xab => 0x55, 0x11a => 0x01 }.freeze
+          # but for the type and the drive count at COUNT: the first drive's
+          # block, and from BLOCK on the second's with a byte past it.
+          IDLE = { 0x00 => 0x01, 0x02 => 0x01, 0x0e => 0x01, 0x0f => 0x01, 0x10 => 0x4c, 0x1a => 0x01, 0x20 => 0x55,
+                   0x30 => 0x06, 0x6f => 0xcd, 0x70 => 0xab, 0x71 => 0x34, 0x72 => 0x12 }.freeze
+          IDLE_SECOND = { 0x0e => 0x01, 0x0f => 0x01, 0x10 => 0x24, 0x1a => 0x01, 0x20 => 0x55, 0x8f => 0x01 }.freeze
+          COUNT = 0x01
           ZERO_PAGE = 0x80
           COMMON = 0x1000
           # FDC0 as xpet leaves an idle controller, and where the track goes.
@@ -81,10 +88,14 @@ module Badline
           # The model DRIVE8 names, or nil.
           def model(container)
             unit = container[UNIT]
-            return nil if unit.nil? || unit.data.bytesize < SIZE
+            return nil if unit.nil? || unit.data.bytesize < BLOCK
 
-            TYPES[FieldReader.new(unit).skip(TYPE).word]
+            model = TYPES[FieldReader.new(unit).skip(TYPE).word]
+            model if model && unit.data.bytesize >= size(model)
           end
+
+          # DRIVE8's size for the model.
+          def size(model) = (BLOCK * DRIVE_COUNTS.fetch(model)) + TAIL
 
           # xpet's modules for the 8050 or 8250 whose BL-D8 modules `readers`
           # holds, and none without one, or with its controller away from
@@ -111,9 +122,14 @@ module Badline
           def position?(cpu) = !cpu.text("pos.seq", "").empty?
 
           def unit(model, mechanism)
-            bytes = Array.new(SIZE) { |offset| IDLE.fetch(offset, 0) }
+            count = DRIVE_COUNTS.fetch(model)
+            bytes = Array.new(size(model), 0)
+            IDLE.each { |offset, value| bytes[offset] = value }
+            IDLE_SECOND.each { |offset, value| bytes[BLOCK + offset] = value } if count > 1
+            bytes[COUNT] = count
             cylinders = mechanism.ints("cylinders", [0, 0])
-            DRIVES.each_with_index do |at, drive|
+            count.times do |drive|
+              at = BLOCK * drive
               bytes[at + HALF_TRACK] = ((cylinders[drive] || 0) + 1) * 2
               bytes[at + TYPE, 2] = [TYPES.key(model)].pack("v").bytes
             end
@@ -200,7 +216,7 @@ module Badline
 
           def booted(model)
             unit = model == "8250" ? Drives::Model8250.new : Drives::Model8050.new
-            Drives::Model8050::BOOT_CYCLES.times { unit.host_cycle! }
+            unit.boot_cycles.times { unit.host_cycle! }
             unit.cycle! until idle_loop?(unit)
             unit.save_modules([], "BL-D8")
           end

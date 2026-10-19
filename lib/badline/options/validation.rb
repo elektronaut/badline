@@ -52,7 +52,9 @@ module Badline
       end
 
       def drive_type_for(value)
-        raise Error, "invalid argument: --drive-type #{value}" unless PLUS4_DRIVE_TYPES.include?(value)
+        unless (PLUS4_DRIVE_TYPES + Drives::IEEEModels::NAMES).include?(value)
+          raise Error, "invalid argument: --drive-type #{value}"
+        end
 
         value
       end
@@ -83,12 +85,21 @@ module Badline
 
       def validate
         validate_family
-        raise Error, "--drive-type needs plus4" unless @drive_type.nil? || @family == :plus4
+        validate_drive_type
 
         validate_mode
         validate_models
         validate_numbers
         validate_paths
+      end
+
+      def validate_drive_type
+        return if @drive_type.nil?
+
+        types = @family == :plus4 ? PLUS4_DRIVE_TYPES : Drives::IEEEModels::NAMES
+        return if %i[plus4 pet cbm2].include?(@family) && types.include?(@drive_type)
+
+        raise Error, "--drive-type needs #{PLUS4_DRIVE_TYPES.include?(@drive_type) ? 'plus4' : 'pet or cbm2'}"
       end
 
       def validate_mode

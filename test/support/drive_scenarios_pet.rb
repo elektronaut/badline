@@ -94,7 +94,7 @@ module DriveScenarios
       Badline::Media.attach(machine, path, autostart: false, disk: { read_only: true })
       machine.on_init { machine.type_text("10 print\rsave\"x\",8\rprint ds$\r") }
       Runs.run_until(machine, 40_000_000) { output.output.upcase.scan("READY.").length >= 3 }
-      machine.drive2031.flush
+      machine.true_drive.flush
       report.check("write-protect-on", output.output.upcase.include?("WRITE PROTECT ON"),
                    "printed no WRITE PROTECT ON")
       report.check("image-unchanged", File.binread(path) == before, "the image changed")
@@ -127,7 +127,7 @@ module DriveScenarios
       Images.blank_d64(path, "IDLE")
       skipping = idle_machine(path, true)
       stepping = idle_machine(path, false)
-      drive = skipping.drive2031
+      drive = skipping.true_drive
       asleep = 0
       differs = []
       IDLE_CHECKPOINTS.each do |checkpoint|
@@ -146,7 +146,7 @@ module DriveScenarios
     # the drive's cycle counts, CPU, VIAs, head and RAM.
     def idle_state(machine)
       cpu = machine.cpu
-      drive = machine.drive2031
+      drive = machine.true_drive
       drive_cpu = drive.cpu
       state = [machine.cycles, cpu.program_counter, cpu.a, cpu.x, cpu.y, cpu.stack_pointer, cpu.p, cpu.cycles,
                drive.cycles, drive_cpu.cycles, drive_cpu.instructions]
@@ -167,7 +167,7 @@ module DriveScenarios
       drive = Badline::Drives::Model2031.new
       drive.idle_skip = idle_skip
       drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
-      machine.attach_drive2031(drive)
+      machine.attach_ieee_drive(drive)
       machine.on_init { machine.type_text("load\"$\",8\r") }
       machine
     end
@@ -176,7 +176,7 @@ module DriveScenarios
     # the IEEE-488 bus.
     def error_channel(report, model)
       machine = Badline::PET.new(model:)
-      machine.attach_drive2031(Badline::Drives::Model2031.new)
+      machine.attach_ieee_drive(Badline::Drives::Model2031.new)
       output = machine.capture_output
       machine.on_init { machine.type_text(ERROR_CHANNEL_TEXT) }
       Runs.run_until(machine, 8_000_000) { output.output.upcase.include?(" 0 0\n") }
@@ -191,7 +191,7 @@ module DriveScenarios
       machine = Badline::PET.new(model: "4032")
       drive = Badline::Drives::Model2031.new
       drive.insert(Badline::Drives::Model1541::Disk.from_d64(Badline::Storage::D64Image.new(path)))
-      machine.attach_drive2031(drive)
+      machine.attach_ieee_drive(drive)
       output = machine.capture_output
       machine.on_init { machine.type_text(text) }
       Runs.run_until(machine, 150_000_000) { output.output.upcase.scan("READY.").length >= readies }

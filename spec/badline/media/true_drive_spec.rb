@@ -52,18 +52,43 @@ describe Badline::Media::TrueDrive do
     it "swaps the 2031 out for the 8050" do
       described_class.plug(machine)
       described_class.insert(machine, image("disk.d80", 533_248))
-      expect([machine.drive2031, machine.true_drive]).to eq([nil, machine.drive8050])
+      expect([machine.true_drive.model_name, machine.ieee.bus.drives]).to eq(["8050", [machine.true_drive]])
     end
 
     it "swaps the 2031 back in for a .d64 after a .d80" do
       described_class.insert(machine, image("disk.d80", 533_248))
       described_class.insert(machine, image("disk.d64", 174_848))
-      expect([machine.drive8050, machine.true_drive.model_name]).to eq([nil, "2031"])
+      expect(machine.true_drive.model_name).to eq("2031")
     end
 
     it "puts the 8050 alone on the IEEE-488 bus" do
       described_class.insert(machine, image("disk.d80", 533_248))
-      expect(machine.ieee.bus.drives).to eq([machine.drive8050])
+      expect(machine.ieee.bus.drives).to eq([machine.true_drive])
+    end
+
+    it "turns away an image no drive on the bus reads" do
+      expect { described_class.insert(machine, image("disk.d71", 349_696)) }
+        .to raise_error(described_class::Error, /not a \.d64 or \.g64 image, which the 2031 reads/)
+    end
+  end
+
+  context "with a PET that asks for an 8250" do
+    let(:machine) { Badline::PET.new(model: "4032", true_drive_model: "8250") }
+
+    it "plugs in the 8250" do
+      expect(described_class.plug(machine).model_name).to eq("8250")
+    end
+
+    it "keeps the 8250 for a .d82" do
+      drive = described_class.plug(machine)
+      described_class.insert(machine, image("disk.d82", 1_066_496))
+      expect(machine.true_drive).to equal(drive)
+    end
+
+    it "puts a .d64 in a 2031, which reads it" do
+      described_class.plug(machine)
+      described_class.insert(machine, image("disk.d64", 174_848))
+      expect(machine.true_drive.model_name).to eq("2031")
     end
   end
 
@@ -84,7 +109,7 @@ describe Badline::Media::TrueDrive do
     it "swaps the 2031 back in for a .d64 after a .d80" do
       described_class.insert(machine, image("disk.d80", 533_248))
       described_class.insert(machine, image("disk.d64", 174_848))
-      expect([machine.drive8050, machine.ieee.bus.drives]).to eq([nil, [machine.drive2031]])
+      expect([machine.true_drive.model_name, machine.ieee.bus.drives]).to eq(["2031", [machine.true_drive]])
     end
   end
 
