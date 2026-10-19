@@ -12,7 +12,7 @@ are modelled at the cycle level.
 
 It runs programs, disk and tape images, cartridges and SID tunes, and
 the SDL2 front end supports the keyboard, joysticks, game controllers,
-paddles and a 1351 mouse. It also runs a PAL VIC-20, as
+paddles and a 1351 mouse. It also runs the VIC-20, PAL or NTSC, as
 `badline vic20`, the C128, in C128 mode on 40 or 80 columns and in C64 mode, as `badline c128`, the Plus/4, the C16 and the C116, as `badline plus4`, the PET and CBM, as `badline pet`, and the CBM-II, the B series and the P500, as `badline cbm2`. See [What's emulated](#whats-emulated) for the details.
 
 It comes in two builds of the same emulator:
@@ -97,7 +97,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--ram-expansion NAME` | Fit a Plus/4 or C16 with a RAM expansion: `hannes256`, `hannes1m` or `csory256`. See [The Plus/4](#the-plus4) |
 | `--reu SIZE` | Plug in a RAM Expansion Unit of `SIZE` K: 128, 256, 512 (a 1750) or up to 16384 |
 | `--model NAME` | Run another model of the machine, named as in VICE. For the C64: `c64` (the default, a PAL C64 with the 6569 VIC-II, 6526 CIAs and the 6581 SID), `c64c` (the PAL C64C, with the 8565, 6526As and the 8580), `ntsc` (the 6567R8), `newntsc` (the NTSC C64C, with the 8562, 6526As and the 8580), `oldntsc` (the first NTSC C64s' 6567R56A), `drean` (the Drean C64 of Argentina, PAL-N with the 6572), `sx64` (the portable SX-64, with its own KERNAL and no datasette), `pet64` (the PET 64 or Educator 64, a PAL C64 in a PET's case with its own KERNAL and a green monochrome monitor) `c64gs` (the C64GS games console, a PAL C64C with its own BASIC and KERNAL, and no keyboard or datasette) or `ultimax` (the MAX Machine of Japan, NTSC with 2K of RAM, one CIA and no ROMs, which runs only a cartridge). `--sid` or a `.sid` tune's own SID takes the model's place. The VIC-20, the C128, the Plus/4, the PET and the CBM-II have models of their own: see their sections |
-| `--ntsc` | Run an NTSC C64, as `--model ntsc` does |
+| `--ntsc` | Run an NTSC C64 or VIC-20, as `--model ntsc` does |
 | `--c64` | Start a C128 in C64 mode, holding `C=` at power-on. See [The C128](#the-c128) |
 | `--no-sound` | Don't play the SID (`badline` only, where sound is on by default) |
 | `--sound` | Play the SID (`badline-ruby`, where sound is off by default) |
@@ -158,11 +158,14 @@ from Ruby.
 
 ## The VIC-20
 
-`badline vic20` runs a PAL VIC-20, and takes the same media as the C64
-apart from SID tunes:
+`badline vic20` runs a PAL VIC-20, with the 6561 VIC-I, and
+`badline vic20 --ntsc` (or `--model ntsc`) an NTSC one, with the 6560 and
+the NTSC KERNAL, at 1,022,727 Hz and 60 frames a second. Either takes the
+same media as the C64 apart from SID tunes:
 
 ```sh
 badline vic20             # READY.
+badline vic20 --ntsc      # READY., on an NTSC VIC-20
 badline vic20 game.prg    # Load and run a program
 badline vic20 game.d64    # Mount a disk image as device 8 and load it
 badline vic20 game.tap    # Insert a tape and load it
@@ -615,7 +618,8 @@ in cartridge 1 as it does from the command line.
 - **REU**: the 1700, 1764 and 1750 and bigger units up to 16M
   (`--reu`), with DMA timed against the VIC's bad lines and sprites.
 - **Datasette**: `.tap` playback.
-- **VIC-20**: the 6502, the PAL 6561 VIC-I with its picture and sound,
+- **VIC-20**: the 6502, the PAL 6561 and NTSC 6560 VIC-I with its
+  picture and sound, without the 6560's interlace,
   both 6522 VIAs, the keyboard, the joystick and RESTORE, RAM
   expansions up to 35K (`--ram`), cartridges, the datasette and the
   serial bus to device 8 (`badline vic20`).

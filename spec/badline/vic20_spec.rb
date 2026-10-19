@@ -203,6 +203,20 @@ describe Badline::Vic20 do
                                       crop: [0, 28, 284, 284], pixel_width: 2, dots: 1)
   end
 
+  it "shows xvic's view of the NTSC frame, its 233 lines from line 28 on" do
+    expect(described_class.new(model: "ntsc").timing.to_h)
+      .to eq(clock_hz: 1_022_727, cycles_per_line: 65, lines_per_frame: 261, crop: [0, 28, 260, 233],
+             pixel_width: 2, dots: 1)
+  end
+
+  it "fits the NTSC model with the NTSC KERNAL, whose VIC table sets the origin to 5, 25" do
+    expect([0xede4, 0xede5].map { |addr| described_class.new(model: "ntsc").peek(addr) }).to eq([5, 25])
+  end
+
+  it "refuses a model it doesn't know" do
+    expect { described_class.new(model: "drean") }.to raise_error(ArgumentError, /drean/)
+  end
+
   describe "#reset!" do
     before do
       machine.run_cycles(5000)

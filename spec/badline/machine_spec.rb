@@ -47,8 +47,12 @@ describe Badline::Machine do
     expect(described_class.build(:vic20, model: "pal").ram_configuration).to eq(:unexpanded)
   end
 
+  it "builds an NTSC VIC-20" do
+    expect(described_class.build(:vic20, model: "ntsc").timing.clock_hz).to eq(1_022_727)
+  end
+
   it "refuses a VIC-20 model it can't build" do
-    expect { described_class.build(:vic20, model: "ntsc") }.to raise_error(ArgumentError, /ntsc/)
+    expect { described_class.build(:vic20, model: "drean") }.to raise_error(ArgumentError, /drean/)
   end
 
   it "builds a C128 in C64 mode" do

@@ -7,8 +7,7 @@ module Badline
     # The names Badline::Model builds, in the order the help lists them.
     MODELS = %w[c64 c64c ntsc newntsc oldntsc drean sx64 pet64 c64gs ultimax].freeze
 
-    # The VIC-20's models, as xvic names its video standards. Only PAL is
-    # emulated.
+    # The VIC-20's models, as xvic names its video standards.
     VIC20_MODELS = %w[pal ntsc].freeze
 
     # The C128's models, as C128::Model names them.
@@ -64,11 +63,13 @@ module Badline
                  section: "Window options", needs: :window),
       Option.new("--reu SIZE", "Plug in an REU of SIZE K: 128, 256, 512 (a 1750) or up to 16384",
                  section: "Window options", needs: :window),
-      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); VIC-20: pal; " \
-                                 "C128: #{C128_MODELS.join(', ')}; Plus/4: #{PLUS4_MODELS.join(', ')}; " \
+      Option.new("--model NAME", "C64 to run: #{MODELS.join(', ')} (default: #{MODELS.first}); " \
+                                 "VIC-20: #{VIC20_MODELS.join(', ')}; C128: #{C128_MODELS.join(', ')}; " \
+                                 "Plus/4: #{PLUS4_MODELS.join(', ')}; " \
                                  "PET: #{PET_MODELS.join(', ')}; CBM-II: #{CBM2_MODELS.join(', ')}",
                  section: "Window options", needs: :window),
-      Option.new("--ntsc", "Run an NTSC C64, as --model ntsc does", section: "Window options", needs: :window),
+      Option.new("--ntsc", "Run an NTSC C64 or VIC-20, as --model ntsc does",
+                 section: "Window options", needs: :window),
       Option.new("--c64", "Start the C128 in C64 mode, holding C= at power-on",
                  section: "Window options", needs: :window),
       Option.new("--ram SIZE", "VIC-20 RAM expansion: #{RAM_NAMES.join(', ')} (default: unexpanded); " \

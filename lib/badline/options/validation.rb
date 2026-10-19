@@ -137,11 +137,8 @@ module Badline
         raise Error, "the C128 needs the window" if headless?
       end
 
-      # The VIC-20 is a PAL one, in the window, without the C64's SID and
-      # REU.
+      # The VIC-20 runs in the window, without the C64's SID and REU.
       def validate_vic20
-        raise Error, "the NTSC VIC-20 isn't emulated yet" if @models.include?("ntsc")
-
         raise Error, "--sid needs the C64" unless @sid_model.nil?
         raise Error, "--reu needs the C64" unless @reu.nil?
         raise Error, "the VIC-20 needs the window" if headless?

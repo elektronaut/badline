@@ -393,6 +393,16 @@ describe Badline::Options do
       end
     end
 
+    %w[--ntsc --model=ntsc].each do |flag|
+      context "with vic20 and #{flag}" do
+        let(:argv) { ["vic20", flag] }
+
+        it "names the NTSC model" do
+          expect(options.model).to eq("ntsc")
+        end
+      end
+    end
+
     context "with vic20 and --ram" do
       let(:argv) { %w[vic20 --ram 8k] }
 
@@ -404,8 +414,7 @@ describe Badline::Options do
     {
       "--ram for the C64" => [%w[--ram 8k], "--ram needs vic20, plus4 or pet"],
       "an unknown RAM expansion" => [%w[vic20 --ram 4k], "invalid argument: --ram 4k"],
-      "an NTSC VIC-20" => [%w[vic20 --ntsc], "the NTSC VIC-20 isn't emulated yet"],
-      "an NTSC VIC-20 by name" => [%w[vic20 --model ntsc], "the NTSC VIC-20 isn't emulated yet"],
+      "a PAL and an NTSC VIC-20" => [%w[vic20 --model pal --ntsc], "conflicting models: pal and ntsc"],
       "a C64 model for the VIC-20" => [%w[vic20 --model c64c], "invalid argument: --model c64c"],
       "a SID for the VIC-20" => [%w[vic20 --sid 8580], "--sid needs the C64"],
       "an REU for the VIC-20" => [%w[vic20 --reu 512], "--reu needs the C64"],
@@ -811,7 +820,8 @@ describe Badline::Options do
 
       it "lists the subcommands" do
         expect(options.help.lines.grep(/\A {4}(c64|vic20|c128|sid) /).map { |line| line.split(/ {2,}/).last.chomp })
-          .to eq(["Run a C64, the one --model names (the default)", "Run a PAL VIC-20, with the RAM --ram names",
+          .to eq(["Run a C64, the one --model names (the default)",
+                  "Run a VIC-20, PAL or --ntsc, with the RAM --ram names",
                   "Run a C128 in C128 mode, the one --model names", "Play .sid tunes and directories of them"])
       end
     end
