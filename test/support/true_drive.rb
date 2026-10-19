@@ -47,21 +47,23 @@ module TrueDrive
   # The true drive's CPU, cycle counts, head, chips and the first 2K of its
   # RAM, or nil without one, as the machine's true_drive picks it. The
   # 1541, 1571 and 2031 add their VIAs, the 1571 and 1581 their CIA, and
-  # the 1551 its port and TIAs. An 8050 or 8250 gives unit_digest.
+  # the 1551 its port and TIAs. A unit with two processors, an 8050, 8250,
+  # 1001, 4040 or 3040, gives unit_digest.
   def digest(computer)
     drive = computer.respond_to?(:true_drive) ? computer.true_drive : nil
     return unless drive
-    return unit_digest(drive) if %w[8050 8250].include?(drive.model_name)
+    return unit_digest(drive) if drive.respond_to?(:fdc_cpu)
 
     values = [drive.cycles, *cpu_values(drive.cpu), *head_values(drive), *chip_values(drive)]
     Badline::Support::Checkpoint.fnv1a(values + drive.ram.read(0, 0x0800))
   end
 
-  # The 8050 or 8250's processors, heads and motors, its RIOTs, VIA and
-  # 6530, and its common RAM.
+  # The unit's processors, heads and motors, its RIOTs, VIA and 6530, and
+  # its common RAM. A 4040's heads stand on half tracks.
   def unit_digest(unit)
     mechanism = unit.mechanism
-    values = [unit.cycles, *cpu_values(unit.ip_cpu), *cpu_values(unit.fdc_cpu), *mechanism.cylinders,
+    heads = mechanism.respond_to?(:cylinders) ? mechanism.cylinders : mechanism.half_tracks
+    values = [unit.cycles, *cpu_values(unit.ip_cpu), *cpu_values(unit.fdc_cpu), *heads,
               mechanism.motor_on?(0) ? 1 : 0, mechanism.motor_on?(1) ? 1 : 0]
     [unit.data_riot, unit.control_riot, unit.rriot].each { |riot| values.push(riot.timer.counter, *riot.idle_state) }
     via = unit.via

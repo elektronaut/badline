@@ -97,7 +97,7 @@ module CIReach
     ["lib/badline/kernal_trap/{ieee,ieee_layout}.rb", PET + CBM2 + %w[drive-scenarios]],
     ["lib/badline/drives/ieee_bus.rb", PET + %w[drive-scenarios]],
     ["lib/badline/{drives/model2031.rb,drives/model2031/**/*,roms/dos2031.rom}", PET + %w[drive-scenarios]],
-    ["lib/badline/drives/{model8050,model1001}{.rb,/**/*}", %w[drive-scenarios]],
+    ["lib/badline/drives/{model8050,model1001,model4040}{.rb,/**/*}", %w[drive-scenarios]],
     ["lib/badline/{storage/d90_image.rb,drives/model9060{.rb,/**/*}}", %w[drive-scenarios]],
     ["lib/badline/input{.rb,/**/*}", INPUT],
     ["lib/badline/media{.rb,/**/*}", MEDIA],

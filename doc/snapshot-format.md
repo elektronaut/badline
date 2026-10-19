@@ -75,7 +75,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" |
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
-| `host.ieee_drive_model` | text: 2031 8050 8250 1001 9060 9090 | PET: "2031"; CBM-II: "2031" |
+| `host.ieee_drive_model` | text: 2031 8050 8250 1001 4040 3040 9060 9090 | PET: "2031"; CBM-II: "2031" |
 | `mains_hz` | int | CBM-II: 50 |
 | `dram_refresh` | bool | CBM-II: true |
 | `mains_countdown` | int | CBM-II: varies |
@@ -610,7 +610,7 @@ Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551"; PET: "2031" or "8050" or "8250" |
+| `model` | text: 1541 1551 1571 1581 | C64: "1541" or "1581"; C128: "1541" or "1571"; Plus/4: "1541" or "1551"; PET: varies |
 | `phase` | int | 0 |
 | `cycles` | int | 0 |
 | `so_pending` | bool | false |
@@ -619,7 +619,7 @@ Written by the C64, C128, Plus/4, PET.
 | `irq_timer` | int | Plus/4: 16660 |
 | `latched_byte` | byte | Plus/4: 0 |
 | `ieee.host` | int | PET: 0 |
-| `ip_data` | byte | PET: 242 |
+| `ip_data` | byte | PET: 242 or 211 |
 | `fdc_data` | byte | PET: 252 |
 
 ## BL-D8-RAM
@@ -767,7 +767,7 @@ Written by the C64, C128, Plus/4, PET.
 | `track<N>.zone` | int, optional | absent |
 | `written` | ints | [] |
 | `changed` | ints | C64: [] |
-| `image.format` | text: d80 d82 | PET: "d80" |
+| `image.format` | text: d80 d82 | PET: "d80" or "d64" |
 | `track<N>` | ints | PET: [] |
 
 ## BL-D8-MECH
@@ -809,6 +809,7 @@ Written by the C64, C128, Plus/4, PET.
 | `so_pending` | bool | PET: false |
 | `ca1_low` | bool | PET: false |
 | `data_in` | byte | PET: 255 |
+| `half_tracks` | ints | PET: [0, 0] |
 
 ## BL-D8-CIA
 
@@ -1537,7 +1538,7 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 62135 |
+| `pc` | word | 62135 or 54059 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
@@ -1563,7 +1564,7 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 64516 |
+| `pc` | word | 64516 or 64521 |
 | `sp` | byte | 255 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |

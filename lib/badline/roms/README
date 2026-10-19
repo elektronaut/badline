@@ -162,7 +162,7 @@ DOS 2.1, 12 KB for the interface processor's $D000-$FFFF: 901468-11
 ($D000, SHA-1 8415f3159dea73161e0cef7960afa6c76953b6f8), 901468-12
 ($E000, SHA-1 e8a94f239082d45f64f01b2d8e488d18fe659cbb) and 901468-13
 ($F000, SHA-1 6ada7904ac9d13c3f1c0a8715f9c4be1aa6eb0bb). xpet's 3040
-runs it.
+runs it, and so does Drives::Model3040.
 SHA-1 02bd4b0c8508b3874b95799a9a63caf369c837de.
 
 4040/dos-2.1-rev.rom
@@ -170,7 +170,8 @@ SHA-1 02bd4b0c8508b3874b95799a9a63caf369c837de.
 The revised DOS 2.1, 12 KB for $D000-$FFFF: 901468-14 ($D000, SHA-1
 ffb992b82ec913ddff7be964d7527aca3e21580c), 901468-15 ($E000, SHA-1
 f702d6917fe8a798740ba4d467b500944ae7b70a) and 901468-16 ($F000, SHA-1
-04b918cf4adeee8015b43383d3cea7288a7d0aa8). xpet's 4040 runs it.
+04b918cf4adeee8015b43383d3cea7288a7d0aa8). xpet's 4040 runs it, and
+so does Drives::Model4040.
 SHA-1 245abbe76581558d270cdbb6fe55f56748403d8e.
 
 4040/fdc-901466-04.rom

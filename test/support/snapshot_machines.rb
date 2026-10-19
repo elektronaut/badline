@@ -342,9 +342,8 @@ module SnapshotMachines
 
   # The PETs: a CRTC board with 80 columns and one with 40, the 2001's
   # discrete video, an 8096 and an 8296 with their boards written, and the
-  # media a PET takes: a disk through the traps and in a 2031 or an 8050
-  # loading its directory, a program and a tape played and recorded on
-  # cassette #1.
+  # media a PET takes: a disk through the traps, a program and a tape
+  # played and recorded on cassette #1.
   def pet_scenarios
     basic = [["8032", 50, 2_600_001], ["4032", 60, 2_600_001], ["2001", 60, 900_001]].map do |model, refresh_hz, cycles|
       Scenario.new("pet-#{model}-basic", :pet, ->(_dir) { typing(Badline::PET.new(model:, refresh_hz:), PET_BASIC) },
@@ -360,10 +359,6 @@ module SnapshotMachines
                    ->(m) { run(m, 2_000_001) }),
       Scenario.new("pet-traps-d64", :pet, ->(dir) { attached(Badline::PET.new, copy(D64, dir)) },
                    ->(m) { run(m, 2_600_001) }),
-      Scenario.new("pet-2031", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), copy(D64, dir)) },
-                   ->(m) { run(m, 2_600_001) }),
-      Scenario.new("pet-8050", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), blank_d80(dir)) },
-                   ->(m) { run(m, 3_000_001) }),
       Scenario.new("pet-tape", :pet, ->(dir) { attached(Badline::PET.new, pet_tap_file(dir)) },
                    ->(m) { run(m, 3_000_000) }),
       Scenario.new("pet-tape-save", :pet, ->(dir) { saving_to_tape(Badline::PET.new(model: "3032"), dir, 3) },
@@ -371,9 +366,22 @@ module SnapshotMachines
     ]
   end
 
+  # A PET's true drives loading a directory: a 2031, an 8050 and a 4040.
+  def pet_drive_scenarios
+    [
+      Scenario.new("pet-2031", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), copy(D64, dir)) },
+                   ->(m) { run(m, 2_600_001) }),
+      Scenario.new("pet-8050", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), blank_d80(dir)) },
+                   ->(m) { run(m, 3_000_001) }),
+      Scenario.new("pet-4040", :pet,
+                   ->(dir) { listing(Badline::PET.new(model: "4032", true_drive_model: "4040"), copy(D64, dir)) },
+                   ->(m) { run(m, 3_200_001) })
+    ]
+  end
+
   def all
     c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
-      plus4_drive_scenarios + pet_scenarios + cbm2_scenarios
+      plus4_drive_scenarios + pet_scenarios + pet_drive_scenarios + cbm2_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }
