@@ -122,6 +122,11 @@ jobs:
         with:
           path: vendor/m6809
           key: m6809-vectors-9dd7b592
+      - name: Cache 6809 test programs
+        uses: actions/cache@v6
+        with:
+          path: vendor/m6809-code-tester
+          key: m6809-code-tester-f445da35
       - name: Run tests
         run: bundle exec rake test
 

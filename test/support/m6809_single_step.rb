@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 require_relative "m6809_vectors"
+require_relative "m6809_flowchart"
 
 # Runs neetandev/m6809's cases against a 6809 core: one instruction from
 # the initial registers and RAM, then the registers, RAM and the bus on
-# every cycle against the final state. The core is any class whose new
+# every cycle against the final state, with the dead cycles
+# M6809Flowchart moves to the datasheet's addresses. The core is any class whose new
 # takes a bus answering read(address) and write(address, value), that has
 # an accessor for each of M6809Vectors::REGISTERS, a resume that puts it
 # at an instruction boundary, step! and cycles. A cycle without a bus
@@ -68,7 +70,7 @@ module M6809SingleStep
     errors = test.final.registers.filter_map { |name, value| mismatch(name, cpu.public_send(name), value) }
     errors << "cycles #{cpu.cycles} != #{test.cycles.length}" if cpu.cycles != test.cycles.length
     errors.concat(ram_errors(bus, test.final.ram))
-    errors << trace_error(bus.trace(test.cycles.length), test.cycles)
+    errors << trace_error(bus.trace(test.cycles.length), M6809Flowchart.expected(test))
     errors.compact
   end
 
@@ -80,14 +82,13 @@ module M6809SingleStep
     ram.filter_map { |address, value| mismatch(format("ram[%04x]", address), bus.ram[address], value) }
   end
 
+  # The first cycle that differs. A cycle expected with nil data is one
+  # whose data isn't checked.
   def trace_error(actual, expected)
     index = expected.each_index.find do |i|
-      cycle = expected[i]
-      actual[i] != (cycle.status == "----" ? ["----", 0, 0] : [cycle.status, cycle.address, cycle.data])
+      status, address, data = expected[i]
+      actual[i][0] != status || actual[i][1] != address || (data && actual[i][2] != data)
     end
-    return unless index
-
-    cycle = expected[index]
-    "cycle #{index}: #{actual[index].inspect} != #{[cycle.status, cycle.address, cycle.data].inspect}"
+    "cycle #{index}: #{actual[index].inspect} != #{expected[index].inspect}" if index
   end
 end
