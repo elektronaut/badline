@@ -67,6 +67,8 @@ module CIReach
     ["lib/badline/{cbm2.rb,cbm2/ieee_ports.rb,cbm2/ieee_traps.rb,cbm2/ieee_drive.rb}", CBM2 + %w[drive-scenarios]],
     ["lib/badline/{cbm2.rb,cbm2/**/*,chips/tpi.rb,chips/tpi/**/*,support/cbm2_checkpoint.rb}", CBM2],
     ["lib/badline/roms/8050/**/*", %w[drive-scenarios]],
+    # No suite runs the KIM-1 yet.
+    ["lib/badline/{kim1.rb,kim1/**/*,roms/kim1/**/*,support/kim1_checkpoint.rb}", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC + P500],

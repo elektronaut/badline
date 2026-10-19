@@ -53,6 +53,12 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check testbench-cbm5x0], CIReach.suites(files)
   end
 
+  def test_the_kim1_and_its_roms_reach_only_the_spinel_check
+    files = %w[lib/badline/kim1.rb lib/badline/kim1/bus.rb lib/badline/roms/kim1/6530-002.rom]
+
+    assert_equal %w[spinel:check], CIReach.suites(files)
+  end
+
   def test_the_vic_reaches_the_p500s_testbench
     assert_includes CIReach.suites(%w[lib/badline/chips/vic/bank.rb]), "testbench-cbm5x0"
   end

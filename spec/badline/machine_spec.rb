@@ -70,6 +70,10 @@ describe Badline::Machine do
     expect([machine.class, machine.model.name, machine.refresh_hz]).to eq([Badline::PET, "3032b", 60])
   end
 
+  it "refuses the KIM-1 until it runs" do
+    expect { described_class.build(:kim1, model: "kim1") }.to raise_error(ArgumentError, "the KIM-1 isn't emulated yet")
+  end
+
   it "refuses a family it can't build" do
     expect { described_class.build(:c65, model: "c64") }.to raise_error(ArgumentError, /c65/)
   end

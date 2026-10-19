@@ -104,6 +104,8 @@ module Badline
       end
 
       def validate_family
+        raise Error, "the KIM-1 isn't emulated yet" if @family == :kim1
+
         ram_option
         validate_vic20 if @family == :vic20
         @family == :plus4 ? validate_plus4 : refuse_plus4_options

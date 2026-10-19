@@ -14,8 +14,8 @@ module Badline
 
       private
 
-      # Takes `sid`, `c64`, `vic20`, `c128`, `plus4`, `pet` or `cbm2` when
-      # given first.
+      # Takes `sid`, `c64`, `vic20`, `c128`, `plus4`, `pet`, `cbm2` or `kim1`
+      # when given first.
       def subcommand(args)
         case args.first
         when "sid" then @sid_command = true
@@ -25,6 +25,7 @@ module Badline
         when "plus4" then @family = :plus4
         when "pet" then @family = :pet
         when "cbm2" then @family = :cbm2
+        when "kim1" then @family = :kim1
         else return
         end
         @family_named = !@sid_command
