@@ -112,6 +112,7 @@ module Badline
         @acia_due = Chips::ACIA::NEVER
         @init_handlers = []
         @pending_keys = nil
+        @init_keys = nil
         @dos = nil
         @ieee_trap = nil
         @capture_output = nil

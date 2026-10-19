@@ -27,7 +27,7 @@ describe Badline::Snapshot do
     end
 
     it "reports on_init handlers the saved machine had yet to run" do
-      Badline::C64.new.tap { |machine| machine.type_text("run\r") }.save_snapshot(path)
+      Badline::C64.new.tap { |machine| machine.on_init { nil } }.save_snapshot(path)
       lines = []
       described_class.load(path) { |line| lines << line }
       expect(lines).to eq(["1 on_init handler(s) the saved machine had yet to run, left out"])

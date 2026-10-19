@@ -80,6 +80,7 @@ module Badline
       @freeze_writes = 0
       @init_handlers = []
       @pending_keys = nil
+      @init_keys = nil
       @dos = nil
       @serial_trap = nil
       @save_trap = nil

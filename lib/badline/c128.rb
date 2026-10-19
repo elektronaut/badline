@@ -139,6 +139,7 @@ module Badline
       @restore_pulse = false
       @init_handlers = []
       @pending_keys = nil
+      @init_keys = nil
       @typist = Input::MatrixTypist.new(@bus.keyboard)
       @capture_output = nil
       init_drives

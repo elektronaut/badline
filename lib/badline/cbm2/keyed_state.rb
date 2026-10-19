@@ -71,6 +71,7 @@ module Badline
         out.int("refresh", @refresh)
         pending = @pending_keys
         out.ints("host.pending_keys", pending) if pending
+        save_init_keys(out)
         out.int("host.init_pending", @cycles <= @init_threshold ? @init_handlers.length : 0)
       end
 
@@ -82,6 +83,7 @@ module Badline
         @refresh = input.int("refresh", 0).clamp(0, REFRESH_COUNT)
         pending = input.ints("host.pending_keys", [])
         @pending_keys = pending.empty? ? nil : pending.dup
+        load_init_keys(input)
         @init_handlers_lost = [input.int("host.init_pending", 0) - @init_handlers.length, 0].max
       end
     end

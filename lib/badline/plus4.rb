@@ -144,6 +144,7 @@ module Badline
       @sound_mix = @sid_card ? SoundMix.new(@sound, @sid_card) : nil
       @init_handlers = []
       @pending_keys = nil
+      @init_keys = nil
       @dos = nil
       @serial_trap = nil
       @save_trap = nil

@@ -233,6 +233,22 @@ describe Badline::C64, "#snapshot" do
     end
   end
 
+  describe "typing before the boot" do
+    let(:booting) { described_class.new.tap { |machine| machine.type_text("run\r") } }
+
+    it "saves the text with the machine" do
+      expect(booting.snapshot.load.snapshot).to eq(booting.snapshot)
+    end
+
+    it "types the text once the restored machine has booted" do
+      restored = booting.snapshot.load
+      restored.resume_at(described_class::INIT_THRESHOLD)
+      restored.ram.poke(0xc6, 0)
+      restored.cycle!
+      expect(restored.ram.read(0x0277, 4)).to eq([0x52, 0x55, 0x4e, 0x0d])
+    end
+  end
+
   describe "with an REU" do
     # A 16M REU part way through a swap, with its interrupt raised by the
     # stash before it. Saving runs the swap to its end.
