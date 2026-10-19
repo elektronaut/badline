@@ -67,6 +67,49 @@ describe Badline::Chips::VICI do
     it "counts one past the last line on the last line, then 0 from 61 cycles in" do
       expect(counts_after((65 * 260) + 60)).to eq([261, 0])
     end
+
+    context "with $9000 bit 7 set, interlaced" do
+      before { vic.poke(0x9000, 0x80) }
+
+      # The lines in each of the next +frames+ frames.
+      def frame_lengths(frames)
+        Array.new(frames) do
+          lines = 0
+          loop do
+            run(65)
+            lines += 1
+            break if vic.rasterline.zero?
+          end
+          lines
+        end
+      end
+
+      it "alternates 263- and 262-line fields from the next frame on, the long one first" do
+        expect(frame_lengths(5)).to eq([261, 263, 262, 263, 262])
+      end
+
+      it "goes back to 261 lines from the frame after bit 7 is cleared" do
+        run(65 * (261 + 100))
+        vic.poke(0x9000, 0x00)
+        expect(frame_lengths(3)).to eq([263 - 100, 261, 261])
+      end
+
+      it "wraps the count to 0 on the long field's last line where it would move on" do
+        expect(counts_after((65 * (261 + 262)) + 27)).to eq([262, 0])
+      end
+
+      it "counts 262 on the short field's last line, then 0 from 61 cycles in" do
+        expect(counts_after((65 * (261 + 263 + 261)) + 60)).to eq([262, 0])
+      end
+    end
+  end
+
+  describe "the 6561's raster with $9000 bit 7 set" do
+    it "stays 312 lines a frame" do
+      vic.poke(0x9000, 0x80)
+      run(71 * 312 * 2)
+      expect([vic.rasterline, vic.column]).to eq([0, 0])
+    end
   end
 
   describe "the registers" do

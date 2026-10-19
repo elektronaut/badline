@@ -619,8 +619,8 @@ in cartridge 1 as it does from the command line.
   (`--reu`), with DMA timed against the VIC's bad lines and sprites.
 - **Datasette**: `.tap` playback.
 - **VIC-20**: the 6502, the PAL 6561 and NTSC 6560 VIC-I with its
-  picture and sound, without the 6560's interlace,
-  both 6522 VIAs, the keyboard, the joystick and RESTORE, RAM
+  picture and sound and the 6560's interlaced fields' timing, both 6522
+  VIAs, the keyboard, the joystick and RESTORE, RAM
   expansions up to 35K (`--ram`), cartridges, the datasette and the
   serial bus to device 8 (`badline vic20`).
 - **C128**: C128 mode with BASIC 7.0 and C64 mode, on the 8502 with its

@@ -49,7 +49,8 @@ module Badline
       # What a VIC-I sets for the machine: the clock, the raster's cycles
       # per line and lines per frame, how many lines at the top of the frame
       # it blanks and how many it shows from there, and where in the line
-      # the raster count $9003 and $9004 read moves on.
+      # the raster count $9003 and $9004 read moves on, and how many lines
+      # the long field of an interlaced frame has, or 0 without interlace.
       #
       # The 6561's count is the raster line. The 6560's runs ahead of it: it
       # reads the next line from +count_column+ on, and on the last line it
@@ -57,20 +58,27 @@ module Badline
       # +wrap_column+ on, so the count's first and last values each last
       # about half a line. The 6561's +count_column+ is past the end of the
       # line, so it never moves early.
+      #
+      # With $9000 bit 7 set at the start of a frame, the 6560 interlaces:
+      # its frames alternate between the long field, +interlaced_lines+
+      # long, and the short one, a line shorter, the long one first. On the
+      # long field's last line the count wraps to 0 where it would move on,
+      # so its first and last values each last a whole line.
       Profile = Data.define(:clock_hz, :cycles_per_line, :lines_per_frame, :blanked_lines, :shown_lines,
-                            :count_column, :wrap_column)
+                            :count_column, :wrap_column, :interlaced_lines)
 
       # The 6561: 71 cycles by 312 lines, lines 0-27 blanked (Marko
       # Mäkelä's VIC-I.txt).
       PAL = Profile.new(clock_hz: 1_108_405, cycles_per_line: 71, lines_per_frame: 312, blanked_lines: 28,
-                        shown_lines: 284, count_column: 71, wrap_column: 71)
+                        shown_lines: 284, count_column: 71, wrap_column: 71, interlaced_lines: 0)
 
       # The 6560: 65 cycles by 261 lines on a 14.31818 MHz crystal divided
       # by 14. The count's columns and the lines shown are xvic's, measured
       # as a black box: the count moves on 28 cycles into the line, and
-      # wraps to 0 on the last line 61 cycles in.
+      # wraps to 0 on the last line 61 cycles in. Interlaced, its fields are
+      # 263 and 262 lines.
       NTSC = Profile.new(clock_hz: 1_022_727, cycles_per_line: 65, lines_per_frame: 261, blanked_lines: 28,
-                         shown_lines: 233, count_column: 28, wrap_column: 61)
+                         shown_lines: 233, count_column: 28, wrap_column: 61, interlaced_lines: 263)
 
       PIXELS_PER_CYCLE = 4
 
@@ -90,6 +98,10 @@ module Badline
         0xb27240, 0xf2b27f, 0xc2655d, 0xbdffff, 0xf299ff, 0x8de57f, 0x806eda, 0xffffa5
       ].freeze
 
+      # The display's lines: the frame's, or the long interlaced field's
+      # where that is longer.
+      attr_reader :height
+
       attr_reader :rasterline, :column, :profile
       attr_accessor :sound
 
@@ -99,7 +111,9 @@ module Badline
         @lines_per_frame = profile.lines_per_frame
         @count_column = profile.count_column
         @wrap_column = profile.wrap_column
-        @painter = Painter.new(@lines_per_frame, @cycles_per_line * PIXELS_PER_CYCLE, profile.blanked_lines)
+        @interlaced_lines = profile.interlaced_lines
+        @height = [@lines_per_frame, @interlaced_lines].max
+        @painter = Painter.new(@height, @cycles_per_line * PIXELS_PER_CYCLE, profile.blanked_lines)
         @patterns = @painter.patterns
         @colors = @painter.colors
         @counts = @painter.counts
@@ -127,11 +141,14 @@ module Badline
         @origin_x = @origin_y = @columns = @rows = 0
         @char_shift = 3
         @screen_base = @char_base = 0
+        @long_field = true
+        @frame_lines = @lines_per_frame
+        @frame_wrap = @wrap_column
         new_frame
         @fetch_from = @fetch_to = 0
         @fetched = @slot = 0
         @code = 0
-        @painter.power_on!(@lines_per_frame - 1)
+        @painter.power_on!(@frame_lines - 1)
         schedule
       end
 
@@ -157,8 +174,6 @@ module Badline
       def display = @painter.display
 
       def width = @painter.width
-
-      def height = @lines_per_frame
 
       # Whether each line of the display has changed since the front end
       # last cleared them.
@@ -207,7 +222,7 @@ module Badline
         line = @rasterline
         column = @column
         return line if column < @count_column
-        return 0 if line == @lines_per_frame - 1 && column >= @wrap_column
+        return 0 if line == @frame_lines - 1 && column >= @frame_wrap
 
         line + 1
       end
@@ -236,14 +251,31 @@ module Badline
 
       def start_line
         line = @rasterline + 1
-        if line == @lines_per_frame
+        if line == @frame_lines
           line = 0
           new_frame
+          next_field
         end
         @rasterline = line
         next_text_line if @window_open
         open_window if !@window_open && !@window_done && (line >> 1) == @origin_y && @rows.positive?
         place_fetches
+      end
+
+      # How many lines the frame starting has, and where on its last line
+      # the count wraps: the field's, if $9000 bit 7 asks the 6560 to
+      # interlace, else the profile's.
+      def next_field
+        if @interlaced_lines.positive? && @registers[0] >= 0x80
+          long = @long_field
+          @frame_lines = long ? @interlaced_lines : @interlaced_lines - 1
+          @frame_wrap = long ? @count_column : @wrap_column
+          @long_field = !long
+        else
+          @frame_lines = @lines_per_frame
+          @frame_wrap = @wrap_column
+          @long_field = true
+        end
       end
 
       def place_fetches
