@@ -1,5 +1,65 @@
 # Changelog
 
+## [0.17.0](https://github.com/elektronaut/badline/compare/v0.16.1...v0.17.0) (2026-10-19)
+
+
+### Features
+
+* add the 6525 TPI ([5ff88b4](https://github.com/elektronaut/badline/commit/5ff88b420bdffaf0179e1a254416755bb0cc6d64))
+* add the 6530 RRIOT as a bare chip, with the 8050's masks ([9d91534](https://github.com/elektronaut/badline/commit/9d915346a031d186db706f80ca644b5d63dcea7c))
+* add the 6532 RIOT as a bare chip ([76634e5](https://github.com/elektronaut/badline/commit/76634e56584c452e7bba2849d7c7d4f0468515e4))
+* add the 8050 and 8250's board, booting both processors ([841ade8](https://github.com/elektronaut/badline/commit/841ade887cb047ccc45f13fba74fe9a24ab4c74e))
+* add the 8050 and 8250's drives, reading and writing .d80 and .d82 images ([6e05a3e](https://github.com/elektronaut/badline/commit/6e05a3e6da8e9fd4addfad972bfe4f9d5593aac8))
+* add the CBM-II's 6509 and its segment bus ([59e114b](https://github.com/elektronaut/badline/commit/59e114b3a9913d2c1f5f50e46410657a1c8b5292))
+* boot the CBM-II's B series to READY, headless ([586c699](https://github.com/elektronaut/badline/commit/586c6997b6e0384641c98cc07a48e252ed92cce7))
+* boot the P500 and run its testbench rows ([0f02bd0](https://github.com/elektronaut/badline/commit/0f02bd07f75ff0a4e9832370a8b98b2985cad84b))
+* boot the P500 to READY, headless ([cbd9b29](https://github.com/elektronaut/badline/commit/cbd9b296d41ebc2b302a2b5bff02cf30a68c83f5))
+* bundle the 8050 and 8250's DOS 2.7 ([0889ccc](https://github.com/elektronaut/badline/commit/0889ccc6297246ffc7ccb0acf025d8aa44c560f4))
+* bundle the 8050 controller's 6530 mask ROMs ([3ac2932](https://github.com/elektronaut/badline/commit/3ac293218676d33cc09656cb9ae2e52357896171))
+* bundle the CBM-II ROMs ([beca63a](https://github.com/elektronaut/badline/commit/beca63aca091a4dd86f9e262b5d3105977839c32))
+* fetch a sprite's phi2 bytes over the P500's video bus ([0079ef4](https://github.com/elektronaut/badline/commit/0079ef4b8572c14adcf5e27dc6e90e426e124030))
+* format, rename and copy on the virtual DOS ([46d49a5](https://github.com/elektronaut/badline/commit/46d49a553d5ff9ea564dc8c6d421b8dd0fac945f))
+* let the CBM-II's bus take a P500's screen and video pages ([d57648c](https://github.com/elektronaut/badline/commit/d57648cc53f40afbf6a80f96b7c11aaae5f75881))
+* map a true 2031 to and from xpet's .vsf ([06e8725](https://github.com/elektronaut/badline/commit/06e87257aeac59a5b8471cfaf9be3c0fbd6903b6))
+* paint the CBM-II's B series picture from its 6845 ([1033f06](https://github.com/elektronaut/badline/commit/1033f06071566166b59d9508ba8b1bf33ee4d3df))
+* plug a mouse or paddles into the P500's ports in the window ([d25dc30](https://github.com/elektronaut/badline/commit/d25dc302bce0d2d654c64de48add9971c96061c1))
+* put an 8050 or 8250 on the PET's IEEE-488 bus for a .d80 or .d82 ([9a7ff9a](https://github.com/elektronaut/badline/commit/9a7ff9a78439fd4fae4b4765da85e26b14c66cdb))
+* put the CBM-II's IEEE-488 ports on the bus for a true 2031, 8050 or 8250 ([f1906bb](https://github.com/elektronaut/badline/commit/f1906bbd0b89fe5b27783fda1ac5beee31ce4c60))
+* put the P500's IEEE-488 ports on the bus, and let --true-drive reach the CBM-II ([1228a6b](https://github.com/elektronaut/badline/commit/1228a6b3ad8800a7b14a76ce2ae878ff7869f16e))
+* read and write a PET's 8050 or 8250 in xpet's .vsf ([618397c](https://github.com/elektronaut/badline/commit/618397c8d11023ea7a6c7b339cc3fa80ff2352d3))
+* read and write the CBM-II's B series in xcbm2's .vsf ([b56cc71](https://github.com/elektronaut/badline/commit/b56cc71064442c5e354e9415f1a5bec6110e1950))
+* read and write the CBM-II's true drives in xcbm2's and xcbm5x0's .vsf ([7975d43](https://github.com/elektronaut/badline/commit/7975d4312a77ddb16565b95002c3928623d3b906))
+* read and write the P500 in xcbm5x0's .vsf ([ebe273f](https://github.com/elektronaut/badline/commit/ebe273f7ed7a571cbe42fda822875c24afe0efde))
+* read the P500's paddles through the SID and its light pen on PA6 ([40361cd](https://github.com/elektronaut/badline/commit/40361cdb3f5a2229ce523e45912522fff07d0580))
+* read the P500's video bus in the VIC's bank ([4cddf8c](https://github.com/elektronaut/badline/commit/4cddf8c55e39373c00bb26218dc70966797a05a8))
+* recognise CBM-II cartridge images ([125419c](https://github.com/elektronaut/badline/commit/125419ce1d40a2c1943f6629397a125031bbf2d2))
+* register the CBM-II family, refused until it boots ([c90d9a4](https://github.com/elektronaut/badline/commit/c90d9a4f06496e1f9b08781989bcb5bbe7350b3d))
+* run the CBM-II's B series in the window, with its keys, KEYBOARD page and Power page ([41045ef](https://github.com/elektronaut/badline/commit/41045efb6cff8452ef32b0939b90fa293a87b2ab))
+* run the CBM-II's testbench rows, and diff and check it on Spinel ([36f7b87](https://github.com/elektronaut/badline/commit/36f7b8789c6dbe191d5ad96d8b79bd6f9446894c))
+* run the P500 in the window, with its joysticks, keys and Power page ([497bbe6](https://github.com/elektronaut/badline/commit/497bbe602d48896738281b34a5e33e51da910a7e))
+* run the P500's testbench rows, and diff and check it on Spinel ([fa0188b](https://github.com/elektronaut/badline/commit/fa0188bccf2ae24ca00c57d4fae082e96505c323))
+* save and restore the CBM-II in keyed snapshots ([a477ffd](https://github.com/elektronaut/badline/commit/a477ffdb9f169d3518867a85e94a7cd8b9653584))
+* save and restore the PET's 8050 or 8250 in keyed snapshots ([4f6cdd2](https://github.com/elektronaut/badline/commit/4f6cdd2b2b2e5599104bc6ae6522f3b8d0435252))
+* serve the CBM-II's device 8 through its IEEE-488 traps, and attach its media ([521947f](https://github.com/elektronaut/badline/commit/521947f594810dbff84e4c06a1752de54ce728d3))
+* serve the P500's device 8 through its KERNAL's IEEE-488 traps ([4f01bc5](https://github.com/elektronaut/badline/commit/4f01bc5371ae53982982cde1fed4175ff6e442dc))
+* settle a PET's 8050 into its controller's idle loop for xpet's .vsf ([f3c7a84](https://github.com/elektronaut/badline/commit/f3c7a84ddb3ef8bd37c0085a36c429b924ece83c))
+* settle the CBM-II's sound, RS-232 and user port, and the 6525's mask readback ([e256879](https://github.com/elektronaut/badline/commit/e2568796740938472ca01ead18e138fdaccdae5c))
+* sleep the 8050 and 8250 through their idle loops ([5ba4654](https://github.com/elektronaut/badline/commit/5ba4654ec57f4f1c194c37a3dc2bfd34eb137c10))
+* take badline cbm2 with --model, --kernal and --60hz, and pick the CBM-II for its cartridges ([87dadcc](https://github.com/elektronaut/badline/commit/87dadcc67b3be5dda237d6b85802b2b41f03b73c))
+* take the CBM-II's DRAM refresh cycles from its CPU ([62df423](https://github.com/elektronaut/badline/commit/62df42301369f3c94b01df84013538c7d5ca087c))
+* take the P500 as badline cbm2 --model 510 or 510ntsc, with KERNAL 02 ([219fb0a](https://github.com/elektronaut/badline/commit/219fb0aef0eef3c54aadeabd9402af7b6d999982))
+
+
+### Bug Fixes
+
+* end no CRTC row in the vertical adjust ([f3ac171](https://github.com/elektronaut/badline/commit/f3ac1713954f093e85a40c981b0a012c0e251069))
+* lay files out on disk images as the DOS does ([8494ee1](https://github.com/elektronaut/badline/commit/8494ee10a5ac589fe74e54b96fe06887fc95baff))
+
+
+### Performance Improvements
+
+* clock the PET's cassette decks only while a tape runs ([196f73b](https://github.com/elektronaut/badline/commit/196f73b142c8457d760cb6220063395e4dff6c03))
+
 ## [0.16.1](https://github.com/elektronaut/badline/compare/v0.16.0...v0.16.1) (2026-10-18)
 
 
