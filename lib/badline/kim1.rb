@@ -2,6 +2,7 @@
 
 require "badline/kim1/cpu"
 require "badline/kim1/rriots"
+require "badline/kim1/tape"
 require "badline/kim1/panel"
 require "badline/kim1/key_entry"
 require "badline/kim1/bus"
@@ -13,8 +14,9 @@ module Badline
   # The MOS KIM-1: a 6502 at 1 MHz, 1K of RAM and two 6530 RRIOTs, U2
   # with the monitor in its ROM and U3 with the tape routines (KIM1::Bus).
   # U2's ports drive the keypad and the six LED digits (Panel), and its PB7
-  # the audio output (Sound). Nothing pulls IRQ unless U3's PB7 is wired
-  # to it, as the User Manual's appendix H has the user do for U3's timer.
+  # the audio output (Sound) and the cassette (Tape). Nothing pulls IRQ
+  # unless U3's PB7 is wired to it, as the User Manual's appendix H has the
+  # user do for U3's timer.
   #
   # RS resets the CPU and both 6530s, and ST pulls NMI, which the monitor
   # leaves to the vector at $17FA: $1C00 there saves the registers and
@@ -182,5 +184,8 @@ module Badline
 
     # The display as text, such as "0200 A9" (Panel#display_text).
     def display_text = @panel.display_text
+
+    # The cassette deck on U2's PB7.
+    def tape = @panel.tape
   end
 end

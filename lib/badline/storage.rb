@@ -15,6 +15,7 @@ require "badline/storage/g64_image"
 require "badline/storage/t64"
 require "badline/storage/tap"
 require "badline/storage/papertape"
+require "badline/storage/kim_tape"
 require "badline/storage/crt_file"
 require "badline/storage/unavailable"
 
