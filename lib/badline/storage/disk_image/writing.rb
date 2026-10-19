@@ -151,8 +151,8 @@ module Badline
         end
 
         def put_sector(track, sector, data)
-          block = data.first(SECTOR_SIZE)
-          @bytes[sector_offset(track, sector), SECTOR_SIZE] = block + Array.new(SECTOR_SIZE - block.length, 0)
+          offset = sector_offset(track, sector)
+          SECTOR_SIZE.times { |i| @bytes[offset + i] = data[i] || 0 }
           @errors[track_offset(track) + sector] = 1 if @errors
         end
       end
