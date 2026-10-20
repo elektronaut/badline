@@ -75,7 +75,7 @@ Written by the C64, VIC-20, C128, Plus/4, PET, CBM-II.
 | `rom.characters` | text | PET: "pet/characters2.rom" or "pet/characters1.rom" or "pet/characters-superpet.rom" |
 | `jumpers` | text | PET: "" |
 | `vertical_drive` | bool | PET: true |
-| `host.ieee_drive_model` | text: 2031 8050 8250 1001 4040 3040 9060 9090 | PET: "2031"; CBM-II: "2031" |
+| `host.ieee_drive_model` | text: 2031 8050 8250 1001 4040 3040 2040 9060 9090 | PET: "2031"; CBM-II: "2031" |
 | `cpu_switch` | text: 6502 6809 prog | PET: "6502" |
 | `ram_switch` | text: rw read prog | PET: "rw" |
 | `mains_hz` | int | CBM-II: 50 |
@@ -576,7 +576,7 @@ Written by the C64, PET, CBM-II.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `storage.kind` | text: directory d64 d71 d81 t64 d80 d82 | "directory" |
+| `storage.kind` | text: directory d64 d71 d81 t64 d80 d82 d67 | "directory" |
 | `storage.path` | text | "" |
 | `storage.bytes` | bytes | [] |
 | `storage.read_only` | bool | false |

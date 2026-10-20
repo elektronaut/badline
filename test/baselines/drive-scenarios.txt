@@ -175,3 +175,13 @@ pet-4040-read-only/image-unchanged	PASS
 pet-4040-autostart/loads-and-runs	PASS
 pet-4040-error-channel/power-on-message	PASS
 pet-3040-error-channel/power-on-message	PASS
+pet-2040-format/no-error	PASS
+pet-2040-format/lists-new-disk	PASS
+pet-2040-format/trap-readable	PASS
+pet-2040-save/no-error	PASS
+pet-2040-save/loads-back	PASS
+pet-2040-save/file-in-image	PASS
+pet-2040-save/trap-readable	PASS
+pet-4040-dos1-disk/write-refused	PASS
+pet-4040-dos1-disk/image-unchanged	PASS
+pet-2040-identity/dos-1.2	PASS

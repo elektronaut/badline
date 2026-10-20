@@ -10,8 +10,8 @@ module Badline
     module IEEEModels
       # The images each model reads, by extension.
       MEDIA = {
-        "2031" => %w[.d64 .g64], "8050" => %w[.d80], "8250" => %w[.d82], "1001" => %w[.d82], "4040" => %w[.d64],
-        "3040" => %w[.d64], "9060" => %w[.d90], "9090" => %w[.d90]
+        "2031" => %w[.d64 .g64], "8050" => %w[.d80], "8250" => %w[.d82], "1001" => %w[.d82], "4040" => %w[.d64 .d67],
+        "3040" => %w[.d64 .d67], "2040" => %w[.d67], "9060" => %w[.d90], "9090" => %w[.d90]
       }.freeze
 
       # The model --true-drive plugs in without --drive-type.
@@ -20,7 +20,7 @@ module Badline
       # The model an image goes in when neither the drive on device 8 nor
       # the machine's own model reads it. A .d90 goes by its size
       # (hard_disk_model).
-      FOR_IMAGES = { ".d64" => "2031", ".g64" => "2031", ".d80" => "8050", ".d82" => "8250" }.freeze
+      FOR_IMAGES = { ".d64" => "2031", ".g64" => "2031", ".d80" => "8050", ".d82" => "8250", ".d67" => "2040" }.freeze
 
       NAMES = MEDIA.keys.freeze
 

@@ -58,24 +58,36 @@ module Badline
         @host_clock_hz = host_clock_hz
         @phase = 0
         @cycles = 0
-        build_ip(dos_rom || ROM.load(dos_file, 0xd000))
-        build_fdc(fdc_rom || ROM.read("4040/fdc-901466-04.rom"))
+        build_ip(dos_rom || ROM.load(dos_file, dos_start))
+        build_fdc(fdc_rom || ROM.read(fdc_file))
         @ip_cpu = IPCPU.new(@ip_bus)
         @fdc_cpu = FDCCPU.new(@fdc_bus)
-        init_idle(ip_loop, FDC_LOOP)
+        init_idle(ip_loop, fdc_loop)
         @ieee_bus.attach(self)
       end
 
-      # Puts in the .d64 image at +path+, write-protected with `read_only`.
+      # Puts in the .d64 image at +path+, or the DOS 1 disk a .d67 holds,
+      # write-protected with `read_only`.
       def insert_image(path, drive: 0, read_only: false)
-        insert(Disk.new(Storage::D64Image.new(path, read_only:)), drive:)
+        image = if File.extname(path).casecmp?(".d67")
+                  Storage::D67Image.new(path, read_only:)
+                else
+                  Storage::D64Image.new(path, read_only:)
+                end
+        insert(Disk.new(image), drive:)
       end
 
       private
 
       def dos_file = "4040/dos-2.1-rev.rom"
 
+      def dos_start = 0xd000
+
+      def fdc_file = "4040/fdc-901466-04.rom"
+
       def ip_loop = IP_LOOP
+
+      def fdc_loop = FDC_LOOP
 
       def build_ip(rom)
         @common = Memory.new([], length: 0x1000)
@@ -131,6 +143,37 @@ module Badline
       def dos_file = "4040/dos-2.1.rom"
 
       def ip_loop = IP_LOOP
+    end
+
+    # The 2040: the 4040's board with DOS 1.2 in the sockets at $E000 and
+    # $F000, UJ1 at $D000 left empty, and 901466-02 in the controller's
+    # 6530, as the 3040 with DOS 1 has it too. Its disks are DOS 1's .d67,
+    # with 20 sectors on tracks 18 to 24 (Storage::D67Image). The
+    # controller starts at once, with no handshake on the common RAM, and
+    # the interface processor leaves the common RAM alone at boot.
+    class Model2040 < Model4040
+      # Where DOS 1.2's idle loop and its controller's job loop start over.
+      IP_LOOP = 0xe27e
+      FDC_LOOP = 0xfc47
+
+      def model_name = "2040"
+
+      # Puts in the .d67 image at +path+, write-protected with `read_only`.
+      def insert_image(path, drive: 0, read_only: false)
+        insert(Disk.new(Storage::D67Image.new(path, read_only:)), drive:)
+      end
+
+      private
+
+      def dos_file = "4040/dos-1.2.rom"
+
+      def dos_start = 0xe000
+
+      def fdc_file = "4040/fdc-901466-02.rom"
+
+      def ip_loop = IP_LOOP
+
+      def fdc_loop = FDC_LOOP
     end
   end
 end

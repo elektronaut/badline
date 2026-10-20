@@ -77,6 +77,11 @@ describe Badline::Media::TrueDrive do
       expect(machine.ieee.bus.drives).to eq([machine.true_drive])
     end
 
+    it "puts a .d67 in a 2040" do
+      described_class.insert(machine, image("disk.d67", 176_640))
+      expect(machine.true_drive.model_name).to eq("2040")
+    end
+
     it "turns away an image no drive on the bus reads" do
       expect { described_class.insert(machine, image("disk.d71", 349_696)) }
         .to raise_error(described_class::Error, /not a \.d64 or \.g64 image, which the 2031 reads/)

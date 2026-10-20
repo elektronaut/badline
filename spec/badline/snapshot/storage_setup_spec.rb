@@ -37,6 +37,11 @@ describe Badline::Snapshot::StorageSetup do
     end
   end
 
+  it "opens a 2040's disk image as the same kind" do
+    path = File.join(dir, "disk.d67").tap { |file| File.binwrite(file, "\0" * 176_640) }
+    expect(reopened(Badline::Storage::D67Image.new(path), detached: false).class).to be(Badline::Storage::D67Image)
+  end
+
   describe "a .t64 archive" do
     let(:archive) do
       entry = [1, 0x82, 0x01, 0x08, 0x03, 0x08, 0, 0, 0x60, 0, 0, 0, 0, 0, 0, 0]

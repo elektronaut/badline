@@ -4,17 +4,22 @@ module Badline
   module Drives
     class Model4040
       class Disk
-        def image_format = "d64"
+        def image_format = @image.is_a?(Storage::D67Image) ? "d67" : "d64"
 
         # The disk a BL-D8-DISK module holds, as Model8050::Disk's, from a
-        # .d64.
+        # .d64 or a .d67.
         def self.from_fields(input, detached: false)
           path = input.text("path", "")
           read_only = input.bool("read_only", false) || detached
-          input.choice("image.format", %w[d64], "d64")
+          kind = input.choice("image.format", %w[d64 d67], "d64")
           bytes = input.bytes("image", "".b).bytes
           path = "" if detached || !File.file?(path)
-          new(Storage::D64Image.new(path, read_only:, bytes:)).load_track_fields(input)
+          image = if kind == "d67"
+                    Storage::D67Image.new(path, read_only:, bytes:)
+                  else
+                    Storage::D64Image.new(path, read_only:, bytes:)
+                  end
+          new(image).load_track_fields(input)
         end
       end
 

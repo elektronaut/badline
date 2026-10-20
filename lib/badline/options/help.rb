@@ -137,7 +137,7 @@ module Badline
         8250. --drive-type 8050 or 8250 plugs either in instead, and
         --drive-type 1001 an SFD-1001, which takes a .d82 in its one drive.
         --drive-type 4040 or 3040 puts a .d64 in a 4040 or a 3040 instead
-        of the 2031.
+        of the 2031, and a .d67, DOS 1's disk, goes in a 2040.
         The 8032 and the 8096 have two 50 Hz editors: 4-80-b-50hz, the
         default, and 4-80-b-50hz-0283, another chip's,
         with 64-cycle lines and 313 lines a frame. The 8296 runs its own,

@@ -148,6 +148,7 @@ processor's $E000-$FFFF: 901468-06 ($E000-$EFFF, SHA-1
 4d9658f2e6ff3276e5c6e224611a66ce44b16fc7) followed by 901468-07
 ($F000-$FFFF, SHA-1 6a51c7954938439ca8342fc295bda050c06e1791). No DOS
 1.0 image is public, so both DOS 1 units run it, as xpet's 2040 does.
+Drives::Model2040 loads it.
 SHA-1 e37b3bfd801eb19dea50cf8b4a6af8613c3520d3.
 
 4040/fdc-901466-02.rom
