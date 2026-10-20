@@ -257,7 +257,7 @@ the rows your change can't reach tell you nothing about it.
   `TYPES.fetch(type).new`, so it counts every class as constructible, and
   the new method widens every untyped call of that name in the emulator.
   In 0.18.0, a KIM-1 tape's `length` broke `D90Image`'s `Array#fill` in
-  a harness that never builds a KIM-1
+  a harness that never builds a KIM-1.
 - The Regression workflow runs the suites on CRuby, started by hand from
   the Actions tab, for a person checking that CRuby and Spinel agree.
   Agents don't start it
