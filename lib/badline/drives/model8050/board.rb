@@ -68,6 +68,8 @@ module Badline
         private
 
         def run_cycle
+          return fdc_alone_cycle if @fdc_alone
+
           step
           watch_loops if @idle_skip
         end

@@ -74,7 +74,10 @@ module Badline
 
       # Everything the RRIOT holds but its timer's counter, for comparing
       # it at two points.
-      def idle_state = [*@ram, @ora, @orb, @ddra, @ddrb, *@timer.state, @timer.flag]
+      def idle_state = [*@ram, *port_state]
+
+      # The ports and the timer but for its counter.
+      def port_state = [@ora, @orb, @ddra, @ddrb, *@timer.state, @timer.flag]
 
       def read_rom(addr) = @rom[addr & 0x3ff]
 

@@ -118,6 +118,18 @@ module Badline
         @fdc_cpu.cycle!
         @cycles += 1
       end
+
+      # One cycle of the FDC's side alone, as step runs it (Idle).
+      def fdc_step
+        so = @mechanism.take_so
+        @mechanism.cycle!
+        @via.cycle!
+        @rriot.cycle!
+        @fdc_cpu.irq = @via.irq? || @rriot.irq?
+        @fdc_cpu.so! if so
+        @fdc_cpu.cycle!
+        @cycles += 1
+      end
     end
 
     # The 8250: the 8050's board driving double-sided mechanisms, 154 tracks

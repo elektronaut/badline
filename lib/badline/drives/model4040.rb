@@ -130,6 +130,16 @@ module Badline
         @fdc_cpu.cycle!
         @cycles += 1
       end
+
+      # One cycle of the FDC's side alone, as step runs it (Model8050::Idle).
+      def fdc_step
+        @mechanism.cycle!
+        @via.cycle!
+        @rriot.cycle!
+        @fdc_cpu.irq = @rriot.irq?
+        @fdc_cpu.cycle!
+        @cycles += 1
+      end
     end
 
     # The 3040: the 4040's board with the first DOS 2.1, as xpet's 3040
