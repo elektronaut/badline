@@ -135,7 +135,7 @@ module Badline
                when 0xf then %i[offset_hi offset_lo_absolute dead_pc]
                else []
                end
-        plan += %i[indirect_hi indirect_lo dead_v] if post & 0x10 != 0
+        plan += %i[indirect_hi indirect_lo dead_v] if post.anybits?(0x10)
         plan.freeze
       end.freeze
     end
