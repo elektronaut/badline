@@ -295,9 +295,13 @@ module Badline
 
   class KIM1
     class CPU
-      @memory: Bus
+      @memory: KIM1::Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
       @a: Integer
       @x: Integer
       @y: Integer
@@ -312,6 +316,14 @@ module Badline
       @irq: bool
       @irq_sample: bool
       @irq_pending: bool
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @boundary_irq: bool
       @boundary_nmi: bool
       @pending_write: bool

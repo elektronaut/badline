@@ -1,6 +1,9 @@
 module Badline
   class Memory
     @storage: Array[Integer]
+    @start: Integer
+    @length: Integer
+    @end: Integer
     def peek: (Integer) -> Integer
     def poke: (Integer, Integer) -> void
     def []=: (Integer, Integer) -> void

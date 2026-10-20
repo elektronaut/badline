@@ -1,0 +1,81 @@
+module Badline
+  class KIM1
+    @next_key_at: Integer
+
+    class Bus
+      @u2: Badline::KIM1::MonitorRRIOT
+      @u3: Badline::KIM1::UserRRIOT
+      @ram: Memory
+      @low_end: Integer
+      @mirror_end: Integer
+      @data: Integer
+      @start: Integer
+      @length: Integer
+      @end: Integer
+      def peek: (Integer) -> Integer
+      def poke: (Integer, Integer) -> untyped
+    end
+
+    class Panel
+      @rriot: Badline::KIM1::MonitorRRIOT
+      @tty: bool
+      @tty_in_high: bool
+      @held: Integer
+      @digit: Integer
+      @segments: Integer
+      @since: Integer
+    end
+
+    class Teletype
+      @queue: Array[Integer]
+      @output: String
+      @line_high: bool
+      @sending: Integer
+      @sent: Integer
+      @send_start: Integer
+      @quiet_until: Integer
+      @receiving: bool
+      @received: Integer
+      @bits: Integer
+      @edge: Integer
+      @sample_at: Integer
+      @last_printer: bool
+      @baud: Integer
+    end
+
+    class Sound
+      @recording: bool
+    end
+  end
+
+  module Chips
+    class RRIOT
+      @rom: Array[Integer]
+      @ram: Array[Integer]
+      @ora: Integer
+      @orb: Integer
+      @ddra: Integer
+      @ddrb: Integer
+      @irq_on_pb7: bool
+      def read_rom: (Integer) -> Integer
+      def read_ram: (Integer) -> Integer
+      def peek: (Integer) -> Integer
+      def port_a_output: () -> Integer
+      def port_b_output: () -> Integer
+      def irq?: () -> bool
+    end
+
+    class RIOT
+      class Timer
+        @read_restores_divider: bool
+        @counter: Integer
+        @divider: Integer
+        @prescale: Integer
+        @expired: bool
+        @flag: bool
+        @irq_enabled: bool
+        @fired: bool
+      end
+    end
+  end
+end
