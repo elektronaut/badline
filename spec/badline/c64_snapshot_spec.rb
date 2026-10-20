@@ -50,9 +50,9 @@ describe Badline::C64, "#snapshot" do
     # A running machine, at another odd cycle, with the SID recording.
     let(:target) { run(described_class.new, 5_003).tap { |machine| machine.sid.record(rate: 44_100) } }
 
-    it "takes a running machine back to the snapshot" do
+    it "takes a running machine back to the snapshot, with its recording's window started afresh" do
       target.restore(image)
-      expect(target.snapshot).to eq(image)
+      expect(target.snapshot).to eq(image.load.tap { |machine| machine.sid.record(rate: 44_100) }.snapshot)
     end
 
     it "keeps the machine's chips, and what is wired to them" do
