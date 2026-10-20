@@ -103,6 +103,10 @@ bundle exec rubocop
   `main` every two hours. When a change moves rows on purpose, re-record just
   those rows as [test/baselines/README.md](test/baselines/README.md)
   describes, and say why in the pull request.
+- Timing rules derived against a test are in
+  [doc/pinned-behaviour.md](doc/pinned-behaviour.md). What VICE's
+  emulators check, how they're driven, their known quirks and where
+  badline differs from them are in [doc/vice.md](doc/vice.md).
 - Write commit messages using
   [Conventional Commits](https://www.conventionalcommits.org). The
   changelog and releases are generated from them, so the `feat:` and

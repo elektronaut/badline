@@ -134,7 +134,10 @@ The SFD-1001's floppy controller program, 251257-02A: the first 1 KB
 of the 2716 on its 6530 adaptor (251252-01), whose A10 is grounded, so
 the controller runs it from $FC00-$FFFF in place of the 6530's mask.
 Its interface processor runs 8050/dos-2.7.rom, the same 16 KB as
-901887-01 and 901888-01. Drives::Model1001 loads it.
+901887-01 and 901888-01. Drives::Model1001 loads it. The unit's
+mechanism, a Matsushita JU-570-2, has 100 tracks an inch, as its spec
+sheet in the 8250LP and SFD-1001 technical manual gives it, not the 96
+that zimmers.net's description says.
 SHA-1 473664d405942865d46a6e723eb7d3f243584f7a (the whole 2 KB EPROM,
 SHA-1 3b954eb34f7ea088eed1d33ebc6d6e83a3e9be15).
 
@@ -148,6 +151,10 @@ processor's $E000-$FFFF: 901468-06 ($E000-$EFFF, SHA-1
 4d9658f2e6ff3276e5c6e224611a66ce44b16fc7) followed by 901468-07
 ($F000-$FFFF, SHA-1 6a51c7954938439ca8342fc295bda050c06e1791). No DOS
 1.0 image is public, so both DOS 1 units run it, as xpet's 2040 does.
+The 2040 is often listed with DOS 1.0, but this set is 1.2: 901468-07's
+IRQ vector is $E2D6, and VICE-testprogs' vdrive/diskaddrchange.bas
+names the drive whose $FFFF reads $E2 "2040 v1.2". The Commodore ROM
+Genealogy (1980) lists it as the 2040's production set.
 Drives::Model2040 loads it.
 SHA-1 e37b3bfd801eb19dea50cf8b4a6af8613c3520d3.
 
@@ -202,6 +209,9 @@ SHA-1 59dafbd4855083074ba8dc96a04d4daa5b76e0d6.
 
 Both downloaded from
 https://www.zimmers.net/anonftp/pub/cbm/firmware/drives/old/9090/
+The harddrives.zip elsewhere on zimmers.net is not the D9060's DOS: it
+is a 1981 prototype DOS for one processor, driving an 8" floppy and an
+8" hard disk.
 
 Commodore VIC-20 ROMs
 =====================
