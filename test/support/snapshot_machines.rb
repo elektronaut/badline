@@ -89,6 +89,9 @@ module SnapshotSetups
     machine
   end
 
+  # +machine+ recording its sound at 44.1 kHz, as the window plays it.
+  def recorded(machine) = machine.tap { machine.sound_source.record(rate: 44_100) }
+
   # An REU stash of 4K, saved halfway through.
   def reu_transfer(machine)
     run(machine, 3_000_000)
@@ -202,11 +205,18 @@ module SnapshotMachines
   include SnapshotSetups
 
   # `build` takes the scenario's directory and returns the machine with its
-  # media, and `advance` runs it to the save point.
-  Scenario = Data.define(:name, :family, :build, :advance)
+  # media, and `advance` runs it to the save point. `host`, if given, is
+  # what the host does to the machine a snapshot loads, such as recording
+  # its sound again.
+  Scenario = Data.define(:name, :family, :build, :advance, :host) do
+    def initialize(host: nil, **) = super
+  end
 
   # A voice on the second SID at $D420, its pitch following the jiffy clock.
   SID2_BASIC = "10 s=54304:pokes+24,15:pokes+5,9:pokes+4,33\r20 pokes+1,peek(162):goto20\rrun\r"
+
+  # A sustained voice on the SID, its pitch following the jiffy clock.
+  SID_BASIC = "10 s=54272:pokes+24,15:pokes+5,9:pokes+6,240:pokes+4,33\r20 pokes+1,peek(162):goto20\rrun\r"
 
   module_function
 
@@ -232,6 +242,8 @@ module SnapshotMachines
         machine.address_bus.add_sid(Badline::Chips::SID.new(model: :mos8580, at: 0xd420))
         typing(machine, SID2_BASIC)
       }, ->(m) { run(m, 3_500_000) }),
+      Scenario.new("c64-sid-audio", :c64, ->(_dir) { recorded(typing(Badline::C64.new, SID_BASIC)) },
+                   ->(m) { run(m, 3_500_123) }, ->(m) { recorded(m) }),
       Scenario.new("c64-jam", :c64, ->(_dir) { typing(Badline::C64.new, "poke 49152,2:sys 49152\r") },
                    ->(m) { run(m, 3_500_000) })
     ]

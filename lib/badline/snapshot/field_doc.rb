@@ -35,9 +35,10 @@ module Badline
       CARTRIDGES = [32, 5, 21, 18, 1, 53].freeze
 
       # The machines the doc is made from: each family at power-on, the C64
-      # with each kind of expansion, cartridge and media, and a second SID,
-      # the 264 series' models, its TCBM interface, cartridge, tape and
-      # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
+      # with each kind of expansion, cartridge and media, a second SID and
+      # its sound recording, the 264 series' models, its TCBM interface,
+      # cartridge, tape and true drives, the 1541 and the 1551, a CRTC PET,
+      # a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
       # one with a true 2031, one with an 8050, one with an 8250, one with
       # a 4040 and one with a D9060, a SuperPET in 6809 mode with a disk in
@@ -48,7 +49,7 @@ module Badline
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
                     *CARTRIDGES.map { |type| with_cartridge(type) }, with_trap_dos, with_tape, with_drive(:d64),
-                    with_drive(:d81), with_extra_sids],
+                    with_drive(:d81), with_extra_sids, with_recording],
           "vic20" => [Vic20.new, with_rom],
           "c128" => [C128.new(mode: :c128), with_drive(:d71)],
           "plus4" => [Plus4.new, Plus4.new(model: "c16"), Plus4.new(tcbm: true), Plus4.new(sid_card: :mos6581),
@@ -138,6 +139,9 @@ module Badline
       def self.with_extra_sids
         C64.new.tap { |machine| machine.address_bus.add_sid(Chips::SID.new(at: 0xd420)) }
       end
+
+      # A C64 recording its SID's output, as the window does with sound on.
+      def self.with_recording = C64.new.tap { |machine| machine.sound_source.record(rate: 44_100) }
 
       def self.with_trap_dos
         C64.new.tap { |machine| machine.mount(Storage::D64Image.new("", read_only: true, bytes: blank(174_848))) }

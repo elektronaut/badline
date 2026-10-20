@@ -169,6 +169,7 @@ module SnapshotCheck
       first = dump(machine)
       again = dump(machine)
       restored, ignored = load(first)
+      scenario.host&.call(restored)
       second = dump(restored)
       puts "#{scenario.name}: saved at cycle #{machine.cycles}, #{first.bytesize} bytes"
       ignored.each { |line| puts "  left out: #{line}" }
