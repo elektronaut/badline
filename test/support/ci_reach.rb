@@ -77,7 +77,7 @@ module CIReach
     ["lib/badline/roms/{8050,1001,4040,9060}/**/*", %w[drive-scenarios]],
     # No suite runs the KIM-1 yet, or loads its programs.
     ["lib/badline/{kim1.rb,kim1/**/*,roms/kim1/**/*,support/kim1_checkpoint.rb}", []],
-    ["lib/badline/{media/kim1_media.rb,storage/papertape.rb}", []],
+    ["lib/badline/{media/kim1_media.rb,storage/papertape.rb,storage/kim_tape.rb}", []],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC + P500],

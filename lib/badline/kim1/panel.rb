@@ -12,7 +12,7 @@ module Badline
     # pulling its line low: PA6 is the row's first key, PA0 its seventh.
     # Fitted, the jumper pulls PA0 low while output 3 is selected, which
     # the monitor reads as teletype mode, and PA7 takes the teletype's
-    # line in (Teletype).
+    # line in (Teletype). PB7 is the cassette's line (Tape).
     #
     # Nothing holds the display lit. A program lights each digit in turn
     # (the monitor's SCANDS, $1F1F), so the panel times how long each
@@ -49,6 +49,9 @@ module Badline
       # pulls PA7 low while PB5 is low, which gates it through.
       attr_accessor :tty_in_high
 
+      # The cassette deck on PB7.
+      attr_reader :tape
+
       # +clock+ answers +cycles+, the cycle each write to the ports lands
       # on.
       def initialize(clock)
@@ -56,6 +59,7 @@ module Badline
         @rriot = nil
         @tty = false
         @tty_in_high = true
+        @tape = Tape.new(clock)
         @held = -1
         @digit = -1
         @segments = 0
@@ -95,10 +99,11 @@ module Badline
         mask
       end
 
-      def read_b(_lines) = 0xff
+      def read_b(_lines) = @tape.input
 
       # The lines U2's ports drive after a write to them.
       def lines_written(port_a, port_b)
+        @tape.output(port_b)
         digit = decoded(port_b) - FIRST_DIGIT
         digit = -1 unless digit >= 0 && digit < DIGITS
         segments = digit.negative? ? 0 : port_a & 0x7f
