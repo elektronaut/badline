@@ -1877,6 +1877,21 @@ Written by the KIM-1.
 | `shown` | ints | [0, 0, 0, 0, 0, 0] |
 | `shown_at` | ints | [-20001, -20001, -20001, -20001, -20001, -20001] |
 
+## BL-DECK
+
+Written by the KIM-1.
+
+| Key | Type | Default |
+| --- | --- | --- |
+| `tape.gaps` | ints | [] |
+| `tape.path` | text | "" |
+| `playing` | bool | false |
+| `recording` | bool | false |
+| `position` | int | 0 |
+| `next_edge` | int | 0 |
+| `high` | bool | true |
+| `output_high` | bool | true |
+
 ## BL-TTY
 
 Written by the KIM-1.

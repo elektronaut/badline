@@ -36,7 +36,7 @@ describe Badline::KIM1 do
       saved.save_snapshot(path)
       snapshot = Badline::Snapshot.read(path)
       expect([snapshot.container.machine, snapshot.sections.map(&:name)])
-        .to eq(["KIM1", %w[BL-MACHINE BL-CPU BL-RAM BL-U2 BL-U3 BL-PANEL BL-TTY BL-SOUND]])
+        .to eq(["KIM1", %w[BL-MACHINE BL-CPU BL-RAM BL-U2 BL-U3 BL-PANEL BL-DECK BL-TTY BL-SOUND]])
     end
 
     it "builds the RAM the snapshot names" do
@@ -78,6 +78,38 @@ describe Badline::KIM1 do
         kim.type_keys("AD 0200 DA A9")
         kim.run_cycles(described_class::BOOT_CYCLES + 1)
       end
+    end
+
+    # Three periods of 3,700 Hz and one of 2,400 Hz.
+    def crossings = [100, 235, 370, 505, 640, 848, 1056]
+
+    # A KIM-1 whose deck has played 500 microseconds into a tape, through
+    # PB7's first edge, saved and loaded.
+    def playing
+      described_class.new.tap do |kim|
+        kim.tape.insert_tape(Badline::Storage::KIMTape.new("dump.wav", crossings:))
+        kim.tape.play
+        kim.run_cycles(500)
+        kim.tape.input
+      end.snapshot.load
+    end
+
+    it "keeps the tape in the deck, and where it plays" do
+      deck = playing.tape
+      expect([deck.tape.path, deck.tape.crossings, deck.playing?,
+              deck.position]).to eq(["dump.wav", crossings, true, 500])
+    end
+
+    it "plays on from PB7's level when saved" do
+      machine = playing
+      levels = [machine.tape.input]
+      machine.run_cycles(500)
+      expect(levels << machine.tape.input).to eq([0x7f, 0xff])
+    end
+
+    it "keeps a recording going" do
+      machine = described_class.new.tap { |kim| kim.tape.record }.snapshot.load
+      expect(machine.tape.recording?).to be(true)
     end
 
     it "refuses to restore into a machine built another way" do
