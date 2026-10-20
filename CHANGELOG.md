@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.19.0](https://github.com/elektronaut/badline/compare/v0.18.0...v0.19.0) (2026-10-20)
+
+
+### Features
+
+* read and write the SuperPET's 6702 in xpet's .vsf ([af4bf6d](https://github.com/elektronaut/badline/commit/af4bf6dffb1804260393a942e3c317b07c6cb01c))
+* read and write the SuperPET's 6702 in xpet's .vsf ([75beb83](https://github.com/elektronaut/badline/commit/75beb8365760b19561e7178df5ddfe20e983ba87))
+* read and write xvic's snapshots of the VIC-20, PAL and NTSC ([1802295](https://github.com/elektronaut/badline/commit/1802295af18722301c01cd6d7d4902fc20ecd215))
+* read and write xvic's snapshots of the VIC-20, PAL and NTSC ([7e039a7](https://github.com/elektronaut/badline/commit/7e039a7deffc6e1283d5bc7e00182ae5350235e6))
+* run the VIC-20 testbench's screenshot rows and its NTSC raster and light pen programs ([084bdb6](https://github.com/elektronaut/badline/commit/084bdb6466c56606098ff5141e8498d712e1d43d))
+* run the VIC-20 testbench's screenshot rows and its NTSC raster and light pen programs ([1f54561](https://github.com/elektronaut/badline/commit/1f54561f2d8ba3bc511bf5d80d3b5f0365cc3a5b))
+
+
+### Bug Fixes
+
+* autostart the first program off a disk image on BASIC 1, not the image itself ([da48589](https://github.com/elektronaut/badline/commit/da48589867fc436ae8361bf210e0d8d39b2a6634))
+* autostart the first program off a disk image on BASIC 1, not the image itself ([3f31daa](https://github.com/elektronaut/badline/commit/3f31daa044497d2524b7906691cf9f4e8881eb6b))
+* name the 6702's constants in full for Spinel ([3881e7a](https://github.com/elektronaut/badline/commit/3881e7ab9ea4370ec2ac02e3c0a7cbea32a6e944))
+
+
+### Performance Improvements
+
+* seed CPU::Core's fields for every 6502 and qualify the drive and PET memory seeds ([9d2d5d7](https://github.com/elektronaut/badline/commit/9d2d5d74a22869c072d849c90f0e1068412520f7))
+* seed CPU::Core's fields for every 6502 and qualify the drive and PET memory seeds ([6bf511c](https://github.com/elektronaut/badline/commit/6bf511c040105d7e8403593501fc9d8fb2a785fe))
+* seed the CIA's interrupt register, timers, shift register and TOD types for Spinel ([f17ebb3](https://github.com/elektronaut/badline/commit/f17ebb3958d702c59a5fb0b60c5e7ee8af98c057))
+* seed the CIA's interrupt register, timers, shift register and TOD types for Spinel ([bc1e468](https://github.com/elektronaut/badline/commit/bc1e4686314f90a66be038d78f92a0b297538989))
+* seed the KIM-1's CPU, 6530s, timer and bus types for Spinel ([d3fa19c](https://github.com/elektronaut/badline/commit/d3fa19c2afae555ade9ea136d7fde825270f070e))
+* seed the KIM-1's CPU, 6530s, timer and bus types for Spinel ([0e42b9d](https://github.com/elektronaut/badline/commit/0e42b9d888e7ff1c4e871b49d32fe593c3e33a76))
+* seed the Plus/4's CPU, TED and bus types for Spinel ([936233d](https://github.com/elektronaut/badline/commit/936233dc9a21d9045829d4f580b19529d16d481d))
+* seed the Plus/4's CPU, TED and bus types for Spinel ([50d0c1f](https://github.com/elektronaut/badline/commit/50d0c1f63c2401158a77342fc8a37f4bb2031e95))
+* wake only an idle 8050's controller for its 5 ms timer ([3e89b29](https://github.com/elektronaut/badline/commit/3e89b294dc43979be7b1856c2b2fee3a039975db))
+* wake only an idle 8050's controller for its 5 ms timer ([d733081](https://github.com/elektronaut/badline/commit/d7330814ca73b84c5537e8ca8d4e65121742b9b6))
+
 ## [0.18.0](https://github.com/elektronaut/badline/compare/v0.17.0...v0.18.0) (2026-10-20)
 
 ### Highlights
