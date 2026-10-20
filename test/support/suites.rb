@@ -117,6 +117,8 @@ module Suites
   # booting on a C128 from a true 1581. Its filters are scenario names.
   # drive-scenarios-cpm is ZEXDOC and ZEXALL run under that CP/M, which
   # bin/drive_scenarios runs only when named, for their billions of cycles.
+  # kim1-scenarios is the KIM-1's monitor on its keypad and on a teletype,
+  # which bin/drive_scenarios also runs only when named.
   OPT_IN_SUITES = {
     "testbench-cia" => { runner: "bin/testbench", scope: "CIA/" },
     "testbench-interrupts" => { runner: "bin/testbench", scope: "interrupts/",
@@ -152,7 +154,8 @@ module Suites
     "lorenz-plus4" => { runner: "bin/lorenz", args: %w[--plus4], chain: true, cuts: %w[rola cmpix insay] },
     "sid-8580" => { runner: "bin/sidtests", args: %w[--sid 8580] },
     "drive-scenarios" => { runner: "bin/drive_scenarios" },
-    "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] }
+    "drive-scenarios-cpm" => { runner: "bin/drive_scenarios", args: %w[cpm-zex] },
+    "kim1-scenarios" => { runner: "bin/drive_scenarios", args: %w[kim1] }
   }.freeze
 
   ALL_SUITES = REGRESSION_SUITES.merge(OPT_IN_SUITES).freeze

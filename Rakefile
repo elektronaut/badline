@@ -84,6 +84,7 @@ def spinel_check(media)
   SpinelCheck.check_cbm2_snapshots
   SpinelCheck.check_p500_boots
   SpinelCheck.check_p500_snapshots
+  SpinelCheck.check_kim1_boots
 end
 
 namespace :vendor do
@@ -198,6 +199,15 @@ task "spinel:drive_scenarios" do |_task, args|
   results = File.join(SpinelCheck::OUT, "drive-scenarios.txt")
   Suites.run_suite("drive-scenarios", results, [*filters, "--engine", SpinelCheck.binary("drive_scenarios")])
   Suites.compare_baseline("drive-scenarios", results, name: "spinel-drive-scenarios", filters:)
+end
+
+desc "Run the KIM-1's scenarios on the Spinel build and compare them against " \
+     "#{Suites::BASELINE_DIR}/kim1-scenarios.txt"
+task "spinel:kim1_scenarios" do
+  Suites.spinel_build(harnesses: %w[drive_scenarios])
+  results = File.join(SpinelCheck::OUT, "kim1-scenarios.txt")
+  Suites.run_suite("kim1-scenarios", results, ["--engine", SpinelCheck.binary("drive_scenarios")])
+  Suites.compare_baseline("kim1-scenarios", results, name: "spinel-kim1-scenarios")
 end
 
 desc "Run a bin/testbench suite (testbench unless named, or [all] of them) on the Spinel build, " \

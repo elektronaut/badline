@@ -30,7 +30,7 @@ module CIMatrix
     "drive-via-2" => [%w[testbench-drive via10 via11 via12 via13 via14 via20 via21]],
     "drive" => [%w[testbench-drive !viavarious], "testbench-vic20", "testbench-vic20-ntsc", "testbench-plus4",
                 "testbench-c16", "testbench-plus4-ntsc", "testbench-pet", "testbench-pet-discrete", "testbench-cbm2",
-                "testbench-cbm5x0"],
+                "testbench-cbm5x0", "kim1-scenarios"],
     "drive-scenarios-pet" => [%w[drive-scenarios pet-]],
     "drive-scenarios" => [%w[drive-scenarios !pet-]],
     "lorenz-plus4-1-3" => [%w[lorenz-plus4 1 2 3]],
@@ -47,7 +47,7 @@ module CIMatrix
   # baseline, and the harnesses each needs.
   CHECKS = {
     "spinel:check" => %w[boot cpu_tests z80_tests m6809_tests vic20_boot c128_boot plus4_boot plus4_snapshot pet_boot
-                         pet_snapshot cbm2_boot cbm2_snapshot p500_boot p500_snapshot],
+                         pet_snapshot cbm2_boot cbm2_snapshot p500_boot p500_snapshot kim1_boot],
     "spinel:check_sid" => %w[sid]
   }.freeze
 
@@ -94,6 +94,7 @@ module CIMatrix
       when "lorenz-plus4" then args.empty? ? "spinel:lorenz_plus4" : "spinel:lorenz_plus4[#{args.join(',')}]"
       when *SID_MODELS.keys then "spinel:sidtests[#{SID_MODELS.fetch(suite)}]"
       when "drive-scenarios" then args.empty? ? "spinel:drive_scenarios" : "spinel:drive_scenarios[#{args.join(',')}]"
+      when "kim1-scenarios" then "spinel:kim1_scenarios"
       else "spinel:testbench[#{[suite, *args].join(',')}]"
       end
     end
@@ -105,7 +106,7 @@ module CIMatrix
       when "lorenz" then %w[lorenz]
       when "lorenz-plus4" then %w[plus4_lorenz]
       when *SID_MODELS.keys then %w[sidtests]
-      when "drive-scenarios" then %w[drive_scenarios]
+      when "drive-scenarios", "kim1-scenarios" then %w[drive_scenarios]
       else [Suites.spinel_testbench_engine(suite)]
       end
     end
@@ -134,6 +135,7 @@ module CIMatrix
       when "spinel:lorenz_plus4" then [["lorenz-plus4", args - ["whole"]]]
       when "spinel:sidtests" then [[SID_MODELS.key(args.first || "6581"), []]]
       when "spinel:drive_scenarios" then [["drive-scenarios", args]]
+      when "spinel:kim1_scenarios" then [["kim1-scenarios", []]]
       else raise ArgumentError, "#{task} is not a suite task the matrix knows."
       end
     end

@@ -71,10 +71,11 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check testbench-cbm5x0], CIReach.suites(files)
   end
 
-  def test_the_kim1_and_its_roms_reach_only_the_spinel_check
-    files = %w[lib/badline/kim1.rb lib/badline/kim1/bus.rb lib/badline/roms/kim1/6530-002.rom]
+  def test_the_kim1_its_roms_and_its_media_reach_the_kim1_scenarios
+    files = %w[lib/badline/kim1.rb lib/badline/kim1/bus.rb lib/badline/roms/kim1/6530-002.rom
+               lib/badline/media/kim1_media.rb lib/badline/storage/papertape.rb test/support/drive_scenarios_kim1.rb]
 
-    assert_equal %w[spinel:check], CIReach.suites(files)
+    assert_equal %w[kim1-scenarios spinel:check], CIReach.suites(files)
   end
 
   def test_the_line_sound_reaches_the_pets_testbenches
@@ -126,7 +127,7 @@ class TestCIReach < Minitest::Test
                lib/badline/chips/riot.rb
                lib/badline/chips/rriot.rb]
 
-    assert_equal %w[drive-scenarios spinel:check], CIReach.suites(files)
+    assert_equal %w[drive-scenarios kim1-scenarios spinel:check], CIReach.suites(files)
   end
 
   def test_the_hard_disk_reaches_the_drive_scenarios
@@ -153,10 +154,14 @@ class TestCIReach < Minitest::Test
     assert_equal %w[drive-scenarios spinel:check testbench-pet testbench-pet-discrete], CIReach.suites(files)
   end
 
-  def test_the_drive_scenarios_runner_reaches_only_the_drive_scenarios
+  def test_the_drive_scenarios_runner_reaches_the_drive_and_kim1_scenarios
     files = %w[bin/drive_scenarios test/support/drive_scenarios_runner.rb test/support/drive_scenarios_pet.rb]
 
-    assert_equal %w[drive-scenarios drive-scenarios-cpm], CIReach.suites(files)
+    assert_equal %w[drive-scenarios drive-scenarios-cpm kim1-scenarios], CIReach.suites(files)
+  end
+
+  def test_a_machines_drive_scenarios_reach_only_the_drive_scenarios
+    assert_equal %w[drive-scenarios drive-scenarios-cpm], CIReach.suites(%w[test/support/drive_scenarios_pet.rb])
   end
 
   def test_the_via_reaches_the_pet_testbenches

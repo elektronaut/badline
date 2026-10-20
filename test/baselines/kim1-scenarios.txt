@@ -1,0 +1,12 @@
+kim1-tty-110/prompt	PASS
+kim1-papertape/loads	PASS
+kim1-papertape/prompts-after	PASS
+kim1-tty/prompt	PASS
+kim1-tty/opens-address	PASS
+kim1-sst/steps	PASS
+kim1-keypad/shows-address-and-byte	PASS
+kim1-keypad/stores-bytes	PASS
+kim1-stop/saves-registers	PASS
+kim1-stop/shows-pc	PASS
+kim1-autostart/runs	PASS
+kim1-timer/interrupts	PASS

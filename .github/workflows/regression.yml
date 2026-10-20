@@ -53,6 +53,7 @@ on:
           - sid-8580
           - drive-scenarios
           - drive-scenarios-cpm
+          - kim1-scenarios
 # No concurrency group: nothing here cancels anything, so two dispatched
 # runs never touch each other.
 permissions:

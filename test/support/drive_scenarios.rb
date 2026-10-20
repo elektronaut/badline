@@ -11,6 +11,7 @@ require_relative "drive_scenarios_pet"
 require_relative "drive_scenarios_8050"
 require_relative "drive_scenarios_9060"
 require_relative "drive_scenarios_cbm2"
+require_relative "drive_scenarios_kim1"
 
 # Whole-machine scenarios for the true 1541 running the real DOS ROM: saving
 # and loading a program, formatting a disk, reading the error channel, the
@@ -56,8 +57,10 @@ module DriveScenarios
   ).merge(Plus4TCBMRuns::CHECKS).merge(PETRuns::CHECKS).merge(PET8050Runs::CHECKS).merge(PET9060Runs::CHECKS)
                            .merge(CBM2Runs::CHECKS).freeze
 
-  # The scenarios that run only when a filter names them.
-  LONG_CHECKS = CpmRuns::LONG_CHECKS
+  # The scenarios that run only when a filter names them: CP/M's
+  # exercisers, for their billions of cycles, and the KIM-1's, a suite of
+  # their own.
+  LONG_CHECKS = CpmRuns::LONG_CHECKS.merge(KIM1Runs::CHECKS)
 
   # 10 PRINT"HELLO", as SAVE writes it.
   SAVED = [0x01, 0x08, 0x0e, 0x08, 0x0a, 0x00, 0x99, 0x22, *"HELLO".bytes, 0x22, 0x00, 0x00, 0x00].freeze
@@ -109,6 +112,8 @@ module DriveScenarios
       PET9060Runs.run(report, name, dir)
     elsif CBM2Runs::CHECKS.key?(name)
       CBM2Runs.run(report, name, dir)
+    elsif KIM1Runs::CHECKS.key?(name)
+      KIM1Runs.run(report, name, dir)
     else
       raise ArgumentError, "No drive scenario #{name}" unless Runs1581::CHECKS.key?(name)
 

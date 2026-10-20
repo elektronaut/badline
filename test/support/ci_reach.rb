@@ -51,11 +51,14 @@ module CIReach
     ["test/support/testbench_p500_machine.rb", P500],
     ["spinel/p500_{boot,testbench,snapshot}.rb", P500 + %w[spinel:check]],
     ["spinel/{m6809_tests,convert_m6809}.rb", %w[spinel:check]],
-    ["spinel/{pet,cbm2,plus4}_snapshot.rb", %w[spinel:check]],
+    ["spinel/{pet_snapshot,cbm2_snapshot,plus4_snapshot,kim1_boot}.rb", %w[spinel:check]],
     ["spinel/check.rb", %w[spinel:check spinel:check_sid]],
     ["bin/{snapshot_check,machine_diff,profile,benchmark,sidwavecheck,sidwavefit,suites_status}", []],
     ["bin/superpet_languages", []],
-    ["{bin/drive_scenarios,test/support/drive_scenarios*.rb}", %w[drive-scenarios drive-scenarios-cpm]],
+    ["test/support/drive_scenarios_kim1.rb", %w[kim1-scenarios]],
+    ["{bin/drive_scenarios,test/support/drive_scenarios{,_runner}.rb}",
+     %w[drive-scenarios drive-scenarios-cpm kim1-scenarios]],
+    ["test/support/drive_scenarios*.rb", %w[drive-scenarios drive-scenarios-cpm]],
     ["{native,exe}/**/*", []],
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
@@ -75,9 +78,9 @@ module CIReach
     ["lib/badline/{cbm2.rb,cbm2/ieee_ports.rb,cbm2/ieee_traps.rb,cbm2/ieee_drive.rb}", CBM2 + %w[drive-scenarios]],
     ["lib/badline/{cbm2.rb,cbm2/**/*,chips/tpi.rb,chips/tpi/**/*,support/cbm2_checkpoint.rb}", CBM2],
     ["lib/badline/roms/{8050,1001,4040,9060}/**/*", %w[drive-scenarios]],
-    # No suite runs the KIM-1 yet, or loads its programs.
-    ["lib/badline/{kim1.rb,kim1/**/*,roms/kim1/**/*,support/kim1_checkpoint.rb}", []],
-    ["lib/badline/{media/kim1_media.rb,storage/papertape.rb,storage/kim_tape.rb}", []],
+    ["lib/badline/support/kim1_checkpoint.rb", []],
+    ["lib/badline/storage/kim_tape.rb", []],
+    ["lib/badline/{kim1.rb,kim1/**/*,roms/kim1/**/*,media/kim1_media.rb,storage/papertape.rb}", %w[kim1-scenarios]],
     ["lib/badline/chips/cpu{.rb,/**/*}", ALL],
     ["lib/badline/chips/cia{.rb,/**/*}", CIA + CBM2],
     ["lib/badline/chips/vic{.rb,/**/*}", VIC + P500],
@@ -89,9 +92,9 @@ module CIReach
     # runs an 8096 and an 8296. spinel:check builds it in m6809_tests and in
     # pet_snapshot's SuperPET row.
     ["lib/badline/chips/m6809{.rb,/**/*}", %w[spinel:check]],
-    # The 6532 and 6530 of the 8050 and 8250, which only the PET's drive
-    # scenarios plug in.
-    ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", %w[drive-scenarios]],
+    # The 6532 and 6530 of the 8050 and 8250, which the PET's drive
+    # scenarios plug in, and the KIM-1's 6530s.
+    ["lib/badline/chips/{riot,rriot}{.rb,/**/*}", %w[drive-scenarios kim1-scenarios]],
     ["lib/badline/c64/{cartridge,reu,banked_ram}{.rb,/**/*}", CARTRIDGES],
     ["lib/badline/{c64.rb,c64/**/*}", C64 + %w[testbench-c128c64]],
     ["lib/badline/{vic20.rb,vic20/**/*}", VIC20],

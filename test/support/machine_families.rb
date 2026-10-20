@@ -243,6 +243,33 @@ PET_DEMO_PRG = [
   0x4c, 0x26, 0x04        # jmp $0426
 ].pack("C*").freeze
 
+# The KIM-1's demo, at $0200: a BCD counter in $F9 and $FA that U3's
+# timer steps every 10 ms, polled through its flag at $1707 while the
+# monitor's SCANDS shows it on the display.
+KIM1_DEMO = [
+  0xa9, 0x00,             # lda #$00
+  0x85, 0xf9,             # sta $f9
+  0x85, 0xfa,             # sta $fa
+  0x85, 0xfb,             # sta $fb
+  0xa9, 0x9c,             # lda #$9c
+  0x8d, 0x06, 0x17,       # sta $1706: 156 x 64 cycles
+  0x20, 0x1f, 0x1f,       # jsr $1f1f (SCANDS)
+  0x2c, 0x07, 0x17,       # bit $1707
+  0x10, 0xf8,             # bpl $020d
+  0xa9, 0x9c,             # lda #$9c
+  0x8d, 0x06, 0x17,       # sta $1706
+  0xf8,                   # sed
+  0x18,                   # clc
+  0xa5, 0xf9,             # lda $f9
+  0x69, 0x01,             # adc #$01
+  0x85, 0xf9,             # sta $f9
+  0xa5, 0xfa,             # lda $fa
+  0x69, 0x00,             # adc #$00
+  0x85, 0xfa,             # sta $fa
+  0xd8,                   # cld
+  0x4c, 0x0d, 0x02        # jmp $020d
+].freeze
+
 # The machine bin/machine_diff's --family, --model, --mode and --ram
 # build, the demo program each family runs, and the checkpoint that
 # digests it. bin/snapshot_check digests its machines the same way.
@@ -250,8 +277,12 @@ module MachineFamilies
   NAMES = %w[c64 vic20 c128 plus4 pet cbm2 kim1].freeze
 
   # The families with no demo program yet, which run the boot and type
-  # scenarios and media alone.
-  NO_DEMO = %w[cbm2 kim1].freeze
+  # scenarios and media alone, and those with no disk to load it from.
+  NO_DEMO = %w[cbm2].freeze
+  NO_DISK = %w[cbm2 kim1].freeze
+
+  # The KIM-1's RAM as --ram names it (Badline::KIM1::Bus::RAM_CONFIGURATIONS).
+  KIM1_RAM = %w[1k 5k expanded].freeze
   MODES = %w[c128 c64].freeze
 
   # What the type scenario types without --text.
@@ -283,7 +314,7 @@ module MachineFamilies
     when "plus4" then Badline::Plus4.new(model: options[:model] || "plus4", ram: options[:ram]&.to_i)
     when "pet" then pet(options)
     when "cbm2" then Badline::Machine.build(:cbm2, model: options[:model] || "610")
-    when "kim1" then Badline::KIM1.new
+    when "kim1" then Badline::KIM1.new(ram: options[:ram]&.to_sym)
     else Badline::Machine.build(:c64, model: options[:model])
     end
   end
@@ -325,11 +356,30 @@ module MachineFamilies
     Badline::Media.attach(computer, write_demo(dir, options))
   end
 
-  # Writes the demo into `dir` as demo.prg, and returns its path.
+  # Writes the demo into `dir` as demo.prg, or the KIM-1's as demo.ptp,
+  # and returns its path.
   def write_demo(dir, options)
+    return write_kim1_demo(dir) if options[:family] == "kim1"
+
     path = File.join(dir, "demo.prg")
     File.binwrite(path, demo(options))
     path
+  end
+
+  # The KIM-1's demo as a papertape, in records of 24 bytes.
+  def write_kim1_demo(dir)
+    records = KIM1_DEMO.each_slice(24).with_index.map do |bytes, index|
+      papertape_record(0x0200 + (index * 24), bytes)
+    end
+    path = File.join(dir, "demo.ptp")
+    File.write(path, "#{(records + [papertape_record(records.length, [])]).join("\n")}\n")
+    path
+  end
+
+  def papertape_record(address, bytes)
+    fields = [bytes.length, address >> 8, address & 0xff] + bytes
+    sum = fields.sum
+    ";#{(fields + [sum >> 8, sum & 0xff]).map { |byte| format('%02X', byte) }.join}"
   end
 
   # What loads and runs the demo from device 8.
@@ -399,7 +449,8 @@ module MachineFamilies
     end
     opts.on("--mode MODE", "The C128's mode: #{MODES.join(', ')} (default: c128)") { |mode| options[:mode] = mode }
     opts.on("--ram RAM", "The VIC-20's RAM expansion (default: what the media needs), " \
-                         "or the Plus/4's or the PET's RAM in K (default: the model's own)") do |ram|
+                         "the Plus/4's or the PET's RAM in K (default: the model's own), " \
+                         "or the KIM-1's: #{KIM1_RAM.join(', ')}") do |ram|
       options[:ram] = ram
     end
     opts.on("--cpu SWITCH", "The SuperPET's CPU switch: 6502, 6809 or prog (default: 6502)") do |cpu|
@@ -420,12 +471,19 @@ module MachineFamilies
     return cpu_problem(options) if options[:cpu]
 
     return unless options[:ram]
-    return "--ram is the VIC-20's, the Plus/4's or the PET's" unless %w[vic20 plus4 pet].include?(family)
+    return ram_problem(family, options[:ram]) if %w[vic20 plus4 pet kim1].include?(family)
+
+    "--ram is the VIC-20's, the Plus/4's, the PET's or the KIM-1's"
+  end
+
+  # Why the family doesn't take the RAM --ram names, or nil.
+  def ram_problem(family, ram)
     return if family == "vic20"
+    return (KIM1_RAM.include?(ram) ? nil : "no KIM-1 RAM named #{ram} (#{KIM1_RAM.join(', ')})") if family == "kim1"
 
     sizes = family == "pet" ? Badline::PET::Model::RAM_SIZES : Badline::Plus4::Model::RAM_SIZES
-    return if sizes.include?(options[:ram].to_i)
+    return if sizes.include?(ram.to_i)
 
-    "no #{family == 'pet' ? 'PET' : 'Plus/4'} RAM size of #{options[:ram]}K (#{sizes.join(', ')})"
+    "no #{family == 'pet' ? 'PET' : 'Plus/4'} RAM size of #{ram}K (#{sizes.join(', ')})"
   end
 end
