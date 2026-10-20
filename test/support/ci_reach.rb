@@ -64,6 +64,11 @@ module CIReach
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
     ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version,data_path}.rb", []],
+    # No suite harness loads lib/badline.rb, and none calls Machine.build or
+    # Machine.for_options: the front end, bin/machine_diff and
+    # bin/snapshot_check do. spinel:check compiles every family's boot over
+    # machine.rb, and its CPU cases are converted under lib/badline.rb.
+    ["lib/badline{,/machine}.rb", []],
     ["lib/badline/support/{vic20,c128,plus4,pet,superpet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/{superpet-*,characters-superpet}.rom", []],

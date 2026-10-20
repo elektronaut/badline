@@ -23,6 +23,14 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/frontend/controls.rb])
   end
 
+  def test_the_entry_point_and_the_machine_builder_reach_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline.rb lib/badline/machine.rb])
+  end
+
+  def test_the_machine_builders_parts_keep_reaching_everything
+    assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/machine/clocking.rb])
+  end
+
   def test_a_units_snapshot_fields_reach_only_the_spinel_check
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/chips/cia/keyed_parts.rb])
   end
