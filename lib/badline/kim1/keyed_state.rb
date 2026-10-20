@@ -49,6 +49,41 @@ module Badline
       include KeyedState
     end
 
+    class Tape
+      # The deck's fields in a keyed snapshot module (BL-DECK): whether
+      # PLAY or RECORD is down, how far into the tape the deck is, the next
+      # of the tape's edges to play and PB7's level from it, the level U2
+      # last drove PB7 to, and the tape itself under tape.*: its file's
+      # path, and the time from each crossing to the next, from the start.
+      # The tape goes back in from the module, and STOP after a recording
+      # writes it to that path.
+      module KeyedState
+        def save_fields(out)
+          out.bool("playing", @playing).bool("recording", @recording).int("position", position)
+          out.int("next_edge", @next_edge).bool("high", @high).bool("output_high", @output_high)
+          crossings = @tape.crossings
+          gaps = crossings.each_with_index.map { |time, index| index.zero? ? time : time - crossings[index - 1] }
+          out.text("tape.path", @tape.path).ints("tape.gaps", gaps)
+        end
+
+        def load_fields(input)
+          time = 0
+          crossings = input.ints("tape.gaps", []).map { |gap| time += gap }
+          @tape = Storage::KIMTape.new(input.text("tape.path", ""), crossings:)
+          @playing = input.bool("playing", false)
+          @recording = input.bool("recording", false) && !@playing
+          @stopped_at = input.int("position", 0)
+          @started = @clock.cycles
+          @edges = @playing ? @tape.edges : []
+          @next_edge = input.int("next_edge", 0).clamp(0, @edges.length)
+          @high = input.bool("high", true)
+          @output_high = input.bool("output_high", true)
+        end
+      end
+
+      include KeyedState
+    end
+
     # The machine's own fields in a keyed snapshot module (BL-MACHINE):
     # the family, its setup (Snapshot::KIM1Setup), the cycle count, the
     # SST switch and U3's PB7 wiring, and under host.* whether type_keys
