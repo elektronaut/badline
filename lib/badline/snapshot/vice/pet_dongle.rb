@@ -35,31 +35,29 @@ module Badline
           # The settings' bytes for a 6702 with `registers`, after a write
           # of `latch`.
           def export(registers, latch)
-            dongle = Badline::PET::SuperPET::Dongle
-            incoming = RESET_LAST ^ dongle::FEEDBACK ^ 0xff
+            incoming = RESET_LAST ^ Badline::PET::SuperPET::Dongle::FEEDBACK ^ 0xff
             output = 0
             words = []
             8.times do |bit|
               register = registers[bit]
               output |= (register & 1) << bit
-              top = dongle::LENGTHS[bit] - 1
+              top = Badline::PET::SuperPET::Dongle::LENGTHS[bit] - 1
               last = ((register >> top) ^ register ^ (incoming >> bit)) & 1
               word = ((register ^ (register >> 1)) & ((1 << top) - 1)) | (last << top)
               words << (word & 0xff) << (word >> 8)
             end
-            [output ^ dongle::INVERTED, RESET_LAST, latch.nobits?(0x01) ? 1 : 0, *words]
+            [output ^ Badline::PET::SuperPET::Dongle::INVERTED, RESET_LAST, latch.nobits?(0x01) ? 1 : 0, *words]
           end
 
           # The 6702's BL-SUPERPET keys from the settings' `bytes`, in a keyed
           # module's writer.
           def import(bytes, out)
-            dongle = Badline::PET::SuperPET::Dongle
-            stages = bytes[OUTPUT] ^ dongle::INVERTED
+            stages = bytes[OUTPUT] ^ Badline::PET::SuperPET::Dongle::INVERTED
             registers = Array.new(8) do |bit|
               word = bytes[WORDS + (bit * 2)] | (bytes[WORDS + (bit * 2) + 1] << 8)
               stage = (stages >> bit) & 1
               register = stage
-              (dongle::LENGTHS[bit] - 1).times do |index|
+              (Badline::PET::SuperPET::Dongle::LENGTHS[bit] - 1).times do |index|
                 stage ^= (word >> index) & 1
                 register |= stage << (index + 1)
               end
