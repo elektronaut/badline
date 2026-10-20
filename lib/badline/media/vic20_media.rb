@@ -41,11 +41,13 @@ module Badline
         end
 
         # The program at `path`, or the first on the disk or in the
-        # directory there, or nil.
+        # directory there, or nil, as for a disk with no program on it.
         def first_program(path)
           kind = Extensions.kind(path)
-          if File.directory?(path) || %i[disk archive].include?(kind)
+          if File.directory?(path) || %i[disk archive ieee_disk].include?(kind)
             Media.open_storage(path).read_file("*")
+          elsif kind == :hard_disk
+            Storage::D90Image.new(path, read_only: true).read_file("*")
           elsif File.file?(path) && !%i[tune cartridge tape gcr].include?(kind)
             Media.program_bytes(path)
           end
