@@ -221,7 +221,11 @@ module Badline
       # voice's under voice1. to voice3., and the filter's under filter.
       # and ext. Saving catches the DSP up first, so no span or deferred
       # write is left to save. What the registers decode to is worked out
-      # from them on load.
+      # from them on load. A recording SID also saves how far its recording
+      # has got under rec., with the rate, the clock and the filter chunk it
+      # records at: the samples' windows bound the filter's steps, so a SID
+      # loaded from it that records at the same rate and clock carries on
+      # from that window and integrates the steps the saved one does.
       module KeyedState
         def save_fields(out)
           catch_up
@@ -230,6 +234,8 @@ module Badline
           @voice2.save_fields(out, "voice2.")
           @voice3.save_fields(out, "voice3.")
           @filter.save_fields(out, "filter.")
+          recording = @decimator || @resumed_recording
+          save_recording(out, recording) if recording
           out
         end
 
@@ -243,23 +249,7 @@ module Badline
           @voice2.load_fields(input, "voice2.")
           @voice3.load_fields(input, "voice3.")
           @filter.load_fields(input, "filter.")
-        end
-
-        # How far the recording has got into the sample it is averaging,
-        # under `prefix`, for a host that carries on recording from a
-        # snapshot: it calls #record, then #load_recording_fields.
-        def save_recording_fields(out, prefix)
-          decimator = @decimator
-          raise ArgumentError, "the SID isn't recording" if decimator.nil?
-
-          decimator.save_fields(out, prefix)
-        end
-
-        def load_recording_fields(input, prefix)
-          decimator = @decimator
-          raise ArgumentError, "the SID isn't recording" if decimator.nil?
-
-          decimator.load_fields(input, prefix)
+          load_recording(input)
         end
 
         def restored!
@@ -271,6 +261,33 @@ module Badline
         end
 
         private
+
+        def save_recording(out, decimator)
+          out.int("rec.rate", decimator.rate).int("rec.clock_hz", decimator.clock_hz)
+          out.int("rec.filter_chunk", @filter_chunk)
+          decimator.save_fields(out, "rec.")
+        end
+
+        def load_recording(input)
+          @resumed_recording = nil
+          rate = input.int("rec.rate", 0)
+          return unless rate.positive?
+
+          @filter_chunk = input.int("rec.filter_chunk", @filter_chunk)
+          decimator = Decimator.new(clock_hz: input.int("rec.clock_hz", Region::PAL.clock_hz), rate:)
+          decimator.load_fields(input, "rec.")
+          @resumed_recording = decimator
+        end
+
+        # The window a loaded snapshot's recording had got to, when this
+        # recording is at its rate, clock and filter chunk.
+        def resumed_recording(rate, filter_chunk, clock_hz)
+          resumed = @resumed_recording
+          @resumed_recording = nil
+          return if resumed.nil? || filter_chunk != @filter_chunk
+
+          resumed if resumed.rate == rate && resumed.clock_hz == clock_hz
+        end
 
         def restore_voice(voice, base)
           control = register(base + 4)
