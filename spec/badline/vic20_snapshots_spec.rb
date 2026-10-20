@@ -156,9 +156,9 @@ describe Badline::Vic20 do
         .to raise_error(Badline::Snapshot::FormatError, /of a C64, not a VIC-20/)
     end
 
-    it "refuses a VIC20 snapshot without badline's modules" do
+    it "refuses an xvic snapshot without its RAM" do
       File.binwrite(path, Badline::Snapshot::Container.new([], machine: "VIC20").to_s)
-      expect { Badline::Snapshot.load(path) }.to raise_error(Badline::Snapshot::FormatError, /xvic/)
+      expect { Badline::Snapshot.load(path) }.to raise_error(Badline::Snapshot::FormatError, /no VIC20MEM module/)
     end
   end
 end

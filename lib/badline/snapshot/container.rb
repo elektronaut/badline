@@ -45,9 +45,10 @@ module Badline
       # VICE has no KIM-1, so badline names it.
       KIM1 = "KIM1"
       # The file format version each machine's VICE emulator reads, where
-      # it isn't FORMAT_MAJOR.0: xpet and xcbm2 refuse any other than 1.0, and
-      # xcbm5x0 writes 0.0.
-      FORMAT_MAJORS = { PET => 1, CBM2 => 1, CBM2_5X0 => 0 }.freeze
+      # it isn't FORMAT_MAJOR.0: xpet and xcbm2 refuse any other than 1.0,
+      # xcbm5x0 writes 0.0, and xvic refuses any other than 3.1.
+      FORMAT_MAJORS = { PET => 1, CBM2 => 1, CBM2_5X0 => 0, VIC20 => 3 }.freeze
+      FORMAT_MINORS = { VIC20 => 1 }.freeze
       GZIP_MAGIC = "\x1f\x8b".b
 
       # The VICE version block, when VICE wrote the file: four version
@@ -77,7 +78,8 @@ module Badline
       def [](name) = @sections.find { |section| section.name == name }
 
       def to_s
-        header = MAGIC + [FORMAT_MAJORS.fetch(@machine, FORMAT_MAJOR), FORMAT_MINOR].pack("CC") + padded(@machine)
+        version = [FORMAT_MAJORS.fetch(@machine, FORMAT_MAJOR), FORMAT_MINORS.fetch(@machine, FORMAT_MINOR)]
+        header = MAGIC + version.pack("CC") + padded(@machine)
         header += VERSION_MAGIC + @vice_version if @vice_version
         header + @sections.map { |section| encode(section) }.join
       end

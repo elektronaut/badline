@@ -282,6 +282,9 @@ module SnapshotMachines
     ]
   end
 
+  # A BASIC program that writes the screen and the VIC's colours from TI.
+  VIC20_BASIC = "10 t=tiand255:poke7680+t,t:poke36879,t:goto10\rrun\r"
+
   def vic20_scenarios
     [
       Scenario.new("vic20-cart-1541", :vic20, lambda { |dir|
@@ -296,8 +299,11 @@ module SnapshotMachines
                    ->(m) { run(m, 3_000_000) }),
       Scenario.new("vic20-tape-save", :vic20, ->(dir) { saving_to_tape(Badline::Vic20.new(ram: :unexpanded), dir, 1) },
                    ->(m) { recording(m) }),
-      Scenario.new("vic20-ntsc", :vic20, ->(_dir) { typing(Badline::Vic20.new(model: "ntsc"), "poke36864,133\r") },
-                   ->(m) { run(m, 1_000_000) })
+      Scenario.new("vic20-basic", :vic20, ->(_dir) { typing(Badline::Vic20.new, VIC20_BASIC) },
+                   ->(m) { run(m, 2_000_000) }),
+      Scenario.new("vic20-ntsc", :vic20,
+                   ->(_dir) { typing(Badline::Vic20.new(model: "ntsc"), "poke36864,133\r#{VIC20_BASIC}") },
+                   ->(m) { run(m, 2_000_000) })
     ]
   end
 

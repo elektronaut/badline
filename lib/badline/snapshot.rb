@@ -25,8 +25,8 @@ module Badline
       path
     end
 
-    # Saves the machine's snapshot with VICE's modules ahead of its own for
-    # a C64, so x64sc opens it too.
+    # Saves the machine's snapshot with VICE's modules ahead of its own, so
+    # x64sc, xvic, xpet, xcbm2 or xcbm5x0 opens it too (Image.exported).
     def export(computer, path)
       File.binwrite(path, Image.exported(computer).to_s)
       path
@@ -56,8 +56,8 @@ module Badline
     module Files
       def save_snapshot(path) = Snapshot.save(self, path)
 
-      # Saves the snapshot with VICE's modules too, for a C64, so x64sc
-      # opens it as well as badline.
+      # Saves the snapshot with VICE's modules too, so VICE's emulator for
+      # the machine opens it as well as badline (Image.exported).
       def export_snapshot(path) = Snapshot.export(self, path)
 
       def restore_snapshot(path, &) = Snapshot.restore(self, path, &)

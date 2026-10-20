@@ -122,7 +122,7 @@ differences noted in the table. `--help` lists the options for either.
 | `--script FILE` | Run the events in `FILE`, one `FRAME:EVENT` a line |
 | `--screenshot FILE` | Save the last frame as a `.bmp` |
 | `--save-snapshot FILE` | Save the machine as a `.vsf` snapshot after the last frame |
-| `--vice` | Add VICE's modules to `--save-snapshot`'s C64, PET or CBM-II snapshot, so x64sc, xpet, xcbm2 or xcbm5x0 opens it too |
+| `--vice` | Add VICE's modules to `--save-snapshot`'s C64, VIC-20, PET or CBM-II snapshot, so x64sc, xvic, xpet, xcbm2 or xcbm5x0 opens it too |
 
 ```sh
 badline --unpaced --frames 12000 --true-drive disk1.d64 \
@@ -185,8 +185,8 @@ its start of BASIC comes with, and more of BLK1 to BLK3 when it runs
 past `$3FFF`. A program that loads at `$A000` is a cartridge's ROM, and
 goes in as a `.crt` does. Disks go through the KERNAL traps or, with
 `--true-drive`, a 1541, as on the C64. `F11`, `F12` and the pause menu
-save and load the VIC-20 too, in badline's own snapshots: xvic's `.vsf`
-files don't load.
+save and load the VIC-20 too, and xvic's `.vsf` files load, as
+[doc/snapshots.md](doc/snapshots.md#xvic) describes.
 
 ## The C128
 
