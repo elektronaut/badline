@@ -1,13 +1,70 @@
 module Badline
   module Chips
     class CIA
+      @data_port_a: Integer
+      @data_port_b: Integer
+      @data_dir_a: Integer
+      @data_dir_b: Integer
+      @clock_hz: Integer
+      @cnt_high: bool
+      @cnt_rise: bool
+      @port_b4_high: bool
+      @port_b4_driven_high: bool
+      @start: Integer
+      @length: Integer
+      @end: Integer
+
+      class InterruptRegister
+        @fast: bool
+        @pending: Integer
+        @read: Integer?
+        @read_last_cycle: Integer?
+        @read_two_cycles_ago: Integer?
+        @timer_b_bug: bool
+        @quiet: bool
+      end
+
       class Timer
         @counter: Integer
+        @latch: Integer
+        @pipe: Integer
+        @load_delay: Integer
+        @reload: bool
+        @underflowed: bool
+        @oneshot_linger: Integer
+        @toggle: bool
+        @settled: bool
+        @empty: bool
       end
 
       class Serial
         @data: Integer
         @shift: Integer
+        @steps: Integer
+        @empty_in: Integer?
+        @busy_in: Integer?
+        @busy: bool
+        @abandoned: bool
+        @pending: Integer?
+        @underflow_high: bool
+        @in_flight: bool
+        @flight_up: Integer
+        @flight_down: Integer
+        @idle: bool
+        @cnt: bool
+        @cnt_in: bool
+        @sp_in: bool
+        @sp_out: bool
+      end
+
+      class TimeOfDay
+        @cycles_per_pulse: Integer
+        @mains_hz: Integer
+        @accumulator: Integer
+        @pulses: Integer
+        @match: Integer
+        @stopped: bool
+        @alarm_pending: bool
       end
     end
   end
