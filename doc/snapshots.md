@@ -180,8 +180,8 @@ xpet 3.10 opens those snapshots as long as its model and editor match:
 `-model 2001`, `3032`, `3032B`, `4032`, `8032`, `8096`, `8296` or
 `SuperPET`, and for a badline editor other than xpet's own, `-editor`
 naming badline's ROM. xpet runs a SuperPET's 6809 when the snapshot
-says it has the bus, whatever its own CPU switch, and has no system
-latch, write protect or 6702 to take from it. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
+says it has the bus, whatever its own CPU switch, takes its 6702, and
+has no system latch or write protect to take from it. xpet's 8296 runs the 8032's editor, 901474-04 dated 0283, so an
 8296 saved for it has to run that editor (`--editor 4-80-b-50hz-0283`),
 and xpet takes the 8296's jumpers from its own settings. It keeps its
 own datasettes and leaves out badline's tapes and disks. A true drive
@@ -227,9 +227,9 @@ fitted, or a SuperPET, at 50 or 60 Hz, and an 8032, 8096 or 8296 whose
 CRTC lines are 64 cycles long runs xpet's own 50 Hz editor, 901474-04
 dated 0283. A SuperPET comes with its bank RAM, its bank, its `$EFFE`
 bit and its ACIA, its CPU switch at the CPU that had the bus, and while
-that is the 6809, the 6809's registers. Its RAM switch is at R/W, the
-only position xpet has, its system latch is clear and its 6702 is as the
-RES line leaves it, since xpet saves none of them, and in 6809 mode its
+that is the 6809, the 6809's registers, and its 6702. Its RAM switch is
+at R/W, the only position xpet has, and its system latch is clear, since
+xpet saves neither, and in 6809 mode its
 frame rate is the one the Waterloo ROM's CRTC table sets. It reports the modules it leaves out, such
 as the drives past device 8, the datasettes and the keyboard, and
 carries on without them, and a snapshot without a true drive takes
