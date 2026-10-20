@@ -29,10 +29,19 @@ module SnapshotSetups
   end
 
   # A newly formatted .d80 in `dir`.
-  def blank_d80(dir)
-    File.join(dir, "blank.d80").tap do |path|
-      File.binwrite(path, "\0" * 533_248)
-      Badline::Storage::D80Image.new(path).format("blank", "ab".bytes)
+  def blank_d80(dir) = formatted(dir, "blank.d80", Badline::Storage::D80Image, 533_248)
+
+  # A newly formatted .d82, DOS 1 .d67 or D9060 .d90 in `dir`.
+  def blank_d82(dir) = formatted(dir, "blank.d82", Badline::Storage::D82Image, 1_066_496)
+
+  def blank_d67(dir) = formatted(dir, "blank.d67", Badline::Storage::D67Image, 176_640)
+
+  def blank_d90(dir) = formatted(dir, "blank.d90", Badline::Storage::D90Image, 5_013_504)
+
+  def formatted(dir, name, image_class, size)
+    File.join(dir, name).tap do |path|
+      File.binwrite(path, "\0" * size)
+      image_class.new(path).format("blank", "ab".bytes)
     end
   end
 
@@ -70,9 +79,9 @@ module SnapshotSetups
 
   # +machine+ with the disk image at +path+ in its true drive, typing
   # LOAD"$" and LIST once booted.
-  def listing(machine, path)
+  def listing(machine, path, directory = "$")
     Badline::Media::TrueDrive.insert(machine, path)
-    typing(machine, "load\"$\",8\rlist\r")
+    typing(machine, "load\"#{directory}\",8\rlist\r")
   end
 
   def typing(machine, text)
@@ -380,18 +389,26 @@ module SnapshotMachines
     ]
   end
 
-  # A PET's true drives loading a directory: a 2031, an 8050 and a 4040.
+  # A PET's true drives loading a directory: a 2031, an 8050, a 1001, a
+  # 4040, a 2040 on BASIC 2, which names DOS 1's drive, and a D9060.
   def pet_drive_scenarios
     [
       Scenario.new("pet-2031", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), copy(D64, dir)) },
                    ->(m) { run(m, 2_600_001) }),
       Scenario.new("pet-8050", :pet, ->(dir) { listing(Badline::PET.new(model: "4032"), blank_d80(dir)) },
                    ->(m) { run(m, 3_000_001) }),
-      Scenario.new("pet-4040", :pet,
-                   ->(dir) { listing(Badline::PET.new(model: "4032", true_drive_model: "4040"), copy(D64, dir)) },
-                   ->(m) { run(m, 3_200_001) })
+      Scenario.new("pet-1001", :pet, ->(dir) { listing(pet_with("4032", "1001"), blank_d82(dir)) },
+                   ->(m) { run(m, 3_000_001) }),
+      Scenario.new("pet-4040", :pet, ->(dir) { listing(pet_with("4032", "4040"), copy(D64, dir)) },
+                   ->(m) { run(m, 3_200_001) }),
+      Scenario.new("pet-2040", :pet, ->(dir) { listing(pet_with("3032", "2040"), blank_d67(dir), "$0") },
+                   ->(m) { run(m, 3_200_001) }),
+      Scenario.new("pet-9060", :pet, ->(dir) { listing(pet_with("4032", "9060"), blank_d90(dir)) },
+                   ->(m) { run(m, 3_000_001) })
     ]
   end
+
+  def pet_with(model, drive) = Badline::PET.new(model:, true_drive_model: drive)
 
   # The SuperPET in 6502 mode, an 8032 running BASIC with its bank RAM
   # written, and in 6809 mode at the Waterloo menu.

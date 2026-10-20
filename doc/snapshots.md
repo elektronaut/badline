@@ -167,9 +167,10 @@ also holds xpet's modules for the CPU, the RAM with the screen RAM, or
 an 8296's 32K from `$8000`, an 8096's or 8296's board and its control
 register, a SuperPET's board, its bank and its `$EFFE` bit, the CRTC
 with the character set VIA CA2 picks, both PIAs and the VIA, a
-SuperPET's 6809 and ACIA, a true 2031's CPU, RAM, VIAs
-and head, or a true 8050's or 8250's interface processor with its RAM
-and 6532s and the heads' tracks, and the ones xpet 3.10 needs to open
+SuperPET's 6809 and ACIA, a true 2031's CPU, RAM, VIAs and head, or the
+interface processor of a true 8050, 8250, SFD-1001, 4040, 3040, 2040,
+D9060 or D9090, with its RAM and 6532s and the heads' tracks, and the
+ones xpet 3.10 needs to open
 the file, with nothing open on the file system drive and nothing on the
 user port. The CRTC module carries the discrete boards' video too, in
 xpet's terms. The file says it is in VICE's snapshot format 1.0, the
@@ -184,13 +185,15 @@ latch, write protect or 6702 to take from it. xpet's 8296 runs the 8032's editor
 8296 saved for it has to run that editor (`--editor 4-80-b-50hz-0283`),
 and xpet takes the 8296's jumpers from its own settings. It keeps its
 own datasettes and leaves out badline's tapes and disks. A true drive
-needs `-drive8type 2031`, `8050` or `8250` with `-drive8truedrive` and
-the disk attached as `-8`. Its snapshot is settled with the 2031's CPU
+needs `-drive8type 2031`, `8050`, `8250`, `1001`, `4040`, `3040`,
+`2040`, or `9000` for either hard disk, with `-drive8truedrive` and the
+disk attached as `-8`. Its snapshot is settled with the 2031's CPU
 between instructions too, and one saved while the 2031 talks on the bus
 can stall there in xpet, as xpet's own snapshots saved while it searches
-for a file do. xpet runs an 8050's floppy controller at a high level, so
-a snapshot for it is settled until badline's controller sits in its idle
-loop with both processors between instructions, and xpet's controller
+for a file do. xpet runs an 8050's floppy controller, and a hard disk's
+SASI host, at a high level, so a snapshot for it is settled until
+badline's controller, or host, sits in its idle loop with both
+processors between instructions, and xpet's controller
 starts from idle there, taking up any job the interface processor has
 left it. A unit that doesn't reach its idle loop within about 262,000
 cycles, such as one still starting up, is left out of xpet's modules,
@@ -204,12 +207,16 @@ at its instruction boundary, the RAM, the screen RAM, an 8096's or
 8296's board, the CRTC's registers and beam, both PIAs' registers and
 flags, the VIA's registers, timers and shift register, a true 2031's
 CPU, RAM, VIAs and head, which go on the bus with the disk badline's
-2031 had in it, and a true 8050's or 8250's interface processor, its RAM
-and both 6532s, which go on the bus with the disks badline's unit of the
-same model had in it. Its floppy controller comes back as a unit
+2031 had in it, and the interface processor of a true 8050, 8250,
+SFD-1001, 4040, 3040, 2040, D9060 or D9090, its RAM and both 6532s,
+which go on the bus with the disks badline's unit of the same model had
+in it. xpet's type 9000 stands for both hard disks, and the hard disk
+badline's had in it, of either, makes it a D9090 for an image of six
+heads and otherwise a D9060. Its floppy controller comes back as a unit
 switched on has it, in its idle loop with the heads on track 1: its next
 job steps them out to the track, and a job xpet's controller had under
-way starts again from there. A program
+way starts again from there. A hard disk's SASI host comes back in its
+job loop the same way. A program
 badline runs on from xpet's snapshot finds the vertical sync on the
 cycle xpet does, so the two run on alike, cycle for cycle. The picture
 starts again with the next frame. xpet doesn't save its ROMs, which
@@ -226,7 +233,7 @@ RES line leaves it, since xpet saves none of them, and in 6809 mode its
 frame rate is the one the Waterloo ROM's CRTC table sets. It reports the modules it leaves out, such
 as the drives past device 8, the datasettes and the keyboard, and
 carries on without them, and a snapshot without a true drive takes
-badline's, a 2031, an 8050 or an 8250, off the bus and says so.
+badline's off the bus and says so.
 Restored into a running PET, an xpet snapshot fails for a PET built
 another way, such as a 3032B, and otherwise switches the machine off
 and on, keeping its tapes and the disk device 8 serves.

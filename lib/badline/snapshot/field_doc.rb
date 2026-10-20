@@ -39,10 +39,11 @@ module Badline
       # the 264 series' models, its TCBM interface, cartridge, tape and
       # true drives, the 1541 and the 1551, a CRTC PET, a 2001, an 8096,
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
-      # one with a true 2031, one with an 8050 and one with an 8250, a
-      # SuperPET in 6809 mode with a disk in device 8, and a 610, a 720, a
-      # 610 with a cartridge and one with a disk, a PAL and an NTSC 510,
-      # and a KIM-1 on its keypad and one expanded, on a teletype.
+      # one with a true 2031, one with an 8050, one with an 8250, one with
+      # a 4040 and one with a D9060, a SuperPET in 6809 mode with a disk in
+      # device 8, and a 610, a 720, a 610 with a cartridge and one with a
+      # disk, a PAL and an NTSC 510, and a KIM-1 on its keypad and one
+      # expanded, on a teletype.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -57,7 +58,7 @@ module Badline
           "pet" => [PET.new, PET.new(model: "2001"), PET.new(model: "8096"),
                     PET.new(model: "8296", characters: "din", jumpers: %w[userport]), pet_with_media,
                     pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250"), pet_with_dos2_unit,
-                    superpet_with_disk],
+                    pet_with_hard_disk, superpet_with_disk],
           "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
                      cbm2_with_disk, CBM2::P500.new, CBM2::P500.new(model: "510ntsc")],
           "kim1" => [KIM1.new, KIM1.new(tty: true, ram: :expanded)]
@@ -106,6 +107,9 @@ module Badline
         image = Storage::D64Image.new("", bytes: blank(174_848))
         PET.new.tap { |machine| machine.plug_ieee_drive("4040").insert(Drives::Model4040::Disk.new(image)) }
       end
+
+      # A PET with a D9060 and no hard disk in it.
+      def self.pet_with_hard_disk = PET.new.tap { |machine| machine.plug_ieee_drive("9060") }
 
       def self.blank(length) = Array.new(length, 0)
 

@@ -110,17 +110,20 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
   end
 
   describe ".export of a unit's own modules" do
-    # The readers of a unit of `model` at power-on, its controller put at
-    # `counter`.
-    def readers(model, counter)
-      unit = { "8250" => Badline::Drives::Model8250, "1001" => Badline::Drives::Model1001 }
-             .fetch(model, Badline::Drives::Model8050).new
-      sections = unit.save_modules([], "BL-D8")
-      sections << Badline::Snapshot::Keyed.section("BL-D8-FDCCPU") { |out| out.int("pc", counter) }
+    # The readers of a unit of `model` at power-on, its controller, or its
+    # SASI host, put at `counter`, by default at its idle loop.
+    def readers(model, counter = described_class.controller_loop(model))
+      sections = described_class.new_unit(model).save_modules([], "BL-D8")
+      host = described_class.hard_disk?(model) ? "BL-D8-SASICPU" : "BL-D8-FDCCPU"
+      sections << Badline::Snapshot::Keyed.section(host) { |out| out.int("pc", counter) }
       sections.to_h { |section| [section.name, Badline::Snapshot::Keyed::Reader.parse(section)] }
     end
 
     def idle_loop = Badline::Drives::Model8050::Idle::FDC_LOOP
+
+    def unit(model) = described_class.export(Badline::PET.new, readers(model)).first
+
+    def type_word(bytes) = bytes.byteslice(described_class::TYPE, 2).unpack1("v")
 
     it "names the 8250 in DRIVE8 for an 8250" do
       unit = described_class.export(Badline::PET.new, readers("8250", idle_loop)).first
@@ -140,6 +143,40 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
 
     it "leaves the drive out while its controller is away from its idle loop" do
       expect(described_class.export(Badline::PET.new, readers("8050", 0xfc00))).to eq([])
+    end
+
+    it "names the 2040 in DRIVE8 as xpet's type 2040, once its controller is in DOS 1's job loop" do
+      expect(type_word(unit("2040").data)).to eq(2040)
+    end
+
+    it "puts a 4040's heads on track 1 at half track 2" do
+      section = unit("4040")
+      expect([0, described_class::BLOCK].map { |at| section.data.getbyte(at + described_class::HALF_TRACK) })
+        .to eq([2, 2])
+    end
+
+    it "writes a D9060 and a D9090 as xpet's type 9000, one block with the head where xpet keeps it" do
+      data = %w[9060 9090].map { |model| unit(model).data }
+      expect(data.map { |bytes| [bytes.bytesize, type_word(bytes), bytes.getbyte(described_class::HALF_TRACK)] })
+        .to eq([[145, 9000, 0x98]] * 2)
+    end
+
+    it "leaves a hard disk out while its SASI host is away from its job loop" do
+      expect(described_class.export(Badline::PET.new, readers("9060", 0xf800))).to eq([])
+    end
+  end
+
+  describe "the hard disk badline keeps" do
+    def kept(heads) = Badline::Snapshot::Keyed.section("BL-D8-SASI") { |out| out.int("disk_heads", heads) }
+
+    it "makes the unit a D9090 for an image with six heads, and otherwise a D9060" do
+      expect([kept(6), kept(4), nil].map { |section| described_class.hard_disk_model([section].compact) })
+        .to eq(%w[9090 9060 9060])
+    end
+
+    it "keeps the disks of a unit of the same xpet type" do
+      expect([%w[9060 9090], %w[4040 3040], %w[8050 8050]].map { |pair| described_class.same_type?(*pair) })
+        .to eq([true, false, true])
     end
   end
 end
