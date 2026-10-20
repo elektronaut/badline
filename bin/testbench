@@ -79,15 +79,19 @@
 # out until a testbench can run the 6572, so a commented-out row tagged
 # vicii-drean counts as a row.
 #
-# --vic20 runs the exitcode rows of vic20-testlist.in instead, each on a
-# PAL VIC-20 with the RAM its options ask for: none for vic20-unexp or no
-# option, BLK1 for vic20-8k and every block, xvic's -memory all, for
-# vic20-32k. Rows that ask for a GEO-RAM drop out. The program goes to the
-# start of BASIC, as xvic's -basicload puts it, and RUN is typed once the
-# machine has booted. A mountcrt row starts from power-on with the
-# cartridge's ROM in its block. Tests report through $910F, and a failure
-# keeps the VIC-20's 22-column text screen. Screenshot rows wait for the
-# VIC-I's video.
+# --vic20 runs the exitcode and screenshot rows of vic20-testlist.in
+# instead, each on a PAL VIC-20 with the RAM its options ask for: none for
+# vic20-unexp or no option, BLK1 for vic20-8k and every block, xvic's
+# -memory all, for vic20-32k. Rows that ask for a GEO-RAM drop out. The
+# program goes to the start of BASIC, as xvic's -basicload puts it, and
+# RUN is typed once the machine has booted. A mountcrt row starts from
+# power-on with the cartridge's ROM in its block. Tests report through
+# $910F, and a failure keeps the VIC-20's 22-column text screen. A
+# screenshot is xvic's view, compared with the reference around the text
+# window's top left corner, as xvic-hooks.sh does. Rows of badline's own
+# (Testbench::VIC20_ROWS) run the split-tests programs against dumps from
+# real VIC-20s and raster-ntsc against its readme; a row tagged vic-pal
+# runs only without --ntsc, and one tagged vic-ntsc only with it.
 #
 # --c128c64 runs a curated part of the x128c64 testlist instead, the rows
 # of c64-testlist.in that VICE's Makefile keeps for x128 in C64 mode, with

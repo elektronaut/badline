@@ -997,6 +997,9 @@ Written by the VIC-20.
 | `fetch_from` | int | 0 |
 | `fetched` | int | 0 |
 | `code` | byte | 0 |
+| `pen.x` | byte | 0 |
+| `pen.y` | byte | 0 |
+| `pen.low` | bool | false |
 | `line.layout` | int | 0 |
 | `display` | bytes | 88608 × 0 |
 | `line.row` | int | 311 |

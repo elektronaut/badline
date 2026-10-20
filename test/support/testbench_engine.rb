@@ -38,7 +38,7 @@ module Testbench
 
     def self.vic20_spec(test)
       [test.key, test.type, test.budget, (test.cartridge_path if test.cartridge), test.prg, test.dir_abs,
-       test.ram_configuration, test.vic20_model].join("\t") << "\n"
+       test.ram_configuration, test.vic20_model, test.vic20_kind].join("\t") << "\n"
     end
 
     def self.plus4_spec(test)

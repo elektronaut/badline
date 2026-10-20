@@ -74,9 +74,10 @@ module Suites
   # CIAs, kept apart as testbench-vicii-new and testbench-cia-new are.
   # testbench-drean is the testlist's vicii-drean rows on a Drean C64, PAL-N
   # with the 6572, the one the testlist comments out included.
-  # testbench-vic20 is the VIC-20 testlist's exitcode rows on a PAL VIC-20
-  # with the RAM each asks for, and testbench-vic20-ntsc the same rows on an
-  # NTSC VIC-20. Their Spinel build is spinel/vic20_testbench.rb,
+  # testbench-vic20 is the VIC-20 testlist's exitcode and screenshot rows
+  # and badline's PAL rows of its own on a PAL VIC-20 with the RAM each
+  # asks for, and testbench-vic20-ntsc the same testlist rows and the NTSC
+  # rows of its own on an NTSC VIC-20. Their Spinel build is spinel/vic20_testbench.rb,
   # which :engine names, so the C64's harness doesn't carry the VIC-20.
   # testbench-c128c64 is a curated part of the x128c64 testlist, the rows
   # where a C128 in C64 mode can differ from a C64C, on the C128 model each

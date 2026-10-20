@@ -15,6 +15,10 @@ module Badline
     # The datasette's read line pulses VIA 2's CA1, its sense switch reads
     # on VIA 1's PA6, its motor runs while VIA 1's CA2 is low, and VIA 2's
     # PB3 drives its write line, the same pin as a keyboard column.
+    #
+    # VIA 1's PA5 is the VIC's light pen input too, low while the VIA
+    # drives it low or the joystick's fire button is held. The machine
+    # passes it on after each write to a VIA, as it does the serial lines.
     module PortWiring
       # The lines the machine pulls, as Drives::SerialBus host lines.
       def serial_lines
@@ -38,6 +42,7 @@ module Badline
         @iec_bus.host_lines = lines unless lines == @iec_bus.host_lines
         @datasette.motor = !@via1.ca2_output
         @datasette.write_line = @via2.port_b_output.anybits?(0x08)
+        @vic.lightpen_level(@via1.port_a_output.anybits?(0x20) && @joystick1.port_bits.anybits?(0x10))
       end
 
       # A falling edge on the read line, and the line back up.

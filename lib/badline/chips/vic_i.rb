@@ -2,6 +2,7 @@
 
 require "badline/chips/vic_i/painter"
 require "badline/chips/vic_i/text_window"
+require "badline/chips/vic_i/light_pen"
 require "badline/chips/vic_i/sound"
 require "badline/chips/vic_i/keyed_parts"
 
@@ -16,7 +17,7 @@ module Badline
     # The registers repeat through $9000-$90FF. $9003 bit 7 and $9004 read
     # the raster count, its bit 0 and bits 8-1, which on the 6561 is the
     # raster line (see Profile for the 6560's). $9006 and $9007 read the
-    # light pen, which nothing triggers yet, and $9008 and $9009 the two
+    # light pen's latch (LightPen), and $9008 and $9009 the two
     # pots, which read $FF with nothing plugged in. The other registers
     # read back what was written to them.
     #
@@ -45,6 +46,7 @@ module Badline
     # blanked.
     class VICI
       include TextWindow
+      include LightPen
 
       # What a VIC-I sets for the machine: the clock, the raster's cycles
       # per line and lines per frame, how many lines at the top of the frame
@@ -149,6 +151,7 @@ module Badline
         @fetched = @slot = 0
         @code = 0
         @painter.power_on!(@frame_lines - 1)
+        power_on_pen!
         schedule
       end
 
@@ -195,7 +198,8 @@ module Badline
         case register
         when 0x03 then ((raster_count & 0x01) << 7) | (@registers[3] & 0x7f)
         when 0x04 then raster_count >> 1
-        when 0x06, 0x07 then 0
+        when 0x06 then @pen_x
+        when 0x07 then @pen_y
         when 0x08, 0x09 then 0xff
         else @registers[register]
         end
@@ -218,16 +222,17 @@ module Badline
       end
 
       # The raster count $9003 and $9004 read (see Profile).
-      def raster_count
-        line = @rasterline
-        column = @column
+      def raster_count = count_at(@rasterline, @column)
+
+      private
+
+      # What the count reads at +column+ of +line+ in this frame.
+      def count_at(line, column)
         return line if column < @count_column
         return 0 if line == @frame_lines - 1 && column >= @frame_wrap
 
         line + 1
       end
-
-      private
 
       def event(column)
         if column == @cycles_per_line

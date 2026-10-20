@@ -463,8 +463,8 @@ class TestTestbenchVic20 < Minitest::Test
     File.binwrite(File.join(@dir, name), header + chip)
   end
 
-  def parse(options, prg: "t.prg", type: "exitcode")
-    Testbench::Vic20Testlist.parse("#{@dir}/,#{prg},#{type},100000,#{options}")
+  def parse(options, prg: "t.prg", type: "exitcode", ntsc: false)
+    Testbench::Vic20Testlist.parse("#{@dir}/,#{prg},#{type},100000,#{options}", ntsc:)
   end
 
   def test_runs_a_row_on_the_vic20
@@ -480,7 +480,7 @@ class TestTestbenchVic20 < Minitest::Test
   end
 
   def test_picks_the_ntsc_model_for_vic_ntsc
-    assert_equal %w[pal ntsc], [parse("vic20-8k").vic20_model, parse("vic20-8k,vic-ntsc").vic20_model]
+    assert_equal %w[pal ntsc], [parse("vic20-8k").vic20_model, parse("vic20-8k,vic-ntsc", ntsc: true).vic20_model]
   end
 
   def test_runs_every_row_on_the_ntsc_model_with_ntsc
@@ -489,9 +489,55 @@ class TestTestbenchVic20 < Minitest::Test
     assert_equal "ntsc", test.vic20_model
   end
 
-  def test_takes_only_exitcode_rows
-    assert_nil parse("vic20-8k", type: "screenshot")
+  def test_takes_exitcode_and_screenshot_rows
+    assert_equal "screenshot", parse("vic20-8k", type: "screenshot").type
     assert_nil parse("", type: "interactive")
+  end
+
+  def test_runs_a_row_tagged_with_a_model_only_on_its_suite
+    pal = "#{@dir}/,t.prg,dump,100000,vic-pal"
+    ntsc = "#{@dir}/,t.prg,dump,100000,vic-ntsc"
+
+    taken = [pal, ntsc].product([false, true]).map { |row, on_ntsc| Testbench::Vic20Testlist.parse(row, ntsc: on_ntsc) }
+
+    assert_equal([true, false, false, true], taken.map { !it.nil? })
+  end
+
+  def test_lists_badlines_own_rows
+    ids = Testbench::Vic20Testlist.tests([], ntsc: true).map(&:key)
+
+    assert_includes ids, "VIC20/vic_line0/raster-ntsc.prg#2"
+  end
+
+  def test_scores_a_dump_row_from_the_results_on
+    test = parse("dump:d.prg", type: "dump")
+    FileUtils.mkdir_p(File.join(@dir, "dumps"))
+    dump = Array.new(Testbench::VIC20_DUMP_LENGTH) { |offset| offset & 0xff }
+    File.binwrite(File.join(@dir, "dumps", "d.prg"), [0xc0, 0x17, *dump].pack("C*"))
+    lines = dump.each_slice(64).map { |line| line.map { format("%02x", it) }.join }
+    lines[0] = "ff#{lines[0][2..]}"
+    lines[1] = "ff#{lines[1][2..]}"
+
+    assert_equal "diff=1 bytes from $1800", test.vic20_verdict(lines)
+  end
+
+  def test_compares_an_ntsc_screenshot_with_a_pal_reference_by_the_window_corner
+    png = ChunkyPNG::Image.new(568, 284, ChunkyPNG::Color.rgb(0, 0, 0))
+    png[96, 48] = png[97, 48] = ChunkyPNG::Color.rgb(255, 255, 255)
+    png.save(File.join(@dir, "ref.png"))
+    rows = Array.new(233) { Array.new(260, 0) }
+    rows[22][20] = 1
+    test = Struct.new(:reference, :key).new(File.join(@dir, "ref.png"), "t")
+
+    assert_equal 0, Testbench::Vic20Screenshot.new(rows).compare(test)
+  end
+
+  def test_scores_a_raster_row_by_the_readme
+    test = parse("vic-ntsc,interlace", type: "raster", ntsc: true)
+
+    verdicts = [["$9004=0: 0 33", "$9004=1: 0 0"], ["$9004=0: 33 33", "$9004=1: 0 0"]].map { test.vic20_verdict(it) }
+
+    assert_equal ["PASS", "positions=$9004=0: 33 33, $9004=1: 0 0"], verdicts
   end
 
   def test_drops_a_row_that_asks_for_a_georam
@@ -511,7 +557,7 @@ class TestTestbenchVic20 < Minitest::Test
   end
 
   def test_hands_the_engine_its_ram_configuration_and_model
-    assert Testbench::Engine.spec(parse("vic20-8k")).end_with?("\t#{@dir}\t8k\tpal\n")
+    assert Testbench::Engine.spec(parse("vic20-8k")).end_with?("\t#{@dir}\t8k\tpal\texitcode\n")
   end
 
   def test_runs_a_program_from_the_start_of_basic
