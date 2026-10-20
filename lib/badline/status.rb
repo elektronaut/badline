@@ -36,7 +36,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x01 : @value & ~0x01
     end
 
-    def carry? = @value & 0x01 != 0
+    def carry? = @value.anybits?(0x01)
 
     def carry = @value.nobits?(0x01) ? 0 : 1
 
@@ -44,7 +44,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x02 : @value & ~0x02
     end
 
-    def zero? = @value & 0x02 != 0
+    def zero? = @value.anybits?(0x02)
 
     def zero = @value.nobits?(0x02) ? 0 : 1
 
@@ -52,7 +52,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x04 : @value & ~0x04
     end
 
-    def interrupt? = @value & 0x04 != 0
+    def interrupt? = @value.anybits?(0x04)
 
     def interrupt = @value.nobits?(0x04) ? 0 : 1
 
@@ -60,7 +60,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x08 : @value & ~0x08
     end
 
-    def decimal? = @value & 0x08 != 0
+    def decimal? = @value.anybits?(0x08)
 
     def decimal = @value.nobits?(0x08) ? 0 : 1
 
@@ -68,7 +68,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x10 : @value & ~0x10
     end
 
-    def break? = @value & 0x10 != 0
+    def break? = @value.anybits?(0x10)
 
     def break = @value.nobits?(0x10) ? 0 : 1
 
@@ -76,7 +76,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x40 : @value & ~0x40
     end
 
-    def overflow? = @value & 0x40 != 0
+    def overflow? = @value.anybits?(0x40)
 
     def overflow = @value.nobits?(0x40) ? 0 : 1
 
@@ -84,7 +84,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x80 : @value & ~0x80
     end
 
-    def negative? = @value & 0x80 != 0
+    def negative? = @value.anybits?(0x80)
 
     def negative = @value.nobits?(0x80) ? 0 : 1
   end
@@ -95,7 +95,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x01 : @value & ~0x01
     end
 
-    def basic? = @value & 0x01 != 0
+    def basic? = @value.anybits?(0x01)
 
     def basic = @value.nobits?(0x01) ? 0 : 1
 
@@ -103,7 +103,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x02 : @value & ~0x02
     end
 
-    def kernal? = @value & 0x02 != 0
+    def kernal? = @value.anybits?(0x02)
 
     def kernal = @value.nobits?(0x02) ? 0 : 1
 
@@ -111,7 +111,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x04 : @value & ~0x04
     end
 
-    def io? = @value & 0x04 != 0
+    def io? = @value.anybits?(0x04)
 
     def io = @value.nobits?(0x04) ? 0 : 1
 
@@ -119,7 +119,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x08 : @value & ~0x08
     end
 
-    def tape_out? = @value & 0x08 != 0
+    def tape_out? = @value.anybits?(0x08)
 
     def tape_out = @value.nobits?(0x08) ? 0 : 1
 
@@ -127,7 +127,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x10 : @value & ~0x10
     end
 
-    def tape_switch? = @value & 0x10 != 0
+    def tape_switch? = @value.anybits?(0x10)
 
     def tape_switch = @value.nobits?(0x10) ? 0 : 1
 
@@ -135,7 +135,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x20 : @value & ~0x20
     end
 
-    def tape_motor? = @value & 0x20 != 0
+    def tape_motor? = @value.anybits?(0x20)
 
     def tape_motor = @value.nobits?(0x20) ? 0 : 1
   end
@@ -146,7 +146,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x01 : @value & ~0x01
     end
 
-    def start? = @value & 0x01 != 0
+    def start? = @value.anybits?(0x01)
 
     def start = @value.nobits?(0x01) ? 0 : 1
 
@@ -154,7 +154,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x02 : @value & ~0x02
     end
 
-    def output? = @value & 0x02 != 0
+    def output? = @value.anybits?(0x02)
 
     def output = @value.nobits?(0x02) ? 0 : 1
 
@@ -162,7 +162,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x04 : @value & ~0x04
     end
 
-    def out_mode? = @value & 0x04 != 0
+    def out_mode? = @value.anybits?(0x04)
 
     def out_mode = @value.nobits?(0x04) ? 0 : 1
 
@@ -170,7 +170,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x08 : @value & ~0x08
     end
 
-    def run_mode? = @value & 0x08 != 0
+    def run_mode? = @value.anybits?(0x08)
 
     def run_mode = @value.nobits?(0x08) ? 0 : 1
 
@@ -178,7 +178,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x10 : @value & ~0x10
     end
 
-    def load? = @value & 0x10 != 0
+    def load? = @value.anybits?(0x10)
 
     def load = @value.nobits?(0x10) ? 0 : 1
 
@@ -186,7 +186,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x20 : @value & ~0x20
     end
 
-    def in_mode? = @value & 0x20 != 0
+    def in_mode? = @value.anybits?(0x20)
 
     def in_mode = @value.nobits?(0x20) ? 0 : 1
 
@@ -194,7 +194,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x40 : @value & ~0x40
     end
 
-    def serial_mode? = @value & 0x40 != 0
+    def serial_mode? = @value.anybits?(0x40)
 
     def serial_mode = @value.nobits?(0x40) ? 0 : 1
 
@@ -202,7 +202,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x80 : @value & ~0x80
     end
 
-    def clock_frequency? = @value & 0x80 != 0
+    def clock_frequency? = @value.anybits?(0x80)
 
     def clock_frequency = @value.nobits?(0x80) ? 0 : 1
 
@@ -210,7 +210,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x20 : @value & ~0x20
     end
 
-    def in_cnt? = @value & 0x20 != 0
+    def in_cnt? = @value.anybits?(0x20)
 
     def in_cnt = @value.nobits?(0x20) ? 0 : 1
 
@@ -218,7 +218,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x40 : @value & ~0x40
     end
 
-    def in_timer_a? = @value & 0x40 != 0
+    def in_timer_a? = @value.anybits?(0x40)
 
     def in_timer_a = @value.nobits?(0x40) ? 0 : 1
 
@@ -226,7 +226,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x80 : @value & ~0x80
     end
 
-    def alarm? = @value & 0x80 != 0
+    def alarm? = @value.anybits?(0x80)
 
     def alarm = @value.nobits?(0x80) ? 0 : 1
   end
@@ -237,7 +237,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x01 : @value & ~0x01
     end
 
-    def timer_a? = @value & 0x01 != 0
+    def timer_a? = @value.anybits?(0x01)
 
     def timer_a = @value.nobits?(0x01) ? 0 : 1
 
@@ -245,7 +245,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x02 : @value & ~0x02
     end
 
-    def timer_b? = @value & 0x02 != 0
+    def timer_b? = @value.anybits?(0x02)
 
     def timer_b = @value.nobits?(0x02) ? 0 : 1
 
@@ -253,7 +253,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x04 : @value & ~0x04
     end
 
-    def alarm? = @value & 0x04 != 0
+    def alarm? = @value.anybits?(0x04)
 
     def alarm = @value.nobits?(0x04) ? 0 : 1
 
@@ -261,7 +261,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x08 : @value & ~0x08
     end
 
-    def serial? = @value & 0x08 != 0
+    def serial? = @value.anybits?(0x08)
 
     def serial = @value.nobits?(0x08) ? 0 : 1
 
@@ -269,7 +269,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x10 : @value & ~0x10
     end
 
-    def flag? = @value & 0x10 != 0
+    def flag? = @value.anybits?(0x10)
 
     def flag = @value.nobits?(0x10) ? 0 : 1
 
@@ -277,7 +277,7 @@ module Badline
       @value = enabled && enabled != 0 ? @value | 0x80 : @value & ~0x80
     end
 
-    def interrupt? = @value & 0x80 != 0
+    def interrupt? = @value.anybits?(0x80)
 
     def interrupt = @value.nobits?(0x80) ? 0 : 1
   end

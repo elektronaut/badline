@@ -52,7 +52,7 @@ module Badline
         end
 
         def cycle!(feed)
-          feed &&= @control.value & 0x01 != 0
+          feed &&= @control.value.anybits?(0x01)
           if @settled
             return @counter -= 1 if feed && @counter > 1
           elsif @empty
@@ -102,7 +102,7 @@ module Badline
         private
 
         def started?
-          @control.value & 0x01 != 0
+          @control.value.anybits?(0x01)
         end
 
         # Where fast_forward lands +cycles+ after an underflow, with

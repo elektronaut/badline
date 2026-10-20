@@ -195,26 +195,26 @@ module Badline
           when 0x0 then true
           when 0x1 then false
           when 0x2 then cc.nobits?(CARRY | ZERO)
-          when 0x3 then cc & (CARRY | ZERO) != 0
+          when 0x3 then cc.anybits?(CARRY | ZERO)
           when 0x4 then cc.nobits?(CARRY)
-          when 0x5 then cc & CARRY != 0
+          when 0x5 then cc.anybits?(CARRY)
           when 0x6 then cc.nobits?(ZERO)
-          when 0x7 then cc & ZERO != 0
+          when 0x7 then cc.anybits?(ZERO)
           when 0x8 then cc.nobits?(OVERFLOW)
-          when 0x9 then cc & OVERFLOW != 0
+          when 0x9 then cc.anybits?(OVERFLOW)
           when 0xa then cc.nobits?(NEGATIVE)
-          when 0xb then cc & NEGATIVE != 0
+          when 0xb then cc.anybits?(NEGATIVE)
           else signed_condition?(opcode, cc)
           end
         end
 
         def signed_condition?(opcode, cc)
-          less = (cc & NEGATIVE != 0) != (cc & OVERFLOW != 0)
+          less = cc.anybits?(NEGATIVE) != cc.anybits?(OVERFLOW)
           case opcode & 0x0f
           when 0xc then !less
           when 0xd then less
           when 0xe then !less && cc.nobits?(ZERO)
-          else less || cc & ZERO != 0
+          else less || cc.anybits?(ZERO)
           end
         end
       end

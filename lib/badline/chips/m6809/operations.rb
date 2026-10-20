@@ -199,9 +199,9 @@ module Badline
         # datasheet clears it.
         def daa
           correction = 0
-          correction |= 0x06 if @cc & HALF_CARRY != 0 || (@a & 0x0f) > 0x09
+          correction |= 0x06 if @cc.anybits?(HALF_CARRY) || (@a & 0x0f) > 0x09
           high = @a & 0xf0
-          correction |= 0x60 if @cc & CARRY != 0 || high > 0x90 || (high > 0x80 && (@a & 0x0f) > 0x09)
+          correction |= 0x60 if @cc.anybits?(CARRY) || high > 0x90 || (high > 0x80 && (@a & 0x0f) > 0x09)
           result = (@a + correction) & 0xff
           carry = correction >= 0x60 ? CARRY : 0
           overflow = (carry == 1) == result.anybits?(0x80) ? 0 : OVERFLOW
