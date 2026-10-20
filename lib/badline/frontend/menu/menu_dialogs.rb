@@ -10,8 +10,8 @@ module Badline
     # the bus.
     class MenuDialogs
       EXTENSIONS = {
-        disk: Media::Extensions::DEVICE8, tape: Media::Extensions.of(%i[tape]),
-        cartridge: Media::Extensions.of(%i[cartridge]), program: Media::Extensions::ALL, snapshot: %w[.vsf]
+        disk: Media::Extensions::DEVICE8, cartridge: Media::Extensions.of(%i[cartridge]),
+        program: Media::Extensions::ALL, snapshot: %w[.vsf]
       }.freeze
       TITLES = { disk: "INSERT A DISK", tape: "INSERT A TAPE", cartridge: "INSERT A CARTRIDGE",
                  program: "QUICK OPEN", snapshot: "LOAD A SAVE" }.freeze
@@ -43,6 +43,7 @@ module Badline
         extensions = case kind
                      when :cartridge then @media.cartridge_extensions
                      when :disk then @media.disk_extensions
+                     when :tape then @media.tape_extensions
                      when :program then programs
                      else EXTENSIONS.fetch(kind)
                      end
@@ -72,7 +73,7 @@ module Badline
       def drop(path)
         extension = File.extname(path).downcase
         return @media.insert(:disk, path) && false if @media.disk_extensions.include?(extension)
-        return @media.insert(:tape, path) && false if EXTENSIONS[:tape].include?(extension)
+        return @media.insert(:tape, path) && false if @media.tape_extensions.include?(extension)
         return false unless programs.include?(extension)
 
         @confirmation.ask(@media.cartridge_extensions.include?(extension) ? :cartridge : :start, path)
@@ -124,9 +125,9 @@ module Badline
         (EXTENSIONS[:program] + @media.cartridge_extensions).uniq
       end
 
-      # Puts the disk or tape picked in, or asks before a cartridge or
-      # Quick open power cycles the machine, and leaves the browser, as Esc
-      # does.
+      # Puts the disk or tape picked in, a tape Quick open picks on the
+      # KIM-1 too, or asks before a cartridge or Quick open power cycles the
+      # machine, and leaves the browser, as Esc does.
       def browsed(picked)
         return nil if picked.nil?
 
@@ -138,6 +139,8 @@ module Badline
 
         if %i[disk tape].include?(kind)
           @media.insert(kind, picked)
+        elsif @media.kim1? && @media.tape_extensions.include?(File.extname(picked).downcase)
+          @media.insert(:tape, picked)
         else
           @confirmation.ask(kind == :cartridge ? :cartridge : :start, picked)
         end

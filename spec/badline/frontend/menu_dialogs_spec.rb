@@ -125,7 +125,8 @@ describe Badline::Frontend::MenuDialogs do
   describe "on a KIM-1" do
     subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["kim1"]), nil) }
 
-    let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = Badline::KIM1.new } }
+    let(:kim) { Badline::KIM1.new }
+    let(:media) { Badline::Frontend::MenuMedia.new("", false, {}).tap { |menu_media| menu_media.computer = kim } }
 
     def papertape = File.join(dir, "game.ptp").tap { |path| File.write(path, ";010200EA00ED\n;0000010001\n") }
 
@@ -136,7 +137,26 @@ describe Badline::Frontend::MenuDialogs do
 
     it "leaves a dropped disk out" do
       disk = blank_d64(File.join(dir, "game.d64"))
-      expect([dialogs.drop(disk), media.problem]).to eq([false, "the KIM-1 takes no disks or tapes"])
+      expect([dialogs.drop(disk), media.problem]).to eq([false, "the KIM-1 takes no disks"])
+    end
+
+    context "with a .wav in Quick open's folder" do
+      subject(:dialogs) { described_class.new(painter, buttons, media, Badline::Options.parse(["kim1", wav]), nil) }
+
+      def wav = File.join(dir, "game.wav").tap { |path| Badline::Storage::KIMTape.new.write_wav(path) }
+
+      it "puts the .wav Quick open picks in the deck" do
+        dialogs.browse(:program)
+        press(81, 40)
+        expect(kim.tape.tape.path).to end_with("game.wav")
+      end
+    end
+
+    it "puts a dropped .wav in the deck" do
+      path = File.join(dir, "game.wav")
+      Badline::Storage::KIMTape.new(crossings: [100, 235, 370]).write_wav(path)
+      dialogs.drop(path)
+      expect(kim.tape.tape.path).to eq(path)
     end
   end
 end

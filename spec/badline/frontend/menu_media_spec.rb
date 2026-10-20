@@ -264,6 +264,31 @@ describe Badline::Frontend::MenuMedia do
     end
   end
 
+  describe "on a KIM-1" do
+    let(:computer) { Badline::KIM1.new }
+
+    it "lists .wav files as tapes" do
+      expect(media.tape_extensions).to eq(%w[.wav])
+    end
+
+    it "puts a tape in the deck" do
+      path = File.join(dir, "dump.wav")
+      Badline::Storage::KIMTape.new(crossings: [100, 235, 370]).write_wav(path)
+      media.insert(:tape, path)
+      expect(computer.tape.tape.path).to eq(path)
+    end
+
+    it "keeps the problem with a file that isn't a WAVE" do
+      path = File.join(dir, "game.wav")
+      File.binwrite(path, "junk")
+      expect([media.insert(:tape, path), media.problem]).to eq([false, "Not a RIFF WAVE file"])
+    end
+
+    it "keeps the problem with a disk" do
+      expect([media.insert(:disk, "game.d64"), media.problem]).to eq([false, "the KIM-1 takes no disks"])
+    end
+  end
+
   describe "on a Plus/4" do
     let(:computer) { Badline::Plus4.new }
 

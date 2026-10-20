@@ -549,7 +549,16 @@ The stock board has 1K of RAM at `$0000`-`$03FF`. `--ram 5k` fills
 and `--ram expanded` adds `$2000`-`$DFFF` too, with the first 8K
 repeated at `$E000`-`$FFFF` for the vectors, as most software beyond
 the First Book of KIM needs. The KIM-1 saves snapshots as the others
-do, without VICE's modules, and the cassette is still to come.
+do, without VICE's modules.
+
+The pause menu's Datasette page is the KIM-1's cassette deck. INSERT,
+Quick open, a drop or `badline kim1 tape.wav` puts a `.wav` recording of a
+KIM tape in it, 8-bit or 16-bit, without starting anything, and DECK presses
+PLAY, RECORD or STOP. The monitor's LOADT, at `$1873`, reads the tape
+while it plays, and DUMPT, at `$1800`, writes it while it records, as the
+User Manual's appendix E describes. A recording goes over the tape from
+where the deck is, and STOP writes it to its `.wav`. With no tape in,
+RECORD puts a new one in the `tapes` folder in badline's data folder.
 
 ## Snapshots
 
@@ -708,7 +717,7 @@ too.
 |------|---------------|
 | Snapshots | Quicksave, save under a name, load a named save, and the latest quicksaves and autosaves |
 | Drive 8 | The disk: insert, eject, the previous or next disk of its set, and whether it's writable |
-| Datasette | The tape: insert, eject, PLAY and REWIND |
+| Datasette | The tape: insert, eject, PLAY and REWIND. On the KIM-1, its deck's PLAY, RECORD and STOP too |
 | Expansion port | The cartridge's name: a `.crt`'s own, or a raw image's file name. Insert, remove, and its freeze button if it has one. On the VIC-20, the cartridge and the RAM expansion |
 | Ports | The device in each control port, and where the keys go. On the PET and the CBM-II's B series, Keyboard: where its keys are, and on the P500 also where its keys are while they type. On the KIM-1, Panel: SST, the TTY/KB jumper and U3's wiring |
 | Sound | Mute, and the SID's model |
@@ -787,8 +796,8 @@ in cartridge 1 as it does from the command line.
   (`badline cbm2 --model 510`).
 - **KIM-1**: the 6502 at 1 MHz, 1K, 5K or 53K of RAM, the two 6530 RRIOTs with
   the monitor's and the tape routines' ROMs, the keypad and the six
-  multiplexed LED digits, the SST switch, ST and RS, and PB7's sound
-  (`badline kim1`).
+  multiplexed LED digits, the SST switch, ST and RS, PB7's sound, the
+  teletype, and the cassette as `.wav` (`badline kim1`).
 - **2031**: the PET's single drive, the 1541's board and DOS 2.6 on the
   IEEE-488 bus, with the bus's handshake on every line
   (`badline pet --true-drive`).

@@ -60,7 +60,7 @@ module CIReach
     ["{.rubocop.yml,.rubocop_todo.yml,.gitignore,LICENSE*,*.md}", []],
     ["lib/badline/**/{saved_state,keyed_state,keyed_parts,keyed_modules,keyed_sprites}.rb", []],
     ["lib/badline/{frontend,audio,options,snapshot}/**/*", []],
-    ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version}.rb", []],
+    ["lib/badline/{frontend,audio,options,snapshot,sdl,ffi,status,version,data_path}.rb", []],
     ["lib/badline/support/{vic20,c128,plus4,pet,superpet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/{superpet-*,characters-superpet}.rom", []],

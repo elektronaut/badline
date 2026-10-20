@@ -41,6 +41,19 @@ describe Badline::Media::KIM1Media do
 
   def bytes_at(address, count) = Array.new(count) { |offset| kim.peek(address + offset) }
 
+  describe "a .wav" do
+    let(:path) { File.join(dir, "dump.wav").tap { |wav| Badline::Storage::KIMTape.new(crossings: [100, 235]).write_wav(wav) } }
+
+    it "goes in the tape deck" do
+      expect(attach(path)).to eq("Inserted #{path} in the tape deck")
+    end
+
+    it "starts nothing" do
+      attach(path)
+      expect(kim).not_to have_received(:type_text)
+    end
+  end
+
   describe "a papertape" do
     it "goes in at its records' addresses" do
       attach(papertape)

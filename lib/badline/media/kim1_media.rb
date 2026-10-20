@@ -17,14 +17,20 @@ module Badline
     # AD, the address and GO on the keypad, or the address, a space and G
     # on the teletype. Without autostart the monitor stops at the
     # address.
+    #
+    # A .wav, a recording of a KIM tape (Storage::KIMTape), goes in the
+    # cassette deck, for the monitor's LOADT to read once PLAY is down.
     module KIM1Media
       PAPERTAPES = Extensions.of(%i[papertape])
 
       # A .bin, bare bytes.
       BINARY = ".bin"
 
+      # A recording of a tape.
+      TAPE = ".wav"
+
       # What a KIM-1 takes.
-      EXTENSIONS = (PAPERTAPES + [BINARY]).freeze
+      EXTENSIONS = (PAPERTAPES + [BINARY, TAPE]).freeze
 
       # Where a .bin loads without a load address, as most of the First
       # Book of KIM's programs do.
@@ -74,6 +80,7 @@ module Badline
         # Machine::Unsupported when it loads outside the RAM.
         def attach(machine, path, loading, autostart:)
           raise Machine::Unsupported, "doesn't go in a KIM-1" unless takes?(path)
+          return insert_tape(machine, path) if File.extname(path).downcase == TAPE
 
           papertape = PAPERTAPES.include?(File.extname(path).downcase)
           tape = papertape ? Storage::Papertape.read(path) : nil
@@ -90,6 +97,11 @@ module Badline
         end
 
         private
+
+        def insert_tape(machine, path)
+          machine.tape.insert_tape(Storage::KIMTape.read(path))
+          "Inserted #{path} in the tape deck"
+        end
 
         def binary(path, load_address)
           Storage::Papertape::Record.new(load_address.negative? ? DEFAULT_LOAD_ADDRESS : load_address,
