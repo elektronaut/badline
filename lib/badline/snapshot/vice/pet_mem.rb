@@ -9,7 +9,7 @@ module Badline
         # the RAM, the screen RAM, 1K or 2K as the board has, or on the 8296
         # its 32K from $8000, an 8096's, 8296's or SuperPET's 64K board, and
         # 24 bytes of xpet's own settings, which name the 2001, and on the
-        # SuperPET the CPU that has the bus.
+        # SuperPET the CPU that has the bus and the 6702.
         #
         # The board is 0 for the discrete video, 1 for a 40-column CRTC, 2
         # for an 80-column one, 3 for the SuperPET, 4 for the 8096 and 5 for
@@ -21,8 +21,8 @@ module Badline
         # while the 6809 has the bus. Both were inferred from xpet 3.10's
         # snapshots after writes to the bank latch and $EFFE, and in both
         # modes. xpet has no system latch, so the bank latch's bit 7 and the
-        # system latch aren't saved, and a restore clears them. Nor is the
-        # 6702: a restore leaves it as the RES line does.
+        # system latch aren't saved, and a restore clears them. The 6702 is
+        # in the settings from their fifth byte (Dongle).
         module PETMem
           NAME = "PETMEM"
           MAJOR = 1
@@ -77,7 +77,11 @@ module Badline
             fields.bytes(machine.board.cells) if superpet
             settings = SETTINGS.dup
             settings[1] = SETTINGS_2001 if machine.model.basic1?
-            settings[SETTINGS_CPU] = SETTINGS_M6809 if superpet && machine.m6809_running?
+            if superpet
+              settings[SETTINGS_CPU] = SETTINGS_M6809 if machine.m6809_running?
+              dongle = machine.dongle
+              settings[Dongle::AT, Dongle::LENGTH] = Dongle.export(dongle.settled_registers, dongle.latch)
+            end
             fields.bytes(settings).section(NAME, MAJOR, MINOR)
           end
 
@@ -90,7 +94,7 @@ module Badline
             offset >= 0 && data.getbyte(offset).to_i.anybits?(SETTINGS_M6809)
           end
 
-          # A SuperPET's bank latch, socket bit and 64K board by their
+          # A SuperPET's bank latch, socket bit, 64K board and 6702 by their
           # BL-SUPERPET keys, in a keyed module's writer.
           def import_superpet(section, out)
             fields = FieldReader.new(section).skip(4)
@@ -98,6 +102,8 @@ module Badline
             fields.skip(fields_before_board(section))
             out.int("bank_latch", latches >> 4).int("socket", latches.anybits?(BANK_RAM) ? 0 : 1)
             out.int("system_latch", 0).bytes("ram", fields.string(EXPANSION))
+            fields.skip(Dongle::AT)
+            Dongle.import(fields.bytes(Dongle::LENGTH), out)
           end
 
           # The RAM and the screen RAM before a SuperPET's board.

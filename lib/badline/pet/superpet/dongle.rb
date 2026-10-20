@@ -64,15 +64,26 @@ module Badline
           end
         end
 
+        # The registers as they stand once a shift waiting has happened.
+        def settled_registers
+          registers = @registers.dup
+          shift_registers(registers) if @shift_at != NONE
+          registers
+        end
+
         private
 
         def shift
           @shift_at = NONE
+          shift_registers(@registers)
+        end
+
+        def shift_registers(registers)
           incoming = @latch ^ FEEDBACK ^ 0xff
           8.times do |bit|
-            register = @registers[bit]
+            register = registers[bit]
             stage = (register ^ (incoming >> bit)) & 1
-            @registers[bit] = (register >> 1) | (stage << (LENGTHS[bit] - 1))
+            registers[bit] = (register >> 1) | (stage << (LENGTHS[bit] - 1))
           end
         end
       end

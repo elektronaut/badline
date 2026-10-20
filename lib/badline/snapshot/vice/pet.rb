@@ -2,6 +2,7 @@
 
 require "badline/snapshot/vice/cbm2_acia"
 require "badline/snapshot/vice/pet_cpu"
+require "badline/snapshot/vice/pet_dongle"
 require "badline/snapshot/vice/pet_mem"
 require "badline/snapshot/vice/pet_pias"
 require "badline/snapshot/vice/pet_via"

@@ -170,7 +170,9 @@ part named.
   CPU switch (`CPUswitch`) is read only at reset. `$EFFD` acts as
   `$EFFC`. Its 6702 at `$EFE0` answers 16 reads with no write with `$D6`,
   and writes and reads in turn of 0 to 15 with `d6 c6 c6 56 56 44 44 d6
-  d6 84 84 15 15 01 01 91`. It saves no 6702 state.
+  d6 84 84 15 15 01 01 91`, as badline's does. It saves the 6702 in
+  PETMEM's settings (below), and every other PET's settings hold one as
+  RES leaves it.
 - **Its 2040 isn't usable.** On a 4032 or a 3032 `OPEN15,8,15` hangs and
   `LOAD"$0",8` never finishes; on a 2001 the directory comes back empty.
 - **It runs only the interface processor of an IEEE-488 drive** with two
@@ -273,6 +275,12 @@ Facts the layouts rest on that the files' comments state in full:
 - A TPI module is the eight registers, then the latched interrupts and CA
   and CB. In mode 1 `xcbm2` keeps the latches in PRC's low five bits and
   the mask in DDRC's.
+- PETMEM's 24 bytes of settings at the end hold the SuperPET's 6702 from
+  the fifth byte: the byte it reads, the last write that shifted it, 1
+  while the last write left D0 clear, then a little-endian word per data
+  line, bit k the XOR of stages k and k + 1 of its shift register. Mapped
+  from dumps after 56 writes to `$EFE0`, which all decode to the
+  registers badline's 6702 has after the same writes.
 - CPU6809 1.1 is an 8-byte clock, X, Y, U, S and PC, DP, CC, A and B,
   then 5 zero bytes.
 - xvic's MAINCPU 1.4 is 83 bytes, x64sc's without the BA flags and the

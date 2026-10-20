@@ -108,6 +108,13 @@ describe Badline::Snapshot::Vice::PET do
       expect([acia.command, acia.control]).to eq([0x0b, 0x1e])
     end
 
+    it "has the 6702's registers" do
+      saved = machine("superpet")
+      [0x00, 0x01, 0x02, 0x03, 0x06].each { |value| saved.poke(0xefe0, value) }
+      restored = image(XpetSnapshots.exported(saved)).load { nil }
+      expect(restored.dongle.registers).to eq(saved.dongle.settled_registers)
+    end
+
     context "with the SuperPET's 6809 running" do
       let(:saved) do
         TakenOnce.fetch([:xpet_superpet, "6809"]) do
