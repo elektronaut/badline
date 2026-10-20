@@ -26,6 +26,11 @@ module Badline
     # 324037 schematic one-shots gate the 6809's RES), and the other stops
     # where it is. The PET's IRQ line, the ACIA's with it, reaches both.
     #
+    # The Waterloo ROMs hold only the menu, setup and the monitor. The
+    # menu loads every language, microBASIC, microAPL, FORTRAN, Pascal,
+    # COBOL, the editor and the development package, from disk into RAM,
+    # so 6809 mode needs a disk on device 8 to run one.
+    #
     # In 6809 mode device 8 answers through traps on the Waterloo ROM's
     # IEEE-488 routines (WaterlooTraps) as well as the KERNAL's, from the
     # same disk, or a true drive on the bus answers. type_text types

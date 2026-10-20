@@ -26,7 +26,9 @@ module Badline
     # At reset the controller waits for the common RAM's $0400 to read 0,
     # starts, and writes its timer's period there. The interface processor
     # tests its RAM and ROMs, has the controller reset its drives, and
-    # bumps both heads to track 1.
+    # bumps both heads to track 1. The motors run from then until the
+    # run-down after the first job, about 9.5 million host cycles in for a
+    # directory LOAD, so the unit idles only after that.
     class Model4040
       include Model8050::Board
       include Model8050::Idle

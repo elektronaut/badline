@@ -8,7 +8,9 @@ module Badline
     # Recording, it puts each change of PB7, which DUMPT ($1800) toggles as
     # a square wave, on the tape as a crossing, in place of whatever was
     # on the tape from there on. Stopping a recording writes the tape to
-    # its file.
+    # its file. DUMPT's half periods run 135 to 139 cycles for the 3,700 Hz
+    # tone and 203 to 209 for the 2,400 Hz one, a bit taking about 7.38 ms,
+    # where the User Manual's figure E-1 gives 7.452.
     #
     # Nothing on the board starts or stops the deck: the tape moves while
     # PLAY or RECORD is down, a microsecond, a cycle, at a time.
