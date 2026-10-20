@@ -4,6 +4,18 @@ module Badline
       @memory: C64::Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer
@@ -33,9 +45,21 @@ module Badline
   module Drives
     class Model1541
       class CPU
-        @memory: Bus
+        @memory: Badline::Drives::Model1541::Bus
         @operation: Symbol
         @plan: Array[Symbol]
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
         @a: Integer
         @x: Integer
         @y: Integer
@@ -59,9 +83,21 @@ module Badline
 
     class Model1571
       class CPU
-        @memory: Bus
+        @memory: Badline::Drives::Model1571::Bus
         @operation: Symbol
         @plan: Array[Symbol]
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
         @a: Integer
         @x: Integer
         @y: Integer
@@ -85,9 +121,21 @@ module Badline
 
     class Model1581
       class CPU
-        @memory: Bus
+        @memory: Badline::Drives::Model1581::Bus
         @operation: Symbol
         @plan: Array[Symbol]
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
         @a: Integer
         @x: Integer
         @y: Integer
@@ -111,9 +159,21 @@ module Badline
 
     class Model1551
       class CPU
-        @memory: Bus
+        @memory: Badline::Drives::Model1551::Bus
         @operation: Symbol
         @plan: Array[Symbol]
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
         @a: Integer
         @x: Integer
         @y: Integer
@@ -137,9 +197,21 @@ module Badline
 
     class Model2031
       class CPU
-        @memory: Bus
+        @memory: Badline::Drives::Model2031::Bus
         @operation: Symbol
         @plan: Array[Symbol]
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
         @a: Integer
         @x: Integer
         @y: Integer
@@ -160,6 +232,187 @@ module Badline
         @optional_dummy: bool
       end
     end
+
+    class Model8050
+      class IPCPU
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
+      end
+
+      class FDCCPU
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
+      end
+    end
+
+    class Model4040
+      class IPCPU
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
+      end
+
+      class FDCCPU
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
+      end
+    end
+
+    class Model9060
+      class SASICPU
+        @operation: Symbol
+        @plan: Array[Symbol]
+        @a: Integer
+        @x: Integer
+        @y: Integer
+        @stack_pointer: Integer
+        @program_counter: Integer
+        @address: Integer
+        @pointer: Integer
+        @dummy_address: Integer
+        @value: Integer
+        @rmw_result: Integer
+        @ane_constant: Integer
+        @irq: bool
+        @irq_sample: bool
+        @irq_pending: bool
+        @boundary_irq: bool
+        @boundary_nmi: bool
+        @pending_write: bool
+        @optional_dummy: bool
+        @writes: Array[bool]
+        @index: Integer
+        @cycles: Integer
+        @instructions: Integer
+        @nmi: bool
+        @nmi_sample: bool
+        @nmi_pending: bool
+        @skip_poll: bool
+        @boundary_crossed: bool
+        @brk: bool
+        @so_high: bool
+        @branch_taken: bool
+      end
+    end
   end
 
   class Vic20
@@ -167,6 +420,18 @@ module Badline
       @memory: Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer
@@ -193,6 +458,18 @@ module Badline
       @memory: Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer
@@ -254,9 +531,21 @@ module Badline
 
   class PET
     class CPU
-      @memory: Bus
+      @memory: Badline::PET::Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer
@@ -283,6 +572,18 @@ module Badline
       @memory: Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer
