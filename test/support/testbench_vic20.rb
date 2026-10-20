@@ -143,6 +143,12 @@ module Testbench
     end
 
     def parse(line, ntsc: false)
+      test = row(line, ntsc:)
+      test if test && runnable?(test)
+    end
+
+    # The row's test, whether or not its program is there to run.
+    def row(line, ntsc: false)
       line = line.strip
       return if line.empty? || line.start_with?("#")
 
@@ -155,7 +161,7 @@ module Testbench
 
       test = TestCase.new(dir.chomp("/"), prg, type, timeout.to_i, options, Testlist.cartridge(options))
       test.family = :vic20
-      test if runnable?(test)
+      test
     end
 
     def runnable?(test)

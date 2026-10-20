@@ -504,9 +504,9 @@ class TestTestbenchVic20 < Minitest::Test
   end
 
   def test_lists_badlines_own_rows
-    ids = Testbench::Vic20Testlist.tests([], ntsc: true).map(&:key)
+    rows = Testbench::VIC20_ROWS.filter_map { Testbench::Vic20Testlist.row(it, ntsc: true) }
 
-    assert_includes ids, "VIC20/vic_line0/raster-ntsc.prg#2"
+    assert_includes Testbench::Testlist.numbered(rows).map(&:key), "VIC20/vic_line0/raster-ntsc.prg#2"
   end
 
   def test_scores_a_dump_row_from_the_results_on
