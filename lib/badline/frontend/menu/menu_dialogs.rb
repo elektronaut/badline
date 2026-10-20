@@ -4,8 +4,10 @@ module Badline
   module Frontend
     # The pause menu's screens that take over its panel: the file browser
     # INSERT, Quick open and LOAD bring up, the question before a cartridge
-    # or Quick open power cycles the machine, and the prompt for a save's
-    # name. A disk or tape picked goes straight in, and a save loads.
+    # or Quick open power cycles the machine, the prompt for a save's name,
+    # and the list of a PET's or a CBM-II's drive types. A disk or tape
+    # picked goes straight in, a save loads, and a drive type picked goes on
+    # the bus.
     class MenuDialogs
       EXTENSIONS = {
         disk: Media::Extensions::DEVICE8, tape: Media::Extensions.of(%i[tape]),
@@ -25,13 +27,14 @@ module Badline
         @browser = FileBrowser.new(painter, buttons)
         @confirmation = Confirmation.new(painter, buttons)
         @name_field = NameField.new(painter)
+        @drive_types = DriveTypes.new(painter, buttons)
         @snapshots = snapshots
         @browsing = nil
         @browse_from = media_path.empty? ? Dir.pwd : File.dirname(File.expand_path(media_path))
         @computer = nil
       end
 
-      def open? = !@browsing.nil? || @confirmation.open? || @name_field.open?
+      def open? = !@browsing.nil? || @confirmation.open? || @name_field.open? || @drive_types.open?
 
       # Opens the browser on the files for `kind`: :disk, :tape, :cartridge,
       # :program, or :snapshot, which starts in the saves folder.
@@ -45,6 +48,9 @@ module Badline
                      end
         @browser.open(kind == :snapshot ? Badline.data_folder("saves") : @browse_from, extensions)
       end
+
+      # Lists the drive types, with `model` the one on the bus.
+      def pick_drive(model) = @drive_types.open(model)
 
       # Asks for a save's name, starting from `name`.
       def ask_name(name) = @name_field.open("SAVE AS", name)
@@ -77,6 +83,7 @@ module Badline
       # answered yes, or nil.
       def key(scancode)
         return browsed(@browser.key(scancode)) unless @browsing.nil?
+        return drive_key(scancode) if @drive_types.open?
         if @name_field.open? && !@confirmation.open?
           return named(@name_field.key(scancode, SDL.event_mod(SDL.event).anybits?(SDL::KMOD_SHIFT)))
         end
@@ -88,15 +95,21 @@ module Badline
         nil
       end
 
-      # Handles a click on the browser's list at `top`, or on a question's
-      # answer, `action`.
-      def click(action, top) = action == :browse ? browsed(@browser.click(top)) : answer(action)
+      # Handles a click on the browser's list at `top`, on a question's
+      # answer, `action`, or on a drive type.
+      def click(action, top)
+        return browsed(@browser.click(top)) if action == :browse
+        return picked(action) if @drive_types.open?
+
+        answer(action)
+      end
 
       def scroll(rows) = @browser.scroll(rows)
 
       def draw(left, top, width)
         return @browser.draw(left, top, width, TITLES.fetch(@browsing)) unless @browsing.nil?
         return @confirmation.draw(left, top) if @confirmation.open?
+        return @drive_types.draw(left, top, width) if @drive_types.open?
 
         @name_field.draw(left, top, width)
       end
@@ -128,6 +141,33 @@ module Badline
         else
           @confirmation.ask(kind == :cartridge ? :cartridge : :start, picked)
         end
+        nil
+      end
+
+      # Up and Down move along the drive types, Return or Space picks one,
+      # and Left or Esc goes back to the page.
+      def drive_key(scancode)
+        return picked(@buttons.focus) if [Keys::RETURN, Keys::SPACE].include?(scancode)
+
+        direction = Keys::DIRECTIONS[scancode]
+        if scancode == Keys::ESCAPE || direction == :left
+          @drive_types.close
+          @buttons.focus = :drive_type
+        elsif %i[up down].include?(direction)
+          @buttons.shift(direction == :up ? -1 : 1, 1)
+        end
+        nil
+      end
+
+      # Puts the drive type `action` stands for on the bus, and goes back
+      # to the page.
+      def picked(action)
+        model = @drive_types.model_for(action)
+        return nil if model.nil?
+
+        @drive_types.close
+        @buttons.focus = :drive_type
+        @media.drive_type(model)
         nil
       end
 

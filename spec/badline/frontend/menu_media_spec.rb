@@ -213,6 +213,28 @@ describe Badline::Frontend::MenuMedia do
       expect(media.disk_extensions).not_to include(".g64")
     end
 
+    it "lists DOS 1's disks and the hard disks' for device 8" do
+      expect(media.disk_extensions).to include(".d67", ".d90")
+    end
+
+    it "puts the drive type picked on the bus, with the disk the traps had in it" do
+      media.insert(:disk, first)
+      media.drive_type("4040")
+      expect([computer.true_drive.model_name, media.disk_path, computer.mounted?]).to eq(["4040", first, false])
+    end
+
+    it "leaves out a disk the drive type picked doesn't read" do
+      media.insert(:disk, first)
+      media.drive_type("8050")
+      expect([computer.true_drive.model_name, media.inserted?]).to eq(["8050", false])
+    end
+
+    it "leaves the drive on the bus alone when its own type is picked" do
+      drive = computer.plug_ieee_drive("4040")
+      media.drive_type("4040")
+      expect(computer.true_drive).to equal(drive)
+    end
+
     it "names a save after BASIC with nothing in" do
       expect(media.game_name).to eq("BASIC")
     end

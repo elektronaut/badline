@@ -103,6 +103,10 @@ module Badline
       # too.
       def cbm2? = @computer.family == :cbm2
 
+      # The model of the true drive on device 8, or an empty one for the
+      # traps.
+      def drive_model = MediaSlots.drive_model(@computer)
+
       # Whether the machine is the CBM-II's B series, whose ports page is
       # its keyboard's alone.
       def b_series? = cbm2? && !Controls.p500?(@computer)
@@ -134,6 +138,7 @@ module Badline
         skip
         drive = @computer.true_drive
         info("DEVICE", drive.nil? ? "FAST LOADING" : "#{drive.model_name}, TRUE DRIVE")
+        row("DRIVE TYPE...", :drive_type, drive_model) if pet? || cbm2?
       end
 
       # The CBM-II and the KIM-1 have no datasette.

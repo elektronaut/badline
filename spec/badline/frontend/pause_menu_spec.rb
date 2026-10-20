@@ -85,5 +85,10 @@ describe Badline::Frontend::PauseMenu do
     it "names the ports section KEYBOARD" do
       expect(painter).to have_received(:text).with(anything, anything, "KEYBOARD".ljust(14), anything)
     end
+
+    it "lists the drive types from the drive page's last row, and puts the one picked on the bus" do
+      press(81, 79, 81, 81, 81, 40, 81, 81, 40)
+      expect([computer.true_drive&.model_name, focused]).to eq(["3040", :drive_type])
+    end
   end
 end

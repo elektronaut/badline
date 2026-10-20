@@ -143,6 +143,8 @@ library, are covered in [doc/library.md](doc/library.md).
 | `.prg`, `.p00` | Loaded into memory after boot. A program at the BASIC start (`$0801`) is `RUN`, anything else is left for you to `SYS` |
 | `.d64`, `.d71`, `.d81` | Mounted as device 8, then `LOAD"*",8,1` and `RUN`. On a C128 in C128 mode a boot disk goes in a true drive instead and boots at power-on. See [Media](doc/media.md#c128-boot-disks). Write-protected unless `--writable` |
 | `.g64` | Put in a true 1541, then `LOAD"*",8,1` and `RUN`. It holds the disk's raw GCR, so copy protection that reads it works. Write-protected unless `--writable` |
+| `.d80`, `.d82`, `.d67` | A PET's or a CBM-II's disk: an 8050's, an 8250's or SFD-1001's, or a 2040's with DOS 1. It starts a PET, and is mounted as device 8 or put in the true drive that reads it. See [The PET](#the-pet) |
+| `.d90` | A D9060's or D9090's hard disk. It starts a PET, and always goes in the true drive, the D9060 or the D9090 by its size. See [The PET](#the-pet) |
 | `.m3u`, `.vfl` | A list of disk images, one path a line, relative to the list: an `.m3u` playlist, or a VICE flip list, which only unit 8's entries are taken from. Its first disk goes in as above, and the list is its set for the pause menu |
 | `.t64` | Mounted read-only as device 8 and loaded like a disk image. The files load by name, and no tape is involved |
 | `.tap` | Inserted in the datasette with PLAY pressed, then `LOAD` and `RUN`. It loads at the speed of a real tape |
@@ -403,7 +405,8 @@ goes into memory as a program file does. `--basic 2`, the upgrade
 Commodore sold, loads from disk.
 
 A program loads at the start of BASIC, `$0401`, and runs. A `.d80`, a
-`.d82` or a tape made for the PET starts a PET without `pet`, but a
+`.d82`, a `.d67`, a `.d90` or a tape made for the PET starts a PET
+without `pet`, but a
 program that loads at `$0401` starts a C64, since a VIC-20 with 3K loads
 there too. Disks go through the KERNAL traps on the IEEE-488 bus as
 device 8, or with `--true-drive` an emulated 2031 on the bus, which
@@ -419,7 +422,9 @@ A `.d90` hard disk image always goes in an emulated D9060 or D9090, by
 its size, since the traps don't read one; `--drive-type 9060` or `9090`
 picks the drive whatever the image's size. Its `N` skips the test
 patterns the DOS writes over the whole disk, an hour on the hardware.
-Tapes play on cassette port 1. The keys type what the host's
+The pause menu's Drive 8 page lists the drive types under DRIVE TYPE,
+and the one picked goes on the bus as device 8, with the disk device 8
+had if it reads it. Tapes play on cassette port 1. The keys type what the host's
 keys type, on either keyboard, and `Alt` adds the PET's `SHIFT`:
 [Input](#input) lists the rest. The pause
 menu's Power page names the model, its RAM and its frame rate, and its
