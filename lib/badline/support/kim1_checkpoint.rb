@@ -3,9 +3,10 @@
 module Badline
   module Support
     # A Checkpoint of a KIM-1: its CPU, the 1K of RAM, each 6530's RAM,
-    # ports and timer, and the panel's held key and what its digits show.
+    # ports and timer, the panel's held key and what its digits show, and
+    # what the teletype has printed and its line's level.
     module KIM1Checkpoint
-      COMPONENTS = %w[cpu ram u2 u3 panel].freeze
+      COMPONENTS = %w[cpu ram u2 u3 panel tty].freeze
 
       def self.take(machine)
         ram = machine.ram
@@ -14,7 +15,8 @@ module Badline
                          Checkpoint.fnv1a(Checkpoint.ram(ram, ram.length)),
                          Checkpoint.fnv1a(rriot_state(machine.u2)),
                          Checkpoint.fnv1a(rriot_state(machine.u3)),
-                         Checkpoint.fnv1a(panel_state(machine.panel))
+                         Checkpoint.fnv1a(panel_state(machine.panel)),
+                         Checkpoint.fnv1a(teletype_state(machine.teletype))
                        ], COMPONENTS)
       end
 
@@ -26,6 +28,8 @@ module Badline
         held = panel.held
         [held.nil? ? -1 : KIM1::Panel::KEYS.index(held), *panel.display]
       end
+
+      def self.teletype_state(teletype) = teletype.output.bytes + [teletype.line_high? ? 1 : 0]
 
       def self.bit(value)
         return value if value.is_a?(Integer)

@@ -24,6 +24,7 @@ module Badline
   # keypad and display. It runs headless.
   class KIM1
     include Machine::Clocking
+    include Machine::Settling
     include KeyEntry
 
     # The cycle by which the monitor is scanning the display, with a
@@ -54,7 +55,7 @@ module Badline
 
     # With +tty+ the TTY/KB jumper is fitted, and the monitor talks to a
     # teletype at +baud+ (Teletype::BAUDS) in place of the keypad and
-    # display. +ram+ names the RAM, a key of Bus::RAM_CONFIGURATIONS, or
+    # display. +ram+ names the RAM, one of Bus::RAM_CONFIGURATIONS, or
     # nil for the stock 1K.
     def initialize(tty: false, baud: 9600, ram: nil)
       @cycles = 0
@@ -122,12 +123,6 @@ module Badline
 
     def mounted_path = ""
 
-    def save_snapshot(_path)
-      raise Snapshot::FormatError, "the KIM-1 has no snapshots yet"
-    end
-
-    def export_snapshot(path) = save_snapshot(path)
-
     # The 6530s count ahead of the CPU. With SST on, the board pulls NMI
     # ahead of an opcode fetch outside the monitor.
     def cycle!
@@ -184,3 +179,7 @@ module Badline
     def display_text = @panel.display_text
   end
 end
+
+require "badline/snapshot/kim1_setup"
+require "badline/kim1/keyed_state"
+require "badline/kim1/keyed_modules"

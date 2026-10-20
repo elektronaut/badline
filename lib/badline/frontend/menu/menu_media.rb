@@ -145,6 +145,8 @@ module Badline
         name = name.sub(/\s*[(\[].*\z/, "").strip
         return name unless name.empty?
 
+        return "KIM-1" if @computer.family == :kim1
+
         vic20 ? "VIC-20" : "BASIC"
       end
 

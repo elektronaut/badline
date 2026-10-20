@@ -27,11 +27,9 @@ module Badline
     class Bus
       include Addressable
 
-      # Each configuration's end of RAM in the first 8K, and where the
-      # first 8K stops repeating, past what RAM fills above it.
-      RAM_CONFIGURATIONS = { "1k": [0x0400, 0x2000], "5k": [0x1400, 0x2000], expanded: [0x1400, 0xe000] }.freeze
+      RAM_CONFIGURATIONS = %i[1k 5k expanded].freeze
 
-      # The RAM, and the key of RAM_CONFIGURATIONS it comes as.
+      # The RAM, and the one of RAM_CONFIGURATIONS it comes as.
       attr_reader :ram, :ram_configuration
 
       # The last byte the CPU read or wrote.
@@ -41,14 +39,15 @@ module Badline
       # the RAM `ram` names.
       def initialize(monitor, user, ram: :"1k")
         addressable_at(0, length: 2**16)
-        raise ArgumentError, "no KIM-1 RAM configuration named #{ram}" unless RAM_CONFIGURATIONS.key?(ram)
+        raise ArgumentError, "no KIM-1 RAM configuration named #{ram}" unless RAM_CONFIGURATIONS.include?(ram)
 
         @u2 = monitor
         @u3 = user
         @ram_configuration = ram
-        ends = RAM_CONFIGURATIONS.fetch(ram)
-        @low_end = ends[0]
-        @mirror_end = ends[1]
+        # The end of RAM in the first 8K, and where the first 8K stops
+        # repeating, past the RAM above it.
+        @low_end = ram == :"1k" ? 0x0400 : 0x1400
+        @mirror_end = ram == :expanded ? 0xe000 : 0x2000
         @ram = Memory.new([], length: @mirror_end == 0x2000 ? @low_end : @mirror_end, start: 0)
         @data = 0
       end

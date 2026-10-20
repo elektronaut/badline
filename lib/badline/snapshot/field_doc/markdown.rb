@@ -8,7 +8,7 @@ module Badline
       # voice1 to voice3, on one row.
       class Markdown
         NAMES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4", "pet" => "PET",
-                  "cbm2" => "CBM-II" }.freeze
+                  "cbm2" => "CBM-II", "kim1" => "KIM-1" }.freeze
         TAG_TYPES = { Keyed::INT => "int", Keyed::BOOL => "bool", Keyed::BYTES => "bytes", Keyed::INTS => "ints",
                       Keyed::TEXT => "text" }.freeze
 

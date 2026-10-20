@@ -543,8 +543,8 @@ The stock board has 1K of RAM at `$0000`-`$03FF`. `--ram 5k` fills
 `$0400`-`$13FF` with RAM, as a board on the expansion connector does,
 and `--ram expanded` adds `$2000`-`$DFFF` too, with the first 8K
 repeated at `$E000`-`$FFFF` for the vectors, as most software beyond
-the First Book of KIM needs. The KIM-1 saves no snapshots yet, and the
-cassette is still to come.
+the First Book of KIM needs. The KIM-1 saves snapshots as the others
+do, without VICE's modules, and the cassette is still to come.
 
 ## Snapshots
 

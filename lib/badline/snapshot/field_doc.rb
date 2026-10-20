@@ -41,7 +41,8 @@ module Badline
       # an 8296 with its user port jumpered, a PET with a disk and tapes and
       # one with a true 2031, one with an 8050 and one with an 8250, a
       # SuperPET in 6809 mode with a disk in device 8, and a 610, a 720, a
-      # 610 with a cartridge and one with a disk, and a PAL and an NTSC 510.
+      # 610 with a cartridge and one with a disk, a PAL and an NTSC 510,
+      # and a KIM-1 on its keypad and one expanded, on a teletype.
       def self.machines
         {
           "c64" => [C64.new, C64.new(ram_expansion: :plus256k), C64.new(reu: 512),
@@ -58,7 +59,8 @@ module Badline
                     pet_with_drive, pet_with_unit("8050"), pet_with_unit("8250"), pet_with_dos2_unit,
                     superpet_with_disk],
           "cbm2" => [CBM2.new, CBM2.new(model: "720", kernal: "03b", mains_hz: 60), cbm2_with_cartridge,
-                     cbm2_with_disk, CBM2::P500.new, CBM2::P500.new(model: "510ntsc")]
+                     cbm2_with_disk, CBM2::P500.new, CBM2::P500.new(model: "510ntsc")],
+          "kim1" => [KIM1.new, KIM1.new(tty: true, ram: :expanded)]
         }
       end
 

@@ -35,7 +35,7 @@ module Badline
     class Image
       MACHINE = "BL-MACHINE"
       FAMILIES = { "c64" => "C64", "vic20" => "VIC-20", "c128" => "C128", "plus4" => "Plus/4", "pet" => "PET",
-                   "cbm2" => "CBM-II" }.freeze
+                   "cbm2" => "CBM-II", "kim1" => "KIM-1" }.freeze
 
       # The snapshots VICE's emulators write that badline doesn't read, by
       # the machine their container names.
@@ -67,6 +67,7 @@ module Badline
       # snapshots badline doesn't write for xplus4.
       def self.exported(computer)
         raise FormatError, "badline doesn't export a Plus/4's snapshot for VICE" if computer.family == :plus4
+        raise FormatError, "VICE has no KIM-1 to open a snapshot of one" if computer.family == :kim1
 
         computer.settle_for_vice!
         sections = computer.save_modules
@@ -101,6 +102,7 @@ module Badline
         when :plus4 then Container::PLUS4
         when :pet then Container::PET
         when :cbm2 then computer.is_a?(CBM2::P500) ? Container::CBM2_5X0 : Container::CBM2
+        when :kim1 then Container::KIM1
         else Container::MACHINE
         end
       end
@@ -114,6 +116,7 @@ module Badline
         when "plus4" then Plus4Setup.read_fields(machine)
         when "pet" then PETSetup.read_fields(machine)
         when "cbm2" then CBM2Setup.read_fields(machine)
+        when "kim1" then KIM1Setup.read_fields(machine)
         else C64Setup.read_fields(machine)
         end
       end

@@ -99,7 +99,7 @@ module Badline
     def bank_ram = @bank_ram || "rw"
 
     # The VIC-20's RAM expansion --ram names, a key of
-    # Vic20::Bus::RAM_CONFIGURATIONS, or the KIM-1's, a key of
+    # Vic20::Bus::RAM_CONFIGURATIONS, or the KIM-1's, one of
     # KIM1::Bus::RAM_CONFIGURATIONS, or nil without --ram.
     attr_reader :ram
 

@@ -29,6 +29,10 @@ module Badline
 
       BAUDS = [110, 300, 1200, 2400, 4800, 9600].freeze
 
+      # The bits of a character: the start bit, eight data bits and two
+      # stop bits.
+      FRAME_BITS = 11
+
       attr_reader :baud, :output
 
       def initialize(panel, baud: 9600)
@@ -36,13 +40,15 @@ module Badline
         @queue = []
         @output = +""
         @line_high = true
-        @sending = []
-        @send_at = 0
+        @sending = 0
+        @sent = FRAME_BITS
+        @send_start = 0
         @quiet_until = 0
         @receiving = false
         @received = 0
         @bits = 0
-        @sample_at = 0.0
+        @edge = 0
+        @sample_at = 0
         @last_printer = true
         self.baud = baud
       end
@@ -52,7 +58,6 @@ module Badline
         raise ArgumentError, "no teletype at #{baud} baud" unless BAUDS.include?(baud)
 
         @baud = baud
-        @bit = 1_000_000.0 / baud
       end
 
       # Queues `text`'s bytes to send, its letters in capitals, as a Model
@@ -62,7 +67,7 @@ module Badline
       end
 
       # Whether characters are queued or on their way in or out.
-      def busy? = !@queue.empty? || !@sending.empty? || @receiving
+      def busy? = !@queue.empty? || @sent < FRAME_BITS || @receiving
 
       # Whether the line to the board is high, its idle level.
       def line_high? = @line_high
@@ -71,7 +76,7 @@ module Badline
       # is ready for it, at cycle `now`.
       def reset!(now)
         @queue.clear
-        @sending.clear
+        @sent = FRAME_BITS
         drive(true)
         @queue << RUBOUT
         @quiet_until = now + RUBOUT_DELAY
@@ -83,24 +88,67 @@ module Badline
         receive(now, printer_high)
       end
 
+      # The teletype's fields in a keyed snapshot module (BL-TTY): the
+      # baud, what is queued, the character going out and the one coming
+      # in, by the cycles they started at, and all it has printed.
+      def save_fields(out)
+        out.int("baud", @baud).ints("queue", @queue).bytes("output", @output)
+        out.bool("line_high", @line_high).int("send.byte", @sending).int("send.bits", @sent)
+        out.int("send.start", @send_start).int("quiet_until", @quiet_until)
+        out.bool("receive.busy", @receiving).int("receive.byte", @received).int("receive.bits", @bits)
+        out.int("receive.edge", @edge).int("receive.sample_at", @sample_at).bool("printer_high", @last_printer)
+      end
+
+      def load_fields(input)
+        baud = input.int("baud", @baud)
+        @baud = BAUDS.include?(baud) ? baud : @baud
+        @queue = input.ints("queue", []).map { |byte| byte & 0xff }
+        @output = input.bytes("output", "".b).dup
+        @line_high = input.bool("line_high", true)
+        @sending = input.int("send.byte", 0) & 0xff
+        @sent = input.int("send.bits", FRAME_BITS).clamp(0, FRAME_BITS)
+        @send_start = input.int("send.start", 0)
+        @quiet_until = input.int("quiet_until", 0)
+        @receiving = input.bool("receive.busy", false)
+        @received = input.int("receive.byte", 0) & 0xff
+        @bits = input.int("receive.bits", 0).clamp(-1, 8)
+        @edge = input.int("receive.edge", 0)
+        @sample_at = input.int("receive.sample_at", 0)
+        @last_printer = input.bool("printer_high", true)
+        @panel.tty_in_high = @line_high
+      end
+
       private
 
+      # The cycles `halves` half bits take, rounded up.
+      def half_bits(halves) = ((halves * 500_000) + @baud - 1) / @baud
+
+      # Each bit goes out once its time from the start bit has passed.
       def send_bits(now)
-        if @sending.empty?
+        if @sent >= FRAME_BITS
           start_character(now) if !@queue.empty? && !@receiving && now >= @quiet_until
-        elsif now >= @send_at
-          drive(@sending.shift)
-          @send_at += @bit
-          @quiet_until = now + (GAP_CHARACTERS * 11 * @bit) if @sending.empty?
+        elsif now >= @send_start + half_bits(2 * @sent)
+          drive(bit_high?(@sent))
+          @sent += 1
+          @quiet_until = now + half_bits(2 * GAP_CHARACTERS * FRAME_BITS) if @sent == FRAME_BITS
         end
       end
 
       # The character's eleven bits, the start bit going out now.
       def start_character(now)
-        byte = @queue.shift
-        @sending = [false] + Array.new(8) { |bit| byte.anybits?(1 << bit) } + [true, true]
-        @send_at = now.to_f
+        @sending = @queue.shift
+        @sent = 0
+        @send_start = now
         send_bits(now)
+      end
+
+      # The start bit low, the data bits from the lowest, the stop bits
+      # high.
+      def bit_high?(index)
+        return false if index.zero?
+        return true if index > 8
+
+        @sending.anybits?(1 << (index - 1))
       end
 
       def drive(high)
@@ -117,7 +165,8 @@ module Badline
           @receiving = true
           @received = 0
           @bits = -1
-          @sample_at = now + (0.5 * @bit)
+          @edge = now
+          @sample_at = now + half_bits(1)
         end
         @last_printer = printer_high
       end
@@ -128,16 +177,16 @@ module Badline
         if @bits.negative?
           @receiving = !printer_high
           @bits = 0
-          @sample_at += @bit
         elsif @bits < 8
           @received |= 1 << @bits if printer_high
           @bits += 1
-          @sample_at += @bit
         else
           @receiving = false
           @output << (@received & 0x7f).chr if printer_high
-          @quiet_until = [@quiet_until, now + (GAP_CHARACTERS * 11 * @bit)].max
+          @quiet_until = [@quiet_until, now + half_bits(2 * GAP_CHARACTERS * FRAME_BITS)].max
+          return
         end
+        @sample_at = @edge + half_bits((2 * @bits) + 3)
       end
     end
   end
