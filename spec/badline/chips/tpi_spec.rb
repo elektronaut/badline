@@ -231,5 +231,10 @@ describe Badline::Chips::TPI do
       mode1(control: 0xb0)
       expect([tpi.ca?, tpi.cb?, tpi.peek(2) & 0xc0]).to eq([true, false, 0x40])
     end
+
+    it "read CB high, CA low and IRQ released in PRC with the B series' CR at READY, $E3" do
+      tpi.poke(6, 0xe3)
+      expect(tpi.peek(2)).to eq(0xa0)
+    end
   end
 end

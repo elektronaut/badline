@@ -209,6 +209,11 @@ part named.
   `-keybuf-delay` 0 and 10 to 50 and lists at 5 and 100, as badline fails
   at some phases and not others. The first `LOAD"$"` after power-on gives
   FILE NOT FOUND in it too.
+- **It reads the wrong top bits of TPI1's port C in mode 1.** At READY
+  on a 610, with CR `$E3` (CA low, CB high) and no interrupt, its monitor
+  reads `$C0` at `$DE02`, though its own `io de00` says CA is low and no
+  interrupt is active. The 6525 datasheet reads the pins there, CB, CA
+  and IRQ, so badline reads `$A0`: CB high, CA low and IRQ released.
 - It saves no mains and no TPI priority stack. Its cursor blinks 32
   fields on and 32 off, where the 6845 blinks 16 and 16. Opening any
   snapshot costs it a couple of hundred cycles of its CRTC.
@@ -291,6 +296,9 @@ program can tell:
 - **A CRTC PET's rows taller than eight lines** blank the lines past the
   eighth, after the schematics, where `xpet` repeats them
   (`PET::CRTCVideo`). Don't take `xpet` as a reference for tall rows.
+- **A 6525's port C in mode 1** reads the CB, CA and IRQ pins in its top
+  three bits, after the datasheet (`Chips::TPI`): `$A0` at a B series'
+  READY, where `xcbm2` reads `$C0`.
 - **The P500's sprite bytes in phi2** come from the video bus the FPLA
   describes (`Chips::VIC::Bank#peek_sprite`), not the KERNAL bytes
   `xcbm5x0` returns.
