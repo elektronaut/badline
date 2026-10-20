@@ -2,84 +2,52 @@
 
 ## [0.18.0](https://github.com/elektronaut/badline/compare/v0.17.0...v0.18.0) (2026-10-20)
 
+### Highlights
+
+- **SuperPET**: `badline pet --model superpet` runs the SuperPET with both its CPUs. The 6502 side is an 8032 with 64K of bank RAM, the 6551 ACIA and the 6702 dongle. `--cpu 6809` boots the Waterloo menu on its 6809, and microBASIC, microAPL, Pascal, FORTRAN, COBOL and the editor load from disk and run unpatched. The pause menu sets the CPU and RAM switches, and APL types by key position.
+- **KIM-1**: `badline kim1` runs the MOS KIM-1 with its six-digit display, keypad and single step, or with `--tty` on a teletype in the window or the terminal. Papertapes (`.ptp`, `.pap`) and binaries load straight into RAM or through the monitor's `L`, and cassettes play and record as `.wav`, including real recordings.
+- **VIC-20 NTSC**: `badline vic20 --ntsc` runs the NTSC VIC-20 on its 6560, with its interlace.
+- **Older PET drives**: `--drive-type` puts a 2040, 3040, 4040, SFD-1001, D9060 or D9090 on the PET's or the CBM-II's IEEE-488 bus, and the pause menu's drive page picks one. They read `.d64`, `.d67`, `.d82` and `.d90` images, a hard disk's `N` formats at once, and they save in xpet's `.vsf` snapshots.
 
 ### Features
 
 * add a cycle-by-cycle Motorola 6809E core ([5443d24](https://github.com/elektronaut/badline/commit/5443d24b5ce494c6ae15911b823944e3df620430))
-* add a cycle-by-cycle Motorola 6809E core ([ac7be3a](https://github.com/elektronaut/badline/commit/ac7be3a2ef8f2d759ec67cfab2470d0c3194d42d))
 * add the 2040 with DOS 1.2, and .d67 disks through it and the traps ([4e8a324](https://github.com/elektronaut/badline/commit/4e8a324d4db251785d4495db9d6c648897a4ad69))
-* add the 2040 with DOS 1.2, and .d67 disks through it and the traps ([338998d](https://github.com/elektronaut/badline/commit/338998d9b9ef60628ac1016ef69927154ff02dcf))
 * add the 4040 and 3040 as true drives on the PET's and CBM-II's IEEE-488 bus ([d9ce670](https://github.com/elektronaut/badline/commit/d9ce6709131e6a5b37b7650c9c3f85028df55a31))
-* add the 4040 and 3040 as true drives on the PET's and CBM-II's IEEE-488 bus ([b47c02b](https://github.com/elektronaut/badline/commit/b47c02b460a1b97752836884f43bbaac92b89ced))
-* add the D9060 and D9090 SASI controller as a bare bus target ([b6d4d6c](https://github.com/elektronaut/badline/commit/b6d4d6cc6cda093f7882215f2d3ba99cf28c651f))
-* add the D9060 and D9090 SASI controller as a bare bus target ([d1985fa](https://github.com/elektronaut/badline/commit/d1985fab96c9212a04d4415bb1ccf03218ee276a))
 * add the SFD-1001 as a true drive on the PET's and CBM-II's IEEE-488 bus ([eda00bf](https://github.com/elektronaut/badline/commit/eda00bf89c2b5fa14459b62c1b97262444ed2139))
-* add the SFD-1001 as a true drive on the PET's and CBM-II's IEEE-488 bus ([311fdfe](https://github.com/elektronaut/badline/commit/311fdfe43e06470d4c450fde7490d21632845191))
 * boot the SuperPET's 6809 to the Waterloo menu, with --cpu ([8e145d6](https://github.com/elektronaut/badline/commit/8e145d65237bcce25775cc1dfcc38723a1d45e8a))
-* boot the SuperPET's 6809 to the Waterloo menu, with --cpu ([ecbb4bd](https://github.com/elektronaut/badline/commit/ecbb4bd0412052bd7edd99dd0f5e300bcdcda16c))
-* bundle the KIM-1 ROMs and refuse badline kim1 until it runs ([f370c77](https://github.com/elektronaut/badline/commit/f370c77e2b9b397040691efd799e1cf894cf101f))
-* bundle the KIM-1 ROMs and refuse badline kim1 until it runs ([390c994](https://github.com/elektronaut/badline/commit/390c9949df966570599197e6697e3f17ebb18fe9))
 * bundle the SuperPET's Waterloo 6809 ROMs and character generator ([0dce200](https://github.com/elektronaut/badline/commit/0dce200feb2b7a9356d781d906d57b951ba274a0))
-* bundle the SuperPET's Waterloo 6809 ROMs and character generator ([f7db9f2](https://github.com/elektronaut/badline/commit/f7db9f243f240190ff2a1253e7844df35f958484))
 * follow Banks' silicon notes for the 6809's undocumented opcodes ([cc7e842](https://github.com/elektronaut/badline/commit/cc7e842148c5c285161e7b6ac66abcb739469d86))
 * interlace the 6560 with $9000 bit 7 ([7286f96](https://github.com/elektronaut/badline/commit/7286f96e50752416a6b1b06e64a4455e11cba50e))
-* interlace the 6560 with $9000 bit 7 ([aebfb2d](https://github.com/elektronaut/badline/commit/aebfb2df084c708177396f09adf8e0c0d5bcd405))
 * load KIM-1 papertapes and binaries, with 5K or expanded RAM ([0e48f42](https://github.com/elektronaut/badline/commit/0e48f42acf71a27a0b4092e952ad14cb5c0630a3))
-* load KIM-1 papertapes and binaries, with 5K or expanded RAM ([358f1f9](https://github.com/elektronaut/badline/commit/358f1f90141c5d26207064eab5e9933293c8f5ec))
 * load the Waterloo languages in the SuperPET's 6809 mode, through traps on its IEEE-488 routines ([59abf2e](https://github.com/elektronaut/badline/commit/59abf2e95a144d31b7f30396111cff35323bfc5f))
-* load the Waterloo languages in the SuperPET's 6809 mode, through traps on its IEEE-488 routines ([4aa8bc3](https://github.com/elektronaut/badline/commit/4aa8bc365cff6a9845eba1b23a3745bd7780d81f))
 * pick the PET's and the CBM-II's drive type on the pause menu's drive page ([bc3bb16](https://github.com/elektronaut/badline/commit/bc3bb16be4fe260bbf2828e513fa139e2b3b19e4))
-* pick the PET's and the CBM-II's drive type on the pause menu's drive page ([ea25837](https://github.com/elektronaut/badline/commit/ea258370d665fe17127064e162cfb3db442ef19a))
 * play, record and stop the KIM-1's cassette on the pause menu's tape page ([048d1c4](https://github.com/elektronaut/badline/commit/048d1c487042b4df7c9fdcd50154c4faa4bb8ca9))
-* play, record and stop the KIM-1's cassette on the pause menu's tape page ([a318dd0](https://github.com/elektronaut/badline/commit/a318dd066cdc7c2154070cd2033508a282a087cf))
 * plug the PET's and CBM-II's IEEE-488 drives in by model, with --drive-type ([a3992be](https://github.com/elektronaut/badline/commit/a3992be4839eaef5f03dbef30b60cdd12c49d8cb))
-* plug the PET's and CBM-II's IEEE-488 drives in by model, with --drive-type ([f8c1ce8](https://github.com/elektronaut/badline/commit/f8c1ce8975fdbada406de7b1b4731edb01c3a226))
 * put a SuperPET's true-drive disk in drive 1, where the Waterloo menu loads from ([9ff4ea5](https://github.com/elektronaut/badline/commit/9ff4ea55a80cc59db23b9e075a85ac11326dc349))
-* put a SuperPET's true-drive disk in drive 1, where the Waterloo menu loads from ([3eaa206](https://github.com/elektronaut/badline/commit/3eaa20689d8c2f14d4d2d5bd6b7e7ecb95ba1ada))
 * read and format D9060 and D9090 hard disk images ([59479ac](https://github.com/elektronaut/badline/commit/59479ac5a4302cb11c2189b553aa4a323227f711))
-* read and format D9060 and D9090 hard disk images ([786faf5](https://github.com/elektronaut/badline/commit/786faf5af4d909c925a16e62c72e9aff6a53e400))
 * read and write KIM-1 cassettes as .wav, and play and record them on U2's PB7 ([8041b2c](https://github.com/elektronaut/badline/commit/8041b2cf8a971bec4a7a365134cc92a7f05fc840))
-* read and write KIM-1 cassettes as .wav, and play and record them on U2's PB7 ([1726a0f](https://github.com/elektronaut/badline/commit/1726a0fbf3fa74a694cd951b2fe7ab96700241e6))
 * run an NTSC VIC-20 with the 6560 as badline vic20 --ntsc ([181b047](https://github.com/elektronaut/badline/commit/181b0477a75e7da359741340bdc71d08576e2176))
-* run an NTSC VIC-20 with the 6560 as badline vic20 --ntsc ([67d72cf](https://github.com/elektronaut/badline/commit/67d72cff4eb53768f78c104bde211503419691a6))
 * run the D9060 and D9090 hard disks as true drives on the IEEE-488 bus ([291775a](https://github.com/elektronaut/badline/commit/291775aaf3ce09e8dc0031a13d3503af603818a4))
-* run the D9060 and D9090 hard disks as true drives on the IEEE-488 bus ([96a4ac4](https://github.com/elektronaut/badline/commit/96a4ac47edc939701b5d0a7207becb0539d558a1))
 * run the KIM-1 headless, with its keypad, display and single step ([0a01647](https://github.com/elektronaut/badline/commit/0a0164719e672e7f42cac842557baf2aafc2ffd3))
-* run the KIM-1 headless, with its keypad, display and single step ([722ec79](https://github.com/elektronaut/badline/commit/722ec7902214a7d890b20c26b1c80f1776fdff94))
 * run the KIM-1 in the window, with its LEDs, keypad, panel page and sound ([df84ba3](https://github.com/elektronaut/badline/commit/df84ba3a6befdfd6e71cb326da74c55aa85b7303))
-* run the KIM-1 in the window, with its LEDs, keypad, panel page and sound ([09dfad5](https://github.com/elektronaut/badline/commit/09dfad56d8945f55d57d23ce4c6d771b56bc3d1b))
 * run the KIM-1's monitor on a teletype, in the window or the terminal ([2dd101d](https://github.com/elektronaut/badline/commit/2dd101d329d034c80167154ccc55a27894536ac9))
-* run the KIM-1's monitor on a teletype, in the window or the terminal ([a030492](https://github.com/elektronaut/badline/commit/a03049294be0140b418339a81a156248c9212937))
 * run the SuperPET's board in 6502 mode, with its bank RAM, latches, ACIA and 6702 ([ac0c02f](https://github.com/elektronaut/badline/commit/ac0c02f9853a9cf8807357180f0e45da3454c5e9))
-* run the SuperPET's board in 6502 mode, with its bank RAM, latches, ACIA and 6702 ([889ca28](https://github.com/elektronaut/badline/commit/889ca28bdeb26324027141999cf308714f46883d))
 * save and load the 4040, 3040, 2040, D9060 and D9090 in xpet's snapshot modules ([a5655e4](https://github.com/elektronaut/badline/commit/a5655e4c63e4e3b1952f6fcddf45b1969783aff1))
-* save and load the 4040, 3040, 2040, D9060 and D9090 in xpet's snapshot modules ([147d0c4](https://github.com/elektronaut/badline/commit/147d0c4e040f3c4e29aefae3e6119af01c4d7989))
 * save and load the SuperPET in snapshots, and in xpet's modules ([0dd847e](https://github.com/elektronaut/badline/commit/0dd847e781b94e8ad17b1279d1b763fcdd4152a3))
-* save and load the SuperPET in snapshots, and in xpet's modules ([b30239e](https://github.com/elektronaut/badline/commit/b30239e9b15b4da4a9170658dfe8f13ec674493e))
 * save and restore KIM-1 snapshots ([b30d8bc](https://github.com/elektronaut/badline/commit/b30d8bc864e8529f384e43b06b2d9a5d64b1a106))
-* save and restore KIM-1 snapshots ([04f82fd](https://github.com/elektronaut/badline/commit/04f82fd724af9fba55f5237c4e0134545c8b014a))
 * save the KIM-1's tape deck in its snapshots ([013670c](https://github.com/elektronaut/badline/commit/013670cdfd6ff7910aa1d46fcafc3839bd2ae1b7))
-* save the KIM-1's tape deck in its snapshots ([ea51436](https://github.com/elektronaut/badline/commit/ea514363aaac54c664830937b6a38165de0f7ee4))
 * set the SuperPET's switches in the window and with --bank-ram, and type APL by key position ([19013b8](https://github.com/elektronaut/badline/commit/19013b827076fabaf72ff8df6fadd2252ce926bd))
-* set the SuperPET's switches in the window and with --bank-ram, and type APL by key position ([7459c90](https://github.com/elektronaut/badline/commit/7459c90460ab10801137b8db6ddcb4f6f994590f))
 
 
 ### Bug Fixes
 
 * keep text typed before the boot in a snapshot ([b648c62](https://github.com/elektronaut/badline/commit/b648c62236c107f57475b6a0feb0688c3bb85daf))
-* keep text typed before the boot in a snapshot ([61b22a1](https://github.com/elektronaut/badline/commit/61b22a13122f8156c95634549640e34ddbd3f91e))
-* keep the KIM-1 bus's RAM bounds plain integers ([9257e4e](https://github.com/elektronaut/badline/commit/9257e4e6a0ce68865dafc3487b830c104d9a747f))
-* load the KIM-1 in the Spinel snapshot harnesses, which reach its setup ([0bec441](https://github.com/elektronaut/badline/commit/0bec441abcfc8a077033fb2c3b548e5c0d402ad6))
-* open a .d90 in the native badline, without Array#fill over a range ([4ba8bcd](https://github.com/elektronaut/badline/commit/4ba8bcdc81559d092f2ffd559e8fcda5ca79a49a))
-* plug the PET's and CBM-II's IEEE-488 drive into machine_diff --true-drive ([01baebc](https://github.com/elektronaut/badline/commit/01baebc95d3213ec89ba03fa0250ef2e59cfaa55))
-* plug the PET's and CBM-II's IEEE-488 drive into machine_diff --true-drive ([4c0e793](https://github.com/elektronaut/badline/commit/4c0e79377004d37539874b185a22d74289a4f1d3))
-* take a VICE load's typing for the boot in snapshot_check --vice ([75ee7a8](https://github.com/elektronaut/badline/commit/75ee7a84b808043e3322a70a5fda645b488a1339))
 
 
 ### Performance Improvements
 
 * write a disk image's sectors byte by byte ([b2aa0be](https://github.com/elektronaut/badline/commit/b2aa0beae003b42c36ff4853fccb85facad44311))
-* write a disk image's sectors byte by byte ([f7cf6dc](https://github.com/elektronaut/badline/commit/f7cf6dc4f21aa04d57d5c253b2cea42f23904934))
 
 ## [0.17.0](https://github.com/elektronaut/badline/compare/v0.16.1...v0.17.0) (2026-10-19)
 
