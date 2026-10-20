@@ -219,6 +219,18 @@ module Badline
       @memory: Bus
       @operation: Symbol
       @plan: Array[Symbol]
+      @writes: Array[bool]
+      @index: Integer
+      @cycles: Integer
+      @instructions: Integer
+      @nmi: bool
+      @nmi_sample: bool
+      @nmi_pending: bool
+      @skip_poll: bool
+      @boundary_crossed: bool
+      @brk: bool
+      @so_high: bool
+      @branch_taken: bool
       @a: Integer
       @x: Integer
       @y: Integer

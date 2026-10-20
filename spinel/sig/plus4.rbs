@@ -1,6 +1,8 @@
 module Badline
   module Chips
     class TED
+      @bus: Plus4::Bus
+      @render: bool
       @registers: Array[Integer]
       @interrupt_flags: Integer
       @interrupt_mask: Integer
@@ -134,6 +136,9 @@ module Badline
     end
 
     class Bus
+      @start: Integer
+      @length: Integer
+      @end: Integer
       @low_bank: Integer
       @high_bank: Integer
       @data: Integer
@@ -149,6 +154,11 @@ module Badline
 
       class ZeroPage
         @ram: MirroredRAM
+      end
+
+      class IOPage
+        @bus: Plus4::Bus
+        @ram_expansion: Plus4::RAMExpansion
       end
     end
   end
