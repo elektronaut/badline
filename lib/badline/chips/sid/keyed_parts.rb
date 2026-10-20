@@ -268,15 +268,31 @@ module Badline
           decimator.save_fields(out, "rec.")
         end
 
+        # A SID recording already carries on from the loaded window when it
+        # records at its rate, clock and filter chunk, and starts a new
+        # window otherwise.
         def load_recording(input)
           @resumed_recording = nil
+          live = @decimator
+          loaded = loaded_recording(input)
+          chunk = loaded ? input.int("rec.filter_chunk", @filter_chunk) : @filter_chunk
+          if live.nil?
+            @filter_chunk = chunk
+            @resumed_recording = loaded
+          elsif loaded && chunk == @filter_chunk && loaded.rate == live.rate && loaded.clock_hz == live.clock_hz
+            @decimator = loaded
+          else
+            @decimator = Decimator.new(clock_hz: live.clock_hz, rate: live.rate)
+          end
+        end
+
+        def loaded_recording(input)
           rate = input.int("rec.rate", 0)
           return unless rate.positive?
 
-          @filter_chunk = input.int("rec.filter_chunk", @filter_chunk)
           decimator = Decimator.new(clock_hz: input.int("rec.clock_hz", Region::PAL.clock_hz), rate:)
           decimator.load_fields(input, "rec.")
-          @resumed_recording = decimator
+          decimator
         end
 
         # The window a loaded snapshot's recording had got to, when this

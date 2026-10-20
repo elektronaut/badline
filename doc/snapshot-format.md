@@ -450,12 +450,12 @@ Written by the C64, C128, Plus/4, CBM-II.
 | `ext.highpass` | int | 0 |
 | `ext.output` | int | 0 |
 | `rec.rate` | int | 0 |
-| `rec.filter_chunk` | int | C64: 4 |
 | `rec.clock_hz` | int | C64: 985248 |
 | `rec.phase` | int | C64: 0 |
 | `rec.sum` | int | C64: 0 |
 | `rec.count` | int | C64: 0 |
 | `rec.cycles_to_close` | int | C64: 23 |
+| `rec.filter_chunk` | int | C64: 4 |
 
 ## BL-TAPE
 

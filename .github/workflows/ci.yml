@@ -221,6 +221,7 @@ jobs:
             require "badline/support"
             require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/ready.vsf")
+            saved.sound_source.record(rate: 44_100)
             again = Badline::Snapshot.load("tmp/native/again.vsf")
             (again.cycles - saved.cycles).times { saved.cycle! }
             ours = Badline::Support::Checkpoint.take(saved)
@@ -260,6 +261,7 @@ jobs:
             require "badline/support"
             require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/drive.vsf")
+            saved.sound_source.record(rate: 44_100)
             again = Badline::Snapshot.load("tmp/native/drive-again.vsf")
             abort "the snapshot has no true drive" unless saved.drive1541 && again.drive1541
             abort "the drive was not loading when saved" unless saved.drive1541.mechanism.motor_on?
