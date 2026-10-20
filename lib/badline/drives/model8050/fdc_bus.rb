@@ -31,6 +31,10 @@ module Badline
         # last cleared (Model8050::Idle).
         attr_accessor :volatile
 
+        # The bytes of the 6530's RAM read or written since it was last
+        # cleared, a bit for each pair of them (Model8050::Idle).
+        attr_accessor :ram_touched
+
         def initialize(common:, via:, rriot:)
           addressable_at(0, length: 2**16)
           @common = common
@@ -38,6 +42,7 @@ module Badline
           @rriot = rriot
           @data = 0
           @volatile = false
+          @ram_touched = 0
           @common_changes = 0
         end
 
@@ -78,6 +83,7 @@ module Badline
           end
           return peek_via(addr & 0x0f) if addr.anybits?(0x40)
 
+          @ram_touched |= 1 << ((addr & 0x3f) >> 1)
           @rriot.read_ram(addr)
         end
 
@@ -93,6 +99,7 @@ module Badline
           elsif addr.anybits?(0x40)
             @via.poke(0x40 | (addr & 0x0f), value)
           else
+            @ram_touched |= 1 << ((addr & 0x3f) >> 1)
             @rriot.write_ram(addr, value)
           end
         end

@@ -51,9 +51,6 @@ module Badline
         # (IEEEPort).
         def ieee_low_lines(atn) = @ieee_port.ieee_low_lines(atn)
 
-        # The controller pushed its lines into the bus.
-        def host_written! = nil
-
         # Which LEDs are lit, as the unit's port drives them. They hold
         # still while the unit sleeps, so reading them leaves it asleep.
         def leds = @ieee_port.leds
@@ -62,16 +59,20 @@ module Badline
 
         # Runs the drive cycles that fall in one host cycle, then takes the
         # controller's lines for the next. Asleep, the unit owes the cycles
-        # instead, and wakes once the controller has moved a line.
+        # instead, and wakes once the controller has moved a line, as it
+        # does with a processor owing cycles (dozing?).
         def host_cycle!
+          return if slept_through?
+
           phase = @phase + CLOCK_HZ
           while phase >= @host_clock_hz
             @asleep ? owe_cycle : run_cycle
             phase -= @host_clock_hz
           end
           @phase = phase
-          settle! if @asleep && @ieee_port.lines_moved?
+          settle! if dozing? && @ieee_port.lines_moved?
           @ieee_port.latch_host
+          plan_sleep if @asleep
         end
 
         def cycle!

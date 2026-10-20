@@ -217,11 +217,14 @@ describe Badline::Drives::Model8050 do
       TakenOnce.fetch(:model8050_idle) do
         units = [true, false].map { |skip| described_class.new.tap { |unit| unit.idle_skip = skip } }
         asleep = 0
+        alone = 0
         1_500_000.times do
           units.each(&:host_cycle!)
-          asleep += 1 if units.first.asleep?
+          sleeper = units.first
+          asleep += 1 if sleeper.asleep?
+          alone += 1 if sleeper.dozing? && !sleeper.asleep?
         end
-        [units, asleep]
+        [units, asleep, alone]
       end
     end
 
@@ -232,7 +235,11 @@ describe Badline::Drives::Model8050 do
     end
 
     it "sleeps through most of the idle loops after boot" do
-      expect(idle_pair.last).to be > 600_000
+      expect(idle_pair[1]).to be > 600_000
+    end
+
+    it "wakes only the controller's side for the 6530's timer" do
+      expect(idle_pair.last).to be_between(1, idle_pair[1] / 10)
     end
 
     it "holds the same as a unit stepping every cycle" do

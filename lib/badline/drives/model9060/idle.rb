@@ -34,6 +34,12 @@ module Badline
 
         def asleep? = @asleep
 
+        # Whether the unit owes cycles.
+        def dozing? = @asleep
+
+        # The controller pushed its lines into the bus.
+        def host_written! = nil
+
         # Brings the unit up to the present, cycle for cycle, and drops the
         # passes it found, since whoever called may change it.
         def settle!
@@ -42,6 +48,11 @@ module Badline
         end
 
         private
+
+        # Each host cycle runs the unit's cycles or owes them (host_cycle!).
+        def slept_through? = false
+
+        def plan_sleep = nil
 
         def init_idle
           @idle_skip = true
