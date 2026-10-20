@@ -29,9 +29,10 @@
 # Where two snapshots differ it names the module, and in a BL-* module the
 # keys whose records differ.
 #
-# --vice checks the divergence of the PET and CBM-II scenarios through
-# xpet's or xcbm2's modules: it saves each with VICE's modules
-# (Snapshot::Vice::PET, Snapshot::Vice::CBM2), loads a new machine from
+# --vice checks the divergence of the VIC-20, PET and CBM-II scenarios
+# through xvic's, xpet's or xcbm2's modules: it saves each with VICE's
+# modules (Snapshot::Vice::Vic20, Snapshot::Vice::PET,
+# Snapshot::Vice::CBM2), loads a new machine from
 # those alone, and runs the two side by side. The first checkpoint comes
 # after the picture, which a load from VICE's modules paints again, has
 # caught up. What VICE's modules don't carry, such as a CBM-II's mains,
@@ -64,7 +65,9 @@ parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/snapshot_check [filter] [options]"
   opts.on("--cycles N", Integer, "Cycles to run after the save point (default: 2000000)") { |n| options[:cycles] = n }
   opts.on("--every K", Integer, "Cycles between checkpoints (default: 500000)") { |n| options[:every] = n }
-  opts.on("--vice", "Check the PET and CBM-II scenarios through VICE's modules alone") { options[:mode] = :vice }
+  opts.on("--vice", "Check the VIC-20, PET and CBM-II scenarios through VICE's modules alone") do
+    options[:mode] = :vice
+  end
   opts.on("--carts", "Check every cartridge mapper's state") { options[:mode] = :carts }
   opts.on("--write DIR", "Save each scenario's snapshot and screen into DIR") do |dir|
     options[:mode] = :write
@@ -224,6 +227,7 @@ module SnapshotCheck
   def unsaved(machine)
     return "its media" if machine.mounted?
     return unsaved_pet(machine) if machine.family == :pet
+    return unsaved_vic20(machine) if machine.family == :vic20
     return "a 700 at 60 Hz" if machine.model.respond_to?(:high_profile) && machine.model.high_profile &&
                                machine.mains_hz == 60
 
@@ -232,6 +236,10 @@ module SnapshotCheck
   end
 
   def unsaved_pet(machine) = machine.cassettes.datasette1.tape ? "its media" : nil
+
+  def unsaved_vic20(machine)
+    machine.bus.cartridge? || machine.datasette.tape || machine.true_drive ? "its media" : nil
+  end
 
   # The records VICE's modules don't carry, by module: the cycles a CPU has
   # run, which a P500's VIC stalls it for, a CBM-II's mains, which xcbm2
@@ -385,8 +393,8 @@ passed =
   when :list then SnapshotMachines.all.each { |scenario| puts scenario.name }
   when :carts then SnapshotCheck.carts_identical?(ARGV.first)
   when :vice
-    scenarios = SnapshotMachines.matching(ARGV.first).select { |scenario| %i[pet cbm2].include?(scenario.family) }
-    abort "snapshot_check: no PET or CBM-II scenario matches #{ARGV.first}" if scenarios.empty?
+    scenarios = SnapshotMachines.matching(ARGV.first).select { |scenario| %i[vic20 pet cbm2].include?(scenario.family) }
+    abort "snapshot_check: no VIC-20, PET or CBM-II scenario matches #{ARGV.first}" if scenarios.empty?
     results = scenarios.map { |scenario| SnapshotCheck.restores_through_vice?(scenario, options) }
     puts "#{results.count(true)} of #{results.size} scenarios run on alike through VICE's modules"
     results.all?

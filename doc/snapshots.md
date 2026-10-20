@@ -105,10 +105,41 @@ RAM, a cartridge's ROM, the VIC with its picture and sound, both VIAs,
 the CPU, the tape with its place on it, the disk or directory device 8
 serves through the traps and a true 1541 or 1581, and restores into a
 VIC-20 with the same RAM expansion. Its file names its machine `VIC20`,
-as xvic's do, and holds only badline's modules, so xvic doesn't open it,
-and badline doesn't open xvic's. Restoring a
+as xvic's do, and holds only badline's modules, so xvic doesn't open it
+unless it is saved with `--vice` (see [xvic](#xvic)). Restoring a
 VIC-20 snapshot while a C64 runs, or a C64 one while a VIC-20 runs,
 swaps the machine in the window.
+
+### xvic
+
+A VIC-20 snapshot saved with `--vice`, or `computer.export_snapshot(path)`,
+also holds xvic's modules for the CPU, the RAM, the VIC-I with the colour
+RAM and both VIAs, and the ones xvic 3.10 needs to open the file, with no
+cartridge, nothing open on the file system drive, the joystick released
+and nothing on the user port. The file says it is in VICE's snapshot
+format 3.1, the only one xvic reads.
+
+xvic 3.10 opens those snapshots as long as its model matches:
+`-model vic20` or `vic20ntsc`. It takes the RAM expansion from the
+snapshot, whatever its `-memory` says, keeps its own drives and leaves
+out badline's cartridge, tapes and disks. A program it runs on from badline's
+snapshot runs as it does in badline, cycle for cycle, with the raster,
+the VIAs' timers and RAM alike, but for a snapshot taken in an
+interlaced frame, whose field xvic ends early (see
+[VICE](vice.md#xvic)).
+
+Snapshots xvic saves open in badline through the same modules: the CPU
+at its instruction boundary, the RAM and the data lines' last bytes, the
+VIC-I's registers, beam, frame, interlaced field, text window and
+fetches, its light pen and the colour RAM, and both VIAs' registers,
+timers and shift registers. The picture starts again with the next
+frame, and the sound as at power-on. VIC20MEM's blocks and the VIC-I's
+picture size build the machine: its RAM expansion and model. It reports
+the modules it leaves out, such as the drives, the cartridge, the
+datasette and the keyboard, and carries on without them. Restored into a
+running VIC-20, an xvic snapshot fails for a VIC-20 built another way,
+and otherwise switches the machine off and on, keeping its cartridge,
+tapes and the disk device 8 serves.
 
 ## The C128
 

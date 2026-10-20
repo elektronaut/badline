@@ -22,7 +22,7 @@ where badline knowingly does otherwise.
 | --- | --- | --- |
 | `x64sc` | C64, every `--model` | The testbench's published results, runs from an exact start, and `.vsf` both ways |
 | `x128` | C128 | The VDC (`-exitscreenshot`), the MMU and both modes' boot screens. Not the C64-mode VIC-II or 2 MHz (below) |
-| `xvic` | VIC-20, PAL and NTSC | The 6560's raster count and interlace, the VIC-I's sound by recording, the power-on RAM, cycle-timed writes by screenshot |
+| `xvic` | VIC-20, PAL and NTSC | The 6560's raster count and interlace, the VIC-I's sound by recording, the power-on RAM, cycle-timed writes by screenshot, `.vsf` both ways |
 | `xplus4` | Plus/4, C16, C116 | The TED's fetches and picture by screenshot and trace probe, its sound by recording, the 1551's load time, the ACIA's registers and timing |
 | `xpet` | Every PET and CBM model, the SuperPET | Boot banners and BYTES FREE, frame lengths, the CRTC's frame, the IEEE-488 drives' listings and error channels, `.vsf` both ways |
 | `xcbm2` | The B series | Boot, the CRTC's frame, the burn-in disk on a true 8050, `.vsf` both ways |
@@ -127,6 +127,19 @@ part named.
   client disconnected. Drive a session over one socket, from one script
   that starts `xvic` and stops it by its PID.
 - `xvic -ntsc` keeps the PAL KERNAL (above).
+- Its monitor's `LIN`, and so a breakpoint's `RL`, stays modulo 261
+  under interlace, while `$9003`/`$9004` and its own snapshots follow
+  the 263- and 262-line fields: a frame after a long field shows `LIN`
+  2 more than the line, and so on.
+- `undump` of a snapshot taken in an interlaced frame ends that frame
+  after 261 lines, its own snapshots too: the field after it starts 2
+  lines early after a long field and 1 after a short one. The fields
+  alternate as before from there.
+- It refuses a snapshot whose file isn't in format 3.1, and resets on the
+  first instruction without `FSDRIVE`, `TAPEPORT`, `JOYPORT0`,
+  `JOYSTICK0` and `USERPORT`. Without any drive module it keeps its own
+  drives, but with `DRIVE8` and no `DRIVECPU0` and the 1541's VIAs it
+  resets too.
 
 ### xplus4
 
@@ -243,7 +256,7 @@ what it leaves out.
 | `xpet` | `PET`, 1.0 | MAINCPU 1.3 (`pet_cpu.rb`), PETMEM 1.3 (`pet_mem.rb`), CRTC 1.2 (`pet_crtc.rb`), PIA1 and PIA2 (`pet_pias.rb`), VIA 2.2 (`pet_via.rb`), CPU6809 1.1 (`pet_cpu.rb`) and Acia1 (`cbm2_acia.rb`) for the SuperPET, a 2031 (`pet_drive.rb`) and the two-processor drives (`pet_drive8050.rb`) |
 | `xcbm2` | `CBM-II`, 1.0 | The PET's CPU, CBM2MEM 1.0 (`cbm2_mem.rb`), CRTC 1.2 (`cbm2_crtc.rb`), TPI1 and TPI2 (`cbm2_tpi.rb`), Acia1 1.1 (`cbm2_acia.rb`), the C64's CIA and SID, the mains (`cbm2_mains.rb`) |
 | `xcbm5x0` | `CBM-II-5x0`, 0.0 | As `xcbm2`, with its own VIC-II 1.3 (`p500_vicii.rb`) and C500DATA, the cycles to the mains' next tick (`p500.rb`) |
-| `xvic` | `VIC20`, 3.1 | None read or written |
+| `xvic` | `VIC20`, 3.1 | MAINCPU 1.4 (`vic20_cpu.rb`), VIC20MEM 1.1 (`vic20_mem.rb`), VIC-I 0.4 with the colour RAM (`vic20_vici.rb`), VIA1 and VIA2 (`pet_via.rb`), and the empty ports it resets without (`vic20.rb`) |
 | `x128`, `xplus4` | `C128` 1.0, `PLUS4` | None read or written |
 
 Facts the layouts rest on that the files' comments state in full:
@@ -257,6 +270,16 @@ Facts the layouts rest on that the files' comments state in full:
   the mask in DDRC's.
 - CPU6809 1.1 is an 8-byte clock, X, Y, U, S and PC, DP, CC, A and B,
   then 5 zero bytes.
+- xvic's MAINCPU 1.4 is 83 bytes, x64sc's without the BA flags and the
+  two clocks after the interrupt counts. VIC20MEM 1.1 is a byte of the
+  blocks that hold RAM (bit 0 the 3K, bits 1-3 BLK1-BLK3, bit 5 BLK5),
+  both data lines' last bytes, a byte badline leaves at 0, then
+  `$0000`-`$03FF`, `$1000`-`$1FFF`, the 3K and the blocks in turn.
+- VIC-I 0.4 holds the interlace flag and field, the frame's first clock,
+  the beam, the text window's state, its counters and the line's fetch
+  state, the light pen, the colour RAM, the registers and xvic's picture
+  (1,648 by 632 bytes on PAL, 1,536 by 532 on NTSC). xvic's monitor's
+  cycle at an instruction boundary is badline's column.
 - The two-processor drives all save the 8050's set: DRIVE8 2.0,
   DRIVECPU0 1.3 for the interface processor, RIOT1D0 and RIOT2D0, FDC0
   (8 bytes) and FSDRIVE. DRIVE8's type word tells the models apart, and
