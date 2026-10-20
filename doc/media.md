@@ -134,4 +134,5 @@ Checked with VICE 3.10.
 
 Control port 1's fire line is also the VIC-II's light pen input, so
 joystick 1's fire button and the 1351's left button in port 1 latch the
-light pen registers.
+light pen registers. On the VIC-20 the joystick's fire line is the
+VIC-I's light pen input, and the fire button latches `$9006` and `$9007`.

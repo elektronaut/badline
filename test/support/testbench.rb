@@ -307,10 +307,12 @@ module Testbench
     end
   end
 
-  # Maps reference PNG pixels to C64 color indices by nearest palette entry.
+  # Maps reference PNG pixels to color indices by nearest palette entry,
+  # the C64's unless another is given.
   class ReferenceImage
-    def initialize(path)
+    def initialize(path, palette = PALETTE)
       @png = ChunkyPNG::Image.from_file(path)
+      @palette = palette
       @indices = Hash.new { |cache, pixel| cache[pixel] = nearest(pixel) }
     end
 
@@ -327,7 +329,7 @@ module Testbench
     def nearest(pixel)
       rgb = [ChunkyPNG::Color.r(pixel), ChunkyPNG::Color.g(pixel),
              ChunkyPNG::Color.b(pixel)]
-      (0..15).min_by { |i| distance(PALETTE[i], rgb) }
+      (0..15).min_by { |i| distance(@palette[i], rgb) }
     end
 
     def distance(color, rgb)
@@ -658,6 +660,7 @@ module Testbench
     # screen is the text screen for an exitcode test, and the display's
     # rows of palette indices for a screenshot test.
     def score(test, exit_code, screen)
+      return test.vic20_verdict(screen) if test.vic20_measured?
       return score_screenshot(test, exit_code, screenshot_of(test, screen)) unless test.type == "exitcode"
 
       score_exitcode(test, exit_code).tap do |result|
@@ -667,6 +670,7 @@ module Testbench
 
     def screenshot_of(test, rows)
       return Plus4Screenshot.new(rows) if test.plus4?
+      return Vic20Screenshot.new(rows) if test.vic20?
       return PETScreenshot.new(rows) if test.pet?
       return Screenshot.new(rows) if test.cbm2? && test.p500?
       return CBM2Screenshot.new(rows) if test.cbm2?

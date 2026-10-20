@@ -2,7 +2,9 @@
 
 # Runs VIC-20 testbench tests the way bin/testbench --vic20 does, with the
 # same Testbench::Vic20Execution, and prints what each one left behind for
-# CRuby to score (Testbench::Engine): its exit code and the text screen.
+# CRuby to score (Testbench::Engine): its exit code and the text screen,
+# the display for a screenshot test, or the lines a dump or raster test
+# is scored on.
 # Reads the tests from a list bin/testbench writes, one per line. Builds
 # with Spinel as well as running on CRuby:
 #
@@ -18,16 +20,25 @@ require_relative "../test/support/testbench_record"
 module Testbench
   # Runs one test on a fresh machine and returns what it left behind. The
   # test is a line of tab-separated fields: key, type, cycle budget,
-  # cartridge path, program, directory, RAM configuration and model, with an
-  # empty cartridge or program for a test without one. A String in and a
-  # String out, as spinel/testbench.rb's run_test.
+  # cartridge path, program, directory, RAM configuration, model and what
+  # Vic20Execution runs, with an empty cartridge or program for a test
+  # without one. A String in and a String out, as spinel/testbench.rb's
+  # run_test.
   def self.run_vic20_test(test)
     fields = test.chomp.split("\t")
     cartridge = fields[3].empty? ? nil : fields[3]
     machine = vic20_machine(fields[6].to_sym, cartridge.nil?, fields[7])
-    exit_code = Vic20Execution.new(machine).run(cartridge, fields[5], fields[4], fields[2].to_i)
+    execution = Vic20Execution.new(machine)
+    exit_code = execution.run(fields[8], cartridge, fields[5], fields[4], fields[2].to_i)
+    type = fields[1]
+    return Record.screen(fields[0], exit_code, machine.cycles, vic20_screenshot(machine)) if type == "screenshot"
 
-    Record.text(fields[0], exit_code, machine.cycles, vic20_screen_text(machine))
+    lines =
+      if type == "dump" then vic20_dump(machine)
+      elsif type == "raster" then execution.positions
+      else vic20_screen_text(machine)
+      end
+    Record.text(fields[0], exit_code, machine.cycles, lines)
   end
 end
 

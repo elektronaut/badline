@@ -154,7 +154,7 @@ Recorded output of the headless hardware suites, one file per suite:
   no baseline. `drive/readtest` has no testlist row, so nothing runs it.
   All `exitcode` tests.
 - `testbench-vic20.txt` — the same runner with `--vic20`, over the
-  `exitcode` rows of `vendor/VICE-testprogs/testbench/vic20-testlist.in`,
+  `exitcode` and `screenshot` rows of `vendor/VICE-testprogs/testbench/vic20-testlist.in`,
   each on a PAL VIC-20 with the RAM its options ask for: none for
   `vic20-unexp` or no option, BLK1 for `vic20-8k`, and every block for
   `vic20-32k`, as xvic's `-memory all` fits them. The program goes to the
@@ -163,14 +163,28 @@ Recorded output of the headless hardware suites, one file per suite:
   once the machine has booted. A `mountcrt` row starts from power-on with
   the cartridge's ROM chips in their blocks. Tests report through `$910F`,
   and a failure keeps the 22-column text screen. The two rows that ask
-  for a GEO-RAM drop out, and the screenshot rows wait for the VIC-I's
-  video. On Spinel the rows run on `spinel/vic20_testbench.rb`, so the
-  C64's harness doesn't carry the VIC-20. Every row passes.
+  for a GEO-RAM drop out. A screenshot row compares xvic's view with the
+  reference lined up by the text window's top left corner, (96, 48) in a
+  PAL reference and (40, 22) on an NTSC VIC-20, on the part both show, as
+  `xvic-hooks.sh` does, a reference pixel counting as the VIC-I colour
+  nearest it. Two `dump` rows of badline's own (`Testbench::VIC20_ROWS`),
+  `split-tests/timing` and `split-tests/lightpen`, compare what the
+  program leaves at `$17E0`-`$1BFF` with its dump from a real 6561E
+  (`dumps/dump6561e.prg`); the testlist comments them out. On Spinel the
+  rows run on `spinel/vic20_testbench.rb`, so the C64's harness doesn't
+  carry the VIC-20. Every row passes.
 - `testbench-vic20-ntsc.txt` — the same rows with `--vic20 --ntsc`, each
   on an NTSC VIC-20, with the 6560 and the NTSC KERNAL, as a `vic-ntsc`
-  row asks and as VICE's testbench runs xvic with `--ntsc`. The testlist
-  has no NTSC rows of its own. Every row passes, as on xvic's
-  `vic20ntsc` model.
+  row asks and as VICE's testbench runs xvic with `--ntsc`, the PAL
+  `dump` rows left out. The testlist has no NTSC rows of its own, and
+  comments out the three NTSC programs, which run as badline's own rows:
+  `timing_ntsc` against `dumps/dump6560-101.prg`, `lightpen_ntsc` against
+  `dumps/dump6560.prg` (a 6560-101 too, by its readme), and
+  `vic_line0/raster-ntsc`, without and with interlace (`#2`), which finds
+  the earliest start of its raster effect for `$9004` at 0 and 1 in each
+  field and expects what its readme reports from a real machine: 33
+  cycles late for 0 and on time for 1, and with interlace on time for 0
+  in one of the two fields. Every row passes.
 - `testbench-plus4.txt` — the same runner with `--plus4`, over the
   `exitcode` and `screenshot` rows of `vendor/VICE-testprogs/testbench/plus4-testlist.in`,
   each on a PAL Plus/4 with a true 1551 on TCBM as device 8, its
@@ -617,8 +631,8 @@ what the suite cost before it was sharded:
 | `testbench-ntsc-vicii-new` | 8 | 0.5 min | 0.5 min | 0.1 min |
 | `testbench-ntsc-cia-new` | 1 | 0.5 min | 0.2 min | 0.2 min |
 | `testbench-drean` | 1 | 25 min | 1.7 min | 1.7 min |
-| `testbench-vic20` | 72 | — | 1.2 min | 0.4 min |
-| `testbench-vic20-ntsc` | 72 | — | — | 0.8 min |
+| `testbench-vic20` | 78 | — | 2.2 min | 0.6 min |
+| `testbench-vic20-ntsc` | 80 | — | — | 1.2 min |
 | `testbench-c128c64` | 413 | — | 74 min | 30 min |
 | `testbench-c128` | 97 | — | 4 min | 1 min |
 | `testbench-c128-z80` | 1904 | — | 18 min | 4.4 min |

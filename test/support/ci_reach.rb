@@ -49,6 +49,8 @@ module CIReach
     ["test/support/{moo_reader,m6809_*}.rb", []],
     ["test/support/testbench_cbm2{,_machine}.rb", CBM2],
     ["test/support/testbench_p500_machine.rb", P500],
+    ["test/support/testbench_vic20{,_machine}.rb", VIC20 - %w[drive-scenarios]],
+    ["spinel/vic20_testbench.rb", VIC20 - %w[drive-scenarios] + %w[spinel:check]],
     ["spinel/p500_{boot,testbench,snapshot}.rb", P500 + %w[spinel:check]],
     ["spinel/{m6809_tests,convert_m6809}.rb", %w[spinel:check]],
     ["spinel/{pet_snapshot,cbm2_snapshot,plus4_snapshot,kim1_boot}.rb", %w[spinel:check]],

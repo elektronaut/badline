@@ -88,7 +88,8 @@ module Badline
       # The VIC-I's fields in a keyed snapshot module (Snapshot::Keyed): the
       # registers, the beam, the frame's length in lines and whether the
       # next interlaced field is the long one, the text window's counters
-      # and the fetch in flight, the painter's lines under line.*, the picture, and the sound
+      # and the fetch in flight, the light pen's latch and line under pen.*,
+      # the painter's lines under line.*, the picture, and the sound
       # under sound.* What the registers decode to, where the line's fetches
       # end and the next event are worked out on load.
       module KeyedState
@@ -98,6 +99,7 @@ module Badline
           out.bool("window_open", @window_open).bool("window_done", @window_done).int("row_start", @row_start)
           out.int("matrix", @matrix).int("char_line", @char_line).int("text_rows", @text_rows)
           out.int("fetch_from", @fetch_from).int("fetched", @fetched).int("code", @code)
+          out.int("pen.x", @pen_x).int("pen.y", @pen_y).bool("pen.low", @pen_low)
           out.int("line.layout", LINE_LAYOUT)
           @painter.save_fields(out)
           @sound&.save_fields(out, "sound.")
@@ -119,6 +121,9 @@ module Badline
           @fetch_from = input.int("fetch_from", @fetch_from)
           @fetched = input.int("fetched", @fetched)
           @code = input.byte("code", @code)
+          @pen_x = input.byte("pen.x", @pen_x)
+          @pen_y = input.byte("pen.y", @pen_y)
+          @pen_low = input.bool("pen.low", @pen_low)
           line = input.int("line.layout", 0) == LINE_LAYOUT
           input.adjust("line in progress from another renderer, restarted") unless line || input.missing?
           @painter.load_fields(input, line)

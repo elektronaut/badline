@@ -37,6 +37,7 @@ only catches the rows that happen to move.
 - [RAM power-on pattern](#ram-power-on-pattern)
 - [VIC-20 RAM power-on pattern](#vic-20-ram-power-on-pattern)
 - [VIC-I fetches and the V-bus](#vic-i-fetches-and-the-v-bus)
+- [VIC-I light pen](#vic-i-light-pen)
 - [VIC-I sound](#vic-i-sound)
 - [TED beam and the 7501 port](#ted-beam-and-the-7501-port)
 - [TED sound](#ted-sound)
@@ -1424,11 +1425,24 @@ and each was knocked out: removing it fails the rows named.
   - Pinned by `VIC20/split-tests/timing`: all 1,024 bytes of its readings
     of `$9003`, `$9004`, `$9100` and `$9200` over 256 cycles match
     `dumps/dump6561e.prg`, a real 6561E. The later 6561-101's dump reads
-    `$20` in the idle cycles instead; badline follows the 6561E.
+    `$20` in the idle cycles instead; badline follows the 6561E. On the
+    6560, `timing_ntsc` matches `dumps/dump6560-101.prg` byte for byte
+    from `$17E0`, and `dumps/dump6560.prg`, from another NTSC machine,
+    reads `$20` in the idle cycles as the 6561-101 does.
   - Spec guard:
     [`chips/vic_i_split_tests_timing_spec.rb`](../spec/badline/chips/vic_i_split_tests_timing_spec.rb)
     (`:slow`), and *the fetches* in
     [`chips/vic_i_video_spec.rb`](../spec/badline/chips/vic_i_video_spec.rb).
+- The 6560's raster count, which `$9003` bit 7 and `$9004` read, moves
+  on to the next line 28 cycles into a line, and on the last line wraps
+  to 0 at column 61 (`Chips::VICI::NTSC`), measured on xvic as a black
+  box.
+  - Pinned by `VIC20/split-tests/timing`'s `timing_ntsc`, whose `$9003`
+    and `$9004` readings match `dumps/dump6560-101.prg`, and by
+    `VIC20/vic_line0/raster-ntsc`, whose effect starts 33 cycles later
+    for `$9004` at 0 than for 1, as its readme reports from a real
+    machine, and in one field 33 later and in the other on time with
+    interlace (`testbench-vic20-ntsc`).
 - A write to `$900F` or `$900E` takes hold from the second of the four
   pixels of the cycle it lands in, the reverse bit two pixels later, and
   a character's pixels come out in the two cycles after its pattern
@@ -1436,6 +1450,32 @@ and each was knocked out: removing it fails the rows named.
   pixel for pixel; no testprog or hardware capture checks them.
   - Spec guard: *a colour write* in
     [`chips/vic_i_video_spec.rb`](../spec/badline/chips/vic_i_video_spec.rb).
+
+## VIC-I light pen
+
+- A falling edge on the light pen line, VIA 1's PA5 on the VIC-20,
+  latches `$9006` = 2h + 1, where h is the edge's column plus two,
+  wrapping at the line's end, and `$9007` = the raster count of the next
+  cycle, bits 8-1, the 6560's early count included
+  (`Chips::VICI::LightPen`). The column is badline's, the VIC's at the
+  cycle of the VIA write.
+- Around the cycle where the count turns to 0 (the 6561's frame start,
+  the 6560's column 61 of its last line): an edge from 8 cycles before it
+  to 1 after it latches as an edge in the cycle after it would, with
+  `$9007` at 0, but an edge 2 cycles before it latches an even `$9006`,
+  one less. Earlier, an edge latches nothing while the count read its
+  last value of the frame in the cycle before the edge: 311 on the 6561,
+  261 on the 6560.
+- A second edge in a frame latches again. The test drives one edge a
+  measurement, so no dump checks it.
+  - Pinned by `VIC20/split-tests/lightpen`: `lightpen.prg`'s 1,024
+    readings of `$9003`, `$9004`, `$9006` and `$9007` match
+    `dumps/dump6561e.prg`, and `lightpen_ntsc.prg`'s match
+    `dumps/dump6560.prg`, both from `$17E0` (`testbench-vic20` and
+    `testbench-vic20-ntsc`). The even `$9006` shows in both dumps; the
+    readme says the 6561E's was verified with 3 more dumps.
+  - Spec guard:
+    [`chips/vic_i_light_pen_spec.rb`](../spec/badline/chips/vic_i_light_pen_spec.rb).
 
 ## VIC-I sound
 
