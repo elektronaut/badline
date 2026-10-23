@@ -83,6 +83,9 @@ disk comes back write-protected. A directory mounted as device 8 opens
 again from its path. What the host holds stays the
 host's: the keyboard, the joysticks, the mouse and paddles, sound, and
 blocks given to `on_init` that hadn't run yet, which a restore reports.
+A SID that was recording saves how far into its current sample it had
+got, and a restored one that records again at the same rate carries on
+from there, so its output runs on as the saved one's would have.
 
 Every model saves this way, PAL, NTSC, old NTSC and Drean alike, and so
 does a machine with an REU, with its RAM and its registers. A snapshot

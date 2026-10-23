@@ -21,7 +21,7 @@ module Badline
         end
 
         # Cycles until the current window closes, counting the next one as 1.
-        attr_reader :cycles_to_close
+        attr_reader :cycles_to_close, :rate, :clock_hz
 
         # How far the current window has got, in a keyed snapshot module
         # (Snapshot::Keyed) under `prefix`. The clock and the rate are the
