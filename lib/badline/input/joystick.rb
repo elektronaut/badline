@@ -11,16 +11,29 @@ module Badline
 
       def initialize
         @port_bits = 0xff
+        @change_handler = nil
+      end
+
+      # Register a handler called after a press or a release. On the VIC-20,
+      # this passes the fire button on to the VIC's light pen input.
+      def on_change(&handler)
+        @change_handler = handler
       end
 
       def press(direction)
         bit = DIRECTIONS[direction]
-        @port_bits &= ~(1 << bit) if bit
+        return unless bit
+
+        @port_bits &= ~(1 << bit)
+        @change_handler&.call
       end
 
       def release(direction)
         bit = DIRECTIONS[direction]
-        @port_bits |= 1 << bit if bit
+        return unless bit
+
+        @port_bits |= 1 << bit
+        @change_handler&.call
       end
     end
   end

@@ -18,7 +18,8 @@ module Badline
     #
     # VIA 1's PA5 is the VIC's light pen input too, low while the VIA
     # drives it low or the joystick's fire button is held. The machine
-    # passes it on after each write to a VIA, as it does the serial lines.
+    # passes it on after each write to a VIA, as it does the serial lines,
+    # and as the fire button moves.
     module PortWiring
       # The lines the machine pulls, as Drives::SerialBus host lines.
       def serial_lines
@@ -34,6 +35,7 @@ module Badline
       def wire_ports
         @datasette.on_flag { tape_pulse }
         @bus.on_via_write { via_written }
+        @joystick1.on_change { pass_lightpen }
         via_written
       end
 
@@ -42,6 +44,10 @@ module Badline
         @iec_bus.host_lines = lines unless lines == @iec_bus.host_lines
         @datasette.motor = !@via1.ca2_output
         @datasette.write_line = @via2.port_b_output.anybits?(0x08)
+        pass_lightpen
+      end
+
+      def pass_lightpen
         @vic.lightpen_level(@via1.port_a_output.anybits?(0x20) && @joystick1.port_bits.anybits?(0x10))
       end
 
