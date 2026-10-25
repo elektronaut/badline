@@ -320,6 +320,7 @@ jobs:
             require "badline/support"
             require "./test/support/snapshot_tracing"
             saved = Badline::Snapshot.load("tmp/native/c128.vsf")
+            saved.sound_source.record(rate: 44_100)
             again = Badline::Snapshot.load("tmp/native/c128-again.vsf")
             abort "the snapshot is no C128DCR" unless saved.model.name == "c128dcr" && again.model.name == "c128dcr"
             saved.run_cycles(again.cycles - saved.cycles)
