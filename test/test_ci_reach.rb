@@ -27,8 +27,23 @@ class TestCIReach < Minitest::Test
     assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline.rb lib/badline/machine.rb])
   end
 
-  def test_the_machine_builders_parts_keep_reaching_everything
+  def test_the_clocking_every_family_includes_reaches_everything
     assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/machine/clocking.rb])
+  end
+
+  def test_the_keyboard_buffer_reaches_the_families_that_type
+    reached = CIReach.suites(%w[lib/badline/machine/keyboard_buffer.rb])
+
+    assert_empty %w[lorenz testbench-vic20 testbench-c128 lorenz-plus4 testbench-pet testbench-cbm2] - reached
+    refute_includes reached, "kim1-scenarios"
+  end
+
+  def test_snapshot_settling_reaches_only_the_spinel_check
+    assert_equal %w[spinel:check], CIReach.suites(%w[lib/badline/machine/settling.rb])
+  end
+
+  def test_a_new_machine_part_reaches_everything
+    assert_equal CIReach::ALL, CIReach.suites(%w[lib/badline/machine/new_part.rb])
   end
 
   def test_a_units_snapshot_fields_reach_only_the_spinel_check
