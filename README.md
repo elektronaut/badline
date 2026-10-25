@@ -33,8 +33,10 @@ The native `badline`, with Homebrew:
 brew install elektronaut/tap/badline
 ```
 
-The formula builds it from the release's generated C, so it needs no
-Spinel or Ruby. To build it from a checkout instead, see
+It installs a prebuilt bottle on macOS 15 or newer on Apple Silicon and
+on x86_64 Linux. Elsewhere the formula builds it from the release's
+generated C, so it needs no Spinel or Ruby. To build it from a checkout
+instead, see
 [native/README.md](native/README.md).
 
 The gem needs Ruby 4.0 or newer and the SDL2 library:
