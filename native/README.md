@@ -20,9 +20,11 @@ brew install elektronaut/tap/badline
 badline --version
 ```
 
-The formula builds the release's pack (see [Packing](#packing)) with the
-system's C compiler, so it needs no Spinel, and pulls in SDL2. It comes
-from the [elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap)
+The formula pulls in SDL2 and installs a bottle, built by the tap, on
+macOS 15 or newer on Apple Silicon and on x86_64 Linux. Elsewhere it
+builds the release's pack (see [Packing](#packing)) with the system's C
+compiler, so it needs no Spinel. It comes from the
+[elektronaut/homebrew-tap](https://github.com/elektronaut/homebrew-tap)
 tap, which each release updates.
 
 ## Building
@@ -83,7 +85,11 @@ The Homebrew formula in `packaging/homebrew/badline.rb` does the same,
 installing the ROMs under its share directory. When release-please cuts a
 release, the Release workflow's `homebrew` job packs the tag, builds and
 boots the pack, attaches it to the GitHub release and pushes the formula,
-with the release's url and sha256, to the tap. The job stays off until the
+with the release's url and sha256, to the tap. That push starts the tap's
+`brew bottle` workflow, which builds the bottles, uploads them to a
+`badline-<version>` release in the tap and commits the formula's
+`bottle do` block. Until it finishes, the formula builds from source. The
+`homebrew` job stays off until the
 repository has a `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with
 Contents read and write access to `elektronaut/homebrew-tap`.
 
