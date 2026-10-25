@@ -143,7 +143,6 @@ module Badline
         audio = modules.required("BL-AUDIO")
         restore_player(modules, audio)
         record
-        player.stereo.sids.each_with_index { |sid, index| sid.load_recording_fields(audio, "sid#{index + 1}.rec.") }
         @level = audio.int("level", 0)
         @still = audio.int("still", 0)
         audio.int("played", 0)
@@ -176,9 +175,9 @@ module Badline
       end
 
       # The player's modules, after a BL-AUDIO module with the cycles into
-      # the subtune, each SID's model and how far its recording has got,
-      # and the silence count. The SIDs have caught up as the frame drained
-      # them, so they leave no samples behind.
+      # the subtune, each SID's model and the silence count. Each SID's own
+      # module holds how far its recording has got. The SIDs have caught up
+      # as the frame drained them, so they leave no samples behind.
       def save_checkpoint(played, clock_hz)
         checkpoints = @checkpoints
         return if checkpoints.nil? || !checkpoints.due?(played, clock_hz)
@@ -187,10 +186,7 @@ module Badline
         sections = player.save_modules
         audio = Snapshot::Keyed.section("BL-AUDIO") do |out|
           out.int("played", played)
-          sids.each_with_index do |sid, index|
-            out.text("sid#{index + 1}.model", sid.model.to_s)
-            sid.save_recording_fields(out, "sid#{index + 1}.rec.")
-          end
+          sids.each_with_index { |sid, index| out.text("sid#{index + 1}.model", sid.model.to_s) }
           out.int("level", @level).int("still", @still)
         end
         checkpoints.keep(played, [audio, *sections])

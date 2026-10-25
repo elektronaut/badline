@@ -70,6 +70,7 @@ module Badline
         @pending_cycles = 0
         @deferred_writes = []
         @decimator = nil
+        @resumed_recording = nil
         @samples = []
         @voice_samples = nil
         @filter_chunk = filter_chunk
@@ -120,12 +121,15 @@ module Badline
       # Starts collecting the output, averaged down to `rate` samples a
       # second, for #drain_samples. `filter_chunk` overrides the one the SID
       # was built with, for a machine that built its own. `clock_hz` is the
-      # rate the SID's cycles are taken to run at.
+      # rate the SID's cycles are taken to run at. A SID loaded from a
+      # recording one carries on from the window that one had got to, at the
+      # same rate, clock and filter chunk.
       def record(rate:, filter_chunk: @filter_chunk, clock_hz: Region::PAL.clock_hz)
         synthesize!
         catch_up
+        resumed = resumed_recording(rate, filter_chunk, clock_hz)
         @filter_chunk = filter_chunk
-        @decimator = Decimator.new(clock_hz:, rate:)
+        @decimator = resumed || Decimator.new(clock_hz:, rate:)
         @samples = []
       end
 

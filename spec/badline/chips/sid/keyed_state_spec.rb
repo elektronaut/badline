@@ -62,23 +62,26 @@ module SIDKeyedSamples
   end
 
   # A SID loaded part way through the script runs on through the rest of
-  # it as the saved one does.
-  def runs_on?(model)
+  # it as the saved one does, and records what it records when both are
+  # recording.
+  def runs_on?(model, recording: false)
     sid = fresh(model, true)
+    sid.record(rate: 44_100) if recording
     3_100.times do |cycle|
       write(sid, cycle)
       sid.cycle!
     end
-    sid.catch_up!
+    sid.drain_samples
     target = fresh(model, true)
     keyed_round_trip(sid, target)
+    target.record(rate: 44_100) if recording
     (3_100...10_000).each do |cycle|
       [sid, target].each do |each|
         write(each, cycle)
         each.cycle!
       end
     end
-    [sid.output, normalize(sid)] == [target.output, normalize(target)]
+    [sid.drain_samples, sid.output, normalize(sid)] == [target.drain_samples, target.output, normalize(target)]
   end
 end
 
@@ -95,6 +98,10 @@ describe Badline::Chips::SID::KeyedState do
 
       it "runs on as the saved SID does" do
         expect(SIDKeyedSamples.runs_on?(model)).to be(true)
+      end
+
+      it "records on from the saved SID's window" do
+        expect(SIDKeyedSamples.runs_on?(model, recording: true)).to be(true)
       end
     end
   end
