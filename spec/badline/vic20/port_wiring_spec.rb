@@ -102,4 +102,15 @@ describe Badline::Vic20::PortWiring do
       expect(tape).to have_received(:record_pulse)
     end
   end
+
+  describe "the light pen" do
+    let(:pen) { [bus.peek(0x9006), bus.peek(0x9007)] }
+
+    before { 500.times { machine.vic.cycle! } }
+
+    it "latches the beam as fire is pressed" do
+      machine.joystick1.press(:fire)
+      expect(pen).not_to eq([0, 0])
+    end
+  end
 end

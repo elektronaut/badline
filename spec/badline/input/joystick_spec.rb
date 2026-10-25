@@ -35,4 +35,12 @@ describe Badline::Input::Joystick do
     joystick.press(:wiggle)
     expect(joystick.port_bits).to eq(0xff)
   end
+
+  it "tells its change handler a switch moved" do
+    moves = []
+    joystick.on_change { moves << joystick.port_bits }
+    joystick.press(:fire)
+    joystick.release(:fire)
+    expect(moves).to eq([0xef, 0xff])
+  end
 end
