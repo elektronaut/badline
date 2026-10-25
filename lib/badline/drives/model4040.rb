@@ -28,7 +28,9 @@ module Badline
     # tests its RAM and ROMs, has the controller reset its drives, and
     # bumps both heads to track 1. The motors run from then until the
     # run-down after the first job, about 9.5 million host cycles in for a
-    # directory LOAD, so the unit idles only after that.
+    # directory LOAD, or 8.8 million with no job. A motor turning with no
+    # disk in its drive changes nothing, so a unit with no disks sleeps
+    # from the bump on, and one with a disk only after the run-down.
     class Model4040
       include Model8050::Board
       include Model8050::Idle

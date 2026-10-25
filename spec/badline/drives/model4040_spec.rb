@@ -91,6 +91,24 @@ describe Badline::Drives::Model4040 do
     it "reads SYNC low on the 6530's PB6 while a sync passes" do
       expect(drive.rriot.peek(0x02).anybits?(0x40)).to be(true)
     end
+
+    context "with drive 0's motor turning" do
+      before do
+        drive.via.poke(0x42, 0xff)
+        drive.via.poke(0x40, 0xdf)
+      end
+
+      it "is quiet with no disk in it" do
+        drive.cycle!
+        expect(mechanism).to be_quiet
+      end
+
+      it "isn't with a disk in it" do
+        Dir.mktmpdir { |dir| drive.insert_image(blank_d64(dir)) }
+        drive.cycle!
+        expect(mechanism).not_to be_quiet
+      end
+    end
   end
 
   describe "a DOS 1 disk" do
