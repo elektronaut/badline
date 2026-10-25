@@ -49,12 +49,16 @@ model (`Badline::Model::ALL`):
 - `kernal: :gs` fits the C64GS's BASIC and KERNAL, and `board: :gs` its
   case, which has no keyboard: `computer.keyboard` takes no keys. The
   C64GS has both, and no datasette.
+- `board: :gs` and `board: :max` have no serial port, so
+  `Badline::Media.attach` and `Media.insert_disk` raise
+  `Badline::Machine::Unsupported` for a disk image, a `.t64` or a host
+  directory, and `Media::TrueDrive.plug` for a true drive.
 - `board: :max` builds the MAX Machine's board: 2K of RAM at
   `$0000-$07FF`, no ROMs mapped, CIA 1 alone, answering all through
   `$DC00-$DFFF` but for the I/O 1 page a cartridge takes, and Ultimax
   mode with or without a cartridge. CIA 2 is never on the bus, so the
   VIC stays in bank 0. `Badline::Model::ULTIMAX` runs it on
-  `Badline::Region::NTSC_OLD`.
+  `Badline::Region::NTSC_OLD`, with a datasette at its cassette port.
 
 ## Cartridges
 

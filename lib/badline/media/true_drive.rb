@@ -30,7 +30,17 @@ module Badline
         # Plugs the machine's true drive in as device 8, unless one is there
         # already, and returns it.
         def plug(computer)
+          refuse_portless(computer, "A true drive")
           drive(computer) || computer.plug_true_drive
+        end
+
+        # Raises Machine::Unsupported over `what`, a disk or a drive, on a
+        # C64 whose board has no serial port to plug a drive into.
+        def refuse_portless(computer, what)
+          return unless computer.family == :c64 && !computer.serial_port?
+
+          board = C64::Bus::Fittings::NO_SERIAL_PORT.fetch(computer.address_bus.board)
+          raise Machine::Unsupported, "#{what} needs the serial port, and #{board} has none"
         end
 
         # The true drive on device 8, or nil.

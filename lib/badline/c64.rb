@@ -48,6 +48,9 @@ module Badline
 
     def datasette = address_bus.datasette
 
+    # Whether the board has a serial port, which a disk drive plugs into.
+    def serial_port? = address_bus.serial_port?
+
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
     # The machine options (sid_model:, cia_model:, vic_model:, region: and
