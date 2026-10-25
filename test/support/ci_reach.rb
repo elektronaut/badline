@@ -71,6 +71,13 @@ module CIReach
     # bin/snapshot_check do. spinel:check compiles every family's boot over
     # machine.rb, and its CPU cases are converted under lib/badline.rb.
     ["lib/badline{,/machine}.rb", []],
+    # Every family runs its cycles and its boot handlers through Clocking.
+    ["lib/badline/machine/clocking.rb", ALL],
+    # Every family but the KIM-1 types through the KERNAL's keyboard buffer,
+    # as the testbench rows, the Lorenz chains and the drive scenarios do.
+    ["lib/badline/machine/keyboard_buffer.rb", (C64 + VIC20 + C128 + PLUS4 + PET + CBM2).uniq],
+    # Settling runs only when a snapshot is saved, which no suite does.
+    ["lib/badline/machine/settling.rb", []],
     ["lib/badline/support/{vic20,c128,plus4,pet,superpet}_checkpoint.rb", []],
     ["lib/badline/roms/README", []],
     ["lib/badline/roms/pet/{superpet-*,characters-superpet}.rom", []],
