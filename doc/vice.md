@@ -152,8 +152,12 @@ part named.
 - It steps the TED's line about 3 single clock cycles after the
   datasheet's decode, and fails `trap10`, `trap12` and `trap14` of the
   Lorenz suite's plus4 build (below).
-- Tapes badline saves for the 264 load in its Plus/4 and not with
-  `-model c16` (#704, open).
+- Its C16 model loads no tape, not even one it saved itself, and never
+  asks for PLAY: LOAD goes straight to SEARCHING. Its Plus/4 model loads
+  the tapes badline saves for the 264 (#704).
+- It writes a version 2 `.tap` with one byte per whole wave (`$36`, `$6B`,
+  `$D5`, version 1's values), where the format and badline give one per
+  half wave (`$1A`, `$35`, `$6A`). Both time the same signal.
 
 ### xpet
 
