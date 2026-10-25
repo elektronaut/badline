@@ -79,9 +79,10 @@ module Badline
           turn(1, drives.nobits?(0x10), drives & 0x03)
         end
 
-        # Whether a cycle would change nothing: both motors off and no byte
-        # ready under way.
-        def quiet? = !@motors[0] && !@motors[1] && !@ca1_low
+        # Whether a cycle would change nothing: no byte ready under way, and
+        # each drive's motor off or turning with no disk in it, as both turn
+        # from the bump at boot until the run-down.
+        def quiet? = !@ca1_low && still?(0) && still?(1)
 
         # What the drives hold, for comparing them at two points.
         def idle_state = [*@half_tracks, *@phases, *@motors, *@syncs, @data_in]
@@ -97,6 +98,8 @@ module Badline
         private
 
         def selected_drive = @rriot.port_b_output & 0x01
+
+        def still?(drive) = !@motors[drive] || @disks[drive].nil?
 
         def turn(drive, motor, phase)
           step(drive, phase) if phase != @phases[drive]
