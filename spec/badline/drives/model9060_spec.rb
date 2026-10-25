@@ -157,6 +157,41 @@ describe Badline::Drives::Model9060 do
     end
   end
 
+  # Each processor jumping to its own loop's start, so both passes repeat
+  # at once and the unit falls asleep within its first 40 host cycles.
+  describe "sleeping" do
+    subject(:unit) { described_class.new(dos_rom: looping_dos, sasi_rom: looping_sasi) }
+
+    let(:looping_dos) do
+      bytes = Array.new(0x4000, 0xea)
+      bytes[0x0131, 3] = [0x4c, 0x31, 0xc1]
+      bytes[0x3ffc, 2] = [0x31, 0xc1]
+      Badline::ROM.new(bytes, length: 0x4000, start: 0xc000)
+    end
+
+    let(:looping_sasi) do
+      Array.new(0x800, 0xea).tap do |bytes|
+        bytes[0x0f1, 3] = [0x4c, 0xf1, 0xf8]
+        bytes[0x7fc, 2] = [0xf1, 0xf8]
+      end
+    end
+
+    before { 1_040.times { unit.host_cycle! } }
+
+    it "falls asleep in both loops" do
+      expect(unit).to be_asleep
+    end
+
+    it "owes every host cycle it slept through" do
+      expect(unit.cycles).to eq(1_040)
+    end
+
+    it "wakes as the controller moves a line" do
+      unit.ieee_bus.host_lines = Badline::Drives::IEEEBus::ATN
+      expect(unit).not_to be_asleep
+    end
+  end
+
   # The pattern passes of DOS 3.0's N, which the IP skips once Format Unit
   # has put the controller in its fast mode.
   describe "N's pattern passes" do

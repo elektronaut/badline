@@ -75,12 +75,6 @@ module Badline
           forget_passes
         end
 
-        # The controller pushed its lines into the bus. A line it moved
-        # wakes a unit that owes cycles, which saw the lines as they stood.
-        def host_written!
-          settle! if dozing? && @ieee_port.lines_moved?
-        end
-
         private
 
         # The unit's loops start at +ip_loop+ and +fdc_loop+.
@@ -261,45 +255,11 @@ module Badline
           @cycles += cycles
         end
 
-        # Asleep, a host cycle only counts towards the one planned to wake
-        # the unit (plan_sleep). Returns whether it did.
-        def slept_through?
-          return false unless @planned
-
-          @slept += 1
-          doze if @slept == @wake_at
-          true
-        end
-
-        # Plans the host cycle that brings the cycles owed up to the budget,
-        # once the unit has fallen asleep and the host cycle it fell asleep
-        # in is over.
-        def plan_sleep
-          return if @planned
-
-          @planned = true
-          @slept = 0
-          needed = ((@budget - @owed) * @host_clock_hz) - @phase
-          @wake_at = needed.positive? ? (needed + CLOCK_HZ - 1) / CLOCK_HZ : 1
-        end
-
         # The budget is spent: the unit wakes, its FDC's side alone if it
         # can.
         def doze
           wake!
           wake_fdc unless @asleep
-        end
-
-        # Turns the host cycles slept into cycles owed, through the phase
-        # accumulator.
-        def owe_slept
-          return unless @planned
-
-          @planned = false
-          phase = @phase + (@slept * CLOCK_HZ)
-          @owed += phase / @host_clock_hz
-          @phase = phase % @host_clock_hz
-          @slept = 0
         end
 
         # Counts off the processor's whole passes, moving its mark on with
