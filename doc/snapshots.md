@@ -413,7 +413,10 @@ snapshot from its own modules, and leaves VICE's alone.
 x64sc 3.10 opens those snapshots, which are saved between
 instructions with no REU transfer under way, as long as its VIC-II
 model matches: `-model c64`, `c64c`, `ntsc`, `newntsc`,
-`oldntsc` or `drean`, as `--model` names the machine. It takes the REU
+`oldntsc`, `drean`, `pet64` or `c64gs`, as `--model` names the machine.
+The MAX Machine's needs `-model ultimax -VICIImodel 5`, since x64sc's
+`ultimax` has the 6567R8 and badline's the 6567R56A. The snapshot names
+the discrete glue logic, which x64sc's `c64c` and `c64gs` switch to. It takes the REU
 from the snapshot, keeps its own drives and leaves out the cartridge,
 the other expansions and the tape. A program x64sc runs on from badline's
 snapshot reads the raster as badline does, cycle for cycle.
