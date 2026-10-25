@@ -19,7 +19,10 @@ module Badline
       # the pass repeatable. Once both are, with the hard disk's controller
       # idle and no interrupt pulled, the unit sleeps until a counter is due
       # to pull IRQ, the IEEE-488 controller moves a line, or something
-      # outside reads or changes the unit (settle!).
+      # outside reads or changes the unit (settle!). Asleep, a host cycle
+      # only counts towards the one planned for the counter
+      # (DOSBoard#plan_sleep), and a moved line wakes the unit as the
+      # controller pushes it (DOSBoard#host_written!).
       module Idle
         IP_LOOP = 0xc131
         SASI_LOOP = 0xf8f1
@@ -37,9 +40,6 @@ module Badline
         # Whether the unit owes cycles.
         def dozing? = @asleep
 
-        # The controller pushed its lines into the bus.
-        def host_written! = nil
-
         # Brings the unit up to the present, cycle for cycle, and drops the
         # passes it found, since whoever called may change it.
         def settle!
@@ -49,16 +49,14 @@ module Badline
 
         private
 
-        # Each host cycle runs the unit's cycles or owes them (host_cycle!).
-        def slept_through? = false
-
-        def plan_sleep = nil
-
         def init_idle
           @idle_skip = true
           @asleep = false
           @owed = 0
           @budget = 0
+          @planned = false
+          @slept = 0
+          @wake_at = 0
           forget_passes
         end
 
@@ -121,19 +119,30 @@ module Badline
           [@data_riot.quiet_cycles, @control_riot.quiet_cycles, @via.quiet_cycles].min
         end
 
+        # The budget is spent (DOSBoard#slept_through?).
+        def doze = wake!
+
+        # Runs the cycles owed: the counters in bulk, then each processor's
+        # whole passes and the rest of a pass, and on a host cycle that ran
+        # past the budget, the rest cycle by cycle.
         def wake!
+          owe_slept
           owed = @owed
           @asleep = false
           @owed = 0
-          return if owed.zero?
+          quiet = [owed, @budget].min
+          skip_passes(quiet) if quiet.positive?
+          (owed - quiet).times { @asleep ? owe_cycle : run_cycle }
+        end
 
-          @data_riot.fast_forward(owed)
-          @control_riot.fast_forward(owed)
-          @via.fast_forward(owed)
-          @target.fast_forward(owed)
-          skip(@ip_cpu, @ip_pass, @ip_mark, owed)
-          skip(@sasi_cpu, @sasi_pass, @sasi_mark, owed)
-          @cycles += owed
+        def skip_passes(cycles)
+          @data_riot.fast_forward(cycles)
+          @control_riot.fast_forward(cycles)
+          @via.fast_forward(cycles)
+          @target.fast_forward(cycles)
+          skip(@ip_cpu, @ip_pass, @ip_mark, cycles)
+          skip(@sasi_cpu, @sasi_pass, @sasi_mark, cycles)
+          @cycles += cycles
         end
 
         def skip(cpu, pass, mark, owed)
