@@ -1,0 +1,18 @@
+module Badline
+  module Snapshot
+    module Keyed
+      class Reader
+        @ints: Hash[String, Integer]
+        @bools: Hash[String, bool]
+        def int: (String, Integer) -> Integer
+        def bool: (String, bool) -> bool
+        def fetch_int: (String, Integer) -> Integer
+      end
+
+      class Recorder
+        def int: (String, Integer) -> Integer
+        def bool: (String, bool) -> bool
+      end
+    end
+  end
+end
