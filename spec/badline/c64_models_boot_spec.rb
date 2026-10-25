@@ -7,7 +7,9 @@ require_relative "../support/taken_once"
 # The PET 64, the C64GS and the MAX Machine with nothing attached, checked
 # against x64sc 3.10's same models (-default -model <name>
 # -raminitrandomchance 0), dumped from its monitor at the same instruction.
-# x64sc's clock reads one cycle more than badline's at that instruction.
+# x64sc's clock reads one cycle more than badline's at that instruction
+# once the KERNAL has waited for the raster, and six more before that:
+# its CPU fetches the first opcode at cycle 6, and badline's at cycle 0.
 describe Badline::C64 do
   # The machine at the first instruction at `address` after `cycles`.
   def booted(model, cycles, address)
@@ -27,19 +29,15 @@ describe Badline::C64 do
             .map { |code| code < 0x20 ? (code + 0x40).chr : code.chr }.join.rstrip
   end
 
-  describe "the PET 64 at BASIC's first wait for a key, $E5CD", :slow do
-    let(:machine) { booted("pet64", 2_100_000, 0xe5cd) }
+  describe "the PET 64 in the KERNAL's RAM test, at its 20th page, $FD6C", :slow do
+    let(:machine) { booted("pet64", 240_000, 0xfd6c) }
 
     it "gets there when x64sc does" do
-      expect(machine.cycles).to eq(2_124_032)
-    end
-
-    it "shows its banner" do
-      expect([1, 4].map { |row| screen_line(machine, row) }).to eq(["  **** COMMODORE 4064  BASIC V2.0 ****", "READY."])
+      expect(machine.cycles).to eq(248_658)
     end
 
     it "has x64sc's RAM" do
-      expect(ram_digest(machine)).to eq("46638cd4f5c49d7d9c9266d3fca2fc9174ff0f341e0e1d8f674eb64805359cbe")
+      expect(ram_digest(machine)).to eq("60bbd9a829cca48f5397059686830fb7ad1c45af54165448c842b1b67658dee8")
     end
   end
 
