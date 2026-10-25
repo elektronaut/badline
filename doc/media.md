@@ -127,7 +127,7 @@ of half waves.
 
 A program SAVEd that way on the C64 loads and runs in VICE's x64sc, on
 the VIC-20 in xvic, and on the Plus/4 or the C16 in xplus4 as a Plus/4.
-Neither the Plus/4's tape nor the C16's ran on xplus4's C16 model.
+xplus4's C16 model loads no tape, its own included (#704).
 Checked with VICE 3.10.
 
 ## The light pen
