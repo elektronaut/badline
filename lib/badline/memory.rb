@@ -46,10 +46,8 @@ module Badline
     end
 
     def zero_fill(initial)
-      array = initial.dup
-      0.upto(length - 1) do |i|
-        array[i] ||= blank_value
-      end
+      array = Array.new(length, blank_value)
+      initial.each_with_index { |v, i| array[i] = v.to_i unless v.nil? }
       array
     end
   end
