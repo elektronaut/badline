@@ -355,6 +355,7 @@ RSpec.describe Badline::C64 do
     end
 
     it "runs from the KERNAL's reset vector" do
+      computer.cpu.step!
       expect(computer.cpu.program_counter).to eq(0xfce2)
     end
   end
@@ -805,6 +806,7 @@ RSpec.describe Badline::C64 do
       computer.attach_drive1541(drive)
       drive.cpu.program_counter = 0x0500
       computer.reset!
+      drive.cpu.step!
       expect(drive.cpu.program_counter).to eq(0x0300)
     end
   end

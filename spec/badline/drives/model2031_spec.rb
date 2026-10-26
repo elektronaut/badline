@@ -44,6 +44,7 @@ describe Badline::Drives::Model2031 do
   def low_lines = drive.ieee_bus.low_lines(drive.ieee_bus.host_lines)
 
   it "reads the ROM's reset vector from $FFFC" do
+    drive.cpu.step!
     expect(drive.cpu.program_counter).to eq(0x0300)
   end
 

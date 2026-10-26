@@ -82,6 +82,15 @@ module Badline
           @nmi = false if @interrupt == 0xfffa
         end
 
+        def op_reset_dummy
+          @memory.peek(@program_counter)
+        end
+
+        def op_reset_stack
+          @memory.peek(stack_address)
+          @stack_pointer = (@stack_pointer - 1) & 0xff
+        end
+
         def op_int_vector_low
           @address = @memory.peek(@interrupt)
         end

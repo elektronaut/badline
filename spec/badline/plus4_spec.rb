@@ -31,7 +31,7 @@ describe Badline::Plus4 do
   end
 
   it "starts at the KERNAL's reset entry" do
-    expect(described_class.new.cpu.program_counter).to eq(0xfff6)
+    expect(described_class.new.cpu.tap(&:step!).program_counter).to eq(0xfff6)
   end
 
   it "refuses a RAM size it can't fit" do
@@ -47,7 +47,7 @@ describe Badline::Plus4 do
     machine.attach_cartridge([Badline::Storage::CRTFile::Chip.new(0, 0, 0x8000, [0x11])])
     machine.run_cycles(10)
     machine.detach_cartridges
-    expect([machine.cartridge_slots, machine.cycles, machine.cpu.program_counter]).to eq([[], 10, 0xfff6])
+    expect([machine.cartridge_slots, machine.cycles, machine.cpu.tap(&:step!).program_counter]).to eq([[], 10, 0xfff6])
   end
 
   it "takes c116 for the C16" do

@@ -43,6 +43,7 @@ describe Badline::Drives::Model1581 do
 
   describe "the bus" do
     it "reads the ROM's reset vector from $FFFC" do
+      drive.cpu.step!
       expect(drive.cpu.program_counter).to eq(0x0300)
     end
 

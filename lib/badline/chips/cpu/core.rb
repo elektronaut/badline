@@ -25,8 +25,8 @@ module Badline
         include Boundary
         include KeyedState
 
-        attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write
-        attr_accessor :program_counter, :stack_pointer, :status, :a, :x, :y, :nmi, :irq
+        attr_reader :memory, :instructions, :boundary_crossed, :cycles, :pending_write, :program_counter
+        attr_accessor :stack_pointer, :status, :a, :x, :y, :nmi, :irq
 
         alias pending_write? pending_write
 
@@ -56,15 +56,32 @@ module Badline
           end_sequence
         end
 
+        # Clears the registers and runs the reset sequence from its first
+        # stack read, the two reads at the program counter having run while
+        # the reset circuit held RES. The first opcode fetch comes 5 cycles
+        # after power-on, where x64sc's does.
+        def power_on!
+          @program_counter = @stack_pointer = 0
+          @a = @x = @y = 0
+          reset!
+          @index = 2
+        end
+
+        # Starts the reset sequence, RESET_PLAN, which reads the program
+        # counter from $FFFC and fetches the first opcode 7 cycles later. A,
+        # X and Y keep their values, and S ends 3 lower.
         def reset!
           status.interrupt = true
-          reset_registers
           @nmi = false
           @irq_sample = @irq_pending = false
           @nmi_sample = @nmi_pending = false
           @skip_poll = false
           @pending_write = false
-          end_sequence
+          @interrupt = 0xfffc
+          @brk = false
+          @plan = RESET_PLAN
+          @writes = RESET_WRITES
+          @index = 0
         end
 
         # Drops the instruction or interrupt sequence in flight and the
@@ -81,6 +98,14 @@ module Badline
           @cycles = cycles
           end_sequence
           @pending_write = false
+        end
+
+        # Sets the program counter. A CPU in its reset sequence leaves it,
+        # so the next cycle fetches an opcode at +address+ and not at the
+        # reset vector's.
+        def program_counter=(address)
+          @program_counter = address
+          end_sequence if @plan.equal?(RESET_PLAN)
         end
 
         def p

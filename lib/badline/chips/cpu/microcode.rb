@@ -95,6 +95,14 @@ module Badline
         op_int_vector_low op_int_vector_high
       ].freeze
 
+      # RES runs BRK's sequence with its three stack writes turned into
+      # reads, which still count S down, and reads the vector at $FFFC. Its
+      # first two cycles read the program counter and leave it where it was.
+      RESET_PLAN = %i[
+        op_reset_dummy op_reset_dummy op_reset_stack op_reset_stack op_reset_stack
+        op_int_vector_low op_int_vector_high
+      ].freeze
+
       SPECIAL_PLANS = {
         brk: BRK_PLAN, jam: JAM_PLAN, jsr: JSR_PLAN, rts: RTS_PLAN,
         rti: RTI_PLAN, pha: PUSH_PLAN, php: PUSH_PLAN,
@@ -181,6 +189,7 @@ module Badline
       FETCH_WRITES = Microcode.write_mask(FETCH_PLAN)
       INTERRUPT_WRITES = Microcode.write_mask(INTERRUPT_PLAN)
       JAMMED_WRITES = Microcode.write_mask(JAMMED_PLAN)
+      RESET_WRITES = Microcode.write_mask(RESET_PLAN)
       MICROCODE = Microcode.table
 
       # The instruction methods, in a fixed order a snapshot names them by.
@@ -190,6 +199,7 @@ module Badline
       FETCH = -1
       INTERRUPT = -2
       JAMMED = -3
+      RESET = -4
     end
   end
 end

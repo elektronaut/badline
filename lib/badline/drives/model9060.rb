@@ -86,7 +86,9 @@ module Badline
         build_ip(dos_rom || ROM.load("9060/dos-3.0.rom", 0xc000))
         build_sasi(sasi_rom || ROM.read("9060/sasi-300515-revb.rom"))
         @ip_cpu = Model8050::IPCPU.new(@ip_bus)
+        @ip_cpu.power_on!
         @sasi_cpu = SASICPU.new(@sasi_bus)
+        @sasi_cpu.power_on!
         init_idle
         @ieee_bus.attach(self)
       end

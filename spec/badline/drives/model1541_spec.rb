@@ -16,6 +16,7 @@ describe Badline::Drives::Model1541 do
 
   describe "the CPU" do
     it "starts from the ROM's reset vector" do
+      drive.cpu.step!
       expect(drive.cpu.program_counter).to eq(0x0300)
     end
 
@@ -30,7 +31,7 @@ describe Badline::Drives::Model1541 do
       drive.cpu.program_counter = 0x0310
       run(10)
       drive.reset!
-      expect(drive.cpu.program_counter).to eq(0x0300)
+      expect(drive.cpu.tap(&:step!).program_counter).to eq(0x0300)
     end
 
     [["VIA 1", 0x18], ["VIA 2", 0x1c]].each do |name, page|

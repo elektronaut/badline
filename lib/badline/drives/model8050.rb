@@ -61,7 +61,9 @@ module Badline
         build_ip(dos_rom || ROM.load("8050/dos-2.7.rom", 0xc000))
         build_fdc(fdc_rom || ROM.read("8050/fdc-901869-01.rom"))
         @ip_cpu = IPCPU.new(@ip_bus)
+        @ip_cpu.power_on!
         @fdc_cpu = FDCCPU.new(@fdc_bus)
+        @fdc_cpu.power_on!
         init_idle(Idle::IP_LOOP, Idle::FDC_LOOP)
         @ieee_bus.attach(self)
       end

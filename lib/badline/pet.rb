@@ -131,6 +131,7 @@ module Badline
         ieee.lines_written
       end
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on!
       @cycles = 0
       @init_handlers = []
       @pending_keys = nil

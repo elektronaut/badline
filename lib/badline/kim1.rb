@@ -70,6 +70,7 @@ module Badline
       @panel.connect(@u2)
       @bus = Bus.new(@u2, @u3, ram: ram || :"1k")
       @cpu = CPU.new(@bus)
+      @cpu.power_on!
       @sst = false
       @irq_wired = false
       @sound = Sound.new(@u2, @u3)

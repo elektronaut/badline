@@ -11,6 +11,7 @@ describe Badline::KIM1::CPU do
   before do
     [0xa9, 0x01, 0xaa, 0xe8].each_with_index { |byte, offset| kim.poke(0x0200 + offset, byte) }
     cpu.program_counter = 0x0200
+    cpu.stack_pointer = 0xff
   end
 
   # The cycles until the CPU fetches from the NMI vector's JMP at $1C1C.

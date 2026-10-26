@@ -81,6 +81,7 @@ module Badline
                      kernal: "vic20/kernal-#{model}.rom")
       @vic.connect(@bus)
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on!
       @cycles = 0
       @sound = Chips::VICI::Sound.new(self, @vic.profile.clock_hz)
       @vic.sound = @sound

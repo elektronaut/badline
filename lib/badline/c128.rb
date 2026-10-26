@@ -126,6 +126,7 @@ module Badline
       @holding_commodore = false
       @bus = Bus.new(@model, sid_model: sid_model || @model.sid_model, mode:)
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on! if @c64_built
       build_z80
       @vic = @bus.vic
       @vic.open_bus = -> { @bus.ram.peek(@cpu.program_counter) }

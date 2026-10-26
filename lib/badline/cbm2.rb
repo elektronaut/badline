@@ -125,6 +125,7 @@ module Badline
       keyboard_ports.connect(@tpi2)
       map_io
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on!
       @cycles = 0
       @mains_half_period = CLOCK_HZ / (2 * mains_hz)
       @mains_countdown = @mains_half_period

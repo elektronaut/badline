@@ -8,6 +8,7 @@ describe Badline::KernalTrap::Chrout do
 
   before do
     capture
+    computer.cpu.stack_pointer = 0xff
     # CHROUT is JMP ($0326); point the vector somewhere harmless
     computer.ram.write(0x0326, [0x00, 0x60])
   end

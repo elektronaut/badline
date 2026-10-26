@@ -15,6 +15,7 @@ describe Badline::Vic20 do
   end
 
   it "starts at the KERNAL's reset vector" do
+    machine.cpu.step!
     expect(machine.cpu.program_counter).to eq(0xfd22)
   end
 
@@ -225,6 +226,7 @@ describe Badline::Vic20 do
     end
 
     it "sends the CPU to the reset vector" do
+      machine.cpu.step!
       expect(machine.cpu.program_counter).to eq(0xfd22)
     end
 
@@ -249,6 +251,7 @@ describe Badline::Vic20 do
     end
 
     it "sends the CPU to the reset vector" do
+      machine.cpu.step!
       expect(machine.cpu.program_counter).to eq(0xfd22)
     end
   end
