@@ -1257,7 +1257,7 @@ Written by the Plus/4.
 | `voice<N>.phase` | int & 0x1 | 1 |
 | `voice<N>.toggle_in` | int, optional | absent |
 | `noise` | byte | 255 |
-| `ran_ago` | int | 6 or 7 |
+| `ran_ago` | int | 6 |
 
 ## BL-KEYPORT
 
