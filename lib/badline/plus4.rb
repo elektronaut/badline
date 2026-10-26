@@ -205,6 +205,7 @@ module Badline
       @ted.power_on!
       @sound.power_on!
       reset!
+      @cpu.power_on!
     end
 
     # The ACIA's IRQ line, and the cycle it next has something to do at.

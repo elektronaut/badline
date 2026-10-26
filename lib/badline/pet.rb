@@ -225,6 +225,7 @@ module Badline
     def power_cycle!
       @bus.power_on!
       reset!
+      @cpu.power_on!
     end
 
     # Puts a program file's bytes where its first two say, through the bus,

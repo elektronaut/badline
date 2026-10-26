@@ -227,6 +227,7 @@ module Badline
     def power_cycle!
       @bus.power_on!
       reset!
+      @cpu.power_on!
     end
 
     private

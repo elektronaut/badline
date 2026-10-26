@@ -146,6 +146,7 @@ module Badline
       vic.power_on!
       address_bus.power_on!
       reset!
+      cpu.power_on!
     end
 
     # The RES line reaches the CPU and its port, both CIAs, the SID, the

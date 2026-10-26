@@ -207,6 +207,7 @@ module Badline
       @vdc.power_on!
       @bus.power_on!
       reset!
+      @cpu.power_on! if @c64_built
       enter_c64_mode if @c64_built
     end
 

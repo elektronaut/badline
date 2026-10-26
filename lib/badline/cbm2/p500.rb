@@ -214,6 +214,7 @@ module Badline
         @color_ram.clear!
         @vic.power_on!
         reset!
+        @cpu.power_on!
       end
 
       # The cycle by which the KERNAL has tested segments 0 and 1 and BASIC

@@ -184,6 +184,7 @@ module Badline
       @vic.power_on!
       @sound.power_on!
       reset!
+      @cpu.power_on!
     end
 
     private

@@ -262,8 +262,11 @@ describe Badline::Drives::Model1581 do
       expect(drive).to be_asleep
     end
 
+    # The CPU as it fell asleep, read without #cpu, which settles the drive
+    # and so runs any cycle it still owes the host.
     it "sleeps at the loop's start" do
-      expect(drive.cpu.program_counter).to eq(described_class::IDLE_LOOP)
+      cpu = drive.instance_variable_get(:@cpu)
+      expect([cpu.program_counter, cpu.boundary?]).to eq([described_class::IDLE_LOOP, true])
     end
 
     it "takes its WD1772 for one, as the TOD pin tells it" do
