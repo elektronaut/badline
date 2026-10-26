@@ -13,12 +13,22 @@ module Badline
       # that sector's data block, whatever it holds.
       module SectorReader
         HEADER_BITS = 10 * 8
-        DATA_BITS = 325 * 8
         SYNC = /1{10,}/
+
+        # A data block as far as its checksum: its ID, 256 bytes and the
+        # checksum. The DOS writes two more after them, and switches back to
+        # read mode a few bits into the last, so the gap that was there
+        # before finishes its last code.
+        CHECKED_BYTES = 258
+        CHECKED_BITS = CHECKED_BYTES * 10
+
+        # The codes of two $0 nibbles, which finish the last group of
+        # CHECKED_BITS.
+        PADDING = "01010" * 4
 
         # A sector as read: its decoded header, [ID, checksum, sector, track,
         # the second ID byte, the first, ...], and its decoded data block,
-        # [ID, 256 data bytes, checksum, ...], nil when there isn't one that
+        # [ID, 256 data bytes, checksum], nil when there isn't one that
         # decodes.
         Sector = Struct.new(:header, :data)
 
@@ -62,8 +72,15 @@ module Badline
             next unless header && header[0] == Disk::HEADER_ID
 
             data_sync = SYNC.match(bits, pos + HEADER_BITS)
-            yield header, data_sync && decode(bits, data_sync.end(0), DATA_BITS)
+            yield header, data_sync && decode_data(bits, data_sync.end(0))
           end
+        end
+
+        def decode_data(bits, pos)
+          slice = bits[pos, CHECKED_BITS]
+          return unless slice.length == CHECKED_BITS
+
+          GCR.decode([slice + PADDING].pack("B*").bytes)&.first(CHECKED_BYTES)
         end
 
         def decode(bits, pos, count)
