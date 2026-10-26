@@ -27,6 +27,7 @@ describe Badline::C128 do
   end
 
   it "starts the 8502 at the C64 KERNAL's reset vector" do
+    machine.cpu.step!
     expect(machine.cpu.program_counter).to eq(0xfce2)
   end
 
@@ -71,8 +72,9 @@ describe Badline::C128 do
       machine.cpu.program_counter = 0x2000
       machine.vic.poke(0xd011, 0x0b)
       machine.address_bus.poke(0xd030, 0x01)
+      start = machine.cpu.cycles
       machine.run_cycles(cycles)
-      machine.cpu.cycles
+      machine.cpu.cycles - start
     end
 
     let(:loop_code) { [0x4c, 0x00, 0x20] }
@@ -179,6 +181,7 @@ describe Badline::C128 do
 
     it "starts the 8502 at its reset vector once the Z80 has booted and handed it the bus" do
       boot_z80
+      machine.cpu.step!
       expect(machine.cpu.program_counter).to eq(reset_vector)
     end
 

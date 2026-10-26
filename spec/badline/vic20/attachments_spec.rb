@@ -40,6 +40,7 @@ describe Badline::Vic20::Attachments do
     end
 
     it "switches the machine off and on" do
+      machine.cpu.step!
       expect(machine.cpu.program_counter).to eq(0xfd22)
     end
   end

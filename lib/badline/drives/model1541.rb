@@ -39,6 +39,7 @@ module Badline
         @via2 = DiskVIA.new(start: 0x1c00, mechanism: @mechanism)
         @bus = Bus.new(rom: rom || ROM.load("dos1541.rom", 0xc000), via1: @via1, via2: @via2)
         @cpu = CPU.new(@bus, debug:)
+        @cpu.power_on!
         @clock_hz = CLOCK_HZ
         @idle_loop = IDLE_LOOP
         @host_clock_hz = host_clock_hz

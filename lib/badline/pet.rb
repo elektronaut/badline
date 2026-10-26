@@ -131,6 +131,7 @@ module Badline
         ieee.lines_written
       end
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on!
       @cycles = 0
       @init_handlers = []
       @pending_keys = nil
@@ -224,6 +225,7 @@ module Badline
     def power_cycle!
       @bus.power_on!
       reset!
+      @cpu.power_on!
     end
 
     # Puts a program file's bytes where its first two say, through the bus,

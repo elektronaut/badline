@@ -141,6 +141,7 @@ module Badline
       @tias = tcbm ? [Chips::TIA.new, Chips::TIA.new] : []
       @bus.plug_tcbm(drive8: @tias[0], drive9: @tias[1]) if tcbm
       @cpu = CPU.new(@bus, debug:)
+      @cpu.power_on!
       @sound = Chips::TED::Sound.new(self, @model.ted.clock_hz)
       @ted.sound = @sound
       @sound_mix = @sid_card ? SoundMix.new(@sound, @sid_card) : nil
@@ -204,6 +205,7 @@ module Badline
       @ted.power_on!
       @sound.power_on!
       reset!
+      @cpu.power_on!
     end
 
     # The ACIA's IRQ line, and the cycle it next has something to do at.

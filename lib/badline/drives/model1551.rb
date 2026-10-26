@@ -97,6 +97,7 @@ module Badline
         @host_tia = Chips::TIA.new
         @bus = Bus.new(rom: rom || ROM.load("dos1551.rom", 0xc000), port: @port, tia: @tia)
         @cpu = CPU.new(@bus, debug:)
+        @cpu.power_on!
         @idle_loop = IDLE_LOOP
         @host_clock_hz = host_clock_hz
         @phase = 0

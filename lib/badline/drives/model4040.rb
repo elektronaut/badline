@@ -65,7 +65,9 @@ module Badline
         build_ip(dos_rom || ROM.load(dos_file, dos_start))
         build_fdc(fdc_rom || ROM.read(fdc_file))
         @ip_cpu = IPCPU.new(@ip_bus)
+        @ip_cpu.power_on!
         @fdc_cpu = FDCCPU.new(@fdc_bus)
+        @fdc_cpu.power_on!
         init_idle(ip_loop, fdc_loop)
         @ieee_bus.attach(self)
       end

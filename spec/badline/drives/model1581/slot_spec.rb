@@ -46,6 +46,7 @@ describe Badline::Drives::Model1581::Slot do
       machine.attach_drive1581(drive)
       drive.cpu.program_counter = 0x0400
       machine.reset!
+      drive.cpu.step!
       expect(drive.cpu.program_counter).to eq(0x0300)
     end
 

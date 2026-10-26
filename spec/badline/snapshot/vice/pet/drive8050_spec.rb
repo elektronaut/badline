@@ -113,7 +113,9 @@ describe Badline::Snapshot::Vice::PET::Drive8050 do
     # The readers of a unit of `model` at power-on, its controller, or its
     # SASI host, put at `counter`, by default at its idle loop.
     def readers(model, counter = described_class.controller_loop(model))
-      sections = described_class.new_unit(model).save_modules([], "BL-D8")
+      unit = described_class.new_unit(model)
+      %i[ip_cpu fdc_cpu sasi_cpu].each { |name| unit.public_send(name).step! if unit.respond_to?(name) }
+      sections = unit.save_modules([], "BL-D8")
       host = described_class.hard_disk?(model) ? "BL-D8-SASICPU" : "BL-D8-FDCCPU"
       sections << Badline::Snapshot::Keyed.section(host) { |out| out.int("pc", counter) }
       sections.to_h { |section| [section.name, Badline::Snapshot::Keyed::Reader.parse(section)] }

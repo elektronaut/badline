@@ -129,12 +129,12 @@ Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II, KIM-1.
 | `port.ddr` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.data` | byte | C64: 0; C128: 0; Plus/4: 0 |
 | `port.floating` | byte | C64: 0; C128: 0 |
-| `pc` | word | C64: 64738; VIC-20: 64802; C128: 65341; Plus/4: 65526; PET: 64790 or 64824; CBM-II: 63895 or 63902; KIM-1: 7202 |
-| `sp` | byte | 255 |
+| `pc` | word | C64: 0; VIC-20: 0; C128: 65341; Plus/4: 0; PET: 0; CBM-II: 0; KIM-1: 0 |
+| `sp` | byte | C64: 0; VIC-20: 0; C128: 255; Plus/4: 0; PET: 0; CBM-II: 0; KIM-1: 0 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
 | `y` | byte | 0 |
-| `p` | byte | 32 |
+| `p` | byte | C64: 36; VIC-20: 36; C128: 32; Plus/4: 36; PET: 36; CBM-II: 36; KIM-1: 36 |
 | `nmi` | bool | false |
 | `so_high` | bool | true |
 | `irq.sample` | bool | false |
@@ -147,7 +147,17 @@ Written by the C64, C128, Plus/4, VIC-20, PET, CBM-II, KIM-1.
 | `cycles` | int | 0 |
 | `instructions` | int | 0 |
 | `stalled` | int, optional | absent |
-| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+| `pos.seq` | text: boundary op interrupt jam reset | "boundary" |
+| `pos.crossed` | bool | PET: false |
+| `pos.t` | int | PET: 0 |
+| `pos.branch_taken` | bool | PET: false |
+| `pos.brk` | bool | PET: false |
+| `pos.vector` | int, optional | PET: absent |
+| `pos.address` | int, optional | PET: absent |
+| `pos.dummy_address` | int, optional | PET: absent |
+| `pos.value` | int, optional | PET: absent |
+| `pos.rmw` | int, optional | PET: absent |
+| `pos.pointer` | int, optional | PET: absent |
 
 ## BL-VIC
 
@@ -754,12 +764,12 @@ Written by the C64, C128, Plus/4, PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | C64: 60064 or 44836; C128: 60064; Plus/4: 60064 or 59829; PET: 60101 |
-| `sp` | byte | 255 |
+| `pc` | word | 0 |
+| `sp` | byte | 0 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
 | `y` | byte | 0 |
-| `p` | byte | 32 |
+| `p` | byte | 36 |
 | `nmi` | bool | false |
 | `so_high` | bool | true |
 | `irq.sample` | bool | false |
@@ -772,7 +782,18 @@ Written by the C64, C128, Plus/4, PET.
 | `cycles` | int | 0 |
 | `instructions` | int | 0 |
 | `stalled` | int, optional | absent |
-| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+| `pos.seq` | text: boundary op interrupt jam reset | "boundary" |
+| `pos.op` | byte | C64: 234; Plus/4: 234 |
+| `pos.crossed` | bool | C64: false; C128: false; Plus/4: false |
+| `pos.t` | int | C64: 1; C128: 0; Plus/4: 1 |
+| `pos.branch_taken` | bool | C64: false; C128: false; Plus/4: false |
+| `pos.brk` | bool | C64: false; C128: false; Plus/4: false |
+| `pos.vector` | int, optional | C64: absent; C128: absent; Plus/4: absent |
+| `pos.address` | int, optional | C64: absent; C128: absent; Plus/4: absent |
+| `pos.dummy_address` | int, optional | C64: absent; C128: absent; Plus/4: absent |
+| `pos.value` | int, optional | C64: absent; C128: absent; Plus/4: absent |
+| `pos.rmw` | int, optional | C64: absent; C128: absent; Plus/4: absent |
+| `pos.pointer` | int, optional | C64: absent; C128: absent; Plus/4: absent |
 
 ## BL-D8-DISK
 
@@ -802,7 +823,7 @@ Written by the C64, C128, Plus/4, PET.
 | `side` | int | C64: 0 or 1; C128: 85; Plus/4: 0; PET: 0 |
 | `zone` | int & 0x3 | C64: 3; C128: 3; Plus/4: 3 or 0; PET: 3 |
 | `time` | int | 0 |
-| `read_clock_in` | int | 2097152 |
+| `read_clock_in` | int | C64: -3145728; C128: 2097152; Plus/4: -4194304 or 2097152; PET: -3145728 |
 | `clocks` | int | 0 |
 | `shift` | int | 0 |
 | `ones` | int | 0 |
@@ -1020,8 +1041,8 @@ Written by the VIC-20.
 | `sound.shift_registers` | ints | [0, 0, 0, 255] |
 | `sound.lfsr` | int & 0xffff | 65535 |
 | `sound.level` | int | 0 |
-| `sound.ran_ago` | int | 0 |
-| `sound.next_shifts` | ints | [2048, 1024, 512, 256] |
+| `sound.ran_ago` | int | 5 |
+| `sound.next_shifts` | ints | [2043, 1019, 507, 251] |
 
 ## BL-VIA1
 
@@ -1236,7 +1257,7 @@ Written by the Plus/4.
 | `voice<N>.phase` | int & 0x1 | 1 |
 | `voice<N>.toggle_in` | int, optional | absent |
 | `noise` | byte | 255 |
-| `ran_ago` | int | 0 |
+| `ran_ago` | int | 6 |
 
 ## BL-KEYPORT
 
@@ -1563,12 +1584,12 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 62135 or 54059 or 61972 |
-| `sp` | byte | 255 |
+| `pc` | word | 0 |
+| `sp` | byte | 0 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
 | `y` | byte | 0 |
-| `p` | byte | 32 |
+| `p` | byte | 36 |
 | `nmi` | bool | false |
 | `so_high` | bool | true |
 | `irq.sample` | bool | false |
@@ -1581,7 +1602,7 @@ Written by the PET.
 | `cycles` | int | 0 |
 | `instructions` | int | 0 |
 | `stalled` | int, optional | absent |
-| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+| `pos.seq` | text: boundary op interrupt jam reset | "boundary" |
 
 ## BL-D8-FDCCPU
 
@@ -1589,12 +1610,12 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 64516 or 64521 |
-| `sp` | byte | 255 |
+| `pc` | word | 0 |
+| `sp` | byte | 0 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
 | `y` | byte | 0 |
-| `p` | byte | 32 |
+| `p` | byte | 36 |
 | `nmi` | bool | false |
 | `so_high` | bool | true |
 | `irq.sample` | bool | false |
@@ -1607,7 +1628,7 @@ Written by the PET.
 | `cycles` | int | 0 |
 | `instructions` | int | 0 |
 | `stalled` | int, optional | absent |
-| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+| `pos.seq` | text: boundary op interrupt jam reset | "boundary" |
 
 ## BL-D8-VIA
 
@@ -1682,12 +1703,12 @@ Written by the PET.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `pc` | word | 63489 |
-| `sp` | byte | 255 |
+| `pc` | word | 0 |
+| `sp` | byte | 0 |
 | `a` | byte | 0 |
 | `x` | byte | 0 |
 | `y` | byte | 0 |
-| `p` | byte | 32 |
+| `p` | byte | 36 |
 | `nmi` | bool | false |
 | `so_high` | bool | true |
 | `irq.sample` | bool | false |
@@ -1700,7 +1721,7 @@ Written by the PET.
 | `cycles` | int | 0 |
 | `instructions` | int | 0 |
 | `stalled` | int, optional | absent |
-| `pos.seq` | text: boundary op interrupt jam | "boundary" |
+| `pos.seq` | text: boundary op interrupt jam reset | "boundary" |
 
 ## BL-D8-SASIRAM
 

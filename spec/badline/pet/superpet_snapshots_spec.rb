@@ -7,10 +7,16 @@ describe Badline::PET::SuperPET do
     # A machine with the switch at +cpu+, run part way through its reset.
     def booting(cpu, cycles = 20_001) = described_class.new(cpu:).tap { |machine| machine.run_cycles(cycles) }
 
+    # A machine with the switch at +cpu+, its 6502 run to its first
+    # instruction unless the 6809 has the bus.
+    def started(cpu: "6502")
+      described_class.new(cpu:).tap { |machine| machine.cycle! until machine.m6809_running? || machine.cpu.boundary? }
+    end
+
     # A machine with the switch at +cpu+ that has had +writes+, address
     # and byte, poked in turn, restored from its snapshot.
     def poked(*writes, cpu: "6502")
-      machine = described_class.new(cpu:)
+      machine = started(cpu:)
       writes.each_slice(2) { |addr, value| machine.poke(addr, value) }
       machine.snapshot.load
     end
@@ -63,7 +69,7 @@ describe Badline::PET::SuperPET do
     end
 
     it "carries the 6702's registers and a shift still to come over" do
-      machine = described_class.new
+      machine = started
       machine.poke(0xefe0, 0x00)
       machine.poke(0xefe0, 0x01)
       dongle = machine.snapshot.load.dongle

@@ -36,6 +36,51 @@ describe Badline::Chips::CPU do
     end
   end
 
+  describe "Reset" do
+    let(:reads) { [] }
+
+    before do
+      memory.write(0xfffc, [0x00, 0xd0])
+      cpu.program_counter = 0x1234
+      cpu.stack_pointer = 0x10
+      cpu.a = 0x42
+      allow(memory).to receive(:peek).and_wrap_original do |original, address|
+        reads << address
+        original.call(address)
+      end
+      cpu.reset!
+      7.times { cpu.cycle! }
+    end
+
+    it "reads the program counter twice, the stack three times and the vector" do
+      expect(reads).to eq([0x1234, 0x1234, 0x0110, 0x010f, 0x010e, 0xfffc, 0xfffd])
+    end
+
+    it "fetches the first opcode on its 8th cycle" do
+      expect(cpu).to be_boundary
+    end
+
+    specify { expect(cpu.program_counter).to eq(0xd000) }
+    specify { expect(cpu.stack_pointer).to eq(0x0d) }
+    specify { expect(cpu.a).to eq(0x42) }
+    specify { expect(cpu.status.interrupt?).to be(true) }
+  end
+
+  describe "Power-on" do
+    before do
+      memory.write(0xfffc, [0x00, 0xd0])
+      cpu.power_on!
+      5.times { cpu.cycle! }
+    end
+
+    it "fetches the first opcode on its 6th cycle" do
+      expect(cpu).to be_boundary
+    end
+
+    specify { expect(cpu.program_counter).to eq(0xd000) }
+    specify { expect(cpu.stack_pointer).to eq(0xfd) }
+  end
+
   describe "Interrupt request" do
     let(:interrupt) { false }
 
@@ -373,7 +418,7 @@ describe Badline::Chips::CPU do
       before do
         memory.write(0xfffc, [0x01, 0xc0])
         cpu.reset!
-        cpu.step!
+        2.times { cpu.step! }
       end
 
       specify { expect(cpu).not_to be_jammed }

@@ -77,6 +77,7 @@ describe Badline::Frontend::MenuPages do
     it "powers it off and on" do
       computer.run_cycles(1_000)
       pages.perform(:power_cycle)
+      computer.cpu.step!
       expect(computer.cpu.program_counter).to eq(0xfce2)
     end
   end

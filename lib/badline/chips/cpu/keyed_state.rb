@@ -4,14 +4,17 @@ module Badline
   module Chips
     class CPU
       # Where a CPU caught inside an instruction is, as a snapshot names it:
-      # an opcode's instruction, an IRQ or NMI sequence, or jammed.
-      POSITIONS = %w[boundary op interrupt jam].freeze
+      # an opcode's instruction, an IRQ or NMI sequence, jammed, or the
+      # reset sequence.
+      POSITIONS = %w[boundary op interrupt jam reset].freeze
 
       # The CPU's fields in a keyed snapshot module (Snapshot::Keyed): the
       # registers, the interrupt lines' pipeline, the counts and, inside an
       # instruction, where it is in hardware terms (pos.*), rather than as
       # the microcode lays it out.
       module KeyedState
+        SEQUENCE_NAMES = { INTERRUPT => "interrupt", RESET => "reset" }.freeze
+
         def save_fields(out)
           out.int("pc", @program_counter).int("sp", @stack_pointer).int("a", @a).int("x", @x).int("y", @y)
           out.int("p", @status.value).bool("nmi", @nmi).bool("so_high", @so_high)
@@ -75,8 +78,8 @@ module Badline
             return
           end
 
-          out.text("pos.seq", source == INTERRUPT ? "interrupt" : "op")
-          out.int("pos.op", source) unless source == INTERRUPT
+          out.text("pos.seq", SEQUENCE_NAMES.fetch(source, "op"))
+          out.int("pos.op", source) unless SEQUENCE_NAMES.key?(source)
           out.int("pos.t", position_t(source)).bool("pos.crossed", @boundary_crossed)
           out.bool("pos.branch_taken", @branch_taken == true).bool("pos.brk", @brk)
           out.optional_int("pos.vector", @interrupt)
@@ -88,7 +91,7 @@ module Badline
         # The cycles of the instruction or sequence run so far, counting the
         # opcode fetch as 1 and leaving out stalled cycles.
         def position_t(source)
-          return @index if source == INTERRUPT
+          return @index if SEQUENCE_NAMES.key?(source)
 
           MICROCODE.fetch(source).t_at(@index, @boundary_crossed)
         end
@@ -96,7 +99,8 @@ module Badline
         def load_position(input)
           case input.choice("pos.seq", POSITIONS, "boundary")
           when "op" then load_instruction(input)
-          when "interrupt" then load_interrupt(input)
+          when "interrupt" then load_sequence(input, INTERRUPT_PLAN, INTERRUPT_WRITES, 1)
+          when "reset" then load_sequence(input, RESET_PLAN, RESET_WRITES, 0)
           when "jam" then load_jam
           else load_boundary
           end
@@ -112,10 +116,11 @@ module Badline
           load_latches(input)
         end
 
-        def load_interrupt(input)
-          use_plan(INTERRUPT_PLAN, INTERRUPT_WRITES)
+        # An interrupt or reset sequence, whose plan starts at step +first+.
+        def load_sequence(input, plan, writes, first)
+          use_plan(plan, writes)
           @boundary_crossed = input.bool("pos.crossed", false)
-          @index = input.int("pos.t", 1).clamp(1, INTERRUPT_PLAN.length - 1)
+          @index = input.int("pos.t", first).clamp(first, plan.length - 1)
           load_latches(input)
         end
 
@@ -162,6 +167,7 @@ module Badline
           return FETCH if @plan.equal?(FETCH_PLAN)
           return INTERRUPT if @plan.equal?(INTERRUPT_PLAN)
           return JAMMED if @plan.equal?(JAMMED_PLAN)
+          return RESET if @plan.equal?(RESET_PLAN)
 
           MICROCODE.index { |micro| micro.plan.equal?(@plan) && micro.operation == @operation } ||
             MICROCODE.index { |micro| micro.plan.equal?(@plan) }

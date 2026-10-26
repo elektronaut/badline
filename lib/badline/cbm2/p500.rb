@@ -104,6 +104,7 @@ module Badline
         keyboard_ports.connect(@tpi2)
         map_io
         @cpu = CPU.new(@bus, debug:)
+        @cpu.power_on!
         @cycles = 0
         @mains_half_period = clock_hz / (2 * @mains_hz)
         @mains_countdown = @mains_half_period
@@ -213,6 +214,7 @@ module Badline
         @color_ram.clear!
         @vic.power_on!
         reset!
+        @cpu.power_on!
       end
 
       # The cycle by which the KERNAL has tested segments 0 and 1 and BASIC

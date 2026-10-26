@@ -26,6 +26,7 @@ describe Badline::Drives::Model1551 do
 
   describe "the bus" do
     it "reads the ROM's reset vector from $FFFC" do
+      drive.cpu.step!
       expect(drive.cpu.program_counter).to eq(0x0300)
     end
 
@@ -59,7 +60,7 @@ describe Badline::Drives::Model1551 do
     it "interrupts the CPU every 16,660 cycles" do
       load([0x58, 0x4c, 0x01, 0x03]) # CLI; JMP *
       load([0xe6, 0x10, 0x40], at: 0x0400) # INC $10; RTI
-      run(described_class::IRQ_PERIOD * 3)
+      run((described_class::IRQ_PERIOD * 3) + 100)
       expect(drive.ram.peek(0x10)).to eq(3)
     end
   end

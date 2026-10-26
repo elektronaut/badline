@@ -67,6 +67,7 @@ module Badline
       @address_bus = Bus.new(**machine.except(*Bus::Fittings::NAMES))
       @address_bus.fit(**machine.slice(*Bus::Fittings::NAMES))
       @cpu = Chips::CPU.new(@address_bus, debug:)
+      @cpu.power_on!
       @vic = @address_bus.vic
       @vic.open_bus = -> { @address_bus.ram.peek(@cpu.program_counter) }
       @cia1 = @address_bus.cia1
@@ -145,6 +146,7 @@ module Badline
       vic.power_on!
       address_bus.power_on!
       reset!
+      cpu.power_on!
     end
 
     # The RES line reaches the CPU and its port, both CIAs, the SID, the

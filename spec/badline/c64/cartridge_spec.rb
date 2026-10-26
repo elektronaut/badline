@@ -203,6 +203,7 @@ describe Badline::C64::Cartridge do
     it "resets the CPU through the cartridge vector" do
       computer = Badline::C64.new
       computer.attach_cartridge(cartridge)
+      computer.cpu.step!
       expect(computer.cpu.program_counter).to eq(0x1234)
     end
   end

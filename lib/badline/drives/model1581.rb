@@ -87,6 +87,7 @@ module Badline
         @cia = Chips::CIA.new(start: 0x4000, peripheral: @serial_port, tod_hz: 0)
         @bus = Bus.new(rom: rom || ROM.load("dos1581.rom", 0x8000), cia: @cia, fdc: @fdc, drive: self)
         @cpu = CPU.new(@bus, debug:)
+        @cpu.power_on!
         @idle_loop = IDLE_LOOP
         @host_clock_hz = host_clock_hz
         @phase = 0

@@ -35,7 +35,7 @@ module CPUKeyedSamples
   end
 
   def instruction?(plan)
-    [CHIP::FETCH_PLAN, CHIP::INTERRUPT_PLAN, CHIP::JAMMED_PLAN].none? { |other| plan.equal?(other) }
+    [CHIP::FETCH_PLAN, CHIP::INTERRUPT_PLAN, CHIP::JAMMED_PLAN, CHIP::RESET_PLAN].none? { |other| plan.equal?(other) }
   end
 
   # Where the CPU is, for the coverage the samples reach.
@@ -44,6 +44,7 @@ module CPUKeyedSamples
     return :boundary if cpu.boundary?
     return :jammed if cpu.jammed?
     return :interrupt if plan.equal?(CHIP::INTERRUPT_PLAN)
+    return :reset if plan.equal?(CHIP::RESET_PLAN)
 
     micro = CHIP::MICROCODE.find { |each| each.plan.equal?(plan) }
     micro.skips_dummy?(cpu.instance_variable_get(:@index) - 1, cpu.boundary_crossed) ? :skipped_dummy : :instruction
