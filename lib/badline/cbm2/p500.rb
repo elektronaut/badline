@@ -55,6 +55,8 @@ module Badline
 
       def family = :cbm2
 
+      def portless_board = nil
+
       def peek(addr) = @bus.peek(addr)
 
       def poke(addr, value) = @bus.poke(addr, value)

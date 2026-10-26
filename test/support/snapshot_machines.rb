@@ -15,6 +15,7 @@ module SnapshotSetups
   D71 = "#{VENDOR}/c128/burstmode/burstcheck.d71".freeze
   VIC20_CRT = "#{VENDOR}/VIC20/raminitpattern/ae.crt".freeze
   T64 = "#{VENDOR}/testbench/autostart/autostart-c64-none.t64".freeze
+  ULTIMAX_CRT = "#{VENDOR}/C64/carts/ultimax/ultimax.crt".freeze
 
   module_function
 
@@ -249,6 +250,20 @@ module SnapshotMachines
     ]
   end
 
+  # The PET 64 at BASIC, the C64GS showing its animation with no
+  # cartridge, and the MAX Machine running an Ultimax cartridge.
+  def c64_model_scenarios
+    [
+      Scenario.new("c64-pet64", :c64, ->(_dir) { typing(Badline::Machine.build(:c64, model: "pet64"), "print 6*7\r") },
+                   ->(m) { run(m, 3_000_000) }),
+      Scenario.new("c64-gs", :c64, ->(_dir) { Badline::Machine.build(:c64, model: "c64gs") },
+                   ->(m) { run(m, 500_001) }),
+      Scenario.new("c64-max", :c64, lambda { |dir|
+        attached(Badline::Machine.build(:c64, model: "ultimax"), copy(ULTIMAX_CRT, dir))
+      }, ->(m) { run(m, 1_000_001) })
+    ]
+  end
+
   def c64_media_scenarios
     [
       Scenario.new("c64-directory", :c64,
@@ -440,9 +455,9 @@ module SnapshotMachines
   end
 
   def all
-    c64_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios + c128_scenarios + plus4_scenarios +
-      plus4_drive_scenarios + pet_scenarios + pet_drive_scenarios + superpet_scenarios + cbm2_scenarios +
-      kim1_scenarios
+    c64_scenarios + c64_model_scenarios + c64_media_scenarios + c64_drive_scenarios + vic20_scenarios +
+      c128_scenarios + plus4_scenarios + plus4_drive_scenarios + pet_scenarios + pet_drive_scenarios +
+      superpet_scenarios + cbm2_scenarios + kim1_scenarios
   end
 
   def named(name) = all.find { |scenario| scenario.name == name }

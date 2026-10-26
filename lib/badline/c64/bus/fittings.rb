@@ -15,7 +15,13 @@ module Badline
         # alone at $DC00-$DFFF and the cartridge port in Ultimax mode.
         BOARDS = %i[c64 pet64 gs max].freeze
 
+        # The boards with no serial port for a disk drive: the C64GS's case
+        # covers its board's, and the MAX Machine has none.
+        NO_SERIAL_PORT = { gs: "the C64GS", max: "the MAX Machine" }.freeze
+
         attr_reader :board
+
+        def portless_board = NO_SERIAL_PORT[@board]
 
         # Fits the KERNAL ROM ROMs::KERNALS names, leaves the cassette port
         # empty unless `datasette`, and puts the chips in the board BOARDS

@@ -48,6 +48,8 @@ module Badline
 
     def family = :kim1
 
+    def portless_board = nil
+
     def ram = @bus.ram
 
     # Reads and writes memory as the CPU sees it, through the bus.

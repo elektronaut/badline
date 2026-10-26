@@ -74,6 +74,8 @@ module Badline
 
     def family = :c128
 
+    def portless_board = nil
+
     def address_bus = @bus
 
     def region = @bus.region

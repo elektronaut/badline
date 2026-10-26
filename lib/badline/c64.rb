@@ -48,6 +48,10 @@ module Badline
 
     def datasette = address_bus.datasette
 
+    # The board's name when it has no serial port for a disk drive, or nil.
+    # Every family answers it, nil on all but these C64 boards.
+    def portless_board = address_bus.portless_board
+
     def install_debug_register(&) = address_bus.install_debug_register(&)
 
     # The machine options (sid_model:, cia_model:, vic_model:, region: and
