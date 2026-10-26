@@ -2,10 +2,22 @@ module Badline
   module Chips
     class VIC
       @render: bool
+      @columns_per_line: Integer
+      @last_column: Integer
+      @width: Integer
+      @height: Integer
+      @last_line: Integer
+      @column: Integer
+      @rasterline: Integer
       def render=: (bool) -> void
 
       class Sequencer
         @render: bool
+        @width: Integer
+      end
+
+      class DisplayState
+        @wrap_column: Integer
       end
 
       class Sprite
