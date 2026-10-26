@@ -7,9 +7,9 @@ require_relative "../support/taken_once"
 # The PET 64, the C64GS and the MAX Machine with nothing attached, checked
 # against x64sc 3.10's same models (-default -model <name>
 # -raminitrandomchance 0), dumped from its monitor at the same instruction.
-# x64sc's clock reads one cycle more than badline's at that instruction
-# once the KERNAL has waited for the raster, and six more before that:
-# its CPU fetches the first opcode at cycle 6, and badline's at cycle 0.
+# x64sc's clock reads one cycle more than badline's at that instruction,
+# from the first opcode fetch on: x64sc's comes at cycle 6, and badline's
+# at cycle 5.
 describe Badline::C64 do
   # The machine at the first instruction at `address` after `cycles`.
   def booted(model, cycles, address)
@@ -33,7 +33,7 @@ describe Badline::C64 do
     let(:machine) { booted("pet64", 240_000, 0xfd6c) }
 
     it "gets there when x64sc does" do
-      expect(machine.cycles).to eq(248_658)
+      expect(machine.cycles).to eq(248_663)
     end
 
     it "has x64sc's RAM" do
@@ -64,7 +64,7 @@ describe Badline::C64 do
   end
 
   describe "the MAX Machine with no cartridge" do
-    let(:machine) { Badline::Machine.build(:c64, model: "ultimax").tap { |max| max.run_cycles(300) } }
+    let(:machine) { Badline::Machine.build(:c64, model: "ultimax").tap { |max| max.run_cycles(4_000) } }
 
     it "jams the CPU on the empty bus, as x64sc does" do
       expect(machine.cpu.jammed?).to be(true)
