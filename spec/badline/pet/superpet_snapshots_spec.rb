@@ -7,8 +7,11 @@ describe Badline::PET::SuperPET do
     # A machine with the switch at +cpu+, run part way through its reset.
     def booting(cpu, cycles = 20_001) = described_class.new(cpu:).tap { |machine| machine.run_cycles(cycles) }
 
-    # A machine with the switch at +cpu+, run to its first instruction.
-    def started(cpu: "6502") = described_class.new(cpu:).tap { |machine| machine.cycle! until machine.cpu.boundary? }
+    # A machine with the switch at +cpu+, its 6502 run to its first
+    # instruction unless the 6809 has the bus.
+    def started(cpu: "6502")
+      described_class.new(cpu:).tap { |machine| machine.cycle! until machine.m6809_running? || machine.cpu.boundary? }
+    end
 
     # A machine with the switch at +cpu+ that has had +writes+, address
     # and byte, poked in turn, restored from its snapshot.
