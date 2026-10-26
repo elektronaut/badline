@@ -232,7 +232,6 @@ describe Badline::C128 do
     end
 
     it "starts the 8502 at the C128 KERNAL's reset vector" do
-      machine.cpu.step!
       expect(machine.cpu.program_counter).to eq(machine.address_bus.c128_kernal_rom.peek16(0xfffc))
     end
 
