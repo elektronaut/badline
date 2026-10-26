@@ -37,9 +37,9 @@ module Badline
         # Raises Machine::Unsupported over `what`, a disk or a drive, on a
         # C64 whose board has no serial port to plug a drive into.
         def refuse_portless(computer, what)
-          return unless computer.family == :c64 && !computer.serial_port?
+          board = computer.portless_board
+          return if board.nil?
 
-          board = C64::Bus::Fittings::NO_SERIAL_PORT.fetch(computer.address_bus.board)
           raise Machine::Unsupported, "#{what} needs the serial port, and #{board} has none"
         end
 

@@ -74,6 +74,8 @@ module Badline
 
     def family = :cbm2
 
+    def portless_board = nil
+
     # Reads and writes memory as the CPU sees it, in its execution segment.
     def peek(addr) = @bus.peek(addr)
 

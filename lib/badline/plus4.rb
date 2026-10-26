@@ -67,6 +67,8 @@ module Badline
 
     def family = :plus4
 
+    def portless_board = nil
+
     # The joysticks reach the TED's keyboard latch, so there are no C64
     # control ports to plug a pot device into.
     def control_ports = nil

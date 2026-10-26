@@ -51,6 +51,8 @@ module Badline
 
     def family = :vic20
 
+    def portless_board = nil
+
     # The one control port's joystick, which the front end's second
     # joystick drives too.
     def joystick2 = @joystick1

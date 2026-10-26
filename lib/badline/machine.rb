@@ -70,6 +70,9 @@ module Badline
   # +mounted?+, +datasette+, +true_drive+, nil, +install_debug_register+
   # and +capture_output+, and besides +model_label+ and +ram_kb+.
   #
+  # Every machine answers +portless_board+, nil unless it's a C64 whose
+  # board has no serial port for device 8 (C64#portless_board).
+  #
   # Each machine includes Machine::Clocking for the clocking part.
   module Machine
     # Media the machine named doesn't take.

@@ -75,6 +75,8 @@ module Badline
 
     def family = :pet
 
+    def portless_board = nil
+
     # The datasette on cassette port #1, where a tape goes in (Cassettes).
     def datasette = @cassettes.datasette1
 

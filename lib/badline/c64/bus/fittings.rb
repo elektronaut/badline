@@ -21,7 +21,7 @@ module Badline
 
         attr_reader :board
 
-        def serial_port? = !NO_SERIAL_PORT.key?(@board)
+        def portless_board = NO_SERIAL_PORT[@board]
 
         # Fits the KERNAL ROM ROMs::KERNALS names, leaves the cassette port
         # empty unless `datasette`, and puts the chips in the board BOARDS
