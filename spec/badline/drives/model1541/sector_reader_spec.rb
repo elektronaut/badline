@@ -39,6 +39,14 @@ describe Badline::Drives::Model1541::SectorReader do
     expect(sector.data[1, 256]).to eq(data)
   end
 
+  # The DOS switches back to read mode a few bits into the data block's
+  # last byte, so the gap that was there before finishes its last code.
+  it "reads a data block whose last byte the switch to read mode cut short" do
+    bits = sector_bits(17, 0, data)
+    sector = described_class.read(written(bits[0...-4], 1000), 17)[0]
+    expect([sector.data[0], sector.data[1, 256], sector.data[257]]).to eq([0x07, data, data.reduce(:^)])
+  end
+
   it "leaves out a header for another track" do
     expect(described_class.read(written(sector_bits(17, 4, data), 16), 18)).to be_empty
   end
