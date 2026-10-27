@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.19.0](https://github.com/elektronaut/badline/compare/v0.18.0...v0.19.0) (2026-10-27)
+
+### Highlights
+
+- **VIC-20 snapshots in VICE's format**: badline reads and writes xvic's `.vsf` snapshots of the PAL and NTSC VIC-20, so a machine saved in one emulator carries on in the other.
+- **SuperPET snapshots**: xpet's `.vsf` now carries the SuperPET's 6702 dongle in both directions.
+- **6502 reset**: the CPU runs its seven-cycle reset sequence through the bus, as the chip does, so a machine starts its first instruction on the same cycle as x64sc.
+- **C64GS and MAX Machine**: neither has a serial port, so disks and true drives are refused on them rather than attached to a bus that isn't there.
+- **Homebrew bottles**: `brew install elektronaut/tap/badline` pours a prebuilt binary on Apple Silicon (Sequoia) and x86_64 Linux instead of compiling it.
+
+### Features
+
+* read and write the SuperPET's 6702 in xpet's .vsf ([75beb83](https://github.com/elektronaut/badline/commit/75beb8365760b19561e7178df5ddfe20e983ba87))
+* read and write xvic's snapshots of the VIC-20, PAL and NTSC ([7e039a7](https://github.com/elektronaut/badline/commit/7e039a7deffc6e1283d5bc7e00182ae5350235e6))
+* refuse disks and true drives on the C64GS and the MAX Machine, which have no serial port ([a4ba76d](https://github.com/elektronaut/badline/commit/a4ba76d0d40180fc3e6113fbb35306114e940bc5))
+* run the VIC-20 testbench's screenshot rows and its NTSC raster and light pen programs ([1f54561](https://github.com/elektronaut/badline/commit/1f54561f2d8ba3bc511bf5d80d3b5f0365cc3a5b))
+
+
+### Bug Fixes
+
+* autostart the first program off a disk image on BASIC 1, not the image itself ([3f31daa](https://github.com/elektronaut/badline/commit/3f31daa044497d2524b7906691cf9f4e8881eb6b))
+* carry a recording SID's sample window across snapshots ([c4472c1](https://github.com/elektronaut/badline/commit/c4472c1d1a5027171527bdc9b1d82614aefe94d2))
+* latch the VIC-20's light pen as the fire button moves ([37ab4b9](https://github.com/elektronaut/badline/commit/37ab4b945a036ade5ea5f9064f91c6267777a912))
+* read a 1541 data block back as far as its checksum ([bcb167e](https://github.com/elektronaut/badline/commit/bcb167e263504610129d43bc26c9c87b16388b68))
+* run the 6502's reset sequence through the bus ([a32f25c](https://github.com/elektronaut/badline/commit/a32f25cd04d4df9cd2e7aa8a63393a9661452aad))
+
+
+### Performance Improvements
+
+* build Memory's storage as an Integer array and seed the VIC's geometry for Spinel ([b84353d](https://github.com/elektronaut/badline/commit/b84353d792f20fbfe5421fda534946b4f3e2cd19))
+* seed CPU::Core's fields for every 6502 and qualify the drive and PET memory seeds ([6bf511c](https://github.com/elektronaut/badline/commit/6bf511c040105d7e8403593501fc9d8fb2a785fe))
+* seed Snapshot::Keyed::Reader#int and #bool for Spinel ([8e1692b](https://github.com/elektronaut/badline/commit/8e1692bae61c76bc69869a094a7eb4fd748ddd95))
+* seed the CIA's interrupt register, timers, shift register and TOD types for Spinel ([bc1e468](https://github.com/elektronaut/badline/commit/bc1e4686314f90a66be038d78f92a0b297538989))
+* seed the KIM-1's CPU, 6530s, timer and bus types for Spinel ([0e42b9d](https://github.com/elektronaut/badline/commit/0e42b9d888e7ff1c4e871b49d32fe593c3e33a76))
+* seed the Plus/4's CPU, TED and bus types for Spinel ([50d0c1f](https://github.com/elektronaut/badline/commit/50d0c1f63c2401158a77342fc8a37f4bb2031e95))
+* sleep a 4040 whose motors turn with no disk in either drive ([2203749](https://github.com/elektronaut/badline/commit/22037497b80b04d26e947fb999f517422b59a18b))
+* sleep an idle D9060 through planned host cycles and wake it as the controller moves a line ([5823192](https://github.com/elektronaut/badline/commit/582319299c75b9c1f39b22d2879b4ac06c8cf3c3))
+* splice a disk image's sectors back in ([1f7242d](https://github.com/elektronaut/badline/commit/1f7242de9bd6e7c3001a96143efc171995e54ed2))
+* wake only an idle 8050's controller for its 5 ms timer ([d733081](https://github.com/elektronaut/badline/commit/d7330814ca73b84c5537e8ca8d4e65121742b9b6))
+
 ## [0.18.0](https://github.com/elektronaut/badline/compare/v0.17.0...v0.18.0) (2026-10-20)
 
 ### Highlights
