@@ -13,6 +13,8 @@ describe Badline::Media do
     end
   end
 
+  let(:prg_path) { File.join(dir, "game.prg").tap { |path| File.binwrite(path, [0x01, 0x08, 0x00].pack("C*")) } }
+
   after { FileUtils.remove_entry(dir) }
 
   def machine(model) = Badline::Machine.build(:c64, model:)
@@ -38,6 +40,11 @@ describe Badline::Media do
       expect { Badline::Media::TrueDrive.plug(computer) }.to raise_error(Badline::Machine::Unsupported, /C64GS/)
     end
 
+    it "refuses a program" do
+      expect { described_class.attach(computer, prg_path) }
+        .to raise_error(Badline::Machine::Unsupported, "#{prg_path} needs BASIC's READY, which the C64GS never reaches")
+    end
+
     it "refuses a tape" do
       expect { described_class.attach(computer, tap_path) }.to raise_error(Badline::Drives::Datasette::Missing)
     end
@@ -51,6 +58,11 @@ describe Badline::Media do
         .to raise_error(Badline::Machine::Unsupported, /the MAX Machine has none/)
     end
 
+    it "refuses a program" do
+      expect { described_class.attach(computer, prg_path) }
+        .to raise_error(Badline::Machine::Unsupported, /the MAX Machine never reaches/)
+    end
+
     it "takes a tape" do
       described_class.attach(computer, tap_path, autostart: false)
       expect(computer.datasette.tape).to be_a(Badline::Storage::TAP)
@@ -60,6 +72,10 @@ describe Badline::Media do
   describe "the PET 64, on a C64's board" do
     it "mounts a disk image as device 8" do
       expect(described_class.attach(machine("pet64"), d64_path, autostart: false)).to include("device 8")
+    end
+
+    it "loads a program" do
+      expect(described_class.attach(machine("pet64"), prg_path, autostart: false)).to eq("Loading #{prg_path}")
     end
   end
 end

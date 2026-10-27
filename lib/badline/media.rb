@@ -136,11 +136,13 @@ module Badline
       # The VIC-20 and the 264 series have no SID to play a .sid tune on,
       # only the PET and the CBM-II have the IEEE-488 drive a .d80, .d82
       # or .d90 goes in, and only the KIM-1 reads papertape. The C64GS and
-      # the MAX Machine have no serial port for what goes in device 8.
+      # the MAX Machine have no serial port for what goes in device 8, and
+      # never reach the READY a program is run from.
       def refuse_unsupported(computer, path)
         family = computer.family
         device8 = File.directory?(path) || Extensions::DEVICE8.include?(File.extname(path).downcase)
         TrueDrive.refuse_portless(computer, path) if device8
+        refuse_program(computer, path) if Extensions.kind(path) == :program
         raise Machine::Unsupported, "#{path} needs a KIM-1" if Extensions.kind(path) == :papertape
         if %i[ieee_disk hard_disk].include?(Extensions.kind(path)) && !%i[pet cbm2].include?(family)
           raise ArgumentError, "#{path} needs a PET's or a CBM-II's IEEE-488 drive"
@@ -154,6 +156,11 @@ module Badline
                         else [[], ""]
                         end
         raise ArgumentError, "#{path} doesn't go in #{name}" if refused.include?(File.extname(path).downcase)
+      end
+
+      def refuse_program(computer, path)
+        board = computer.portless_board
+        raise Machine::Unsupported, "#{path} needs BASIC's READY, which #{board} never reaches" if board
       end
 
       def attach_kind(computer, path, autostart:, subtune:, **options)
