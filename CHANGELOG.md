@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.20.0](https://github.com/elektronaut/badline/compare/v0.19.0...v0.20.0) (2026-10-27)
+
+
+### Features
+
+* refuse program files on the C64GS and the MAX Machine ([782495e](https://github.com/elektronaut/badline/commit/782495ea3dd6afe45936aef5ea485b74f03e58c9))
+* refuse program files on the C64GS and the MAX Machine ([ed9df54](https://github.com/elektronaut/badline/commit/ed9df5493b6257bdeef2d9cfd407fa82b5cd69e1))
+
 ## [0.19.0](https://github.com/elektronaut/badline/compare/v0.18.0...v0.19.0) (2026-10-27)
 
 ### Highlights
